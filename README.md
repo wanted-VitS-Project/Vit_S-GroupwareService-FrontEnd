@@ -1,36 +1,387 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 📌 Pull Request 규칙
 
-## Getting Started
+본 프로젝트는 `main` 브랜치에 직접 Push하지 않으며, 반드시 `develop` 브랜치를 거쳐 병합합니다.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# 📌 이슈 작성 방식
+
+이슈는 GitHub 이슈 템플릿을 사용해 생성하며, 목적에 맞는 템플릿을 선택합니다.
+
+| 템플릿     | 파일            | 용도                                   | 라벨         |
+| ---------- | --------------- | -------------------------------------- | ------------ |
+| ✨ Feature | `new-issue.yml` | 새로운 기능 추가 요청                  | `feature`    |
+| 📒 Task    | `task.yml`      | 일반 업무·태스크 (문서, 설계, 조사 등) | `Type: Task` |
+
+## 작성 규칙
+
+- **제목**: Task 이슈는 `[TASK] 작업명` 형식(템플릿 기본값), Feature 이슈는 기능명을 간결하게 작성합니다.
+- **본문**: 템플릿의 필수 항목(설명/개요, 작업 내용/액션 아이템)을 반드시 채웁니다.
+- **작업 내용**은 체크박스로 최대한 세분화해 작성합니다.
+- 담당자·기한·참고 자료 항목이 있으면 함께 기입합니다.
+- 완료 시 이슈 본문 또는 댓글에 결과물(PR 링크, 노션 링크 등)을 남깁니다.
+
+## 이슈 ↔ PR 연결
+
+- PR 본문의 `close #이슈번호` 로 이슈를 연결합니다. (PR 병합 시 이슈 자동 종료)
+
+---
+
+# 🌿 브랜치 흐름
+
+```text
+작업 브랜치
+      │
+      ▼
+ develop
+      │
+      ▼
+   main
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 작업 절차
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. `develop` 브랜치에서 작업 브랜치를 생성합니다.
+2. 기능 개발 또는 버그 수정을 진행합니다.
+3. 작업 완료 후 `develop` 브랜치를 대상으로 Pull Request를 생성합니다.
+4. 코드 리뷰를 진행한 후 `develop` 브랜치에 병합합니다.
+5. 릴리즈 시 `develop` 브랜치에서 `main` 브랜치로 Release Pull Request를 생성합니다.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+# 📌 Pull Request 유형
 
-To learn more about Next.js, take a look at the following resources:
+PR 제목은 아래 Type을 사용합니다.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Type      | 설명                     |
+| --------- | ------------------------ |
+| `[FEAT]`  | 새로운 기능 추가         |
+| `[FIX]`   | 버그 수정                |
+| `[REF]`   | 코드 리팩토링            |
+| `[STYLE]` | UI 및 CSS 수정           |
+| `[DOCS]`  | 문서 수정                |
+| `[TEST]`  | 테스트 코드 추가 및 수정 |
+| `[CHORE]` | 빌드, 설정 및 기타 작업  |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+> 타입은 **대괄호 + 대문자**로 표기합니다. (예: `[FEAT]`)
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# 📌 Pull Request 제목 작성 규칙
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+PR 제목은 **이번 Pull Request의 대표 작업**을 기준으로 작성합니다.
+
+### 작성 형식
+
+```text
+[TYPE] 작업 요약
+```
+
+### 작성 예시
+
+#### 하나의 작업만 포함된 경우
+
+```text
+[FEAT] AI 채팅 기능 추가
+```
+
+```text
+[FIX] 로그인 세션 유지 오류 수정
+```
+
+#### 여러 작업이 함께 포함된 경우
+
+```text
+[FEAT] 문제 풀이 및 AI 채팅 기능 구현
+```
+
+```text
+[FEAT] 관리자 페이지 기능 추가 및 UI 개선
+```
+
+```text
+[REF] 채팅 및 문제 풀이 컴포넌트 구조 개선
+```
+
+```text
+[CHORE] 프로젝트 설정 및 CI 환경 구성
+```
+
+---
+
+## 작성 규칙
+
+- PR 제목은 **가장 큰 작업 목적**을 기준으로 작성합니다.
+- 하나의 PR에는 여러 변경 사항이 포함될 수 있으며, 세부 내용은 PR 본문에 작성합니다.
+- 서로 성격이 다른 작업(예: 새로운 기능 추가와 대규모 리팩토링)은 가능한 경우 별도의 PR로 분리하는 것을 권장합니다.
+- PR 제목은 간결하게 작성하고, 상세 변경 사항은 PR 본문에서 **Added**, **Changed**, **Fixed** 항목으로 구분하여 작성합니다.
+
+---
+
+# 📌 Pull Request 생성 규칙
+
+- 작업 완료 후 반드시 `develop` 브랜치를 대상으로 Pull Request를 생성합니다.
+- PR 생성 전 최신 `develop` 브랜치의 변경 사항을 반영합니다.
+- 모든 변경 사항은 충분한 테스트를 완료한 후 Pull Request를 생성합니다.
+- 코드 리뷰 및 승인 후에만 병합합니다.
+- `main` 브랜치는 Release Pull Request를 통해서만 병합합니다.
+
+---
+
+# 📄 Pull Request 템플릿
+
+- 일반 Pull Request는 `.github/PULL_REQUEST_TEMPLATE.md`를 사용합니다.
+- 릴리즈 Pull Request(`develop → main`)는 `.github/RELEASE_PR_TEMPLATE.md`를 사용합니다.
+
+---
+
+# 📌 Release PR 및 자동 배포 규칙
+
+`develop → main` Release PR이 병합되면 `.github/workflows/release.yml`가 자동으로 **Git 태그 생성 + GitHub Release 발행**을 수행합니다.
+
+## ⚠️ Release PR 제목 규칙 (필수)
+
+Release PR 제목은 반드시 아래 형식을 지켜야 합니다. **형식이 다르면 워크플로우가 실패**합니다.
+
+```text
+[Release] vX.Y.Z
+```
+
+예시: `[Release] v1.0.0`
+
+## 자동화 동작
+
+1. `main`에 push 발생 → 해당 커밋의 `develop → main` PR을 탐색합니다.
+2. PR 제목에서 버전(`vX.Y.Z`)을 추출합니다.
+3. 동일 태그 중복 여부를 확인한 뒤 태그를 생성하고 push합니다.
+4. PR 본문에서 릴리즈 노트를 추출해 GitHub Release를 발행합니다.
+
+> `main` 브랜치는 `[Release]` 형식의 Release PR로만 병합합니다. 그 외 `develop → main` 병합은 워크플로우가 실패로 처리합니다.
+
+## ⚠️ 본문 헤더 고정
+
+release.yml는 Release PR 본문의 **H1 헤더 문구를 기준으로** 릴리즈 노트를 추출합니다. `RELEASE_PR_TEMPLATE.md`의 아래 헤더(문구·이모지)를 바꾸면 추출이 깨지므로 수정하지 마세요.
+
+| 추출 대상          | 범위                                               |
+| ------------------ | -------------------------------------------------- |
+| 릴리즈 요약 + 노트 | `# 📖 릴리즈 요약` ~ `# 🧪 릴리즈 체크리스트` 직전 |
+| 기타 사항          | `# 💬 기타 사항` ~ 문서 끝                         |
+
+즉 릴리즈 본문에는 **릴리즈 요약 · 릴리즈 노트 · 기타 사항**만 포함되며, 체크리스트·버전 정보·Git Tag 섹션은 제외됩니다.
+
+---
+
+# 📌 Git 버전 관리 가이드
+
+본 프로젝트는 **Semantic Versioning(SemVer)** 규칙을 기반으로 버전을 관리합니다.
+
+## 📖 Version Rule
+
+버전은 `MAJOR.MINOR.PATCH` 형식을 따릅니다.
+
+| 항목                | 설명                                       | 예시            |
+| ------------------- | ------------------------------------------ | --------------- |
+| **MAJOR (주 버전)** | 기존 버전과 호환되지 않는 큰 변경사항 발생 | `1.0.0 → 2.0.0` |
+| **MINOR (부 버전)** | 기존 기능과 호환되는 새로운 기능 추가      | `1.0.0 → 1.1.0` |
+| **PATCH (수 버전)** | 기존 기능과 호환되는 버그 수정 및 개선     | `1.0.0 → 1.0.1` |
+
+---
+
+# 📌 Version Update 기준
+
+## PATCH
+
+다음과 같은 경우 PATCH 버전을 증가시킵니다.
+
+- 버그 수정
+- UI 수정
+- CSS 수정
+- API 오류 수정
+- 성능 개선
+- 오타 및 문서 수정
+
+**예시**
+
+```
+v1.0.0 → v1.0.1
+```
+
+---
+
+## MINOR
+
+다음과 같은 경우 MINOR 버전을 증가시킵니다.
+
+- 새로운 기능 추가
+- 새로운 화면 추가
+- 새로운 API 연동
+- 기존 기능 확장
+
+**예시**
+
+```
+v1.0.0 → v1.1.0
+```
+
+---
+
+## MAJOR
+
+다음과 같은 경우 MAJOR 버전을 증가시킵니다.
+
+- 프로젝트 구조 변경
+- 데이터베이스 구조 변경
+- 기존 API와 호환되지 않는 변경
+- 인증 방식 변경
+- 서비스 전체 리팩토링
+
+**예시**
+
+```
+v1.0.0 → v2.0.0
+```
+
+---
+
+# 📌 Project Version History
+
+| Version    | Description                    |
+| ---------- | ------------------------------ |
+| **v0.1.0** | 프로젝트 생성 및 개발환경 구축 |
+| **v0.2.0** | 회원 기능 구현                 |
+| **v0.3.0** | AI 채팅 기능 구현              |
+| **v0.4.0** | 문제 풀이 기능 구현            |
+| **v0.5.0** | 관리자 기능 구현               |
+| **v0.6.0** | UI/UX 개선                     |
+| **v0.7.0** | 테스트 및 버그 수정            |
+| **v1.0.0** | 최종 발표 및 배포 버전         |
+
+※ 위 버전은 프로젝트 진행 상황에 따라 변경될 수 있습니다.
+
+---
+
+# 📌 Release Note 작성 규칙
+
+프로젝트의 변경 사항은 버전별로 관리하며, 각 버전에서는 **기능(제목)** 단위로 변경 내역을 기록합니다.
+
+## 작성 형식
+
+```text
+버전 (날짜)
+
+### 기능명 또는 작업명
+
+- Added
+  - 추가된 기능
+
+- Changed
+  - 변경된 내용
+
+- Fixed
+  - 수정된 오류
+```
+
+---
+
+## 예시
+
+# v0.4.0 (2026-06-26)
+
+### 문제 풀이 기능
+
+- **Added**
+  - 문제 조회 기능 추가
+  - 코드 제출 API 연동
+  - 힌트 기능 구현
+
+- **Changed**
+  - 문제 상세 화면 UI 개선
+  - 코드 에디터 레이아웃 수정
+
+- **Fixed**
+  - 제출 API 400 Bad Request 오류 수정
+  - 문제 번호 이동 오류 수정
+
+---
+
+### AI 채팅 기능
+
+- **Added**
+  - 채팅방 생성 기능 추가
+  - 채팅 기록 조회 기능 구현
+
+- **Changed**
+  - 메시지 출력 방식 개선
+  - 채팅방 진입 로직 수정
+
+- **Fixed**
+  - 채팅방 목록 조회 오류 수정
+  - 502 Bad Gateway 오류 수정
+
+---
+
+### 관리자 페이지
+
+- **Added**
+  - 문제 등록 기능 추가
+
+- **Changed**
+  - 관리자 메뉴 UI 개선
+
+- **Fixed**
+  - 권한 체크 오류 수정
+
+---
+
+## 작성 규칙
+
+- 하나의 버전에는 여러 기능(제목)을 작성할 수 있습니다.
+- 변경 사항은 반드시 **Added / Changed / Fixed** 항목으로 구분하여 작성합니다.
+- 해당 항목이 없는 경우 생략할 수 있습니다.
+- 버그 수정만 있는 경우 **Fixed**만 작성해도 됩니다.
+- 새로운 기능과 UI 개선이 함께 이루어진 경우 각각 **Added**, **Changed**에 구분하여 작성합니다.
+
+---
+
+## 예시 (버그 수정만 진행한 경우)
+
+# v0.4.1 (2026-06-28)
+
+### 문제 제출
+
+- **Fixed**
+  - 제출 API 응답 오류 수정
+  - 예외 처리 로직 개선
+
+---
+
+## 예시 (기능 추가만 진행한 경우)
+
+# v0.5.0 (2026-07-03)
+
+### AI 채팅
+
+- **Added**
+  - 채팅방 제목 변경 기능 추가
+  - 채팅방 삭제 기능 추가
+  - 최근 채팅 목록 조회 기능 추가
+
+---
+
+# 📌 Git Tag
+
+릴리즈 시 태그를 생성합니다.
+
+```bash
+git tag v0.4.0
+git push origin v0.4.0
+```
+
+최종 발표 및 배포 시
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+---
