@@ -6,6 +6,56 @@
 
 ---
 
+## [2026-08-04] #1 공통 레이아웃 구성 ✅
+
+브랜치: `feat/login-page`
+
+### 변경 파일
+
+| 파일                                              | 변경             |
+| ------------------------------------------------- | ---------------- |
+| `src/components/AppShell.tsx`                     | 생성             |
+| `src/components/MenuIcon.tsx`                     | 생성             |
+| `src/components/Sidebar.tsx`                      | 구현             |
+| `src/components/Header.tsx`                       | 구현             |
+| `src/components/PageTitle.tsx`                    | 구현             |
+| `src/features/auth/useCurrentUser.ts`             | 생성             |
+| `src/constants/menu.ts`                           | 역할별 메뉴 정의 |
+| `src/app/approvals/page.tsx` · `mypage/page.tsx`  | 생성             |
+| `src/app/layout.tsx` · `page.tsx` · `globals.css` | 수정             |
+
+### 주요 작업 내용
+
+- `AppShell` 로 공통 레이아웃 분기 — 사이드바 280px · 헤더 72px, `/login` `/forbidden` 은 레이아웃 제외
+- 사이드바에 프로필 영역(이미지 자리 · 이름 · 직급 · 부서)과 역할별 메뉴, 현재 화면 활성 표시 구현
+- 헤더가 경로로 현재 화면 제목을 판단하도록 구성, 알림 · 내 정보 진입점 배치
+- `MENU_BY_ROLE` 로 ADMIN / MASTER · MEMBER 메뉴 분기, `/approvals` `/mypage` 라우트 추가
+
+### 트러블슈팅
+
+- **문제**: 루트 `layout.tsx` 에 사이드바를 넣으면 로그인 화면에도 사이드바가 표시됨
+- **원인**: App Router 의 `layout.tsx` 는 하위 전체에 적용된다
+- **해결**: 라우트 그룹 분리 대신 `AppShell` 에서 `usePathname` 으로 분기 — 기존 폴더를 옮기지 않아 diff 를 줄였다
+
+- **문제**: 본문 폰트가 Geist 로 적용되지 않음
+- **원인**: `globals.css` 의 `body { font-family: Arial, ... }` (Next 기본 템플릿 잔재)가 덮어씀
+- **해결**: `var(--font-sans)` 로 교체. 함께 남아 있던 다크모드 블록도 제거 (현재 디자인이 라이트 기준)
+
+- **문제**: 헤더 경계선이 진한 색으로 보임
+- **원인**: Tailwind v4 는 `border` 기본색이 `currentColor` 다 (v3 의 gray-200 아님)
+- **해결**: `border-slate-200` 명시
+
+### 부수 결정
+
+- 메뉴 노출은 화면 편의일 뿐 **권한 통제가 아니다.** 실제 차단은 백엔드 403 → `/forbidden`
+- MASTER · MEMBER 는 메뉴가 동일해 `STAFF_MENU` 하나로 공유
+- 로그인 사용자는 `useCurrentUser` 임시 값 — `GET /api/v1/auth/me` 연동 시 이 파일만 교체
+- 내 정보는 `/settings`(조직 설정)와 분리해 `/mypage` 신설
+- `/` 는 `/login` 리다이렉트를 걷어내고 대시보드로 전환 (인증 가드는 인증 방식 확정 후)
+- CSS 는 크기·구분에 필요한 최소만 작성 — 디자인 확정 후 다시 입힌다
+
+---
+
 ## [2026-08-04] #21 프로젝트 폴더 구조 · 라우트 골격 구성 ✅
 
 브랜치: `feat/project-structure`
