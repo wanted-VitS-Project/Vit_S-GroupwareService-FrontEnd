@@ -10,7 +10,11 @@ import { useCurrentUser } from '@/features/auth/useCurrentUser';
 export default function Sidebar() {
   const pathname = usePathname();
   const user = useCurrentUser();
-  const activeHref = findActiveMenu(pathname, user.role)?.href;
+  // 역할을 알아야 메뉴를 고를 수 있어서, 불러오기 전에는 빈 목록을 쓴다
+  const menu = user ? MENU_BY_ROLE[user.role] : [];
+  const activeHref = user
+    ? findActiveMenu(pathname, user.role)?.href
+    : undefined;
 
   return (
     <aside className="w-70 shrink-0 bg-slate-950 text-slate-300">
@@ -22,17 +26,19 @@ export default function Sidebar() {
       >
         {/* TODO: 프로필 이미지 자리 */}
         <div className="size-10 shrink-0 rounded-full bg-slate-700" />
-        <div>
-          <div className="text-white">
-            <b>{user.name}</b> {user.rank}
+        <div className="min-w-0">
+          <div className="truncate text-white">
+            <b>{user?.name}</b> {user?.jobPositionName}
           </div>
-          <div className="text-xs text-slate-500">{user.team}</div>
+          <div className="truncate text-xs text-slate-500">
+            {user?.departmentPath}
+          </div>
         </div>
       </Link>
 
       <nav aria-label="주 메뉴" className="p-3">
         <ul>
-          {MENU_BY_ROLE[user.role].map((item) => {
+          {menu.map((item) => {
             const isActive = item.href === activeHref;
 
             return (

@@ -1,24 +1,10 @@
-import type { Role } from '@/constants/menu';
+'use client';
 
-export interface CurrentUser {
-  name: string;
-  rank: string;
-  team: string;
-  role: Role;
-}
+import { useContext } from 'react';
 
-/**
- * 로그인 사용자.
- * TODO: GET /api/v1/auth/me 연동. 지금은 화면 확인용 임시 값이다.
- *       역할별 사이드바를 보려면 아래 role 을 ADMIN · MASTER · MEMBER 로 바꾼다.
- */
-const MOCK_USER: CurrentUser = {
-  name: '김민수',
-  rank: '대리',
-  team: '마케팅부 웹디자인팀',
-  role: 'MASTER',
-};
+import { CurrentUserContext } from './CurrentUserProvider';
 
+/** 아직 안 불러왔으면 null 이다. 호출하는 쪽에서 로딩 상태를 그린다. */
 export function useCurrentUser() {
-  return MOCK_USER;
+  return useContext(CurrentUserContext);
 }

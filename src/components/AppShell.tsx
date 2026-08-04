@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { BARE_LAYOUT_PATHS, isUnder } from '@/constants/menu';
+import CurrentUserProvider from '@/features/auth/CurrentUserProvider';
 
 /**
  * 공통 레이아웃 분기.
@@ -17,12 +18,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   if (isBare) return <>{children}</>;
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Header />
-        <main className="min-w-0 flex-1 bg-slate-50 p-6">{children}</main>
+    <CurrentUserProvider>
+      <div className="flex min-h-screen">
+        <Sidebar />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Header />
+          <main className="min-w-0 flex-1 bg-slate-50 p-6">{children}</main>
+        </div>
       </div>
-    </div>
+    </CurrentUserProvider>
   );
 }
