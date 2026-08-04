@@ -22,11 +22,13 @@ export default function Sidebar() {
       >
         {/* TODO: 프로필 이미지 자리 */}
         <div className="size-10 shrink-0 rounded-full bg-slate-700" />
-        <div>
-          <div className="text-white">
-            <b>{user.name}</b> {user.rank}
+        <div className="min-w-0">
+          <div className="truncate text-white">
+            <b>{user.name}</b> {user.jobPositionName}
           </div>
-          <div className="text-xs text-slate-500">{user.team}</div>
+          <div className="truncate text-xs text-slate-500">
+            {user.departmentPath}
+          </div>
         </div>
       </Link>
 

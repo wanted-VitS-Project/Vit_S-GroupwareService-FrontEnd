@@ -1,0 +1,31 @@
+import type { Role } from '@/constants/menu';
+
+export interface LoginRequest {
+  /** 사번 (화면에는 '아이디'로 노출) — 예: EMP001 */
+  userId: string;
+  password: string;
+}
+
+/** RESET_REQUIRED 면 비밀번호를 먼저 변경해야 한다 */
+export type PasswordStatus = 'NORMAL' | 'RESET_REQUIRED';
+
+export interface LoginResponse {
+  userId: string;
+  name: string;
+  role: Role;
+  passwordStatus: PasswordStatus;
+  departmentName: string;
+  /** 상위 조직까지 포함한 경로 — 예: '기술본부 / 개발팀' */
+  departmentPath: string;
+  jobPositionName: string;
+}
+
+/** GET /auth/me — 로그인 응답에 마이페이지용 필드가 더 붙는다 */
+export interface CurrentUser extends LoginResponse {
+  email: string;
+  phone: string;
+  /** YYYY-MM-DD */
+  hiredAt: string;
+  /** YYYY-MM-DD HH:mm:ss */
+  lastLoginAt: string;
+}
