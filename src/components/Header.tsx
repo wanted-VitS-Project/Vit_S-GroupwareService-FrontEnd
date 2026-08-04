@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { findActiveMenu, isUnder, type Role } from '@/constants/menu';
 import { logout } from '@/features/auth/api';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
+import { ApiError } from '@/lib/api';
 
 /** 헤더 제목. 메뉴에 없는 화면은 별도로 적어둔다. */
 const EXTRA_TITLES: Record<string, string> = {
@@ -15,9 +16,7 @@ const EXTRA_TITLES: Record<string, string> = {
   '/settings': '설정',
 };
 
-function titleOf(pathname: string, role: Role | undefined) {
-  if (!role) return '';
-
+function titleOf(pathname: string, role: Role) {
   const menu = findActiveMenu(pathname, role);
   if (menu) return menu.label;
 
@@ -32,24 +31,43 @@ export default function Header() {
   const router = useRouter();
   const user = useCurrentUser();
   const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState('');
 
   async function handleLogout() {
     if (isPending) return;
+
+    setError('');
     setIsPending(true);
 
-    // 401(이미 만료)이든 성공이든 갈 곳은 로그인 화면이라 결과를 나누지 않는다
-    await logout().catch(() => {});
+    try {
+      await logout();
+    } catch (caught) {
+      // 401 은 세션이 이미 없다는 뜻이라 성공과 같게 본다
+      const isGone = caught instanceof ApiError && caught.status === 401;
 
-    // refresh 로 라우터 캐시를 비워야 미들웨어가 만료된 쿠키를 다시 판단한다
+      if (!isGone) {
+        // 쿠키가 살아 있으므로 이동하면 안 된다. 이동해도 프록시가 되돌려 보낸다
+        setError('로그아웃하지 못했습니다.');
+        setIsPending(false);
+        return;
+      }
+    }
+
+    // refresh 로 라우터 캐시를 비워야 프록시가 쿠키를 다시 판단한다
     router.replace('/login');
     router.refresh();
   }
 
   return (
     <header className="flex h-18 shrink-0 items-center justify-between border-b border-slate-200 px-6">
-      <h1 className="font-bold">{titleOf(pathname, user?.role)}</h1>
+      <h1 className="font-bold">{titleOf(pathname, user.role)}</h1>
 
       <div className="flex items-center gap-4 text-sm">
+        {error && (
+          <span role="alert" className="text-rose-600">
+            {error}
+          </span>
+        )}
         <Link href="/notifications">알림</Link>
         <Link href="/mypage">내 정보</Link>
         <button

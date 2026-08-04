@@ -19,11 +19,8 @@ export default function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // 로그인 성공 후 / 로 돌아왔을 때 다시 /login 으로 튕기는 무한루프를 막는다
-  if (hasSession && pathname === '/login') {
-    return NextResponse.redirect(new URL('/', request.url));
-  }
-
+  // 쿠키가 있다고 /login 진입을 막지 않는다.
+  // 만료된 쿠키는 여기서 걸러낼 수 없어서, 막으면 /login ↔ / 리디렉션 루프가 된다.
   return NextResponse.next();
 }
 
