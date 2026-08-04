@@ -19,7 +19,7 @@
 
 > ⚠️ 토큰을 localStorage 등에 저장하지 않는다. 쿠키는 브라우저가 알아서 싣는다.
 > ℹ️ 쿠키 속성: `HttpOnly` · `SameSite=Lax` · 만료 `Session`(브라우저 종료 시 소멸) — 로그인 유지 체크박스는 없다.
-> ℹ️ 로그인 여부 판단은 서버(`src/middleware.ts`)에서만 가능하다. HttpOnly 라 JS 로 읽을 수 없다.
+> ℹ️ 로그인 여부 판단은 서버(`src/proxy.ts`)에서만 가능하다. HttpOnly 라 JS 로 읽을 수 없다.
 > ℹ️ 백엔드가 `deviceId` 쿠키(HttpOnly, 장기 만료)도 함께 내려준다. 프론트가 다루지 않는다.
 > ⚠️ 백엔드 CORS 에 프론트 오리진 허용 + `allowCredentials=true` 가 설정돼 있어야 한다.
 

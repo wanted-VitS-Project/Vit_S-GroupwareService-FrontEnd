@@ -1,16 +1,16 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 /**
- * 인증 가드.
+ * 인증 가드. (Next 16 부터 middleware.ts 대신 proxy.ts 규약을 쓴다)
  *
- * 세션 쿠키가 HttpOnly 라 JS 로는 못 읽고 미들웨어(서버)에서만 확인할 수 있다.
+ * 세션 쿠키가 HttpOnly 라 JS 로는 못 읽고 서버에서만 확인할 수 있다.
  * 쿠키 존재 여부만 보며, 유효성 판단은 백엔드 몫이다 — 만료된 쿠키는 API 401 로 걸러진다.
  */
 
 const SESSION_COOKIE = 'SESSION';
 const PUBLIC_PATHS = ['/login', '/forbidden'];
 
-export function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.includes(pathname);
   const hasSession = request.cookies.has(SESSION_COOKIE);

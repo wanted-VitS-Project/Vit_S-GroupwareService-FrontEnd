@@ -21,7 +21,7 @@
 | `src/features/auth/CurrentUserProvider.tsx` | 생성 — `/me` 조회 컨텍스트      |
 | `src/features/auth/useCurrentUser.ts`       | 임시 값 → 컨텍스트 기반 교체    |
 | `src/app/login/page.tsx`                    | 로그인 폼 구현                  |
-| `src/middleware.ts`                         | 생성 — 인증 가드                |
+| `src/proxy.ts`                              | 생성 — 인증 가드                |
 | `src/components/Header.tsx`                 | 로그아웃 버튼 · `/me` 연동      |
 | `src/components/Sidebar.tsx`                | 프로필 · 메뉴를 실제 응답으로   |
 | `src/components/AppShell.tsx`               | Provider 연결                   |
@@ -35,7 +35,7 @@
 - `src/features/auth` — `login()` · `logout()` · `getMe()` 와 타입 정의. `CurrentUser extends LoginResponse` 로 `/me` 추가 필드(`email` · `phone` · `hiredAt` · `lastLoginAt`) 표현
 - 로그인 화면 — 아이디(사번) · 비밀번호 폼, 비밀번호 보기 토글 아이콘, 상태코드별 안내 문구, 로딩 중 버튼 비활성
 - `passwordStatus === 'RESET_REQUIRED'` 면 대시보드 대신 비밀번호 변경 경로로 분기 (현재 `/mypage` 임시)
-- `src/middleware.ts` 인증 가드 — 세션 쿠키 없으면 `/login`, 있는 채로 `/login` 진입 시 대시보드로
+- `src/proxy.ts` 인증 가드 — 세션 쿠키 없으면 `/login`, 있는 채로 `/login` 진입 시 대시보드로
 - `CurrentUserProvider` 로 `/me` 를 한 번만 불러 사이드바 프로필 · 역할별 메뉴 · 헤더 제목에 공급
 
 ### 부수 결정
@@ -45,8 +45,9 @@
 - 423(계정 잠금)은 해제 시각이 담긴 백엔드 `message` 를 그대로 노출 — 프론트 상수로 덮지 않는다
 - 에러 문구 자리를 `min-h-10` 으로 미리 잡아 에러 발생 시 버튼이 밀리지 않게 함
 - 응답이 오지 않은 경우(네트워크 단절 · CORS 차단)는 `status: 0` 의 `ApiError` 로 감싼다
-- **인증 가드는 미들웨어에서 한다.** HttpOnly 쿠키는 JS 로 못 읽어 클라이언트 분기가 불가능하다
-- 미들웨어는 쿠키 **존재 여부만** 본다 — 유효성은 백엔드 몫, 만료 쿠키는 API 401 로 걸러진다
+- **인증 가드는 서버(`src/proxy.ts`)에서 한다.** HttpOnly 쿠키는 JS 로 못 읽어 클라이언트 분기가 불가능하다
+- **Next 16 부터 `middleware.ts` 규약이 deprecated** — `proxy.ts` + `export default function proxy` 로 작성한다
+- 가드는 쿠키 **존재 여부만** 본다 — 유효성은 백엔드 몫, 만료 쿠키는 API 401 로 걸러진다
 - `/` 를 `/login` 으로 무조건 리다이렉트하지 않는다 — 로그인 성공 후 `/` 로 돌아와 **무한루프**가 된다
 - 로그아웃은 **401 도 성공과 같게 처리**한다 — 세션이 이미 없다는 뜻이라 결과가 같다
 - 로그아웃 후 `router.refresh()` 를 함께 호출한다 — 라우터 캐시를 비워야 미들웨어가 쿠키를 다시 판단한다
