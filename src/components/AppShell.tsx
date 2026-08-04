@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
-import { BARE_LAYOUT_PATHS } from '@/constants/menu';
+import { BARE_LAYOUT_PATHS, isUnder } from '@/constants/menu';
 
 /**
  * 공통 레이아웃 분기.
@@ -12,7 +12,7 @@ import { BARE_LAYOUT_PATHS } from '@/constants/menu';
  */
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isBare = BARE_LAYOUT_PATHS.some((path) => pathname.startsWith(path));
+  const isBare = BARE_LAYOUT_PATHS.some((path) => isUnder(pathname, path));
 
   if (isBare) return <>{children}</>;
 

@@ -66,3 +66,23 @@ export const MENU_BY_ROLE: Record<Role, MenuItem[]> = {
 
 /** 공통 레이아웃(사이드바 · 헤더)을 씌우지 않는 경로 */
 export const BARE_LAYOUT_PATHS = ['/login', '/forbidden'];
+
+/**
+ * 경로가 base 에 속하는지 판단한다.
+ * `/login-help` 가 `/login` 에 걸리지 않도록 `/` 경계까지 확인한다.
+ */
+export function isUnder(pathname: string, base: string) {
+  return pathname === base || pathname.startsWith(`${base}/`);
+}
+
+/**
+ * 현재 경로에 해당하는 메뉴 하나.
+ * `/projects/new` 처럼 여러 항목이 걸리면 가장 구체적인(경로가 긴) 것을 고른다.
+ */
+export function findActiveMenu(pathname: string, role: Role) {
+  return MENU_BY_ROLE[role]
+    .filter((item) =>
+      item.exact ? pathname === item.href : isUnder(pathname, item.href),
+    )
+    .sort((a, b) => b.href.length - a.href.length)[0];
+}

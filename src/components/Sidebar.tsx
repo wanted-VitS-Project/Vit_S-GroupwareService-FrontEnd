@@ -4,12 +4,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import MenuIcon from '@/components/MenuIcon';
-import { MENU_BY_ROLE } from '@/constants/menu';
+import { findActiveMenu, MENU_BY_ROLE } from '@/constants/menu';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const user = useCurrentUser();
+  const activeHref = findActiveMenu(pathname, user.role)?.href;
 
   return (
     <aside className="w-70 shrink-0 bg-slate-950 text-slate-300">
@@ -32,9 +33,7 @@ export default function Sidebar() {
       <nav aria-label="주 메뉴" className="p-3">
         <ul>
           {MENU_BY_ROLE[user.role].map((item) => {
-            const isActive = item.exact
-              ? pathname === item.href
-              : pathname.startsWith(item.href);
+            const isActive = item.href === activeHref;
 
             return (
               <li key={item.href}>

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import { MENU_BY_ROLE, type Role } from '@/constants/menu';
+import { findActiveMenu, isUnder, type Role } from '@/constants/menu';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 /** 헤더 제목. 메뉴에 없는 화면은 별도로 적어둔다. */
@@ -14,13 +14,11 @@ const EXTRA_TITLES: Record<string, string> = {
 };
 
 function titleOf(pathname: string, role: Role) {
-  const menu = MENU_BY_ROLE[role].find((item) =>
-    item.exact ? pathname === item.href : pathname.startsWith(item.href),
-  );
+  const menu = findActiveMenu(pathname, role);
   if (menu) return menu.label;
 
   const extra = Object.keys(EXTRA_TITLES).find((path) =>
-    pathname.startsWith(path),
+    isUnder(pathname, path),
   );
   return extra ? EXTRA_TITLES[extra] : '';
 }
