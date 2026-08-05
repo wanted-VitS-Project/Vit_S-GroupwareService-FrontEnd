@@ -41,7 +41,17 @@ export function messageOf(error: unknown, fallback: string) {
   return error instanceof ApiError ? error.message : fallback;
 }
 
-async function request<T>(path: string, method: string, body?: unknown) {
+/** 요청 취소가 필요한 호출은 `AbortController.signal` 을 넘긴다 */
+export function isAbortError(error: unknown) {
+  return error instanceof DOMException && error.name === 'AbortError';
+}
+
+async function request<T>(
+  path: string,
+  method: string,
+  body?: unknown,
+  signal?: AbortSignal,
+) {
   let response: Response;
 
   try {
@@ -51,8 +61,12 @@ async function request<T>(path: string, method: string, body?: unknown) {
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal,
     });
-  } catch {
+  } catch (caught) {
+    // 취소는 호출 측이 의도한 것이라 네트워크 오류로 바꾸지 않고 그대로 던진다
+    if (isAbortError(caught)) throw caught;
+
     // status 0 = 네트워크 단절 · CORS 차단 등 응답 자체가 오지 않은 경우
     throw new ApiError(
       0,
@@ -83,7 +97,12 @@ async function request<T>(path: string, method: string, body?: unknown) {
 }
 
 export const api = {
-  get: <T>(path: string) => request<T>(path, 'GET'),
-  post: <T>(path: string, body?: unknown) => request<T>(path, 'POST', body),
-  patch: <T>(path: string, body?: unknown) => request<T>(path, 'PATCH', body),
+  get: <T>(path: string, signal?: AbortSignal) =>
+    request<T>(path, 'GET', undefined, signal),
+  post: <T>(path: string, body?: unknown, signal?: AbortSignal) =>
+    request<T>(path, 'POST', body, signal),
+  patch: <T>(path: string, body?: unknown, signal?: AbortSignal) =>
+    request<T>(path, 'PATCH', body, signal),
+  delete: <T>(path: string, signal?: AbortSignal) =>
+    request<T>(path, 'DELETE', undefined, signal),
 };

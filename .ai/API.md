@@ -224,5 +224,300 @@ interface ChangePasswordRequest {
 
 ---
 
+## 6. 프로젝트 상세 조회
+
+| 항목          | 내용                                           |
+| ------------- | ---------------------------------------------- |
+| **Method**    | `GET`                                          |
+| **Path**      | `/api/v1/projects/{projectId}`                 |
+| **인증 필요** | ✅                                             |
+| **사용 위치** | `src/features/project/api.ts` → `getProject()` |
+
+**Response (200 OK)**
+
+```ts
+{
+  httpStatus: 200,
+  message: '요청이 성공적으로 처리되었습니다.',
+  data: {
+    projectId: number;
+    name: string;              // 과업명
+    description: string | null;
+    clientName: string;        // 발주처
+    status: string;            // 'IN_PROGRESS' 등 — enum 미확정
+    startedOn: string;         // '2026-03-01'
+    endedOn: string;           // '2026-12-31'
+    contractAmount: number;    // 계약금액
+    progressRate?: number;     // 진척률(%) — 스텝 0개면 응답에 없다
+    stepCount: number;
+    doneStepCount: number;
+    businessCategories: { categoryId: number; name: string; code: string }[];
+    bidNoticeId: number | null;
+    closeReasonCode: string | null;  // 종결 건만
+    closeReasonNote: string | null;
+    myPermission: 'VIEWER' | 'EDITOR';
+    createdAt: string;         // '2026-08-05T03:39:08'
+  }
+}
+```
+
+> ⚠️ `progressRate` 는 **선택 필드**다. 스텝이 0개면 아예 오지 않으므로 `?? 0` 로 받는다.
+> ⚠️ `myPermission === 'VIEWER'` 면 수정·추가 버튼을 숨긴다. (실제 차단은 백엔드가 한다)
+> ❗ **참여자 목록 API 가 아직 없다.** `ProjectSidebar` 의 참여자 영역은 `MOCK_MEMBERS` 로 그리고 있다.
+
+---
+
+## 7. 프로젝트 스테이지 목록
+
+| 항목          | 내용                                                 |
+| ------------- | ---------------------------------------------------- |
+| **Method**    | `GET`                                                |
+| **Path**      | `/api/v1/projects/{projectId}/stages`                |
+| **인증 필요** | ✅                                                   |
+| **사용 위치** | `src/features/project/api.ts` → `getProjectStages()` |
+
+**Response (200 OK)**
+
+```ts
+{
+  httpStatus: 200,
+  message: '요청이 성공적으로 처리되었습니다.',
+  data: {
+    stages: {
+      stageId: number;
+      name: string;      // '요구분석'
+      sortOrder: number; // 정렬 순서
+      stepCount: number; // 소속 스텝 수
+    }[];
+  }
+}
+```
+
+> ℹ️ `data` 안에 `stages` 로 한 겹 더 감싸져 있다. `getProjectStages()` 가 벗겨서 배열만 반환한다.
+> ℹ️ **`sortOrder` 오름차순으로 정렬되어 온다** — 프론트에서 다시 정렬하지 않는다.
+
+---
+
+## 8. 프로젝트 스텝 목록
+
+| 항목          | 내용                                                |
+| ------------- | --------------------------------------------------- |
+| **Method**    | `GET`                                               |
+| **Path**      | `/api/v1/projects/{projectId}/steps`                |
+| **인증 필요** | ✅                                                  |
+| **사용 위치** | `src/features/project/api.ts` → `getProjectSteps()` |
+
+**Response (200 OK)**
+
+```ts
+{
+  httpStatus: 200,
+  message: '요청이 성공적으로 처리되었습니다.',
+  data: {
+    steps: {
+      stepId: number;
+      stageId: number | null;   // null = 스테이지 미배정
+      name: string;
+      status: 'NOT_STARTED' | 'IN_PROGRESS' | 'DONE';
+      sortOrder: number;
+      startedOn: string;        // '2026-03-01'
+      endedOn: string;          // '2026-03-15'
+      owner: { userId: string; name: string } | null;
+      totalIssueCount: number;
+      doneIssueCount: number;
+      inProgressIssueCount: number;
+      progressRate?: number;    // 이슈 0개면 응답에 없다
+      myPermission: 'VIEWER' | 'EDITOR';
+    }[];
+  }
+}
+```
+
+> ⚠️ **`stageId` 가 `null` 인 스텝이 있다.** 어느 스테이지에도 안 붙은 스텝이라, 사이드바는 `미분류` 묶음으로 따로 보여준다.
+> ⚠️ `progressRate` 는 **선택 필드**다. 이슈가 0개면 오지 않으므로 `?? 0` 로 받는다.
+> ℹ️ 스텝 진척률 바는 `inProgressIssueCount`(노랑) · `doneIssueCount`(파랑) · 나머지(회색) 비율로 그린다.
+> ℹ️ 명세 표에는 없지만 실제 응답에 **`inProgressIssueCount`** 가 포함된다.
+
+---
+
+## 9. 블록 생성
+
+| 항목          | 내용                                          |
+| ------------- | --------------------------------------------- |
+| **Method**    | `POST`                                        |
+| **Path**      | `/api/v1/steps/{stepId}/blocks`               |
+| **인증 필요** | ✅ (스텝 `EDITOR`)                            |
+| **사용 위치** | `src/features/block/api.ts` → `createBlock()` |
+| **요구사항**  | BLK-001 · BLK-002 · BLK-003                   |
+
+> ⚠️ 경로가 `/projects/{id}/...` 아래가 아니라 **`/steps/{stepId}`** 최상위다.
+
+**Request Body**
+
+```ts
+interface CreateBlockRequest {
+  type: BlockTypeCode; // 필수 — 아래 enum 9값만
+  title?: string; // 최대 200자. PAYMENT_CONFIRM 에서는 회차명
+  owner?: string; // 담당자 사번 (VARCHAR(20)) — 선택 (BLK-012)
+  rowIndex?: number; // 미지정 시 맨 아래
+  sortOrder?: number; // 행 내 순서
+  colSpan?: number; // 열 병합 수 1~3, 기본 1
+}
+```
+
+**`type` 허용값 (ERD `block.type` enum 9값)**
+
+| 값                 | 상세 테이블             | 카디널리티 | 화면 라벨       |
+| ------------------ | ----------------------- | ---------- | --------------- |
+| `TEXT`             | `text`                  | 1:1        | 텍스트          |
+| `IMAGE`            | `image`                 | 1:N        | 이미지          |
+| `CHECKLIST`        | `checklist`             | 1:N        | 체크리스트      |
+| `FILE`             | `block_file`            | 1:N        | 문서 업로드     |
+| `PAYMENT_CONFIRM`  | `block_payment_confirm` | 1:1        | 입금 확인       |
+| `TAX_INVOICE_VIEW` | `tax_invoice_confirm`   | 1:1        | 세금계산서 조회 |
+| `APPROVAL`         | `approval`              | 1:1        | 결재            |
+| `AI`               | `vitamate_block`        | 1:1        | AI Block        |
+| `BID_NOTICE`       | `bid_notice_block`      | 1:1        | 입찰 공고       |
+
+> ⚠️ ERD Cloud 상 테이블명이 다른 항목이 있다 — `IMAGE` → `img_block`, `CHECKLIST` → `chk_block`.
+> ℹ️ 화면 라벨 · 아이콘 색은 `src/features/block/types.ts` 의 `BLOCK_TYPES` 가 단일 소스다.
+> ❗ **응답 `data` 스키마는 확인 필요.** 현재 프론트는 응답 본문을 쓰지 않는다.
+> ❗ **에러 코드 목록도 확인 필요.** 지금은 백엔드 `message` 를 그대로 노출한다.
+
+---
+
+## 9-1. 스텝 블록 일괄 조회
+
+| 항목          | 내용                                            |
+| ------------- | ----------------------------------------------- |
+| **Method**    | `GET`                                           |
+| **Path**      | `/api/v1/steps/{stepId}/blocks`                 |
+| **인증 필요** | ✅                                              |
+| **사용 위치** | `src/features/block/api.ts` → `getStepBlocks()` |
+
+**Response (200 OK)**
+
+```ts
+data: {
+  blocks: {
+    blockId: number;
+    type: BlockTypeCode;
+    title: string | null;
+    owner: { userId: string; name: string } | null; // 미지정이면 null (BLK-012)
+    rowIndex: number;   // 같은 값끼리 한 행
+    sortOrder: number;  // 행 내 순서
+    colSpan: number;    // 1~3
+    detail: unknown;    // 타입별 상세 — 구조가 타입마다 다르다
+    linkedIssueTotal: number;
+    linkedIssueDone: number;
+  }[];
+}
+```
+
+> ℹ️ `data` 안에 `blocks` 로 한 겹 더 감싸져 있다. `getStepBlocks()` 가 벗겨서 배열만 반환한다.
+> ℹ️ **`rowIndex` · `sortOrder` 순으로 정렬되어 온다.** 보드는 그래도 한 번 더 묶고 정렬해 행 경계를 확실히 한다.
+> ⚠️ **`colSpan` 이 1~3 이다.** 블록 생성 명세와 같지만, 화면 기획상 1·2칸만 쓰이더라도 3까지 들어올 수 있어 보드는 3칸까지 그린다.
+> ⚠️ **`type` 이 "ERD enum 10값" 으로 적혀 있다.** 9번에 정리된 enum 은 9값 — **나머지 1값 확인 필요.** 프론트는 모르는 값이 오면 `준비 중인 블록입니다.` 껍데기로 그린다.
+> ℹ️ **`detail` 은 블록의 내용을 담는 하위 계층이다.** `blockId` 로 관리하는 것은 위 공통 필드까지고, 내용은 타입별 상세 ID(예: `CHECKLIST` 의 `chkBlockId`)로 관리한다.
+> ❗ **`detail` 스키마는 `FILE` 의 `{ fileCount: 3 }` 만 확인됐다.**
+> `CHECKLIST` 는 **`chkBlockId`(필수) 와 항목 배열**이 필요하다. 프론트는 `detail.chkBlockId` · `detail.items` 를 런타임 검증해서 읽고, 없거나 형태가 다르면 항목 추가를 막고 빈 목록으로 떨어뜨린다. **키 이름 확인 필요.**
+
+---
+
+## 10. 체크리스트 항목 생성
+
+| 항목          | 내용                                                  |
+| ------------- | ----------------------------------------------------- |
+| **Method**    | `POST`                                                |
+| **Path**      | `/api/v1/blocks/checklists/{chkBlockId}/items`        |
+| **인증 필요** | ✅                                                    |
+| **사용 위치** | `src/features/block/api.ts` → `createChecklistItem()` |
+
+**Request Body**
+
+```ts
+{
+  content: string; // 필수
+}
+```
+
+**Response (201 Created)**
+
+```ts
+data: {
+  chkBlockId: number;
+  chkId: number;
+  content: string;
+  completedCount: number;
+  totalCount: number;
+  createdAt: string; // '2026-07-31T15:20:00'
+}
+```
+
+> ℹ️ 응답에 `isCompleted` 가 없다. 새 항목은 항상 미완료로 시작한다.
+> ⚠️ **`chkBlockId` 는 `blockId` 와 다른 값이다.** 구성이 **블록(`blockId`) > 블록의 내용(`chkBlockId`)** 이라
+> 항목 생성에는 `chkBlockId` 만 쓴다. `blockId` 로 대체하면 다른 체크리스트에 항목이 붙을 수 있다.
+> → 이 값은 9-1번 블록 목록 응답의 **`detail.chkBlockId`** 로 받는다. 값이 없으면 프론트는 항목 추가를 막는다.
+
+---
+
+## 11. 체크리스트 항목 수정
+
+| 항목          | 내용                                                  |
+| ------------- | ----------------------------------------------------- |
+| **Method**    | `PATCH`                                               |
+| **Path**      | `/api/v1/blocks/checklists/items/{chkId}`             |
+| **인증 필요** | ✅                                                    |
+| **사용 위치** | `src/features/block/api.ts` → `updateChecklistItem()` |
+
+**Request Body** — 두 필드 모두 nullable. 내용만 · 완료 여부만 · 둘 다 보낼 수 있다.
+
+```ts
+{
+  content?: string;        // 수정한 부분을 포함한 전체 내용
+  changeStatusTo?: boolean; // 목표 완료 여부
+}
+```
+
+**Response (200 OK)**
+
+```ts
+data: {
+  chkId: number;
+  content: string;
+  isCompleted: boolean;
+  completedCount: number;
+  totalCount: number;
+  updatedAt: string;
+}
+```
+
+> ⚠️ `content` 는 **부분 수정이 아니라 전체 내용**을 보낸다.
+
+---
+
+## 12. 체크리스트 항목 삭제
+
+| 항목          | 내용                                                  |
+| ------------- | ----------------------------------------------------- |
+| **Method**    | `DELETE`                                              |
+| **Path**      | `/api/v1/blocks/checklists/items/{chkId}`             |
+| **인증 필요** | ✅                                                    |
+| **사용 위치** | `src/features/block/api.ts` → `deleteChecklistItem()` |
+
+**Response (200 OK)**
+
+```ts
+data: {
+  completedCount: number;
+  totalCount: number;
+}
+```
+
+> ℹ️ 세 API 모두 `completedCount` · `totalCount` 를 돌려주지만, `ChecklistBlock` 은 **화면의 항목 목록에서 진척률을 계산**한다. 서버 카운트를 그대로 쓰면 목록과 숫자가 어긋나 보일 수 있다.
+> ❗ **블록 수정 · 블록 삭제 · 순서 변경(`rowIndex`/`sortOrder`) API 가 없다.** 블록 헤더 `⋯` 메뉴와 드래그 핸들은 UI 만 있다.
+
+---
+
 > ✏️ 새 API를 연동할 때 위 양식대로 계속 추가하세요.
 > 핵심은 **백엔드 응답 타입을 정확히** 적어두는 것 — AI가 타입 안전하게 연동 코드를 짜줘요.

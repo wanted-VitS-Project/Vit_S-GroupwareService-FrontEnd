@@ -1,3 +1,5 @@
+import StepBlocks from '@/features/block/StepBlocks';
+
 export default function Page() {
-  return <div>projects/[id]/steps/[stepId]</div>;
+  return <StepBlocks />;
 }

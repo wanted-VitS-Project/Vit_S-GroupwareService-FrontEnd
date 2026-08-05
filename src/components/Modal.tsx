@@ -4,12 +4,27 @@ import { useEffect, useRef } from 'react';
 
 interface ModalProps {
   title: string;
-  /** 여러 단계로 이어지는 흐름에서 남은 단계를 알려준다 — 예: '1 / 2' */
+  /**
+   * 여러 단계로 이어지는 흐름에서 남은 단계를 알려준다 — 예: '1 / 2'.
+   * 기본 헤더에만 그려지므로 `header` 를 넘기면 무시된다.
+   */
   stepLabel?: string;
   /** 없으면 닫을 수 없는 모달이다 (강제 흐름) */
   onClose?: () => void;
+  /** 기본 제목 · 닫기 줄 대신 그릴 헤더. 넘기면 title 은 aria-label 로만 쓰인다 */
+  header?: React.ReactNode;
+  /**
+   * 패널 크기 · 여백을 바꿀 때만 넘긴다.
+   * 뒤에 덧붙여지므로 배경 딤 같은 필수 스타일은 지워지지 않는다.
+   */
+  className?: string;
   children: React.ReactNode;
 }
+
+/** 모달 동작에 필요해 항상 적용한다 */
+const BASE_PANEL = 'm-auto bg-white backdrop:bg-slate-900/50';
+/** className 을 넘기지 않을 때의 크기 · 여백 */
+const DEFAULT_PANEL = 'w-full max-w-sm rounded-xl p-8 shadow-lg';
 
 /**
  * 네이티브 <dialog> 기반 모달.
@@ -19,6 +34,8 @@ export default function Modal({
   title,
   stepLabel,
   onClose,
+  header,
+  className = DEFAULT_PANEL,
   children,
 }: ModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -50,26 +67,28 @@ export default function Modal({
       onClick={(event) => {
         if (event.target === dialogRef.current) onClose?.();
       }}
-      className="m-auto w-full max-w-sm rounded-xl bg-white p-8 shadow-lg backdrop:bg-slate-900/50"
+      className={`${BASE_PANEL} ${className}`}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          {stepLabel && (
-            <p className="text-xs font-bold text-slate-400">{stepLabel}</p>
+      {header ?? (
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            {stepLabel && (
+              <p className="text-xs font-bold text-slate-400">{stepLabel}</p>
+            )}
+            <h2 className="text-lg font-bold">{title}</h2>
+          </div>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="닫기"
+              className="cursor-pointer text-slate-400 hover:text-slate-900"
+            >
+              ✕
+            </button>
           )}
-          <h2 className="text-lg font-bold">{title}</h2>
         </div>
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="닫기"
-            className="cursor-pointer text-slate-400 hover:text-slate-900"
-          >
-            ✕
-          </button>
-        )}
-      </div>
+      )}
       {children}
     </dialog>
   );

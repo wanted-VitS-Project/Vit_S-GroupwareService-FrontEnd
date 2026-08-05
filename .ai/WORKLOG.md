@@ -12,21 +12,21 @@
 
 ### 변경 파일
 
-| 파일                                       | 변경                                                  |
-| ------------------------------------------ | ----------------------------------------------------- |
-| `src/features/auth/AuthGates.tsx`          | 생성 — 남은 게이트를 단계로 노출 (이전/다음)          |
-| `src/features/auth/TermsGate.tsx`          | 생성 — 약관 단계 (`FirstLoginFlow` 대체)              |
-| `src/features/auth/errorCodes.ts`          | 생성 — 게이트 · 권한 · 로그인 실패 코드 단일 소스     |
-| `src/features/auth/FirstLoginFlow.tsx`     | 삭제 — 약관+비밀번호를 세트로 묶고 있었음             |
-| `src/features/auth/CurrentUserProvider.tsx`| 게이트 분리 · `/me` 403 대응 · 403 이벤트 구독        |
-| `src/features/auth/ChangePasswordModal.tsx`| `stepLabel` · `onBack` · 눈 아이콘 추가               |
-| `src/features/auth/types.ts`               | `TermsStatus` · `termsStatus` 추가                    |
-| `src/components/PasswordVisibilityToggle.tsx`| 생성 — 로그인 화면의 눈 아이콘을 공용화            |
-| `src/components/Modal.tsx`                 | `stepLabel` (제목 위 진행 표시)                       |
-| `src/lib/api.ts`                           | 403 을 `FORBIDDEN_EVENT` 로 방송                      |
-| `src/app/login/page.tsx`                   | status → `code` 분기 · 게이트 코드면 게이트로 이동    |
-| `src/app/globals.css`                      | `word-break: keep-all` (한글 어절 단위 줄바꿈)        |
-| `.ai/API.md`                               | `/me` 의 `termsStatus` · 공통 403 표 · 세션 정책 추가 |
+| 파일                                          | 변경                                                  |
+| --------------------------------------------- | ----------------------------------------------------- |
+| `src/features/auth/AuthGates.tsx`             | 생성 — 남은 게이트를 단계로 노출 (이전/다음)          |
+| `src/features/auth/TermsGate.tsx`             | 생성 — 약관 단계 (`FirstLoginFlow` 대체)              |
+| `src/features/auth/errorCodes.ts`             | 생성 — 게이트 · 권한 · 로그인 실패 코드 단일 소스     |
+| `src/features/auth/FirstLoginFlow.tsx`        | 삭제 — 약관+비밀번호를 세트로 묶고 있었음             |
+| `src/features/auth/CurrentUserProvider.tsx`   | 게이트 분리 · `/me` 403 대응 · 403 이벤트 구독        |
+| `src/features/auth/ChangePasswordModal.tsx`   | `stepLabel` · `onBack` · 눈 아이콘 추가               |
+| `src/features/auth/types.ts`                  | `TermsStatus` · `termsStatus` 추가                    |
+| `src/components/PasswordVisibilityToggle.tsx` | 생성 — 로그인 화면의 눈 아이콘을 공용화               |
+| `src/components/Modal.tsx`                    | `stepLabel` (제목 위 진행 표시)                       |
+| `src/lib/api.ts`                              | 403 을 `FORBIDDEN_EVENT` 로 방송                      |
+| `src/app/login/page.tsx`                      | status → `code` 분기 · 게이트 코드면 게이트로 이동    |
+| `src/app/globals.css`                         | `word-break: keep-all` (한글 어절 단위 줄바꿈)        |
+| `.ai/API.md`                                  | `/me` 의 `termsStatus` · 공통 403 표 · 세션 정책 추가 |
 
 ### 주요 작업 내용
 
@@ -60,18 +60,173 @@
 
 ### 검증
 
-| 명령                     | 결과                                    |
-| ------------------------ | --------------------------------------- |
-| `npx tsc --noEmit`       | ✅ 이번 변경분 에러 0                   |
-| `npx eslint src`         | ✅ 에러 0 · 경고 0                      |
-| `npx prettier --check src` | ✅ 통과                               |
-| 브라우저 동작 확인       | ✅ 사용자 확인 (게이트 · 단계 이동 · 재로그인) |
+| 명령                       | 결과                                           |
+| -------------------------- | ---------------------------------------------- |
+| `npx tsc --noEmit`         | ✅ 이번 변경분 에러 0                          |
+| `npx eslint src`           | ✅ 에러 0 · 경고 0                             |
+| `npx prettier --check src` | ✅ 통과                                        |
+| 브라우저 동작 확인         | ✅ 사용자 확인 (게이트 · 단계 이동 · 재로그인) |
 
 ### 남은 일
 
 - ⚠️ 약관 실제 문구 교체 (배포 전 필수 — 현재 placeholder)
 - 백엔드 확인: `RESET_REQUIRED` 계정 재로그인 거부가 의도인지 (브라우저를 닫아 세션이 사라지면 관리자 재설정 외 방법이 없음)
 - `src/app/mypage/page.tsx` 타입 에러 4건 (`string | null` vs `string | undefined`) — 별도 처리
+
+---
+
+## [2026-08-05] 스텝 블록 보드 · 체크리스트 블록 구현 🚧
+
+브랜치: `user/project` · 이슈: 확인 필요 (생성 후 번호 기재)
+
+### 변경 파일
+
+| 파일                                            | 변경                                                |
+| ----------------------------------------------- | --------------------------------------------------- |
+| `src/features/block/types.ts`                   | 생성 — 블록 유형 9종 · 조회/생성/체크리스트 타입    |
+| `src/features/block/api.ts`                     | 생성 — 블록 조회·생성, 체크리스트 항목 CRUD         |
+| `src/features/block/BlockTypeIcon.tsx`          | 생성 — 유형별 인라인 SVG 아이콘                     |
+| `src/features/block/StepBlocks.tsx`             | 생성 — 목록 조회 · 재조회 · 헤더 컨테이너           |
+| `src/features/block/BlockBoard.tsx`             | 생성 — 행 단위 3칸 그리드 배치                      |
+| `src/features/block/BlockCard.tsx`              | 생성 — 블록 공통 껍데기 (헤더 · 본문 · 담당자 푸터) |
+| `src/features/block/ChecklistBlock.tsx`         | 생성 — 체크리스트 본문 · 항목 CRUD                  |
+| `src/features/block/AddBlockButton.tsx`         | 생성 — `Block 추가` 버튼                            |
+| `src/features/block/AddBlockModal.tsx`          | 생성 — 유형 선택 · 이름 입력 모달                   |
+| `src/app/projects/[id]/steps/[stepId]/page.tsx` | `StepBlocks` 연결                                   |
+| `src/components/Modal.tsx`                      | `header` · `className` 옵션 추가 (하위 호환)        |
+| `src/constants/endpoints.ts`                    | `steps.blocks` · `blocks.checklistItems/Item` 등록  |
+| `src/lib/api.ts`                                | `api.delete` 추가                                   |
+| `.ai/API.md`                                    | 9 · 9-1 · 10 · 11 · 12번 명세 추가                  |
+
+### 주요 작업 내용
+
+- **블록 보드 레이아웃** — 가로 3칸 고정 · 세로 무제한. `rowIndex` 로 행을 묶고 행마다 별도 grid 를 만들어 **같은 행이 높이를 공유**하게 함 (`items-stretch` + 카드 `h-full`)
+- **블록 생성 모달** — ERD `block.type` enum 9값을 카드로 노출. `PAYMENT_CONFIRM` 은 이름 라벨이 `회차명` 으로 바뀐다
+- **스텝 블록 일괄 조회 연동** — 블록 추가 성공 시 목록을 재조회해 보드에 즉시 반영
+- **체크리스트 블록** — 완료 토글 · 내용 인라인 수정 · 항목 추가 · 항목 삭제를 각각 API 로 즉시 반영
+
+### 트러블슈팅
+
+- **문제**: `<Link>` 안에 `⋯` 버튼을 넣을 수 없고, 스테이지 토글 `<button>` 안에도 버튼을 못 넣는다
+- **원인**: 앵커·버튼 중첩은 유효하지 않은 HTML 이다
+- **해결**: 카드 전체를 덮는 `absolute inset-0` 링크를 깔고 내용은 `pointer-events-none`, 메뉴만 `pointer-events-auto` 로 되살림
+
+- **문제**: Tailwind 가 `col-span-${n}` · `group-hover/step:opacity-100` 을 생성하지 않음
+- **원인**: Tailwind 는 조합된 클래스명을 읽지 못한다. 소스에 **완성된 문자열**이 있어야 한다
+- **해결**: `COL_SPAN_CLASS` 매핑 객체 · `revealClass` prop 으로 완성 문자열을 넘김
+
+- **문제**: 스텝을 옮기면 이전 스텝의 블록이 새 경로에 남는다
+- **원인**: effect 가 새 요청만 시작하고 이전 상태를 비우지 않았다
+- **해결**: 응답을 `{ stepId, blocks }` 로 묶어 보관하고 경로와 일치할 때만 사용 (사이드바와 같은 패턴)
+
+### 부수 결정
+
+- **`Modal` 을 새로 만들지 않고 확장** — `header` · `className` 옵션 2개를 **선택**으로 추가. `<dialog>` 포커스 트랩 · ESC · 백드롭 · 스크롤 락을 재사용하고 `ChangePasswordModal` 은 무수정
+- **행마다 grid 를 따로 만든다** — 하나의 grid 에 자동 배치하면 `1,1,2` 에서 구멍이 생기고 행 경계가 백엔드 `rowIndex` 와 어긋난다
+- **`colSpan` 은 1~3 을 모두 그린다** — 기획은 1·2칸이지만 명세가 1~3 이라 `Math.min/max` 로 잘라 레이아웃 붕괴를 막는다
+- **`detail` 은 `unknown` + 런타임 검증** — 타입마다 구조가 달라 `readChecklistItems()` 로 형태를 확인하고, 다르면 빈 목록으로 떨어뜨린다
+- **진척률은 화면 목록에서 계산** — 세 API 가 `completedCount`/`totalCount` 를 주지만, 서버 숫자와 목록이 어긋나면 사용자에게 버그로 보인다
+- **항목 삭제 버튼은 행 호버 `✕`** — `DELETE` 가 항목 단위인데 시안에 삭제 UI 가 없었다. 헤더 `⋯` 는 블록 단위다
+- **아바타 색은 사번 문자코드 합으로 배정** — 새로고침해도 같은 사람이 같은 색으로 보인다
+- **`title` 은 선택 필드로 처리** — 명세가 `필수 N` 이라 유형만 골라도 생성된다. 비면 `undefined` 로 아예 보내지 않는다
+
+### 검증
+
+| 명령               | 결과               |
+| ------------------ | ------------------ |
+| `npm run build`    | ✅ 성공            |
+| `npx tsc --noEmit` | ✅ 에러 0          |
+| `npx eslint .`     | ✅ 에러 0 · 경고 0 |
+| `prettier --check` | ✅ 통과            |
+
+> ⚠️ 실제 백엔드 대상 동작 확인은 **확인 필요** (스텝·블록 시드 데이터 필요)
+
+### 남은 일 / 확인 필요
+
+- ❗ **`detail` 스키마** — `FILE` 의 `{ fileCount }` 만 확인됨. `CHECKLIST` 항목 배열 키가 `items` 인지 확인 필요
+- 블록 수정 · 삭제 · 순서 변경 API 미확정 → `⋯` 메뉴 · 드래그 핸들은 UI 만 존재
+- `CHECKLIST` 외 8종 블록 본문 미구현 (`준비 중인 블록입니다.` 껍데기)
+- 스텝 이름 하드코딩 — 스텝 상세 조회 연동 후 교체
+- 스텝 `EDITOR` 권한 가드 없음 → `VIEWER` 도 `Block 추가` 버튼이 보이고 403 을 맞는다
+
+---
+
+## [2026-08-05] #27 프로젝트 상세 사이드바 구현 ✅
+
+브랜치: `user/project`
+
+### 변경 파일
+
+| 파일                                | 변경                                                          |
+| ----------------------------------- | ------------------------------------------------------------- |
+| `src/components/ProjectSidebar.tsx` | 생성 — 개요 · 진행률 · 진행 단계 · 참여자 · 설정              |
+| `src/features/project/types.ts`     | 생성 — `ProjectDetail` · `ProjectStage` · `ProjectStep`       |
+| `src/features/project/api.ts`       | 생성 — `getProject` · `getProjectStages` · `getProjectSteps`  |
+| `src/app/projects/[id]/layout.tsx`  | `ProjectSidebar` 연결 (하위 화면 공통 노출)                   |
+| `src/components/AppShell.tsx`       | 프로젝트 상세는 공통 사이드바 제거, 헤더만 유지               |
+| `src/constants/menu.ts`             | `isProjectScope()` 경로 판별 추가                             |
+| `src/constants/endpoints.ts`        | `projects.detail` · `stages` · `steps` 등록                   |
+| `src/lib/format.ts`                 | `formatDateRange` 추가                                        |
+| `src/app/mypage/page.tsx`           | `Field` 의 `value` 타입 `string \| null` 허용 (타입체크 복구) |
+| `.ai/API.md`                        | 6 · 7 · 8번 명세 추가                                         |
+
+### 주요 작업 내용
+
+- 프로젝트 상세 조회 · 스테이지 목록 · 스텝 목록 **3종 API 를 `Promise.all` 로 병렬 조회**해 사이드바를 채움
+- `/projects/{id}/**` 에서는 공통(전역) 사이드바를 빼고 `ProjectSidebar` + 헤더만 쓰도록 `AppShell` 분기
+- `/projects/{id}/steps/{stepId}` 진입 시 해당 스텝을 선택 상태로 표시하고 소속 스테이지를 자동으로 펼침
+- 스테이지 · 스텝 행 호버 시 스텝 추가 버튼과 `⋯` 메뉴(이름 수정 · 삭제) 노출 — 동작은 API 대기
+
+### 트러블슈팅
+
+- **문제**: `develop` 을 merge 한 뒤 `src/app/mypage/page.tsx` 에서 타입체크 4건 실패
+- **원인**: `develop`(`fc1e155`) 에서 `CurrentUser` 필드가 `string | null` 로 바뀌었는데 `Field` 의 `value` 는 `string | undefined` 로 남아 있었다. 이 브랜치 변경과 무관한 **develop 자체 문제**
+- **해결**: `Field` 의 `value` 타입을 `string | null` 까지 허용하도록 넓힘 (표시 로직은 `value || '-'` 라 그대로 동작)
+
+- **문제**: `git stash pop` 시 `src/lib/format.ts` 충돌
+- **원인**: 같은 시점에 develop 이 `formatDate` 를 정규식 검증 방식으로 재작성하고 `formatDateTime` 을 추가했다
+- **해결**: develop 구현을 채택하고 이 브랜치가 추가한 `formatDateRange` 만 얹음. `formatDateRange` 내부도 develop 의 `formatDate` 를 호출하게 해 검증 로직을 공유
+
+- **문제**: 스테이지 행을 클릭하면 `+` 버튼이 마우스를 벗어난 뒤에도 계속 보임
+- **원인**: `group-focus-within:opacity-100` — 클릭으로 토글 버튼에 포커스가 남아 조건이 계속 참
+- **해결**: `group-focus-within` 을 제거하고 버튼 자신의 `focus-visible` 만 사용
+
+- **문제**: 프로젝트 A → B 로 이동하면 B 경로에서 A 의 이름 · 발주처 · 진행률 · 스테이지 목록이 그대로 보임. B 요청이 실패하면 실패 문구 대신 A 의 스테이지 목록이 계속 그려짐
+- **원인**: effect 가 새 요청만 시작하고 이전 상태를 비우지 않았다. `hasFailed` 도 프로젝트 구분 없는 단일 boolean 이었다
+- **해결**: 응답을 `{ projectId, project, stages, steps }` 로 묶어 보관하고, `loaded.projectId === projectId` 일 때만 화면에 쓴다. 실패도 `failedProjectId` 로 프로젝트별로 기록한다
+
+- **문제**: 스텝이 0개인 스테이지를 펼치면 화면에 아무 변화가 없어 동작 실패로 보임
+- **원인**: `isOpen && stageSteps.length > 0` 조건이라 빈 스테이지는 펼침 UI 자체가 없었다. `aria-expanded` 만 `true` 로 바뀐다
+- **해결**: `등록된 스텝이 없습니다.` 빈 상태 문구 추가
+
+### 부수 결정
+
+- **경로 판별은 상수 배열이 아니라 함수로** — `/projects/new` 는 공통 사이드바를 써야 해서 prefix 매칭으로 구분 불가
+- **스테이지 · 스텝은 별도 API 2개**를 받아 프론트에서 `stageId` 로 묶는다. 백엔드가 중첩 구조로 주지 않음
+- **`stageId: null` 스텝은 `미분류` 가상 스테이지**로 묶어 노출. 응답에 실제로 존재하는 값이라 누락시킬 수 없음
+- **스텝 진척률 바는 이슈 개수 비율**(`inProgressIssueCount` · `doneIssueCount` · 나머지)로 그린다. 응답이 상태 배열이 아님
+- **선택 스텝은 URL 우선**, 없으면 `status === 'IN_PROGRESS'` 인 첫 스텝
+- **편집 버튼이 없어도 자리를 비워둔다** — `미분류` 행과 `VIEWER` 스텝에서 숫자 · `%` 위치가 밀리지 않게 `size-5` 스페이서 삽입
+- **참여자 영역은 `MOCK_MEMBERS` 유지** — 조회 API 미확정
+- **`lib/api.ts` 에 `AbortSignal` 을 선택 인자로 추가** — 취소는 `ApiError` 로 감싸지 않고 그대로 던진다(`isAbortError`). 기존 호출부는 인자를 안 넘기면 동작이 그대로다
+- **응답에 `projectId` 를 함께 담아 보관** — effect 진입 시 `setState` 로 초기화하는 방식은 `react-hooks/set-state-in-effect` 에 걸린다. 경로와 `projectId` 가 다르면 데이터를 아예 쓰지 않는 쪽이 렌더 한 번을 덜 돌고 잔류 데이터도 원천 차단된다
+- **실패도 `failedProjectId` 로 프로젝트별 기록** — 전역 `hasFailed` 면 A 성공 후 B 실패 시 A 데이터가 실패 문구를 덮는다
+
+### 검증
+
+| 명령               | 결과               |
+| ------------------ | ------------------ |
+| `npm run build`    | ✅ 성공            |
+| `npx tsc --noEmit` | ✅ 에러 0          |
+| `npx eslint .`     | ✅ 에러 0 · 경고 0 |
+| `prettier --check` | ✅ 통과            |
+
+### 남은 일
+
+- 참여자 목록 조회 API 연동 → `MOCK_MEMBERS` 제거
+- 스테이지 · 스텝 이름 수정 / 삭제 / 추가 API 연동 → `RowMenu` · `+` 버튼 동작
+- 사이드바 접기 버튼 동작 정의 (폭 축소 vs 완전 숨김)
+- `stageId: null` (`미분류`) 노출 정책 기획 확인
 
 ---
 
