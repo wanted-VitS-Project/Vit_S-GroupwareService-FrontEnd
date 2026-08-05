@@ -20,9 +20,27 @@ export default function TextBlock({
   autoEdit?: boolean;
 }) {
   const detail = readTextBlockDetail(block.detail);
+  const serverContent = detail?.content ?? '';
 
-  const [content, setContent] = useState(detail?.content ?? '');
+  const [content, setContent] = useState(serverContent);
   const [isEditing, setIsEditing] = useState(autoEdit);
+
+  // 아래 두 블록은 effect 가 아니라 렌더 중 상태 조정이다.
+  // (https://react.dev/reference/react/useState — effect 로 하면 린트 규칙에 걸린다)
+
+  // 재조회로 서버 본문이 바뀌면 화면도 따라간다
+  const [lastServerContent, setLastServerContent] = useState(serverContent);
+  if (lastServerContent !== serverContent) {
+    setLastServerContent(serverContent);
+    setContent(serverContent);
+  }
+
+  // 마운트 이후에 autoEdit 이 켜져도 입력창이 열려야 한다
+  const [lastAutoEdit, setLastAutoEdit] = useState(autoEdit);
+  if (lastAutoEdit !== autoEdit) {
+    setLastAutoEdit(autoEdit);
+    if (autoEdit) setIsEditing(true);
+  }
 
   return (
     <BlockCard block={block}>

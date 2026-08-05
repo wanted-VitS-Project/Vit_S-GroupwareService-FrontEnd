@@ -54,7 +54,9 @@ export default function TextBlockModal({
   return (
     <Modal
       title="텍스트 블록 편집"
-      onClose={onClose}
+      // 저장 중에는 ESC · 백드롭 클릭까지 막는다.
+      // 닫은 뒤 응답이 도착하면 카드 내용이 예고 없이 바뀐다
+      onClose={isSaving ? undefined : onClose}
       className="flex max-h-[85vh] w-full max-w-[680px] flex-col overflow-hidden rounded-xl border border-[#1C1F2A]/10 shadow-2xl"
       header={
         <div className="flex shrink-0 items-center gap-2.5 border-b border-[#1C1F2A]/10 px-5 py-3">
@@ -70,8 +72,9 @@ export default function TextBlockModal({
           <button
             type="button"
             onClick={onClose}
+            disabled={isSaving}
             aria-label="닫기"
-            className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-[#6C7389] hover:bg-[#ECEEF4]"
+            className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-[#6C7389] hover:bg-[#ECEEF4] disabled:cursor-not-allowed disabled:opacity-40"
           >
             <CloseIcon />
           </button>
@@ -94,7 +97,8 @@ export default function TextBlockModal({
           <button
             type="button"
             onClick={onClose}
-            className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-[#6C7389] hover:bg-[#ECEEF4]"
+            disabled={isSaving}
+            className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-[#6C7389] hover:bg-[#ECEEF4] disabled:cursor-not-allowed disabled:opacity-40"
           >
             취소
           </button>

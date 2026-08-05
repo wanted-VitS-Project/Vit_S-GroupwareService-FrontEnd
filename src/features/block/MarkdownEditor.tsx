@@ -1,6 +1,11 @@
 'use client';
 
-import { EditorContent, useEditor, type Editor } from '@tiptap/react';
+import {
+  EditorContent,
+  useEditor,
+  useEditorState,
+  type Editor,
+} from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from 'tiptap-markdown';
 
@@ -61,32 +66,63 @@ export default function MarkdownEditor({
 
   return (
     <>
-      <div className="flex shrink-0 items-center gap-0.5 overflow-x-auto border-b border-[#1C1F2A]/10 bg-[#ECEEF4]/30 px-4 py-2">
+      <div
+        role="toolbar"
+        aria-label="텍스트 서식"
+        aria-controls="markdown-editor-body"
+        className="flex shrink-0 items-center gap-0.5 overflow-x-auto border-b border-[#1C1F2A]/10 bg-[#ECEEF4]/30 px-4 py-2"
+      >
         {editor && <Toolbar editor={editor} />}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+      <div
+        id="markdown-editor-body"
+        className="min-h-0 flex-1 overflow-y-auto px-6 py-4"
+      >
         <EditorContent editor={editor} />
       </div>
     </>
   );
 }
 
+/**
+ * 서식 툴바.
+ *
+ * ⚠️ TipTap 3 의 기본값이 `shouldRerenderOnTransaction: false` 라서
+ *    `editor.isActive(...)` 를 렌더 중에 그냥 읽으면 선택 영역이 바뀌어도 갱신되지 않는다.
+ *    `useEditorState` 로 필요한 값만 구독해야 활성 표시가 따라온다.
+ */
 function Toolbar({ editor }: { editor: Editor }) {
+  const active = useEditorState({
+    editor,
+    selector: ({ editor: current }) => ({
+      bold: current.isActive('bold'),
+      italic: current.isActive('italic'),
+      heading1: current.isActive('heading', { level: 1 }),
+      heading2: current.isActive('heading', { level: 2 }),
+      heading3: current.isActive('heading', { level: 3 }),
+      paragraph: current.isActive('paragraph'),
+      bulletList: current.isActive('bulletList'),
+      orderedList: current.isActive('orderedList'),
+      blockquote: current.isActive('blockquote'),
+      code: current.isActive('code'),
+    }),
+  });
+
   const chain = () => editor.chain().focus();
 
   return (
     <>
       <ToolButton
         label="굵게 (Ctrl+B)"
-        isActive={editor.isActive('bold')}
+        isActive={active.bold}
         onClick={() => chain().toggleBold().run()}
       >
         <span className="font-bold">B</span>
       </ToolButton>
       <ToolButton
         label="기울임 (Ctrl+I)"
-        isActive={editor.isActive('italic')}
+        isActive={active.italic}
         onClick={() => chain().toggleItalic().run()}
       >
         <span className="italic">I</span>
@@ -98,7 +134,7 @@ function Toolbar({ editor }: { editor: Editor }) {
         <ToolButton
           key={level}
           label={`제목 ${level}`}
-          isActive={editor.isActive('heading', { level })}
+          isActive={active[`heading${level}`]}
           onClick={() => chain().toggleHeading({ level }).run()}
         >
           <span className="font-mono font-bold">H{level}</span>
@@ -106,7 +142,7 @@ function Toolbar({ editor }: { editor: Editor }) {
       ))}
       <ToolButton
         label="본문"
-        isActive={editor.isActive('paragraph')}
+        isActive={active.paragraph}
         onClick={() => chain().setParagraph().run()}
       >
         <span className="font-mono">P</span>
@@ -116,14 +152,14 @@ function Toolbar({ editor }: { editor: Editor }) {
 
       <ToolButton
         label="글머리 목록"
-        isActive={editor.isActive('bulletList')}
+        isActive={active.bulletList}
         onClick={() => chain().toggleBulletList().run()}
       >
         <span className="font-mono">•≡</span>
       </ToolButton>
       <ToolButton
         label="번호 목록"
-        isActive={editor.isActive('orderedList')}
+        isActive={active.orderedList}
         onClick={() => chain().toggleOrderedList().run()}
       >
         <span className="font-mono">1≡</span>
@@ -133,14 +169,14 @@ function Toolbar({ editor }: { editor: Editor }) {
 
       <ToolButton
         label="인용"
-        isActive={editor.isActive('blockquote')}
+        isActive={active.blockquote}
         onClick={() => chain().toggleBlockquote().run()}
       >
         ❝
       </ToolButton>
       <ToolButton
         label="코드"
-        isActive={editor.isActive('code')}
+        isActive={active.code}
         onClick={() => chain().toggleCode().run()}
       >
         <span className="font-mono text-[#FB2C36]">{'</>'}</span>
