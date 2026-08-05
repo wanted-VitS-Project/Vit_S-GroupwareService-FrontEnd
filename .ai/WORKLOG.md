@@ -6,6 +6,75 @@
 
 ---
 
+## [2026-08-05] 최초 로그인 게이트 분기 수정 ✅
+
+브랜치: `fix/auth-gate` · 이슈: 확인 필요 (생성 후 번호 기입)
+
+### 변경 파일
+
+| 파일                                          | 변경                                                  |
+| --------------------------------------------- | ----------------------------------------------------- |
+| `src/features/auth/AuthGates.tsx`             | 생성 — 남은 게이트를 단계로 노출 (이전/다음)          |
+| `src/features/auth/TermsGate.tsx`             | 생성 — 약관 단계 (`FirstLoginFlow` 대체)              |
+| `src/features/auth/errorCodes.ts`             | 생성 — 게이트 · 권한 · 로그인 실패 코드 단일 소스     |
+| `src/features/auth/FirstLoginFlow.tsx`        | 삭제 — 약관+비밀번호를 세트로 묶고 있었음             |
+| `src/features/auth/CurrentUserProvider.tsx`   | 게이트 분리 · `/me` 403 대응 · 403 이벤트 구독        |
+| `src/features/auth/ChangePasswordModal.tsx`   | `stepLabel` · `onBack` · 눈 아이콘 추가               |
+| `src/features/auth/types.ts`                  | `TermsStatus` · `termsStatus` 추가                    |
+| `src/components/PasswordVisibilityToggle.tsx` | 생성 — 로그인 화면의 눈 아이콘을 공용화               |
+| `src/components/Modal.tsx`                    | `stepLabel` (제목 위 진행 표시)                       |
+| `src/lib/api.ts`                              | 403 을 `FORBIDDEN_EVENT` 로 방송                      |
+| `src/app/login/page.tsx`                      | status → `code` 분기 · 게이트 코드면 게이트로 이동    |
+| `src/app/globals.css`                         | `word-break: keep-all` (한글 어절 단위 줄바꿈)        |
+| `.ai/API.md`                                  | `/me` 의 `termsStatus` · 공통 403 표 · 세션 정책 추가 |
+
+### 주요 작업 내용
+
+- `termsStatus` · `passwordStatus` 를 **독립 게이트**로 분리 — 약관만 남은 계정이 모든 API 403 으로 막히던 문제 해결
+- 두 게이트가 모두 남으면 `1 / 2` → `2 / 2` 단계로 보여주고 이전/다음으로 오갈 수 있게 함
+- 403 을 화면마다 처리하지 않고 `lib/api` → `CurrentUserProvider` 한 곳에서 받도록 통일
+- 에러 분기를 `status` 에서 **`code`** 로 전환 (403 하나에 비활성 · 게이트 · 권한 세 의미가 실림)
+
+### 트러블슈팅
+
+- **문제**: 약관 동의 후 뒤로가기 → 재로그인하면 비밀번호 변경 모달이 안 뜨고 "내 정보를 불러오지 못했습니다"
+- **원인**: 게이트 상태를 `/me` **응답에서만** 읽었는데, 게이트 미통과 시 `/me` 자체가 403 으로 막힌다
+- **해결**: 403 의 `code` 로 어느 게이트인지 판단(`blockedBy`) — 사용자 정보 없이도 게이트 화면을 띄운다
+
+- **문제**: 재로그인 시 "초기 비밀번호를 먼저 변경해 주세요." 만 뜨고 변경할 방법이 없음
+- **원인**: 백엔드가 `RESET_REQUIRED` 계정의 로그인을 게이트 코드로 거부하는데, 프론트가 이를 일반 에러로 표시
+- **해결**: 로그인 실패 코드가 게이트 코드면 에러 대신 `/` 로 보내 기존 세션으로 게이트를 통과시킨다
+
+- **문제**: 모달 안내 문구가 단어 중간에서 잘림 (`변|경해주세요`)
+- **원인**: 한글은 `word-break` 기본값에서 어느 글자에서나 줄바꿈된다
+- **해결**: `body` 에 `word-break: keep-all` + `overflow-wrap: break-word`
+
+### 부수 결정
+
+- 게이트 차단은 라우팅이 아니라 `CurrentUserProvider` 에서 한다 — 어느 경로로 들어와도 막아야 한다
+- **비밀번호 단계가 남아 있으면 약관은 이미 동의했어도 1단계로 남긴다** — 새로고침해도 `2 / 2` 가 유지되고 약관을 다시 읽을 수 있다
+- 두 게이트가 모두 남을 때 중간 `/me` 재조회를 하지 않는다(로컬 단계 전환) — 로딩 화면이 끼어들지 않는다
+- 게이트 403 은 같은 코드에 **한 번만** 반응한다(`handledGates`) — `/me` 와 백엔드 판단이 어긋나면 무한 재요청이 된다
+- 뒤로가기로 `/login` 이탈은 막지 않는다 — 재로그인하면 게이트로 돌아오므로 굳이 히스토리를 가둘 필요가 없다
+- 눈 아이콘은 `components/PasswordVisibilityToggle` 로 공용화 — 로그인 화면과 모달이 같은 것을 쓴다
+
+### 검증
+
+| 명령                       | 결과                                           |
+| -------------------------- | ---------------------------------------------- |
+| `npx tsc --noEmit`         | ✅ 이번 변경분 에러 0                          |
+| `npx eslint src`           | ✅ 에러 0 · 경고 0                             |
+| `npx prettier --check src` | ✅ 통과                                        |
+| 브라우저 동작 확인         | ✅ 사용자 확인 (게이트 · 단계 이동 · 재로그인) |
+
+### 남은 일
+
+- ⚠️ 약관 실제 문구 교체 (배포 전 필수 — 현재 placeholder)
+- 백엔드 확인: `RESET_REQUIRED` 계정 재로그인 거부가 의도인지 (브라우저를 닫아 세션이 사라지면 관리자 재설정 외 방법이 없음)
+- `src/app/mypage/page.tsx` 타입 에러 4건 (`string | null` vs `string | undefined`) — 별도 처리
+
+---
+
 ## [2026-08-05] 스텝 블록 보드 · 체크리스트 블록 구현 🚧
 
 브랜치: `user/project` · 이슈: 확인 필요 (생성 후 번호 기재)

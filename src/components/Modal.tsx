@@ -4,6 +4,11 @@ import { useEffect, useRef } from 'react';
 
 interface ModalProps {
   title: string;
+  /**
+   * 여러 단계로 이어지는 흐름에서 남은 단계를 알려준다 — 예: '1 / 2'.
+   * 기본 헤더에만 그려지므로 `header` 를 넘기면 무시된다.
+   */
+  stepLabel?: string;
   /** 없으면 닫을 수 없는 모달이다 (강제 흐름) */
   onClose?: () => void;
   /** 기본 제목 · 닫기 줄 대신 그릴 헤더. 넘기면 title 은 aria-label 로만 쓰인다 */
@@ -27,6 +32,7 @@ const DEFAULT_PANEL = 'w-full max-w-sm rounded-xl p-8 shadow-lg';
  */
 export default function Modal({
   title,
+  stepLabel,
   onClose,
   header,
   className = DEFAULT_PANEL,
@@ -65,7 +71,12 @@ export default function Modal({
     >
       {header ?? (
         <div className="flex items-start justify-between gap-4">
-          <h2 className="text-lg font-bold">{title}</h2>
+          <div>
+            {stepLabel && (
+              <p className="text-xs font-bold text-slate-400">{stepLabel}</p>
+            )}
+            <h2 className="text-lg font-bold">{title}</h2>
+          </div>
           {onClose && (
             <button
               type="button"

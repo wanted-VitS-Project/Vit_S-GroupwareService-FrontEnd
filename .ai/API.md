@@ -31,10 +31,27 @@
 > ℹ️ `message` 는 **사용자에게 그대로 노출해도 되는 한국어 문구**다. 프론트가 상수로 덮는 것은 401 처럼 정보 노출을 막아야 할 때만 한다.
 
 > ⚠️ 토큰을 localStorage 등에 저장하지 않는다. 쿠키는 브라우저가 알아서 싣는다.
-> ℹ️ 쿠키 속성: `HttpOnly` · `SameSite=Lax` · 만료 `Session`(브라우저 종료 시 소멸) — 로그인 유지 체크박스는 없다.
+> ℹ️ 쿠키 속성: `HttpOnly` · `SameSite=Lax` · 운영은 `Secure` · 만료 `Session`(브라우저 종료 시 소멸) — 로그인 유지 체크박스는 없다.
+> ℹ️ 세션(Redis)은 **4시간 유휴 슬라이딩**(요청 시 자동 연장)이고 **단일 세션**이다 — 다른 기기에서 로그인하면 기존 세션이 끊겨 `/me` 가 401 로 떨어진다.
 > ℹ️ 로그인 여부 판단은 서버(`src/proxy.ts`)에서만 가능하다. HttpOnly 라 JS 로 읽을 수 없다.
 > ℹ️ 백엔드가 `deviceId` 쿠키(HttpOnly, 장기 만료)도 함께 내려준다. 프론트가 다루지 않는다.
 > ⚠️ 백엔드 CORS 에 프론트 오리진 허용 + `allowCredentials=true` 가 설정돼 있어야 한다.
+
+---
+
+## 공통 403 — 게이트 · 권한
+
+각 API 표에서는 생략한다. **status 가 아니라 `code` 로 구분**한다 (403 하나에 세 가지 의미가 실린다).
+
+| code                             | 뜻                                              | 화면 처리                             |
+| -------------------------------- | ----------------------------------------------- | ------------------------------------- |
+| `AUTH_TERMS_AGREEMENT_REQUIRED`  | 약관 게이트 미통과 상태로 다른 API 호출         | 약관 동의 화면으로 유도 (`/me` 재조회) |
+| `AUTH_PASSWORD_RESET_REQUIRED`   | 비밀번호 게이트 미통과 상태로 다른 API 호출     | 비밀번호 변경 화면으로 유도            |
+| `ACC_ADMIN_REQUIRED`             | ADMIN 전용 API 에 MASTER · MEMBER 가 접근       | `/forbidden` 이동 (재조회 무의미)      |
+| `AUTH_ACCOUNT_INACTIVE`          | 비활성 계정 (로그인 단계)                       | 관리자 문의 안내 — **423 잠금과 별개** |
+
+> 처리 위치: `src/lib/api.ts` 가 403 을 `FORBIDDEN_EVENT` 로 흘리고 `src/features/auth/CurrentUserProvider.tsx` 한 곳에서 받는다.
+> 코드 상수는 `src/features/auth/errorCodes.ts`. (2026-08-05 백엔드 정리본으로 철자 확인)
 
 ---
 
@@ -128,6 +145,7 @@ interface LoginRequest {
     userId: string;          // 'EMP001'
     name: string;            // '김민준'
     role: 'ADMIN' | 'MASTER' | 'MEMBER';
+    termsStatus: 'AGREED' | 'REQUIRED';        // 로그인 응답과 동일
     passwordStatus: 'NORMAL' | 'RESET_REQUIRED';
     email: string;           // 'minjun@example.com'
     phone: string;           // '010-0000-0000'
@@ -140,7 +158,8 @@ interface LoginRequest {
 }
 ```
 
-> ℹ️ **로그인 응답 + `email` · `phone` · `hiredAt` · `lastLoginAt` 4개** 구조다.
+> ℹ️ **로그인 응답 + `email` · `phone` · `hiredAt` · `lastLoginAt` 4개** 구조다. (`termsStatus` 포함 — 백엔드 `MyInfoResponse` 로 2026-08-05 확인)
+> ℹ️ 게이트 판단(`termsStatus` · `passwordStatus`)은 **`/me` 기준**으로 한다. 로그인 응답은 라우팅에 쓰지 않는다 — 새로고침·직접 진입에도 막아야 하기 때문.
 > 타입도 `CurrentUser extends LoginResponse` 로 같은 관계를 유지한다. (`src/features/auth/types.ts`)
 > ℹ️ 날짜는 문자열 그대로 온다 — 표시할 때 `src/lib/format.ts` 를 거친다.
 

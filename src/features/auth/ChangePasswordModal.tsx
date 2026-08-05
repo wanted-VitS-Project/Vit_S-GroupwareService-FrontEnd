@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import Modal, { ModalButton } from '@/components/Modal';
+import PasswordVisibilityToggle from '@/components/PasswordVisibilityToggle';
 import { messageOf } from '@/lib/api';
 
 import { changePassword } from './api';
@@ -11,12 +12,18 @@ import { isValidPassword, PASSWORD_RULES } from './password';
 interface ChangePasswordModalProps {
   /** 강제 변경(RESET_REQUIRED) — 현재 비밀번호를 묻지 않고 닫을 수도 없다 */
   forced?: boolean;
+  /** 약관 동의에서 이어질 때 '2 / 2' 처럼 남은 단계를 알려준다 */
+  stepLabel?: string;
+  /** 있으면 약관 단계로 돌아가는 '이전' 버튼을 보여준다 */
+  onBack?: () => void;
   onClose?: () => void;
   onDone: () => void;
 }
 
 export default function ChangePasswordModal({
   forced,
+  stepLabel,
+  onBack,
   onClose,
   onDone,
 }: ChangePasswordModalProps) {
@@ -83,7 +90,11 @@ export default function ChangePasswordModal({
   }
 
   return (
-    <Modal title="비밀번호 변경" onClose={forced ? undefined : onClose}>
+    <Modal
+      title="비밀번호 변경"
+      stepLabel={stepLabel}
+      onClose={forced ? undefined : onClose}
+    >
       <form onSubmit={handleSubmit}>
         <p className="mt-2 text-sm text-slate-500">
           {forced
@@ -143,6 +154,16 @@ export default function ChangePasswordModal({
         <ModalButton type="submit" disabled={!canSubmit}>
           {isPending ? '변경 중…' : forced ? '변경하고 시작하기' : '변경하기'}
         </ModalButton>
+
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="mt-2 w-full cursor-pointer rounded-lg py-2.5 text-sm font-bold text-slate-500 transition-colors hover:bg-slate-100"
+          >
+            이전
+          </button>
+        )}
       </form>
     </Modal>
   );
@@ -169,26 +190,36 @@ function PasswordField({
   description,
 }: PasswordFieldProps) {
   const descriptionId = `${id}-description`;
+  const [isVisible, setIsVisible] = useState(false);
 
   return (
     <div className="space-y-1.5">
       <label htmlFor={id} className="block text-xs text-slate-500">
         {label}
       </label>
-      <input
-        id={id}
-        type="password"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        autoComplete={autoComplete}
-        aria-invalid={invalid}
-        aria-describedby={description ? descriptionId : undefined}
-        className={`w-full rounded border px-3 py-2 text-sm outline-none ${
-          invalid
-            ? 'border-rose-400'
-            : 'border-slate-200 focus:border-slate-900'
-        }`}
-      />
+      <div className="relative">
+        <input
+          id={id}
+          type={isVisible ? 'text' : 'password'}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          autoComplete={autoComplete}
+          aria-invalid={invalid}
+          aria-describedby={description ? descriptionId : undefined}
+          // pr-10 — 토글 버튼과 입력 글자가 겹치지 않게 자리를 비운다
+          className={`w-full rounded border py-2 pr-10 pl-3 text-sm outline-none ${
+            invalid
+              ? 'border-rose-400'
+              : 'border-slate-200 focus:border-slate-900'
+          }`}
+        />
+        <PasswordVisibilityToggle
+          isVisible={isVisible}
+          onToggle={() => setIsVisible((visible) => !visible)}
+          small
+          className="right-1.5"
+        />
+      </div>
       {description && (
         <p id={descriptionId} className="text-xs text-rose-600">
           {description}
