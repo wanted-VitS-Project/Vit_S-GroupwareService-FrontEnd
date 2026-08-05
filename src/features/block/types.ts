@@ -152,6 +152,20 @@ export interface ChecklistItem {
 }
 
 /**
+ * `detail` 에서 체크리스트 블록 ID 를 꺼낸다.
+ *
+ * 구성은 **블록(`blockId`) > 블록의 내용(`chkBlockId`)** 이고 두 값은 다르다.
+ * 항목 생성 경로(`/blocks/checklists/{chkBlockId}/items`)에는 `chkBlockId` 만 쓴다.
+ * `blockId` 로 폴백하면 남의 블록에 항목이 붙을 수 있어 절대 대체하지 않는다.
+ */
+export function readChecklistBlockId(detail: unknown): number | null {
+  if (typeof detail !== 'object' || detail === null) return null;
+
+  const { chkBlockId } = detail as { chkBlockId?: unknown };
+  return typeof chkBlockId === 'number' ? chkBlockId : null;
+}
+
+/**
  * `detail` 에서 체크리스트 항목을 안전하게 꺼낸다.
  * 스키마가 확정되지 않아 형태가 맞지 않으면 빈 배열로 떨어뜨린다.
  */

@@ -74,7 +74,7 @@ export default function AddBlockModal({
     <Modal
       title="Block 추가"
       onClose={onClose}
-      className="m-auto w-full max-w-[640px] overflow-hidden rounded-xl border border-[#1C1F2A]/10 bg-white p-0 shadow-2xl backdrop:bg-slate-900/50"
+      className="w-full max-w-[640px] overflow-hidden rounded-xl border border-[#1C1F2A]/10 shadow-2xl"
       header={
         <div className="flex items-center justify-between gap-2 border-b border-[#1C1F2A]/10 px-5 py-3.5">
           <div className="flex min-w-0 items-center gap-2">

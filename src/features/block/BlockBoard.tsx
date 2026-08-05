@@ -11,6 +11,11 @@ const COL_SPAN_CLASS: Record<number, string> = {
   3: 'col-span-3',
 };
 
+/** 범위를 벗어난 값이 와도 레이아웃이 깨지지 않게 1~3 으로 자른다 */
+function toSpan(colSpan: number) {
+  return Math.min(Math.max(colSpan, 1), BLOCK_COLUMNS);
+}
+
 /**
  * 스텝 화면의 블록 보드.
  *
@@ -22,12 +27,24 @@ export default function BlockBoard({ blocks }: { blocks: StepBlock[] }) {
   // 응답이 이미 정렬되어 오지만, 행 경계를 확실히 하려고 여기서도 묶고 정렬한다
   const rows = [...new Set(blocks.map((block) => block.rowIndex))]
     .sort((a, b) => a - b)
-    .map((rowIndex) => ({
-      rowIndex,
-      blocks: blocks
+    .map((rowIndex) => {
+      const rowBlocks = blocks
         .filter((block) => block.rowIndex === rowIndex)
-        .sort((a, b) => a.sortOrder - b.sortOrder),
-    }));
+        .sort((a, b) => a.sortOrder - b.sortOrder);
+
+      return {
+        rowIndex,
+        blocks: rowBlocks,
+        /**
+         * 행이 쓰는 칸 수. 3을 넘으면 grid 가 뒤 블록을 다음 줄로 흘려서
+         * 같은 `rowIndex` 인데도 높이를 공유하지 않는다 — 조용히 넘기지 않고 알린다.
+         */
+        usedColumns: rowBlocks.reduce(
+          (total, block) => total + toSpan(block.colSpan),
+          0,
+        ),
+      };
+    });
 
   if (rows.length === 0) {
     return (
@@ -40,23 +57,28 @@ export default function BlockBoard({ blocks }: { blocks: StepBlock[] }) {
   return (
     <div className="flex flex-col gap-4">
       {rows.map((row) => (
-        <div
-          key={row.rowIndex}
-          className="grid grid-cols-3 items-stretch gap-4"
-        >
-          {row.blocks.map((block) => {
-            // 범위를 벗어난 값이 와도 레이아웃이 깨지지 않게 1~3 으로 자른다
-            const span = Math.min(Math.max(block.colSpan, 1), BLOCK_COLUMNS);
+        <div key={row.rowIndex} className="flex flex-col gap-2">
+          {row.usedColumns > BLOCK_COLUMNS && (
+            <p
+              role="alert"
+              className="rounded border border-[#E7000B]/20 bg-[#E7000B]/5 px-2.5 py-1.5 text-[10px] text-[#E7000B]"
+            >
+              이 행의 열 병합 합계가 {row.usedColumns}칸입니다 (최대{' '}
+              {BLOCK_COLUMNS}칸). 일부 블록이 다음 줄로 밀려 높이가 맞지 않을 수
+              있습니다.
+            </p>
+          )}
 
-            return (
+          <div className="grid grid-cols-3 items-stretch gap-4">
+            {row.blocks.map((block) => (
               <div
                 key={block.blockId}
-                className={`min-w-0 ${COL_SPAN_CLASS[span]}`}
+                className={`min-w-0 ${COL_SPAN_CLASS[toSpan(block.colSpan)]}`}
               >
                 <BlockBody block={block} />
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
       ))}
     </div>

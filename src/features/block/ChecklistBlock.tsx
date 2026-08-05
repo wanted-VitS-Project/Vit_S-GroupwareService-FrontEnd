@@ -11,6 +11,7 @@ import {
 } from './api';
 import BlockCard from './BlockCard';
 import {
+  readChecklistBlockId,
   readChecklistItems,
   type ChecklistItem,
   type StepBlock,
@@ -27,6 +28,11 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
   const [items, setItems] = useState<ChecklistItem[]>(() =>
     readChecklistItems(block.detail),
   );
+  /**
+   * 항목 생성 경로에 쓰는 ID. `blockId` 와 다른 값이라 폴백하지 않는다.
+   * 없으면 어느 체크리스트에 붙일지 알 수 없어 추가를 막는다.
+   */
+  const chkBlockId = readChecklistBlockId(block.detail);
   const [draft, setDraft] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   /** 요청이 진행 중인 항목 — 중복 클릭을 막는다 */
@@ -47,13 +53,13 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
 
   async function addItem() {
     const content = draft.trim();
-    if (!content || isAdding) return;
+    if (!content || isAdding || chkBlockId === null) return;
 
     setIsAdding(true);
     setErrorMessage('');
 
     try {
-      const created = await createChecklistItem(block.blockId, content);
+      const created = await createChecklistItem(chkBlockId, content);
       setItems((previous) => [
         ...previous,
         {
@@ -175,6 +181,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
               {isEditing ? (
                 <input
                   autoFocus
+                  aria-label={`${item.content} 항목 수정`}
                   value={editingText}
                   onChange={(event) => setEditingText(event.target.value)}
                   onBlur={() => saveContent(item)}
@@ -215,17 +222,25 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
         })}
       </ul>
 
-      <input
-        value={draft}
-        onChange={(event) => setDraft(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') addItem();
-        }}
-        onBlur={addItem}
-        disabled={isAdding}
-        placeholder="+ 항목 추가"
-        className="mt-2 w-full bg-transparent text-[10px] text-[#1C1F2A] outline-none placeholder:text-[#6C7389]/60"
-      />
+      {chkBlockId === null ? (
+        // detail.chkBlockId 없이 추가하면 어느 체크리스트에 붙을지 알 수 없다
+        <p className="mt-2 text-[10px] text-[#6C7389]/60">
+          항목을 추가할 수 없습니다.
+        </p>
+      ) : (
+        <input
+          aria-label="체크리스트 항목 추가"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') addItem();
+          }}
+          onBlur={addItem}
+          disabled={isAdding}
+          placeholder="+ 항목 추가"
+          className="mt-2 w-full bg-transparent text-[10px] text-[#1C1F2A] outline-none placeholder:text-[#6C7389]/60"
+        />
+      )}
 
       {errorMessage && (
         <p role="alert" className="mt-1.5 text-[9px] text-[#E7000B]">
