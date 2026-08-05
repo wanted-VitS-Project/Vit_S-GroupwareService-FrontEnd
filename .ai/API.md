@@ -9,13 +9,26 @@
 
 ## 공통 규약
 
-| 항목        | 내용                                                                   |
-| ----------- | ---------------------------------------------------------------------- |
-| Base URL    | `NEXT_PUBLIC_API_BASE_URL` 환경변수 (`.env.local`)                     |
+| 항목        | 내용                                                                         |
+| ----------- | ---------------------------------------------------------------------------- |
+| Base URL    | `NEXT_PUBLIC_API_BASE_URL` 환경변수 (`.env.local`)                           |
 | 인증 방식   | **HttpOnly 세션 쿠키** `SESSION`. 응답 본문에 토큰이 없고 재발급 API 도 없다 |
-| 프론트 처리 | 모든 요청에 `credentials: 'include'` — `src/lib/api.ts` 에서 일괄 처리 |
-| 응답 봉투   | `{ httpStatus, message, data }` — 래퍼가 `data` 만 꺼내 반환한다       |
-| 에러 처리   | HTTP status 로 분기, 안내 문구는 `message` 우선                        |
+| 프론트 처리 | 모든 요청에 `credentials: 'include'` — `src/lib/api.ts` 에서 일괄 처리       |
+| 성공 봉투   | `{ httpStatus, message, data }` — 래퍼가 `data` 만 꺼내 반환한다             |
+| 실패 봉투   | `{ httpStatus, message, code }` — **`data` 가 아니라 `code` 가 온다**        |
+| 에러 처리   | `ApiError(status, message, code)` 로 던진다. 안내 문구는 `message` 우선      |
+
+**실패 응답 예시** (실행으로 확인)
+
+```json
+{
+  "httpStatus": 400,
+  "message": "새 비밀번호가 현재 비밀번호와 같습니다.",
+  "code": "AUTH_PASSWORD_UNCHANGED"
+}
+```
+
+> ℹ️ `message` 는 **사용자에게 그대로 노출해도 되는 한국어 문구**다. 프론트가 상수로 덮는 것은 401 처럼 정보 노출을 막아야 할 때만 한다.
 
 > ⚠️ 토큰을 localStorage 등에 저장하지 않는다. 쿠키는 브라우저가 알아서 싣는다.
 > ℹ️ 쿠키 속성: `HttpOnly` · `SameSite=Lax` · 만료 `Session`(브라우저 종료 시 소멸) — 로그인 유지 체크박스는 없다.
@@ -97,11 +110,11 @@ interface LoginRequest {
 
 ## 3. 내 정보 조회
 
-| 항목          | 내용                |
-| ------------- | ------------------- |
-| **Method**    | `GET`               |
-| **Path**      | `/api/v1/auth/me`   |
-| **인증 필요** | ✅                  |
+| 항목          | 내용                                   |
+| ------------- | -------------------------------------- |
+| **Method**    | `GET`                                  |
+| **Path**      | `/api/v1/auth/me`                      |
+| **인증 필요** | ✅                                     |
 | **사용 위치** | `src/features/auth/api.ts` → `getMe()` |
 
 **Response (200 OK)** — Swagger 스키마로 확인
@@ -136,7 +149,31 @@ interface LoginRequest {
 
 ---
 
-## 4. 비밀번호 변경
+## 4. 약관 동의
+
+| 항목          | 내용                                          |
+| ------------- | --------------------------------------------- |
+| **Method**    | `POST`                                        |
+| **Path**      | `/api/v1/auth/terms-agreements`               |
+| **인증 필요** | ✅                                            |
+| **요청 본문** | 없음                                          |
+| **사용 위치** | `src/features/auth/api.ts` → `agreeToTerms()` |
+
+이용약관 · 개인정보처리방침 동의를 기록한다. 응답 `data` 는 `null`.
+
+- **최초 로그인 1회만** 받는다. 동의 후 비밀번호 변경 단계로 넘어간다.
+- 비밀번호 재설정 후 로그인에서는 다시 받지 않는다.
+- **ADMIN 은 대상이 아니다.**
+
+| status | code                   | 화면 처리            |
+| ------ | ---------------------- | -------------------- |
+| 401    | `AUTH_UNAUTHENTICATED` | 로그인 화면으로 이동 |
+
+> 화면 흐름: 로그인 → (`passwordStatus === 'RESET_REQUIRED'`) → 약관 동의 → 비밀번호 변경 → 서비스 진입
+
+---
+
+## 5. 비밀번호 변경
 
 | 항목          | 내용                    |
 | ------------- | ----------------------- |

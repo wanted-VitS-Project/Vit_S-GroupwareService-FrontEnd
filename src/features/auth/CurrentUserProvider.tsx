@@ -6,6 +6,7 @@ import { createContext, useEffect, useState } from 'react';
 import { ApiError } from '@/lib/api';
 
 import { getMe } from './api';
+import FirstLoginFlow from './FirstLoginFlow';
 import type { CurrentUser } from './types';
 
 /**
@@ -51,6 +52,13 @@ export default function CurrentUserProvider({
     };
   }, [router, retryCount]);
 
+  /** 다시 불러온다. 재시도와 비밀번호 변경 후 상태 갱신에 함께 쓴다. */
+  function refetch() {
+    setUser(null);
+    setHasFailed(false);
+    setRetryCount((count) => count + 1);
+  }
+
   if (hasFailed) {
     return (
       <Centered>
@@ -59,10 +67,7 @@ export default function CurrentUserProvider({
         </p>
         <button
           type="button"
-          onClick={() => {
-            setHasFailed(false);
-            setRetryCount((count) => count + 1);
-          }}
+          onClick={refetch}
           className="cursor-pointer rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800"
         >
           다시 시도
@@ -77,6 +82,11 @@ export default function CurrentUserProvider({
         <p className="text-sm text-slate-500">불러오는 중…</p>
       </Centered>
     );
+  }
+
+  // 어느 경로로 들어와도 막아야 해서 라우팅이 아니라 여기서 가둔다
+  if (user.passwordStatus === 'RESET_REQUIRED') {
+    return <FirstLoginFlow onDone={refetch} />;
   }
 
   return (

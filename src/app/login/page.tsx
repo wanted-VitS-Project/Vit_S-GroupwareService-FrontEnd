@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { login } from '@/features/auth/api';
-import { ApiError } from '@/lib/api';
+import { ApiError, messageOf } from '@/lib/api';
 
 /** 401 은 사번 존재 여부가 드러나지 않도록 한 문장으로만 안내한다. */
 const ERROR_MESSAGES: Record<number, string> = {
@@ -15,12 +15,17 @@ const ERROR_MESSAGES: Record<number, string> = {
   503: '서버가 혼잡합니다. 잠시 후 다시 시도해주세요.',
 };
 
-function messageOf(error: unknown) {
-  if (!(error instanceof ApiError)) {
-    return '알 수 없는 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
-  }
-  // 423(계정 잠금)은 해제 시각이 담긴 백엔드 문구가 더 정확하다
-  return ERROR_MESSAGES[error.status] ?? error.message;
+/** 423(계정 잠금)처럼 목록에 없는 상태는 해제 시각이 담긴 백엔드 문구를 쓴다. */
+function loginErrorOf(error: unknown) {
+  const known = error instanceof ApiError && ERROR_MESSAGES[error.status];
+
+  return (
+    known ||
+    messageOf(
+      error,
+      '알 수 없는 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+    )
+  );
 }
 
 /** 비밀번호 보기 토글 아이콘. 아이콘 라이브러리 도입 전까지 인라인 SVG 로 둔다. */
@@ -103,12 +108,11 @@ export default function LoginPage() {
     setIsPending(true);
 
     try {
-      const user = await login({ userId: userId.trim(), password });
-      // TODO: 비밀번호 변경 화면이 생기면 /mypage 대신 그 경로로 보낸다
-      const needsPasswordChange = user.passwordStatus === 'RESET_REQUIRED';
-      router.push(needsPasswordChange ? '/mypage' : '/');
+      await login({ userId: userId.trim(), password });
+      // 최초 로그인(RESET_REQUIRED)은 CurrentUserProvider 가 약관·비밀번호 변경으로 가둔다
+      router.push('/');
     } catch (caught) {
-      setError(messageOf(caught));
+      setError(loginErrorOf(caught));
       setIsPending(false);
     }
   }

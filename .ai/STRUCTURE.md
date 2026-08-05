@@ -1,10 +1,10 @@
 # 📁 폴더 구조 — Next.js App Router
 
-**최종 업데이트**: 2026-08-04 (이슈 #21 — 폴더 골격 · 라우트 스텁 · 네이밍 규칙 확정)
+**최종 업데이트**: 2026-08-05 (이슈 #3 — 인증 흐름 · 모달 반영)
 
 > 📖 관련: [CONVENTION.md](CONVENTION.md) · [LIBRARIES.md](LIBRARIES.md) · [API.md](API.md) · [STATE.md](STATE.md)
 
-> 🎯 이번 단계의 목표는 **"파일을 어디에 어떤 이름으로 둘지"** 를 정하는 것이다.
+> 🎯 이 문서는 **"파일을 어디에 어떤 이름으로 둘지"** 를 정한다.
 > 화면 구현·API 연동에 필요한 라이브러리는 **실제로 쓰는 이슈에서** 설치한다. (지금은 Next·React·Tailwind만)
 
 ---
@@ -141,7 +141,7 @@
 
 ## 3. `src/components` — 공용 UI
 
-특정 도메인을 모르는, **어디서나 재사용 가능한 컴포넌트**만 둔다. 현재 5개 모두 `return null` 스텁이다.
+특정 도메인을 모르는, **어디서나 재사용 가능한 컴포넌트**만 둔다.
 
 | 컴포넌트         | 역할                                                 |
 | ---------------- | ---------------------------------------------------- |
@@ -149,6 +149,7 @@
 | `Header`         | 상단 바 (현재 화면 제목 · 알림 · 내 정보)            |
 | `Sidebar`        | 전역 좌측 내비게이션 (역할별 메뉴)                   |
 | `MenuIcon`       | 사이드바 메뉴 아이콘 (인라인 SVG)                    |
+| `Modal`          | 공용 모달 껍데기 (`onClose` 유무로 닫기 가능 여부)   |
 | `ProjectSidebar` | 프로젝트 상세 전용 서브 내비                         |
 | `PageTitle`      | 페이지 제목 + 액션 영역                              |
 | `DataTable`      | 목록 테이블 공통 래퍼 (공고·프로젝트·재무·사원 공용) |
@@ -187,6 +188,30 @@ features/project/
 
 > 📌 git 은 빈 폴더를 추적하지 않아 각 폴더에 `.gitkeep` 을 두었다. **실제 파일을 만들면 `.gitkeep` 은 삭제**한다.
 > ⚠️ `features/` 는 라우팅 계층이 아니다. `page.tsx` 를 두지 않는다. (App Router 예약어와 혼동 방지)
+
+**`features/auth` — 유일하게 채워진 도메인 (참고용 예시)**
+
+| 파일                       | 역할                                    |
+| -------------------------- | --------------------------------------- |
+| `api.ts` · `types.ts`      | 인증 API 호출과 요청 · 응답 타입        |
+| `CurrentUserProvider.tsx`  | `/me` 를 한 번만 불러 컨텍스트로 공급   |
+| `useCurrentUser.ts`        | 컨텍스트 조회 훅                        |
+| `FirstLoginFlow.tsx`       | 최초 로그인 — 약관 동의 → 비밀번호 변경 |
+| `ChangePasswordModal.tsx`  | 비밀번호 변경 (강제 · 일반 모드)        |
+| `ChangePasswordButton.tsx` | 마이페이지 진입점                       |
+| `password.ts`              | 비밀번호 정책 (체크리스트 · 검증 공용)  |
+
+### 인증 흐름
+
+```
+proxy.ts (서버)      세션 쿠키 없으면 → /login
+   └─ CurrentUserProvider (클라이언트)
+        ├─ /me 401                     → /login
+        ├─ passwordStatus RESET_REQUIRED → FirstLoginFlow 로 가둠
+        └─ 정상                         → children
+```
+
+> 쿠키가 HttpOnly 라 JS 로 못 읽는다. **가드는 서버에서**, 만료 세션 판별은 `/me` 응답으로 한다.
 
 ---
 
