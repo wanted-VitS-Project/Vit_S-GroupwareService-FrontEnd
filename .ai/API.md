@@ -1,6 +1,6 @@
 # 연동 API 명세서
 
-**최종 업데이트**: 2026-08-04 (Swagger 실행 결과로 로그인 응답 확정)
+**최종 업데이트**: 2026-08-05 (백엔드 명세 확정본 반영 — termsStatus · code 기반 분기)
 
 > 📌 이 파일은 **프론트가 연동하는 백엔드 API**를 정리하는 곳이에요. (내가 만드는 게 아니라 **호출하는** 입장)
 > AI는 API 연동 코드를 작성하기 전에 이 파일을 먼저 읽어요. (잘못된 경로/필드/타입으로 fetch 짜는 실수 방지)
@@ -63,13 +63,14 @@ interface LoginRequest {
   httpStatus: 200,
   message: '로그인 성공',
   data: {
-    userId: string;          // 'EMP001'
-    name: string;            // '김민준'
+    userId: string;           // 'EMP001'
+    name: string;             // '김민준'
     role: 'ADMIN' | 'MASTER' | 'MEMBER';
+    termsStatus: 'AGREED' | 'REQUIRED';        // ADMIN 은 항상 AGREED
     passwordStatus: 'NORMAL' | 'RESET_REQUIRED';
-    departmentName: string;  // '개발팀'
-    departmentPath: string;  // '기술본부 / 개발팀'
-    jobPositionName: string; // '대리'
+    departmentName?: string;  // '개발팀'
+    departmentPath?: string;  // '기술본부 / 개발팀'
+    jobPositionName?: string; // '대리'
   }
 }
 ```
@@ -159,7 +160,7 @@ interface LoginRequest {
 | **요청 본문** | 없음                                          |
 | **사용 위치** | `src/features/auth/api.ts` → `agreeToTerms()` |
 
-이용약관 · 개인정보처리방침 동의를 기록한다. 응답 `data` 는 `null`.
+이용약관 · 개인정보처리방침을 **하나로 묶어** 동의받는다. POST 호출 자체가 동의이며 응답 `data` 는 `null`. **재호출해도 무해(멱등)**.
 
 - **최초 로그인 1회만** 받는다. 동의 후 비밀번호 변경 단계로 넘어간다.
 - 비밀번호 재설정 후 로그인에서는 다시 받지 않는다.
@@ -193,7 +194,9 @@ interface ChangePasswordRequest {
 ```
 
 - 비밀번호 정책: **8자 이상 + 영문 · 숫자 · 특수문자 모두 포함**
-- 변경 후에도 세션은 유지된다 (재로그인 불필요)
+- 변경 후에도 세션은 유지되고 `passwordStatus` 가 `NORMAL` 로 바뀐다 (재로그인 불필요)
+- ⚠️ **현재 비밀번호 불일치는 401 이 아니라 400** (`AUTH_CURRENT_PASSWORD_INVALID`) — 401 로 오면 공통 인터셉터가 로그아웃시켜 버리기 때문
+- 남의 비밀번호는 이 API 로 못 바꾼다. 관리자 재설정은 `POST /accounts/password-resets`
 
 | status | code                                                                                                                                                                                          | 화면 처리            |
 | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
