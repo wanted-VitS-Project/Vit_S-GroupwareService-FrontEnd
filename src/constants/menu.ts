@@ -40,6 +40,7 @@ const ADMIN_MENU: MenuItem[] = [
   NOTICES,
   { label: '프로젝트 조회', href: '/projects', icon: 'folder' },
   FINANCE,
+  // 하위 관리 화면(사원 · 부서 · 카테고리 …)은 설정 허브에서 타고 들어간다
   { label: '설정', href: '/settings', icon: 'settings' },
 ];
 

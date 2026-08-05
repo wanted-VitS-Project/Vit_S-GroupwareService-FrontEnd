@@ -1,6 +1,6 @@
 # 📁 폴더 구조 — Next.js App Router
 
-**최종 업데이트**: 2026-08-05 (이슈 #28 — 마이페이지 · 공용 유틸 반영)
+**최종 업데이트**: 2026-08-05 (이슈 #22 — 사업 카테고리 · 설정 허브 반영)
 
 > 📖 관련: [CONVENTION.md](CONVENTION.md) · [LIBRARIES.md](LIBRARIES.md) · [API.md](API.md) · [STATE.md](STATE.md)
 
@@ -163,19 +163,20 @@
 
 ## 4. `src/features` — 도메인 로직
 
-도메인 단위로 API 호출 · 훅 · 타입 · 전용 컴포넌트를 묶는다. 현재는 **폴더만 선점**한 상태.
+도메인 단위로 API 호출 · 훅 · 타입 · 전용 컴포넌트를 묶는다. `auth` · `businessCategory` 외에는 **폴더만 선점**한 상태.
 
-| 폴더           | 담당 도메인           |
-| -------------- | --------------------- |
-| `auth`         | 로그인 · 세션 · 권한  |
-| `employee`     | 사원 · 부서 · 계정    |
-| `notice`       | 공고                  |
-| `project`      | 프로젝트 · 단계       |
-| `block`        | 프로젝트 단계 내 블록 |
-| `invoice`      | 계산서                |
-| `payment`      | 입금 · 매칭           |
-| `settlement`   | 정산                  |
-| `notification` | 알림                  |
+| 폴더               | 담당 도메인                   |
+| ------------------ | ----------------------------- |
+| `auth`             | 로그인 · 세션 · 권한          |
+| `businessCategory` | 사업 카테고리 (마스터 데이터) |
+| `employee`         | 사원 · 부서 · 계정            |
+| `notice`           | 공고                          |
+| `project`          | 프로젝트 · 단계               |
+| `block`            | 프로젝트 단계 내 블록         |
+| `invoice`          | 계산서                        |
+| `payment`          | 입금 · 매칭                   |
+| `settlement`       | 정산                          |
+| `notification`     | 알림                          |
 
 **권장 내부 구조**
 
@@ -190,25 +191,41 @@ features/project/
 > 📌 git 은 빈 폴더를 추적하지 않아 각 폴더에 `.gitkeep` 을 두었다. **실제 파일을 만들면 `.gitkeep` 은 삭제**한다.
 > ⚠️ `features/` 는 라우팅 계층이 아니다. `page.tsx` 를 두지 않는다. (App Router 예약어와 혼동 방지)
 
-**`features/auth` — 유일하게 채워진 도메인 (참고용 예시)**
+**`features/auth` — 참고용 예시**
 
-| 파일                       | 역할                                    |
-| -------------------------- | --------------------------------------- |
-| `api.ts` · `types.ts`      | 인증 API 호출과 요청 · 응답 타입        |
-| `CurrentUserProvider.tsx`  | `/me` 를 한 번만 불러 컨텍스트로 공급   |
-| `useCurrentUser.ts`        | 컨텍스트 조회 훅                        |
-| `FirstLoginFlow.tsx`       | 최초 로그인 — 약관 동의 → 비밀번호 변경 |
-| `ChangePasswordModal.tsx`  | 비밀번호 변경 (강제 · 일반 모드)        |
-| `ChangePasswordButton.tsx` | 마이페이지 진입점                       |
-| `password.ts`              | 비밀번호 정책 (체크리스트 · 검증 공용)  |
+| 파일                       | 역할                                         |
+| -------------------------- | -------------------------------------------- |
+| `api.ts` · `types.ts`      | 인증 API 호출과 요청 · 응답 타입             |
+| `errorCodes.ts`            | 게이트 · 권한 부족 403 코드 단일 소스        |
+| `CurrentUserProvider.tsx`  | `/me` 를 한 번만 불러 컨텍스트로 공급        |
+| `useCurrentUser.ts`        | 컨텍스트 조회 훅                             |
+| `AuthGates.tsx`            | 최초 로그인 게이트를 단계로 노출 (이전/다음) |
+| `TermsGate.tsx`            | 약관 동의 단계                               |
+| `ChangePasswordModal.tsx`  | 비밀번호 변경 (강제 · 일반 모드)             |
+| `ChangePasswordButton.tsx` | 마이페이지 진입점                            |
+| `password.ts`              | 비밀번호 정책 (체크리스트 · 검증 공용)       |
+
+**`features/businessCategory` — 화면까지 갖춘 도메인 예시**
+
+| 파일                      | 역할                                          |
+| ------------------------- | --------------------------------------------- |
+| `api.ts` · `types.ts`     | 카테고리 CRUD 호출과 요청 · 응답 타입         |
+| `errorCodes.ts`           | 중복(409) · 미존재(404) 코드 단일 소스        |
+| `CategoryList.tsx`        | 목록 · 검색 · 삭제분 토글 · 행 케밥 메뉴      |
+| `CategoryModal.tsx`       | 카테고리 모달 공통 껍데기 (`Modal` 위에 얹음) |
+| `CategoryFormModal.tsx`   | 추가 · 수정 폼 (수정은 바뀐 필드만 전송)      |
+| `DeleteCategoryModal.tsx` | 삭제 확인 · 사용 중이면 차단 안내             |
+
+> 화면 컴포넌트는 `features/<도메인>/` 바로 아래 두고, `page.tsx` 는 이를 불러 쓰기만 한다.
 
 ### 인증 흐름
 
 ```
 proxy.ts (서버)      세션 쿠키 없으면 → /login
    └─ CurrentUserProvider (클라이언트)
-        ├─ /me 401                     → /login
-        ├─ passwordStatus RESET_REQUIRED → FirstLoginFlow 로 가둠
+        ├─ /me 401                      → /login
+        ├─ 게이트 403 (약관 · 비밀번호) → AuthGates 로 가둠
+        ├─ 권한 부족 403                → /forbidden
         └─ 정상                         → children
 ```
 
@@ -307,14 +324,16 @@ page.tsx (app)
 
 ## 9. 현재 상태
 
-| 영역                | 상태                                              |
-| ------------------- | ------------------------------------------------- |
-| 라우트 스캐폴딩     | ✅ `page.tsx` 25개 + 중첩 레이아웃 · 예약 파일    |
-| 폴더 골격           | ✅ app · components · features · constants · lib  |
-| 네이밍 · 포맷 규칙  | ✅ 이 문서 7번 + `.prettierrc` · `.gitattributes` |
-| 공용 컴포넌트 5종   | 🚧 파일만 존재 (`return null` 스텁)               |
-| `features/*`        | 🚧 빈 폴더 (`.gitkeep` 으로 구조만 선점)          |
-| `constants` · `lib` | 🚧 주석 가이드만, 내용은 API 명세 확정 대기       |
+| 영역                        | 상태                                                                                                                                    |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| 라우트 스캐폴딩             | ✅ `page.tsx` 25개 + 중첩 레이아웃 · 예약 파일                                                                                          |
+| 폴더 골격                   | ✅ app · components · features · constants · lib                                                                                        |
+| 네이밍 · 포맷 규칙          | ✅ 이 문서 7번 + `.prettierrc` · `.gitattributes`                                                                                       |
+| 공용 컴포넌트               | ✅ `AppShell` · `Header` · `Sidebar` · `Modal` · `DataTable` · `PageTitle` · `ProjectSidebar` · `MenuIcon` · `PasswordVisibilityToggle` |
+| `features/auth`             | ✅ 로그인 · 게이트 · 비밀번호 변경                                                                                                      |
+| `features/businessCategory` | ✅ 사업 카테고리 CRUD 화면                                                                                                              |
+| 그 외 `features/*`          | 🚧 빈 폴더 (`.gitkeep` 으로 구조만 선점)                                                                                                |
+| `constants` · `lib`         | ✅ `endpoints` · `menu` · `status` · `api` · `format`                                                                                   |
 
 **검증 기준** (2026-08-04)
 

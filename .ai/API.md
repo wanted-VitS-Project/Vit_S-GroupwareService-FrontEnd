@@ -1,8 +1,8 @@
 # 연동 API 명세서
 
+**최종 업데이트**: 2026-08-05 (사업 카테고리 API 추가 — 15~18)
 **최종 업데이트**: 2026-08-05 (블록 · 체크리스트 · 텍스트 API 추가)
 **최종 업데이트**: 2026-08-05 (프로젝트 상세 · 스테이지 · 스텝 API 추가)
-**최종 업데이트**: 2026-08-05 (백엔드 명세 확정본 반영 — termsStatus · code 기반 분기)
 
 > 📌 이 파일은 **프론트가 연동하는 백엔드 API**를 정리하는 곳이에요. (내가 만드는 게 아니라 **호출하는** 입장)
 > AI는 API 연동 코드를 작성하기 전에 이 파일을 먼저 읽어요. (잘못된 경로/필드/타입으로 fetch 짜는 실수 방지)
@@ -13,22 +13,26 @@
 
 ## 목차
 
-| #                              | API              | Method · Path                                | 연동                         |
-| ------------------------------ | ---------------- | -------------------------------------------- | ---------------------------- |
-| [1](#1-로그인)                 | 로그인           | `POST /auth/login`                           | ✅ `features/auth/api.ts`    |
-| [2](#2-로그아웃)               | 로그아웃         | `POST /auth/logout`                          | ✅ `features/auth/api.ts`    |
-| [3](#3-내-정보-조회)           | 내 정보 조회     | `GET /auth/me`                               | ✅ `features/auth/api.ts`    |
-| [4](#4-약관-동의)              | 약관 동의        | `POST /auth/terms-agreements`                | ✅ `features/auth/api.ts`    |
-| [5](#5-비밀번호-변경)          | 비밀번호 변경    | `PATCH /auth/password`                       | ✅ `features/auth/api.ts`    |
-| [6](#6-프로젝트-상세-조회)     | 프로젝트 상세    | `GET /projects/{projectId}`                  | ✅ `features/project/api.ts` |
-| [7](#7-프로젝트-스테이지-목록) | 스테이지 목록    | `GET /projects/{projectId}/stages`           | ✅ `features/project/api.ts` |
-| [8](#8-프로젝트-스텝-목록)     | 스텝 목록        | `GET /projects/{projectId}/steps`            | ✅ `features/project/api.ts` |
-| [9](#9-블록-생성)              | 블록 생성        | `POST /steps/{stepId}/blocks`                | ✅ `features/block/api.ts`   |
-| [10](#10-스텝-블록-일괄-조회)  | 블록 일괄 조회   | `GET /steps/{stepId}/blocks`                 | ✅ `features/block/api.ts`   |
-| [11](#11-텍스트-본문-수정)     | 텍스트 본문 수정 | `PATCH /blocks/texts/{txtId}`                | ✅ `features/block/api.ts`   |
-| [12](#12-체크리스트-항목-생성) | 체크리스트 생성  | `POST /blocks/checklists/{chkBlockId}/items` | ✅ `features/block/api.ts`   |
-| [13](#13-체크리스트-항목-수정) | 체크리스트 수정  | `PATCH /blocks/checklists/items/{chkId}`     | ✅ `features/block/api.ts`   |
-| [14](#14-체크리스트-항목-삭제) | 체크리스트 삭제  | `DELETE /blocks/checklists/items/{chkId}`    | ✅ `features/block/api.ts`   |
+| #                                 | API              | Method · Path                                | 연동                                  |
+| --------------------------------- | ---------------- | -------------------------------------------- | ------------------------------------- |
+| [1](#1-로그인)                    | 로그인           | `POST /auth/login`                           | ✅ `features/auth/api.ts`             |
+| [2](#2-로그아웃)                  | 로그아웃         | `POST /auth/logout`                          | ✅ `features/auth/api.ts`             |
+| [3](#3-내-정보-조회)              | 내 정보 조회     | `GET /auth/me`                               | ✅ `features/auth/api.ts`             |
+| [4](#4-약관-동의)                 | 약관 동의        | `POST /auth/terms-agreements`                | ✅ `features/auth/api.ts`             |
+| [5](#5-비밀번호-변경)             | 비밀번호 변경    | `PATCH /auth/password`                       | ✅ `features/auth/api.ts`             |
+| [6](#6-프로젝트-상세-조회)        | 프로젝트 상세    | `GET /projects/{projectId}`                  | ✅ `features/project/api.ts`          |
+| [7](#7-프로젝트-스테이지-목록)    | 스테이지 목록    | `GET /projects/{projectId}/stages`           | ✅ `features/project/api.ts`          |
+| [8](#8-프로젝트-스텝-목록)        | 스텝 목록        | `GET /projects/{projectId}/steps`            | ✅ `features/project/api.ts`          |
+| [9](#9-블록-생성)                 | 블록 생성        | `POST /steps/{stepId}/blocks`                | ✅ `features/block/api.ts`            |
+| [10](#10-스텝-블록-일괄-조회)     | 블록 일괄 조회   | `GET /steps/{stepId}/blocks`                 | ✅ `features/block/api.ts`            |
+| [11](#11-텍스트-본문-수정)        | 텍스트 본문 수정 | `PATCH /blocks/texts/{txtId}`                | ✅ `features/block/api.ts`            |
+| [12](#12-체크리스트-항목-생성)    | 체크리스트 생성  | `POST /blocks/checklists/{chkBlockId}/items` | ✅ `features/block/api.ts`            |
+| [13](#13-체크리스트-항목-수정)    | 체크리스트 수정  | `PATCH /blocks/checklists/items/{chkId}`     | ✅ `features/block/api.ts`            |
+| [14](#14-체크리스트-항목-삭제)    | 체크리스트 삭제  | `DELETE /blocks/checklists/items/{chkId}`    | ✅ `features/block/api.ts`            |
+| [15](#15-사업-카테고리-목록-조회) | 카테고리 목록    | `GET /business-categories`                   | ✅ `features/businessCategory/api.ts` |
+| [16](#16-사업-카테고리-생성)      | 카테고리 생성    | `POST /business-categories`                  | ✅ `features/businessCategory/api.ts` |
+| [17](#17-사업-카테고리-수정)      | 카테고리 수정    | `PATCH /business-categories/{categoryId}`    | ✅ `features/businessCategory/api.ts` |
+| [18](#18-사업-카테고리-삭제)      | 카테고리 삭제    | `DELETE /business-categories/{categoryId}`   | ✅ `features/businessCategory/api.ts` |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
 > 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한)
@@ -87,6 +91,7 @@
 | `AUTH_TERMS_AGREEMENT_REQUIRED` | 약관 게이트 미통과 상태로 다른 API 호출     | 약관 동의 화면으로 유도 (`/me` 재조회) |
 | `AUTH_PASSWORD_RESET_REQUIRED`  | 비밀번호 게이트 미통과 상태로 다른 API 호출 | 비밀번호 변경 화면으로 유도            |
 | `ACC_ADMIN_REQUIRED`            | ADMIN 전용 API 에 MASTER · MEMBER 가 접근   | `/forbidden` 이동 (재조회 무의미)      |
+| `BUSINESS_CATEGORY_ADMIN_ONLY`  | 사업 카테고리 쓰기 · 삭제분 조회에 비ADMIN  | `/forbidden` 이동                      |
 | `AUTH_ACCOUNT_INACTIVE`         | 비활성 계정 (로그인 단계)                   | 관리자 문의 안내 — **423 잠금과 별개** |
 
 > 처리 위치: `src/lib/api.ts` 가 403 을 `FORBIDDEN_EVENT` 로 흘리고 `src/features/auth/CurrentUserProvider.tsx` 한 곳에서 받는다.
@@ -590,6 +595,128 @@ data: {
 
 > ℹ️ 세 API 모두 `completedCount` · `totalCount` 를 돌려주지만, `ChecklistBlock` 은 **화면의 항목 목록에서 진척률을 계산**한다. 서버 카운트를 그대로 쓰면 목록과 숫자가 어긋나 보일 수 있다.
 > ❗ **블록 수정 · 블록 삭제 · 순서 변경(`rowIndex`/`sortOrder`) API 가 없다.** 블록 헤더 `⋯` 메뉴와 드래그 핸들은 UI 만 있다.
+
+---
+
+## 15. 사업 카테고리 목록 조회
+
+| 항목          | 내용                                                       |
+| ------------- | ---------------------------------------------------------- |
+| **Method**    | `GET`                                                      |
+| **Path**      | `/api/v1/business-categories`                              |
+| **인증 필요** | ✅                                                         |
+| **사용 위치** | `src/features/businessCategory/api.ts` → `getCategories()` |
+
+**Query**
+
+| 이름             | 타입      | 내용                                                |
+| ---------------- | --------- | --------------------------------------------------- |
+| `keyword`        | `string`  | 이름 · 업무코드 **부분 일치** 검색 (선택)           |
+| `includeDeleted` | `boolean` | 삭제분 포함. 기본 `false`, **ADMIN 만 `true` 가능** |
+
+**Response (200 OK)**
+
+```ts
+data: {
+  categories: {
+    categoryId: number;
+    name: string;
+    code: string | null; // 업무코드 — 없을 수 있다
+    description: string | null;
+    deletable: boolean; // 연결된 프로젝트가 없으면 true
+    deletedAt: string | null; // ISO — 논리 삭제 시각
+  }
+  [];
+}
+```
+
+> ℹ️ **이름 오름차순 고정**이고 **페이징 · 정렬 파라미터가 없다** — 화면은 전체를 받아 스크롤로 보여준다.
+> ℹ️ 0건이면 빈 배열. `data.categories` 로 한 겹 감싸져 있어 `api.ts` 에서 벗겨 반환한다.
+
+| status | code                           | 화면 처리         |
+| ------ | ------------------------------ | ----------------- |
+| 403    | `BUSINESS_CATEGORY_ADMIN_ONLY` | `/forbidden` 이동 |
+
+---
+
+## 16. 사업 카테고리 생성
+
+| 항목          | 내용                                                        |
+| ------------- | ----------------------------------------------------------- |
+| **Method**    | `POST`                                                      |
+| **Path**      | `/api/v1/business-categories`                               |
+| **인증 필요** | ✅ (ADMIN)                                                  |
+| **사용 위치** | `src/features/businessCategory/api.ts` → `createCategory()` |
+
+**Request Body**
+
+```ts
+{
+  name: string;         // 필수 · 중복 불가 (최대 100자)
+  code?: string;        // 선택 · 입력한 경우에만 중복 검사 (최대 30자)
+  description?: string; // 선택
+}
+```
+
+**Response (201 Created)** — `categoryId` · `name` · `code` · `description` · `deletable` · `createdAt`
+
+| status | code                                                                      | 화면 처리         |
+| ------ | ------------------------------------------------------------------------- | ----------------- |
+| 400    | `BUSINESS_CATEGORY_NAME_REQUIRED` · `_FIELD_TOO_LONG` · `_CODE_INVALID`   | 폼 필드 에러      |
+| 403    | `BUSINESS_CATEGORY_ADMIN_ONLY`                                            | `/forbidden` 이동 |
+| 409    | `BUSINESS_CATEGORY_NAME_DUPLICATED` · `BUSINESS_CATEGORY_CODE_DUPLICATED` | 해당 입력에 표시  |
+
+---
+
+## 17. 사업 카테고리 수정
+
+| 항목          | 내용                                                        |
+| ------------- | ----------------------------------------------------------- |
+| **Method**    | `PATCH`                                                     |
+| **Path**      | `/api/v1/business-categories/{categoryId}`                  |
+| **인증 필요** | ✅ (ADMIN)                                                  |
+| **사용 위치** | `src/features/businessCategory/api.ts` → `updateCategory()` |
+
+**Request Body** — 보낸 필드만 바뀐다
+
+```ts
+{
+  name?: string;
+  code?: string | null;  // null 을 보내면 업무코드를 지운다
+  description?: string;
+}
+```
+
+- ⚠️ `name` · `code` · `description` 이 **하나도 없으면 400** (`BUSINESS_CATEGORY_NO_FIELD_TO_UPDATE`)
+- 응답은 생성과 같은 형태 (`createdAt` 포함)
+
+| status | code                                                                                            | 화면 처리         |
+| ------ | ----------------------------------------------------------------------------------------------- | ----------------- |
+| 400    | `BUSINESS_CATEGORY_NO_FIELD_TO_UPDATE` · `_FIELD_TOO_LONG` · `_NAME_REQUIRED` · `_CODE_INVALID` | 폼 필드 에러      |
+| 403    | `BUSINESS_CATEGORY_ADMIN_ONLY`                                                                  | `/forbidden` 이동 |
+| 404    | `BUSINESS_CATEGORY_NOT_FOUND`                                                                   | 목록 재조회       |
+| 409    | `BUSINESS_CATEGORY_NAME_DUPLICATED` · `BUSINESS_CATEGORY_CODE_DUPLICATED`                       | 해당 입력에 표시  |
+
+---
+
+## 18. 사업 카테고리 삭제
+
+| 항목          | 내용                                                        |
+| ------------- | ----------------------------------------------------------- |
+| **Method**    | `DELETE`                                                    |
+| **Path**      | `/api/v1/business-categories/{categoryId}`                  |
+| **인증 필요** | ✅ (ADMIN)                                                  |
+| **사용 위치** | `src/features/businessCategory/api.ts` → `deleteCategory()` |
+
+**논리 삭제**다. 하드 삭제하지 않고, **이미 걸린 연결은 끊지 않는다** — 연결 해제는 프로젝트 쪽 API 소관.
+
+| status | code                           | 화면 처리                                           |
+| ------ | ------------------------------ | --------------------------------------------------- |
+| 403    | `BUSINESS_CATEGORY_ADMIN_ONLY` | `/forbidden` 이동                                   |
+| 404    | `BUSINESS_CATEGORY_NOT_FOUND`  | 이미 삭제됨 — 목록 재조회                           |
+| 409    | `BUSINESS_CATEGORY_IN_USE`     | **삭제 차단 안내** — 건수가 `message` 문구에 포함됨 |
+
+> ℹ️ 목록의 `deletable` 로 미리 걸러도 **경합(다른 사람이 그 사이 프로젝트를 연결)** 은 막을 수 없다. 409 를 반드시 처리한다.
 
 ---
 

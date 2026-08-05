@@ -9,8 +9,16 @@ export const GATE_CODES = {
   password: 'AUTH_PASSWORD_RESET_REQUIRED',
 } as const;
 
-/** 게이트가 아니라 권한이 모자란 403 — 다시 불러도 소용없다 */
-export const ADMIN_REQUIRED_CODE = 'ACC_ADMIN_REQUIRED';
+/** 게이트가 아니라 권한이 모자란 403 — 다시 불러도 결과가 같다 */
+const PERMISSION_CODES: string[] = [
+  'ACC_ADMIN_REQUIRED',
+  'BUSINESS_CATEGORY_ADMIN_ONLY',
+];
+
+/** 권한 부족 403 인지. 도메인마다 코드가 달라 목록으로 둔다 */
+export function isPermissionCode(code?: string) {
+  return code !== undefined && PERMISSION_CODES.includes(code);
+}
 
 const GATES: string[] = Object.values(GATE_CODES);
 

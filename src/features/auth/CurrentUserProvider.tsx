@@ -7,7 +7,7 @@ import { ApiError, FORBIDDEN_EVENT } from '@/lib/api';
 
 import { getMe } from './api';
 import AuthGates from './AuthGates';
-import { ADMIN_REQUIRED_CODE, GATE_CODES, isGateCode } from './errorCodes';
+import { GATE_CODES, isGateCode, isPermissionCode } from './errorCodes';
 import type { CurrentUser } from './types';
 
 /**
@@ -105,7 +105,7 @@ export default function CurrentUserProvider({
       const code = (event as CustomEvent<string | undefined>).detail;
 
       // 권한 부족은 다시 불러도 결과가 같다
-      if (code === ADMIN_REQUIRED_CODE) {
+      if (isPermissionCode(code)) {
         router.replace('/forbidden');
         return;
       }

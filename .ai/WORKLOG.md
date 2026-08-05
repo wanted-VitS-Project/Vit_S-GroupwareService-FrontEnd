@@ -6,6 +6,56 @@
 
 ---
 
+## [2026-08-05] 사업 카테고리 관리 · 설정 허브 구현 🚧
+
+브랜치: `feat/business-category` · 이슈: #22
+
+### 변경 파일
+
+| 파일                                                    | 변경                                              |
+| ------------------------------------------------------- | ------------------------------------------------- |
+| `src/features/businessCategory/api.ts`                  | 생성 — 목록 · 생성 · 수정 · 삭제 호출             |
+| `src/features/businessCategory/types.ts`                | 생성 — `BusinessCategory` · 요청 타입 · 길이 제한 |
+| `src/features/businessCategory/errorCodes.ts`           | 생성 — 409 · 404 응답 코드 단일 소스              |
+| `src/features/businessCategory/CategoryList.tsx`        | 생성 — 목록 · 검색 · 삭제분 포함 토글             |
+| `src/features/businessCategory/CategoryModal.tsx`       | 생성 — 카테고리 모달 공통 껍데기 · 푸터           |
+| `src/features/businessCategory/CategoryFormModal.tsx`   | 생성 — 추가 · 수정 폼 (변경 필드만 전송)          |
+| `src/features/businessCategory/DeleteCategoryModal.tsx` | 생성 — 삭제 확인 · 사용 중 차단 안내              |
+| `src/app/settings/page.tsx`                             | 설정 허브 화면 구현 (섹션 · 행 · 준비 중 표시)    |
+| `src/app/settings/categories/page.tsx`                  | `CategoryList` 연결                               |
+| `src/constants/endpoints.ts`                            | `businessCategories` 엔드포인트 추가              |
+| `src/constants/menu.ts`                                 | 설정 허브 진입 주석                               |
+| `src/features/auth/errorCodes.ts`                       | `ADMIN_REQUIRED_CODE` → `isPermissionCode` 목록화 |
+| `src/features/auth/CurrentUserProvider.tsx`             | 권한 부족 403 판정을 `isPermissionCode` 로 교체   |
+| `.ai/API.md`                                            | 사업 카테고리 API 명세 추가                       |
+
+### 주요 작업 내용
+
+- 사업 카테고리 CRUD 화면 구현 (목록 · 검색 · 추가 · 수정 · 삭제)
+- 설정 허브 화면 구현 — 하위 관리 화면 진입점을 한 곳에 모으고, 화면 없는 항목은 `준비 중` 비활성 표시
+- 권한 부족 403 코드를 목록(`PERMISSION_CODES`)으로 바꿔 도메인별 코드(`BUSINESS_CATEGORY_ADMIN_ONLY`) 대응
+
+### 부수 결정
+
+- 수정은 **바뀐 필드만** 전송 — 셋 다 없으면 백엔드 400
+- 검색은 백엔드 `keyword` 를 쓰고 화면에서 다시 필터링하지 않는다
+- 삭제는 `deletable === false` 면 미리 차단하되, 목록 조회 이후 연결될 수 있어 409 도 같은 화면에서 받는다
+
+### 코드 리뷰 반영 (CodeRabbit)
+
+- 이름 · 업무코드를 고치면 해당 필드의 서버 오류(409)를 즉시 지운다 — 고친 값이 계속 틀린 것처럼 보였다
+- 저장 · 삭제 중에는 모달을 닫지 못하게 한다(취소 · ✕ · ESC · 배경) — 요청은 계속 날아가 목록에 반영된다
+- 목록 조회 결과를 `{ key, list | hasFailed }` 로 들고 조건 키가 바뀌면 자동으로 로딩 상태가 되게 함 — 효과 본문에서 상태를 되돌리면 `react-hooks/set-state-in-effect` 에 걸린다
+
+### 남은 일 (이슈 #22 체크리스트 대비)
+
+- 생성일 컬럼 — 목록 API 응답에 `createdAt` 이 없어 보류 (백엔드 확인 필요)
+- 페이지네이션 — 목록 API 에 페이징 파라미터가 없어 스크롤로 대체
+- 삭제된 행 흐림 처리 — 현재는 `삭제됨` 배지 + 케밥 숨김만 적용
+- `deletable === false` 행의 삭제 항목 비활성 + 자물쇠 툴팁 — 삭제 모달 차단 안내로 대체
+
+---
+
 ## [2026-08-05] 텍스트 블록 — WYSIWYG 마크다운 에디터 🚧
 
 브랜치: `user/project` · 이슈: #35

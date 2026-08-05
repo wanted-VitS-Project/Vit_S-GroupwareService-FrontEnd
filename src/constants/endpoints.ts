@@ -19,6 +19,13 @@ export const ENDPOINTS = {
       `${V1}/projects/${projectId}/stages`,
     steps: (projectId: number | string) => `${V1}/projects/${projectId}/steps`,
   },
+  businessCategories: {
+    /** 목록 조회 · 생성 */
+    root: `${V1}/business-categories`,
+    /** 수정 · 삭제 */
+    detail: (categoryId: number | string) =>
+      `${V1}/business-categories/${categoryId}`,
+  },
   steps: {
     blocks: (stepId: number | string) => `${V1}/steps/${stepId}/blocks`,
   },
