@@ -1,3 +1,5 @@
+import CategoryList from '@/features/businessCategory/CategoryList';
+
 export default function Page() {
-  return <div>settings/categories</div>;
+  return <CategoryList />;
 }

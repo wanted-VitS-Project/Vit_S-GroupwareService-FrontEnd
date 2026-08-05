@@ -43,12 +43,13 @@
 
 각 API 표에서는 생략한다. **status 가 아니라 `code` 로 구분**한다 (403 하나에 세 가지 의미가 실린다).
 
-| code                             | 뜻                                              | 화면 처리                             |
-| -------------------------------- | ----------------------------------------------- | ------------------------------------- |
-| `AUTH_TERMS_AGREEMENT_REQUIRED`  | 약관 게이트 미통과 상태로 다른 API 호출         | 약관 동의 화면으로 유도 (`/me` 재조회) |
-| `AUTH_PASSWORD_RESET_REQUIRED`   | 비밀번호 게이트 미통과 상태로 다른 API 호출     | 비밀번호 변경 화면으로 유도            |
-| `ACC_ADMIN_REQUIRED`             | ADMIN 전용 API 에 MASTER · MEMBER 가 접근       | `/forbidden` 이동 (재조회 무의미)      |
-| `AUTH_ACCOUNT_INACTIVE`          | 비활성 계정 (로그인 단계)                       | 관리자 문의 안내 — **423 잠금과 별개** |
+| code                            | 뜻                                          | 화면 처리                              |
+| ------------------------------- | ------------------------------------------- | -------------------------------------- |
+| `AUTH_TERMS_AGREEMENT_REQUIRED` | 약관 게이트 미통과 상태로 다른 API 호출     | 약관 동의 화면으로 유도 (`/me` 재조회) |
+| `AUTH_PASSWORD_RESET_REQUIRED`  | 비밀번호 게이트 미통과 상태로 다른 API 호출 | 비밀번호 변경 화면으로 유도            |
+| `ACC_ADMIN_REQUIRED`            | ADMIN 전용 API 에 MASTER · MEMBER 가 접근   | `/forbidden` 이동 (재조회 무의미)      |
+| `BUSINESS_CATEGORY_ADMIN_ONLY`  | 사업 카테고리 쓰기 · 삭제분 조회에 비ADMIN  | `/forbidden` 이동                      |
+| `AUTH_ACCOUNT_INACTIVE`         | 비활성 계정 (로그인 단계)                   | 관리자 문의 안내 — **423 잠금과 별개** |
 
 > 처리 위치: `src/lib/api.ts` 가 403 을 `FORBIDDEN_EVENT` 로 흘리고 `src/features/auth/CurrentUserProvider.tsx` 한 곳에서 받는다.
 > 코드 상수는 `src/features/auth/errorCodes.ts`. (2026-08-05 백엔드 정리본으로 철자 확인)
@@ -516,6 +517,128 @@ data: {
 
 > ℹ️ 세 API 모두 `completedCount` · `totalCount` 를 돌려주지만, `ChecklistBlock` 은 **화면의 항목 목록에서 진척률을 계산**한다. 서버 카운트를 그대로 쓰면 목록과 숫자가 어긋나 보일 수 있다.
 > ❗ **블록 수정 · 블록 삭제 · 순서 변경(`rowIndex`/`sortOrder`) API 가 없다.** 블록 헤더 `⋯` 메뉴와 드래그 핸들은 UI 만 있다.
+
+---
+
+## 13. 사업 카테고리 목록 조회
+
+| 항목          | 내용                                                       |
+| ------------- | ---------------------------------------------------------- |
+| **Method**    | `GET`                                                      |
+| **Path**      | `/api/v1/business-categories`                              |
+| **인증 필요** | ✅                                                         |
+| **사용 위치** | `src/features/businessCategory/api.ts` → `getCategories()` |
+
+**Query**
+
+| 이름             | 타입      | 내용                                                |
+| ---------------- | --------- | --------------------------------------------------- |
+| `keyword`        | `string`  | 이름 · 업무코드 **부분 일치** 검색 (선택)           |
+| `includeDeleted` | `boolean` | 삭제분 포함. 기본 `false`, **ADMIN 만 `true` 가능** |
+
+**Response (200 OK)**
+
+```ts
+data: {
+  categories: {
+    categoryId: number;
+    name: string;
+    code: string | null; // 업무코드 — 없을 수 있다
+    description: string | null;
+    deletable: boolean; // 연결된 프로젝트가 없으면 true
+    deletedAt: string | null; // ISO — 논리 삭제 시각
+  }
+  [];
+}
+```
+
+> ℹ️ **이름 오름차순 고정**이고 **페이징 · 정렬 파라미터가 없다** — 화면은 전체를 받아 스크롤로 보여준다.
+> ℹ️ 0건이면 빈 배열. `data.categories` 로 한 겹 감싸져 있어 `api.ts` 에서 벗겨 반환한다.
+
+| status | code                           | 화면 처리         |
+| ------ | ------------------------------ | ----------------- |
+| 403    | `BUSINESS_CATEGORY_ADMIN_ONLY` | `/forbidden` 이동 |
+
+---
+
+## 14. 사업 카테고리 생성
+
+| 항목          | 내용                                                        |
+| ------------- | ----------------------------------------------------------- |
+| **Method**    | `POST`                                                      |
+| **Path**      | `/api/v1/business-categories`                               |
+| **인증 필요** | ✅ (ADMIN)                                                  |
+| **사용 위치** | `src/features/businessCategory/api.ts` → `createCategory()` |
+
+**Request Body**
+
+```ts
+{
+  name: string;         // 필수 · 중복 불가 (최대 100자)
+  code?: string;        // 선택 · 입력한 경우에만 중복 검사 (최대 30자)
+  description?: string; // 선택
+}
+```
+
+**Response (201 Created)** — `categoryId` · `name` · `code` · `description` · `deletable` · `createdAt`
+
+| status | code                                                                      | 화면 처리         |
+| ------ | ------------------------------------------------------------------------- | ----------------- |
+| 400    | `BUSINESS_CATEGORY_NAME_REQUIRED` · `_FIELD_TOO_LONG` · `_CODE_INVALID`   | 폼 필드 에러      |
+| 403    | `BUSINESS_CATEGORY_ADMIN_ONLY`                                            | `/forbidden` 이동 |
+| 409    | `BUSINESS_CATEGORY_NAME_DUPLICATED` · `BUSINESS_CATEGORY_CODE_DUPLICATED` | 해당 입력에 표시  |
+
+---
+
+## 15. 사업 카테고리 수정
+
+| 항목          | 내용                                                        |
+| ------------- | ----------------------------------------------------------- |
+| **Method**    | `PATCH`                                                     |
+| **Path**      | `/api/v1/business-categories/{categoryId}`                  |
+| **인증 필요** | ✅ (ADMIN)                                                  |
+| **사용 위치** | `src/features/businessCategory/api.ts` → `updateCategory()` |
+
+**Request Body** — 보낸 필드만 바뀐다
+
+```ts
+{
+  name?: string;
+  code?: string | null;  // null 을 보내면 업무코드를 지운다
+  description?: string;
+}
+```
+
+- ⚠️ `name` · `code` · `description` 이 **하나도 없으면 400** (`BUSINESS_CATEGORY_NO_FIELD_TO_UPDATE`)
+- 응답은 생성과 같은 형태 (`createdAt` 포함)
+
+| status | code                                                                                            | 화면 처리         |
+| ------ | ----------------------------------------------------------------------------------------------- | ----------------- |
+| 400    | `BUSINESS_CATEGORY_NO_FIELD_TO_UPDATE` · `_FIELD_TOO_LONG` · `_NAME_REQUIRED` · `_CODE_INVALID` | 폼 필드 에러      |
+| 403    | `BUSINESS_CATEGORY_ADMIN_ONLY`                                                                  | `/forbidden` 이동 |
+| 404    | `BUSINESS_CATEGORY_NOT_FOUND`                                                                   | 목록 재조회       |
+| 409    | `BUSINESS_CATEGORY_NAME_DUPLICATED` · `BUSINESS_CATEGORY_CODE_DUPLICATED`                       | 해당 입력에 표시  |
+
+---
+
+## 16. 사업 카테고리 삭제
+
+| 항목          | 내용                                                        |
+| ------------- | ----------------------------------------------------------- |
+| **Method**    | `DELETE`                                                    |
+| **Path**      | `/api/v1/business-categories/{categoryId}`                  |
+| **인증 필요** | ✅ (ADMIN)                                                  |
+| **사용 위치** | `src/features/businessCategory/api.ts` → `deleteCategory()` |
+
+**논리 삭제**다. 하드 삭제하지 않고, **이미 걸린 연결은 끊지 않는다** — 연결 해제는 프로젝트 쪽 API 소관.
+
+| status | code                           | 화면 처리                                           |
+| ------ | ------------------------------ | --------------------------------------------------- |
+| 403    | `BUSINESS_CATEGORY_ADMIN_ONLY` | `/forbidden` 이동                                   |
+| 404    | `BUSINESS_CATEGORY_NOT_FOUND`  | 이미 삭제됨 — 목록 재조회                           |
+| 409    | `BUSINESS_CATEGORY_IN_USE`     | **삭제 차단 안내** — 건수가 `message` 문구에 포함됨 |
+
+> ℹ️ 목록의 `deletable` 로 미리 걸러도 **경합(다른 사람이 그 사이 프로젝트를 연결)** 은 막을 수 없다. 409 를 반드시 처리한다.
 
 ---
 
