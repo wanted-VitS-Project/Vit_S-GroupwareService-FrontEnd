@@ -14,10 +14,11 @@ export interface LoginResponse {
   name: string;
   role: Role;
   passwordStatus: PasswordStatus;
-  departmentName: string;
+  /** 소속이 없는 계정이 있어 부서 · 직급은 비어 올 수 있다 */
+  departmentName?: string;
   /** 상위 조직까지 포함한 경로 — 예: '기술본부 / 개발팀' */
-  departmentPath: string;
-  jobPositionName: string;
+  departmentPath?: string;
+  jobPositionName?: string;
 }
 
 export interface ChangePasswordRequest {
@@ -27,12 +28,15 @@ export interface ChangePasswordRequest {
   newPasswordConfirm: string;
 }
 
-/** GET /auth/me — 로그인 응답에 마이페이지용 필드가 더 붙는다 */
+/**
+ * GET /auth/me — 로그인 응답에 마이페이지용 필드가 더 붙는다.
+ * 명세상 전부 nullable 이라 화면에서 빈 값을 처리한다.
+ */
 export interface CurrentUser extends LoginResponse {
-  email: string;
-  phone: string;
-  /** YYYY-MM-DD */
-  hiredAt: string;
-  /** YYYY-MM-DD HH:mm:ss */
-  lastLoginAt: string;
+  email?: string;
+  phone?: string;
+  /** yyyy-MM-dd */
+  hiredAt?: string;
+  /** yyyy-MM-dd HH:mm:ss */
+  lastLoginAt?: string;
 }
