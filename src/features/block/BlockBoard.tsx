@@ -2,6 +2,7 @@
 
 import BlockCard from './BlockCard';
 import ChecklistBlock from './ChecklistBlock';
+import TextBlock from './TextBlock';
 import { BLOCK_COLUMNS, type StepBlock } from './types';
 
 /** Tailwind 가 조합된 클래스명을 못 읽으므로 완성된 문자열로 매핑한다 */
@@ -23,7 +24,14 @@ function toSpan(colSpan: number) {
  * `rowIndex` 가 같은 블록끼리 한 행을 이루고, **같은 행은 높이를 공유한다**
  * (grid 행 높이가 가장 긴 블록에 맞춰지고 각 블록이 `h-full` 로 늘어난다).
  */
-export default function BlockBoard({ blocks }: { blocks: StepBlock[] }) {
+export default function BlockBoard({
+  blocks,
+  autoEditBlockId,
+}: {
+  blocks: StepBlock[];
+  /** 방금 만든 블록 — 편집 입력창을 곧바로 띄운다 */
+  autoEditBlockId?: number | null;
+}) {
   // 응답이 이미 정렬되어 오지만, 행 경계를 확실히 하려고 여기서도 묶고 정렬한다
   const rows = [...new Set(blocks.map((block) => block.rowIndex))]
     .sort((a, b) => a - b)
@@ -75,7 +83,10 @@ export default function BlockBoard({ blocks }: { blocks: StepBlock[] }) {
                 key={block.blockId}
                 className={`min-w-0 ${COL_SPAN_CLASS[toSpan(block.colSpan)]}`}
               >
-                <BlockBody block={block} />
+                <BlockBody
+                  block={block}
+                  autoEdit={block.blockId === autoEditBlockId}
+                />
               </div>
             ))}
           </div>
@@ -86,8 +97,16 @@ export default function BlockBoard({ blocks }: { blocks: StepBlock[] }) {
 }
 
 /** 유형별 본문 분기. 아직 구현되지 않은 유형은 껍데기만 그린다 */
-function BlockBody({ block }: { block: StepBlock }) {
+function BlockBody({
+  block,
+  autoEdit,
+}: {
+  block: StepBlock;
+  autoEdit: boolean;
+}) {
   if (block.type === 'CHECKLIST') return <ChecklistBlock block={block} />;
+  if (block.type === 'TEXT')
+    return <TextBlock block={block} autoEdit={autoEdit} />;
 
   // TODO: 유형별 블록 구현 (TEXT · IMAGE · FILE · APPROVAL · …)
   return (

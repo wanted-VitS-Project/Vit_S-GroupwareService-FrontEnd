@@ -50,78 +50,82 @@
 
 ---
 
-## [2026-08-05] 최초 로그인 게이트 분기 수정 ✅
+## [2026-08-05] 텍스트 블록 — WYSIWYG 마크다운 에디터 🚧
 
-브랜치: `fix/auth-gate` · 이슈: 확인 필요 (생성 후 번호 기입)
+브랜치: `user/project` · 이슈: #35
+
+> 스텝 블록 보드 · 체크리스트 블록은 아래 항목 참고. 이 항목은 **텍스트 블록만** 다룬다.
 
 ### 변경 파일
 
-| 파일                                          | 변경                                                  |
-| --------------------------------------------- | ----------------------------------------------------- |
-| `src/features/auth/AuthGates.tsx`             | 생성 — 남은 게이트를 단계로 노출 (이전/다음)          |
-| `src/features/auth/TermsGate.tsx`             | 생성 — 약관 단계 (`FirstLoginFlow` 대체)              |
-| `src/features/auth/errorCodes.ts`             | 생성 — 게이트 · 권한 · 로그인 실패 코드 단일 소스     |
-| `src/features/auth/FirstLoginFlow.tsx`        | 삭제 — 약관+비밀번호를 세트로 묶고 있었음             |
-| `src/features/auth/CurrentUserProvider.tsx`   | 게이트 분리 · `/me` 403 대응 · 403 이벤트 구독        |
-| `src/features/auth/ChangePasswordModal.tsx`   | `stepLabel` · `onBack` · 눈 아이콘 추가               |
-| `src/features/auth/types.ts`                  | `TermsStatus` · `termsStatus` 추가                    |
-| `src/components/PasswordVisibilityToggle.tsx` | 생성 — 로그인 화면의 눈 아이콘을 공용화               |
-| `src/components/Modal.tsx`                    | `stepLabel` (제목 위 진행 표시)                       |
-| `src/lib/api.ts`                              | 403 을 `FORBIDDEN_EVENT` 로 방송                      |
-| `src/app/login/page.tsx`                      | status → `code` 분기 · 게이트 코드면 게이트로 이동    |
-| `src/app/globals.css`                         | `word-break: keep-all` (한글 어절 단위 줄바꿈)        |
-| `.ai/API.md`                                  | `/me` 의 `termsStatus` · 공통 403 표 · 세션 정책 추가 |
+| 파일                                    | 변경                                                        |
+| --------------------------------------- | ----------------------------------------------------------- |
+| `src/features/block/MarkdownEditor.tsx` | 생성 — TipTap WYSIWYG 에디터 · 서식 툴바 · `MARKDOWN_CLASS` |
+| `src/features/block/MarkdownView.tsx`   | 생성 — 읽기 전용 마크다운 렌더 (카드 미리보기)              |
+| `src/features/block/TextBlock.tsx`      | 생성 — 카드 본문 · 글자수 · 편집 진입                       |
+| `src/features/block/TextBlockModal.tsx` | 생성 — 편집 모달 · 본문 저장                                |
+| `src/features/block/types.ts`           | `TextBlockDetail` · `readTextBlockDetail` · 수정 응답 타입  |
+| `src/features/block/api.ts`             | `updateTextBlock` 추가                                      |
+| `src/features/block/BlockBoard.tsx`     | `TEXT` 분기 · `autoEditBlockId` 전달                        |
+| `src/features/block/StepBlocks.tsx`     | 생성 직후 새 `TEXT` 블록을 찾아 편집창 자동 오픈            |
+| `src/constants/endpoints.ts`            | `blocks.text` 등록                                          |
+| `package.json` · `package-lock.json`    | TipTap 4종 추가                                             |
+| `.ai/API.md`                            | 11번 명세 추가 · 목차 신설 · 섹션 번호 정리 (9~14)          |
+| `.ai/LIBRARIES.md`                      | §1 TipTap 4종 · §6 변경 이력                                |
 
 ### 주요 작업 내용
 
-- `termsStatus` · `passwordStatus` 를 **독립 게이트**로 분리 — 약관만 남은 계정이 모든 API 403 으로 막히던 문제 해결
-- 두 게이트가 모두 남으면 `1 / 2` → `2 / 2` 단계로 보여주고 이전/다음으로 오갈 수 있게 함
-- 403 을 화면마다 처리하지 않고 `lib/api` → `CurrentUserProvider` 한 곳에서 받도록 통일
-- 에러 분기를 `status` 에서 **`code`** 로 전환 (403 하나에 비활성 · 게이트 · 권한 세 의미가 실림)
+- **WYSIWYG 마크다운 에디터** — TipTap + `tiptap-markdown`. 마크다운 원문은 화면에 노출되지 않고 서식 결과만 보인다. `## ` 를 입력하면 즉시 제목으로 바뀌고 기호는 사라진다
+- **서식 툴바** — B · I / H1 · H2 · H3 · P / 글머리 · 번호 목록 / 인용 · 코드 · 구분선 / 서식 지우기. 활성 버튼은 `aria-pressed` 로 상태 전달. `Ctrl+B` · `Ctrl+I` 지원
+- **본문 저장 연동** — `PATCH /blocks/texts/{txtId}` (전체 내용 전송)
+- **생성 → 자동 편집** — 텍스트 블록을 만들면 빈 카드가 생기고 편집 모달이 곧바로 열린다
+- **카드 미리보기** — 편집 화면과 같은 렌더러(TipTap 읽기 전용)를 써서 서식이 어긋나지 않는다. `max-h-40` 로 잘리고 하단에 `{n}자` · `편집` 이 붙는다
 
 ### 트러블슈팅
 
-- **문제**: 약관 동의 후 뒤로가기 → 재로그인하면 비밀번호 변경 모달이 안 뜨고 "내 정보를 불러오지 못했습니다"
-- **원인**: 게이트 상태를 `/me` **응답에서만** 읽었는데, 게이트 미통과 시 `/me` 자체가 403 으로 막힌다
-- **해결**: 403 의 `code` 로 어느 게이트인지 판단(`blockedBy`) — 사용자 정보 없이도 게이트 화면을 띄운다
+- **문제**: `editor.storage.markdown` 이 타입 에러 (`Property 'markdown' does not exist on type 'Storage'`)
+- **원인**: `tiptap-markdown@0.9.0` 이 `editor.storage` 타입을 확장하지 않는다
+- **해결**: `toMarkdown(editor)` 접근자 한 곳에서만 좁혀 쓰고 나머지 코드는 타입 안전하게 유지
 
-- **문제**: 재로그인 시 "초기 비밀번호를 먼저 변경해 주세요." 만 뜨고 변경할 방법이 없음
-- **원인**: 백엔드가 `RESET_REQUIRED` 계정의 로그인을 게이트 코드로 거부하는데, 프론트가 이를 일반 에러로 표시
-- **해결**: 로그인 실패 코드가 게이트 코드면 에러 대신 `/` 로 보내 기존 세션으로 게이트를 통과시킨다
+- **문제**: 블록 생성 직후 어느 블록의 편집창을 열어야 할지 알 수 없다
+- **원인**: 블록 생성 응답 `data` 스키마가 미확정이라 새 `blockId` 를 받지 못한다
+- **해결**: 생성 직전 `blockId` 목록을 ref 에 담아두고, 재조회 결과와 비교해 새로 생긴 `TEXT` 블록을 찾아 편집창을 연다. 응답에 ID 가 포함되면 이 비교는 제거한다
 
-- **문제**: 모달 안내 문구가 단어 중간에서 잘림 (`변|경해주세요`)
-- **원인**: 한글은 `word-break` 기본값에서 어느 글자에서나 줄바꿈된다
-- **해결**: `body` 에 `word-break: keep-all` + `overflow-wrap: break-word`
+- **문제**: 저장 후에도 카드 미리보기가 이전 내용을 보여준다
+- **원인**: TipTap 인스턴스는 초기 `content` 만 읽고, 이후 prop 변경을 반영하지 않는다
+- **해결**: `MarkdownView` 에 `key={content}` 를 줘서 저장 직후에만 다시 마운트한다. effect 로 `setContent` 를 부르는 방식은 `react-hooks/set-state-in-effect` 에 걸린다
 
 ### 부수 결정
 
-- 게이트 차단은 라우팅이 아니라 `CurrentUserProvider` 에서 한다 — 어느 경로로 들어와도 막아야 한다
-- **비밀번호 단계가 남아 있으면 약관은 이미 동의했어도 1단계로 남긴다** — 새로고침해도 `2 / 2` 가 유지되고 약관을 다시 읽을 수 있다
-- 두 게이트가 모두 남을 때 중간 `/me` 재조회를 하지 않는다(로컬 단계 전환) — 로딩 화면이 끼어들지 않는다
-- 게이트 403 은 같은 코드에 **한 번만** 반응한다(`handledGates`) — `/me` 와 백엔드 판단이 어긋나면 무한 재요청이 된다
-- 뒤로가기로 `/login` 이탈은 막지 않는다 — 재로그인하면 게이트로 돌아오므로 굳이 히스토리를 가둘 필요가 없다
-- 눈 아이콘은 `components/PasswordVisibilityToggle` 로 공용화 — 로그인 화면과 모달이 같은 것을 쓴다
+- **에디터는 TipTap 채택** — `@uiw/react-md-editor` 는 분할 미리보기라 "원문 비노출" 요구를 못 맞추고, Lexical 은 툴바 상태 동기화를 직접 짜야 한다. 직접 구현은 선택 복원 · 붙여넣기 정제 · 목록 중첩 · IME 조합 때문에 버그 리스크가 크다
+- **`@tailwindcss/typography` 미도입** — 시안 폰트 크기가 기본값과 많이 달라 덮어쓰기가 오히려 늘어난다. `MARKDOWN_CLASS` 로 필요한 요소만 지정하고 편집 · 미리보기가 공유한다
+- **카드 미리보기도 TipTap 읽기 전용 인스턴스** — 별도 렌더러를 쓰면 편집 화면과 모습이 어긋난다. 텍스트 블록마다 인스턴스가 하나 늘어나는 비용을 감수한다
+- **`txtId` 는 `blockId` 로 폴백하지 않는다** — 값이 달라서 폴백하면 **다른 블록의 본문이 수정된다.** `detail.txtId` 가 없으면 편집 버튼 대신 `편집 불가` 를 노출한다
+- **`immediatelyRender: false`** — SSR 에서 즉시 렌더하면 하이드레이션이 어긋난다
 
 ### 검증
 
-| 명령                       | 결과                                           |
-| -------------------------- | ---------------------------------------------- |
-| `npx tsc --noEmit`         | ✅ 이번 변경분 에러 0                          |
-| `npx eslint src`           | ✅ 에러 0 · 경고 0                             |
-| `npx prettier --check src` | ✅ 통과                                        |
-| 브라우저 동작 확인         | ✅ 사용자 확인 (게이트 · 단계 이동 · 재로그인) |
+| 명령               | 결과               |
+| ------------------ | ------------------ |
+| `npm run build`    | ✅ 성공            |
+| `npx tsc --noEmit` | ✅ 에러 0          |
+| `npx eslint .`     | ✅ 에러 0 · 경고 0 |
+| `prettier --check` | ✅ 통과            |
 
-### 남은 일
+> ⚠️ 실제 백엔드 대상 동작 확인은 **확인 필요** (`detail.txtId` · `detail.content` 가 내려와야 편집 가능)
 
-- ⚠️ 약관 실제 문구 교체 (배포 전 필수 — 현재 placeholder)
-- 백엔드 확인: `RESET_REQUIRED` 계정 재로그인 거부가 의도인지 (브라우저를 닫아 세션이 사라지면 관리자 재설정 외 방법이 없음)
-- `src/app/mypage/page.tsx` 타입 에러 4건 (`string | null` vs `string | undefined`) — 별도 처리
+### 남은 일 / 확인 필요
+
+- ❗ **`detail.txtId` · `detail.content` 키 이름 확인 필요** — 없으면 카드가 빈 상태로만 보인다
+- ❗ **블록 생성 응답 `data` 스키마** — `blockId` 가 오면 자동 편집 로직이 단순해진다
+- 이미지 · 표 미지원 — StarterKit 범위 밖. 필요해지면 TipTap 확장 추가
+- 마크다운 붙여넣기 · 드래그 앤 드롭 동작 미검증
 
 ---
 
 ## [2026-08-05] 스텝 블록 보드 · 체크리스트 블록 구현 🚧
 
-브랜치: `user/project` · 이슈: 확인 필요 (생성 후 번호 기재)
+브랜치: `user/project` · 이슈: #31
 
 ### 변경 파일
 
@@ -192,6 +196,75 @@
 - `CHECKLIST` 외 8종 블록 본문 미구현 (`준비 중인 블록입니다.` 껍데기)
 - 스텝 이름 하드코딩 — 스텝 상세 조회 연동 후 교체
 - 스텝 `EDITOR` 권한 가드 없음 → `VIEWER` 도 `Block 추가` 버튼이 보이고 403 을 맞는다
+
+---
+
+## [2026-08-05] 최초 로그인 게이트 분기 수정 ✅
+
+브랜치: `fix/auth-gate` · 이슈: 확인 필요 (생성 후 번호 기입)
+
+### 변경 파일
+
+| 파일                                          | 변경                                                  |
+| --------------------------------------------- | ----------------------------------------------------- |
+| `src/features/auth/AuthGates.tsx`             | 생성 — 남은 게이트를 단계로 노출 (이전/다음)          |
+| `src/features/auth/TermsGate.tsx`             | 생성 — 약관 단계 (`FirstLoginFlow` 대체)              |
+| `src/features/auth/errorCodes.ts`             | 생성 — 게이트 · 권한 · 로그인 실패 코드 단일 소스     |
+| `src/features/auth/FirstLoginFlow.tsx`        | 삭제 — 약관+비밀번호를 세트로 묶고 있었음             |
+| `src/features/auth/CurrentUserProvider.tsx`   | 게이트 분리 · `/me` 403 대응 · 403 이벤트 구독        |
+| `src/features/auth/ChangePasswordModal.tsx`   | `stepLabel` · `onBack` · 눈 아이콘 추가               |
+| `src/features/auth/types.ts`                  | `TermsStatus` · `termsStatus` 추가                    |
+| `src/components/PasswordVisibilityToggle.tsx` | 생성 — 로그인 화면의 눈 아이콘을 공용화               |
+| `src/components/Modal.tsx`                    | `stepLabel` (제목 위 진행 표시)                       |
+| `src/lib/api.ts`                              | 403 을 `FORBIDDEN_EVENT` 로 방송                      |
+| `src/app/login/page.tsx`                      | status → `code` 분기 · 게이트 코드면 게이트로 이동    |
+| `src/app/globals.css`                         | `word-break: keep-all` (한글 어절 단위 줄바꿈)        |
+| `.ai/API.md`                                  | `/me` 의 `termsStatus` · 공통 403 표 · 세션 정책 추가 |
+
+### 주요 작업 내용
+
+- `termsStatus` · `passwordStatus` 를 **독립 게이트**로 분리 — 약관만 남은 계정이 모든 API 403 으로 막히던 문제 해결
+- 두 게이트가 모두 남으면 `1 / 2` → `2 / 2` 단계로 보여주고 이전/다음으로 오갈 수 있게 함
+- 403 을 화면마다 처리하지 않고 `lib/api` → `CurrentUserProvider` 한 곳에서 받도록 통일
+- 에러 분기를 `status` 에서 **`code`** 로 전환 (403 하나에 비활성 · 게이트 · 권한 세 의미가 실림)
+
+### 트러블슈팅
+
+- **문제**: 약관 동의 후 뒤로가기 → 재로그인하면 비밀번호 변경 모달이 안 뜨고 "내 정보를 불러오지 못했습니다"
+- **원인**: 게이트 상태를 `/me` **응답에서만** 읽었는데, 게이트 미통과 시 `/me` 자체가 403 으로 막힌다
+- **해결**: 403 의 `code` 로 어느 게이트인지 판단(`blockedBy`) — 사용자 정보 없이도 게이트 화면을 띄운다
+
+- **문제**: 재로그인 시 "초기 비밀번호를 먼저 변경해 주세요." 만 뜨고 변경할 방법이 없음
+- **원인**: 백엔드가 `RESET_REQUIRED` 계정의 로그인을 게이트 코드로 거부하는데, 프론트가 이를 일반 에러로 표시
+- **해결**: 로그인 실패 코드가 게이트 코드면 에러 대신 `/` 로 보내 기존 세션으로 게이트를 통과시킨다
+
+- **문제**: 모달 안내 문구가 단어 중간에서 잘림 (`변|경해주세요`)
+- **원인**: 한글은 `word-break` 기본값에서 어느 글자에서나 줄바꿈된다
+- **해결**: `body` 에 `word-break: keep-all` + `overflow-wrap: break-word`
+
+### 부수 결정
+
+- 게이트 차단은 라우팅이 아니라 `CurrentUserProvider` 에서 한다 — 어느 경로로 들어와도 막아야 한다
+- **비밀번호 단계가 남아 있으면 약관은 이미 동의했어도 1단계로 남긴다** — 새로고침해도 `2 / 2` 가 유지되고 약관을 다시 읽을 수 있다
+- 두 게이트가 모두 남을 때 중간 `/me` 재조회를 하지 않는다(로컬 단계 전환) — 로딩 화면이 끼어들지 않는다
+- 게이트 403 은 같은 코드에 **한 번만** 반응한다(`handledGates`) — `/me` 와 백엔드 판단이 어긋나면 무한 재요청이 된다
+- 뒤로가기로 `/login` 이탈은 막지 않는다 — 재로그인하면 게이트로 돌아오므로 굳이 히스토리를 가둘 필요가 없다
+- 눈 아이콘은 `components/PasswordVisibilityToggle` 로 공용화 — 로그인 화면과 모달이 같은 것을 쓴다
+
+### 검증
+
+| 명령                       | 결과                                           |
+| -------------------------- | ---------------------------------------------- |
+| `npx tsc --noEmit`         | ✅ 이번 변경분 에러 0                          |
+| `npx eslint src`           | ✅ 에러 0 · 경고 0                             |
+| `npx prettier --check src` | ✅ 통과                                        |
+| 브라우저 동작 확인         | ✅ 사용자 확인 (게이트 · 단계 이동 · 재로그인) |
+
+### 남은 일
+
+- ⚠️ 약관 실제 문구 교체 (배포 전 필수 — 현재 placeholder)
+- 백엔드 확인: `RESET_REQUIRED` 계정 재로그인 거부가 의도인지 (브라우저를 닫아 세션이 사라지면 관리자 재설정 외 방법이 없음)
+- `src/app/mypage/page.tsx` 타입 에러 4건 (`string | null` vs `string | undefined`) — 별도 처리
 
 ---
 

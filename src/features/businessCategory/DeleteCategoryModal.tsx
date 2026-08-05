@@ -17,7 +17,7 @@ interface DeleteCategoryModalProps {
 }
 
 /**
- * 사업 카테고리 삭제 모달. (.ai/API.md 16)
+ * 사업 카테고리 삭제 모달. (.ai/API.md 18)
  *
  * `deletable === false` 면 처음부터 차단 안내를 띄운다.
  * 목록을 받은 뒤 다른 사람이 프로젝트를 연결할 수 있어 409 도 같은 화면으로 받는다 —

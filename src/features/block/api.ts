@@ -8,6 +8,7 @@ import type {
   StepBlock,
   UpdateChecklistItemRequest,
   UpdateChecklistItemResponse,
+  UpdateTextBlockResponse,
 } from './types';
 
 /**
@@ -30,6 +31,22 @@ export function createBlock(
   signal?: AbortSignal,
 ) {
   return api.post<void>(ENDPOINTS.steps.blocks(stepId), body, signal);
+}
+
+/**
+ * 텍스트 본문 수정 — `txtId` 는 텍스트 항목 ID (`blockId` 아님).
+ * 부분 수정이 아니라 **전체 내용**을 보낸다.
+ */
+export function updateTextBlock(
+  txtId: number | string,
+  content: string,
+  signal?: AbortSignal,
+) {
+  return api.patch<UpdateTextBlockResponse>(
+    ENDPOINTS.blocks.text(txtId),
+    { content },
+    signal,
+  );
 }
 
 /** 체크리스트 항목 생성 — `chkBlockId` 는 체크리스트 블록 ID */

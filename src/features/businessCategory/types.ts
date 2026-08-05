@@ -1,7 +1,7 @@
 export const CATEGORY_NAME_MAX_LENGTH = 100;
 export const CATEGORY_CODE_MAX_LENGTH = 30;
 
-/** 사업 카테고리 — 프로젝트에 지정하는 사업 분류 (.ai/API.md 13~16) */
+/** 사업 카테고리 — 프로젝트에 지정하는 사업 분류 (.ai/API.md 15~18) */
 export interface BusinessCategory {
   categoryId: number;
   name: string;

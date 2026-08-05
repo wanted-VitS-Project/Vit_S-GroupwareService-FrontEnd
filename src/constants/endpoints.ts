@@ -36,5 +36,7 @@ export const ENDPOINTS = {
     /** 체크리스트 항목 수정 · 삭제 — 항목 ID 기준 */
     checklistItem: (chkId: number | string) =>
       `${V1}/blocks/checklists/items/${chkId}`,
+    /** 텍스트 본문 수정 — 텍스트 항목 ID 기준 */
+    text: (txtId: number | string) => `${V1}/blocks/texts/${txtId}`,
   },
 } as const;

@@ -185,6 +185,33 @@ export function readChecklistItems(detail: unknown): ChecklistItem[] {
   );
 }
 
+export interface TextBlockDetail {
+  /** 텍스트 항목 ID — 본문 수정 경로에 쓴다. `blockId` 와 다른 값이다 */
+  txtId: number;
+  /** 마크다운 원문 */
+  content: string;
+}
+
+/**
+ * `detail` 에서 텍스트 블록 정보를 꺼낸다.
+ * `txtId` 가 없으면 어느 본문을 고칠지 알 수 없어 편집을 막는다.
+ */
+export function readTextBlockDetail(detail: unknown): TextBlockDetail | null {
+  if (typeof detail !== 'object' || detail === null) return null;
+
+  const { txtId, content } = detail as { txtId?: unknown; content?: unknown };
+  if (typeof txtId !== 'number') return null;
+
+  return { txtId, content: typeof content === 'string' ? content : '' };
+}
+
+/** PATCH /api/v1/blocks/texts/{txtId} */
+export interface UpdateTextBlockResponse {
+  txtId: number;
+  content: string;
+  updatedAt: string;
+}
+
 /** POST /api/v1/blocks/checklists/{chkBlockId}/items */
 export interface CreateChecklistItemResponse {
   chkBlockId: number;

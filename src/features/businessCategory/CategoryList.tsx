@@ -13,7 +13,7 @@ import type { BusinessCategory } from './types';
 type FormTarget = 'create' | BusinessCategory;
 
 /**
- * 사업 카테고리 관리 화면. (ADMIN 전용, .ai/API.md 13~16)
+ * 사업 카테고리 관리 화면. (ADMIN 전용, .ai/API.md 15~18)
  *
  * 목록 API 가 이름 오름차순 전체를 주고 페이징이 없어 스크롤로 보여준다.
  * 검색은 백엔드 `keyword` 를 쓰므로 화면에서 다시 걸러내지 않는다.
