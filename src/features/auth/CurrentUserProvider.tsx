@@ -59,6 +59,9 @@ export default function CurrentUserProvider({
         if (isStale) return;
 
         hasUser.current = true;
+        // 게이트를 통과했으니 기록을 비운다 —
+        // 세션 도중 관리자가 비밀번호를 다시 재설정하면 같은 code 가 또 올 수 있다
+        handledGates.current.clear();
         setBlockedBy(null);
         setUser(me);
       })
