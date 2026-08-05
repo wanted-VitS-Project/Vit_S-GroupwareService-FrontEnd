@@ -23,7 +23,7 @@
     ├── CONVENTION.md     브랜치·커밋·PR·이슈 규칙
     ├── STRUCTURE.md      폴더 구조·라우트 맵 (src/ 전체)
     ├── PIPELINE.md       CI/CD 구조 (release.yml · CodeRabbit)
-    ├── STATE.md          현재 진행 상황
+    ├── STATE.md          현재 진행 상황 (개인 노트 · gitignore)
     ├── WORKLOG.md        완료 작업 기록
     └── template/         PR·Issue·커밋·STATE·WORKLOG 양식
 ```
@@ -43,15 +43,15 @@ AI 도구마다 가장 먼저 읽는 파일 이름이 달라서 두 파일을 �
 
 ## 📦 문서별 역할
 
-| 문서                           | 역할                                        | 언제 읽나                         |
-| ------------------------------ | ------------------------------------------- | --------------------------------- |
-| [API.md](API.md)               | 연동할 백엔드 API 명세 (경로·타입·에러코드) | API 연동 코드 작성 전 (필수)      |
-| [LIBRARIES.md](LIBRARIES.md)   | 사용 라이브러리·용도·사용 위치              | 의존성 추가/변경 전, 스택 파악 시 |
-| [CONVENTION.md](CONVENTION.md) | 브랜치·커밋·PR·이슈 규칙                    | 브랜치 만들 때, 커밋·PR 쓸 때     |
-| [STRUCTURE.md](STRUCTURE.md)   | 폴더 구조·라우트 맵·레이어별 역할           | 새 파일 만들 때, 구조 파악 시     |
-| [PIPELINE.md](PIPELINE.md)     | CI/CD 워크플로우·릴리즈 자동화 구조         | `.github/workflows/` 수정 전      |
-| [STATE.md](STATE.md)           | 현재 진행 상황·로드맵·백로그                | 세션 시작 시 ("이어서 하자")      |
-| [WORKLOG.md](WORKLOG.md)       | 완료 작업 기록·트러블슈팅                   | 작업 완료 기록 시                 |
+| 문서                           | 역할                                                                                                               | 언제 읽나                         |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------ | --------------------------------- |
+| [API.md](API.md)               | 연동할 백엔드 API 명세 (경로·타입·에러코드)                                                                        | API 연동 코드 작성 전 (필수)      |
+| [LIBRARIES.md](LIBRARIES.md)   | 사용 라이브러리·용도·사용 위치                                                                                     | 의존성 추가/변경 전, 스택 파악 시 |
+| [CONVENTION.md](CONVENTION.md) | 브랜치·커밋·PR·이슈 규칙                                                                                           | 브랜치 만들 때, 커밋·PR 쓸 때     |
+| [STRUCTURE.md](STRUCTURE.md)   | 폴더 구조·라우트 맵·레이어별 역할                                                                                  | 새 파일 만들 때, 구조 파악 시     |
+| [PIPELINE.md](PIPELINE.md)     | CI/CD 워크플로우·릴리즈 자동화 구조                                                                                | `.github/workflows/` 수정 전      |
+| STATE.md                       | 현재 진행 상황·로드맵·백로그 — **개인 노트라 커밋하지 않는다.** `template/STATE.template.md` 를 복사해 각자 만든다 | 세션 시작 시 ("이어서 하자")      |
+| [WORKLOG.md](WORKLOG.md)       | 완료 작업 기록·트러블슈팅                                                                                          | 작업 완료 기록 시                 |
 
 ### 양식 (`template/`)
 

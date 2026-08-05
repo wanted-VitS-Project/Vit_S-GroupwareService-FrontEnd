@@ -1,14 +1,12 @@
 /**
- * 상태 → 배지 라벨·색 매핑.
- * 배지 색을 컴포넌트에서 직접 지정하지 않는다.
- *
- * 작성 예시
- *   export const STATUS = {
- *     IN_PROGRESS: { label: '진행 중', variant: 'default' },
- *     REJECTED:    { label: '반려',   variant: 'destructive' },
- *   };
- *
- * ⚠️ 키는 백엔드 enum 값과 같아야 한다. API 명세 확정 후 작성할 것.
+ * 백엔드 enum → 화면 라벨 매핑.
+ * 라벨을 컴포넌트에 하드코딩하지 않는다. 키는 백엔드 값과 같아야 한다.
  */
 
-export const STATUS = {};
+import type { Role } from '@/features/auth/types';
+
+export const ROLE_LABELS: Record<Role, string> = {
+  ADMIN: '관리자',
+  MASTER: '중간관리자',
+  MEMBER: '사원',
+};

@@ -6,6 +6,60 @@
 
 ---
 
+## [2026-08-05] #28 마이페이지 구현 ✅
+
+브랜치: `feat/mypage`
+
+### 변경 파일
+
+| 파일                           | 변경                            |
+| ------------------------------ | ------------------------------- |
+| `src/app/mypage/page.tsx`      | 인사 정보 · 계정 정보 화면 구현 |
+| `src/constants/status.ts`      | `ROLE_LABELS` 권한 라벨 매핑    |
+| `src/lib/format.ts`            | `formatDate` · `formatDateTime` |
+| `.gitignore` · `.ai/README.md` | `STATE.md` 개인 노트 처리       |
+| `.env.example`                 | 생성 — 로컬 환경변수 예시       |
+
+### 주요 작업 내용
+
+- 인사 정보(사번 · 이름 · 이메일 · 연락처 · 부서 · 직급 · 입사일)와 계정 정보(권한 · 마지막 로그인)를 카드 두 개로 구성
+- `ChangePasswordButton` 을 `PageTitle` 이 아닌 **계정 정보 카드 액션 영역**에 연결 (디자인 기준)
+- 권한 라벨 · 날짜 표기를 `constants` · `lib` 으로 분리해 다른 화면과 표기가 갈리지 않게 함
+
+### 트러블슈팅
+
+- **문제**: 팀원 PC 에서 로그인 시 `POST /api/v1/auth/login` 404
+- **원인**: `.env.local` 이 gitignore 대상이라 클론 후 `NEXT_PUBLIC_API_BASE_URL` 이 빈 문자열 → 요청이 프론트 서버(`:3000`)로 감
+- **해결**: `.env.example` 을 커밋 대상으로 추가(`.gitignore` 에 `!.env.example`), 복사 안내 주석 포함
+
+- **문제**: '마지막 로그인' 라벨이 두 줄로 접힘
+- **원인**: 라벨 폭 `w-20`(80px)이 6글자를 못 담음
+- **해결**: `w-24` + `whitespace-nowrap`. 폭을 고정하는 이유는 값의 시작선을 세로로 맞추기 위함
+
+### 부수 결정
+
+- `/me` 를 화면에서 다시 부르지 않는다 — `CurrentUserProvider` 가 이미 불러둔 컨텍스트 값을 쓴다
+- 날짜는 `Date` 로 파싱하지 않고 문자열을 자른다 — `YYYY-MM-DD` 를 `Date` 로 바꾸면 **타임존 때문에 하루 밀릴 수 있다**
+- `ROLE_LABELS` 는 `Record<Role, string>` — 역할이 추가되면 컴파일 단계에서 누락이 잡힌다
+- 이메일 · 연락처가 비어 오면 `-` 로 표시하고, 포맷터도 빈 값을 받으면 빈 문자열을 돌려준다
+- `Card` · `Field` 는 이 화면 전용이라 `components/` 로 빼지 않는다
+- **`.ai/STATE.md` 는 개인 작업 노트라 gitignore 처리한다** — 팀원마다 진행 상황이 달라 공유하면 충돌만 난다. 초기값은 `template/STATE.template.md`
+
+### 검증
+
+| 명령               | 결과               |
+| ------------------ | ------------------ |
+| `npm run build`    | ✅ 성공            |
+| `npx tsc --noEmit` | ✅ 에러 0          |
+| `npx eslint .`     | ✅ 에러 0 · 경고 0 |
+
+### 남은 일
+
+- 프로필 이미지 — `/me` 응답에 필드가 없어 제외
+- 인사 정보 수정 — 관리자(사원 관리) 화면에서 처리
+
+---
+
 ## [2026-08-05] #3 비밀번호 변경 모달 구현 ✅
 
 브랜치: `feat/change-password-modal`
