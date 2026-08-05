@@ -67,6 +67,22 @@ export const MENU_BY_ROLE: Record<Role, MenuItem[]> = {
 export const BARE_LAYOUT_PATHS = ['/login', '/forbidden'];
 
 /**
+ * 프로젝트 전용 사이드바를 쓰는 경로인지 판단한다.
+ * `/projects/{id}` 와 그 하위 화면은 공통 사이드바 대신 `ProjectSidebar` + 헤더만 쓴다.
+ *
+ * `/projects` (목록) · `/projects/new` (생성) 는 공통 사이드바를 그대로 쓴다.
+ */
+export function isProjectScope(pathname: string) {
+  const segments = pathname.split('/').filter(Boolean);
+
+  return (
+    segments[0] === 'projects' &&
+    segments[1] !== undefined &&
+    segments[1] !== 'new'
+  );
+}
+
+/**
  * 경로가 base 에 속하는지 판단한다.
  * `/login-help` 가 `/login` 에 걸리지 않도록 `/` 경계까지 확인한다.
  */

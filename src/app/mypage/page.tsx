@@ -60,7 +60,7 @@ function Card({ title, action, children }: CardProps) {
   );
 }
 
-function Field({ label, value }: { label: string; value?: string }) {
+function Field({ label, value }: { label: string; value?: string | null }) {
   return (
     <div className="flex gap-6 text-sm">
       {/* 라벨 폭을 고정해 값의 시작선을 맞춘다 — '마지막 로그인' 이 들어가는 너비 */}
