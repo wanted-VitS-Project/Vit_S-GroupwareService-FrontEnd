@@ -70,8 +70,13 @@ export default function DeleteCategoryModal({
   const isBlocked = blockedMessage !== '';
   const title = isBlocked ? '삭제할 수 없습니다' : '사업 카테고리 삭제';
 
+  /** 삭제 중에는 닫지 않는다 — 요청은 계속 날아간다 */
+  function requestClose() {
+    if (!isSubmitting) onClose();
+  }
+
   return (
-    <CategoryModal title={title} onClose={onClose}>
+    <CategoryModal title={title} onClose={requestClose}>
       <div className="space-y-4 p-5">
         <div className="flex items-center gap-2 rounded-lg border border-[#1C1F2A]/10 bg-[#ECEEF4]/50 px-3 py-2.5">
           <span className="min-w-0 truncate text-xs font-semibold text-[#1C1F2A]">
@@ -118,7 +123,8 @@ export default function DeleteCategoryModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-[#6C7389] hover:bg-[#ECEEF4]"
+                disabled={isSubmitting}
+                className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-[#6C7389] hover:bg-[#ECEEF4] disabled:cursor-not-allowed disabled:text-[#C7CCD9]"
               >
                 취소
               </button>

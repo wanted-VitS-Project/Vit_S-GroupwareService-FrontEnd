@@ -42,6 +42,22 @@ export default function CategoryFormModal({
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  /** 값을 고치면 그 필드의 서버 오류는 더 이상 맞지 않는다 */
+  function changeName(value: string) {
+    setName(value);
+    setNameError('');
+  }
+
+  function changeCode(value: string) {
+    setCode(value);
+    setCodeError('');
+  }
+
+  /** 저장 중에는 닫지 않는다 — 요청은 계속 날아가 목록에 반영된다 */
+  function requestClose() {
+    if (!isSubmitting) onClose();
+  }
+
   /** 수정에서 실제로 바뀐 필드만 모은다 */
   function changedFields(): UpdateCategoryRequest {
     const patch: UpdateCategoryRequest = {};
@@ -103,7 +119,7 @@ export default function CategoryFormModal({
   const title = isEditing ? '사업 카테고리 수정' : '사업 카테고리 추가';
 
   return (
-    <CategoryModal title={title} onClose={onClose}>
+    <CategoryModal title={title} onClose={requestClose}>
       <form onSubmit={handleSubmit}>
         <div className="space-y-4 p-5">
           <Field
@@ -111,7 +127,7 @@ export default function CategoryFormModal({
             label="카테고리 이름"
             required
             value={name}
-            onChange={setName}
+            onChange={changeName}
             maxLength={CATEGORY_NAME_MAX_LENGTH}
             placeholder="도로 설계"
             error={nameError}
@@ -120,7 +136,7 @@ export default function CategoryFormModal({
             id="categoryCode"
             label="업무코드"
             value={code}
-            onChange={setCode}
+            onChange={changeCode}
             maxLength={CATEGORY_CODE_MAX_LENGTH}
             placeholder="ROAD"
             error={codeError}
@@ -152,7 +168,8 @@ export default function CategoryFormModal({
             <button
               type="button"
               onClick={onClose}
-              className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-[#6C7389] hover:bg-[#ECEEF4]"
+              disabled={isSubmitting}
+              className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-[#6C7389] hover:bg-[#ECEEF4] disabled:cursor-not-allowed disabled:text-[#C7CCD9]"
             >
               취소
             </button>
