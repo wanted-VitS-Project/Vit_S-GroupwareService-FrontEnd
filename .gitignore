@@ -32,7 +32,6 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
-!.env.example
 
 # vercel
 .vercel
@@ -43,8 +42,6 @@ next-env.d.ts
 
 # md
 .ai/local/
-# 개인 작업 노트 (팀 공유 문서는 .ai 의 나머지 파일)
-.ai/STATE.md
 
 # claude
 .claude

@@ -14,11 +14,11 @@ export interface LoginResponse {
   name: string;
   role: Role;
   passwordStatus: PasswordStatus;
-  /** 소속이 없는 계정이 있어 부서 · 직급은 비어 올 수 있다 */
-  departmentName?: string;
+  /** 소속이 없는 계정이 있어 부서 · 직급은 null 로 올 수 있다 */
+  departmentName: string | null;
   /** 상위 조직까지 포함한 경로 — 예: '기술본부 / 개발팀' */
-  departmentPath?: string;
-  jobPositionName?: string;
+  departmentPath: string | null;
+  jobPositionName: string | null;
 }
 
 export interface ChangePasswordRequest {
@@ -33,10 +33,10 @@ export interface ChangePasswordRequest {
  * 명세상 전부 nullable 이라 화면에서 빈 값을 처리한다.
  */
 export interface CurrentUser extends LoginResponse {
-  email?: string;
-  phone?: string;
+  email: string | null;
+  phone: string | null;
   /** yyyy-MM-dd */
-  hiredAt?: string;
+  hiredAt: string | null;
   /** yyyy-MM-dd HH:mm:ss */
-  lastLoginAt?: string;
+  lastLoginAt: string | null;
 }
