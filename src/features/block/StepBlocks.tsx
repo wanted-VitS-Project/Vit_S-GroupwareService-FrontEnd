@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { getProjectSteps } from '@/features/project/api';
 
@@ -30,6 +30,19 @@ export default function StepBlocks() {
   const [named, setNamed] = useState<{ stepId: string; name: string } | null>(
     null,
   );
+  /** 생성 직후 입력창을 띄울 블록 */
+  const [autoEditBlockId, setAutoEditBlockId] = useState<number | null>(null);
+  /**
+   * 생성 직전의 블록 ID 목록 스냅샷.
+   * 블록 생성 응답에 ID 가 없어(스키마 미확정) 재조회 결과와 비교해 새 블록을 찾는다.
+   *
+   * ⚠️ 어느 스텝의 목록인지 함께 담는다. `stepId` 없이 비교하면
+   *    스텝을 옮긴 뒤 도착한 응답에서 남의 블록을 신규로 오판할 수 있다.
+   */
+  const snapshotBeforeCreate = useRef<{
+    stepId: string;
+    ids: number[];
+  } | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -40,6 +53,18 @@ export default function StepBlocks() {
         setLoaded({ stepId, blocks });
         // 같은 스텝에서 재조회가 성공하면 이전 실패를 지운다
         setFailedStepId((failed) => (failed === stepId ? null : failed));
+
+        const before = snapshotBeforeCreate.current;
+        snapshotBeforeCreate.current = null;
+        // 다른 스텝에서 찍은 스냅샷이면 비교 자체가 무의미하다
+        if (!before || before.stepId !== stepId) return;
+
+        // 입력창이 필요한 유형만 자동으로 띄운다
+        const created = blocks.find(
+          (block) =>
+            block.type === 'TEXT' && !before.ids.includes(block.blockId),
+        );
+        if (created) setAutoEditBlockId(created.blockId);
       })
       .catch(() => {
         // 취소는 실패가 아니다
@@ -76,7 +101,15 @@ export default function StepBlocks() {
         </h2>
         <AddBlockButton
           stepName={stepName || '스텝'}
-          onCreated={() => setReloadCount((count) => count + 1)}
+          onCreated={() => {
+            // blocks 가 null 이면 기준이 빈 배열이 되어 기존 블록까지 신규로 잡힌다.
+            // 그럴 때는 스냅샷을 남기지 않고 자동 편집을 건너뛴다
+            snapshotBeforeCreate.current = blocks
+              ? { stepId, ids: blocks.map((block) => block.blockId) }
+              : null;
+            setAutoEditBlockId(null);
+            setReloadCount((count) => count + 1);
+          }}
         />
       </div>
 
@@ -87,7 +120,7 @@ export default function StepBlocks() {
       ) : !blocks ? (
         <p className="px-1 text-xs text-[#6C7389]">불러오는 중…</p>
       ) : (
-        <BlockBoard blocks={blocks} />
+        <BlockBoard blocks={blocks} autoEditBlockId={autoEditBlockId} />
       )}
     </div>
   );

@@ -1,9 +1,48 @@
 # 연동 API 명세서
 
+**최종 업데이트**: 2026-08-05 (블록 · 체크리스트 · 텍스트 API 추가)
+**최종 업데이트**: 2026-08-05 (프로젝트 상세 · 스테이지 · 스텝 API 추가)
 **최종 업데이트**: 2026-08-05 (백엔드 명세 확정본 반영 — termsStatus · code 기반 분기)
 
 > 📌 이 파일은 **프론트가 연동하는 백엔드 API**를 정리하는 곳이에요. (내가 만드는 게 아니라 **호출하는** 입장)
 > AI는 API 연동 코드를 작성하기 전에 이 파일을 먼저 읽어요. (잘못된 경로/필드/타입으로 fetch 짜는 실수 방지)
+>
+> ⚠️ **`최종 업데이트` 줄은 최근 3건까지만 유지**한다. 그 이전 것은 삭제. (무한 누적 방지)
+
+---
+
+## 목차
+
+| #                              | API              | Method · Path                                | 연동                         |
+| ------------------------------ | ---------------- | -------------------------------------------- | ---------------------------- |
+| [1](#1-로그인)                 | 로그인           | `POST /auth/login`                           | ✅ `features/auth/api.ts`    |
+| [2](#2-로그아웃)               | 로그아웃         | `POST /auth/logout`                          | ✅ `features/auth/api.ts`    |
+| [3](#3-내-정보-조회)           | 내 정보 조회     | `GET /auth/me`                               | ✅ `features/auth/api.ts`    |
+| [4](#4-약관-동의)              | 약관 동의        | `POST /auth/terms-agreements`                | ✅ `features/auth/api.ts`    |
+| [5](#5-비밀번호-변경)          | 비밀번호 변경    | `PATCH /auth/password`                       | ✅ `features/auth/api.ts`    |
+| [6](#6-프로젝트-상세-조회)     | 프로젝트 상세    | `GET /projects/{projectId}`                  | ✅ `features/project/api.ts` |
+| [7](#7-프로젝트-스테이지-목록) | 스테이지 목록    | `GET /projects/{projectId}/stages`           | ✅ `features/project/api.ts` |
+| [8](#8-프로젝트-스텝-목록)     | 스텝 목록        | `GET /projects/{projectId}/steps`            | ✅ `features/project/api.ts` |
+| [9](#9-블록-생성)              | 블록 생성        | `POST /steps/{stepId}/blocks`                | ✅ `features/block/api.ts`   |
+| [10](#10-스텝-블록-일괄-조회)  | 블록 일괄 조회   | `GET /steps/{stepId}/blocks`                 | ✅ `features/block/api.ts`   |
+| [11](#11-텍스트-본문-수정)     | 텍스트 본문 수정 | `PATCH /blocks/texts/{txtId}`                | ✅ `features/block/api.ts`   |
+| [12](#12-체크리스트-항목-생성) | 체크리스트 생성  | `POST /blocks/checklists/{chkBlockId}/items` | ✅ `features/block/api.ts`   |
+| [13](#13-체크리스트-항목-수정) | 체크리스트 수정  | `PATCH /blocks/checklists/items/{chkId}`     | ✅ `features/block/api.ts`   |
+| [14](#14-체크리스트-항목-삭제) | 체크리스트 삭제  | `DELETE /blocks/checklists/items/{chkId}`    | ✅ `features/block/api.ts`   |
+
+> `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
+> 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한)
+
+### ❗ 백엔드 확인 대기
+
+| 항목                                             | 막힌 기능                        | 섹션 |
+| ------------------------------------------------ | -------------------------------- | ---- |
+| `block.type` enum 이 "10값" 인데 정리된 값은 9개 | 모르는 유형은 껍데기로 표시      | 9    |
+| 블록 생성 응답 `data` 스키마                     | 생성 직후 해당 블록 지정         | 9    |
+| `detail.chkBlockId` · `detail.items`             | 체크리스트 항목 추가 · 목록      | 10   |
+| `detail.txtId` · `detail.content`                | 텍스트 본문 편집                 | 10   |
+| 블록 수정 · 삭제 · 순서 변경 API                 | `⋯` 메뉴 · 드래그 핸들           | —    |
+| 프로젝트 참여자 목록 API                         | 사이드바 참여자 (`MOCK_MEMBERS`) | —    |
 
 ---
 
@@ -43,12 +82,12 @@
 
 각 API 표에서는 생략한다. **status 가 아니라 `code` 로 구분**한다 (403 하나에 세 가지 의미가 실린다).
 
-| code                             | 뜻                                              | 화면 처리                             |
-| -------------------------------- | ----------------------------------------------- | ------------------------------------- |
-| `AUTH_TERMS_AGREEMENT_REQUIRED`  | 약관 게이트 미통과 상태로 다른 API 호출         | 약관 동의 화면으로 유도 (`/me` 재조회) |
-| `AUTH_PASSWORD_RESET_REQUIRED`   | 비밀번호 게이트 미통과 상태로 다른 API 호출     | 비밀번호 변경 화면으로 유도            |
-| `ACC_ADMIN_REQUIRED`             | ADMIN 전용 API 에 MASTER · MEMBER 가 접근       | `/forbidden` 이동 (재조회 무의미)      |
-| `AUTH_ACCOUNT_INACTIVE`          | 비활성 계정 (로그인 단계)                       | 관리자 문의 안내 — **423 잠금과 별개** |
+| code                            | 뜻                                          | 화면 처리                              |
+| ------------------------------- | ------------------------------------------- | -------------------------------------- |
+| `AUTH_TERMS_AGREEMENT_REQUIRED` | 약관 게이트 미통과 상태로 다른 API 호출     | 약관 동의 화면으로 유도 (`/me` 재조회) |
+| `AUTH_PASSWORD_RESET_REQUIRED`  | 비밀번호 게이트 미통과 상태로 다른 API 호출 | 비밀번호 변경 화면으로 유도            |
+| `ACC_ADMIN_REQUIRED`            | ADMIN 전용 API 에 MASTER · MEMBER 가 접근   | `/forbidden` 이동 (재조회 무의미)      |
+| `AUTH_ACCOUNT_INACTIVE`         | 비활성 계정 (로그인 단계)                   | 관리자 문의 안내 — **423 잠금과 별개** |
 
 > 처리 위치: `src/lib/api.ts` 가 403 을 `FORBIDDEN_EVENT` 로 흘리고 `src/features/auth/CurrentUserProvider.tsx` 한 곳에서 받는다.
 > 코드 상수는 `src/features/auth/errorCodes.ts`. (2026-08-05 백엔드 정리본으로 철자 확인)
@@ -386,7 +425,7 @@ interface CreateBlockRequest {
 
 ---
 
-## 9-1. 스텝 블록 일괄 조회
+## 10. 스텝 블록 일괄 조회
 
 | 항목          | 내용                                            |
 | ------------- | ----------------------------------------------- |
@@ -424,7 +463,42 @@ data: {
 
 ---
 
-## 10. 체크리스트 항목 생성
+## 11. 텍스트 본문 수정
+
+| 항목          | 내용                                              |
+| ------------- | ------------------------------------------------- |
+| **Method**    | `PATCH`                                           |
+| **Path**      | `/api/v1/blocks/texts/{txtId}`                    |
+| **인증 필요** | ✅                                                |
+| **사용 위치** | `src/features/block/api.ts` → `updateTextBlock()` |
+
+**Request Body**
+
+```ts
+{
+  content: string; // 필수 — 마크다운 원문 전체
+}
+```
+
+**Response (200 OK)**
+
+```ts
+data: {
+  txtId: number;
+  content: string;
+  updatedAt: string;
+}
+```
+
+> ⚠️ **`txtId` 는 `blockId` 와 다른 값이다.** `chkBlockId` 와 마찬가지로 **블록(`blockId`) > 블록의 내용(`txtId`)** 구조다.
+> → 10번 블록 목록 응답의 **`detail.txtId`** 로 받는다. 값이 없으면 프론트는 편집 버튼을 막는다.
+> ⚠️ `content` 는 부분 수정이 아니라 **전체 내용**을 보낸다.
+> ℹ️ 본문은 **마크다운 원문**으로 주고받는다. 화면에는 WYSIWYG 로만 보이고 원문이 노출되지 않는다 (TipTap + `tiptap-markdown`).
+> ❗ **`detail` 에 `txtId` 와 `content` 가 포함돼야 한다.** 키 이름 확인 필요 — 프론트는 `readTextBlockDetail()` 로 런타임 검증한다.
+
+---
+
+## 12. 체크리스트 항목 생성
 
 | 항목          | 내용                                                  |
 | ------------- | ----------------------------------------------------- |
@@ -457,11 +531,11 @@ data: {
 > ℹ️ 응답에 `isCompleted` 가 없다. 새 항목은 항상 미완료로 시작한다.
 > ⚠️ **`chkBlockId` 는 `blockId` 와 다른 값이다.** 구성이 **블록(`blockId`) > 블록의 내용(`chkBlockId`)** 이라
 > 항목 생성에는 `chkBlockId` 만 쓴다. `blockId` 로 대체하면 다른 체크리스트에 항목이 붙을 수 있다.
-> → 이 값은 9-1번 블록 목록 응답의 **`detail.chkBlockId`** 로 받는다. 값이 없으면 프론트는 항목 추가를 막는다.
+> → 이 값은 10번 블록 목록 응답의 **`detail.chkBlockId`** 로 받는다. 값이 없으면 프론트는 항목 추가를 막는다.
 
 ---
 
-## 11. 체크리스트 항목 수정
+## 13. 체크리스트 항목 수정
 
 | 항목          | 내용                                                  |
 | ------------- | ----------------------------------------------------- |
@@ -496,7 +570,7 @@ data: {
 
 ---
 
-## 12. 체크리스트 항목 삭제
+## 14. 체크리스트 항목 삭제
 
 | 항목          | 내용                                                  |
 | ------------- | ----------------------------------------------------- |
