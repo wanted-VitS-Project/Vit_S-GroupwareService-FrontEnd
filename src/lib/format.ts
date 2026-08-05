@@ -42,3 +42,15 @@ export function formatDateTime(value?: string | null) {
   const parsed = parseDate(value);
   return parsed?.time ? `${parsed.date} ${parsed.time}` : '';
 }
+
+/**
+ * 시작일 · 종료일 → '2026.03.01 ~ 2026.12.31'
+ * 한쪽만 유효하면 그 쪽만, 둘 다 없으면 빈 문자열.
+ */
+export function formatDateRange(from?: string | null, to?: string | null) {
+  const start = formatDate(from);
+  const end = formatDate(to);
+
+  if (start && end) return `${start} ~ ${end}`;
+  return start || end;
+}

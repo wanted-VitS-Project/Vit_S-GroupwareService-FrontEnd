@@ -13,4 +13,10 @@ export const ENDPOINTS = {
     password: `${V1}/auth/password`,
     termsAgreements: `${V1}/auth/terms-agreements`,
   },
+  projects: {
+    detail: (projectId: number | string) => `${V1}/projects/${projectId}`,
+    stages: (projectId: number | string) =>
+      `${V1}/projects/${projectId}/stages`,
+    steps: (projectId: number | string) => `${V1}/projects/${projectId}/steps`,
+  },
 } as const;

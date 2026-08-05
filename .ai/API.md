@@ -205,5 +205,121 @@ interface ChangePasswordRequest {
 
 ---
 
+## 6. 프로젝트 상세 조회
+
+| 항목          | 내용                                           |
+| ------------- | ---------------------------------------------- |
+| **Method**    | `GET`                                          |
+| **Path**      | `/api/v1/projects/{projectId}`                 |
+| **인증 필요** | ✅                                             |
+| **사용 위치** | `src/features/project/api.ts` → `getProject()` |
+
+**Response (200 OK)**
+
+```ts
+{
+  httpStatus: 200,
+  message: '요청이 성공적으로 처리되었습니다.',
+  data: {
+    projectId: number;
+    name: string;              // 과업명
+    description: string | null;
+    clientName: string;        // 발주처
+    status: string;            // 'IN_PROGRESS' 등 — enum 미확정
+    startedOn: string;         // '2026-03-01'
+    endedOn: string;           // '2026-12-31'
+    contractAmount: number;    // 계약금액
+    progressRate?: number;     // 진척률(%) — 스텝 0개면 응답에 없다
+    stepCount: number;
+    doneStepCount: number;
+    businessCategories: { categoryId: number; name: string; code: string }[];
+    bidNoticeId: number | null;
+    closeReasonCode: string | null;  // 종결 건만
+    closeReasonNote: string | null;
+    myPermission: 'VIEWER' | 'EDITOR';
+    createdAt: string;         // '2026-08-05T03:39:08'
+  }
+}
+```
+
+> ⚠️ `progressRate` 는 **선택 필드**다. 스텝이 0개면 아예 오지 않으므로 `?? 0` 로 받는다.
+> ⚠️ `myPermission === 'VIEWER'` 면 수정·추가 버튼을 숨긴다. (실제 차단은 백엔드가 한다)
+> ❗ **참여자 목록 API 가 아직 없다.** `ProjectSidebar` 의 참여자 영역은 `MOCK_MEMBERS` 로 그리고 있다.
+
+---
+
+## 7. 프로젝트 스테이지 목록
+
+| 항목          | 내용                                                 |
+| ------------- | ---------------------------------------------------- |
+| **Method**    | `GET`                                                |
+| **Path**      | `/api/v1/projects/{projectId}/stages`                |
+| **인증 필요** | ✅                                                   |
+| **사용 위치** | `src/features/project/api.ts` → `getProjectStages()` |
+
+**Response (200 OK)**
+
+```ts
+{
+  httpStatus: 200,
+  message: '요청이 성공적으로 처리되었습니다.',
+  data: {
+    stages: {
+      stageId: number;
+      name: string;      // '요구분석'
+      sortOrder: number; // 정렬 순서
+      stepCount: number; // 소속 스텝 수
+    }[];
+  }
+}
+```
+
+> ℹ️ `data` 안에 `stages` 로 한 겹 더 감싸져 있다. `getProjectStages()` 가 벗겨서 배열만 반환한다.
+> ℹ️ **`sortOrder` 오름차순으로 정렬되어 온다** — 프론트에서 다시 정렬하지 않는다.
+
+---
+
+## 8. 프로젝트 스텝 목록
+
+| 항목          | 내용                                                |
+| ------------- | --------------------------------------------------- |
+| **Method**    | `GET`                                               |
+| **Path**      | `/api/v1/projects/{projectId}/steps`                |
+| **인증 필요** | ✅                                                  |
+| **사용 위치** | `src/features/project/api.ts` → `getProjectSteps()` |
+
+**Response (200 OK)**
+
+```ts
+{
+  httpStatus: 200,
+  message: '요청이 성공적으로 처리되었습니다.',
+  data: {
+    steps: {
+      stepId: number;
+      stageId: number | null;   // null = 스테이지 미배정
+      name: string;
+      status: 'NOT_STARTED' | 'IN_PROGRESS' | 'DONE';
+      sortOrder: number;
+      startedOn: string;        // '2026-03-01'
+      endedOn: string;          // '2026-03-15'
+      owner: { userId: string; name: string } | null;
+      totalIssueCount: number;
+      doneIssueCount: number;
+      inProgressIssueCount: number;
+      progressRate?: number;    // 이슈 0개면 응답에 없다
+      myPermission: 'VIEWER' | 'EDITOR';
+    }[];
+  }
+}
+```
+
+> ⚠️ **`stageId` 가 `null` 인 스텝이 있다.** 어느 스테이지에도 안 붙은 스텝이라, 사이드바는 `미분류` 묶음으로 따로 보여준다.
+> ⚠️ `progressRate` 는 **선택 필드**다. 이슈가 0개면 오지 않으므로 `?? 0` 로 받는다.
+> ℹ️ 스텝 진척률 바는 `inProgressIssueCount`(노랑) · `doneIssueCount`(파랑) · 나머지(회색) 비율로 그린다.
+> ℹ️ 명세 표에는 없지만 실제 응답에 **`inProgressIssueCount`** 가 포함된다.
+
+---
+
 > ✏️ 새 API를 연동할 때 위 양식대로 계속 추가하세요.
 > 핵심은 **백엔드 응답 타입을 정확히** 적어두는 것 — AI가 타입 안전하게 연동 코드를 짜줘요.
