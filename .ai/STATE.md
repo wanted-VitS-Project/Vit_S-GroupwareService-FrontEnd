@@ -73,7 +73,7 @@
 - [ ] 전역 토스트 컴포넌트 도입 (2026-08-04 등록)
 - [x] `constants/endpoints.ts` · `lib/api.ts` 채우기 — API.md 확정 후 (2026-08-04 등록 / 2026-08-04 처리)
 - [x] 비밀번호 변경 화면 — `PATCH /api/v1/auth/password` 연동, `RESET_REQUIRED` 모달로 강제 (2026-08-04 등록 / 2026-08-04 처리)
-- [ ] 약관 실제 문구 반영 — `FirstLoginFlow` 의 `TermsStep` 이 placeholder (2026-08-04 등록)
+- [ ] ⚠️ **약관 실제 문구 반영 — 배포 전 필수.** 원문 없이 받은 동의는 유효하지 않다. `FirstLoginFlow` 의 `TermsStep` 이 placeholder (2026-08-04 등록)
 - [ ] 마이페이지 비밀번호 변경 — `currentPassword` 를 받는 일반 변경 흐름 (2026-08-04 등록)
 - [x] 로그아웃 버튼 연결 — `logout()` 호출 후 `/login` 이동 (2026-08-04 등록 / 2026-08-04 `Header` 에 처리)
 - [ ] `.env.local` 의 `NEXT_PUBLIC_API_BASE_URL` 팀 공유 · `.env.example` 추가 (2026-08-04 등록)

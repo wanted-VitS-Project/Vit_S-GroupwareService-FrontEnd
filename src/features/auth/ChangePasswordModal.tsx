@@ -9,14 +9,9 @@ import { changePassword } from './api';
 import { isValidPassword, PASSWORD_RULES } from './password';
 
 interface ChangePasswordModalProps {
-  /**
-   * 강제 변경(passwordStatus=RESET_REQUIRED) 여부.
-   * 강제면 현재 비밀번호를 묻지 않고 닫을 수도 없다.
-   */
+  /** 강제 변경(RESET_REQUIRED) — 현재 비밀번호를 묻지 않고 닫을 수도 없다 */
   forced?: boolean;
-  /** 일반 모드에서 닫을 때 */
   onClose?: () => void;
-  /** 변경에 성공했을 때 */
   onDone: () => void;
 }
 
@@ -32,20 +27,20 @@ export default function ChangePasswordModal({
   const [isPending, setIsPending] = useState(false);
   const [isDone, setIsDone] = useState(false);
 
+  // 입력 중에 바로 알려준다 — 제출해야 알 수 있으면 늦다
+  const isMismatched =
+    passwordConfirm !== '' && newPassword !== passwordConfirm;
+
   const canSubmit =
     (forced || currentPassword !== '') &&
     isValidPassword(newPassword) &&
     passwordConfirm !== '' &&
+    !isMismatched &&
     !isPending;
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (!canSubmit) return;
-
-    if (newPassword !== passwordConfirm) {
-      setError('비밀번호가 서로 다릅니다.');
-      return;
-    }
 
     setError('');
     setIsPending(true);
@@ -58,12 +53,9 @@ export default function ChangePasswordModal({
         newPasswordConfirm: passwordConfirm,
       });
 
-      // 강제 모드는 곧바로 흐름을 끝내고, 일반 모드는 결과를 보여준 뒤 사용자가 닫는다
-      if (forced) {
-        onDone();
-        return;
-      }
-      setIsDone(true);
+      // 완료 화면을 어떻게 닫든 재조회가 유실되지 않게 성공 시점에 부른다
+      onDone();
+      if (!forced) setIsDone(true);
     } catch (caught) {
       // 현재 비밀번호 불일치 · 정책 위반은 백엔드 문구가 가장 정확하다
       setError(
@@ -85,14 +77,7 @@ export default function ChangePasswordModal({
           <br />
           다음 로그인부터 새 비밀번호를 사용해주세요.
         </p>
-        <ModalButton
-          onClick={() => {
-            onDone();
-            onClose?.();
-          }}
-        >
-          확인
-        </ModalButton>
+        <ModalButton onClick={onClose}>확인</ModalButton>
       </Modal>
     );
   }
@@ -127,6 +112,8 @@ export default function ChangePasswordModal({
             label="새 비밀번호 확인"
             value={passwordConfirm}
             onChange={setPasswordConfirm}
+            invalid={isMismatched}
+            description={isMismatched ? '비밀번호가 서로 다릅니다.' : undefined}
           />
         </div>
 
@@ -167,6 +154,9 @@ interface PasswordFieldProps {
   value: string;
   onChange: (value: string) => void;
   autoComplete?: string;
+  invalid?: boolean;
+  /** 입력 아래에 붙는 안내. invalid 와 함께 스크린리더에 전달된다 */
+  description?: string;
 }
 
 function PasswordField({
@@ -175,7 +165,11 @@ function PasswordField({
   value,
   onChange,
   autoComplete = 'new-password',
+  invalid,
+  description,
 }: PasswordFieldProps) {
+  const descriptionId = `${id}-description`;
+
   return (
     <div className="space-y-1.5">
       <label htmlFor={id} className="block text-xs text-slate-500">
@@ -187,8 +181,19 @@ function PasswordField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         autoComplete={autoComplete}
-        className="w-full rounded border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-900"
+        aria-invalid={invalid}
+        aria-describedby={description ? descriptionId : undefined}
+        className={`w-full rounded border px-3 py-2 text-sm outline-none ${
+          invalid
+            ? 'border-rose-400'
+            : 'border-slate-200 focus:border-slate-900'
+        }`}
       />
+      {description && (
+        <p id={descriptionId} className="text-xs text-rose-600">
+          {description}
+        </p>
+      )}
     </div>
   );
 }

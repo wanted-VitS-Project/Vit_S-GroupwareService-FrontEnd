@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface ModalProps {
   title: string;
@@ -9,58 +9,69 @@ interface ModalProps {
   children: React.ReactNode;
 }
 
+/**
+ * 네이티브 <dialog> 기반 모달.
+ * 포커스 트랩 · 초기 포커스 · 닫힐 때 트리거로 복귀 · 배경 비활성화를 브라우저가 처리한다.
+ */
 export default function Modal({ title, onClose, children }: ModalProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
   useEffect(() => {
-    if (!onClose) return;
+    const dialog = dialogRef.current;
+    dialog?.showModal();
 
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose?.();
-    }
+    // 열려 있는 동안 배경 스크롤을 막는다
+    const { overflow } = document.body.style;
+    document.body.style.overflow = 'hidden';
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+    return () => {
+      document.body.style.overflow = overflow;
+      dialog?.close();
+    };
+  }, []);
 
   return (
-    <div
-      role="dialog"
-      aria-modal
+    <dialog
+      ref={dialogRef}
       aria-label={title}
-      onClick={
-        onClose &&
-        ((event) => {
-          // 오버레이를 직접 눌렀을 때만 닫는다
-          if (event.target === event.currentTarget) onClose();
-        })
-      }
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-6"
+      // 기본 닫기를 막고 onClose 가 있을 때만 닫는다 (ESC)
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose?.();
+      }}
+      // 내용 영역 클릭은 자식이 target 이라 백드롭만 걸린다
+      onClick={(event) => {
+        if (event.target === dialogRef.current) onClose?.();
+      }}
+      className="m-auto w-full max-w-sm rounded-xl bg-white p-8 shadow-lg backdrop:bg-slate-900/50"
     >
-      <div className="w-full max-w-sm rounded-xl bg-white p-8 shadow-lg">
-        <div className="flex items-start justify-between gap-4">
-          <h2 className="text-lg font-bold">{title}</h2>
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="닫기"
-              className="cursor-pointer text-slate-400 hover:text-slate-900"
-            >
-              ✕
-            </button>
-          )}
-        </div>
-        {children}
+      <div className="flex items-start justify-between gap-4">
+        <h2 className="text-lg font-bold">{title}</h2>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="닫기"
+            className="cursor-pointer text-slate-400 hover:text-slate-900"
+          >
+            ✕
+          </button>
+        )}
       </div>
-    </div>
+      {children}
+    </dialog>
   );
 }
 
 /** 모달 하단 기본 버튼 */
-export function ModalButton(props: React.ComponentProps<'button'>) {
+export function ModalButton({
+  className = '',
+  ...props
+}: React.ComponentProps<'button'>) {
   return (
     <button
       {...props}
-      className="mt-6 w-full cursor-pointer rounded-lg bg-slate-900 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+      className={`mt-6 w-full cursor-pointer rounded-lg bg-slate-900 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 ${className}`}
     />
   );
 }
