@@ -29,6 +29,13 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * 403 은 개별 화면이 아니라 앱 전체가 반응해야 한다 —
+ * 게이트 미통과는 해당 게이트 화면으로, 권한 부족은 /forbidden 으로.
+ * `detail` 에 응답 code 를 싣고, 구독은 CurrentUserProvider 한 곳에서만 한다.
+ */
+export const FORBIDDEN_EVENT = 'api:forbidden';
+
 /** 백엔드 문구가 가장 정확하다. 응답이 없을 때만 fallback 을 쓴다. */
 export function messageOf(error: unknown, fallback: string) {
   return error instanceof ApiError ? error.message : fallback;
@@ -58,6 +65,12 @@ async function request<T>(path: string, method: string, body?: unknown) {
 
   if (!response.ok) {
     const failure = envelope as ApiErrorEnvelope | null;
+
+    if (response.status === 403 && typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent(FORBIDDEN_EVENT, { detail: failure?.code }),
+      );
+    }
 
     throw new ApiError(
       response.status,

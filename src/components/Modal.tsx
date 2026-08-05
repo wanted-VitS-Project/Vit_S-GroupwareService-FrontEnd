@@ -4,6 +4,8 @@ import { useEffect, useRef } from 'react';
 
 interface ModalProps {
   title: string;
+  /** 여러 단계로 이어지는 흐름에서 남은 단계를 알려준다 — 예: '1 / 2' */
+  stepLabel?: string;
   /** 없으면 닫을 수 없는 모달이다 (강제 흐름) */
   onClose?: () => void;
   children: React.ReactNode;
@@ -13,7 +15,12 @@ interface ModalProps {
  * 네이티브 <dialog> 기반 모달.
  * 포커스 트랩 · 초기 포커스 · 닫힐 때 트리거로 복귀 · 배경 비활성화를 브라우저가 처리한다.
  */
-export default function Modal({ title, onClose, children }: ModalProps) {
+export default function Modal({
+  title,
+  stepLabel,
+  onClose,
+  children,
+}: ModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -46,7 +53,12 @@ export default function Modal({ title, onClose, children }: ModalProps) {
       className="m-auto w-full max-w-sm rounded-xl bg-white p-8 shadow-lg backdrop:bg-slate-900/50"
     >
       <div className="flex items-start justify-between gap-4">
-        <h2 className="text-lg font-bold">{title}</h2>
+        <div>
+          {stepLabel && (
+            <p className="text-xs font-bold text-slate-400">{stepLabel}</p>
+          )}
+          <h2 className="text-lg font-bold">{title}</h2>
+        </div>
         {onClose && (
           <button
             type="button"
