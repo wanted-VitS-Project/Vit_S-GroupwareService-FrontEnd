@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-import { findActiveMenu, isUnder, type Role } from '@/constants/menu';
+import { findActiveMenu, isUnder } from '@/constants/menu';
 import { logout } from '@/features/auth/api';
+import type { Role } from '@/features/auth/types';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { ApiError } from '@/lib/api';
 

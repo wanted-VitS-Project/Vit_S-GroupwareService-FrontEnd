@@ -5,21 +5,33 @@
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
 
-/** 백엔드 공통 응답 봉투. httpStatus 는 Response.status 와 같은 값이라 쓰지 않는다. */
+/** 성공 봉투. httpStatus 는 Response.status 와 같은 값이라 쓰지 않는다. */
 interface ApiEnvelope<T> {
-  httpStatus: number;
   message: string;
   data: T;
+}
+
+/** 실패 봉투. data 대신 code 가 온다. */
+interface ApiErrorEnvelope {
+  message: string;
+  code: string;
 }
 
 export class ApiError extends Error {
   constructor(
     readonly status: number,
     message: string,
+    /** 네트워크 오류 등 응답이 없으면 비어 있다 */
+    readonly code?: string,
   ) {
     super(message);
     this.name = 'ApiError';
   }
+}
+
+/** 백엔드 문구가 가장 정확하다. 응답이 없을 때만 fallback 을 쓴다. */
+export function messageOf(error: unknown, fallback: string) {
+  return error instanceof ApiError ? error.message : fallback;
 }
 
 async function request<T>(path: string, method: string, body?: unknown) {
@@ -41,18 +53,20 @@ async function request<T>(path: string, method: string, body?: unknown) {
     );
   }
 
-  const envelope = (await response
-    .json()
-    .catch(() => null)) as ApiEnvelope<T> | null;
+  const envelope = (await response.json().catch(() => null)) as
+    ApiEnvelope<T> | ApiErrorEnvelope | null;
 
   if (!response.ok) {
+    const failure = envelope as ApiErrorEnvelope | null;
+
     throw new ApiError(
       response.status,
-      envelope?.message ?? '요청을 처리하지 못했습니다.',
+      failure?.message ?? '요청을 처리하지 못했습니다.',
+      failure?.code,
     );
   }
 
-  return envelope?.data as T;
+  return (envelope as ApiEnvelope<T> | null)?.data as T;
 }
 
 export const api = {

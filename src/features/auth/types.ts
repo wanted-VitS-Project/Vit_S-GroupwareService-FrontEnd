@@ -1,4 +1,4 @@
-import type { Role } from '@/constants/menu';
+export type Role = 'ADMIN' | 'MASTER' | 'MEMBER';
 
 export interface LoginRequest {
   /** 사번 (화면에는 '아이디'로 노출) — 예: EMP001 */
@@ -18,6 +18,13 @@ export interface LoginResponse {
   /** 상위 조직까지 포함한 경로 — 예: '기술본부 / 개발팀' */
   departmentPath: string;
   jobPositionName: string;
+}
+
+export interface ChangePasswordRequest {
+  /** 최초 변경(passwordStatus=RESET_REQUIRED)이면 생략한다 */
+  currentPassword?: string;
+  newPassword: string;
+  newPasswordConfirm: string;
 }
 
 /** GET /auth/me — 로그인 응답에 마이페이지용 필드가 더 붙는다 */

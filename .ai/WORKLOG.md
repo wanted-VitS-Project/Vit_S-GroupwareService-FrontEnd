@@ -6,28 +6,89 @@
 
 ---
 
+## [2026-08-05] #3 비밀번호 변경 모달 구현 ✅
+
+브랜치: `feat/change-password-modal`
+
+### 변경 파일
+
+| 파일                                               | 변경                              |
+| -------------------------------------------------- | --------------------------------- |
+| `src/components/Modal.tsx`                         | 생성 — 공용 모달 껍데기           |
+| `src/features/auth/ChangePasswordModal.tsx`        | 생성 — 강제 · 일반 두 모드        |
+| `src/features/auth/ChangePasswordButton.tsx`       | 생성 — 마이페이지 진입점          |
+| `src/features/auth/FirstLoginFlow.tsx`             | 생성 — 약관 동의 → 비밀번호 변경  |
+| `src/features/auth/password.ts`                    | 생성 — 비밀번호 정책 3종          |
+| `src/features/auth/api.ts`                         | `agreeToTerms` · `changePassword` |
+| `src/constants/endpoints.ts`                       | `termsAgreements` 경로 추가       |
+| `src/features/auth/CurrentUserProvider.tsx`        | 최초 로그인 차단 · `refetch` 추가 |
+| `src/app/mypage/page.tsx`                          | 비밀번호 변경 버튼 연결           |
+| `src/lib/api.ts`                                   | `messageOf` 추가                  |
+| `src/features/auth/types.ts` · `constants/menu.ts` | `Role` 타입 위치 이동             |
+| `.ai/API.md`                                       | 약관 동의 API 추가                |
+
+### 주요 작업 내용
+
+- `ChangePasswordModal` — 강제 · 일반 모드를 한 컴포넌트로. 강제면 현재 비밀번호를 묻지 않고 닫을 수도 없다
+- `Modal` — 네이티브 `<dialog>` 기반 공용 껍데기. `onClose` 유무로 닫기 버튼 · 백드롭 클릭 · ESC 동작이 갈린다
+- `FirstLoginFlow` — 최초 로그인 시 약관 동의(`POST /auth/terms-agreements`) 후 비밀번호 변경으로 넘어간다
+- `password.ts` — 정책 3종(8자 이상 · 영문+숫자 · 특수문자)을 배열 한 곳에 두고 **화면 체크리스트와 제출 검증에 함께** 사용
+- 마이페이지 `PageTitle` 액션 슬롯에 일반 모드 진입점 연결
+
+### 부수 결정
+
+- 강제 · 일반을 **한 컴포넌트로** 둔다 — 폼 본체가 같아 분리하면 규칙 체크리스트가 두 벌이 된다
+- 강제 상태 차단은 라우팅이 아니라 `CurrentUserProvider` 에서 한다 — 어느 경로로 들어와도 막아야 하고, 라우팅이면 우회 경로가 생긴다
+- 변경 성공 후 `refetch()` 로 `/me` 를 다시 부른다 — `passwordStatus` 가 갱신돼야 모달이 닫힌다
+- 모달은 **네이티브 `<dialog>` + `showModal()`** 로 만든다 — 포커스 트랩 · 초기 포커스 · 닫힐 때 트리거 복귀 · 배경 비활성화를 브라우저가 처리한다. 직접 구현하면 강제 모드에서 Tab 으로 배경에 접근할 수 있다
+- 강제 모드는 `onCancel` 에서 `preventDefault()` 로 ESC 를 막는다
+- 백드롭 클릭은 `event.target === dialogRef.current` 일 때만 닫는다 — 내용 영역 클릭으로 닫히면 안 된다
+- 변경 성공 시 **`onDone()` 을 즉시** 부른다 — 완료 화면을 X · ESC · 백드롭으로 닫아도 상위 재조회가 유실되지 않아야 한다
+- 새 비밀번호 확인 불일치는 **입력 중에** 알린다 (`aria-invalid` · `aria-describedby`). 제출해야 알 수 있으면 늦다
+- 현재 비밀번호 불일치 · 정책 위반 문구는 백엔드 `message` 를 그대로 쓴다. 어떤 정책에 걸렸는지 프론트가 판단하지 않는다
+- 에러 문구 추출은 `lib/api.ts` 의 `messageOf(error, fallback)` 하나로 모았다
+- `Role` 타입은 백엔드 응답에서 오는 값이라 `features/auth/types.ts` 가 자리다. `constants/menu.ts` 가 가져다 쓴다
+- **토스트는 범위에서 제외** — 토스트 시스템이 없어 성공 안내는 모달 내 문구로 처리했다
+
+### 검증
+
+| 명령               | 결과               |
+| ------------------ | ------------------ |
+| `npx tsc --noEmit` | ✅ 에러 0          |
+| `npx eslint .`     | ✅ 에러 0 · 경고 0 |
+| `npx prettier`     | ✅ 포맷 일치       |
+
+### 남은 일
+
+- ⚠️ **약관 실제 문구 — 배포 전 필수.** 현재 자리표시(`약관 내용 추가 예정입니다.`) 상태로는 유효한 동의 기록이 아니다
+- 변경 성공 토스트 — UI 라이브러리 도입 후
+
+---
+
 ## [2026-08-04] #2 로그인 화면 구현 ✅
 
 브랜치: `feat/login`
 
 ### 변경 파일
 
-| 파일                                        | 변경                            |
-| ------------------------------------------- | ------------------------------- |
-| `src/lib/api.ts`                            | fetch 래퍼 구현                 |
-| `src/constants/endpoints.ts`                | `auth` 경로 4종 등록            |
-| `src/features/auth/types.ts`                | 생성                            |
-| `src/features/auth/api.ts`                  | 생성                            |
-| `src/features/auth/CurrentUserProvider.tsx` | 생성 — `/me` 조회 컨텍스트      |
-| `src/features/auth/useCurrentUser.ts`       | 임시 값 → 컨텍스트 기반 교체    |
-| `src/app/login/page.tsx`                    | 로그인 폼 구현                  |
-| `src/proxy.ts`                              | 생성 — 인증 가드                |
-| `src/components/Header.tsx`                 | 로그아웃 버튼 · `/me` 연동      |
-| `src/components/Sidebar.tsx`                | 프로필 · 메뉴를 실제 응답으로   |
-| `src/components/AppShell.tsx`               | Provider 연결                   |
-| `src/app/page.tsx`                          | 주석 수정                       |
-| `src/features/auth/.gitkeep`                | 삭제 (실제 파일 생겨 역할 종료) |
-| `.ai/API.md`                                | 인증 API 4종 명세 작성          |
+| 파일                                        | 변경                             |
+| ------------------------------------------- | -------------------------------- |
+| `src/lib/api.ts`                            | fetch 래퍼 구현                  |
+| `src/constants/endpoints.ts`                | `auth` 경로 4종 등록             |
+| `src/features/auth/types.ts`                | 생성                             |
+| `src/features/auth/api.ts`                  | 생성                             |
+| `src/features/auth/CurrentUserProvider.tsx` | 생성 — `/me` 조회 컨텍스트       |
+| `src/features/auth/useCurrentUser.ts`       | 임시 값 → 컨텍스트 기반 교체     |
+| `src/app/login/page.tsx`                    | 로그인 폼 구현                   |
+| `src/proxy.ts`                              | 생성 — 인증 가드                 |
+| `src/components/Header.tsx`                 | 로그아웃 버튼 · `/me` 연동       |
+| `src/components/Sidebar.tsx`                | 프로필 · 메뉴를 실제 응답으로    |
+| `src/components/AppShell.tsx`               | Provider 연결                    |
+| `src/app/page.tsx`                          | 주석 수정                        |
+| `src/features/auth/FirstLoginFlow.tsx`      | 생성 — 약관 동의 · 비밀번호 변경 |
+| `src/features/auth/password.ts`             | 생성 — 비밀번호 정책             |
+| `src/features/auth/.gitkeep`                | 삭제 (실제 파일 생겨 역할 종료)  |
+| `.ai/API.md`                                | 인증 API 5종 명세 작성           |
 
 ### 주요 작업 내용
 
@@ -45,6 +106,9 @@
 - 423(계정 잠금)은 해제 시각이 담긴 백엔드 `message` 를 그대로 노출 — 프론트 상수로 덮지 않는다
 - 에러 문구 자리를 `min-h-10` 으로 미리 잡아 에러 발생 시 버튼이 밀리지 않게 함
 - 응답이 오지 않은 경우(네트워크 단절 · CORS 차단)는 `status: 0` 의 `ApiError` 로 감싼다
+- **실패 봉투는 `data` 가 아니라 `code` 를 준다** — `ApiError(status, message, code)` 로 함께 담는다
+- 백엔드 `message` 가 사용자에게 보여줄 한국어 문구라 그대로 노출한다. 상수로 덮는 것은 401 처럼 정보 노출을 막을 때만
+- 초기 비밀번호와 같은 값으로 변경하는 것은 **백엔드가 막는다**(`AUTH_PASSWORD_UNCHANGED`). 막자고 평문 비밀번호를 메모리에 들고 있지 않는다
 - **인증 가드는 서버(`src/proxy.ts`)에서 한다.** HttpOnly 쿠키는 JS 로 못 읽어 클라이언트 분기가 불가능하다
 - **Next 16 부터 `middleware.ts` 규약이 deprecated** — `proxy.ts` + `export default function proxy` 로 작성한다
 - 가드는 쿠키 **존재 여부만** 본다 — 유효성은 백엔드 몫, 만료 쿠키는 API 401 로 걸러진다
@@ -62,16 +126,16 @@
 
 ### 검증
 
-| 명령                | 결과                    |
-| ------------------- | ----------------------- |
-| `npm run build`     | ✅ 성공 · 미들웨어 등록 |
-| `npx tsc --noEmit`  | ✅ 에러 0               |
-| `npx eslint src`    | ✅ 에러 0 · 경고 0      |
-| `npx prettier`      | ✅ 포맷 일치            |
+| 명령               | 결과                    |
+| ------------------ | ----------------------- |
+| `npm run build`    | ✅ 성공 · 미들웨어 등록 |
+| `npx tsc --noEmit` | ✅ 에러 0               |
+| `npx eslint src`   | ✅ 에러 0 · 경고 0      |
+| `npx prettier`     | ✅ 포맷 일치            |
 
 ### 남은 일
 
-- 비밀번호 변경 화면 — `RESET_REQUIRED` 진입 경로가 `/mypage` 임시
+- 비밀번호 변경 모달 · 최초 로그인 흐름 → #3
 - 403 응답 시 `/forbidden` 이동 처리
 
 ---

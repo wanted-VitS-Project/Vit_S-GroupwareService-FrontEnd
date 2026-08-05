@@ -11,5 +11,6 @@ export const ENDPOINTS = {
     logout: `${V1}/auth/logout`,
     me: `${V1}/auth/me`,
     password: `${V1}/auth/password`,
+    termsAgreements: `${V1}/auth/terms-agreements`,
   },
 } as const;

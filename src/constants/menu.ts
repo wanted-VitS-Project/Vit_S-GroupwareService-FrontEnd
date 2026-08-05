@@ -4,8 +4,7 @@
  * ⚠️ 메뉴 노출은 화면 편의일 뿐 권한 통제가 아니다. 실제 차단은 백엔드가 한다.
  */
 
-// TODO: 로그인 연동되면 features/auth/types.ts 로 옮긴다
-export type Role = 'ADMIN' | 'MASTER' | 'MEMBER';
+import type { Role } from '@/features/auth/types';
 
 export type MenuIcon =
   'dashboard' | 'approval' | 'search' | 'plus' | 'folder' | 'card' | 'settings';
