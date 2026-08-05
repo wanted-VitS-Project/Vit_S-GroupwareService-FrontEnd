@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
   getProject,
@@ -40,34 +40,42 @@ export default function ProjectSidebar() {
   const params = useParams<{ id: string; stepId?: string }>();
   const projectId = params.id;
 
-  const [project, setProject] = useState<ProjectDetail | null>(null);
-  const [stages, setStages] = useState<ProjectStage[] | null>(null);
-  const [steps, setSteps] = useState<ProjectStep[] | null>(null);
-  const [hasFailed, setHasFailed] = useState(false);
+  /** 어느 프로젝트의 응답인지 함께 담는다 — 경로가 바뀌면 즉시 무효가 된다 */
+  const [loaded, setLoaded] = useState<{
+    projectId: string;
+    project: ProjectDetail;
+    stages: ProjectStage[];
+    steps: ProjectStep[];
+  } | null>(null);
+  const [failedProjectId, setFailedProjectId] = useState<string | null>(null);
 
   useEffect(() => {
-    let isStale = false;
+    // 프로젝트를 빠르게 옮겨다닐 때 이전 요청을 실제로 끊는다
+    const controller = new AbortController();
+    const { signal } = controller;
 
     Promise.all([
-      getProject(projectId),
-      getProjectStages(projectId),
-      getProjectSteps(projectId),
+      getProject(projectId, signal),
+      getProjectStages(projectId, signal),
+      getProjectSteps(projectId, signal),
     ])
-      .then(([detail, stageList, stepList]) => {
-        if (isStale) return;
-        setProject(detail);
-        setStages(stageList);
-        setSteps(stepList);
-        setHasFailed(false);
-      })
+      .then(([project, stages, steps]) =>
+        setLoaded({ projectId, project, stages, steps }),
+      )
       .catch(() => {
-        if (!isStale) setHasFailed(true);
+        // 취소는 실패가 아니다
+        if (!signal.aborted) setFailedProjectId(projectId);
       });
 
-    return () => {
-      isStale = true;
-    };
+    return () => controller.abort();
   }, [projectId]);
+
+  // 현재 경로의 응답만 화면에 쓴다. 다른 프로젝트 데이터가 남아 보이지 않는다
+  const current = loaded?.projectId === projectId ? loaded : null;
+  const project = current?.project ?? null;
+  const stages = current?.stages ?? null;
+  const steps = current?.steps ?? null;
+  const hasFailed = failedProjectId === projectId;
 
   /**
    * 선택 상태로 표시할 스텝.
@@ -285,6 +293,14 @@ export default function ProjectSidebar() {
                   </div>
                 </div>
 
+                {isOpen && stageSteps.length === 0 && (
+                  // 새로 만든 스테이지는 스텝이 0개다. 펼쳤을 때 아무 변화도 없으면
+                  // 동작이 실패한 것으로 오해한다
+                  <p className="border-b border-[#EBEBEC] px-6 py-3 text-xs text-gray-500">
+                    등록된 스텝이 없습니다.
+                  </p>
+                )}
+
                 {isOpen && stageSteps.length > 0 && (
                   <div className="flex flex-col gap-2 border-b border-[#EBEBEC] pb-4">
                     {stageSteps.map((step) => (
@@ -437,12 +453,29 @@ function RowMenu({
   revealClass?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  /** 메뉴를 닫고 트리거로 포커스를 돌려준다 — 키보드로 되돌아갈 곳이 필요하다 */
+  function close() {
+    setIsOpen(false);
+    triggerRef.current?.focus();
+  }
 
   return (
-    <span className="relative shrink-0">
+    <span
+      className="relative shrink-0"
+      // 팝업 메뉴는 Esc 로 닫히는 것이 표준 동작이다
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape' || !isOpen) return;
+        event.stopPropagation();
+        close();
+      }}
+    >
       <button
+        ref={triggerRef}
         type="button"
         aria-label={`${label} 메뉴`}
+        aria-haspopup="menu"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((wasOpen) => !wasOpen)}
         className={`flex size-5 cursor-pointer items-center justify-center rounded hover:bg-black/5 focus-visible:opacity-100 ${
@@ -470,7 +503,7 @@ function RowMenu({
             <button
               type="button"
               role="menuitem"
-              onClick={() => setIsOpen(false)}
+              onClick={close}
               className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-[11px] font-medium text-[#1C1F2A] hover:bg-gray-50"
             >
               <PencilIcon />
@@ -479,7 +512,7 @@ function RowMenu({
             <button
               type="button"
               role="menuitem"
-              onClick={() => setIsOpen(false)}
+              onClick={close}
               className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-[11px] font-medium text-[#E7000B] hover:bg-red-50"
             >
               <TrashIcon />
