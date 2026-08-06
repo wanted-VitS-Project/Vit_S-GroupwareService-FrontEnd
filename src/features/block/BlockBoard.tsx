@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 
 import BlockCard from './BlockCard';
 import {
@@ -88,14 +88,20 @@ export default function BlockBoard({
   stepId,
   blocks,
   autoEditBlockId,
-  onLayoutSaved,
+  onOrderChanged,
+  flushLayoutRef,
 }: {
   stepId: string;
   blocks: StepBlock[];
   /** 방금 만든 블록 — 편집 입력창을 곧바로 띄운다 */
   autoEditBlockId?: number | null;
-  /** 저장된 배치를 목록 주인에게 돌려준다 — 새 블록 자리 계산이 옛 좌표를 쓰지 않게 */
-  onLayoutSaved?: (blocks: StepBlock[]) => void;
+  /**
+   * 바뀐 순서를 목록 주인에게 돌려준다 — 놓는 즉시 한 번, 저장 응답이 오면 또 한 번.
+   * 새 블록 자리 계산(`nextPosition`)이 옛 좌표를 보지 않게 하려면 즉시 알려야 한다.
+   */
+  onOrderChanged?: (blocks: StepBlock[]) => void;
+  /** 대기 중인 배치를 지금 보내는 손잡이를 넘겨준다 (블록 생성 직전에 쓴다) */
+  flushLayoutRef?: RefObject<(() => void) | null>;
 }) {
   const [order, setOrder] = useState(() => toFlatOrder(blocks));
   const [draggingId, setDraggingId] = useState<number | null>(null);
@@ -136,6 +142,10 @@ export default function BlockBoard({
   // 놓지 않은 채 화면을 떠나도 타이머가 남지 않게 한다
   useEffect(() => cancelDwell, []);
 
+  function publish(next: StepBlock[]) {
+    onOrderChanged?.(next);
+  }
+
   const saver = useLayoutSaver({
     stepId,
     initial: order,
@@ -144,23 +154,58 @@ export default function BlockBoard({
       liveOrder.current = saved;
       setOrder(saved);
       setSaveError('');
-      onLayoutSaved?.(saved);
+      publish(saved);
     },
     onFailed: (message, confirmed) => {
       liveOrder.current = confirmed;
       setOrder(confirmed);
       setSaveError(message);
+      publish(confirmed);
     },
   });
 
-  /** 재조회로 목록이 새로 오면 로컬 순서를 버리고 서버 순서를 따른다 */
+  useEffect(() => {
+    if (!flushLayoutRef) return;
+
+    flushLayoutRef.current = saver.flushNow;
+    return () => {
+      flushLayoutRef.current = null;
+    };
+  }, [flushLayoutRef, saver]);
+
+  /**
+   * 우리가 올려보낸 순서가 그대로 돌아온 것인지.
+   *
+   * 이건 **재조회가 아니다.** 구분하지 않으면 저장 응답이 부모를 갱신 → prop 이 바뀜 →
+   * 아래 동기화가 돌아 **응답을 기다리는 동안 한 이동이 화면에서 되돌아가고
+   * 전송도 취소된다.** `toFlatOrder()` 는 아직 저장 전인 옛 좌표로 다시 정렬하므로,
+   * 그대로 두면 방금 옮긴 결과가 통째로 뒤집힌다.
+   */
+  const isEcho =
+    blocks.length === order.length &&
+    blocks.every((block, index) => block.blockId === order[index].blockId);
+
+  /** 밖에서 목록이 새로 오면 로컬 순서를 버리고 서버 순서를 따른다 */
   const [synced, setSynced] = useState(blocks);
+  /**
+   * 기준점을 갈아끼울 목록 — `reset()` 은 타이머를 건드리는 부수 효과라 렌더 중에 부르지 않는다.
+   * 처리 후 비우지 않는다. 재조회마다 참조가 달라져 effect 가 한 번씩만 돌고,
+   * 비우려고 setState 를 부르면 렌더가 한 번 더 도는 쪽이 오히려 손해다.
+   */
+  const [resetTarget, setResetTarget] = useState<StepBlock[] | null>(null);
   if (synced !== blocks) {
-    const fromServer = toFlatOrder(blocks);
     setSynced(blocks);
-    setOrder(fromServer);
-    saver.reset(fromServer);
+    if (!isEcho) {
+      setOrder(toFlatOrder(blocks));
+      setResetTarget(blocks);
+    }
   }
+
+  useEffect(() => {
+    if (!resetTarget) return;
+
+    saver.reset(toFlatOrder(resetTarget));
+  }, [resetTarget, saver]);
 
   const registerNode = useSlideOnReorder(draggingId);
   useDragAutoScroll(draggingId !== null, boardRef);
@@ -257,8 +302,12 @@ export default function BlockBoard({
       setActiveSlot(null);
       setAimingId(null);
 
+      if (!before || hasSameOrder(final, before)) return;
+
       // 화면은 이미 확정돼 있다 — 전송만 더 움직이지 않을 때까지 미룬다
-      if (before && !hasSameOrder(final, before)) saver.schedule(final);
+      saver.schedule(final);
+      // 저장을 기다리지 않고 바로 알린다 — 새 블록 자리 계산이 옛 좌표를 보면 안 된다
+      publish(final);
     },
   };
 

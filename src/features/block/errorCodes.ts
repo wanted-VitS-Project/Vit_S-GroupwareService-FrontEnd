@@ -26,5 +26,13 @@ export function layoutErrorMessage(code: string | undefined) {
   if (code === BLOCK_CODES.notFound) {
     return '삭제된 블록이 있어 배치를 저장하지 못했습니다. 새로고침해주세요.';
   }
+  // 아래 둘은 사용자가 고칠 수 있는 게 아니라 우리 요청이 잘못된 경우다.
+  // 백엔드 문구("다른 스텝의 블록이 섞임" 등)를 그대로 보여주면 내부 사정이 새어 나간다
+  if (
+    code === BLOCK_CODES.layoutInvalid ||
+    code === BLOCK_CODES.colSpanInvalid
+  ) {
+    return '배치를 저장하지 못했습니다. 새로고침 후 다시 시도해주세요.';
+  }
   return null;
 }

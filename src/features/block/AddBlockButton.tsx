@@ -9,11 +9,14 @@ import type { StepBlock } from './types';
 export default function AddBlockButton({
   stepName,
   blocks,
+  onBeforeCreate,
   onCreated,
 }: {
   stepName: string;
   /** 새 블록 자리 계산용 — 아직 못 불러왔으면 `null` */
   blocks: StepBlock[] | null;
+  /** 생성 요청 직전 — 미뤄둔 배치 저장을 먼저 흘려보낼 때 쓴다 */
+  onBeforeCreate?: () => void;
   onCreated?: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -43,6 +46,7 @@ export default function AddBlockButton({
         <AddBlockModal
           stepName={stepName}
           blocks={blocks}
+          onBeforeCreate={onBeforeCreate}
           onCreated={onCreated}
           onClose={() => setIsOpen(false)}
         />

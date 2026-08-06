@@ -43,6 +43,13 @@ export default function StepBlocks() {
     stepId: string;
     ids: number[];
   } | null>(null);
+  /**
+   * 보드가 넘겨준 "대기 중인 배치를 지금 보내기" 손잡이.
+   *
+   * 블록 생성 직전에 부른다. 미뤄둔 배치 저장이 생성 **뒤에** 나가면
+   * 새 블록이 빠진 목록을 스텝 전체 배치로 보내게 된다.
+   */
+  const flushLayout = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -102,6 +109,7 @@ export default function StepBlocks() {
         <AddBlockButton
           stepName={stepName || '스텝'}
           blocks={blocks}
+          onBeforeCreate={() => flushLayout.current?.()}
           onCreated={() => {
             // blocks 가 null 이면 기준이 빈 배열이 되어 기존 블록까지 신규로 잡힌다.
             // 그럴 때는 스냅샷을 남기지 않고 자동 편집을 건너뛴다
@@ -125,8 +133,9 @@ export default function StepBlocks() {
           stepId={stepId}
           blocks={blocks}
           autoEditBlockId={autoEditBlockId}
-          // 저장된 배치를 목록에도 반영한다 — 다음 `Block 추가` 가 옛 좌표로 자리를 잡지 않게
-          onLayoutSaved={(saved) => setLoaded({ stepId, blocks: saved })}
+          flushLayoutRef={flushLayout}
+          // 바뀐 순서를 목록에도 반영한다 — 다음 `Block 추가` 가 옛 좌표로 자리를 잡지 않게
+          onOrderChanged={(next) => setLoaded({ stepId, blocks: next })}
         />
       )}
     </div>

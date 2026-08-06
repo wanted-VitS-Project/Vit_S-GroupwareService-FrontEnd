@@ -148,21 +148,23 @@ export function applyLayouts(
 /**
  * 새 블록이 들어갈 자리 — 초안과 같이 **평면 순서의 맨 뒤**다.
  * 마지막 행에 칸이 남으면 그 행 오른쪽에 붙고, 모자라면 새 행으로 내려간다.
+ *
+ * ⚠️ 좌표는 서버가 준 값이 아니라 **다시 패킹한 행 기준**으로 매긴다.
+ *    보드는 `computeRows()` 로 행을 새로 만들기 때문에, 기존 `rowIndex` 를 이어 쓰면
+ *    (예: 옛 좌표에 빈 행이 있어 번호가 띄엄띄엄한 경우) 서버 좌표와 화면 배치가 어긋난다.
+ *    `toLayouts()` 가 저장할 때 쓰는 규칙과 같은 규칙이어야 한다.
  */
 export function nextPosition(blocks: StepBlock[], colSpan: number) {
-  const flat = toFlatOrder(blocks);
-  const last = flat.at(-1);
-  if (!last) return { rowIndex: 0, sortOrder: 0 };
+  const rows = computeRows(toFlatOrder(blocks));
+  const lastRow = rows.at(-1);
+  if (!lastRow) return { rowIndex: 0, sortOrder: 0 };
 
-  const rows = computeRows(flat);
-  const lastRow = rows.at(-1) ?? [];
   const usedColumns = lastRow.reduce(
     (total, block) => total + toSpan(block.colSpan),
     0,
   );
 
-  // 어느 쪽이든 마지막 블록보다 뒤에 오므로 평면 순서의 끝을 차지한다
   return usedColumns + toSpan(colSpan) <= BLOCK_COLUMNS
-    ? { rowIndex: last.rowIndex, sortOrder: last.sortOrder + 1 }
-    : { rowIndex: last.rowIndex + 1, sortOrder: 0 };
+    ? { rowIndex: rows.length - 1, sortOrder: lastRow.length }
+    : { rowIndex: rows.length, sortOrder: 0 };
 }

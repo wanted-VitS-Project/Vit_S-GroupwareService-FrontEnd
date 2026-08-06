@@ -64,8 +64,13 @@ export function useDragAutoScroll(
     }
 
     function handleDragOver(event: DragEvent) {
-      // 드래그 중 보드 높이가 바뀌면 굴러가는 주체도 바뀐다 — 못 굴리게 됐으면 다시 찾는다
-      if (container && container.scrollHeight <= container.clientHeight + 1) {
+      /*
+       * 굴러가는 주체는 드래그 중에 바뀐다 — 드래그를 시작하면 빈 칸 · 꼬리 자리가 붙어
+       * 보드가 그때부터 넘치기 시작한다. 그래서 **못 찾았을 때도** 매번 다시 본다.
+       * `container` 가 null 인 채로 굳으면 문서를 굴리려 하는데,
+       * 셸이 화면 높이에 고정돼 있어 문서는 움직이지 않는다 (화면이 안 따라온다).
+       */
+      if (!container || container.scrollHeight <= container.clientHeight + 1) {
         container = findScrollParent(boardRef.current);
       }
 

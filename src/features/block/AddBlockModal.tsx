@@ -25,6 +25,8 @@ interface AddBlockModalProps {
    */
   blocks: StepBlock[] | null;
   onClose: () => void;
+  /** 생성 요청 직전 — 미뤄둔 배치 저장을 먼저 흘려보낼 때 쓴다 */
+  onBeforeCreate?: () => void;
   /** 생성 성공 후 목록을 다시 불러올 때 쓴다 */
   onCreated?: () => void;
 }
@@ -37,6 +39,7 @@ export default function AddBlockModal({
   stepName,
   blocks,
   onClose,
+  onBeforeCreate,
   onCreated,
 }: AddBlockModalProps) {
   const params = useParams<{ stepId: string }>();
@@ -63,6 +66,8 @@ export default function AddBlockModal({
 
     setIsSubmitting(true);
     setErrorMessage('');
+    // 미뤄둔 배치 저장을 먼저 내보낸다 — 생성 뒤에 나가면 새 블록이 빠진 배치를 보내게 된다
+    onBeforeCreate?.();
 
     try {
       await createBlock(params.stepId, {
