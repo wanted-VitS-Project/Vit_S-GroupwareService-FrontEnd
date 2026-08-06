@@ -5,6 +5,15 @@
  * 라벨 · 에러 · 안내 문구의 위치와 간격을 한 곳에서 잡는다.
  */
 
+/**
+ * 입력에 연결할 설명 요소.
+ * 에러가 있으면 에러를, 없으면 안내 문구를 읽어준다 — 화면에 보이는 것과 같은 것을 가리킨다.
+ */
+function describedBy(id: string, error?: string, hint?: string) {
+  if (error) return `${id}-error`;
+  return hint ? `${id}-hint` : undefined;
+}
+
 interface FieldShellProps {
   id: string;
   label: string;
@@ -42,7 +51,12 @@ function FieldShell({
         </p>
       ) : (
         hint && (
-          <p className="mt-1 text-[10px] break-keep text-[#6C7389]">{hint}</p>
+          <p
+            id={`${id}-hint`}
+            className="mt-1 text-[10px] break-keep text-[#6C7389]"
+          >
+            {hint}
+          </p>
         )
       )}
     </div>
@@ -96,8 +110,9 @@ export function TextField({
         placeholder={placeholder}
         maxLength={maxLength}
         onChange={(event) => onChange(event.target.value)}
+        aria-required={required || undefined}
         aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${id}-error` : undefined}
+        aria-describedby={describedBy(id, error, hint)}
         className={controlClass(error !== undefined)}
       />
     </FieldShell>
@@ -141,8 +156,9 @@ export function SelectField({
         id={id}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        aria-required={required || undefined}
         aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${id}-error` : undefined}
+        aria-describedby={describedBy(id, error, hint)}
         className={`${controlClass(error !== undefined)} cursor-pointer`}
       >
         <option value="">{emptyLabel}</option>

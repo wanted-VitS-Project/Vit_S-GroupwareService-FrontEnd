@@ -208,7 +208,9 @@ export default function EmployeeCreateForm() {
       } else {
         setError(message);
       }
-
+    } finally {
+      // 성공 경로에서도 반드시 풀어야 한다 —
+      // `계속 등록` 으로 폼이 다시 나오면 제출 버튼이 잠긴 채로 남는다
       setIsSubmitting(false);
     }
   }
