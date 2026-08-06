@@ -1,0 +1,135 @@
+'use client';
+
+import { useState } from 'react';
+
+import PanelModal, { ModalFooter } from '@/components/PanelModal';
+import { ApiError, messageOf } from '@/lib/api';
+
+import { updateAccountStatus } from './api';
+import { ACCOUNT_CODES } from './errorCodes';
+import type { EmployeeDetail } from './types';
+
+interface AccountStatusModalProps {
+  employee: EmployeeDetail;
+  onClose: () => void;
+  /** 성공 · 이미 그 상태인 경우 모두 상세를 다시 받는다 */
+  onSaved: () => void;
+}
+
+/**
+ * 계정 활성 · 정지 토글 모달. (.ai/API.md 20)
+ * 퇴사 처리와 다른 API 다 — 여기서는 퇴사일을 건드리지 않는다.
+ */
+export default function AccountStatusModal({
+  employee,
+  onClose,
+  onSaved,
+}: AccountStatusModalProps) {
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isSuspending = employee.accountStatus === 'ACTIVE';
+  const nextStatus = isSuspending ? 'INACTIVE' : 'ACTIVE';
+
+  /** 처리 중에는 닫지 않는다 */
+  function requestClose() {
+    if (!isSubmitting) onClose();
+  }
+
+  async function handleSubmit() {
+    if (isSubmitting) return;
+
+    setError('');
+    setIsSubmitting(true);
+
+    try {
+      await updateAccountStatus(employee.userId, nextStatus);
+      onSaved();
+      onClose();
+    } catch (caught) {
+      const code = caught instanceof ApiError ? caught.code : undefined;
+
+      // 이미 그 상태거나 계정이 사라졌다 — 화면이 뒤처졌다는 뜻이라 다시 받는다
+      if (
+        code === ACCOUNT_CODES.statusUnchanged ||
+        code === ACCOUNT_CODES.notFound
+      ) {
+        onSaved();
+        onClose();
+        return;
+      }
+
+      setError(messageOf(caught, '계정 상태를 변경하지 못했습니다.'));
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <PanelModal
+      title={isSuspending ? '계정 정지' : '계정 활성화'}
+      onClose={requestClose}
+    >
+      <div className="space-y-4 p-5">
+        <div className="rounded-lg border border-[#1C1F2A]/10 bg-[#ECEEF4]/50 px-3 py-2.5">
+          <span className="block text-[10px] text-[#6C7389]">대상</span>
+          <span className="mt-0.5 block truncate text-xs font-semibold text-[#1C1F2A]">
+            {employee.name} ({employee.userId})
+          </span>
+        </div>
+
+        {isSuspending ? (
+          <p className="rounded-lg bg-[#F59E0B]/10 px-3 py-2.5 text-[11px] leading-relaxed break-keep text-[#92400E]">
+            정지하면 이 사원은 로그인할 수 없습니다.
+            <br />
+            사원 정보와 과거 이력은 그대로 남고, 언제든 다시 활성화할 수
+            있습니다.
+          </p>
+        ) : (
+          <p className="rounded-lg bg-[#ECEEF4]/50 px-3 py-2.5 text-[11px] leading-relaxed break-keep text-[#6C7389]">
+            다시 로그인할 수 있게 됩니다. 비밀번호는 정지 이전 그대로입니다.
+          </p>
+        )}
+
+        {isSuspending && !employee.resignedAt && (
+          <p className="text-[10px] break-keep text-[#6C7389]">
+            퇴사한 사원이라면 정지 대신 퇴사 처리를 하면 퇴사일까지 함께
+            기록됩니다.
+          </p>
+        )}
+
+        {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}
+        <p
+          role="alert"
+          className="text-[10px] break-keep text-[#E7000B] empty:hidden"
+        >
+          {error}
+        </p>
+      </div>
+
+      <ModalFooter>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-[#6C7389] hover:bg-[#ECEEF4] disabled:cursor-not-allowed disabled:text-[#C7CCD9]"
+          >
+            취소
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className={`cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#ECEEF4] disabled:text-[#6C7389] ${
+              isSuspending
+                ? 'bg-[#E7000B] hover:bg-[#c50009]'
+                : 'bg-[#2B3A67] hover:bg-[#22305a]'
+            }`}
+          >
+            {isSubmitting ? '처리 중…' : isSuspending ? '정지' : '활성화'}
+          </button>
+        </div>
+      </ModalFooter>
+    </PanelModal>
+  );
+}

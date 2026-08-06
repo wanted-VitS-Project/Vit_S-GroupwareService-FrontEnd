@@ -2,9 +2,16 @@ import { ENDPOINTS } from '@/constants/endpoints';
 import { api } from '@/lib/api';
 
 import type {
+  AccountStatus,
+  EmployeeDetail,
   EmployeeListQuery,
   EmployeePage,
+  ManagedRole,
   PasswordResetResult,
+  ResignationResponse,
+  UpdateAccountStatusResponse,
+  UpdateEmployeeRequest,
+  UpdateRoleResponse,
 } from './types';
 
 /** 값이 있는 필터만 실어 보낸다 — 빈 문자열을 보내면 그 값으로 검색한다 */
@@ -32,6 +39,42 @@ export function getEmployees(query: EmployeeListQuery, signal?: AbortSignal) {
     : ENDPOINTS.employees.root;
 
   return api.get<EmployeePage>(path, signal);
+}
+
+/** 사원 상세 (ADMIN). 목록 필드에 연락처 · 입사일 · 소속 그룹이 더 붙는다 */
+export function getEmployee(userId: string, signal?: AbortSignal) {
+  return api.get<EmployeeDetail>(ENDPOINTS.employees.detail(userId), signal);
+}
+
+/**
+ * 사원 정보 수정. 보낸 필드만 바뀐다 —
+ * 호출 측이 바뀐 필드만 담아야 한다 (`null` 은 "지움" 이라 생략과 다르다).
+ */
+export function updateEmployee(userId: string, body: UpdateEmployeeRequest) {
+  return api.patch<EmployeeDetail>(ENDPOINTS.employees.detail(userId), body);
+}
+
+/** 전역 권한 변경. ADMIN 은 부여할 수 없고 자기 자신도 못 바꾼다 */
+export function updateEmployeeRole(userId: string, role: ManagedRole) {
+  return api.patch<UpdateRoleResponse>(ENDPOINTS.accounts.role(userId), {
+    role,
+  });
+}
+
+/** 계정 활성 · 정지 토글. 퇴사 처리와 다른 API 다 */
+export function updateAccountStatus(userId: string, status: AccountStatus) {
+  return api.patch<UpdateAccountStatusResponse>(
+    ENDPOINTS.accounts.status(userId),
+    { status },
+  );
+}
+
+/** 퇴사 처리 — 퇴사일 기록과 계정 비활성을 한 번에 한다 (.ai/API.md 34) */
+export function resignEmployee(userId: string, resignedAt: string) {
+  return api.patch<ResignationResponse>(
+    ENDPOINTS.employees.resignation(userId),
+    { resignedAt },
+  );
 }
 
 /**

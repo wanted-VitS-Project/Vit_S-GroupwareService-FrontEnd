@@ -1,0 +1,407 @@
+'use client';
+
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+
+import { ROLE_LABELS } from '@/constants/status';
+import { useCurrentUser } from '@/features/auth/useCurrentUser';
+import { ApiError } from '@/lib/api';
+import { formatDate, formatDateTime } from '@/lib/format';
+
+import AccountStatusModal from './AccountStatusModal';
+import { getEmployee } from './api';
+import EmployeeStatusBadge, { employeeStatusOf } from './EmployeeStatusBadge';
+import { EMPLOYEE_CODES } from './errorCodes';
+import PasswordResetModal from './PasswordResetModal';
+import ResignationModal from './ResignationModal';
+import RoleChangeModal from './RoleChangeModal';
+import type { EmployeeDetail as Employee } from './types';
+
+type OpenModal = 'role' | 'status' | 'passwordReset' | 'resignation';
+
+/**
+ * 사원 상세 화면. (ADMIN 전용, .ai/API.md 31)
+ *
+ * 인사 정보는 읽기 전용이고, 계정 관련 동작(권한 · 상태 · 비밀번호 · 퇴사)만 여기서 한다.
+ * 인사 정보 수정은 별도 화면이다. (`EmployeeEditForm`)
+ */
+export default function EmployeeDetail({ userId }: { userId: string }) {
+  const currentUser = useCurrentUser();
+
+  const [reloadCount, setReloadCount] = useState(0);
+  /** 어떤 요청의 결과인지 `key` 로 들고 있는다 — 대상이 바뀌면 자동으로 로딩 상태가 된다 */
+  const [result, setResult] = useState<{
+    key: string;
+    data?: Employee;
+    /** 404 는 다시 시도해도 소용없어 안내 문구가 다르다 */
+    failure?: { isNotFound: boolean };
+  } | null>(null);
+
+  const requestKey = `${reloadCount} ${userId}`;
+  const current = result?.key === requestKey ? result : null;
+  /** 재조회 중에는 직전 결과를 유지한다 — 카드가 통째로 사라지면 화면이 튄다 */
+  const employee = current?.data ?? result?.data ?? null;
+  const failure = current?.failure ?? null;
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    getEmployee(userId, signal)
+      .then((data) => setResult({ key: requestKey, data }))
+      .catch((caught: unknown) => {
+        // 취소는 실패가 아니다
+        if (signal.aborted) return;
+
+        const isNotFound =
+          caught instanceof ApiError && caught.code === EMPLOYEE_CODES.notFound;
+
+        setResult({ key: requestKey, failure: { isNotFound } });
+      });
+
+    return () => controller.abort();
+  }, [requestKey, userId]);
+
+  /** 동작이 성공한 뒤에도 이걸 부른다 — 응답 일부만 반영하면 배지가 어긋난다 */
+  function reload() {
+    setReloadCount((count) => count + 1);
+  }
+
+  return (
+    <>
+      <p className="text-xs text-slate-500">
+        <Link href="/settings" className="hover:text-[#1C1F2A] hover:underline">
+          설정
+        </Link>{' '}
+        &gt;{' '}
+        <Link
+          href="/settings/employees"
+          className="hover:text-[#1C1F2A] hover:underline"
+        >
+          사원 관리
+        </Link>{' '}
+        &gt; {employee?.name ?? userId}
+      </p>
+
+      {failure && !employee ? (
+        <Centered>
+          <p className="text-xs break-keep text-[#6C7389]">
+            {failure.isNotFound
+              ? '사원을 찾을 수 없습니다. 삭제되었거나 접근할 수 없는 계정입니다.'
+              : '사원 정보를 불러오지 못했습니다.'}
+          </p>
+          {failure.isNotFound ? (
+            <Link
+              href="/settings/employees"
+              className="rounded-lg bg-[#2B3A67] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#22305a]"
+            >
+              목록으로
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={reload}
+              className="cursor-pointer rounded-lg bg-[#2B3A67] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#22305a]"
+            >
+              다시 시도
+            </button>
+          )}
+        </Centered>
+      ) : !employee ? (
+        <Centered>
+          <p className="text-xs text-[#6C7389]">불러오는 중…</p>
+        </Centered>
+      ) : (
+        <Loaded
+          employee={employee}
+          isSelf={employee.userId === currentUser.userId}
+          onSaved={reload}
+        />
+      )}
+    </>
+  );
+}
+
+interface LoadedProps {
+  employee: Employee;
+  /** 자기 자신은 권한 · 계정 상태를 바꿀 수 없다 (.ai/API.md 19) */
+  isSelf: boolean;
+  onSaved: () => void;
+}
+
+function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
+  const [openModal, setOpenModal] = useState<OpenModal | null>(null);
+
+  const isResigned = employee.resignedAt !== null;
+  const isSuspended = employee.accountStatus === 'INACTIVE';
+
+  function close() {
+    setOpenModal(null);
+  }
+
+  return (
+    <>
+      <div className="mt-2 mb-6 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h2 className="truncate text-lg font-bold">{employee.name}</h2>
+            <EmployeeStatusBadge status={employeeStatusOf(employee)} />
+          </div>
+          <p className="mt-1.5 text-xs text-[#6C7389]">
+            {employee.userId} · {employee.departmentPath ?? '부서 미지정'}
+          </p>
+        </div>
+        <Link
+          href={`/settings/employees/${employee.userId}/edit`}
+          className="shrink-0 rounded-lg border border-[#1C1F2A]/10 px-4 py-2 text-xs font-semibold text-[#1C1F2A] hover:bg-[#ECEEF4]"
+        >
+          정보 수정
+        </Link>
+      </div>
+
+      <div className="space-y-4">
+        <Card title="인사 정보">
+          <FieldList>
+            <Field label="사번" value={employee.userId} />
+            <Field label="이름" value={employee.name} />
+            <Field
+              label="이메일"
+              value={employee.email}
+              warning={
+                employee.emailRegistered
+                  ? undefined
+                  : '미등록 — 로그인 · 비밀번호 재설정 불가'
+              }
+            />
+            <Field label="연락처" value={employee.phone} />
+            <Field label="부서" value={employee.departmentPath} />
+            <Field label="직급" value={employee.jobPositionName} />
+            <Field label="입사일" value={formatDate(employee.hiredAt)} />
+            {isResigned && (
+              <Field label="퇴사일" value={formatDate(employee.resignedAt)} />
+            )}
+          </FieldList>
+        </Card>
+
+        <Card title="계정 정보">
+          <FieldList>
+            <Field
+              label="권한"
+              value={ROLE_LABELS[employee.role]}
+              action={
+                <CardButton
+                  onClick={() => setOpenModal('role')}
+                  disabled={isSelf || isResigned}
+                  title={
+                    isSelf
+                      ? '자기 자신의 권한은 바꿀 수 없습니다'
+                      : isResigned
+                        ? '퇴사한 사원입니다'
+                        : undefined
+                  }
+                >
+                  변경
+                </CardButton>
+              }
+            />
+            <Field
+              label="계정 상태"
+              value={isSuspended ? '정지' : '활성'}
+              action={
+                <CardButton
+                  onClick={() => setOpenModal('status')}
+                  disabled={isSelf || isResigned}
+                  danger={!isSuspended}
+                  title={
+                    isSelf
+                      ? '자기 자신의 계정 상태는 바꿀 수 없습니다'
+                      : isResigned
+                        ? '퇴사 처리로 이미 정지된 계정입니다'
+                        : undefined
+                  }
+                >
+                  {isSuspended ? '활성화' : '정지'}
+                </CardButton>
+              }
+            />
+            <Field
+              label="비밀번호"
+              value={
+                employee.passwordStatus === 'RESET_REQUIRED'
+                  ? '재설정 필요'
+                  : '정상'
+              }
+              action={
+                <CardButton onClick={() => setOpenModal('passwordReset')}>
+                  초기화
+                </CardButton>
+              }
+            />
+            <Field
+              label="마지막 로그인"
+              value={formatDateTime(employee.lastLoginAt) || '기록 없음'}
+            />
+          </FieldList>
+        </Card>
+
+        <Card title="소속 그룹">
+          {employee.groups.length === 0 ? (
+            <p className="text-xs text-[#6C7389]">소속된 그룹이 없습니다.</p>
+          ) : (
+            <ul className="flex flex-wrap gap-1.5">
+              {employee.groups.map((group) => (
+                <li
+                  key={group.groupId}
+                  className="rounded-full border border-[#1C1F2A]/10 bg-[#ECEEF4]/50 px-2.5 py-1 text-[11px] text-[#1C1F2A]"
+                >
+                  {group.name}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <section className="rounded-xl border border-[#E7000B]/20 bg-white p-5">
+          <h3 className="text-xs font-semibold text-[#E7000B]">퇴사 처리</h3>
+          {isResigned ? (
+            <p className="mt-2 text-[11px] break-keep text-[#6C7389]">
+              {formatDate(employee.resignedAt)} 에 퇴사 처리되었습니다. 사원
+              정보는 과거 이력에 그대로 남습니다.
+            </p>
+          ) : (
+            <div className="mt-2 flex items-end justify-between gap-4">
+              <p className="text-[11px] break-keep text-[#6C7389]">
+                퇴사일을 기록하고 계정을 즉시 정지합니다. 사원 정보는 삭제되지
+                않습니다.
+              </p>
+              <button
+                type="button"
+                onClick={() => setOpenModal('resignation')}
+                className="shrink-0 cursor-pointer rounded-lg bg-[#E7000B] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#c50009]"
+              >
+                퇴사 처리
+              </button>
+            </div>
+          )}
+        </section>
+      </div>
+
+      {openModal === 'role' && (
+        <RoleChangeModal
+          employee={employee}
+          onClose={close}
+          onSaved={onSaved}
+        />
+      )}
+      {openModal === 'status' && (
+        <AccountStatusModal
+          employee={employee}
+          onClose={close}
+          onSaved={onSaved}
+        />
+      )}
+      {openModal === 'passwordReset' && (
+        <PasswordResetModal
+          targets={[employee]}
+          onClose={close}
+          onDone={onSaved}
+        />
+      )}
+      {openModal === 'resignation' && (
+        <ResignationModal
+          employee={employee}
+          onClose={close}
+          onSaved={onSaved}
+        />
+      )}
+    </>
+  );
+}
+
+function Card({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-[#1C1F2A]/10 bg-white p-5">
+      <h3 className="text-xs font-semibold text-[#1C1F2A]">{title}</h3>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
+/** `Field` 는 `dt`/`dd` 라 반드시 `dl` 안에 있어야 한다 */
+function FieldList({ children }: { children: React.ReactNode }) {
+  return <dl className="space-y-3">{children}</dl>;
+}
+
+interface FieldProps {
+  label: string;
+  value?: string | null;
+  /** 값 아래 붙는 주의 문구 — 이메일 미등록처럼 조치가 필요한 경우 */
+  warning?: string;
+  /** 우측 동작 버튼 */
+  action?: React.ReactNode;
+}
+
+function Field({ label, value, warning, action }: FieldProps) {
+  return (
+    <div className="flex items-center gap-4 text-xs">
+      {/* 라벨 폭을 고정해 값의 시작선을 맞춘다 — '마지막 로그인' 이 들어가는 너비 */}
+      <dt className="w-24 shrink-0 text-[#6C7389]">{label}</dt>
+      <dd className="m-0 min-w-0 flex-1">
+        <span className="block truncate font-medium text-[#1C1F2A]">
+          {value || '-'}
+        </span>
+        {warning && (
+          <span className="mt-0.5 block text-[10px] break-keep text-[#92400E]">
+            ⚠ {warning}
+          </span>
+        )}
+      </dd>
+      {action && <div className="shrink-0">{action}</div>}
+    </div>
+  );
+}
+
+function CardButton({
+  onClick,
+  disabled,
+  danger,
+  title,
+  children,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+  /** 비활성 이유를 툴팁으로 알려준다 */
+  title?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={`cursor-pointer rounded-lg border px-3 py-1 text-[11px] font-semibold disabled:cursor-not-allowed disabled:border-[#1C1F2A]/10 disabled:text-[#C7CCD9] ${
+        danger
+          ? 'border-[#E7000B]/30 text-[#E7000B] hover:bg-[#E7000B]/5'
+          : 'border-[#1C1F2A]/10 text-[#1C1F2A] hover:bg-[#ECEEF4]'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Centered({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mt-4 flex flex-col items-center justify-center gap-3 rounded-xl border border-[#1C1F2A]/10 bg-white px-5 py-20 text-center">
+      {children}
+    </div>
+  );
+}
