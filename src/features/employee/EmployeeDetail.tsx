@@ -11,13 +11,32 @@ import { formatDate, formatDateTime } from '@/lib/format';
 import AccountStatusModal from './AccountStatusModal';
 import { getEmployee } from './api';
 import EmployeeStatusBadge, { employeeStatusOf } from './EmployeeStatusBadge';
-import { EMPLOYEE_CODES } from './errorCodes';
 import PasswordResetModal from './PasswordResetModal';
+import { ACCOUNT_CODES, EMPLOYEE_CODES } from './errorCodes';
 import ResignationModal from './ResignationModal';
 import RoleChangeModal from './RoleChangeModal';
+import { EMPLOYEE_ROUTES } from './routes';
 import type { EmployeeDetail as Employee } from './types';
 
 type OpenModal = 'role' | 'status' | 'passwordReset' | 'resignation';
+
+/** 다시 시도해도 결과가 같은 실패는 문구도 버튼도 달라야 한다 */
+type FailureKind = 'notFound' | 'systemAccount' | 'unknown';
+
+const FAILURE_MESSAGES: Record<FailureKind, string> = {
+  notFound: '사원을 찾을 수 없습니다. 삭제되었거나 접근할 수 없는 계정입니다.',
+  systemAccount: '시스템 계정은 조회할 수 없습니다.',
+  unknown: '사원 정보를 불러오지 못했습니다.',
+};
+
+function failureKindOf(caught: unknown): FailureKind {
+  if (!(caught instanceof ApiError)) return 'unknown';
+  if (caught.code === EMPLOYEE_CODES.notFound) return 'notFound';
+  if (caught.code === ACCOUNT_CODES.systemAccountNotAllowed) {
+    return 'systemAccount';
+  }
+  return 'unknown';
+}
 
 /**
  * 사원 상세 화면. (ADMIN 전용, .ai/API.md 31)
@@ -33,8 +52,7 @@ export default function EmployeeDetail({ userId }: { userId: string }) {
   const [result, setResult] = useState<{
     key: string;
     data?: Employee;
-    /** 404 는 다시 시도해도 소용없어 안내 문구가 다르다 */
-    failure?: { isNotFound: boolean };
+    failure?: FailureKind;
   } | null>(null);
 
   const requestKey = `${reloadCount} ${userId}`;
@@ -53,10 +71,7 @@ export default function EmployeeDetail({ userId }: { userId: string }) {
         // 취소는 실패가 아니다
         if (signal.aborted) return;
 
-        const isNotFound =
-          caught instanceof ApiError && caught.code === EMPLOYEE_CODES.notFound;
-
-        setResult({ key: requestKey, failure: { isNotFound } });
+        setResult({ key: requestKey, failure: failureKindOf(caught) });
       });
 
     return () => controller.abort();
@@ -75,7 +90,7 @@ export default function EmployeeDetail({ userId }: { userId: string }) {
         </Link>{' '}
         &gt;{' '}
         <Link
-          href="/settings/employees"
+          href={EMPLOYEE_ROUTES.list}
           className="hover:text-[#1C1F2A] hover:underline"
         >
           사원 관리
@@ -86,18 +101,10 @@ export default function EmployeeDetail({ userId }: { userId: string }) {
       {failure && !employee ? (
         <Centered>
           <p className="text-xs break-keep text-[#6C7389]">
-            {failure.isNotFound
-              ? '사원을 찾을 수 없습니다. 삭제되었거나 접근할 수 없는 계정입니다.'
-              : '사원 정보를 불러오지 못했습니다.'}
+            {FAILURE_MESSAGES[failure]}
           </p>
-          {failure.isNotFound ? (
-            <Link
-              href="/settings/employees"
-              className="rounded-lg bg-[#2B3A67] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#22305a]"
-            >
-              목록으로
-            </Link>
-          ) : (
+          {/* 없는 사원 · 시스템 계정은 다시 불러도 결과가 같다 */}
+          {failure === 'unknown' ? (
             <button
               type="button"
               onClick={reload}
@@ -105,6 +112,13 @@ export default function EmployeeDetail({ userId }: { userId: string }) {
             >
               다시 시도
             </button>
+          ) : (
+            <Link
+              href={EMPLOYEE_ROUTES.list}
+              className="rounded-lg bg-[#2B3A67] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#22305a]"
+            >
+              목록으로
+            </Link>
           )}
         </Centered>
       ) : !employee ? (
@@ -152,16 +166,31 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
           </p>
         </div>
         <Link
-          href={`/settings/employees/${employee.userId}/edit`}
+          href={EMPLOYEE_ROUTES.edit(employee.userId)}
           className="shrink-0 rounded-lg border border-[#1C1F2A]/10 px-4 py-2 text-xs font-semibold text-[#1C1F2A] hover:bg-[#ECEEF4]"
         >
           정보 수정
         </Link>
       </div>
 
+      {/* 이메일이 없으면 로그인도 비밀번호 재설정도 못 한다 — 조치가 필요해 위로 올린다 */}
+      {!employee.emailRegistered && (
+        <p className="mb-4 rounded-lg border border-[#F59E0B]/30 bg-[#F59E0B]/10 px-4 py-3 text-[11px] leading-relaxed break-keep text-[#92400E]">
+          ⚠ 이메일이 등록되지 않아 이 사원은 <b>로그인할 수 없습니다.</b>{' '}
+          비밀번호 초기화도 실패합니다 — 먼저{' '}
+          <Link
+            href={EMPLOYEE_ROUTES.edit(employee.userId)}
+            className="font-semibold underline"
+          >
+            정보 수정
+          </Link>{' '}
+          에서 이메일을 등록해주세요.
+        </p>
+      )}
+
       <div className="space-y-4">
         <Card title="인사 정보">
-          <FieldList>
+          <FieldList columns={2}>
             <Field label="사번" value={employee.userId} />
             <Field label="이름" value={employee.name} />
             <Field
@@ -232,7 +261,16 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
                   : '정상'
               }
               action={
-                <CardButton onClick={() => setOpenModal('passwordReset')}>
+                <CardButton
+                  onClick={() => setOpenModal('passwordReset')}
+                  // 메일로 임시 비밀번호를 보내는 기능이라 주소가 없으면 반드시 실패한다
+                  disabled={!employee.emailRegistered}
+                  title={
+                    employee.emailRegistered
+                      ? undefined
+                      : '이메일이 등록되지 않아 초기화할 수 없습니다'
+                  }
+                >
                   초기화
                 </CardButton>
               }
@@ -333,9 +371,26 @@ function Card({
   );
 }
 
-/** `Field` 는 `dt`/`dd` 라 반드시 `dl` 안에 있어야 한다 */
-function FieldList({ children }: { children: React.ReactNode }) {
-  return <dl className="space-y-3">{children}</dl>;
+/**
+ * `Field` 는 `dt`/`dd` 라 반드시 `dl` 안에 있어야 한다.
+ * 값만 있는 인사 정보는 2열, 우측에 버튼이 붙는 계정 정보는 1열로 둔다.
+ */
+function FieldList({
+  columns = 1,
+  children,
+}: {
+  columns?: 1 | 2;
+  children: React.ReactNode;
+}) {
+  return (
+    <dl
+      className={
+        columns === 2 ? 'grid gap-x-10 gap-y-3 sm:grid-cols-2' : 'space-y-3'
+      }
+    >
+      {children}
+    </dl>
+  );
 }
 
 interface FieldProps {

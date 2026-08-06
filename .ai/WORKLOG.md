@@ -73,6 +73,7 @@
 | `src/features/employee/ResignationModal.tsx`   | 생성 — 퇴사일 입력 · 계정 동시 정지 안내                                    |
 | `src/app/settings/employees/[id]/page.tsx`     | `EmployeeDetail` 연결 (stub 교체)                                           |
 | `src/features/employee/EmployeeList.tsx`       | 수정 — 목록 행 전체를 눌러 상세로 진입                                      |
+| `src/features/employee/routes.ts`              | 생성 — 사원 화면 경로 단일 소스                                             |
 
 ### 주요 작업 내용
 
@@ -82,12 +83,21 @@
 - 퇴사 처리(`PATCH /employees/{id}/resignation`) — 퇴사일 입력 + 계정 즉시 정지 안내
 - 비밀번호 초기화는 목록의 `PasswordResetModal` 을 `targets={[employee]}` 로 그대로 재사용
 
+### 트러블슈팅
+
+- **행 전체 클릭 + 이름 링크가 겹쳐 `Ctrl+클릭` 이 새 탭과 현재 탭 이동을 동시에 일으켰다** — 링크의 클릭이 `tr` 로 전파돼 `router.push` 까지 실행됐다. 이름 칸 `td` 에 `stopPropagation` 을 걸어 해결 (PR #47 리뷰 지적)
+- **PowerShell 로 일괄 치환하다 `EmployeeDetail.tsx` 의 한글이 깨졌다** — `Get-Content` 가 UTF-8 파일을 ANSI 로 읽는다. 추적 전 파일이라 복구가 안 돼 다시 작성. **문자열 치환을 PowerShell 파이프로 하지 않는다**
+
 ### 부수 결정
 
 - **자기 자신 · 퇴사자는 권한 · 계정 상태 버튼을 미리 비활성화**한다 — `ACC_SELF_MODIFICATION_NOT_ALLOWED` 를 사후에 받는 것보다 낫고, 비활성 이유는 `title` 툴팁으로 알린다
 - **동작 성공 후에는 응답을 부분 반영하지 않고 상세를 재조회**한다 — 권한 변경 응답에 `accountStatus` 가 없어 배지가 어긋날 수 있다
 - `ACC_STATUS_UNCHANGED` · `EMP_ALREADY_RESIGNED` · `*_NOT_FOUND` 는 **에러로 띄우지 않고 재조회 후 모달을 닫는다** — 화면이 뒤처졌다는 신호라 사용자가 할 일이 없다
 - 404 는 "다시 시도" 대신 **"목록으로"** 를 준다 — 재시도해도 결과가 같다
+- **이메일 미등록 사원은 비밀번호 초기화 버튼을 비활성화**하고 상단에 경고 배너를 띄운다 — 메일로 임시 비밀번호를 보내는 기능이라 주소가 없으면 반드시 실패한다
+- **퇴사자 상세의 액션 정책**: 권한 변경 · 계정 상태는 비활성(퇴사로 이미 정지됨), 비밀번호 초기화는 활성 유지(재입사 · 인수인계 대비)
+- 인사 정보 카드는 2열, 계정 정보 카드는 1열 — 계정 쪽은 값 우측에 동작 버튼이 붙어 2열로 만들면 좁다
+- 화면 경로를 `features/employee/routes.ts` 한 곳으로 모았다 — 목록 · 상세 · 수정 5곳에 같은 리터럴이 흩어져 있었다
 - 행 전체를 클릭 대상으로 삼되 **이름 칸의 `Link` 는 남겼다** — 행 `onClick` 은 키보드로 닿지 않고 `Ctrl+클릭` 새 탭도 안 된다. 체크박스 · 케밥 칸은 `stopPropagation` 으로 막고, 드래그 선택 중이면(`getSelection()`) 이동하지 않는다
 - 퇴사일 기본값은 오늘. `toISOString()` 은 UTC 라 하루 밀려 로컬 필드로 조립한다. 입력 `min` 은 입사일
 - 인사 정보 **수정 버튼은 이 이슈에 넣지 않았다** — #39 에서 화면과 함께 붙인다

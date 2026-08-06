@@ -16,6 +16,7 @@ import { ApiError, messageOf } from '@/lib/api';
 
 import { getEmployee, updateEmployee } from './api';
 import { ACCOUNT_CODES, EMPLOYEE_CODES } from './errorCodes';
+import { EMPLOYEE_ROUTES } from './routes';
 import type { EmployeeDetail, UpdateEmployeeRequest } from './types';
 
 /** 셀렉트 값이 문자열이라 폼은 전부 문자열로 다룬다 — `''` 는 미지정 */
@@ -79,7 +80,7 @@ function buildPatch(
  */
 export default function EmployeeEditForm({ userId }: { userId: string }) {
   const router = useRouter();
-  const detailHref = `/settings/employees/${userId}`;
+  const detailHref = EMPLOYEE_ROUTES.detail(userId);
 
   const [employee, setEmployee] = useState<EmployeeDetail | null>(null);
   /** 404 는 다시 시도해도 소용없어 안내 문구가 다르다 */
@@ -226,7 +227,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
         </Link>{' '}
         &gt;{' '}
         <Link
-          href="/settings/employees"
+          href={EMPLOYEE_ROUTES.list}
           className="hover:text-[#1C1F2A] hover:underline"
         >
           사원 관리
@@ -249,7 +250,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
               : '사원 정보를 불러오지 못했습니다.'}
           </p>
           <Link
-            href="/settings/employees"
+            href={EMPLOYEE_ROUTES.list}
             className="rounded-lg bg-[#2B3A67] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#22305a]"
           >
             목록으로

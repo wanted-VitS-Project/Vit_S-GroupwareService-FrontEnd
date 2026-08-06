@@ -14,6 +14,7 @@ import type { Department } from '@/features/department/types';
 import { getEmployees } from './api';
 import EmployeeStatusBadge, { employeeStatusOf } from './EmployeeStatusBadge';
 import PasswordResetModal from './PasswordResetModal';
+import { EMPLOYEE_ROUTES } from './routes';
 import type {
   EmployeeListQuery,
   EmployeePage,
@@ -180,7 +181,7 @@ export default function EmployeeList() {
    */
   function openDetail(userId: string) {
     if (window.getSelection()?.toString()) return;
-    router.push(`/settings/employees/${userId}`);
+    router.push(EMPLOYEE_ROUTES.detail(userId));
   }
 
   return (
@@ -203,7 +204,7 @@ export default function EmployeeList() {
         <div className="flex shrink-0 items-center gap-2">
           <BulkUploadButton />
           <Link
-            href="/settings/employees/new"
+            href={EMPLOYEE_ROUTES.create}
             className="shrink-0 rounded-lg bg-[#2B3A67] px-4 py-2 text-xs font-semibold text-white hover:bg-[#22305a]"
           >
             + 사원 등록
@@ -392,10 +393,16 @@ export default function EmployeeList() {
                           className="size-3.5 cursor-pointer accent-[#2B3A67]"
                         />
                       </td>
-                      <td className="px-4 py-3.5">
-                        {/* 행 클릭과 별개로 링크를 남긴다 — 키보드 이동 · 새 탭 열기가 되어야 한다 */}
+                      {/*
+                        행 클릭과 별개로 링크를 남긴다 — 키보드 이동 · 새 탭 열기가 되어야 한다.
+                        전파를 막지 않으면 `Ctrl+클릭` 이 새 탭을 열면서 현재 탭까지 이동시킨다
+                      */}
+                      <td
+                        className="px-4 py-3.5"
+                        onClick={(event) => event.stopPropagation()}
+                      >
                         <Link
-                          href={`/settings/employees/${employee.userId}`}
+                          href={EMPLOYEE_ROUTES.detail(employee.userId)}
                           className="block min-w-0"
                         >
                           <span className="block truncate text-xs font-bold text-[#1C1F2A] group-hover:underline">
@@ -445,7 +452,7 @@ export default function EmployeeList() {
                               label: '상세 보기',
                               onSelect: () =>
                                 router.push(
-                                  `/settings/employees/${employee.userId}`,
+                                  EMPLOYEE_ROUTES.detail(employee.userId),
                                 ),
                             },
                             {
