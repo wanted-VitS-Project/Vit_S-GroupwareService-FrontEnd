@@ -1,5 +1,7 @@
 'use client';
 
+import { Skeleton } from '@/components/Skeleton';
+
 /**
  * 사원 등록 · 수정 폼이 함께 쓰는 입력 컴포넌트.
  * 라벨 · 에러 · 안내 문구의 위치와 간격을 한 곳에서 잡는다.
@@ -128,6 +130,7 @@ export function SelectField({
   error,
   hint,
   options,
+  isLoading = false,
   onChange,
 }: {
   id: string;
@@ -142,6 +145,7 @@ export function SelectField({
   error?: string;
   hint?: string;
   options: { value: string; label: string }[];
+  isLoading?: boolean;
   onChange: (value: string) => void;
 }) {
   return (
@@ -152,22 +156,26 @@ export function SelectField({
       error={error}
       hint={hint}
     >
-      <select
-        id={id}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        aria-required={required || undefined}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy(id, error, hint)}
-        className={`${controlClass(error !== undefined)} cursor-pointer`}
-      >
-        <option value="">{emptyLabel}</option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      {isLoading ? (
+        <Skeleton className="h-[34px] w-full" />
+      ) : (
+        <select
+          id={id}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          aria-required={required || undefined}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy(id, error, hint)}
+          className={`${controlClass(error !== undefined)} cursor-pointer`}
+        >
+          <option value="">{emptyLabel}</option>
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      )}
     </FieldShell>
   );
 }

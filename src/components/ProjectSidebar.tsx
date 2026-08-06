@@ -18,6 +18,12 @@ import type {
 } from '@/features/project/types';
 import { formatDateRange } from '@/lib/format';
 
+import {
+  ProjectMembersSkeleton,
+  ProjectOverviewSkeleton,
+  ProjectStagesSkeleton,
+} from './project/ProjectSidebarSkeleton';
+
 /**
  * 프로젝트 상세 화면 왼쪽 사이드바.
  * 프로젝트 개요 · 진행 단계 · 참여자를 보여주고 하위 화면 전환의 기준이 된다.
@@ -149,7 +155,7 @@ export default function ProjectSidebar() {
       {/* 이탈 경로는 항상 같은 자리에 있어야 한다 — 스크롤 영역 밖에 둔다 */}
       <Link
         href="/"
-        className="flex h-13 shrink-0 items-center gap-2 border-b border-gray-200 px-4 py-3 text-[15px] font-medium text-gray-500 hover:bg-gray-50"
+        className="flex h-12 shrink-0 items-center gap-2 border-b border-gray-200 px-4 text-sm font-medium text-gray-500 hover:bg-gray-50"
       >
         <ArrowLeftIcon />
         홈으로 돌아가기
@@ -157,7 +163,7 @@ export default function ProjectSidebar() {
 
       {/* 스크롤 영역 — 홈 · 참여자 · 설정은 위아래에 고정한다. 폭이 좁아 스크롤바는 숨긴다 */}
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto">
-        <div className="flex flex-col gap-2 border-b border-gray-200 px-4 py-3">
+        <div className="flex flex-col gap-3 border-b border-gray-200 px-4 py-4">
           <div className="flex items-center gap-2">
             <p className="min-w-0 flex-1 truncate text-xs font-semibold tracking-[0.9px] text-gray-500 uppercase">
               {category || (project ? '카테고리 없음' : '')}
@@ -177,49 +183,25 @@ export default function ProjectSidebar() {
               프로젝트 정보를 불러오지 못했습니다.
             </p>
           ) : !project ? (
-            // 문구 한 줄만 두면 로드 후 블록이 커지면서 아래 진행 단계가 통째로 밀린다
-            <div
-              role="status"
-              aria-label="프로젝트 정보를 불러오는 중입니다"
-              className="flex flex-col gap-2"
-            >
-              <span
-                aria-hidden
-                className="h-5 w-40 animate-pulse rounded bg-gray-100"
-              />
-              <span
-                aria-hidden
-                className="h-4 w-24 animate-pulse rounded bg-gray-100"
-              />
-              <span
-                aria-hidden
-                className="h-3 w-full animate-pulse rounded bg-gray-100"
-              />
-              <span
-                aria-hidden
-                className="h-[5px] w-full animate-pulse rounded-full bg-gray-100"
-              />
-              <span
-                aria-hidden
-                className="h-4 w-36 animate-pulse rounded bg-gray-100"
-              />
-            </div>
+            <ProjectOverviewSkeleton />
           ) : (
-            <>
-              <p className="text-xl font-bold break-keep text-gray-900">
-                {project.name}
-              </p>
-              <p className="pt-1 text-base font-bold text-gray-500">
-                {project.clientName}
-              </p>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-0.5">
+                <p className="text-xl font-bold break-keep text-gray-900">
+                  {project.name}
+                </p>
+                <p className="text-sm font-semibold text-gray-500">
+                  {project.clientName}
+                </p>
+              </div>
               {project.description && (
-                <p className="pt-1 text-xs text-gray-500">
+                <p className="text-xs leading-5 text-gray-500">
                   {project.description}
                 </p>
               )}
 
-              <div className="pt-1">
-                <p className="text-[10px] text-gray-500">전체 진행률</p>
+              <div>
+                <p className="pb-1 text-[10px] text-gray-500">전체 진행률</p>
                 <div className="flex items-center gap-2.5">
                   <div className="h-[5px] flex-1 rounded-full bg-[#ECEEF5]">
                     <div
@@ -233,16 +215,16 @@ export default function ProjectSidebar() {
                 </div>
               </div>
 
-              <p className="flex items-center gap-1 pt-1 text-sm font-medium text-gray-500">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
                 <CalendarIcon />
                 {formatDateRange(project.startedOn, project.endedOn)}
               </p>
-            </>
+            </div>
           )}
         </div>
 
-        <div className="flex h-13 items-center justify-between border-b border-[#EBEBEC] px-4">
-          <h2 className="text-base font-semibold text-gray-500 uppercase">
+        <div className="flex h-12 items-center justify-between border-b border-[#EBEBEC] px-4">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase">
             진행 단계
           </h2>
           {canEdit && (
@@ -266,9 +248,13 @@ export default function ProjectSidebar() {
         </div>
 
         {!stages || !steps ? (
-          <p className="px-4 py-3 text-xs text-gray-500">
-            {hasFailed ? '진행 단계를 불러오지 못했습니다.' : '불러오는 중…'}
-          </p>
+          hasFailed ? (
+            <p className="px-4 py-3 text-xs text-gray-500">
+              진행 단계를 불러오지 못했습니다.
+            </p>
+          ) : (
+            <ProjectStagesSkeleton />
+          )
         ) : groups.length === 0 ? (
           <p className="px-4 py-3 text-xs text-gray-500">
             등록된 스테이지가 없습니다.
@@ -287,7 +273,7 @@ export default function ProjectSidebar() {
 
             return (
               <div key={stage.stageId}>
-                <div className="group flex h-13 items-center border-b border-[#EBEBEC] px-2">
+                <div className="group flex h-12 items-center border-b border-[#EBEBEC] px-2">
                   <div className="flex flex-1 items-center gap-1 rounded-md p-1.5 group-hover:bg-[#ECEEF4]">
                     <button
                       type="button"
@@ -299,7 +285,7 @@ export default function ProjectSidebar() {
                     >
                       <ChevronIcon isOpen={isOpen} />
                       <span
-                        className={`truncate text-left text-base uppercase ${
+                        className={`truncate text-left text-sm uppercase ${
                           isOpen
                             ? 'font-semibold text-[#305CE3]'
                             : 'font-medium text-gray-900'
@@ -327,7 +313,7 @@ export default function ProjectSidebar() {
                     )}
 
                     <span
-                      className={`shrink-0 text-base uppercase ${
+                      className={`shrink-0 text-sm uppercase ${
                         isOpen
                           ? 'font-semibold text-[#305CE3]'
                           : 'font-medium text-gray-500'
@@ -353,7 +339,7 @@ export default function ProjectSidebar() {
                 )}
 
                 {isOpen && stageSteps.length > 0 && (
-                  <div className="flex flex-col gap-2 border-b border-[#EBEBEC] pb-4">
+                  <div className="flex flex-col gap-1.5 border-b border-[#EBEBEC] py-2">
                     {stageSteps.map((step) => (
                       <StepCard
                         key={step.stepId}
@@ -371,7 +357,7 @@ export default function ProjectSidebar() {
         )}
       </div>
 
-      <div className="border-t border-[#EBEBEC] px-4 py-3">
+      <div className="border-t border-[#EBEBEC] px-4 py-3.5">
         <p className="flex items-center gap-1.5 text-xs text-[#6C7389]">
           <UsersIcon />
           {members ? `참여자 (${members.length})` : '참여자'}
@@ -393,26 +379,13 @@ export default function ProjectSidebar() {
             </button>
           </div>
         ) : !members ? (
-          <div
-            role="status"
-            aria-label="참여자를 불러오는 중입니다"
-            className="flex items-center pt-2"
-          >
-            {[0, 1, 2].map((item) => (
-              <span
-                key={item}
-                aria-hidden
-                style={{ marginLeft: item === 0 ? 0 : -8 }}
-                className="size-6 animate-pulse rounded-full border border-white bg-[#ECEEF4]"
-              />
-            ))}
-          </div>
+          <ProjectMembersSkeleton />
         ) : members.length === 0 ? (
           <p className="pt-2 text-[10px] text-[#6C7389]">
             등록된 참여자가 없습니다.
           </p>
         ) : (
-          <div className="flex items-center pt-2">
+          <div className="flex items-center pt-2.5">
             {members.map((member, index) => (
               <span
                 key={member.memberId}
@@ -442,7 +415,7 @@ export default function ProjectSidebar() {
 
       <Link
         href={`/projects/${projectId}/settings`}
-        className="flex h-13 shrink-0 items-center gap-2 border-t border-[#EBEBEC] px-4 text-base font-medium text-gray-500 hover:bg-gray-50"
+        className="flex h-12 shrink-0 items-center gap-2 border-t border-[#EBEBEC] px-4 text-sm font-medium text-gray-500 hover:bg-gray-50"
       >
         <SettingsIcon />
         프로젝트 설정
@@ -632,7 +605,7 @@ function StepProgressBar({ step }: { step: ProjectStep }) {
 
 function Legend() {
   return (
-    <div className="flex items-center justify-between px-4 text-[10px]">
+    <div className="flex items-center justify-between px-4 pt-1 text-[10px]">
       <span className="text-gray-500">* 스텝별 이슈 진척률</span>
       <span className="flex items-center gap-2">
         <LegendItem

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { ROLE_LABELS } from '@/constants/status';
+import { EmployeeDetailSkeleton } from '@/components/settings/SettingsSkeletons';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { ApiError } from '@/lib/api';
 import { formatDate, formatDateTime } from '@/lib/format';
@@ -122,9 +123,7 @@ export default function EmployeeDetail({ userId }: { userId: string }) {
           )}
         </Centered>
       ) : !employee ? (
-        <Centered>
-          <p className="text-xs text-[#6C7389]">불러오는 중…</p>
-        </Centered>
+        <EmployeeDetailSkeleton />
       ) : (
         <Loaded
           employee={employee}

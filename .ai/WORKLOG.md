@@ -6,6 +6,43 @@
 
 ---
 
+## [2026-08-06] 설정 · 인사 · 카테고리 Skeleton UI 적용 ✅
+
+브랜치: `user/project` · 이슈: 확인 필요
+
+### 변경 파일
+
+| 파일 | 변경 |
+| --- | --- |
+| `src/components/Skeleton.tsx` | 생성 — 공용 Skeleton primitive · 그룹 · 표 · 필드 |
+| `src/components/settings/SettingsSkeletons.tsx` | 생성 — 설정 목록·상세·폼 조합 Skeleton |
+| `src/components/project/ProjectSkeleton.tsx` | 수정 — 공용 Skeleton primitive 재사용 |
+| `src/features/{employee,department,jobPosition,businessCategory}/*.tsx` | 수정 — 텍스트 로딩을 화면 구조형 Skeleton으로 교체 |
+| `src/app/settings/employees/page.tsx` | 수정 — Suspense fallback을 사원 표 Skeleton으로 교체 |
+
+### 주요 작업 내용
+
+- 설정 목록 4종의 에러 → 로딩 → 빈 상태 → 목록 분기 순서를 유지하면서 표 형태 Skeleton 적용
+- 사원 목록은 실제 페이지 크기 20행과 7열 구조, 부서는 트리 들여쓰기를 반영
+- 사원 상세·수정 폼은 카드·필드 구조를 본뜬 Skeleton 적용
+- 사원 등록은 부서·직급 옵션을 기다리는 셀렉트 2개만 Skeleton 처리
+- 프로젝트 전용 Skeleton도 새 공용 primitive를 사용하도록 중복 제거
+
+### 부수 결정
+
+- PrimeNG는 Angular 전용이라 설치하지 않고 형태·접근성 규칙만 React/Tailwind 공용 컴포넌트로 구현한다.
+- API 호출이 없는 설정 허브는 Skeleton 대상에서 제외한다.
+
+### 검증
+
+| 명령 | 결과 |
+| --- | --- |
+| `npm run lint` | ✅ 성공 |
+| `npx tsc --noEmit` | ✅ 성공 |
+| `npm run build` | ✅ 성공 |
+
+---
+
 ## [2026-08-06] 결재 블록 초안 작성 · 상신 🚧
 
 브랜치: `feat/approval-block` · 이슈: #51
@@ -99,17 +136,22 @@
 | `src/constants/endpoints.ts`              | 수정 — 참여자 · 블록 상세 경로 추가                          |
 | `src/features/project/{api,types}.ts`     | 수정 — 프로젝트 참여자 조회 함수와 타입 추가                 |
 | `src/components/ProjectSidebar.tsx`       | 수정 — 목 참여자를 실제 API 응답으로 교체                    |
+| `src/components/project/{ProjectSkeleton,ProjectSidebarSkeleton}.tsx` | 생성 — 프로젝트 Skeleton primitive · 사이드바 조합 UI |
 | `src/features/block/{api,types}.ts`       | 수정 — 블록 부분 수정 · 삭제 요청/응답 추가                  |
 | `src/features/block/BlockEditModal.tsx`   | 생성 — 제목 · 담당자 수정/해제 및 기존 블록 모달 스타일 적용 |
 | `src/features/block/BlockDeleteModal.tsx` | 생성 — 삭제 확인 · 잠금 오류 안내 모달                       |
 | `src/features/block/BlockCard.tsx`        | 수정 — 수정 모달 · 삭제 확인/재조회 연결                     |
 | `src/features/block/AddBlockModal.tsx`    | 수정 — 생성자를 기본 담당자로 전송                           |
 | `src/features/block/StepBlocks.tsx`       | 수정 — 블록 변경 후 목록 재조회                              |
+| `src/features/block/BlockSkeletons.tsx`   | 생성 — 블록 보드 · 문서 목록 Skeleton UI                     |
 | `.ai/API.md`                              | 수정 — 45~47번 확정 명세 추가                                |
 
 ### 주요 작업 내용
 
 - 프로젝트 참여자 목록을 사이드바와 블록 담당자 선택에 공용 연동
+- PrimeNG Skeleton의 형태·접근성 규칙을 React/Tailwind 프로젝트 전용 컴포넌트로 적용
+- 사이드바 개요·단계·참여자와 블록 보드·문서 목록 로딩 UI를 실제 콘텐츠 구조에 맞게 분리
+- 프로젝트 사이드바의 고정 메뉴·정보 영역·스테이지 행 높이와 묶음별 상하 간격을 정돈
 - 블록 제목·담당자 부분 수정과 `null` 담당자 해제 규칙 반영
 - 블록 수정 모달의 헤더·입력 영역·푸터·저장 상태를 기존 블록 UI와 통일
 - 블록 soft delete와 삭제 잠금 오류 메시지 노출, 성공 후 목록 동기화

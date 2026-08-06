@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { ROLE_LABELS } from '@/constants/status';
+import { EmployeeFormSkeleton } from '@/components/settings/SettingsSkeletons';
 import { getDepartments } from '@/features/department/api';
 import {
   type DepartmentOption,
@@ -258,9 +259,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
           </Link>
         </Centered>
       ) : !employee || !values ? (
-        <Centered>
-          <p className="text-xs text-[#6C7389]">불러오는 중…</p>
-        </Centered>
+        <EmployeeFormSkeleton />
       ) : (
         <>
           <div className="mt-2 mb-6">

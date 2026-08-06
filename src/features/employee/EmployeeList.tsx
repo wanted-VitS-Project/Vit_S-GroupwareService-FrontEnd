@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import Pagination from '@/components/Pagination';
 import RowMenu from '@/components/RowMenu';
+import { EmployeeTableSkeleton } from '@/components/settings/SettingsSkeletons';
 import { EMPLOYEE_STATUS_LABELS, ROLE_LABELS } from '@/constants/status';
 import { getDepartments } from '@/features/department/api';
 import { toDepartmentOptions } from '@/features/department/options';
@@ -335,9 +336,7 @@ export default function EmployeeList() {
             </button>
           </Centered>
         ) : !rows || !page ? (
-          <Centered>
-            <p className="text-xs text-[#6C7389]">불러오는 중…</p>
-          </Centered>
+          <EmployeeTableSkeleton rows={20} />
         ) : rows.length === 0 ? (
           <Centered>
             <PeopleIcon />

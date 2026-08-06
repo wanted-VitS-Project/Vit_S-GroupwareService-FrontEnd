@@ -26,6 +26,7 @@ import {
 import { messageOf } from '@/lib/api';
 
 import BlockCard from './BlockCard';
+import { FileListSkeleton } from './BlockSkeletons';
 import type { StepBlock } from './types';
 
 /** 업로드가 끊긴 지점별 안내 — 사용자가 다음에 뭘 할지 알 수 있게 나눈다 */
@@ -182,19 +183,7 @@ export default function FileBlock({ block }: { block: StepBlock }) {
               </button>
             </div>
           ) : !files ? (
-            <div
-              role="status"
-              aria-label="문서를 불러오는 중입니다"
-              className="flex flex-col gap-1.5"
-            >
-              {[0, 1, 2].map((row) => (
-                <div
-                  key={row}
-                  aria-hidden
-                  className="h-11 animate-pulse rounded-lg bg-[#ECEEF4]/60"
-                />
-              ))}
-            </div>
+            <FileListSkeleton />
           ) : files.length === 0 ? (
             <p className="py-6 text-center text-[10px] text-[#6C7389]/60">
               등록된 문서가 없습니다.
