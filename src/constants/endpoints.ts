@@ -58,6 +58,9 @@ export const ENDPOINTS = {
   },
   steps: {
     blocks: (stepId: number | string) => `${V1}/steps/${stepId}/blocks`,
+    /** 블록 배치 변경 — 스텝의 배치 전체를 한 번에 보낸다 */
+    blocksLayout: (stepId: number | string) =>
+      `${V1}/steps/${stepId}/blocks/layout`,
   },
   approvals: {
     /** 재상신 회차 생성 */

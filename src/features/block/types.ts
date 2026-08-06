@@ -267,6 +267,31 @@ export interface DeleteChecklistItemResponse {
   totalCount: number;
 }
 
+/**
+ * 블록 한 개의 배치. 배치 변경 요청 · 응답이 같은 모양이다.
+ * 총 열 수는 3 고정이다 (BLK-003).
+ */
+export interface BlockLayout {
+  blockId: number;
+  rowIndex: number;
+  sortOrder: number;
+  /** 열 병합 수 (1~3) */
+  colSpan: number;
+}
+
+/**
+ * PATCH /api/v1/steps/{stepId}/blocks/layout
+ *
+ * ⚠️ 스텝의 배치 **전체**를 보낸다 — 옮긴 블록만 보내면 나머지가 지워진다.
+ */
+export interface UpdateBlockLayoutRequest {
+  layouts: BlockLayout[];
+}
+
+export interface UpdateBlockLayoutResponse {
+  blocks: BlockLayout[];
+}
+
 /** POST /api/v1/steps/{stepId}/blocks */
 export interface CreateBlockRequest {
   type: BlockTypeCode;

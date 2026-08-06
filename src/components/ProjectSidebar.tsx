@@ -122,16 +122,17 @@ export default function ProjectSidebar() {
 
   return (
     <aside className="flex h-full w-70 shrink-0 flex-col border-r border-gray-200 bg-white">
-      {/* 스크롤 영역 — 참여자 · 설정은 아래에 고정한다 */}
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <Link
-          href="/"
-          className="flex h-13 items-center gap-2 border-b border-gray-200 px-4 py-3 text-[15px] font-medium text-gray-500 hover:bg-gray-50"
-        >
-          <ArrowLeftIcon />
-          홈으로 돌아가기
-        </Link>
+      {/* 이탈 경로는 항상 같은 자리에 있어야 한다 — 스크롤 영역 밖에 둔다 */}
+      <Link
+        href="/"
+        className="flex h-13 shrink-0 items-center gap-2 border-b border-gray-200 px-4 py-3 text-[15px] font-medium text-gray-500 hover:bg-gray-50"
+      >
+        <ArrowLeftIcon />
+        홈으로 돌아가기
+      </Link>
 
+      {/* 스크롤 영역 — 홈 · 참여자 · 설정은 위아래에 고정한다. 폭이 좁아 스크롤바는 숨긴다 */}
+      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto">
         <div className="flex flex-col gap-2 border-b border-gray-200 px-4 py-3">
           <div className="flex items-center gap-2">
             <p className="min-w-0 flex-1 truncate text-xs font-semibold tracking-[0.9px] text-gray-500 uppercase">
@@ -343,19 +344,6 @@ export default function ProjectSidebar() {
               </div>
             );
           })
-        )}
-
-        {canEdit && (
-          <div className="p-4">
-            {/* TODO: 스테이지 추가 모달 연결 */}
-            <button
-              type="button"
-              className="flex w-full cursor-pointer items-center gap-2 rounded-lg border border-dashed border-gray-400 p-2 text-sm font-medium text-gray-900 uppercase hover:bg-gray-50"
-            >
-              <PlusIcon />
-              스테이지 추가
-            </button>
-          </div>
         )}
       </div>
 

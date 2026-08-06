@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react';
 
 import BlockCard from '@/features/block/BlockCard';
 import type { StepBlock } from '@/features/block/types';
-import { messageOf } from '@/lib/api';
+import { ApiError, messageOf } from '@/lib/api';
 
 import { createRevision, getRevision, submitRevision } from './api';
 import ApprovalDraftForm from './ApprovalDraftForm';
 import ApprovalProgress from './ApprovalProgress';
 import ErrorText from './ErrorText';
+import { findSubmitBlocker, submitBlockerLabel } from './submitCheck';
 import {
   type ApprovalBlockDetail,
   type ApprovalRevision,
@@ -119,7 +120,14 @@ function Loaded({
       });
       setIsEditing(false);
     } catch (caught) {
-      setError(messageOf(caught, '상신하지 못했습니다.'));
+      /**
+       * 검증 400 은 사전 차단과 같은 문구로 통일한다 —
+       * 프론트가 못 보는 항목(member · MASTER)은 서버만 알아서 여기로만 온다.
+       */
+      const code = caught instanceof ApiError ? caught.code : undefined;
+      setError(
+        submitBlockerLabel(code) ?? messageOf(caught, '상신하지 못했습니다.'),
+      );
     } finally {
       setIsBusy(false);
     }
@@ -145,6 +153,8 @@ function Loaded({
 
   const isDraft = revision.status === 'DRAFT';
   const isRejected = revision.status === 'REJECTED';
+  /** 상신을 막는 사유. 없으면 상신할 수 있다 (AP-022~024) */
+  const blocker = isDraft ? findSubmitBlocker(revision) : null;
 
   return (
     <BlockCard
@@ -218,14 +228,23 @@ function Loaded({
 
         {/* 상신은 DRAFT 회차에서만 된다. 반려 상태면 `수정` 으로 새 회차를 먼저 만든다 */}
         {isDraft && !isEditing && (
-          <button
-            type="button"
-            onClick={submit}
-            disabled={isBusy}
-            className="w-full cursor-pointer rounded-lg bg-[#4F39F6] py-2 text-[11px] font-semibold text-white hover:bg-[#4430d6] disabled:cursor-not-allowed disabled:bg-[#ECEEF4] disabled:text-[#6C7389]"
-          >
-            {isBusy ? '상신 중…' : '상신'}
-          </button>
+          <div>
+            <button
+              type="button"
+              onClick={submit}
+              disabled={isBusy || blocker !== null}
+              className="w-full cursor-pointer rounded-lg bg-[#4F39F6] py-2 text-[11px] font-semibold text-white hover:bg-[#4430d6] disabled:cursor-not-allowed disabled:bg-[#ECEEF4] disabled:text-[#6C7389]"
+            >
+              {isBusy ? '상신 중…' : '상신'}
+            </button>
+
+            {/* 왜 눌리지 않는지 바로 옆에서 알려준다 — 눌러보고 알게 하지 않는다 */}
+            {blocker && (
+              <p className="mt-1 text-center text-[10px] break-keep text-[#6C7389]">
+                {submitBlockerLabel(blocker)}
+              </p>
+            )}
+          </div>
         )}
 
         <ErrorText message={error} />

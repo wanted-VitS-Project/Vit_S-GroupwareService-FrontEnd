@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import EmployeeSearchInput from '@/features/employee/EmployeeSearchInput';
 import { uploadFile } from '@/features/file/upload';
@@ -20,18 +20,18 @@ interface ApprovalDraftFormProps {
   /** 파일을 어느 블록에 붙일지 — 업로드 API 가 블록 단위다 */
   blockId: number;
   revision: ApprovalRevision;
-  /** 저장 버튼 — API 호출 없이 화면만 닫는다 (모든 항목이 이미 즉시 저장됐다) */
+  /** 편집 화면을 닫는다 — 남은 입력은 폼이 먼저 저장하고 부른다 */
   onClose: () => void;
-  /** 문서 · 결재선이 바뀌면 상위가 회차를 다시 받는다 */
+  /** 바뀐 항목을 상위 회차에 반영한다 — 상신 가능 여부 판정에 쓰인다 */
   onChanged: (next: Partial<ApprovalRevision>) => void;
 }
 
 /**
  * 결재 초안 작성 · 수정 폼. (AP-005~020)
  *
- * ⚠️ **별도 저장 버튼이 없다.** 제목 · 내용은 블러 시 즉시 `PATCH` 하고,
+ * ⚠️ **모든 항목이 즉시 저장된다.** 제목 · 내용은 블러 시 `PATCH` 하고,
  * 문서 · 결재선은 조작 즉시 각자의 API 를 부른다.
- * 하단 `저장` 은 편집 화면을 닫기만 한다.
+ * 하단 `저장` 은 아직 블러되지 않은 입력만 흘려보내고 화면을 닫는다.
  */
 export default function ApprovalDraftForm({
   approvalId,
@@ -43,23 +43,54 @@ export default function ApprovalDraftForm({
 }: ApprovalDraftFormProps) {
   const [title, setTitle] = useState(revision.title ?? '');
   const [content, setContent] = useState(revision.content ?? '');
-  /** 마지막으로 서버에 보낸 값 — 값이 그대로면 블러마다 요청하지 않는다 */
-  const saved = useRef({
+  /**
+   * 마지막으로 서버에 보낸 값 — 값이 그대로면 블러마다 요청하지 않는다.
+   * 이탈 확인이 이 값과 비교해야 해서 ref 가 아니라 state 로 둔다 (렌더 중에 읽는다).
+   */
+  const [saved, setSaved] = useState({
     title: revision.title ?? '',
     content: revision.content ?? '',
   });
   const [error, setError] = useState('');
 
+  /** 아직 서버에 못 보낸 입력이 있는지 — 이탈 확인과 닫기 전 저장의 기준이다 */
+  const isDirty =
+    title.trim() !== saved.title || content.trim() !== saved.content;
+
+  /**
+   * 저장 전에 창을 닫거나 새로고침하면 입력이 사라진다 (AP-006·007).
+   *
+   * ⚠️ 막을 수 있는 것은 **브라우저 이탈뿐**이다 — App Router 에는 라우팅 차단 API 가 없어
+   * 앱 안에서 뒤로가기를 누르면 그대로 나간다. 백로그에 올려둔 항목이다.
+   */
+  useEffect(() => {
+    if (!isDirty) return;
+
+    const confirmLeave = (event: BeforeUnloadEvent) => event.preventDefault();
+
+    window.addEventListener('beforeunload', confirmLeave);
+    return () => window.removeEventListener('beforeunload', confirmLeave);
+  }, [isDirty]);
+
   async function saveField(field: 'title' | 'content', value: string) {
-    if (saved.current[field] === value) return;
+    if (saved[field] === value) return;
 
     setError('');
     try {
       await updateRevision(approvalId, revisionId, { [field]: value });
-      saved.current[field] = value;
+      setSaved((prev) => ({ ...prev, [field]: value }));
+      // 상위가 상신 가능 여부를 다시 판정해야 한다 — 제목 · 내용도 검증 대상이다
+      onChanged({ [field]: value });
     } catch (caught) {
       setError(messageOf(caught, '저장하지 못했습니다.'));
     }
+  }
+
+  /** 닫기 전에 아직 블러되지 않은 입력을 흘려보낸다 — 안 그러면 마지막 타이핑이 날아간다 */
+  async function closeAfterSave() {
+    await saveField('title', title.trim());
+    await saveField('content', content.trim());
+    onClose();
   }
 
   return (
@@ -105,7 +136,7 @@ export default function ApprovalDraftForm({
 
       <button
         type="button"
-        onClick={onClose}
+        onClick={closeAfterSave}
         className="w-full cursor-pointer rounded-lg bg-[#4F39F6] py-2 text-[11px] font-semibold text-white hover:bg-[#4430d6]"
       >
         저장
