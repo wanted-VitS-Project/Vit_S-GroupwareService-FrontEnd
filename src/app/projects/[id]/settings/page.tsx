@@ -1,3 +1,3 @@
 export default function Page() {
-  return <div>projects/[id]/settings</div>;
+  return <div className="p-6">projects/[id]/settings</div>;
 }

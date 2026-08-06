@@ -152,7 +152,33 @@ export default function ProjectSidebar() {
               프로젝트 정보를 불러오지 못했습니다.
             </p>
           ) : !project ? (
-            <p className="text-xs text-gray-500">불러오는 중…</p>
+            // 문구 한 줄만 두면 로드 후 블록이 커지면서 아래 진행 단계가 통째로 밀린다
+            <div
+              role="status"
+              aria-label="프로젝트 정보를 불러오는 중입니다"
+              className="flex flex-col gap-2"
+            >
+              <span
+                aria-hidden
+                className="h-5 w-40 animate-pulse rounded bg-gray-100"
+              />
+              <span
+                aria-hidden
+                className="h-4 w-24 animate-pulse rounded bg-gray-100"
+              />
+              <span
+                aria-hidden
+                className="h-3 w-full animate-pulse rounded bg-gray-100"
+              />
+              <span
+                aria-hidden
+                className="h-[5px] w-full animate-pulse rounded-full bg-gray-100"
+              />
+              <span
+                aria-hidden
+                className="h-4 w-36 animate-pulse rounded bg-gray-100"
+              />
+            </div>
           ) : (
             <>
               <p className="text-xl font-bold break-keep text-gray-900">

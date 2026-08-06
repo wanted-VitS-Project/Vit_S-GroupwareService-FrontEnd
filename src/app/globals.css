@@ -4,6 +4,14 @@
   --font-sans: var(--font-geist-sans);
 }
 
+html {
+  /*
+   * 화면마다 문서 스크롤바 유무가 달라(프로젝트 상세는 내부 스크롤) 경로를 옮길 때
+   * 콘텐츠 폭이 스크롤바 너비만큼 흔들린다 — 자리를 항상 비워 둔다.
+   */
+  scrollbar-gutter: stable;
+}
+
 body {
   font-family: var(--font-sans);
   /* 한글은 기본값이면 단어 중간에서 잘린다 — 어절 단위로 줄바꿈한다 */
