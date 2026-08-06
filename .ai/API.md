@@ -1,8 +1,8 @@
 # 연동 API 명세서
 
+**최종 업데이트**: 2026-08-06 (사원 정보 수정 연동 — 33 갱신 · `email`/`phone` 클리어 방식 확인 대기 추가)
+**최종 업데이트**: 2026-08-06 (사원 상세 · 권한 · 계정 상태 · 퇴사 연동 — 19 · 20 · 31 · 34 갱신)
 **최종 업데이트**: 2026-08-06 (부서 · 사원 목록 · 비밀번호 재설정 연동 — 목차 갱신)
-**최종 업데이트**: 2026-08-06 (인사 API 추가 — 계정 · 부서 · 직급 · 사원 19~~35)
-**최종 업데이트**: 2026-08-05 (사업 카테고리 API 추가 — 15~~18)
 
 > 📌 이 파일은 **프론트가 연동하는 백엔드 API**를 정리하는 곳이에요. (내가 만드는 게 아니라 **호출하는** 입장)
 > AI는 API 연동 코드를 작성하기 전에 이 파일을 먼저 읽어요. (잘못된 경로/필드/타입으로 fetch 짜는 실수 방지)
@@ -33,8 +33,8 @@
 | [16](#16-사업-카테고리-생성)              | 카테고리 생성    | `POST /business-categories`                  | ✅ `features/businessCategory/api.ts` |
 | [17](#17-사업-카테고리-수정)              | 카테고리 수정    | `PATCH /business-categories/{categoryId}`    | ✅ `features/businessCategory/api.ts` |
 | [18](#18-사업-카테고리-삭제)              | 카테고리 삭제    | `DELETE /business-categories/{categoryId}`   | ✅ `features/businessCategory/api.ts` |
-| [19](#19-전역-권한-변경)                  | 권한 변경        | `PATCH /accounts/{userId}/role`              | ⬜ 사원 상세 (#5)                     |
-| [20](#20-계정-상태-변경)                  | 계정 상태 변경   | `PATCH /accounts/{userId}/status`            | ⬜ 사원 상세 (#5)                     |
+| [19](#19-전역-권한-변경)                  | 권한 변경        | `PATCH /accounts/{userId}/role`              | ✅ `features/employee/api.ts`         |
+| [20](#20-계정-상태-변경)                  | 계정 상태 변경   | `PATCH /accounts/{userId}/status`            | ✅ `features/employee/api.ts`         |
 | [21](#21-비밀번호-재설정-개인--다중-공용) | 비밀번호 재설정  | `POST /accounts/password-resets`             | ✅ `features/employee/api.ts`         |
 | [22](#22-부서-목록-조회)                  | 부서 목록        | `GET /departments`                           | ✅ `features/department/api.ts`       |
 | [23](#23-부서-생성-최상위--하위-공용)     | 부서 생성        | `POST /departments`                          | ✅ `features/department/api.ts`       |
@@ -45,10 +45,10 @@
 | [28](#28-직급-수정-직급명--순서)          | 직급 수정        | `PATCH /job-positions/{jobPositionId}`       | ✅ `features/jobPosition/api.ts`      |
 | [29](#29-직급-삭제)                       | 직급 삭제        | `DELETE /job-positions/{jobPositionId}`      | ✅ `features/jobPosition/api.ts`      |
 | [30](#30-사원-목록-조회-인사관리)         | 사원 목록        | `GET /employees`                             | ✅ `features/employee/api.ts`         |
-| [31](#31-사원-상세-조회)                  | 사원 상세        | `GET /employees/{userId}`                    | ⬜ 사원 상세 (#5)                     |
+| [31](#31-사원-상세-조회)                  | 사원 상세        | `GET /employees/{userId}`                    | ✅ `features/employee/api.ts`         |
 | [32](#32-사원-등록-계정-동시-발급)        | 사원 등록        | `POST /employees`                            | ⬜ 사원 등록 (#38)                    |
-| [33](#33-사원-정보-수정)                  | 사원 수정        | `PATCH /employees/{userId}`                  | ⬜ 사원 정보 수정 (#39)               |
-| [34](#34-퇴사-처리)                       | 퇴사 처리        | `PATCH /employees/{userId}/resignation`      | ⬜ 사원 상세 (#5)                     |
+| [33](#33-사원-정보-수정)                  | 사원 수정        | `PATCH /employees/{userId}`                  | ✅ `features/employee/api.ts`         |
+| [34](#34-퇴사-처리)                       | 퇴사 처리        | `PATCH /employees/{userId}/resignation`      | ✅ `features/employee/api.ts`         |
 | [35](#35-사원-이름-검색-결재선-지정용)    | 사원 이름 검색   | `GET /employees/search`                      | ⬜ 결재선 검색 (#41)                  |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
@@ -66,6 +66,7 @@
 | 프로젝트 참여자 목록 API                          | 사이드바 참여자 (`MOCK_MEMBERS`) | —    |
 | 사원 엑셀 템플릿 다운로드 · 일괄 등록 (구현 중)   | 화면은 "준비 중" 안내만          | —    |
 | 사원 목록에 **직급 필터** 없음                    | 직급별 사원 조회                 | 30   |
+| `email` · `phone` 을 빈 문자열로 지울 수 있는지   | 수정 폼에서 연락처 · 이메일 삭제 | 33   |
 | 부서명 중복 검사 범위 (전체 → 형제) — 변경 요청함 | 본부마다 같은 팀 이름 사용       | 23   |
 
 ---
@@ -742,12 +743,12 @@ data: {
 
 ## 19. 전역 권한 변경
 
-| 항목          | 내용                                      |
-| ------------- | ----------------------------------------- |
-| **Method**    | `PATCH`                                   |
-| **Path**      | `/api/v1/accounts/{userId}/role`          |
-| **인증 필요** | ✅ (ADMIN)                                |
-| **사용 위치** | 미연동 — 사원 상세 화면(#5)에서 연결 예정 |
+| 항목          | 내용                                                    |
+| ------------- | ------------------------------------------------------- |
+| **Method**    | `PATCH`                                                 |
+| **Path**      | `/api/v1/accounts/{userId}/role`                        |
+| **인증 필요** | ✅ (ADMIN)                                              |
+| **사용 위치** | `src/features/employee/api.ts` → `updateEmployeeRole()` |
 
 **요청 Body**
 
@@ -769,12 +770,12 @@ data: {
 
 ## 20. 계정 상태 변경
 
-| 항목          | 내용                                      |
-| ------------- | ----------------------------------------- |
-| **Method**    | `PATCH`                                   |
-| **Path**      | `/api/v1/accounts/{userId}/status`        |
-| **인증 필요** | ✅ (ADMIN)                                |
-| **사용 위치** | 미연동 — 사원 상세 화면(#5)에서 연결 예정 |
+| 항목          | 내용                                                     |
+| ------------- | -------------------------------------------------------- |
+| **Method**    | `PATCH`                                                  |
+| **Path**      | `/api/v1/accounts/{userId}/status`                       |
+| **인증 필요** | ✅ (ADMIN)                                               |
+| **사용 위치** | `src/features/employee/api.ts` → `updateAccountStatus()` |
 
 **요청 Body**
 
@@ -884,11 +885,16 @@ data: {
 > **같은 상위 부서(형제) 범위**로 완화해 달라고 백엔드에 요청한 상태다. 반영되면 폼 안내 문구 한 줄만 바꾸면 된다
 > (`DepartmentFormModal` — "부서명은 전체에서 중복될 수 없습니다."). 409 문구는 백엔드 `message` 를 그대로 쓰므로 코드 변경이 없다.
 
-| 항목          | 내용                                 |
-| ------------- | ------------------------------------ |
-| **Method**    | `PATCH`                              |
-| **Path**      | `/api/v1/departments/{departmentId}` |
-| **인증 필요** | ✅ (ADMIN)                           |
+---
+
+## 24. 부서명 수정
+
+| 항목          | 내용                                                    |
+| ------------- | ------------------------------------------------------- |
+| **Method**    | `PATCH`                                                 |
+| **Path**      | `/api/v1/departments/{departmentId}`                    |
+| **인증 필요** | ✅ (ADMIN)                                              |
+| **사용 위치** | `src/features/department/api.ts` → `updateDepartment()` |
 
 **요청 Body** — `name` (✅, 최대 50자)
 
@@ -1067,12 +1073,12 @@ data: {
 
 ## 31. 사원 상세 조회
 
-| 항목          | 내용                                 |
-| ------------- | ------------------------------------ |
-| **Method**    | `GET`                                |
-| **Path**      | `/api/v1/employees/{userId}`         |
-| **인증 필요** | ✅ (ADMIN)                           |
-| **사용 위치** | 미연동 — 사원 상세(#5)에서 연결 예정 |
+| 항목          | 내용                                             |
+| ------------- | ------------------------------------------------ |
+| **Method**    | `GET`                                            |
+| **Path**      | `/api/v1/employees/{userId}`                     |
+| **인증 필요** | ✅ (ADMIN)                                       |
+| **사용 위치** | `src/features/employee/api.ts` → `getEmployee()` |
 
 **응답 data** — 목록 필드 + 아래
 
@@ -1131,12 +1137,12 @@ data: {
 
 ## 33. 사원 정보 수정
 
-| 항목          | 내용                                       |
-| ------------- | ------------------------------------------ |
-| **Method**    | `PATCH`                                    |
-| **Path**      | `/api/v1/employees/{userId}`               |
-| **인증 필요** | ✅ (ADMIN)                                 |
-| **사용 위치** | 미연동 — 사원 정보 수정(#39)에서 연결 예정 |
+| 항목          | 내용                                                |
+| ------------- | --------------------------------------------------- |
+| **Method**    | `PATCH`                                             |
+| **Path**      | `/api/v1/employees/{userId}`                        |
+| **인증 필요** | ✅ (ADMIN)                                          |
+| **사용 위치** | `src/features/employee/api.ts` → `updateEmployee()` |
 
 **요청 Body** — 전달한 필드만 수정된다
 
@@ -1162,12 +1168,12 @@ data: {
 
 ## 34. 퇴사 처리
 
-| 항목          | 내용                                     |
-| ------------- | ---------------------------------------- |
-| **Method**    | `PATCH`                                  |
-| **Path**      | `/api/v1/employees/{userId}/resignation` |
-| **인증 필요** | ✅ (ADMIN)                               |
-| **사용 위치** | 미연동 — 사원 상세(#5)에서 연결 예정     |
+| 항목          | 내용                                                |
+| ------------- | --------------------------------------------------- |
+| **Method**    | `PATCH`                                             |
+| **Path**      | `/api/v1/employees/{userId}/resignation`            |
+| **인증 필요** | ✅ (ADMIN)                                          |
+| **사용 위치** | `src/features/employee/api.ts` → `resignEmployee()` |
 
 **요청 Body** — `resignedAt` (✅, 퇴사일 `yyyy-MM-dd`)
 
