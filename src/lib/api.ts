@@ -36,6 +36,13 @@ export class ApiError extends Error {
  */
 export const FORBIDDEN_EVENT = 'api:forbidden';
 
+/**
+ * 세션 만료도 개별 화면이 아니라 앱 전체가 반응해야 한다 —
+ * 어느 API 에서 401 이 오든 로그인 화면으로 보낸다.
+ * `detail` 에 응답 code 를 싣고, 구독은 CurrentUserProvider 한 곳에서만 한다.
+ */
+export const UNAUTHORIZED_EVENT = 'api:unauthorized';
+
 /** 백엔드 문구가 가장 정확하다. 응답이 없을 때만 fallback 을 쓴다. */
 export function messageOf(error: unknown, fallback: string) {
   return error instanceof ApiError ? error.message : fallback;
@@ -64,10 +71,18 @@ async function throwFailure(response: Response): Promise<never> {
     .json()
     .catch(() => null)) as ApiErrorEnvelope | null;
 
-  if (response.status === 403 && typeof window !== 'undefined') {
-    window.dispatchEvent(
-      new CustomEvent(FORBIDDEN_EVENT, { detail: failure?.code }),
-    );
+  if (typeof window !== 'undefined') {
+    if (response.status === 403) {
+      window.dispatchEvent(
+        new CustomEvent(FORBIDDEN_EVENT, { detail: failure?.code }),
+      );
+    }
+    // 401 은 code 로 갈린다 — 로그인 실패까지 전역 처리하면 로그인 화면이 깨진다
+    if (response.status === 401) {
+      window.dispatchEvent(
+        new CustomEvent(UNAUTHORIZED_EVENT, { detail: failure?.code }),
+      );
+    }
   }
 
   throw new ApiError(

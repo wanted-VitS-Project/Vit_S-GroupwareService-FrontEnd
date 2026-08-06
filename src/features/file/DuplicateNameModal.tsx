@@ -25,9 +25,7 @@ export default function DuplicateNameModal({
       onClose={onCancel}
       className="w-full max-w-sm rounded-xl p-6 shadow-2xl"
     >
-      <h2 className="text-sm font-semibold text-[#1C1F2A]">
-        같은 이름의 문서가 있습니다
-      </h2>
+      {/* 제목은 Modal 이 `title` 로 그린다 — 여기서 또 쓰면 중복 낭독된다 */}
       <p className="mt-2 text-xs break-keep text-[#6C7389]">{message}</p>
       <p className="mt-2 text-xs break-keep text-[#6C7389]">
         <b className="text-[#1C1F2A]">{fileName}</b> 을(를) 새 문서로

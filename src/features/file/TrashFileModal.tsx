@@ -48,7 +48,7 @@ export default function TrashFileModal({
       onClose={isDeleting ? undefined : onClose}
       className="w-full max-w-sm rounded-xl p-6 shadow-2xl"
     >
-      <h2 className="text-sm font-semibold text-[#1C1F2A]">휴지통으로 이동</h2>
+      {/* 제목은 Modal 이 `title` 로 그린다 — 여기서 또 쓰면 중복 낭독된다 */}
       <p className="mt-2 text-xs break-keep text-[#6C7389]">
         <b className="text-[#1C1F2A]">{fileName}</b> 을(를) 휴지통으로 옮길까요?
         파일은 지워지지 않고 나중에 복구할 수 있습니다.

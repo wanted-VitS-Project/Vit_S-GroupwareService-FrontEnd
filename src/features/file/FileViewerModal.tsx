@@ -38,6 +38,10 @@ export default function FileViewerModal({
   /** 버전 패널은 접힌 상태로 시작하고 헤더 버튼으로 펼친다 */
   const [showVersions, setShowVersions] = useState(false);
   const [versions, setVersions] = useState<FileVersionsResponse | null>(null);
+  /** 버전 이력 실패는 로딩과 구분해야 한다 — null 로 두면 스켈레톤이 계속 돈다 */
+  const [versionsError, setVersionsError] = useState('');
+  /** 값이 바뀌면 버전 이력을 다시 불러온다 */
+  const [versionsRetry, setVersionsRetry] = useState(0);
   /**
    * 어느 버전의 미리보기인지 함께 담는다 — 버전을 바꾸면 즉시 무효가 된다.
    * effect 본문에서 로딩 상태로 되돌리면 `react-hooks/set-state-in-effect` 에 걸린다.
@@ -120,7 +124,7 @@ export default function FileViewerModal({
     return () => controller.abort();
   }, [versionId]);
 
-  // 패널을 처음 펼칠 때만 이력을 불러온다
+  // 패널을 처음 펼칠 때만 이력을 불러온다 (재시도 시에도 다시 탄다)
   useEffect(() => {
     if (!showVersions || versions) return;
 
@@ -128,17 +132,20 @@ export default function FileViewerModal({
     const { signal } = controller;
 
     getFileVersions(file.fileId, signal)
-      .then(setVersions)
+      .then((loadedVersions) => {
+        setVersions(loadedVersions);
+        setVersionsError('');
+      })
       .catch((caught) => {
         if (!signal.aborted) {
-          setErrorMessage(
+          setVersionsError(
             messageOf(caught, '버전 이력을 불러오지 못했습니다.'),
           );
         }
       });
 
     return () => controller.abort();
-  }, [showVersions, versions, file.fileId]);
+  }, [showVersions, versions, file.fileId, versionsRetry]);
 
   const versionCount = versions?.versionCount ?? file.versionCount;
 
@@ -226,7 +233,26 @@ export default function FileViewerModal({
               버전 이력
             </p>
             <div className="min-h-0 flex-1 overflow-y-auto p-3">
-              {!versions ? (
+              {versionsError ? (
+                <div className="flex flex-col items-center gap-2 py-6">
+                  <p
+                    role="alert"
+                    className="text-center text-[10px] break-keep text-[#6C7389]"
+                  >
+                    {versionsError}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVersionsError('');
+                      setVersionsRetry((count) => count + 1);
+                    }}
+                    className="cursor-pointer rounded-md border border-[#1C1F2A]/10 px-2.5 py-1 text-[10px] font-medium text-[#3B5BDB] hover:bg-[#3B5BDB]/10"
+                  >
+                    다시 시도
+                  </button>
+                </div>
+              ) : !versions ? (
                 <div
                   role="status"
                   aria-label="버전 이력을 불러오는 중입니다"
@@ -266,7 +292,11 @@ export default function FileViewerModal({
         <div className="flex min-w-0 flex-1 flex-col items-center gap-4 overflow-y-auto bg-[#F1F5F9] p-6">
           <PreviewPane
             preview={preview}
-            onDownload={() => downloadVersion(versionId)}
+            onDownload={() =>
+              downloadVersion(versionId).catch((caught) =>
+                setErrorMessage(messageOf(caught, '다운로드에 실패했습니다.')),
+              )
+            }
             onFailed={(message) =>
               setPreviewOf({ versionId, preview: { kind: 'failed', message } })
             }

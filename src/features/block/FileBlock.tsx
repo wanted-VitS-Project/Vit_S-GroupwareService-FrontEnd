@@ -36,12 +36,29 @@ const STAGE_HINT: Record<UploadStage, string> = {
 };
 
 /**
+ * 잡힌 값에서 안내 문구를 꺼낸다.
+ * `'stage' in caught` 는 속성 존재만 보장하므로 **값이 실제 키인지 확인**한다 —
+ * 단언으로 넘기면 모르는 값이 왔을 때 화면에 `undefined` 가 그대로 붙는다.
+ */
+function stageHintOf(caught: unknown) {
+  if (typeof caught !== 'object' || caught === null || !('stage' in caught)) {
+    return '';
+  }
+
+  const { stage } = caught as { stage: unknown };
+  return typeof stage === 'string' && stage in STAGE_HINT
+    ? STAGE_HINT[stage as UploadStage]
+    : '';
+}
+
+/**
  * 문서 업로드 블록.
  *
  * 목록은 `blockId` 로 바로 조회한다 — 체크리스트 · 텍스트와 달리 `detail` 의
  * 상세 ID 가 필요하지 않다. 편집 버튼 노출은 응답의 `canEdit` 을 따른다.
  *
- * ⚠️ 휴지통(복구 · 영구 삭제)과 미리보기 뷰어는 다음 작업 범위다.
+ * ⚠️ **휴지통 복구 · 영구 삭제**는 다음 작업 범위다 (휴지통 화면 목업 대기).
+ *    휴지통으로 보내는 것과 뷰어 · 미리보기는 이 컴포넌트에서 이미 지원한다.
  */
 export default function FileBlock({ block }: { block: StepBlock }) {
   const [loaded, setLoaded] = useState<BlockFilesResponse | null>(null);
@@ -111,8 +128,7 @@ export default function FileBlock({ block }: { block: StepBlock }) {
         // 확인을 받은 뒤 같은 파일로 한 번만 다시 올린다
         setDuplicate({ file, message: caught.message });
       } else if (caught instanceof Error) {
-        const stage = 'stage' in caught ? (caught.stage as UploadStage) : null;
-        setErrorMessage(caught.message + (stage ? STAGE_HINT[stage] : ''));
+        setErrorMessage(caught.message + stageHintOf(caught));
       } else {
         setErrorMessage('업로드에 실패했습니다.');
       }
@@ -153,9 +169,18 @@ export default function FileBlock({ block }: { block: StepBlock }) {
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           {hasFailed ? (
-            <p className="py-6 text-center text-[10px] text-[#6C7389]">
-              문서를 불러오지 못했습니다.
-            </p>
+            <div className="flex flex-col items-center gap-2 py-6">
+              <p className="text-[10px] text-[#6C7389]">
+                문서를 불러오지 못했습니다.
+              </p>
+              <button
+                type="button"
+                onClick={reload}
+                className="cursor-pointer rounded-md border border-[#1C1F2A]/10 px-2.5 py-1 text-[10px] font-medium text-[#3B5BDB] hover:bg-[#3B5BDB]/10"
+              >
+                다시 시도
+              </button>
+            </div>
           ) : !files ? (
             <div
               role="status"
@@ -441,12 +466,23 @@ function FileRowMenu({
     left: number;
   } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLSpanElement>(null);
   const isOpen = position !== null;
 
   function close() {
     setPosition(null);
     triggerRef.current?.focus();
   }
+
+  /**
+   * 포털이라 메뉴가 DOM 맨 뒤에 놓인다 — 트리거에서 Tab 을 눌러도 메뉴로 가지 않는다.
+   * 열릴 때 첫 항목으로 직접 옮겨줘야 키보드로 도달할 수 있다.
+   * (닫을 때 트리거로 되돌리는 것은 `close()` 가 한다)
+   */
+  useEffect(() => {
+    if (!isOpen) return;
+    menuRef.current?.querySelector('button')?.focus();
+  }, [isOpen]);
 
   function toggle() {
     if (isOpen) {
@@ -521,6 +557,7 @@ function FileRowMenu({
               className="fixed inset-0 z-40 cursor-default"
             />
             <span
+              ref={menuRef}
               role="menu"
               style={{ top: position.top, left: position.left }}
               className="fixed z-50 flex w-32 flex-col overflow-hidden rounded-lg border border-[#1C1F2A]/10 bg-white shadow-lg"

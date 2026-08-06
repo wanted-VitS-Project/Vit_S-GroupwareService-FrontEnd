@@ -1,4 +1,4 @@
-import { ApiError } from '@/lib/api';
+import { ApiError, isAbortError } from '@/lib/api';
 
 import { completeUpload, putToStorage, startUpload } from './api';
 import { isDuplicateNameCode } from './errorCodes';
@@ -100,12 +100,12 @@ export async function uploadFile({
 }
 
 function toUploadError(stage: UploadStage, caught: unknown, fallback: string) {
+  // 취소는 그대로 흘려보내 호출부가 무시할 수 있게 한다.
+  // 판정 기준이 갈리지 않도록 lib/api.ts 의 유틸을 쓴다
+  if (isAbortError(caught)) throw caught;
+
   if (caught instanceof ApiError) {
     return new UploadError(stage, caught.message || fallback, caught.code);
-  }
-  // 취소는 그대로 흘려보내 호출부가 무시할 수 있게 한다
-  if (caught instanceof DOMException && caught.name === 'AbortError') {
-    throw caught;
   }
   return new UploadError(stage, fallback);
 }

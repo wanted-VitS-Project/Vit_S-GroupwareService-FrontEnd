@@ -61,7 +61,7 @@ export default function AddBlockModal({
         type: selected.code,
         // 비어 있으면 보내지 않는다 — 선택 필드다
         title: title.trim() || undefined,
-        // 유형별 기본 폭. 생략하면 백엔드 기본값(1칸)
+        // 유형별 기본 폭을 항상 함께 보낸다 (1칸 또는 2칸)
         colSpan: selected.defaultColSpan,
       });
       onCreated?.();
