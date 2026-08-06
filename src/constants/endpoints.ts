@@ -68,5 +68,26 @@ export const ENDPOINTS = {
       `${V1}/blocks/checklists/items/${chkId}`,
     /** 텍스트 본문 수정 — 텍스트 항목 ID 기준 */
     text: (txtId: number | string) => `${V1}/blocks/texts/${txtId}`,
+    /** 블록 파일 목록 — 상세 ID 없이 blockId 로 조회한다 */
+    files: (blockId: number | string) => `${V1}/blocks/${blockId}/files`,
+  },
+  files: {
+    /** 업로드 시작 — presigned PUT URL 발급 */
+    uploads: `${V1}/files/uploads`,
+    /** 업로드 완료 통보 — 서버가 저장소를 직접 확인한다 */
+    uploadComplete: (fileVersionId: number | string) =>
+      `${V1}/files/uploads/${fileVersionId}/complete`,
+    /** 문서명 수정 · 휴지통 이동 */
+    detail: (fileId: number | string) => `${V1}/files/${fileId}`,
+    /** 버전 이력 */
+    versions: (fileId: number | string) => `${V1}/files/${fileId}/versions`,
+  },
+  fileVersions: {
+    /** 다운로드 URL 발급 (presigned, 5분) */
+    download: (fileVersionId: number | string) =>
+      `${V1}/file-versions/${fileVersionId}/download`,
+    /** 미리보기 — 응답이 JSON 이 아니라 앞 5페이지를 잘라낸 PDF 바이너리다 */
+    preview: (fileVersionId: number | string) =>
+      `${V1}/file-versions/${fileVersionId}/preview`,
   },
 } as const;

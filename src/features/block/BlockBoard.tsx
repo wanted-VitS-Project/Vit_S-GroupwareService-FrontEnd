@@ -2,6 +2,7 @@
 
 import BlockCard from './BlockCard';
 import ChecklistBlock from './ChecklistBlock';
+import FileBlock from './FileBlock';
 import TextBlock from './TextBlock';
 import { BLOCK_COLUMNS, type StepBlock } from './types';
 
@@ -107,8 +108,9 @@ function BlockBody({
   if (block.type === 'CHECKLIST') return <ChecklistBlock block={block} />;
   if (block.type === 'TEXT')
     return <TextBlock block={block} autoEdit={autoEdit} />;
+  if (block.type === 'FILE') return <FileBlock block={block} />;
 
-  // TODO: 유형별 블록 구현 (TEXT · IMAGE · FILE · APPROVAL · …)
+  // TODO: 유형별 블록 구현 (IMAGE · APPROVAL · PAYMENT_CONFIRM · …)
   return (
     <BlockCard block={block}>
       <p className="text-[10px] text-[#6C7389]">준비 중인 블록입니다.</p>

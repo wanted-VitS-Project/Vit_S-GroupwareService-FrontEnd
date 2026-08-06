@@ -6,6 +6,97 @@
 
 ---
 
+## [2026-08-06] 문서 업로드 블록 · PDF 뷰어 구현 🚧
+
+브랜치: `user/project` · 이슈: #48
+
+### 변경 파일
+
+| 파일                                       | 변경                                                 |
+| ------------------------------------------ | ---------------------------------------------------- |
+| `src/features/file/types.ts`               | 생성 — 문서 · 버전 응답 타입 · 50MB · 255자 상한     |
+| `src/features/file/errorCodes.ts`          | 생성 — `FILE_*` 코드 단일 소스                       |
+| `src/features/file/api.ts`                 | 생성 — 호출 8종 + presigned `PUT` + 미리보기 blob    |
+| `src/features/file/upload.ts`              | 생성 — 업로드 3단계 오케스트레이션 · 끊긴 지점 구분  |
+| `src/features/file/format.ts`              | 생성 — `5.8 MB` 표기 · 확장자별 색                   |
+| `src/features/file/PdfPages.tsx`           | 생성 — 툴바 없는 PDF 페이지 렌더 (폭 맞춤)           |
+| `src/features/file/FileViewerModal.tsx`    | 생성 — 문서 뷰어 · 버전 패널 토글                    |
+| `src/features/file/TrashFileModal.tsx`     | 생성 — 휴지통 이동 확인                              |
+| `src/features/file/DuplicateNameModal.tsx` | 생성 — 동명 문서 확인                                |
+| `src/features/block/FileBlock.tsx`         | 생성 — 문서 목록 카드 · 업로드 · 인라인 이름 수정    |
+| `src/features/block/BlockBoard.tsx`        | `FILE` 분기 추가                                     |
+| `src/features/block/types.ts`              | `defaultColSpan` 신설 — 유형별 가로 칸 수 (9종 전부) |
+| `src/features/block/AddBlockModal.tsx`     | 생성 시 `colSpan` 전송                               |
+| `src/constants/endpoints.ts`               | `blocks.files` · `files.*` · `fileVersions.*` 등록   |
+| `src/lib/api.ts`                           | `requestRaw` 추가 · 실패 처리(`throwFailure`) 공통화 |
+| `package.json`                             | `react-pdf` 추가                                     |
+| `.ai/API.md` · `.ai/LIBRARIES.md`          | 36~43번 명세 · 파일 도메인 공통 절 · 의존성 표       |
+
+### 주요 작업 내용
+
+- **문서 업로드 블록** — 목록 조회 · 업로드 · 새 버전 · 문서명 인라인 수정 · 휴지통 이동 · 버전 이력. 편집 버튼 노출은 응답의 `canEdit`(스텝 권한 상속)을 따른다
+- **업로드 3단계** — `POST /files/uploads`(presigned 발급) → 저장소 직접 `PUT` → `POST .../complete`(서버가 저장소 확인). 끊긴 지점을 `stage` 로 구분해 안내
+- **PDF 뷰어 모달** — `react-pdf` 로 페이지만 그린다. 툴바 없음 · 컨테이너 폭에 맞춤 · 자체 스크롤 없이 모달이 스크롤. 버전 패널을 펼쳐 과거 버전 미리보기로 전환
+- **유형별 가로 칸 수 정의** — 1칸(텍스트 · 이미지 · 체크리스트 · 결재) / 2칸(문서 업로드 · 입금 확인 · 세금계산서 · 입찰 · AI)
+
+### 트러블슈팅
+
+- **문제**: 미리보기 응답이 JSON 이 아니라 PDF 바이너리라 `lib/api.ts` 래퍼를 쓸 수 없다
+- **원인**: 래퍼가 `response.json()` 으로 봉투를 벗기는 것을 전제한다
+- **해결**: 실패 처리를 `throwFailure()` 로 뽑아 JSON · 바이너리가 공유하게 하고 `requestRaw()` 를 추가. 403 → `FORBIDDEN_EVENT` 발행도 그대로 탄다
+
+- **문제**: presigned `PUT` 에 세션 쿠키가 실리면 안 된다
+- **원인**: 우리 백엔드가 아니라 S3 로 나가는 요청이고 응답도 우리 봉투가 아니다
+- **해결**: `putToStorage()` 에서 래퍼를 우회해 `fetch` 를 직접 쓰고, 이유를 주석으로 박음
+
+- **문제**: `<iframe>` 으로는 브라우저 PDF 툴바를 없애거나 스크롤을 모달로 넘길 수 없다
+- **원인**: `#toolbar=0` 는 브라우저마다 다르고, iframe 은 자체 스크롤을 갖는다
+- **해결**: `react-pdf` 로 페이지를 직접 렌더. `ResizeObserver` 로 폭을 재고, 자체 스크롤을 만들지 않아 모달 본문이 스크롤된다. `Blob` 을 그대로 받아 object URL 생성 · 해제도 없어졌다
+
+- **문제**: 문서 행의 `⋯` 메뉴가 블록 안에서 잘린다
+- **원인**: 문서 목록 컨테이너에 `overflow-y-auto` 가 걸려 있어 자식을 잘라낸다. `z-index` 로는 해결되지 않는다
+- **해결**: `createPortal` 로 `document.body` 에 띄우고 트리거 좌표를 재서 `fixed` 로 붙임. 아래 공간이 부족하면 위로 뒤집고, 스크롤 · 리사이즈 시에는 좌표가 어긋나므로 닫는다
+
+- **문제**: `setPreview` 를 effect 본문에서 부르니 `react-hooks/set-state-in-effect` 에 걸린다
+- **원인**: 버전을 바꿀 때 로딩 상태로 되돌리려 했다
+- **해결**: `{ versionId, preview }` 로 태그해 보관하고, 버전이 다르면 렌더 시점에 로딩으로 판단한다 (이 프로젝트에서 반복해 쓰는 패턴)
+
+### 부수 결정
+
+- **파일 도메인을 `features/file/` 로 분리** — 엔드포인트 12개에 자체 생명주기(업로드 3단계 · 버전 · 휴지통)가 있어 `features/block/api.ts` 에 넣으면 비대해진다. 블록 본문(`FileBlock.tsx`)만 다른 블록들과 함께 둔다
+- **`blockId` 로 목록 조회** — 체크리스트(`chkBlockId`) · 텍스트(`txtId`)와 달리 상세 ID 가 필요 없다. `detail` 의 키 이름 확인 대기가 없는 유일한 블록
+- **`canEdit` 을 프론트가 판단하지 않는다** — 파일 단위 권한이 없고 스텝 권한을 상속하므로 응답 값을 그대로 따른다
+- **409 `FILE_NAME_DUPLICATED` 는 실패가 아니라 확인 요청** — `DuplicateNameError` 로 분리해 확인 모달을 띄우고, 확인 시 `allowDuplicateName: true` 로 한 번만 재시도
+- **`window.confirm` 대신 모달** — 프로젝트에 이미 `Modal` 규약이 있어 네이티브 대화상자를 쓰지 않는다
+- **`defaultColSpan` 은 선택 필드가 아니라 필수(`1 | 2`)** — 새 유형을 추가하면 폭을 정하지 않으면 컴파일이 실패한다
+- **`colSpan` 을 렌더에서 강제하지 않는다** — 생성 시점에만 보낸다. 화면에서 덮어쓰면 나중에 사용자가 크기를 바꿔도 되돌아간다
+- **텍스트 레이어 비활성** — 페이지 이미지만 필요해 `renderTextLayer={false}`. 미리보기 본문은 복사할 수 없다
+- **워커는 `import.meta.url` 로 번들에 포함** — CDN 을 쓰면 오프라인 · 사내망에서 깨진다
+- **문서 행 기본 스타일은 이전과 동일** — 시안의 회색 카드 · 아이콘 버튼은 호버에서만 드러낸다. 버튼은 `opacity-0` 으로 자리를 유지해 나타날 때 레이아웃이 밀리지 않는다
+- **셀 전체가 뷰어 진입점** — `absolute inset-0` 버튼 + 내용 `pointer-events-none`. 체크리스트 · 텍스트 블록과 같은 패턴
+
+### 검증
+
+| 명령               | 결과                              |
+| ------------------ | --------------------------------- |
+| `npm run build`    | ✅ 성공 (PDF 워커 자산 포함 확인) |
+| `npx tsc --noEmit` | ✅ 에러 0                         |
+| `npx eslint .`     | ✅ 에러 0 · 경고 0                |
+| `prettier --check` | ✅ 통과                           |
+
+> ⚠️ 실제 동작 확인은 **백엔드 `PR #190` 머지 후** 가능하다.
+
+### 남은 일 / 확인 필요
+
+- ❗ **파일 API `PR #190` 머지 대기** — 업로드 왕복 · 미리보기 렌더를 실제로 확인해야 한다
+- ⏸ **휴지통 화면** — 복구 · 영구 삭제 API(2개)는 목업 대기로 미뤘다. 목록 조회는 `deleted=true` 로 이미 지원
+- ⏸ **AI 분석용 버전 목록** — `#138` AI 경계 확정 후
+- 업로드 진행률 표시 없음 — `fetch` 로는 못 읽어 `XMLHttpRequest` 가 필요하다
+- `checksum` 미전송 — 선택 필드. 무결성 검증이 필요하면 브라우저에서 SHA 계산 추가
+- 이미 만들어진 `FILE` 블록은 1칸으로 남는다 — 블록 수정 API 가 나오면 폭 변경 가능
+
+---
+
 ## [2026-08-06] 사원 정보 수정 화면 구현 🚧
 
 브랜치: `feat/employee-detail-edit` · 이슈: #39
