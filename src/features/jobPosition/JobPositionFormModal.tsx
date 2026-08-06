@@ -32,10 +32,11 @@ export default function JobPositionFormModal({
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  /** 값을 고치면 서버 오류는 더 이상 맞지 않는다 */
+  /** 값을 고치면 직전 서버 오류는 더 이상 맞지 않는다 — 중복 · 일반 오류 모두 지운다 */
   function changeName(value: string) {
     setName(value);
     setNameError('');
+    setError('');
   }
 
   /** 저장 중에는 닫지 않는다 */
@@ -138,8 +139,9 @@ export default function JobPositionFormModal({
         </div>
 
         <ModalFooter>
+          {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 — role 을 함께 붙이면 놓친다 */}
           <p
-            role={error ? 'alert' : undefined}
+            role="alert"
             className="mr-auto text-[10px] break-keep text-[#E7000B]"
           >
             {error}

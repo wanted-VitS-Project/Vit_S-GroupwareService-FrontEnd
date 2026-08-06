@@ -98,11 +98,13 @@ export default function DeleteJobPositionModal({
           </p>
         )}
 
-        {error && (
-          <p role="alert" className="text-[10px] break-keep text-[#E7000B]">
-            {error}
-          </p>
-        )}
+        {/* 폼 모달과 같은 방식 — 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}
+        <p
+          role="alert"
+          className="text-[10px] break-keep text-[#E7000B] empty:hidden"
+        >
+          {error}
+        </p>
       </div>
 
       <ModalFooter>

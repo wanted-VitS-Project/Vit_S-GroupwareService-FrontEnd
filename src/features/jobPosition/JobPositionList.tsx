@@ -28,13 +28,14 @@ export default function JobPositionList() {
   } | null>(null);
   /** 순서 변경 중 — 연타로 순서가 꼬이지 않게 잠근다 */
   const [isMoving, setIsMoving] = useState(false);
+  const [moveError, setMoveError] = useState('');
   const [formTarget, setFormTarget] = useState<FormTarget | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<JobPosition | null>(null);
 
   const requestKey = String(reloadCount);
-  /** 지난 요청 결과는 로딩으로 본다 */
   const current = result?.key === requestKey ? result : null;
-  const positions = current?.list ?? null;
+  /** 재조회 중에는 직전 목록을 유지한다 — 표가 통째로 사라지면 스크롤이 튄다 */
+  const positions = current?.list ?? result?.list ?? null;
   const hasFailed = current?.hasFailed ?? false;
 
   useEffect(() => {
@@ -56,33 +57,35 @@ export default function JobPositionList() {
   }
 
   /**
-   * 이웃 직급과 `sortOrder` 를 맞바꾼다.
-   * 값이 같으면 (UNIQUE 가 아니다) 맞바꿔도 그대로라 `이웃값 ± 1` 로 넘긴다.
+   * 이웃 직급과 자리를 바꾼다.
+   *
+   * 값만 맞바꾸면 동률(`sortOrder` 는 UNIQUE 가 아니다)일 때 한 칸이 아니라
+   * 목록 끝까지 밀려난다. 그래서 옮긴 뒤의 화면 순서대로 1부터 다시 매기고,
+   * 값이 달라진 직급만 보낸다 — 동률이 몇 개든 결과가 확정된다.
    */
   async function move(index: number, direction: -1 | 1) {
     if (!positions) return;
 
-    const target = positions[index];
-    const neighbor = positions[index + direction];
-    if (!neighbor) return;
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= positions.length) return;
+
+    const reordered = [...positions];
+    const [moved] = reordered.splice(index, 1);
+    reordered.splice(nextIndex, 0, moved);
 
     setIsMoving(true);
+    setMoveError('');
 
     try {
-      if (target.sortOrder === neighbor.sortOrder) {
-        await updateJobPosition(target.jobPositionId, {
-          sortOrder: neighbor.sortOrder + direction,
-        });
-      } else {
-        await updateJobPosition(target.jobPositionId, {
-          sortOrder: neighbor.sortOrder,
-        });
-        await updateJobPosition(neighbor.jobPositionId, {
-          sortOrder: target.sortOrder,
-        });
+      for (const [order, position] of reordered.entries()) {
+        const sortOrder = order + 1;
+        if (position.sortOrder === sortOrder) continue;
+
+        await updateJobPosition(position.jobPositionId, { sortOrder });
       }
     } catch {
-      // 두 번째 호출만 실패하면 순서가 어긋난다 — 재조회로 맞춘다
+      // 중간에 끊기면 순서가 어긋난 채로 남는다 — 재조회 결과가 진실이다
+      setMoveError('순서를 바꾸지 못했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setIsMoving(false);
       reload();
@@ -108,6 +111,13 @@ export default function JobPositionList() {
         </div>
         <AddButton onClick={() => setFormTarget('create')} />
       </div>
+
+      <p
+        role="alert"
+        className="mb-2 text-[11px] break-keep text-[#E7000B] empty:hidden"
+      >
+        {moveError}
+      </p>
 
       <div className="rounded-xl border border-[#1C1F2A]/10 bg-white">
         {hasFailed ? (

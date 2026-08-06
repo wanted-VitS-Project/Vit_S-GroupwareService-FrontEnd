@@ -40,13 +40,20 @@ export default function RowMenu({
   } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const firstItemRef = useRef<HTMLButtonElement>(null);
 
   const isOpen = position !== null;
   const height = items.length * ITEM_HEIGHT + MENU_PADDING;
 
+  /** 닫을 때는 트리거로 포커스를 되돌린다 — 키보드 사용자가 행을 잃지 않게 */
+  function close() {
+    setPosition(null);
+    buttonRef.current?.focus();
+  }
+
   function toggle() {
     if (isOpen) {
-      setPosition(null);
+      close();
       return;
     }
 
@@ -65,7 +72,11 @@ export default function RowMenu({
   useEffect(() => {
     if (!isOpen) return;
 
-    function close() {
+    // 열자마자 첫 항목으로 옮긴다 — 메뉴가 body 에 있어 Tab 으로는 닿지 않는다
+    firstItemRef.current?.focus();
+
+    /** 바깥 조작으로 닫을 때는 포커스를 옮기지 않는다 — 사용자가 이미 다른 곳을 보고 있다 */
+    function dismiss() {
       setPosition(null);
     }
     function handlePointerDown(event: MouseEvent) {
@@ -75,24 +86,27 @@ export default function RowMenu({
         !buttonRef.current?.contains(target) &&
         !menuRef.current?.contains(target)
       ) {
-        close();
+        dismiss();
       }
     }
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') close();
+      if (event.key !== 'Escape') return;
+
+      setPosition(null);
+      buttonRef.current?.focus();
     }
 
     document.addEventListener('mousedown', handlePointerDown);
     document.addEventListener('keydown', handleKeyDown);
     // 스크롤은 표 안쪽에서도 일어나므로 캡처 단계에서 받는다
-    document.addEventListener('scroll', close, true);
-    window.addEventListener('resize', close);
+    document.addEventListener('scroll', dismiss, true);
+    window.addEventListener('resize', dismiss);
 
     return () => {
       document.removeEventListener('mousedown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('scroll', close, true);
-      window.removeEventListener('resize', close);
+      document.removeEventListener('scroll', dismiss, true);
+      window.removeEventListener('resize', dismiss);
     };
   }, [isOpen]);
 
@@ -113,15 +127,18 @@ export default function RowMenu({
         createPortal(
           <div
             ref={menuRef}
+            role="menu"
             style={{ top: position.top, left: position.left, width }}
             className="fixed z-50 overflow-hidden rounded-lg border border-[#1C1F2A]/10 bg-white py-1 shadow-lg"
           >
-            {items.map((item) => (
+            {items.map((item, index) => (
               <button
                 key={item.label}
+                ref={index === 0 ? firstItemRef : undefined}
                 type="button"
+                role="menuitem"
                 onClick={() => {
-                  setPosition(null);
+                  close();
                   item.onSelect();
                 }}
                 className={`block w-full cursor-pointer px-3 py-1.5 text-left text-[11px] hover:bg-[#ECEEF4] ${
