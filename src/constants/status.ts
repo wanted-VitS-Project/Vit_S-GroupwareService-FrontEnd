@@ -18,6 +18,17 @@ export const ROLE_LABELS: Record<Role, string> = {
 export type EmployeeStatus =
   'ACTIVE' | 'RESET_REQUIRED' | 'INACTIVE' | 'RESIGNED';
 
+/** 결재 · 상신 회차 상태 (.ai/API.md 결재 절) */
+export type ApprovalStatusCode =
+  'DRAFT' | 'IN_PROGRESS' | 'REJECTED' | 'COMPLETED';
+
+export const APPROVAL_STATUS_LABELS: Record<ApprovalStatusCode, string> = {
+  DRAFT: '작성 중',
+  IN_PROGRESS: '진행중',
+  REJECTED: '반려',
+  COMPLETED: '승인',
+};
+
 export const EMPLOYEE_STATUS_LABELS: Record<EmployeeStatus, string> = {
   ACTIVE: '활성',
   RESET_REQUIRED: '재설정 필요',

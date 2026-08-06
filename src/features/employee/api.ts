@@ -8,6 +8,7 @@ import type {
   EmployeeDetail,
   EmployeeListQuery,
   EmployeePage,
+  EmployeeSearchResult,
   ManagedRole,
   PasswordResetResult,
   ResignationResponse,
@@ -41,6 +42,21 @@ export function getEmployees(query: EmployeeListQuery, signal?: AbortSignal) {
     : ENDPOINTS.employees.root;
 
   return api.get<EmployeePage>(path, signal);
+}
+
+/**
+ * 이름 검색 (로그인 사용자 전체 — **ADMIN 전용 아님**). 결재선 지정에서 쓴다.
+ *
+ * ⚠️ 응답이 `content` 래퍼 없는 **배열**이고, 빈 `name` 은 400 이라 호출 측이 막아야 한다.
+ * 시스템 계정 · 퇴사자는 후보에 나오지 않는다.
+ */
+export function searchEmployees(name: string, signal?: AbortSignal) {
+  const search = new URLSearchParams({ name }).toString();
+
+  return api.get<EmployeeSearchResult[]>(
+    `${ENDPOINTS.employees.search}?${search}`,
+    signal,
+  );
 }
 
 /** 사원 상세 (ADMIN). 목록 필드에 연락처 · 입사일 · 소속 그룹이 더 붙는다 */
