@@ -306,3 +306,16 @@ export interface CreateBlockRequest {
   /** 열 병합 수 (1~3), 기본 1 */
   colSpan?: number;
 }
+
+/** PATCH /api/v1/blocks/{blockId} — 생략은 유지, null 은 해제 */
+export interface UpdateBlockRequest {
+  title?: string | null;
+  owner?: string | null;
+}
+
+export interface UpdateBlockResponse {
+  blockId: number;
+  title: string | null;
+  owner: BlockOwner | null;
+  updatedAt: string;
+}

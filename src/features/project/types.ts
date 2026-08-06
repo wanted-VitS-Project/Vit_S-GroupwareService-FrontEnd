@@ -8,6 +8,15 @@ export interface BusinessCategory {
 /** 프로젝트에서 요청자가 가진 권한. VIEWER 면 수정 버튼을 숨긴다 */
 export type ProjectPermission = 'VIEWER' | 'EDITOR';
 
+export interface ProjectMember {
+  memberId: number;
+  userId: string;
+  name: string;
+  department: string | null;
+  permission: 'VIEWER' | 'EDITOR' | 'NONE';
+  resigned: boolean;
+}
+
 /**
  * GET /api/v1/projects/{projectId}
  * ⚠️ status 는 백엔드 enum 이 확정되지 않아 string 으로 둔다. (예: 'IN_PROGRESS')

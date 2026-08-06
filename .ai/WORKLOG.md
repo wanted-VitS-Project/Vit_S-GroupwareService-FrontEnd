@@ -88,19 +88,68 @@
 
 ---
 
-## [2026-08-06] 블록 이동 · 생성 위치 (초안 방식 반영 + 배치 변경 API) 🚧
+## [2026-08-06] 프로젝트 참여자 · 블록 수정/삭제 API 연동 ✅
 
-브랜치: `user/project` · 이슈: 확인 필요
+브랜치: `user/project` · 이슈: #55
 
 ### 변경 파일
 
-| 파일                                        | 변경                                                        |
-| ------------------------------------------- | ----------------------------------------------------------- |
+| 파일                                      | 변경                                                         |
+| ----------------------------------------- | ------------------------------------------------------------ |
+| `src/constants/endpoints.ts`              | 수정 — 참여자 · 블록 상세 경로 추가                          |
+| `src/features/project/{api,types}.ts`     | 수정 — 프로젝트 참여자 조회 함수와 타입 추가                 |
+| `src/components/ProjectSidebar.tsx`       | 수정 — 목 참여자를 실제 API 응답으로 교체                    |
+| `src/features/block/{api,types}.ts`       | 수정 — 블록 부분 수정 · 삭제 요청/응답 추가                  |
+| `src/features/block/BlockEditModal.tsx`   | 생성 — 제목 · 담당자 수정/해제 및 기존 블록 모달 스타일 적용 |
+| `src/features/block/BlockDeleteModal.tsx` | 생성 — 삭제 확인 · 잠금 오류 안내 모달                       |
+| `src/features/block/BlockCard.tsx`        | 수정 — 수정 모달 · 삭제 확인/재조회 연결                     |
+| `src/features/block/AddBlockModal.tsx`    | 수정 — 생성자를 기본 담당자로 전송                           |
+| `src/features/block/StepBlocks.tsx`       | 수정 — 블록 변경 후 목록 재조회                              |
+| `.ai/API.md`                              | 수정 — 45~47번 확정 명세 추가                                |
+
+### 주요 작업 내용
+
+- 프로젝트 참여자 목록을 사이드바와 블록 담당자 선택에 공용 연동
+- 블록 제목·담당자 부분 수정과 `null` 담당자 해제 규칙 반영
+- 블록 수정 모달의 헤더·입력 영역·푸터·저장 상태를 기존 블록 UI와 통일
+- 블록 soft delete와 삭제 잠금 오류 메시지 노출, 성공 후 목록 동기화
+- 참여자 요청을 핵심 프로젝트 로딩과 분리하고 로딩·실패·빈 목록·재시도 상태 처리
+- 브라우저 기본 확인창 대신 접근 가능한 프로젝트 공통 삭제 모달 적용
+- 블록 생성 요청의 `owner`에 현재 로그인 사용자 사번을 기본 지정
+
+### 트러블슈팅
+
+- **문제**: 샌드박스 빌드에서 Google Fonts 다운로드 실패
+- **원인**: `next/font`의 Geist 다운로드에 외부 네트워크가 필요함
+- **해결**: 승인된 네트워크 환경에서 재실행하여 빌드 성공 확인
+
+### 부수 결정
+
+- 수정 요청은 실제 변경된 필드만 보내고, 빈 제목·담당자 없음은 명세에 따라 `null`로 보낸다.
+- 블록 변경 후 서버 응답을 기준으로 보드를 맞추기 위해 목록을 재조회한다.
+
+### 검증
+
+| 명령            | 결과    |
+| --------------- | ------- |
+| `npm run lint`  | ✅ 성공 |
+| `npm run build` | ✅ 성공 |
+
+---
+
+## [2026-08-06] 블록 이동 · 생성 위치 (초안 방식 반영 + 배치 변경 API) 🚧
+
+브랜치: `user/project` · 이슈: #53
+
+### 변경 파일
+
+| 파일                                      | 변경                                                          |
+| ----------------------------------------- | ------------------------------------------------------------- |
 | `src/features/block/blockLayout.ts`       | 생성 — 평면 순서 · 3칸 패킹 · 이동 · 배치 변환 · 새 자리 계산 |
 | `src/features/block/BlockDragContext.tsx` | 생성 — 보드 → 카드 드래그 배선 컨텍스트 · 커서 알약 이미지    |
-| `src/features/block/useSlideOnReorder.ts` | 생성 — FLIP 이동 애니메이션 (의존성 없이 Web Animations API) |
-| `src/features/block/useLayoutSaver.ts`    | 생성 — 조용해지면 저장 · 동일 배치 스킵 · 이탈 시 flush      |
-| `src/features/block/useDragAutoScroll.ts` | 생성 — 드래그 중 가장자리 자동 스크롤                        |
+| `src/features/block/useSlideOnReorder.ts` | 생성 — FLIP 이동 애니메이션 (의존성 없이 Web Animations API)  |
+| `src/features/block/useLayoutSaver.ts`    | 생성 — 조용해지면 저장 · 동일 배치 스킵 · 이탈 시 flush       |
+| `src/features/block/useDragAutoScroll.ts` | 생성 — 드래그 중 가장자리 자동 스크롤                         |
 | `src/features/block/errorCodes.ts`        | 생성 — `BLOCK_*` · `STEP_EDIT_DENIED` 코드 · 배치 실패 문구   |
 | `src/features/block/BlockBoard.tsx`       | 평면 순서 + 재패킹 · 드래그 미리보기 · 배치 저장(낙관 + 롤백) |
 | `src/features/block/BlockCard.tsx`        | 드래그 핸들 활성 · 드롭 타깃 · 끄는 중 반투명                 |

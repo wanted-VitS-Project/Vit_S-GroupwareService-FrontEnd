@@ -81,6 +81,12 @@ export default function StepBlocks() {
     return () => controller.abort();
   }, [stepId, reloadCount]);
 
+  useEffect(() => {
+    const reload = () => setReloadCount((count) => count + 1);
+    window.addEventListener('block:changed', reload);
+    return () => window.removeEventListener('block:changed', reload);
+  }, []);
+
   // 스텝 상세 조회 API 가 없어 프로젝트 스텝 목록에서 이름을 찾는다
   useEffect(() => {
     const controller = new AbortController();

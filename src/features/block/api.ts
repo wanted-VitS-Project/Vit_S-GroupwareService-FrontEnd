@@ -8,6 +8,8 @@ import type {
   DeleteChecklistItemResponse,
   StepBlock,
   UpdateBlockLayoutResponse,
+  UpdateBlockRequest,
+  UpdateBlockResponse,
   UpdateChecklistItemRequest,
   UpdateChecklistItemResponse,
   UpdateTextBlockResponse,
@@ -33,6 +35,22 @@ export function createBlock(
   signal?: AbortSignal,
 ) {
   return api.post<void>(ENDPOINTS.steps.blocks(stepId), body, signal);
+}
+
+export function updateBlock(
+  blockId: number | string,
+  body: UpdateBlockRequest,
+  signal?: AbortSignal,
+) {
+  return api.patch<UpdateBlockResponse>(
+    ENDPOINTS.blocks.detail(blockId),
+    body,
+    signal,
+  );
+}
+
+export function deleteBlock(blockId: number | string, signal?: AbortSignal) {
+  return api.delete<null>(ENDPOINTS.blocks.detail(blockId), signal);
 }
 
 /**
