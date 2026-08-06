@@ -1,7 +1,12 @@
 import { ENDPOINTS } from '@/constants/endpoints';
 import { api } from '@/lib/api';
 
-import type { ProjectDetail, ProjectStage, ProjectStep } from './types';
+import type {
+  ProjectDetail,
+  ProjectMember,
+  ProjectStage,
+  ProjectStep,
+} from './types';
 
 export function getProject(projectId: number | string, signal?: AbortSignal) {
   return api.get<ProjectDetail>(ENDPOINTS.projects.detail(projectId), signal);
@@ -27,4 +32,17 @@ export function getProjectSteps(
   return api
     .get<{ steps: ProjectStep[] }>(ENDPOINTS.projects.steps(projectId), signal)
     .then((data) => data.steps);
+}
+
+/** 담당자 지정과 사이드바에서 함께 쓰는 프로젝트 참여자 목록 */
+export function getProjectMembers(
+  projectId: number | string,
+  signal?: AbortSignal,
+) {
+  return api
+    .get<{ members: ProjectMember[] }>(
+      ENDPOINTS.projects.members(projectId),
+      signal,
+    )
+    .then((data) => data.members);
 }

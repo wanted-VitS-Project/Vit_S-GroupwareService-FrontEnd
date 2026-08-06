@@ -6,11 +6,13 @@ import { useEffect, useRef, useState } from 'react';
 
 import {
   getProject,
+  getProjectMembers,
   getProjectStages,
   getProjectSteps,
 } from '@/features/project/api';
 import type {
   ProjectDetail,
+  ProjectMember,
   ProjectStage,
   ProjectStep,
 } from '@/features/project/types';
@@ -20,17 +22,9 @@ import { formatDateRange } from '@/lib/format';
  * 프로젝트 상세 화면 왼쪽 사이드바.
  * 프로젝트 개요 · 진행 단계 · 참여자를 보여주고 하위 화면 전환의 기준이 된다.
  *
- * ⚠️ 참여자 목록은 아직 API 가 없어 목 데이터로 그린다. (.ai/API.md)
  */
 
-// TODO: 참여자 조회 API 연동 후 제거
-const MOCK_MEMBERS = [
-  { userId: 'EMP001', initial: '김', color: '#374151' },
-  { userId: 'EMP002', initial: '이', color: '#9CA3AF' },
-  { userId: 'EMP003', initial: '박', color: '#1F2937' },
-  { userId: 'EMP004', initial: '최', color: '#4B5563' },
-  { userId: 'EMP005', initial: '정', color: '#9CA3AF' },
-];
+const MEMBER_COLORS = ['#374151', '#64748B', '#305CE3', '#7C3AED', '#0F766E'];
 
 /** `stageId: null` 인 스텝을 모아 보여줄 가상 스테이지 */
 const UNASSIGNED_STAGE_ID = -1;
@@ -46,6 +40,7 @@ export default function ProjectSidebar() {
     project: ProjectDetail;
     stages: ProjectStage[];
     steps: ProjectStep[];
+    members: ProjectMember[];
   } | null>(null);
   const [failedProjectId, setFailedProjectId] = useState<string | null>(null);
 
@@ -58,9 +53,11 @@ export default function ProjectSidebar() {
       getProject(projectId, signal),
       getProjectStages(projectId, signal),
       getProjectSteps(projectId, signal),
+      // 참여자는 보조 정보다. 이 요청 하나가 실패해도 프로젝트 탐색은 유지한다.
+      getProjectMembers(projectId, signal).catch(() => []),
     ])
-      .then(([project, stages, steps]) =>
-        setLoaded({ projectId, project, stages, steps }),
+      .then(([project, stages, steps, members]) =>
+        setLoaded({ projectId, project, stages, steps, members }),
       )
       .catch(() => {
         // 취소는 실패가 아니다
@@ -75,6 +72,7 @@ export default function ProjectSidebar() {
   const project = current?.project ?? null;
   const stages = current?.stages ?? null;
   const steps = current?.steps ?? null;
+  const members = current?.members ?? null;
   const hasFailed = failedProjectId === projectId;
 
   /**
@@ -350,27 +348,28 @@ export default function ProjectSidebar() {
       <div className="border-t border-[#EBEBEC] px-4 py-3">
         <p className="flex items-center gap-1.5 text-xs text-[#6C7389]">
           <UsersIcon />
-          참여자 ({MOCK_MEMBERS.length})
+          참여자 ({members?.length ?? 0})
         </p>
         <div className="flex items-center pt-2">
-          {MOCK_MEMBERS.map((member, index) => (
+          {members?.map((member, index) => (
             <span
-              key={member.userId}
+              key={member.memberId}
+              title={`${member.name}${member.department ? ` · ${member.department}` : ''}${member.resigned ? ' · 퇴사' : ''}`}
               style={{
-                backgroundColor: member.color,
+                backgroundColor: MEMBER_COLORS[index % MEMBER_COLORS.length],
                 marginLeft: index === 0 ? 0 : -8,
                 zIndex: index,
               }}
               className="flex size-6 items-center justify-center rounded-full border border-white text-[9px] font-semibold text-white"
             >
-              {member.initial}
+              {member.name.slice(0, 1)}
             </span>
           ))}
           {/* TODO: 참여자 추가 모달 연결 */}
           <button
             type="button"
             aria-label="참여자 추가"
-            style={{ marginLeft: -8, zIndex: MOCK_MEMBERS.length }}
+            style={{ marginLeft: -8, zIndex: members?.length ?? 0 }}
             className="flex size-6 cursor-pointer items-center justify-center rounded-full border border-white bg-[#ECEEF4] hover:bg-gray-200"
           >
             <PlusIcon />
