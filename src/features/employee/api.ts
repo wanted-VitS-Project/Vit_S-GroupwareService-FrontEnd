@@ -3,6 +3,8 @@ import { api } from '@/lib/api';
 
 import type {
   AccountStatus,
+  CreateEmployeeRequest,
+  CreateEmployeeResult,
   EmployeeDetail,
   EmployeeListQuery,
   EmployeePage,
@@ -44,6 +46,11 @@ export function getEmployees(query: EmployeeListQuery, signal?: AbortSignal) {
 /** 사원 상세 (ADMIN). 목록 필드에 연락처 · 입사일 · 소속 그룹이 더 붙는다 */
 export function getEmployee(userId: string, signal?: AbortSignal) {
   return api.get<EmployeeDetail>(ENDPOINTS.employees.detail(userId), signal);
+}
+
+/** 사원 등록. 계정이 항상 함께 발급된다 — 메일 실패도 201 이라 응답을 봐야 한다 */
+export function createEmployee(body: CreateEmployeeRequest) {
+  return api.post<CreateEmployeeResult>(ENDPOINTS.employees.root, body);
 }
 
 /**

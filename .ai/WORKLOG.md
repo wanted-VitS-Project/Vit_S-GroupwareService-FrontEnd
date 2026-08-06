@@ -6,6 +6,53 @@
 
 ---
 
+## [2026-08-06] 사원 등록 화면 구현 🚧
+
+브랜치: `feat/employee-create` · 이슈: #38
+
+### 변경 파일
+
+| 파일                                           | 변경                                                                            |
+| ---------------------------------------------- | ------------------------------------------------------------------------------- |
+| `src/features/employee/EmployeeCreateForm.tsx` | 생성 — 등록 폼 + 결과 화면(`emailSent` 분기)                                    |
+| `src/features/employee/FormFields.tsx`         | 생성 — `TextField` · `SelectField` (등록 · 수정 폼 공용)                        |
+| `src/features/employee/types.ts`               | 수정 — `CreateEmployeeRequest` · `CreateEmployeeResult` · `PasswordResetTarget` |
+| `src/features/employee/errorCodes.ts`          | 수정 — `EMP_ADMIN_ROLE_NOT_ALLOWED` 추가                                        |
+| `src/features/employee/api.ts`                 | 수정 — `createEmployee()` 추가                                                  |
+| `src/features/employee/PasswordResetModal.tsx` | 수정 — `targets` 타입을 필요한 3필드로 완화                                     |
+| `src/features/employee/EmployeeEditForm.tsx`   | 수정 — 입력 컴포넌트를 `FormFields` 에서 가져오게 변경                          |
+| `src/app/settings/employees/new/page.tsx`      | `EmployeeCreateForm` 연결 (stub 교체)                                           |
+
+### 주요 작업 내용
+
+- 필수 5개(사번 · 이름 · 부서 · 입사일 · 권한) · 선택 3개(직급 · 이메일 · 연락처) 폼 구성
+- 부서는 2단 트리, 직급 · 권한은 셀렉트. 권한은 `MASTER`/`MEMBER` 만 노출
+- `POST /employees` 연동 후 **폼 대신 결과 화면**을 띄워 `emailRegistered` · `emailSent` 를 분기 안내
+- 메일 발송 실패 시 결과 화면에서 바로 **재발송**(`PasswordResetModal` 재사용)
+
+### 부수 결정
+
+- **등록 후 자동 이동하지 않는다** (이슈 "확인 필요" 항목). 다음 할 일이 `계속 등록` · `상세 보기` · `목록으로` 세 갈래로 갈리고, 메일 실패 시에는 그 자리에서 재발송해야 해서 결과 화면에서 고르게 했다
+- `PasswordResetModal` 의 `targets` 를 `EmployeeSummary[]` → **`Pick<..., 'userId' | 'name' | 'emailRegistered'>[]`** 로 완화했다 — 등록 응답에는 그 3필드만 있어 그대로 넘길 수 있어야 한다. 기존 호출부는 그대로 통과한다
+- 선택 항목은 **값이 있을 때만 키를 싣는다** — 빈 문자열을 보내면 그 값으로 등록된다
+- 권한 기본값은 `MEMBER` — 대부분이 일반 사원이고, 올릴 때 의식적으로 바꾸게 된다
+- 입사일은 `type="date"` 로 받아 `yyyy-MM-dd` 형식을 브라우저가 보장하게 했다
+- 필수값 검증은 **비어 있는 항목을 한 번에 모아** 표시한다 — 하나씩 알려주면 제출 왕복이 길어진다
+- 입력 컴포넌트를 `FormFields.tsx` 로 분리했다. `SelectField` 의 빈 선택지 문구(`emptyLabel`)는 등록(`선택해주세요`)과 수정(`미지정`)에서 뜻이 달라 필수 prop 으로 뒀다
+- 권한은 `as ManagedRole` 로 캐스팅하지 않고 `ROLE_OPTIONS.find()` 로 좁힌다 — 캐스팅하면 셀렉트 밖의 값(ADMIN 등)이 실려도 타입 검사를 통과한다
+- 재발송에 성공하면 결과 화면의 실패 경고를 거둔다 — 그대로 두면 아직 실패 상태로 읽힌다
+- 사번 최대 길이(20자)는 **명세에 없어 ERD 근거로 임시 설정**했다. `.ai/API.md` 확인 대기 항목으로 등록
+
+### 검증
+
+| 명령               | 결과               |
+| ------------------ | ------------------ |
+| `npx tsc --noEmit` | ✅ 에러 0          |
+| `npx eslint src`   | ✅ 에러 0 · 경고 0 |
+| 브라우저 동작 확인 | 담당자 직접 확인   |
+
+---
+
 ## [2026-08-06] 문서 업로드 블록 · PDF 뷰어 구현 🚧
 
 브랜치: `user/project` · 이슈: #48

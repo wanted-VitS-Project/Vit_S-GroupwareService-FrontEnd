@@ -13,6 +13,8 @@ export const EMPLOYEE_CODES = {
   departmentNotFound: 'EMP_DEPARTMENT_NOT_FOUND',
   /** 404 — 배정하려는 직급이 없음. 셀렉트를 다시 받는다 */
   jobPositionNotFound: 'EMP_JOB_POSITION_NOT_FOUND',
+  /** 400 — role 에 ADMIN. 셀렉트에서 미리 제외한다 */
+  adminRoleNotAllowed: 'EMP_ADMIN_ROLE_NOT_ALLOWED',
   /** 409 — 이미 등록된 사번 */
   userIdDuplicated: 'EMP_USER_ID_DUPLICATED',
 } as const;

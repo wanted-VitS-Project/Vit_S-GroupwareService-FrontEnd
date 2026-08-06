@@ -1,3 +1,5 @@
+import EmployeeCreateForm from '@/features/employee/EmployeeCreateForm';
+
 export default function Page() {
-  return <div>settings/employees/new</div>;
+  return <EmployeeCreateForm />;
 }
