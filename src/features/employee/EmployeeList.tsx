@@ -30,6 +30,17 @@ const STATUS_OPTIONS: EmployeeStatusFilter[] = [
   'RESET_REQUIRED',
   'INACTIVE',
 ];
+/** URL 은 사용자가 손댈 수 있다 — 허용된 값이 아니면 필터가 없는 것으로 본다 */
+function pickOption<T extends string>(value: string | null, options: T[]) {
+  return options.find((option) => option === value);
+}
+
+/** 음수 · 소수 · 문자열이 그대로 서버로 가면 400 이 되어 목록이 실패 화면이 된다 */
+function pickInt(value: string | null, min: number) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= min ? parsed : undefined;
+}
+
 /** 2단 트리를 셀렉트용 한 줄 목록으로 편다 */
 function toDepartmentOptions(departments: Department[]) {
   return departments.flatMap((department) => [
@@ -55,13 +66,12 @@ export default function EmployeeList() {
   const query = useMemo<EmployeeListQuery>(
     () => ({
       keyword: searchParams.get('keyword') ?? undefined,
-      departmentId: Number(searchParams.get('departmentId')) || undefined,
-      role: (searchParams.get('role') as ManagedRole | null) ?? undefined,
-      status:
-        (searchParams.get('status') as EmployeeStatusFilter | null) ??
-        undefined,
+      departmentId: pickInt(searchParams.get('departmentId'), 1),
+      role: pickOption(searchParams.get('role'), ROLE_OPTIONS),
+      status: pickOption(searchParams.get('status'), STATUS_OPTIONS),
       resigned: searchParams.get('resigned') === 'true' || undefined,
-      page: Number(searchParams.get('page')) || 0,
+      // 백엔드와 같은 0-based. 값이 이상하면 첫 페이지로 본다
+      page: pickInt(searchParams.get('page'), 0) ?? 0,
       size: PAGE_SIZE,
     }),
     [searchParams],
@@ -69,8 +79,19 @@ export default function EmployeeList() {
 
   /** 입력 중인 검색어 — 제출해야 URL 에 반영된다 */
   const [keywordInput, setKeywordInput] = useState(query.keyword ?? '');
+  /** 입력값을 맞춰 둔 시점의 URL 검색어 — 아래 비교용 */
+  const [syncedKeyword, setSyncedKeyword] = useState(query.keyword ?? '');
+
+  // 뒤로가기 · 검색어가 담긴 링크로 들어오면 URL 만 바뀌고 입력값은 옛것이 남는다.
+  // 렌더 중에 맞춰 두면 화면에 어긋난 상태가 한 번도 보이지 않는다 (효과로 하면 한 프레임 늦다)
+  if (syncedKeyword !== (query.keyword ?? '')) {
+    setSyncedKeyword(query.keyword ?? '');
+    setKeywordInput(query.keyword ?? '');
+  }
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [hasDepartmentFailed, setHasDepartmentFailed] = useState(false);
   const [reloadCount, setReloadCount] = useState(0);
+  const [departmentReloadCount, setDepartmentReloadCount] = useState(0);
   /** 어떤 요청의 결과인지 `key` 로 들고 있는다 — 조건이 바뀌면 자동으로 로딩 상태가 된다 */
   const [result, setResult] = useState<{
     key: string;
@@ -106,15 +127,20 @@ export default function EmployeeList() {
   /** 부서 셀렉트 옵션. 목록과 달리 한 번만 받으면 된다 */
   useEffect(() => {
     const controller = new AbortController();
+    const { signal } = controller;
 
-    getDepartments(controller.signal)
-      .then(setDepartments)
+    getDepartments(signal)
+      .then((list) => {
+        setDepartments(list);
+        setHasDepartmentFailed(false);
+      })
       .catch(() => {
-        // 옵션을 못 받아도 나머지 필터는 쓸 수 있다
+        // 옵션이 없으면 부서 필터를 못 쓰므로 알려주고 다시 받을 길을 준다
+        if (!signal.aborted) setHasDepartmentFailed(true);
       });
 
     return () => controller.abort();
-  }, []);
+  }, [departmentReloadCount]);
 
   /** 필터를 바꾸면 첫 페이지로 돌아간다 — 3페이지에서 조건을 바꾸면 빈 화면이 된다 */
   function applyFilter(patch: Record<string, string | undefined>) {
@@ -255,6 +281,19 @@ export default function EmployeeList() {
           />
           퇴사자 포함
         </label>
+
+        {hasDepartmentFailed && (
+          <span role="alert" className="text-[10px] text-[#E7000B]">
+            부서 목록을 불러오지 못했습니다.{' '}
+            <button
+              type="button"
+              onClick={() => setDepartmentReloadCount((count) => count + 1)}
+              className="cursor-pointer font-semibold underline"
+            >
+              다시 시도
+            </button>
+          </span>
+        )}
       </form>
 
       {selected.length > 0 && (

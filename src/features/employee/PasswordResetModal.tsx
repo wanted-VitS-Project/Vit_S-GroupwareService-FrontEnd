@@ -45,7 +45,8 @@ export default function PasswordResetModal({
 
     try {
       const next = await resetPasswords(userIds);
-      setResult(next);
+      // 재발송 응답은 재발송 대상만 담고 온다 — 그대로 갈아치우면 나머지 실패가 사라진다
+      setResult((prev) => (prev ? merge(prev, next, userIds) : next));
       // 성공분이 있으면 목록을 갱신한다. 실패만 있으면 바뀐 게 없다
       if (next.successCount > 0) onDone();
     } catch (caught) {
@@ -167,8 +168,9 @@ export default function PasswordResetModal({
               )}
               <button
                 type="button"
-                onClick={onClose}
-                className="cursor-pointer rounded-lg bg-[#2B3A67] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#22305a]"
+                onClick={requestClose}
+                disabled={isSubmitting}
+                className="cursor-pointer rounded-lg bg-[#2B3A67] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#22305a] disabled:cursor-not-allowed disabled:bg-[#ECEEF4] disabled:text-[#6C7389]"
               >
                 확인
               </button>
@@ -197,6 +199,30 @@ export default function PasswordResetModal({
       </ModalFooter>
     </PanelModal>
   );
+}
+
+/**
+ * 재발송 결과를 최초 결과 위에 덮어쓴다.
+ * 다시 시도한 사원만 최신 상태로 갈고, 손대지 않은 실패(이메일 미등록 등)는 그대로 남긴다 —
+ * 집계는 최초 요청 건수를 기준으로 다시 센다.
+ */
+function merge(
+  previous: PasswordResetResult,
+  retried: PasswordResetResult,
+  retriedIds: string[],
+): PasswordResetResult {
+  const ids = new Set(retriedIds);
+  const failures = [
+    ...previous.failures.filter((failure) => !ids.has(failure.userId)),
+    ...retried.failures,
+  ];
+
+  return {
+    requestedCount: previous.requestedCount,
+    successCount: previous.requestedCount - failures.length,
+    failedCount: failures.length,
+    failures,
+  };
 }
 
 function Summary({

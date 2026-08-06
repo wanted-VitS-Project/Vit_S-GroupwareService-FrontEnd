@@ -15,11 +15,17 @@ export default function Pagination({
   totalElements,
   onChange,
 }: PaginationProps) {
+  const lastPage = totalPages || 1;
+  /** 사람이 읽는 번호는 1부터 센다 */
+  const currentPage = Math.min(page + 1, lastPage);
+
   return (
     <div className="flex items-center justify-between gap-4 border-t border-[#1C1F2A]/10 px-5 py-3">
-      <p className="text-[11px] text-[#6C7389]">전체 {totalElements}명</p>
+      <p className="text-[11px] text-[#6C7389]">
+        전체 {totalElements.toLocaleString('ko-KR')}명
+      </p>
 
-      <div className="flex items-center gap-2">
+      <nav aria-label="페이지 이동" className="flex items-center gap-2">
         <PageButton
           label="이전 페이지"
           disabled={page <= 0}
@@ -27,9 +33,13 @@ export default function Pagination({
         >
           ‹
         </PageButton>
-        <span className="text-[11px] text-[#6C7389]">
-          {/* 사람이 읽는 번호는 1부터 센다 */}
-          {Math.min(page + 1, totalPages || 1)} / {totalPages || 1}
+        {/* 숫자만 있으면 무엇을 세는지 알 수 없어 대체 문구를 따로 읽힌다 */}
+        <span
+          aria-live="polite"
+          aria-label={`${lastPage}페이지 중 ${currentPage}페이지`}
+          className="text-[11px] text-[#6C7389]"
+        >
+          {currentPage} / {lastPage}
         </span>
         <PageButton
           label="다음 페이지"
@@ -38,7 +48,7 @@ export default function Pagination({
         >
           ›
         </PageButton>
-      </div>
+      </nav>
     </div>
   );
 }
