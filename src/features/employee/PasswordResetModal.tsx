@@ -7,11 +7,11 @@ import { messageOf } from '@/lib/api';
 
 import { resetPasswords } from './api';
 import { PASSWORD_RESET_FAILURE_LABELS } from './errorCodes';
-import type { EmployeeSummary, PasswordResetResult } from './types';
+import type { PasswordResetResult, PasswordResetTarget } from './types';
 
 interface PasswordResetModalProps {
   /** 1명이든 여러 명이든 같은 흐름이다 */
-  targets: EmployeeSummary[];
+  targets: PasswordResetTarget[];
   onClose: () => void;
   /** 성공분이 있으면 목록의 상태 배지가 바뀐다 */
   onDone: () => void;

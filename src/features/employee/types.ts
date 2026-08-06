@@ -68,6 +68,35 @@ export interface EmployeePage {
 }
 
 /**
+ * 사원 등록 (.ai/API.md 32) — 계정이 **항상 함께** 발급된다.
+ * 사원만 등록하는 경로는 없다.
+ */
+export interface CreateEmployeeRequest {
+  /** 사번 = 로그인 아이디. 등록 후 바꿀 수 없다 (PK) */
+  userId: string;
+  name: string;
+  departmentId: number;
+  /** yyyy-MM-dd */
+  hiredAt: string;
+  /** ADMIN 은 부여할 수 없다 */
+  role: ManagedRole;
+  jobPositionId?: number;
+  /** 초기 비밀번호를 이 주소로 보낸다. 없으면 로그인할 수 없는 계정이 된다 */
+  email?: string;
+  phone?: string;
+}
+
+/** 등록 응답 (201) */
+export interface CreateEmployeeResult {
+  userId: string;
+  name: string;
+  /** 이메일을 넣지 않았으면 false — 그 계정은 로그인할 수 없다 */
+  emailRegistered: boolean;
+  /** ⚠️ 메일 발송이 실패해도 201 이다. false 면 재발송해야 로그인할 수 있다 */
+  emailSent: boolean;
+}
+
+/**
  * 사원 정보 수정 (.ai/API.md 33) — **전달한 필드만** 바뀐다.
  *
  * ⚠️ `undefined`(키 생략) 와 `null` 이 다른 뜻이다.
@@ -103,6 +132,15 @@ export interface ResignationResponse {
   resignedAt: string;
   accountStatus: AccountStatus;
 }
+
+/**
+ * 비밀번호 재설정 대상. 모달이 실제로 쓰는 필드만 요구한다 —
+ * 목록 행 · 상세뿐 아니라 **등록 직후 응답**(메일 실패 재발송)도 그대로 넘길 수 있어야 한다.
+ */
+export type PasswordResetTarget = Pick<
+  EmployeeSummary,
+  'userId' | 'name' | 'emailRegistered'
+>;
 
 /** 비밀번호 재설정 실패 사유 — 뒤처리가 달라 구분해야 한다 */
 export type PasswordResetFailureReason =

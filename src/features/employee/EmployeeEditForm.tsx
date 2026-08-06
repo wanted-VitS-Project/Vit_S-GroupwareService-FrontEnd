@@ -16,6 +16,7 @@ import { ApiError, messageOf } from '@/lib/api';
 
 import { getEmployee, updateEmployee } from './api';
 import { ACCOUNT_CODES, EMPLOYEE_CODES } from './errorCodes';
+import { SelectField, TextField } from './FormFields';
 import { EMPLOYEE_ROUTES } from './routes';
 import type { EmployeeDetail, UpdateEmployeeRequest } from './types';
 
@@ -333,9 +334,11 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
                   onChange={(value) => change('email', value)}
                 />
 
+                {/* 빈 값을 고르면 `null` 이 실려 배정이 지워진다 */}
                 <SelectField
                   id="departmentId"
                   label="부서"
+                  emptyLabel="미지정"
                   value={values.departmentId}
                   error={fieldErrors.departmentId}
                   onChange={(value) => change('departmentId', value)}
@@ -347,6 +350,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
                 <SelectField
                   id="jobPositionId"
                   label="직급"
+                  emptyLabel="미지정"
                   value={values.jobPositionId}
                   error={fieldErrors.jobPositionId}
                   onChange={(value) => change('jobPositionId', value)}
@@ -437,138 +441,6 @@ function ReadOnlyField({
         )}
       </dd>
     </div>
-  );
-}
-
-interface FieldShellProps {
-  id: string;
-  label: string;
-  required?: boolean;
-  error?: string;
-  hint?: string;
-  children: React.ReactNode;
-}
-
-function FieldShell({
-  id,
-  label,
-  required,
-  error,
-  hint,
-  children,
-}: FieldShellProps) {
-  return (
-    <div>
-      <label
-        htmlFor={id}
-        className="block pb-1.5 text-[11px] font-semibold text-[#1C1F2A]"
-      >
-        {label} {required && <span className="text-[#E7000B]">*</span>}
-      </label>
-      {children}
-      {error ? (
-        <p
-          id={`${id}-error`}
-          role="alert"
-          className="mt-1 text-[10px] break-keep text-[#E7000B]"
-        >
-          {error}
-        </p>
-      ) : (
-        hint && (
-          <p className="mt-1 text-[10px] break-keep text-[#6C7389]">{hint}</p>
-        )
-      )}
-    </div>
-  );
-}
-
-/** 에러가 있을 때만 테두리를 빨갛게 — 입력 · 셀렉트가 같은 규칙을 쓴다 */
-function controlClass(hasError: boolean) {
-  return `w-full rounded-lg border bg-[#ECEEF4]/50 px-3 py-2 text-[11px] text-[#1C1F2A] placeholder:text-[#6C7389] focus:outline-2 focus:outline-offset-2 ${
-    hasError
-      ? 'border-[#E7000B] focus:outline-[#E7000B]'
-      : 'border-[#1C1F2A]/10 focus:outline-[#3B5BDB]'
-  }`;
-}
-
-function TextField({
-  id,
-  label,
-  type = 'text',
-  required,
-  placeholder,
-  value,
-  error,
-  hint,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  type?: string;
-  required?: boolean;
-  placeholder?: string;
-  value: string;
-  error?: string;
-  hint?: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <FieldShell
-      id={id}
-      label={label}
-      required={required}
-      error={error}
-      hint={hint}
-    >
-      <input
-        id={id}
-        type={type}
-        value={value}
-        placeholder={placeholder}
-        onChange={(event) => onChange(event.target.value)}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${id}-error` : undefined}
-        className={controlClass(error !== undefined)}
-      />
-    </FieldShell>
-  );
-}
-
-function SelectField({
-  id,
-  label,
-  value,
-  error,
-  options,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  error?: string;
-  options: { value: string; label: string }[];
-  onChange: (value: string) => void;
-}) {
-  return (
-    <FieldShell id={id} label={label} error={error}>
-      <select
-        id={id}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${id}-error` : undefined}
-        className={`${controlClass(error !== undefined)} cursor-pointer`}
-      >
-        {/* 빈 값을 고르면 `null` 이 실려 배정이 지워진다 */}
-        <option value="">미지정</option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </FieldShell>
   );
 }
 
