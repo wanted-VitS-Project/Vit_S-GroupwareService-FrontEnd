@@ -26,6 +26,13 @@ export const ENDPOINTS = {
     detail: (categoryId: number | string) =>
       `${V1}/business-categories/${categoryId}`,
   },
+  departments: {
+    /** 목록 조회 · 생성 */
+    root: `${V1}/departments`,
+    /** 수정 · 삭제 */
+    detail: (departmentId: number | string) =>
+      `${V1}/departments/${departmentId}`,
+  },
   jobPositions: {
     /** 목록 조회 · 생성 */
     root: `${V1}/job-positions`,

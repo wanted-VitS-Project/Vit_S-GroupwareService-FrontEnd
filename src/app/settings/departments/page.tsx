@@ -1,3 +1,5 @@
+import DepartmentList from '@/features/department/DepartmentList';
+
 export default function Page() {
-  return <div>settings/departments</div>;
+  return <DepartmentList />;
 }
