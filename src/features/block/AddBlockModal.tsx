@@ -7,16 +7,23 @@ import Modal from '@/components/Modal';
 import { messageOf } from '@/lib/api';
 
 import { createBlock } from './api';
+import { nextPosition } from './blockLayout';
 import BlockTypeIcon from './BlockTypeIcon';
 import {
   BLOCK_TITLE_MAX_LENGTH,
   BLOCK_TYPES,
   type BlockTypeCode,
+  type StepBlock,
 } from './types';
 
 interface AddBlockModalProps {
   /** 헤더 배지에 노출할 스텝 이름 */
   stepName: string;
+  /**
+   * 현재 스텝의 블록 — 새 블록이 들어갈 자리를 계산하는 데만 쓴다.
+   * 아직 못 불러왔으면 `null`, 이때는 위치를 보내지 않고 서버 기본값(맨 아래)에 맡긴다.
+   */
+  blocks: StepBlock[] | null;
   onClose: () => void;
   /** 생성 성공 후 목록을 다시 불러올 때 쓴다 */
   onCreated?: () => void;
@@ -28,6 +35,7 @@ interface AddBlockModalProps {
  */
 export default function AddBlockModal({
   stepName,
+  blocks,
   onClose,
   onCreated,
 }: AddBlockModalProps) {
@@ -63,6 +71,8 @@ export default function AddBlockModal({
         title: title.trim() || undefined,
         // 유형별 기본 폭을 항상 함께 보낸다 (1칸 또는 2칸)
         colSpan: selected.defaultColSpan,
+        // 맨 뒤 — 마지막 행에 칸이 남으면 그 오른쪽, 모자라면 새 행
+        ...(blocks ? nextPosition(blocks, selected.defaultColSpan) : {}),
       });
       onCreated?.();
       onClose();

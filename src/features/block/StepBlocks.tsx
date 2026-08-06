@@ -101,6 +101,7 @@ export default function StepBlocks() {
         </h2>
         <AddBlockButton
           stepName={stepName || '스텝'}
+          blocks={blocks}
           onCreated={() => {
             // blocks 가 null 이면 기준이 빈 배열이 되어 기존 블록까지 신규로 잡힌다.
             // 그럴 때는 스냅샷을 남기지 않고 자동 편집을 건너뛴다
@@ -120,7 +121,13 @@ export default function StepBlocks() {
       ) : !blocks ? (
         <BoardSkeleton />
       ) : (
-        <BlockBoard blocks={blocks} autoEditBlockId={autoEditBlockId} />
+        <BlockBoard
+          stepId={stepId}
+          blocks={blocks}
+          autoEditBlockId={autoEditBlockId}
+          // 저장된 배치를 목록에도 반영한다 — 다음 `Block 추가` 가 옛 좌표로 자리를 잡지 않게
+          onLayoutSaved={(saved) => setLoaded({ stepId, blocks: saved })}
+        />
       )}
     </div>
   );

@@ -1,8 +1,8 @@
 # 연동 API 명세서
 
+**최종 업데이트**: 2026-08-06 (블록 배치 변경 연동 — 44 추가 · 9 · 10번 배치 규칙 갱신)
 **최종 업데이트**: 2026-08-06 (사원 등록 연동 — 32 갱신)
 **최종 업데이트**: 2026-08-06 (파일 도메인 연동 — 36~43 추가 · 공통 절 신설)
-**최종 업데이트**: 2026-08-06 (사원 정보 수정 연동 — 33 갱신 · `email`/`phone` 클리어 방식 확인 대기 추가)
 
 > 📌 이 파일은 **프론트가 연동하는 백엔드 API**를 정리하는 곳이에요. (내가 만드는 게 아니라 **호출하는** 입장)
 > AI는 API 연동 코드를 작성하기 전에 이 파일을 먼저 읽어요. (잘못된 경로/필드/타입으로 fetch 짜는 실수 방지)
@@ -58,6 +58,7 @@
 | [41](#41-버전-이력-조회)                  | 버전 이력        | `GET /files/{fileId}/versions`                 | ✅ `features/file/api.ts`             |
 | [42](#42-다운로드-url-발급)               | 다운로드 URL     | `GET /file-versions/{id}/download`             | ✅ `features/file/api.ts`             |
 | [43](#43-미리보기-조회-pdf-바이너리)      | 미리보기 (PDF)   | `GET /file-versions/{id}/preview`              | ✅ `features/file/api.ts`             |
+| [44](#44-블록-배치-변경)                  | 블록 배치 변경   | `PATCH /steps/{stepId}/blocks/layout`          | ✅ `features/block/api.ts`            |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
 > 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통)
@@ -70,7 +71,7 @@
 | 블록 생성 응답 `data` 스키마                      | 생성 직후 해당 블록 지정         | 9     |
 | `detail.chkBlockId` · `detail.items`              | 체크리스트 항목 추가 · 목록      | 10    |
 | `detail.txtId` · `detail.content`                 | 텍스트 본문 편집                 | 10    |
-| 블록 수정 · 삭제 · 순서 변경 API                  | `⋯` 메뉴 · 드래그 핸들           | —     |
+| 블록 수정 · 삭제 API                              | `⋯` 메뉴                         | —     |
 | 프로젝트 참여자 목록 API                          | 사이드바 참여자 (`MOCK_MEMBERS`) | —     |
 | 사원 엑셀 템플릿 다운로드 · 일괄 등록 (구현 중)   | 화면은 "준비 중" 안내만          | —     |
 | 사원 목록에 **직급 필터** 없음                    | 직급별 사원 조회                 | 30    |
@@ -457,6 +458,7 @@ interface CreateBlockRequest {
 
 > ⚠️ ERD Cloud 상 테이블명이 다른 항목이 있다 — `IMAGE` → `img_block`, `CHECKLIST` → `chk_block`.
 > ℹ️ 화면 라벨 · 아이콘 색은 `src/features/block/types.ts` 의 `BLOCK_TYPES` 가 단일 소스다.
+> ℹ️ **`rowIndex` · `sortOrder` 는 프론트가 계산해 보낸다** (`blockLayout.ts` → `nextPosition()`). 마지막 행에 칸이 남으면 그 행 오른쪽, 모자라면 새 행이다 — 서버 기본값(맨 아래 새 행)에 맡기면 남는 칸이 비어 보인다. 목록을 아직 못 불러왔을 때만 생략한다.
 > ❗ **응답 `data` 스키마는 확인 필요.** 현재 프론트는 응답 본문을 쓰지 않는다.
 > ❗ **에러 코드 목록도 확인 필요.** 지금은 백엔드 `message` 를 그대로 노출한다.
 
@@ -491,7 +493,7 @@ data: {
 ```
 
 > ℹ️ `data` 안에 `blocks` 로 한 겹 더 감싸져 있다. `getStepBlocks()` 가 벗겨서 배열만 반환한다.
-> ℹ️ **`rowIndex` · `sortOrder` 순으로 정렬되어 온다.** 보드는 그래도 한 번 더 묶고 정렬해 행 경계를 확실히 한다.
+> ℹ️ **`rowIndex` · `sortOrder` 순으로 정렬되어 온다.** 보드는 이 둘로 **평면 순서**를 만든 뒤 앞에서부터 3칸씩 채워 행을 다시 만든다 (`blockLayout.ts`). 서버 `rowIndex` 를 그대로 행으로 쓰지 않으므로 한 행이 3칸을 넘는 일이 없다.
 > ⚠️ **`colSpan` 이 1~3 이다.** 블록 생성 명세와 같지만, 화면 기획상 1·2칸만 쓰이더라도 3까지 들어올 수 있어 보드는 3칸까지 그린다.
 > ⚠️ **`type` 이 "ERD enum 10값" 으로 적혀 있다.** 9번에 정리된 enum 은 9값 — **나머지 1값 확인 필요.** 프론트는 모르는 값이 오면 `준비 중인 블록입니다.` 껍데기로 그린다.
 > ℹ️ **`detail` 은 블록의 내용을 담는 하위 계층이다.** `blockId` 로 관리하는 것은 위 공통 필드까지고, 내용은 타입별 상세 ID(예: `CHECKLIST` 의 `chkBlockId`)로 관리한다.
@@ -626,7 +628,8 @@ data: {
 ```
 
 > ℹ️ 세 API 모두 `completedCount` · `totalCount` 를 돌려주지만, `ChecklistBlock` 은 **화면의 항목 목록에서 진척률을 계산**한다. 서버 카운트를 그대로 쓰면 목록과 숫자가 어긋나 보일 수 있다.
-> ❗ **블록 수정 · 블록 삭제 · 순서 변경(`rowIndex`/`sortOrder`) API 가 없다.** 블록 헤더 `⋯` 메뉴와 드래그 핸들은 UI 만 있다.
+> ❗ **블록 수정 · 블록 삭제 API 가 없다.** 블록 헤더 `⋯` 메뉴는 UI 만 있다.
+> ℹ️ 순서 변경은 [44번](#44-블록-배치-변경)으로 연동됐다 — 드래그 결과가 서버에 남는다.
 
 ---
 
@@ -1457,6 +1460,50 @@ data: {
 
 > ⚠️ **본문이 우리 봉투가 아닌 유일한 API** 다. presigned 를 주면 전체 PDF 에 접근돼 "최대 5페이지" 제한이 무의미해지므로 서버가 직접 잘라 반환한다.
 > ℹ️ 그래서 `src/lib/api.ts` 에 `requestRaw()` 를 뒀다 — 성공 시 `Response` 를 그대로 주고, 실패는 JSON 실패 봉투로 오므로 다른 API 와 똑같이 처리한다.
+
+---
+
+## 44. 블록 배치 변경
+
+| 항목          | 값                                                  |
+| ------------- | --------------------------------------------------- |
+| **Method**    | `PATCH`                                             |
+| **Path**      | `/api/v1/steps/{stepId}/blocks/layout`              |
+| **인증 필요** | ✅ (스텝 `EDITOR`)                                  |
+| **요구사항**  | BLK-003 · BLK-004                                   |
+| **사용 위치** | `src/features/block/api.ts` → `updateBlockLayout()` |
+
+**Path Parameter** — `stepId` (`Long`, 필수)
+
+**Request Body**
+
+```ts
+interface UpdateBlockLayoutRequest {
+  layouts: {
+    blockId: number; // 필수
+    rowIndex: number; // 필수 — 행 인덱스
+    sortOrder: number; // 필수 — 행 내 순서
+    colSpan: number; // 필수 — 열 병합 수 1~3
+  }[];
+}
+```
+
+**응답 data** — `{ blocks: [...] }` 로 반영된 배치가 요청과 같은 모양으로 온다.
+
+| status | code                     | 화면 처리                                     |
+| ------ | ------------------------ | --------------------------------------------- |
+| 400    | `BLOCK_COL_SPAN_INVALID` | `colSpan` 범위 밖 — 백엔드 문구 노출          |
+| 400    | `BLOCK_LAYOUT_INVALID`   | 목록이 비었거나 다른 스텝 블록 혼입           |
+| 401    | `AUTH_TOKEN_EXPIRED`     | 로그인 화면으로 이동                          |
+| 403    | `STEP_EDIT_DENIED`       | **`/forbidden` 아님** — 보드에 안내 후 되돌림 |
+| 404    | `BLOCK_NOT_FOUND`        | 새로고침 안내 후 되돌림                       |
+
+> ⚠️ **옮긴 블록만이 아니라 스텝의 배치 전체를 보낸다.** 일부만 보내면 나머지가 지워진다.
+> ℹ️ **총 열 수는 3 고정**(BLK-003)이고 `UNIQUE(step_id,row_index,sort_order)` 가 없어 드래그 중간의 좌표 중복이 허용된다(BLK-004).
+> ℹ️ **호출은 마지막 이동 후 0.8초 조용할 때 한 번만 한다** (`useLayoutSaver.ts`). 연달아 옮기면 타이머만 밀리고, 결과 배치가 마지막으로 저장된 것과 같으면(옮겼다 되돌린 경우) **요청 자체를 보내지 않는다**. 화면을 떠날 때는 대기 중인 배치를 즉시 흘려보낸다.
+> ℹ️ `rowIndex` · `sortOrder` 는 서버가 준 값을 재활용하지 않고 **화면에 그려진 행 기준으로 0부터 다시 매겨** 보낸다 (`blockLayout.ts` → `toLayouts()`). 보이는 배치와 저장되는 배치가 어긋나지 않는다.
+> ℹ️ 응답으로 온 배치를 블록에 덮어쓴다 (`applyLayouts()`). 건너뛰면 다음 블록 생성이 옛 좌표로 자리를 잡는다.
+> ℹ️ `STEP_EDIT_DENIED` 는 전역 403(`/forbidden`) 대상이 아니다 — `isPermissionCode` 에 넣지 않아 보드가 직접 안내한다.
 
 ---
 

@@ -3,13 +3,17 @@
 import { useState } from 'react';
 
 import AddBlockModal from './AddBlockModal';
+import type { StepBlock } from './types';
 
 /** 스텝 화면 블록 목록 헤더의 `Block 추가` 버튼. */
 export default function AddBlockButton({
   stepName,
+  blocks,
   onCreated,
 }: {
   stepName: string;
+  /** 새 블록 자리 계산용 — 아직 못 불러왔으면 `null` */
+  blocks: StepBlock[] | null;
   onCreated?: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -38,6 +42,7 @@ export default function AddBlockButton({
       {isOpen && (
         <AddBlockModal
           stepName={stepName}
+          blocks={blocks}
           onCreated={onCreated}
           onClose={() => setIsOpen(false)}
         />

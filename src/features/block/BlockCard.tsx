@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 
+import { setPillDragImage, useBlockDrag } from './BlockDragContext';
 import BlockTypeIcon from './BlockTypeIcon';
 import { BLOCK_TYPES, type StepBlock } from './types';
 
@@ -34,7 +35,8 @@ interface BlockCardProps {
  * 블록 공통 껍데기 — 헤더(드래그 핸들 · 유형 아이콘 · 제목 · ⋯) / 본문 / 담당자 푸터.
  * 같은 행의 블록끼리 높이를 맞추려고 `h-full` 로 늘어난다.
  *
- * ⚠️ 블록 수정 · 삭제 · 순서 변경 API 미확정 — ⋯ 메뉴와 드래그 핸들은 아직 동작하지 않는다.
+ * 드래그는 **핸들에서만** 시작한다 — 카드 전체를 잡게 하면 본문의 입력·체크가 막힌다.
+ * ⚠️ 블록 수정 · 삭제 API 미확정 — ⋯ 메뉴는 아직 동작하지 않는다.
  */
 export default function BlockCard({
   block,
@@ -42,12 +44,45 @@ export default function BlockCard({
   children,
 }: BlockCardProps) {
   const type = BLOCK_TYPES.find((option) => option.code === block.type);
+  const drag = useBlockDrag();
+  const label = block.title || type?.label || '블록';
+  const isDragging = drag?.draggingId === block.blockId;
 
   return (
-    <article className="flex h-full flex-col rounded-lg border border-[#1C1F2A]/10 bg-white">
+    <article
+      /*
+       * 드롭 대상 판정은 카드가 하지 않는다 — 보드가 캡처 단계에서 한 번에 처리한다.
+       * 카드 안에는 파일 목록 · 에디터처럼 자체 드래그 처리를 갖는 자식이 있어,
+       * 카드에 핸들러를 달면 그런 자식 위에서는 이벤트가 올라오지 않는다.
+       */
+      // 끄는 중인 카드는 "여기서 빠져나간 자리" 로 읽히게 점선 + 반투명으로 낮춘다
+      className={`flex h-full flex-col rounded-lg border bg-white transition-[opacity,border-color] duration-150 ${
+        isDragging
+          ? 'border-dashed border-[#3B5BDB]/40 opacity-40'
+          : 'border-[#1C1F2A]/10'
+      }`}
+    >
       <header className="flex items-center gap-2 border-b border-[#1C1F2A]/10 px-3 py-2">
-        {/* TODO: 순서 변경(rowIndex · sortOrder) API 연동 후 드래그 활성 */}
-        <span aria-hidden className="flex flex-col gap-0.5 opacity-25">
+        <span
+          aria-label={drag ? `${label} 위치 이동 핸들` : undefined}
+          aria-hidden={drag ? undefined : true}
+          draggable={Boolean(drag)}
+          onDragStart={
+            drag
+              ? (event) => {
+                  setPillDragImage(event, label);
+                  drag.start(block.blockId, label);
+                }
+              : undefined
+          }
+          onDragEnd={drag?.finish}
+          // 점 6개(약 12×10px)만으로는 잡기 어렵다 — 여백으로 실제 클릭 영역을 넓힌다
+          className={`-m-1 flex flex-col gap-0.5 rounded p-1 ${
+            drag
+              ? 'cursor-grab opacity-40 hover:bg-[#ECEEF4] hover:opacity-80 active:cursor-grabbing'
+              : 'opacity-25'
+          }`}
+        >
           {[0, 1, 2].map((row) => (
             <span key={row} className="flex gap-0.5">
               <span className="size-1 rounded-full bg-[#6C7389]" />
@@ -72,7 +107,7 @@ export default function BlockCard({
         </h3>
 
         {headerExtra}
-        <BlockMenu title={block.title || type?.label || '블록'} />
+        <BlockMenu title={label} />
       </header>
 
       <div className="flex-1 p-3">{children}</div>

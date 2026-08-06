@@ -2,10 +2,12 @@ import { ENDPOINTS } from '@/constants/endpoints';
 import { api } from '@/lib/api';
 
 import type {
+  BlockLayout,
   CreateBlockRequest,
   CreateChecklistItemResponse,
   DeleteChecklistItemResponse,
   StepBlock,
+  UpdateBlockLayoutResponse,
   UpdateChecklistItemRequest,
   UpdateChecklistItemResponse,
   UpdateTextBlockResponse,
@@ -31,6 +33,26 @@ export function createBlock(
   signal?: AbortSignal,
 ) {
   return api.post<void>(ENDPOINTS.steps.blocks(stepId), body, signal);
+}
+
+/**
+ * 블록 배치 변경 — 스텝 EDITOR 권한이 필요하다.
+ *
+ * ⚠️ 옮긴 블록만이 아니라 **스텝의 배치 전체**를 보낸다.
+ * 중간 상태의 중복 좌표를 서버가 허용하므로(BLK-004) 드래그 한 번에 한 번만 부른다.
+ */
+export function updateBlockLayout(
+  stepId: number | string,
+  layouts: BlockLayout[],
+  signal?: AbortSignal,
+) {
+  return api
+    .patch<UpdateBlockLayoutResponse>(
+      ENDPOINTS.steps.blocksLayout(stepId),
+      { layouts },
+      signal,
+    )
+    .then((data) => data.blocks);
 }
 
 /**
