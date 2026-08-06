@@ -6,6 +6,63 @@
 
 ---
 
+## [2026-08-06] 직급 관리 화면 구현 🚧
+
+브랜치: `feat/job-positions` · 이슈: #40
+
+### 변경 파일
+
+| 파일                                                    | 변경                                            |
+| ------------------------------------------------------- | ----------------------------------------------- |
+| `src/features/jobPosition/types.ts`                     | 생성 — `JobPosition` · 요청 타입 · 길이 제한    |
+| `src/features/jobPosition/errorCodes.ts`                | 생성 — 400 · 404 · 409 응답 코드 단일 소스      |
+| `src/features/jobPosition/api.ts`                       | 생성 — 목록 · 생성 · 수정 · 삭제 호출           |
+| `src/features/jobPosition/JobPositionList.tsx`          | 생성 — 목록 · 순서 변경 · 로딩/빈/실패 상태     |
+| `src/features/jobPosition/JobPositionFormModal.tsx`     | 생성 — 추가 · 수정 폼 (이름만 전송)             |
+| `src/features/jobPosition/DeleteJobPositionModal.tsx`   | 생성 — 삭제 확인 · 사용 중 차단 안내            |
+| `src/app/settings/job-positions/page.tsx`               | 생성 — `JobPositionList` 연결                   |
+| `src/components/RowMenu.tsx`                            | 생성 — 표 행 케밥 메뉴 (카테고리 화면에서 승격) |
+| `src/components/PanelModal.tsx`                         | 생성 — 설정 화면 공통 모달 껍데기 · 푸터        |
+| `src/features/businessCategory/CategoryModal.tsx`       | 삭제 — `PanelModal` 로 이동                     |
+| `src/features/businessCategory/CategoryFormModal.tsx`   | `PanelModal` 로 import 교체                     |
+| `src/features/businessCategory/DeleteCategoryModal.tsx` | `PanelModal` 로 import 교체                     |
+| `src/app/settings/page.tsx`                             | 직급 관리 메뉴 항목 · 아이콘 추가               |
+| `src/constants/endpoints.ts`                            | `jobPositions` 엔드포인트 추가                  |
+
+### 주요 작업 내용
+
+- 직급 CRUD 화면 구현 (목록 · 추가 · 수정 · 삭제)
+- 위 · 아래 버튼으로 노출 순서 변경 — `sortOrder` 를 이웃과 맞바꾸는 방식
+- 사용 인원이 있는 직급은 삭제 차단 (`POS_IN_USE`) · 직급명 중복은 입력 아래 인라인 표시
+- 행 케밥 메뉴 · 모달 껍데기를 `components/` 로 승격해 카테고리 화면과 공유
+
+### 부수 결정
+
+- **순서 입력 필드를 만들지 않는다** — 추가 시 `sortOrder` 를 생략하면 백엔드가 마지막+1 로 넣고, 변경은 목록의 ↑↓ 버튼으로 한다. 숫자 입력과 버튼이 기능이 겹친다
+- `sortOrder` 는 UNIQUE 가 아니라 이웃과 값이 같을 수 있다 — 그때는 맞바꿔도 순서가 그대로여서 `이웃값 ± 1` 을 넣어 확실히 넘긴다
+- 순서 변경은 성공 · 실패 모두 목록을 다시 불러 **서버 순서를 진실로 삼는다** (두 번째 PATCH 만 실패하면 어긋난 채로 남기 때문)
+- 정렬은 백엔드가 `sortOrder` → 직급명 순으로 주므로 화면에서 다시 정렬하지 않는다
+- 성공 토스트는 이번 범위에서 제외 — 모달이 닫히고 목록이 갱신되는 것으로 대신한다 (전역 토스트는 백로그)
+
+### 코드 리뷰 반영 (CodeRabbit)
+
+- **순서 변경이 동률 3개 이상에서 깨졌다** — 이웃과 값만 맞바꾸면 `[5,5,5]` 에서 한 칸이 아니라 목록 끝까지 밀린다. 옮긴 뒤의 화면 순서대로 1부터 다시 매기고 **값이 달라진 직급만** 보내는 방식으로 교체
+- 순서 변경 실패 시 안내 문구가 없었다 → 표 위에 `role="alert"` 문구 추가
+- 재조회 때마다 표가 사라지고 `불러오는 중…` 으로 바뀌어 스크롤이 튀었다 → 갱신 중에는 **직전 목록을 유지**
+- 폼 모달에서 값을 고쳐도 일반 오류 문구가 남았다 → `changeName` 이 `nameError` 와 `error` 를 함께 지운다
+- 오류 문구 요소를 조건부로 렌더하면 스크린리더가 놓친다 → 요소는 항상 두고 `empty:hidden` 으로 감춘다 (두 모달 방식 통일)
+- 케밥 메뉴가 `body` 에 떠서 Tab 으로 닿지 않았다 → 열면 첫 항목에 포커스, ESC · 항목 선택 시 트리거로 복귀. `role="menu"` · `role="menuitem"` 추가
+
+### 검증
+
+| 명령               | 결과               |
+| ------------------ | ------------------ |
+| `npx tsc --noEmit` | ✅ 에러 0          |
+| `npx eslint src`   | ✅ 에러 0 · 경고 0 |
+| 브라우저 동작 확인 | 담당자 직접 확인   |
+
+---
+
 ## [2026-08-06] 스텝 화면 탭 내비게이션 · 화면 전환 깜빡임 수정 🚧
 
 브랜치: `user/project` · 이슈: #42

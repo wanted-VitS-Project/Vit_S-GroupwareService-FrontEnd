@@ -2,7 +2,8 @@ import Link from 'next/link';
 
 import PageTitle from '@/components/PageTitle';
 
-type SettingIcon = 'employee' | 'department' | 'category' | 'group' | 'lock';
+type SettingIcon =
+  'employee' | 'department' | 'badge' | 'category' | 'group' | 'lock';
 
 interface SettingItem {
   icon: SettingIcon;
@@ -28,6 +29,12 @@ const SECTIONS: { title: string; items: SettingItem[] }[] = [
         label: '부서 관리',
         description: '조직 구조 및 부서 정보 관리',
         href: '/settings/departments',
+      },
+      {
+        icon: 'badge',
+        label: '직급 관리',
+        description: '직급 등록 및 노출 순서 관리',
+        href: '/settings/job-positions',
       },
     ],
   },
@@ -136,6 +143,12 @@ const ICON_PATHS: Record<SettingIcon, React.ReactNode> = {
     <>
       <rect x="3" y="4" width="18" height="16" rx="2" />
       <path d="M3 10h18M9 4v16" />
+    </>
+  ),
+  badge: (
+    <>
+      <circle cx="12" cy="9" r="5" />
+      <path d="m8.5 13.5-1 7 4.5-2.5 4.5 2.5-1-7" />
     </>
   ),
   category: (

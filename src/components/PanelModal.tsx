@@ -11,8 +11,8 @@ export function ModalFooter({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** 카테고리 모달 공통 껍데기 — 패널 크기 · 제목 · 닫기 버튼 */
-export default function CategoryModal({
+/** 설정 화면 공통 모달 껍데기 — 패널 크기 · 제목 · 닫기 버튼 */
+export default function PanelModal({
   title,
   onClose,
   children,
