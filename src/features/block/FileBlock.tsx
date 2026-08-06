@@ -1,0 +1,656 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+
+import {
+  downloadVersion,
+  getBlockFiles,
+  renameFile,
+} from '@/features/file/api';
+import DuplicateNameModal from '@/features/file/DuplicateNameModal';
+import FileViewerModal from '@/features/file/FileViewerModal';
+import {
+  extensionLabel,
+  extensionStyle,
+  formatFileSize,
+} from '@/features/file/format';
+import TrashFileModal from '@/features/file/TrashFileModal';
+import type { BlockFile, BlockFilesResponse } from '@/features/file/types';
+import { FILE_NAME_MAX_LENGTH } from '@/features/file/types';
+import {
+  DuplicateNameError,
+  uploadFile,
+  type UploadStage,
+} from '@/features/file/upload';
+import { messageOf } from '@/lib/api';
+
+import BlockCard from './BlockCard';
+import type { StepBlock } from './types';
+
+/** 업로드가 끊긴 지점별 안내 — 사용자가 다음에 뭘 할지 알 수 있게 나눈다 */
+const STAGE_HINT: Record<UploadStage, string> = {
+  start: '',
+  transfer: ' 저장소 전송 중 끊겼습니다.',
+  complete: ' 파일은 올라갔지만 마무리에 실패했습니다. 다시 시도해주세요.',
+};
+
+/**
+ * 문서 업로드 블록.
+ *
+ * 목록은 `blockId` 로 바로 조회한다 — 체크리스트 · 텍스트와 달리 `detail` 의
+ * 상세 ID 가 필요하지 않다. 편집 버튼 노출은 응답의 `canEdit` 을 따른다.
+ *
+ * ⚠️ 휴지통(복구 · 영구 삭제)과 미리보기 뷰어는 다음 작업 범위다.
+ */
+export default function FileBlock({ block }: { block: StepBlock }) {
+  const [loaded, setLoaded] = useState<BlockFilesResponse | null>(null);
+  const [hasFailed, setHasFailed] = useState(false);
+  const [reloadCount, setReloadCount] = useState(0);
+
+  const [isUploading, setIsUploading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [editingFileId, setEditingFileId] = useState<number | null>(null);
+  const [editingName, setEditingName] = useState('');
+  /** 뷰어로 열어둔 문서 */
+  const [viewer, setViewer] = useState<BlockFile | null>(null);
+  const [trashTarget, setTrashTarget] = useState<BlockFile | null>(null);
+  /** 동명 문서 확인 대기 — 확인하면 같은 파일을 다시 올린다 */
+  const [duplicate, setDuplicate] = useState<{
+    file: File;
+    message: string;
+  } | null>(null);
+
+  const pickerRef = useRef<HTMLInputElement>(null);
+  /** 새 버전을 올릴 대상. 비어 있으면 새 문서 */
+  const versionTargetId = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    getBlockFiles(block.blockId, { signal })
+      .then((data) => {
+        setLoaded(data);
+        setHasFailed(false);
+      })
+      .catch(() => {
+        if (!signal.aborted) setHasFailed(true);
+      });
+
+    return () => controller.abort();
+  }, [block.blockId, reloadCount]);
+
+  const files = loaded?.content ?? null;
+  const canEdit = loaded?.canEdit ?? false;
+
+  function reload() {
+    setReloadCount((count) => count + 1);
+  }
+
+  function pickFile(fileId?: number) {
+    versionTargetId.current = fileId;
+    setErrorMessage('');
+    pickerRef.current?.click();
+  }
+
+  async function upload(file: File, allowDuplicateName?: boolean) {
+    setIsUploading(true);
+    setErrorMessage('');
+
+    try {
+      await uploadFile({
+        blockId: block.blockId,
+        file,
+        fileId: versionTargetId.current,
+        allowDuplicateName,
+      });
+      reload();
+    } catch (caught) {
+      if (caught instanceof DuplicateNameError) {
+        // 확인을 받은 뒤 같은 파일로 한 번만 다시 올린다
+        setDuplicate({ file, message: caught.message });
+      } else if (caught instanceof Error) {
+        const stage = 'stage' in caught ? (caught.stage as UploadStage) : null;
+        setErrorMessage(caught.message + (stage ? STAGE_HINT[stage] : ''));
+      } else {
+        setErrorMessage('업로드에 실패했습니다.');
+      }
+    } finally {
+      setIsUploading(false);
+      // 같은 파일을 다시 고를 수 있게 값을 비운다
+      if (pickerRef.current) pickerRef.current.value = '';
+    }
+  }
+
+  async function saveName(file: BlockFile) {
+    const name = editingName.trim();
+    setEditingFileId(null);
+
+    if (!name || name === file.name) return;
+
+    try {
+      await renameFile(file.fileId, name);
+      reload();
+    } catch (caught) {
+      setErrorMessage(messageOf(caught, '문서명을 바꾸지 못했습니다.'));
+    }
+  }
+
+  return (
+    <BlockCard block={block}>
+      <div className="flex h-full flex-col gap-2">
+        <input
+          ref={pickerRef}
+          type="file"
+          aria-label="문서 파일 선택"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) upload(file);
+          }}
+        />
+
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {hasFailed ? (
+            <p className="py-6 text-center text-[10px] text-[#6C7389]">
+              문서를 불러오지 못했습니다.
+            </p>
+          ) : !files ? (
+            <div
+              role="status"
+              aria-label="문서를 불러오는 중입니다"
+              className="flex flex-col gap-1.5"
+            >
+              {[0, 1, 2].map((row) => (
+                <div
+                  key={row}
+                  aria-hidden
+                  className="h-11 animate-pulse rounded-lg bg-[#ECEEF4]/60"
+                />
+              ))}
+            </div>
+          ) : files.length === 0 ? (
+            <p className="py-6 text-center text-[10px] text-[#6C7389]/60">
+              등록된 문서가 없습니다.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {files.map((file) => (
+                <FileRow
+                  key={file.fileId}
+                  file={file}
+                  canEdit={canEdit}
+                  isEditing={editingFileId === file.fileId}
+                  editingName={editingName}
+                  onEditingNameChange={setEditingName}
+                  onStartRename={() => {
+                    setEditingFileId(file.fileId);
+                    setEditingName(file.name);
+                  }}
+                  onCancelRename={() => setEditingFileId(null)}
+                  onSaveName={() => saveName(file)}
+                  onOpen={() => setViewer(file)}
+                  onDownload={() =>
+                    downloadVersion(file.latestVersionId).catch((caught) =>
+                      setErrorMessage(
+                        messageOf(caught, '다운로드에 실패했습니다.'),
+                      ),
+                    )
+                  }
+                  onAddVersion={() => pickFile(file.fileId)}
+                  onTrash={() => setTrashTarget(file)}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {errorMessage && (
+          <p role="alert" className="text-[9px] break-keep text-[#E7000B]">
+            {errorMessage}
+          </p>
+        )}
+
+        <div className="flex items-center justify-between gap-2 border-t border-[#1C1F2A]/[0.045] pt-1">
+          <span className="min-w-0 truncate text-[9px] text-[#6C7389]">
+            {files ? `${files.length}개 문서` : '—'}
+          </span>
+
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => pickFile()}
+              disabled={isUploading}
+              className="flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium text-[#3B5BDB] hover:bg-[#3B5BDB]/10 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <PlusIcon />
+              {isUploading ? '올리는 중…' : '새 문서 추가'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {viewer && (
+        <FileViewerModal file={viewer} onClose={() => setViewer(null)} />
+      )}
+
+      {trashTarget && (
+        <TrashFileModal
+          fileId={trashTarget.fileId}
+          fileName={trashTarget.name}
+          onClose={() => setTrashTarget(null)}
+          onTrashed={reload}
+        />
+      )}
+
+      {duplicate && (
+        <DuplicateNameModal
+          fileName={duplicate.file.name}
+          message={duplicate.message}
+          onCancel={() => setDuplicate(null)}
+          onConfirm={() => {
+            const { file } = duplicate;
+            setDuplicate(null);
+            upload(file, true);
+          }}
+        />
+      )}
+    </BlockCard>
+  );
+}
+
+interface FileRowProps {
+  file: BlockFile;
+  canEdit: boolean;
+  isEditing: boolean;
+  editingName: string;
+  onEditingNameChange: (name: string) => void;
+  onStartRename: () => void;
+  onCancelRename: () => void;
+  onSaveName: () => void;
+  /** 문서 뷰어 열기 — 버전 이력은 뷰어 안에서 토글한다 */
+  onOpen: () => void;
+  onDownload: () => void;
+  onAddVersion: () => void;
+  onTrash: () => void;
+}
+
+function FileRow({
+  file,
+  canEdit,
+  isEditing,
+  editingName,
+  onEditingNameChange,
+  onStartRename,
+  onCancelRename,
+  onSaveName,
+  onOpen,
+  onDownload,
+  onAddVersion,
+  onTrash,
+}: FileRowProps) {
+  const style = extensionStyle(file.extension);
+
+  return (
+    <li className="group/file relative flex items-start gap-2 rounded-lg p-1.5 hover:bg-[#ECEEF4]/60">
+      {/* 셀 전체가 뷰어 진입점. 버튼만 위로 올려 클릭을 가로챈다 */}
+      {!isEditing && (
+        <button
+          type="button"
+          aria-label={`${file.name} 문서 보기`}
+          onClick={onOpen}
+          className="absolute inset-0 cursor-pointer rounded-lg"
+        />
+      )}
+
+      <span
+        aria-hidden
+        style={{ color: style.text, backgroundColor: style.background }}
+        className="pointer-events-none relative flex size-7 shrink-0 items-center justify-center rounded"
+      >
+        <DocumentIcon />
+      </span>
+
+      <div className="pointer-events-none relative min-w-0 flex-1">
+        <div className="flex items-center gap-1">
+          {isEditing ? (
+            <input
+              autoFocus
+              aria-label={`${file.name} 문서명 수정`}
+              value={editingName}
+              maxLength={FILE_NAME_MAX_LENGTH}
+              onChange={(event) => onEditingNameChange(event.target.value)}
+              onBlur={onSaveName}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') onSaveName();
+                if (event.key === 'Escape') onCancelRename();
+              }}
+              className="pointer-events-auto min-w-0 flex-1 rounded border border-[#3B5BDB] px-1 text-[11px] text-[#1C1F2A] outline-none"
+            />
+          ) : (
+            <span className="min-w-0 truncate text-[11px] font-semibold text-[#1C1F2A]">
+              {file.name}
+            </span>
+          )}
+
+          <span
+            style={{ color: style.text, backgroundColor: style.background }}
+            className="shrink-0 rounded px-1 py-0.5 font-mono text-[8px] font-semibold"
+          >
+            {extensionLabel(file.extension)}
+          </span>
+
+          {/* v1 도 표기한다 — 버전이 하나뿐인 문서도 차수가 보여야 한다 */}
+          <span
+            title={`버전 ${file.versionCount}개`}
+            className="shrink-0 rounded bg-[#3B5BDB]/10 px-1 py-0.5 font-mono text-[8px] font-semibold text-[#3B5BDB]"
+          >
+            v{file.latestVersionNo}
+          </span>
+        </div>
+
+        <p className="mt-0.5 truncate text-[9px] text-[#6C7389]">
+          {file.uploaderDepartment} · {file.uploaderPosition}{' '}
+          {file.uploaderName}
+        </p>
+        <p className="font-mono text-[9px] text-[#6C7389]">
+          {file.updatedAt.slice(0, 10).replaceAll('-', '.')} ·{' '}
+          {formatFileSize(file.sizeBytes)}
+        </p>
+      </div>
+
+      {/* 호버 · 포커스 전에는 자리만 차지한다 — 나타날 때 레이아웃이 밀리지 않는다 */}
+      <div className="pointer-events-auto relative flex shrink-0 items-center gap-0.5 opacity-0 group-focus-within/file:opacity-100 group-hover/file:opacity-100">
+        <IconButton label={`${file.name} 다운로드`} onClick={onDownload}>
+          <DownloadIcon />
+        </IconButton>
+        {canEdit && (
+          <>
+            <IconButton
+              label={`${file.name} 새 버전 올리기`}
+              onClick={onAddVersion}
+            >
+              <UploadIcon />
+            </IconButton>
+            <FileRowMenu
+              fileName={file.name}
+              onStartRename={onStartRename}
+              onTrash={onTrash}
+            />
+          </>
+        )}
+      </div>
+    </li>
+  );
+}
+
+/**
+ * 문서 행의 아이콘 버튼.
+ * 기본색은 모두 같고, 자기 위에 마우스를 올렸을 때만 강조색이 된다.
+ */
+const ICON_BUTTON_CLASS =
+  'flex size-6 cursor-pointer items-center justify-center rounded-md text-[#6C7389] hover:bg-white hover:text-[#155DFC]';
+
+function IconButton({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      onClick={onClick}
+      className={ICON_BUTTON_CLASS}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** 메뉴 크기 — 화면 밖으로 나가는지 판단할 때 쓴다 */
+const MENU_WIDTH = 128;
+const MENU_HEIGHT = 64;
+
+/**
+ * 문서 행의 `⋯` 메뉴.
+ * 보기 · 다운로드 · 버전 이력 · 새 버전은 아이콘 버튼이 맡고,
+ * 여기에는 버튼으로 노출하지 않는 편집 동작만 남긴다.
+ *
+ * ⚠️ 문서 목록이 `overflow-y-auto` 라 블록 안에서 그리면 메뉴가 잘린다.
+ *    `document.body` 로 포털을 띄우고 트리거 위치를 재서 `fixed` 로 붙인다.
+ */
+function FileRowMenu({
+  fileName,
+  onStartRename,
+  onTrash,
+}: {
+  fileName: string;
+  onStartRename: () => void;
+  onTrash: () => void;
+}) {
+  /** 열린 위치. null 이면 닫힌 상태다 */
+  const [position, setPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const isOpen = position !== null;
+
+  function close() {
+    setPosition(null);
+    triggerRef.current?.focus();
+  }
+
+  function toggle() {
+    if (isOpen) {
+      close();
+      return;
+    }
+
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    // 아래 공간이 부족하면 위로 뒤집는다
+    const openUpward = rect.bottom + MENU_HEIGHT + 8 > window.innerHeight;
+
+    setPosition({
+      top: openUpward ? rect.top - MENU_HEIGHT - 4 : rect.bottom + 4,
+      // 오른쪽 끝을 트리거에 맞추되 화면 왼쪽으로 넘어가지 않게 한다
+      left: Math.max(8, rect.right - MENU_WIDTH),
+    });
+  }
+
+  // 스크롤 · 리사이즈로 트리거가 움직이면 좌표가 어긋난다 — 따라가지 않고 닫는다
+  useEffect(() => {
+    if (!isOpen) return;
+
+    function dismiss() {
+      setPosition(null);
+    }
+
+    window.addEventListener('scroll', dismiss, true);
+    window.addEventListener('resize', dismiss);
+
+    return () => {
+      window.removeEventListener('scroll', dismiss, true);
+      window.removeEventListener('resize', dismiss);
+    };
+  }, [isOpen]);
+
+  function run(action: () => void) {
+    close();
+    action();
+  }
+
+  return (
+    <span
+      className="relative shrink-0"
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape' || !isOpen) return;
+        event.stopPropagation();
+        close();
+      }}
+    >
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-label={`${fileName} 메뉴`}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        onClick={toggle}
+        className={ICON_BUTTON_CLASS}
+      >
+        <MoreIcon />
+      </button>
+
+      {position &&
+        createPortal(
+          <>
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-label="메뉴 닫기"
+              onClick={() => setPosition(null)}
+              className="fixed inset-0 z-40 cursor-default"
+            />
+            <span
+              role="menu"
+              style={{ top: position.top, left: position.left }}
+              className="fixed z-50 flex w-32 flex-col overflow-hidden rounded-lg border border-[#1C1F2A]/10 bg-white shadow-lg"
+            >
+              <MenuItem onClick={() => run(onStartRename)}>이름 수정</MenuItem>
+              <MenuItem danger onClick={() => run(onTrash)}>
+                휴지통으로 이동
+              </MenuItem>
+            </span>
+          </>,
+          document.body,
+        )}
+    </span>
+  );
+}
+
+function MenuItem({
+  danger = false,
+  onClick,
+  children,
+}: {
+  danger?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      className={`cursor-pointer px-2.5 py-1.5 text-left text-[10px] font-medium ${
+        danger
+          ? 'text-[#E7000B] hover:bg-red-50'
+          : 'text-[#1C1F2A] hover:bg-gray-50'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function DocumentIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className="size-3.5"
+    >
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <path d="M14 3v5h5" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <Glyph>
+      <path d="M4 20h16" />
+      <path d="M12 4v11" />
+      <path d="m7.5 10.5 4.5 4.5 4.5-4.5" />
+    </Glyph>
+  );
+}
+
+function UploadIcon() {
+  return (
+    <Glyph>
+      <path d="M4 20h16" />
+      <path d="M12 15V4" />
+      <path d="m7.5 8.5 4.5-4.5 4.5 4.5" />
+    </Glyph>
+  );
+}
+
+/** 행에서 쓰는 선 아이콘 공통 껍데기 */
+function Glyph({
+  className = 'size-3 shrink-0',
+  children,
+}: {
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className={className}
+    >
+      {children}
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden
+      className="size-3 shrink-0"
+    >
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+function MoreIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden
+      className="size-2.5"
+    >
+      <circle cx="5" cy="12" r="1.6" />
+      <circle cx="12" cy="12" r="1.6" />
+      <circle cx="19" cy="12" r="1.6" />
+    </svg>
+  );
+}

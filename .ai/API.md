@@ -1,8 +1,8 @@
 # 연동 API 명세서
 
+**최종 업데이트**: 2026-08-06 (파일 도메인 연동 — 36~43 추가 · 공통 절 신설)
 **최종 업데이트**: 2026-08-06 (사원 정보 수정 연동 — 33 갱신 · `email`/`phone` 클리어 방식 확인 대기 추가)
 **최종 업데이트**: 2026-08-06 (사원 상세 · 권한 · 계정 상태 · 퇴사 연동 — 19 · 20 · 31 · 34 갱신)
-**최종 업데이트**: 2026-08-06 (부서 · 사원 목록 · 비밀번호 재설정 연동 — 목차 갱신)
 
 > 📌 이 파일은 **프론트가 연동하는 백엔드 API**를 정리하는 곳이에요. (내가 만드는 게 아니라 **호출하는** 입장)
 > AI는 API 연동 코드를 작성하기 전에 이 파일을 먼저 읽어요. (잘못된 경로/필드/타입으로 fetch 짜는 실수 방지)
@@ -13,61 +13,71 @@
 
 ## 목차
 
-| #                                         | API              | Method · Path                                | 연동                                  |
-| ----------------------------------------- | ---------------- | -------------------------------------------- | ------------------------------------- |
-| [1](#1-로그인)                            | 로그인           | `POST /auth/login`                           | ✅ `features/auth/api.ts`             |
-| [2](#2-로그아웃)                          | 로그아웃         | `POST /auth/logout`                          | ✅ `features/auth/api.ts`             |
-| [3](#3-내-정보-조회)                      | 내 정보 조회     | `GET /auth/me`                               | ✅ `features/auth/api.ts`             |
-| [4](#4-약관-동의)                         | 약관 동의        | `POST /auth/terms-agreements`                | ✅ `features/auth/api.ts`             |
-| [5](#5-비밀번호-변경)                     | 비밀번호 변경    | `PATCH /auth/password`                       | ✅ `features/auth/api.ts`             |
-| [6](#6-프로젝트-상세-조회)                | 프로젝트 상세    | `GET /projects/{projectId}`                  | ✅ `features/project/api.ts`          |
-| [7](#7-프로젝트-스테이지-목록)            | 스테이지 목록    | `GET /projects/{projectId}/stages`           | ✅ `features/project/api.ts`          |
-| [8](#8-프로젝트-스텝-목록)                | 스텝 목록        | `GET /projects/{projectId}/steps`            | ✅ `features/project/api.ts`          |
-| [9](#9-블록-생성)                         | 블록 생성        | `POST /steps/{stepId}/blocks`                | ✅ `features/block/api.ts`            |
-| [10](#10-스텝-블록-일괄-조회)             | 블록 일괄 조회   | `GET /steps/{stepId}/blocks`                 | ✅ `features/block/api.ts`            |
-| [11](#11-텍스트-본문-수정)                | 텍스트 본문 수정 | `PATCH /blocks/texts/{txtId}`                | ✅ `features/block/api.ts`            |
-| [12](#12-체크리스트-항목-생성)            | 체크리스트 생성  | `POST /blocks/checklists/{chkBlockId}/items` | ✅ `features/block/api.ts`            |
-| [13](#13-체크리스트-항목-수정)            | 체크리스트 수정  | `PATCH /blocks/checklists/items/{chkId}`     | ✅ `features/block/api.ts`            |
-| [14](#14-체크리스트-항목-삭제)            | 체크리스트 삭제  | `DELETE /blocks/checklists/items/{chkId}`    | ✅ `features/block/api.ts`            |
-| [15](#15-사업-카테고리-목록-조회)         | 카테고리 목록    | `GET /business-categories`                   | ✅ `features/businessCategory/api.ts` |
-| [16](#16-사업-카테고리-생성)              | 카테고리 생성    | `POST /business-categories`                  | ✅ `features/businessCategory/api.ts` |
-| [17](#17-사업-카테고리-수정)              | 카테고리 수정    | `PATCH /business-categories/{categoryId}`    | ✅ `features/businessCategory/api.ts` |
-| [18](#18-사업-카테고리-삭제)              | 카테고리 삭제    | `DELETE /business-categories/{categoryId}`   | ✅ `features/businessCategory/api.ts` |
-| [19](#19-전역-권한-변경)                  | 권한 변경        | `PATCH /accounts/{userId}/role`              | ✅ `features/employee/api.ts`         |
-| [20](#20-계정-상태-변경)                  | 계정 상태 변경   | `PATCH /accounts/{userId}/status`            | ✅ `features/employee/api.ts`         |
-| [21](#21-비밀번호-재설정-개인--다중-공용) | 비밀번호 재설정  | `POST /accounts/password-resets`             | ✅ `features/employee/api.ts`         |
-| [22](#22-부서-목록-조회)                  | 부서 목록        | `GET /departments`                           | ✅ `features/department/api.ts`       |
-| [23](#23-부서-생성-최상위--하위-공용)     | 부서 생성        | `POST /departments`                          | ✅ `features/department/api.ts`       |
-| [24](#24-부서명-수정)                     | 부서명 수정      | `PATCH /departments/{departmentId}`          | ✅ `features/department/api.ts`       |
-| [25](#25-부서-삭제)                       | 부서 삭제        | `DELETE /departments/{departmentId}`         | ✅ `features/department/api.ts`       |
-| [26](#26-직급-목록-조회)                  | 직급 목록        | `GET /job-positions`                         | ✅ `features/jobPosition/api.ts`      |
-| [27](#27-직급-생성)                       | 직급 생성        | `POST /job-positions`                        | ✅ `features/jobPosition/api.ts`      |
-| [28](#28-직급-수정-직급명--순서)          | 직급 수정        | `PATCH /job-positions/{jobPositionId}`       | ✅ `features/jobPosition/api.ts`      |
-| [29](#29-직급-삭제)                       | 직급 삭제        | `DELETE /job-positions/{jobPositionId}`      | ✅ `features/jobPosition/api.ts`      |
-| [30](#30-사원-목록-조회-인사관리)         | 사원 목록        | `GET /employees`                             | ✅ `features/employee/api.ts`         |
-| [31](#31-사원-상세-조회)                  | 사원 상세        | `GET /employees/{userId}`                    | ✅ `features/employee/api.ts`         |
-| [32](#32-사원-등록-계정-동시-발급)        | 사원 등록        | `POST /employees`                            | ⬜ 사원 등록 (#38)                    |
-| [33](#33-사원-정보-수정)                  | 사원 수정        | `PATCH /employees/{userId}`                  | ✅ `features/employee/api.ts`         |
-| [34](#34-퇴사-처리)                       | 퇴사 처리        | `PATCH /employees/{userId}/resignation`      | ✅ `features/employee/api.ts`         |
-| [35](#35-사원-이름-검색-결재선-지정용)    | 사원 이름 검색   | `GET /employees/search`                      | ⬜ 결재선 검색 (#41)                  |
+| #                                         | API              | Method · Path                                  | 연동                                  |
+| ----------------------------------------- | ---------------- | ---------------------------------------------- | ------------------------------------- |
+| [1](#1-로그인)                            | 로그인           | `POST /auth/login`                             | ✅ `features/auth/api.ts`             |
+| [2](#2-로그아웃)                          | 로그아웃         | `POST /auth/logout`                            | ✅ `features/auth/api.ts`             |
+| [3](#3-내-정보-조회)                      | 내 정보 조회     | `GET /auth/me`                                 | ✅ `features/auth/api.ts`             |
+| [4](#4-약관-동의)                         | 약관 동의        | `POST /auth/terms-agreements`                  | ✅ `features/auth/api.ts`             |
+| [5](#5-비밀번호-변경)                     | 비밀번호 변경    | `PATCH /auth/password`                         | ✅ `features/auth/api.ts`             |
+| [6](#6-프로젝트-상세-조회)                | 프로젝트 상세    | `GET /projects/{projectId}`                    | ✅ `features/project/api.ts`          |
+| [7](#7-프로젝트-스테이지-목록)            | 스테이지 목록    | `GET /projects/{projectId}/stages`             | ✅ `features/project/api.ts`          |
+| [8](#8-프로젝트-스텝-목록)                | 스텝 목록        | `GET /projects/{projectId}/steps`              | ✅ `features/project/api.ts`          |
+| [9](#9-블록-생성)                         | 블록 생성        | `POST /steps/{stepId}/blocks`                  | ✅ `features/block/api.ts`            |
+| [10](#10-스텝-블록-일괄-조회)             | 블록 일괄 조회   | `GET /steps/{stepId}/blocks`                   | ✅ `features/block/api.ts`            |
+| [11](#11-텍스트-본문-수정)                | 텍스트 본문 수정 | `PATCH /blocks/texts/{txtId}`                  | ✅ `features/block/api.ts`            |
+| [12](#12-체크리스트-항목-생성)            | 체크리스트 생성  | `POST /blocks/checklists/{chkBlockId}/items`   | ✅ `features/block/api.ts`            |
+| [13](#13-체크리스트-항목-수정)            | 체크리스트 수정  | `PATCH /blocks/checklists/items/{chkId}`       | ✅ `features/block/api.ts`            |
+| [14](#14-체크리스트-항목-삭제)            | 체크리스트 삭제  | `DELETE /blocks/checklists/items/{chkId}`      | ✅ `features/block/api.ts`            |
+| [15](#15-사업-카테고리-목록-조회)         | 카테고리 목록    | `GET /business-categories`                     | ✅ `features/businessCategory/api.ts` |
+| [16](#16-사업-카테고리-생성)              | 카테고리 생성    | `POST /business-categories`                    | ✅ `features/businessCategory/api.ts` |
+| [17](#17-사업-카테고리-수정)              | 카테고리 수정    | `PATCH /business-categories/{categoryId}`      | ✅ `features/businessCategory/api.ts` |
+| [18](#18-사업-카테고리-삭제)              | 카테고리 삭제    | `DELETE /business-categories/{categoryId}`     | ✅ `features/businessCategory/api.ts` |
+| [19](#19-전역-권한-변경)                  | 권한 변경        | `PATCH /accounts/{userId}/role`                | ✅ `features/employee/api.ts`         |
+| [20](#20-계정-상태-변경)                  | 계정 상태 변경   | `PATCH /accounts/{userId}/status`              | ✅ `features/employee/api.ts`         |
+| [21](#21-비밀번호-재설정-개인--다중-공용) | 비밀번호 재설정  | `POST /accounts/password-resets`               | ✅ `features/employee/api.ts`         |
+| [22](#22-부서-목록-조회)                  | 부서 목록        | `GET /departments`                             | ✅ `features/department/api.ts`       |
+| [23](#23-부서-생성-최상위--하위-공용)     | 부서 생성        | `POST /departments`                            | ✅ `features/department/api.ts`       |
+| [24](#24-부서명-수정)                     | 부서명 수정      | `PATCH /departments/{departmentId}`            | ✅ `features/department/api.ts`       |
+| [25](#25-부서-삭제)                       | 부서 삭제        | `DELETE /departments/{departmentId}`           | ✅ `features/department/api.ts`       |
+| [26](#26-직급-목록-조회)                  | 직급 목록        | `GET /job-positions`                           | ✅ `features/jobPosition/api.ts`      |
+| [27](#27-직급-생성)                       | 직급 생성        | `POST /job-positions`                          | ✅ `features/jobPosition/api.ts`      |
+| [28](#28-직급-수정-직급명--순서)          | 직급 수정        | `PATCH /job-positions/{jobPositionId}`         | ✅ `features/jobPosition/api.ts`      |
+| [29](#29-직급-삭제)                       | 직급 삭제        | `DELETE /job-positions/{jobPositionId}`        | ✅ `features/jobPosition/api.ts`      |
+| [30](#30-사원-목록-조회-인사관리)         | 사원 목록        | `GET /employees`                               | ✅ `features/employee/api.ts`         |
+| [31](#31-사원-상세-조회)                  | 사원 상세        | `GET /employees/{userId}`                      | ✅ `features/employee/api.ts`         |
+| [32](#32-사원-등록-계정-동시-발급)        | 사원 등록        | `POST /employees`                              | ⬜ 사원 등록 (#38)                    |
+| [33](#33-사원-정보-수정)                  | 사원 수정        | `PATCH /employees/{userId}`                    | ✅ `features/employee/api.ts`         |
+| [34](#34-퇴사-처리)                       | 퇴사 처리        | `PATCH /employees/{userId}/resignation`        | ✅ `features/employee/api.ts`         |
+| [35](#35-사원-이름-검색-결재선-지정용)    | 사원 이름 검색   | `GET /employees/search`                        | ⬜ 결재선 검색 (#41)                  |
+| [36](#36-블록-파일-목록-조회)             | 블록 파일 목록   | `GET /blocks/{blockId}/files`                  | ✅ `features/file/api.ts`             |
+| [37](#37-파일-업로드-시작)                | 업로드 시작      | `POST /files/uploads`                          | ✅ `features/file/api.ts`             |
+| [38](#38-업로드-완료-통보)                | 업로드 완료 통보 | `POST /files/uploads/{fileVersionId}/complete` | ✅ `features/file/api.ts`             |
+| [39](#39-문서명-수정)                     | 문서명 수정      | `PATCH /files/{fileId}`                        | ✅ `features/file/api.ts`             |
+| [40](#40-휴지통으로-이동)                 | 휴지통으로 이동  | `DELETE /files/{fileId}`                       | ✅ `features/file/api.ts`             |
+| [41](#41-버전-이력-조회)                  | 버전 이력        | `GET /files/{fileId}/versions`                 | ✅ `features/file/api.ts`             |
+| [42](#42-다운로드-url-발급)               | 다운로드 URL     | `GET /file-versions/{id}/download`             | ✅ `features/file/api.ts`             |
+| [43](#43-미리보기-조회-pdf-바이너리)      | 미리보기 (PDF)   | `GET /file-versions/{id}/preview`              | ✅ `features/file/api.ts`             |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
-> 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한)
+> 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통)
 
 ### ❗ 백엔드 확인 대기
 
-| 항목                                              | 막힌 기능                        | 섹션 |
-| ------------------------------------------------- | -------------------------------- | ---- |
-| `block.type` enum 이 "10값" 인데 정리된 값은 9개  | 모르는 유형은 껍데기로 표시      | 9    |
-| 블록 생성 응답 `data` 스키마                      | 생성 직후 해당 블록 지정         | 9    |
-| `detail.chkBlockId` · `detail.items`              | 체크리스트 항목 추가 · 목록      | 10   |
-| `detail.txtId` · `detail.content`                 | 텍스트 본문 편집                 | 10   |
-| 블록 수정 · 삭제 · 순서 변경 API                  | `⋯` 메뉴 · 드래그 핸들           | —    |
-| 프로젝트 참여자 목록 API                          | 사이드바 참여자 (`MOCK_MEMBERS`) | —    |
-| 사원 엑셀 템플릿 다운로드 · 일괄 등록 (구현 중)   | 화면은 "준비 중" 안내만          | —    |
-| 사원 목록에 **직급 필터** 없음                    | 직급별 사원 조회                 | 30   |
-| `email` · `phone` 을 빈 문자열로 지울 수 있는지   | 수정 폼에서 연락처 · 이메일 삭제 | 33   |
-| 부서명 중복 검사 범위 (전체 → 형제) — 변경 요청함 | 본부마다 같은 팀 이름 사용       | 23   |
+| 항목                                              | 막힌 기능                        | 섹션  |
+| ------------------------------------------------- | -------------------------------- | ----- |
+| `block.type` enum 이 "10값" 인데 정리된 값은 9개  | 모르는 유형은 껍데기로 표시      | 9     |
+| 블록 생성 응답 `data` 스키마                      | 생성 직후 해당 블록 지정         | 9     |
+| `detail.chkBlockId` · `detail.items`              | 체크리스트 항목 추가 · 목록      | 10    |
+| `detail.txtId` · `detail.content`                 | 텍스트 본문 편집                 | 10    |
+| 블록 수정 · 삭제 · 순서 변경 API                  | `⋯` 메뉴 · 드래그 핸들           | —     |
+| 프로젝트 참여자 목록 API                          | 사이드바 참여자 (`MOCK_MEMBERS`) | —     |
+| 사원 엑셀 템플릿 다운로드 · 일괄 등록 (구현 중)   | 화면은 "준비 중" 안내만          | —     |
+| 사원 목록에 **직급 필터** 없음                    | 직급별 사원 조회                 | 30    |
+| `email` · `phone` 을 빈 문자열로 지울 수 있는지   | 수정 폼에서 연락처 · 이메일 삭제 | 33    |
+| 부서명 중복 검사 범위 (전체 → 형제) — 변경 요청함 | 본부마다 같은 팀 이름 사용       | 23    |
+| 파일 API `PR #190` 머지 대기                      | 문서 블록 실동작 확인            | 36~43 |
+| 휴지통 화면 목업                                  | 복구 · 영구 삭제 API 연동        | —     |
 
 ---
 
@@ -1217,6 +1227,235 @@ data: {
 
 > ℹ️ 시스템 계정 · 퇴사자는 후보에 나오지 않으며, 결과가 없으면 빈 배열(`[]`).
 > ℹ️ 급여 등 민감 정보 없이 위 4개 필드만 반환한다.
+
+---
+
+## 파일 도메인 — 공통
+
+계약 원본은 백엔드 `.ai/api/file.md` 이고 이 문서와 다르면 **구현이 맞다.**
+엔드포인트 12개 중 9개가 구현·실기동 검증 완료(2026-08-06, `PR #190` 머지 대기)다.
+
+| 항목          | 내용                                                                                                           |
+| ------------- | -------------------------------------------------------------------------------------------------------------- |
+| **권한**      | ⚠️ **파일 단위 권한이 없다.** 스텝 권한을 그대로 따른다 — `VIEWER`=조회·다운로드, `EDITOR`=업로드·수정·삭제    |
+| **소유 구조** | ⚠️ 파일은 **프로젝트 소속**이고 블록은 참조만 한다. 블록을 지워도 파일은 산다                                  |
+| **저장소**    | S3 presigned URL — 클라이언트가 직접 `PUT`/`GET`. 서버는 바이너리를 거치지 않는다 (업로드 10분 · 다운로드 5분) |
+| **제약**      | 50MB 이하 · 실행파일 확장자 차단 · 미리보기는 **PDF 만**, 서버가 앞 5페이지를 잘라 반환                        |
+
+> ℹ️ 코드 상수는 `src/features/file/errorCodes.ts`. 분기는 status 가 아니라 **`code`** 로 한다.
+> ⏸ **미룬 것 3개** — 휴지통 복구(`POST /files/{fileId}/restore`) · 영구 삭제(`POST /files/{fileId}/permanent-deletion`) · AI 분석용 버전 목록(`GET /blocks/{blockId}/file-versions`). 휴지통 화면 · AI 경계 확정 후.
+
+---
+
+## 36. 블록 파일 목록 조회
+
+| 항목          | 내용                                           |
+| ------------- | ---------------------------------------------- |
+| **Method**    | `GET`                                          |
+| **Path**      | `/api/v1/blocks/{blockId}/files`               |
+| **인증 필요** | ✅ (스텝 `VIEWER`)                             |
+| **사용 위치** | `src/features/file/api.ts` → `getBlockFiles()` |
+
+**요청 Query** — `deleted` (선택, `true` 면 휴지통. 기본 `false`)
+
+**응답 data** — `blockId` · `canEdit`(버튼 노출 기준) · `content[]`
+
+| 필드                                                       | 설명                          |
+| ---------------------------------------------------------- | ----------------------------- |
+| `fileId` · `name`                                          | 문서 ID · 표시명              |
+| `latestVersionId` · `latestVersionNo` · `versionCount`     | 최신 버전 · 총 버전 수        |
+| `originalFileName` · `extension` · `sizeBytes`             | 원본 파일 정보                |
+| `previewable`                                              | PDF 만 `true`                 |
+| `uploaderName` · `uploaderDepartment` · `uploaderPosition` | 업로더 **스냅샷**             |
+| `updatedAt` · `deletedAt`                                  | 갱신일 · 휴지통이면 값이 있다 |
+
+| status | code                              | 화면 처리           |
+| ------ | --------------------------------- | ------------------- |
+| 403    | `FILE_ACCESS_PERMISSION_REQUIRED` | 스텝 열람 권한 없음 |
+| 404    | `FILE_BLOCK_NOT_FOUND`            | 블록 없음 · 삭제됨  |
+
+> ℹ️ **상세 ID 가 필요 없다** — 체크리스트(`chkBlockId`) · 텍스트(`txtId`)와 달리 `blockId` 로 바로 조회한다.
+> ℹ️ 완료 버전이 0개인 문서는 목록에서 제외되고, 정렬은 블록 연결일 오름차순이다.
+
+---
+
+## 37. 파일 업로드 시작
+
+| 항목          | 내용                                         |
+| ------------- | -------------------------------------------- |
+| **Method**    | `POST`                                       |
+| **Path**      | `/api/v1/files/uploads`                      |
+| **인증 필요** | ✅ (스텝 `EDITOR`)                           |
+| **사용 위치** | `src/features/file/api.ts` → `startUpload()` |
+
+**요청 Body**
+
+```ts
+{
+  blockId: number;            // ✅
+  originalFileName: string;   // ✅ 확장자 포함
+  sizeBytes: number;          // ✅ 50MB 이하
+  mimeType?: string;
+  name?: string;              // 표시명. 생략 시 확장자 뗀 원본명
+  fileId?: number;            // 주면 그 문서의 새 버전, 없으면 새 문서(v1)
+  comment?: string;
+  allowDuplicateName?: boolean; // 동명 확인 후 재요청 시 true
+}
+```
+
+**응답 data (201)** — `fileId` · `fileVersionId` · `versionNo` · `uploadUrl` · `expiresAt`
+
+| status | code                            | 화면 처리                                     |
+| ------ | ------------------------------- | --------------------------------------------- |
+| 400    | `FILE_SIZE_EXCEEDED`            | 50MB 초과                                     |
+| 400    | `FILE_EXTENSION_BLOCKED`        | 실행 파일 확장자                              |
+| 403    | `FILE_EDIT_PERMISSION_REQUIRED` | 스텝 편집 권한 없음                           |
+| 404    | `FILE_BLOCK_NOT_FOUND`          | 블록 없음 · 삭제됨                            |
+| 409    | `FILE_NAME_DUPLICATED`          | **확인 후 `allowDuplicateName: true` 재요청** |
+
+> ⚠️ **새 문서와 새 버전이 같은 API 다.** `fileId` 유무로 갈린다.
+> ⚠️ 409 는 실패가 아니라 **확인 요청**이다 — `DuplicateNameError` 로 분리해 확인 모달을 띄운다.
+
+---
+
+## 38. 업로드 완료 통보
+
+| 항목          | 내용                                             |
+| ------------- | ------------------------------------------------ |
+| **Method**    | `POST`                                           |
+| **Path**      | `/api/v1/files/uploads/{fileVersionId}/complete` |
+| **인증 필요** | ✅ (스텝 `EDITOR`)                               |
+| **사용 위치** | `src/features/file/api.ts` → `completeUpload()`  |
+
+**요청 Body** — `checksum` (선택, 보내면 서버가 대조)
+
+**응답 data** — `fileId` · `fileVersionId` · `versionNo` · `name` · `originalFileName` · `extension` · `sizeBytes` · `pageCount` · `comment` · 업로더 3필드 · `completedAt`
+
+| status | code                     | 화면 처리                           |
+| ------ | ------------------------ | ----------------------------------- |
+| 400    | `FILE_ALREADY_COMPLETED` | 이미 완료된 버전                    |
+| 409    | `FILE_OBJECT_NOT_FOUND`  | 저장소에 객체 없음 — 버전 실패 처리 |
+| 409    | `FILE_SIZE_MISMATCH`     | 크기 · 체크섬 불일치                |
+
+> ❗ **이 호출이 빠지면 버전이 `업로드중` 으로 남아 목록에 나오지 않는다.** 서버가 저장소를 직접 `HEAD` 로 확인하고 업로더 정보를 이 시점에 확정한다.
+> ℹ️ 업로드는 **3단계**다 — 37 발급 → presigned `PUT` → 38 통보. 중간 실패를 되돌리는 API 가 없어 프론트가 끊긴 지점(`stage`)을 안내한다.
+
+---
+
+## 39. 문서명 수정
+
+| 항목          | 내용                                        |
+| ------------- | ------------------------------------------- |
+| **Method**    | `PATCH`                                     |
+| **Path**      | `/api/v1/files/{fileId}`                    |
+| **인증 필요** | ✅ (스텝 `EDITOR`)                          |
+| **사용 위치** | `src/features/file/api.ts` → `renameFile()` |
+
+**요청 Body** — `name` (✅, 최대 255자)
+**응답 data** — `fileId` · `name`
+
+| status | code                            | 화면 처리               |
+| ------ | ------------------------------- | ----------------------- |
+| 400    | `FILE_INVALID_REQUEST`          | 비었거나 255자 초과     |
+| 403    | `FILE_EDIT_PERMISSION_REQUIRED` | 스텝 편집 권한 없음     |
+| 404    | `FILE_NOT_FOUND`                | 문서 없음 · 이미 휴지통 |
+
+> ℹ️ **표시명만** 바뀐다. 각 버전에 저장된 원본 파일명은 그대로다.
+
+---
+
+## 40. 휴지통으로 이동
+
+| 항목          | 내용                                       |
+| ------------- | ------------------------------------------ |
+| **Method**    | `DELETE`                                   |
+| **Path**      | `/api/v1/files/{fileId}`                   |
+| **인증 필요** | ✅ (스텝 `EDITOR`)                         |
+| **사용 위치** | `src/features/file/api.ts` → `trashFile()` |
+
+**응답 data** — `fileId` · `deletedAt`
+
+| status | code                            | 화면 처리                                        |
+| ------ | ------------------------------- | ------------------------------------------------ |
+| 400    | `FILE_ALREADY_DELETED`          | 이미 휴지통                                      |
+| 403    | `FILE_EDIT_PERMISSION_REQUIRED` | 스텝 편집 권한 없음                              |
+| 409    | `FILE_APPROVAL_IN_PROGRESS`     | **진행 중 결재의 대상** — `message` 에 결재 정보 |
+
+> ℹ️ soft delete — 저장소 객체는 지우지 않아 복구할 수 있다.
+> ⚠️ 409 의 `message` 에 어떤 결재가 막고 있는지 실려 오므로 **그대로 노출**한다.
+
+---
+
+## 41. 버전 이력 조회
+
+| 항목          | 내용                                             |
+| ------------- | ------------------------------------------------ |
+| **Method**    | `GET`                                            |
+| **Path**      | `/api/v1/files/{fileId}/versions`                |
+| **인증 필요** | ✅ (스텝 `VIEWER`)                               |
+| **사용 위치** | `src/features/file/api.ts` → `getFileVersions()` |
+
+**응답 data** — `fileId` · `name` · `versionCount` · `content[]`
+(`fileVersionId` · `versionNo` · `latest` · `originalFileName` · `extension` · `sizeBytes` · `pageCount` · `previewable` · `comment` · 업로더 3필드 · `completedAt`)
+
+| status | code                              | 화면 처리           |
+| ------ | --------------------------------- | ------------------- |
+| 403    | `FILE_ACCESS_PERMISSION_REQUIRED` | 스텝 열람 권한 없음 |
+| 404    | `FILE_NOT_FOUND`                  | 문서 없음 · 휴지통  |
+
+> ℹ️ **append-only 조회 전용** — 버전 삭제 · 되돌리기가 없다. 실패한 버전은 제외되고 차수 내림차순이다.
+> ℹ️ 업로더 정보는 스냅샷이라 퇴사 · 부서이동해도 당시 값이 남는다.
+
+---
+
+## 42. 다운로드 URL 발급
+
+| 항목          | 내용                                             |
+| ------------- | ------------------------------------------------ |
+| **Method**    | `GET`                                            |
+| **Path**      | `/api/v1/file-versions/{fileVersionId}/download` |
+| **인증 필요** | ✅ (스텝 `VIEWER`)                               |
+| **사용 위치** | `src/features/file/api.ts` → `getDownloadUrl()`  |
+
+**응답 data** — `fileVersionId` · `originalFileName` · `sizeBytes` · `downloadUrl`(presigned, 5분) · `expiresAt`
+
+| status | code                              | 화면 처리                 |
+| ------ | --------------------------------- | ------------------------- |
+| 403    | `FILE_ACCESS_PERMISSION_REQUIRED` | 스텝 열람 권한 없음       |
+| 404    | `FILE_VERSION_NOT_FOUND`          | 버전 없음 · 문서가 휴지통 |
+| 409    | `FILE_UPLOAD_NOT_COMPLETED`       | 업로드 미완료 버전        |
+
+> ℹ️ 바이너리가 아니라 **URL** 이 온다. 받은 URL 을 새 탭으로 넘긴다.
+
+---
+
+## 43. 미리보기 조회 (PDF 바이너리)
+
+| 항목          | 내용                                            |
+| ------------- | ----------------------------------------------- |
+| **Method**    | `GET`                                           |
+| **Path**      | `/api/v1/file-versions/{fileVersionId}/preview` |
+| **인증 필요** | ✅ (스텝 `VIEWER`)                              |
+| **사용 위치** | `src/features/file/api.ts` → `getPreview()`     |
+
+**응답** — ⚠️ **JSON 이 아니라 잘라낸 PDF 바이너리다.**
+
+| 응답 헤더              | 설명                    |
+| ---------------------- | ----------------------- |
+| `Content-Type`         | `application/pdf`       |
+| `X-Preview-Page-Count` | 실제로 보낸 페이지 (≤5) |
+| `X-Total-Page-Count`   | 원본 전체 페이지        |
+
+| status | code                              | 화면 처리                       |
+| ------ | --------------------------------- | ------------------------------- |
+| 403    | `FILE_ACCESS_PERMISSION_REQUIRED` | 스텝 열람 권한 없음             |
+| 404    | `FILE_VERSION_NOT_FOUND`          | 버전 없음 · 문서가 휴지통       |
+| 409    | `FILE_PREVIEW_NOT_SUPPORTED`      | **PDF 가 아님** — 다운로드 안내 |
+| 409    | `FILE_UPLOAD_NOT_COMPLETED`       | 업로드 미완료 버전              |
+| 500    | `FILE_PREVIEW_FAILED`             | PDF 처리 실패                   |
+
+> ⚠️ **본문이 우리 봉투가 아닌 유일한 API** 다. presigned 를 주면 전체 PDF 에 접근돼 "최대 5페이지" 제한이 무의미해지므로 서버가 직접 잘라 반환한다.
+> ℹ️ 그래서 `src/lib/api.ts` 에 `requestRaw()` 를 뒀다 — 성공 시 `Response` 를 그대로 주고, 실패는 JSON 실패 봉투로 오므로 다른 API 와 똑같이 처리한다.
 
 ---
 

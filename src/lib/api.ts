@@ -46,6 +46,37 @@ export function isAbortError(error: unknown) {
   return error instanceof DOMException && error.name === 'AbortError';
 }
 
+/** 응답이 오지 않은 경우(네트워크 단절 · CORS 차단)를 공통 문구로 바꾼다 */
+function toNetworkError(caught: unknown) {
+  // 취소는 호출 측이 의도한 것이라 네트워크 오류로 바꾸지 않고 그대로 던진다
+  if (isAbortError(caught)) return caught;
+
+  // status 0 = 응답 자체가 오지 않은 경우
+  return new ApiError(0, '서버에 연결할 수 없습니다. 네트워크를 확인해주세요.');
+}
+
+/**
+ * 실패 응답을 `ApiError` 로 바꿔 던진다.
+ * 본문이 JSON 이든 바이너리든 **에러 응답은 항상 실패 봉투**라 여기서 같이 다룬다.
+ */
+async function throwFailure(response: Response): Promise<never> {
+  const failure = (await response
+    .json()
+    .catch(() => null)) as ApiErrorEnvelope | null;
+
+  if (response.status === 403 && typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent(FORBIDDEN_EVENT, { detail: failure?.code }),
+    );
+  }
+
+  throw new ApiError(
+    response.status,
+    failure?.message ?? '요청을 처리하지 못했습니다.',
+    failure?.code,
+  );
+}
+
 async function request<T>(
   path: string,
   method: string,
@@ -64,36 +95,39 @@ async function request<T>(
       signal,
     });
   } catch (caught) {
-    // 취소는 호출 측이 의도한 것이라 네트워크 오류로 바꾸지 않고 그대로 던진다
-    if (isAbortError(caught)) throw caught;
-
-    // status 0 = 네트워크 단절 · CORS 차단 등 응답 자체가 오지 않은 경우
-    throw new ApiError(
-      0,
-      '서버에 연결할 수 없습니다. 네트워크를 확인해주세요.',
-    );
+    throw toNetworkError(caught);
   }
 
-  const envelope = (await response.json().catch(() => null)) as
-    ApiEnvelope<T> | ApiErrorEnvelope | null;
+  if (!response.ok) await throwFailure(response);
 
-  if (!response.ok) {
-    const failure = envelope as ApiErrorEnvelope | null;
+  const envelope = (await response
+    .json()
+    .catch(() => null)) as ApiEnvelope<T> | null;
 
-    if (response.status === 403 && typeof window !== 'undefined') {
-      window.dispatchEvent(
-        new CustomEvent(FORBIDDEN_EVENT, { detail: failure?.code }),
-      );
-    }
+  return envelope?.data as T;
+}
 
-    throw new ApiError(
-      response.status,
-      failure?.message ?? '요청을 처리하지 못했습니다.',
-      failure?.code,
-    );
+/**
+ * 응답 본문이 우리 봉투가 아닌 API 용 (예: PDF 미리보기 바이너리).
+ * 성공하면 `Response` 를 그대로 준다 — 헤더까지 봐야 하는 경우가 있다.
+ * 실패는 JSON 실패 봉투로 오므로 `request` 와 동일하게 처리한다.
+ */
+export async function requestRaw(path: string, signal?: AbortSignal) {
+  let response: Response;
+
+  try {
+    response = await fetch(`${BASE_URL}${path}`, {
+      method: 'GET',
+      credentials: 'include',
+      signal,
+    });
+  } catch (caught) {
+    throw toNetworkError(caught);
   }
 
-  return (envelope as ApiEnvelope<T> | null)?.data as T;
+  if (!response.ok) await throwFailure(response);
+
+  return response;
 }
 
 export const api = {
