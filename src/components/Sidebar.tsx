@@ -13,7 +13,8 @@ export default function Sidebar() {
   const activeHref = findActiveMenu(pathname, user.role)?.href;
 
   return (
-    <aside className="w-70 shrink-0 bg-slate-950 text-slate-300">
+    // 셸이 화면 높이에 고정돼 있어, 메뉴가 길면 사이드바 안에서 굴러야 한다
+    <aside className="no-scrollbar w-70 shrink-0 overflow-y-auto bg-slate-950 text-slate-300">
       <div className="p-6 text-xl font-bold text-white">VitaS</div>
 
       <Link

@@ -58,6 +58,9 @@ export const ENDPOINTS = {
   },
   steps: {
     blocks: (stepId: number | string) => `${V1}/steps/${stepId}/blocks`,
+    /** 블록 배치 변경 — 스텝의 배치 전체를 한 번에 보낸다 */
+    blocksLayout: (stepId: number | string) =>
+      `${V1}/steps/${stepId}/blocks/layout`,
   },
   blocks: {
     /** 체크리스트 항목 생성 — 블록 ID 기준 */
