@@ -23,6 +23,12 @@ export interface BlockTypeOption {
    * 입금 확인 블록에서는 `title` 이 회차명이다.
    */
   titleLabel?: string;
+  /**
+   * 생성 시 차지할 칸 수 (한 행 = 3칸).
+   * 표 · 목록 · 수치가 한 줄로 들어가는 블록은 2칸이 필요하다.
+   * 새 유형을 추가하면 여기서 폭을 정해야 한다 — 선택 필드가 아니다.
+   */
+  defaultColSpan: 1 | 2;
   /** 아이콘 상자 배경 */
   background: string;
   /** 아이콘 상자 테두리 */
@@ -31,12 +37,18 @@ export interface BlockTypeOption {
   icon: string;
 }
 
-/** 모달에 노출되는 순서 그대로 둔다 (2열 그리드) */
+/**
+ * 모달에 노출되는 순서 그대로 둔다 (2열 그리드).
+ *
+ * 가로 1칸 — 텍스트 · 이미지 · 체크리스트 · 결재
+ * 가로 2칸 — 문서 업로드 · 정산(입금 확인 · 세금계산서) · 입찰 · AI
+ */
 export const BLOCK_TYPES: BlockTypeOption[] = [
   {
     code: 'CHECKLIST',
     label: '체크리스트',
     description: '할 일 목록을 Step 화면에서 바로 체크하며 관리',
+    defaultColSpan: 1,
     background: '#ECFDF5',
     border: '#A4F4CF',
     icon: '#009966',
@@ -45,6 +57,7 @@ export const BLOCK_TYPES: BlockTypeOption[] = [
     code: 'TEXT',
     label: '텍스트',
     description: '메모, 회의록, 설명 등을 자유롭게 작성하는 노트',
+    defaultColSpan: 1,
     background: '#F8FAFC',
     border: '#E2E8F0',
     icon: '#45556C',
@@ -53,31 +66,37 @@ export const BLOCK_TYPES: BlockTypeOption[] = [
     code: 'IMAGE',
     label: '이미지',
     description: '이미지를 업로드하고 썸네일로 미리 보기',
+    defaultColSpan: 1,
     background: '#F0F9FF',
     border: '#B8E6FE',
     icon: '#0084D1',
   },
   {
-    code: 'FILE',
-    label: '문서 업로드',
-    description: '여러 파일을 첨부·관리하는 문서 보관함',
-    background: '#EFF6FF',
-    border: '#BEDBFF',
-    icon: '#155DFC',
-  },
-  {
     code: 'APPROVAL',
     label: '결재',
     description: '결재 라인 구성 및 승인 현황 요약, 상세 진입 가능',
+    defaultColSpan: 1,
     background: '#FFFBEB',
     border: '#FEE685',
     icon: '#BB4D00',
+  },
+  {
+    code: 'FILE',
+    label: '문서 업로드',
+    description: '여러 파일을 첨부·관리하는 문서 보관함',
+    // 문서 행에 이름 · 배지 · 업로더 · 버튼이 한 줄로 들어간다
+    defaultColSpan: 2,
+    background: '#EFF6FF',
+    border: '#BEDBFF',
+    icon: '#155DFC',
   },
   {
     code: 'PAYMENT_CONFIRM',
     label: '입금 확인',
     description: '회차별 입금 예정·실제 입금 내역을 확인',
     titleLabel: '회차명',
+    // 정산 계열 — 금액 · 일자 · 상태를 표로 늘어놓는다
+    defaultColSpan: 2,
     background: '#F5F3FF',
     border: '#DDD6FF',
     icon: '#7F22FE',
@@ -86,6 +105,7 @@ export const BLOCK_TYPES: BlockTypeOption[] = [
     code: 'TAX_INVOICE_VIEW',
     label: '세금계산서 조회',
     description: '발행된 세금계산서 내역을 조회',
+    defaultColSpan: 2,
     background: '#ECFEFF',
     border: '#A2F4FD',
     icon: '#0092B8',
@@ -94,6 +114,7 @@ export const BLOCK_TYPES: BlockTypeOption[] = [
     code: 'BID_NOTICE',
     label: '입찰 공고',
     description: '입찰 일정, 참여사, 진행 상태를 한눈에 파악',
+    defaultColSpan: 2,
     background: '#FFF7ED',
     border: '#FFD6A8',
     icon: '#F54900',
@@ -102,6 +123,7 @@ export const BLOCK_TYPES: BlockTypeOption[] = [
     code: 'AI',
     label: 'AI Block',
     description: '문서 요약·초안 생성·분석 결과를 AI로 처리',
+    defaultColSpan: 2,
     background: '#EEF2FF',
     border: '#C6D2FF',
     icon: '#4F39F6',

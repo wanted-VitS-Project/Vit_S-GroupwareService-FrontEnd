@@ -3,11 +3,16 @@
 import { useRouter } from 'next/navigation';
 import { createContext, useCallback, useEffect, useRef, useState } from 'react';
 
-import { ApiError, FORBIDDEN_EVENT } from '@/lib/api';
+import { ApiError, FORBIDDEN_EVENT, UNAUTHORIZED_EVENT } from '@/lib/api';
 
 import { getMe } from './api';
 import AuthGates from './AuthGates';
-import { GATE_CODES, isGateCode, isPermissionCode } from './errorCodes';
+import {
+  GATE_CODES,
+  isGateCode,
+  isPermissionCode,
+  isUnauthenticatedCode,
+} from './errorCodes';
 import type { CurrentUser } from './types';
 
 /**
@@ -124,6 +129,22 @@ export default function CurrentUserProvider({
     window.addEventListener(FORBIDDEN_EVENT, handleForbidden);
     return () => window.removeEventListener(FORBIDDEN_EVENT, handleForbidden);
   }, [router, refetch]);
+
+  // 어느 API 에서 401 이 오든 세션이 끊긴 것이다 — /me 만 처리하면 다른 요청은 조용히 실패한다
+  useEffect(() => {
+    function handleUnauthorized(event: Event) {
+      const code = (event as CustomEvent<string | undefined>).detail;
+
+      // 로그인 실패(AUTH_LOGIN_FAILED)는 로그인 화면이 직접 문구를 띄운다
+      if (!isUnauthenticatedCode(code)) return;
+
+      router.replace('/login');
+    }
+
+    window.addEventListener(UNAUTHORIZED_EVENT, handleUnauthorized);
+    return () =>
+      window.removeEventListener(UNAUTHORIZED_EVENT, handleUnauthorized);
+  }, [router]);
 
   if (hasFailed) {
     return (

@@ -38,10 +38,15 @@
 | `@tiptap/starter-kit` | `3.29.2`  | 기본 확장 묶음 (제목 · 목록 · 인용 · 코드 · 굵게/기울임)     | 위 두 파일                                                     |
 | `@tiptap/pm`          | `3.29.2`  | ProseMirror 코어 (TipTap 필수 peer)                          | TipTap 내부                                                    |
 | `tiptap-markdown`     | `0.9.0`   | 마크다운 ↔ 에디터 문서 양방향 변환                           | 위 두 파일                                                     |
+| `react-pdf`           | `10.4.1`  | PDF 를 페이지 단위로 직접 렌더 (`pdfjs-dist` 래퍼)           | `src/features/file/PdfPages.tsx`                               |
 
 > 📌 **텍스트 블록이 마크다운 원문을 화면에 노출하지 않는 WYSIWYG 여야** 해서 도입했다.
 > 본문은 마크다운 문자열로 주고받고(`PATCH /blocks/texts/{txtId}`), 화면에는 서식이 적용된 결과만 보인다.
 > `@tailwindcss/typography` 는 도입하지 않고 `MARKDOWN_CLASS` 로 필요한 요소만 직접 스타일링한다.
+>
+> 📌 **`react-pdf` 는 문서 뷰어의 툴바를 없애고 폭에 맞춰 그리기 위해** 도입했다.
+> `<iframe>` + 브라우저 내장 뷰어로는 툴바 제거 · 스크롤 위임 · 폭 맞춤을 제어할 수 없다.
+> `pdfjs-dist` 는 `react-pdf` 의 전이 의존성이고, 워커는 `import.meta.url` 기준 경로로 번들에 포함시킨다 (CDN 금지 — 사내망에서 깨진다).
 
 ---
 
@@ -107,3 +112,4 @@
 | 2026-08-04 | `prettier` · `prettier-plugin-tailwindcss` 추가 (포맷 규칙 확정)                                                                                                                                                                                   | 서민지 |
 | 2026-08-04 | 폴더 구조 단계에서 쓰지 않는 9종 제거 — `primereact` · `@primeuix/themes` · `primeicons` · `@tanstack/react-query` · `zustand` · `react-hook-form` · `@hookform/resolvers` · `zod` · `date-fns`. 각 라이브러리는 실제로 쓰는 이슈에서 재설치한다   | 서민지 |
 | 2026-08-05 | TipTap 4종 추가 — `@tiptap/react` · `@tiptap/starter-kit` · `@tiptap/pm` · `tiptap-markdown`. 텍스트 블록의 WYSIWYG 마크다운 에디터에 사용. `@uiw/react-md-editor`(분할 미리보기라 WYSIWYG 아님) · Lexical(툴바 상태를 직접 구현해야 함) 대비 채택 | 손윤서 |
+| 2026-08-06 | `react-pdf` 추가 (전이 의존 `pdfjs-dist`). 문서 뷰어에서 **툴바 제거 · 폭 맞춤 · 스크롤 위임**이 필요해 브라우저 내장 뷰어(`<iframe>`)를 대체. 번들 약 350KB 증가를 감수                                                                           | 손윤서 |

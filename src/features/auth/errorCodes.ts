@@ -3,6 +3,17 @@
  * status 는 같은 값이 여러 의미로 쓰여서(400·403) 분기는 항상 code 로 한다.
  */
 
+/**
+ * 세션이 없거나 만료됐다 — 어느 API 에서 와도 로그인 화면으로 보내야 한다.
+ * ⚠️ 같은 401 이어도 `AUTH_LOGIN_FAILED`(로그인 실패)는 **전역 처리하면 안 된다.**
+ *    로그인 화면이 직접 문구를 띄워야 하는데 화면이 전환돼 버린다.
+ */
+export const UNAUTHENTICATED_CODE = 'AUTH_UNAUTHENTICATED';
+
+export function isUnauthenticatedCode(code?: string) {
+  return code === UNAUTHENTICATED_CODE;
+}
+
 /** 게이트를 통과하지 않고 다른 API 를 부르면 403 으로 돌아온다 */
 export const GATE_CODES = {
   terms: 'AUTH_TERMS_AGREEMENT_REQUIRED',
