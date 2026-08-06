@@ -26,6 +26,22 @@ export const ENDPOINTS = {
     detail: (categoryId: number | string) =>
       `${V1}/business-categories/${categoryId}`,
   },
+  employees: {
+    /** 목록 조회(ADMIN) · 등록 */
+    root: `${V1}/employees`,
+    /** 상세 조회 · 수정 */
+    detail: (userId: string) => `${V1}/employees/${userId}`,
+    /** 퇴사 처리 */
+    resignation: (userId: string) => `${V1}/employees/${userId}/resignation`,
+    /** 결재선 지정용 이름 검색 — ADMIN 전용이 아니다 */
+    search: `${V1}/employees/search`,
+  },
+  accounts: {
+    role: (userId: string) => `${V1}/accounts/${userId}/role`,
+    status: (userId: string) => `${V1}/accounts/${userId}/status`,
+    /** 비밀번호 재설정 — 개인 · 다중 공용 */
+    passwordResets: `${V1}/accounts/password-resets`,
+  },
   departments: {
     /** 목록 조회 · 생성 */
     root: `${V1}/departments`,

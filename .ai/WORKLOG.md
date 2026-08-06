@@ -6,6 +6,52 @@
 
 ---
 
+## [2026-08-06] 사원 관리 목록 화면 구현 🚧
+
+브랜치: `feat/employees` · 이슈: #4
+
+### 변경 파일
+
+| 파일                                            | 변경                                             |
+| ----------------------------------------------- | ------------------------------------------------ |
+| `src/features/employee/types.ts`                | 생성 — 목록 · 페이징 · 재설정 결과 타입          |
+| `src/features/employee/errorCodes.ts`           | 생성 — `EMP_*` · `ACC_*` · 재설정 실패 사유 문구 |
+| `src/features/employee/api.ts`                  | 생성 — 목록 조회 · 비밀번호 재설정               |
+| `src/features/employee/EmployeeList.tsx`        | 생성 — 검색 · 필터 · 표 · 다중 선택 · 페이징     |
+| `src/features/employee/EmployeeStatusBadge.tsx` | 생성 — 두 원본 값을 배지 하나로 합침             |
+| `src/features/employee/PasswordResetModal.tsx`  | 생성 — 확인 → 결과 2단계 · 메일 재발송           |
+| `src/components/Pagination.tsx`                 | 생성 — 공용 페이지 이동                          |
+| `src/app/settings/employees/page.tsx`           | `EmployeeList` 연결 (`Suspense` 경계 포함)       |
+| `src/constants/status.ts`                       | `EmployeeStatus` · 배지 라벨 추가                |
+| `src/constants/endpoints.ts`                    | `employees` · `accounts` 엔드포인트 추가         |
+
+### 주요 작업 내용
+
+- 사원 목록 조회 · 검색(`keyword`) · 필터(부서 · 권한 · 상태 · 퇴사자 포함) 구현
+- **필터 상태를 URL 쿼리로 관리** — 부서 관리의 "사원 보기" 링크, 새로고침, 뒤로가기가 같은 경로로 동작
+- 체크박스 다중 선택 + 일괄 액션 바 → 비밀번호 일괄 초기화
+- 재설정 결과 모달 — 요청 · 성공 · 실패 집계 + 실패 목록, `passwordChanged` 인 사원만 골라 **메일 재발송**
+- 이메일 미등록 사원은 목록에서 `⚠ 이메일 미등록 · 로그인 불가` 배지로 구분
+
+### 부수 결정
+
+- 상태 배지는 `resignedAt` → `accountStatus` → `passwordStatus` 순으로 판정한다 — 퇴사자는 계정도 함께 비활성되므로 퇴사가 가장 바깥이다
+- **권한 변경 · 계정 정지는 목록 케밥에서 뺐다** — 같은 UI 를 상세(#5)에서 또 만들게 된다. 목록 케밥은 `상세 보기` · `비밀번호 초기화` 두 개
+- 이름 정렬(`localeCompare('ko')`)은 **지금 페이지 안에서만** 적용된다 — 서버가 페이징해서 주므로 전체 정렬은 백엔드 몫
+- 페이지를 옮기거나 필터를 바꾸면 선택을 비운다 — 화면에 없는 대상까지 일괄 처리하면 위험하다
+- 엑셀 일괄 등록은 버튼만 두고 `준비 중` 으로 비활성 (백엔드 미구현)
+- `useSearchParams` 를 쓰는 화면이라 `page.tsx` 에 `Suspense` 경계를 둔다 (없으면 프리렌더 실패)
+
+### 검증
+
+| 명령               | 결과               |
+| ------------------ | ------------------ |
+| `npx tsc --noEmit` | ✅ 에러 0          |
+| `npx eslint src`   | ✅ 에러 0 · 경고 0 |
+| 브라우저 동작 확인 | 담당자 직접 확인   |
+
+---
+
 ## [2026-08-06] 부서 관리 화면 구현 🚧
 
 브랜치: `feat/departments` · 이슈: #6

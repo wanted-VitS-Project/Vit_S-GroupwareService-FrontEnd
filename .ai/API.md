@@ -1,8 +1,8 @@
 # 연동 API 명세서
 
+**최종 업데이트**: 2026-08-06 (부서 · 사원 목록 · 비밀번호 재설정 연동 — 목차 갱신)
 **최종 업데이트**: 2026-08-06 (인사 API 추가 — 계정 · 부서 · 직급 · 사원 19~~35)
 **최종 업데이트**: 2026-08-05 (사업 카테고리 API 추가 — 15~~18)
-**최종 업데이트**: 2026-08-05 (블록 · 체크리스트 · 텍스트 API 추가)
 
 > 📌 이 파일은 **프론트가 연동하는 백엔드 API**를 정리하는 곳이에요. (내가 만드는 게 아니라 **호출하는** 입장)
 > AI는 API 연동 코드를 작성하기 전에 이 파일을 먼저 읽어요. (잘못된 경로/필드/타입으로 fetch 짜는 실수 방지)
@@ -35,16 +35,16 @@
 | [18](#18-사업-카테고리-삭제)              | 카테고리 삭제    | `DELETE /business-categories/{categoryId}`   | ✅ `features/businessCategory/api.ts` |
 | [19](#19-전역-권한-변경)                  | 권한 변경        | `PATCH /accounts/{userId}/role`              | ⬜ 사원 상세 (#5)                     |
 | [20](#20-계정-상태-변경)                  | 계정 상태 변경   | `PATCH /accounts/{userId}/status`            | ⬜ 사원 상세 (#5)                     |
-| [21](#21-비밀번호-재설정-개인--다중-공용) | 비밀번호 재설정  | `POST /accounts/password-resets`             | ⬜ 사원 목록 · 상세 (#4 · #5)         |
-| [22](#22-부서-목록-조회)                  | 부서 목록        | `GET /departments`                           | ⬜ 부서 관리 (#6)                     |
-| [23](#23-부서-생성-최상위--하위-공용)     | 부서 생성        | `POST /departments`                          | ⬜ 부서 관리 (#6)                     |
-| [24](#24-부서명-수정)                     | 부서명 수정      | `PATCH /departments/{departmentId}`          | ⬜ 부서 관리 (#6)                     |
-| [25](#25-부서-삭제)                       | 부서 삭제        | `DELETE /departments/{departmentId}`         | ⬜ 부서 관리 (#6)                     |
+| [21](#21-비밀번호-재설정-개인--다중-공용) | 비밀번호 재설정  | `POST /accounts/password-resets`             | ✅ `features/employee/api.ts`         |
+| [22](#22-부서-목록-조회)                  | 부서 목록        | `GET /departments`                           | ✅ `features/department/api.ts`       |
+| [23](#23-부서-생성-최상위--하위-공용)     | 부서 생성        | `POST /departments`                          | ✅ `features/department/api.ts`       |
+| [24](#24-부서명-수정)                     | 부서명 수정      | `PATCH /departments/{departmentId}`          | ✅ `features/department/api.ts`       |
+| [25](#25-부서-삭제)                       | 부서 삭제        | `DELETE /departments/{departmentId}`         | ✅ `features/department/api.ts`       |
 | [26](#26-직급-목록-조회)                  | 직급 목록        | `GET /job-positions`                         | ✅ `features/jobPosition/api.ts`      |
 | [27](#27-직급-생성)                       | 직급 생성        | `POST /job-positions`                        | ✅ `features/jobPosition/api.ts`      |
 | [28](#28-직급-수정-직급명--순서)          | 직급 수정        | `PATCH /job-positions/{jobPositionId}`       | ✅ `features/jobPosition/api.ts`      |
 | [29](#29-직급-삭제)                       | 직급 삭제        | `DELETE /job-positions/{jobPositionId}`      | ✅ `features/jobPosition/api.ts`      |
-| [30](#30-사원-목록-조회-인사관리)         | 사원 목록        | `GET /employees`                             | ⬜ 사원 관리 목록 (#4)                |
+| [30](#30-사원-목록-조회-인사관리)         | 사원 목록        | `GET /employees`                             | ✅ `features/employee/api.ts`         |
 | [31](#31-사원-상세-조회)                  | 사원 상세        | `GET /employees/{userId}`                    | ⬜ 사원 상세 (#5)                     |
 | [32](#32-사원-등록-계정-동시-발급)        | 사원 등록        | `POST /employees`                            | ⬜ 사원 등록 (#38)                    |
 | [33](#33-사원-정보-수정)                  | 사원 수정        | `PATCH /employees/{userId}`                  | ⬜ 사원 정보 수정 (#39)               |
@@ -797,12 +797,12 @@ data: {
 
 ## 21. 비밀번호 재설정 (개인 · 다중 공용)
 
-| 항목          | 내용                                            |
-| ------------- | ----------------------------------------------- |
-| **Method**    | `POST`                                          |
-| **Path**      | `/api/v1/accounts/password-resets`              |
-| **인증 필요** | ✅ (ADMIN)                                      |
-| **사용 위치** | 미연동 — 사원 목록(#4) · 상세(#5)에서 연결 예정 |
+| 항목          | 내용                                                |
+| ------------- | --------------------------------------------------- |
+| **Method**    | `POST`                                              |
+| **Path**      | `/api/v1/accounts/password-resets`                  |
+| **인증 필요** | ✅ (ADMIN)                                          |
+| **사용 위치** | `src/features/employee/api.ts` → `resetPasswords()` |
 
 **요청 Body**
 
@@ -834,12 +834,12 @@ data: {
 
 ## 22. 부서 목록 조회
 
-| 항목          | 내용                                       |
-| ------------- | ------------------------------------------ |
-| **Method**    | `GET`                                      |
-| **Path**      | `/api/v1/departments`                      |
-| **인증 필요** | ✅ (전체 사용자 — 사원 등록 · 필터에 쓰임) |
-| **사용 위치** | 미연동 — 부서 관리 화면(#6)에서 연결 예정  |
+| 항목          | 내용                                                                                           |
+| ------------- | ---------------------------------------------------------------------------------------------- |
+| **Method**    | `GET`                                                                                          |
+| **Path**      | `/api/v1/departments`                                                                          |
+| **인증 필요** | ✅ (전체 사용자 — 사원 등록 · 필터에 쓰임)                                                     |
+| **사용 위치** | `src/features/department/api.ts` → `getDepartments()` (사원 목록 필터 셀렉트도 이 API 를 쓴다) |
 
 **응답 data.content[]**
 
@@ -1021,12 +1021,12 @@ data: {
 
 ## 30. 사원 목록 조회 (인사관리)
 
-| 항목          | 내용                                      |
-| ------------- | ----------------------------------------- |
-| **Method**    | `GET`                                     |
-| **Path**      | `/api/v1/employees`                       |
-| **인증 필요** | ✅ (ADMIN)                                |
-| **사용 위치** | 미연동 — 사원 관리 목록(#4)에서 연결 예정 |
+| 항목          | 내용                                              |
+| ------------- | ------------------------------------------------- |
+| **Method**    | `GET`                                             |
+| **Path**      | `/api/v1/employees`                               |
+| **인증 필요** | ✅ (ADMIN)                                        |
+| **사용 위치** | `src/features/employee/api.ts` → `getEmployees()` |
 
 **요청 Query**
 
