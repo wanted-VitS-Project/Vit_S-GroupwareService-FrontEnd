@@ -49,7 +49,7 @@
 | [32](#32-사원-등록-계정-동시-발급)        | 사원 등록        | `POST /employees`                              | ✅ `features/employee/api.ts`         |
 | [33](#33-사원-정보-수정)                  | 사원 수정        | `PATCH /employees/{userId}`                    | ✅ `features/employee/api.ts`         |
 | [34](#34-퇴사-처리)                       | 퇴사 처리        | `PATCH /employees/{userId}/resignation`        | ✅ `features/employee/api.ts`         |
-| [35](#35-사원-이름-검색-결재선-지정용)    | 사원 이름 검색   | `GET /employees/search`                        | ⬜ 결재선 검색 (#41)                  |
+| [35](#35-사원-이름-검색-결재선-지정용)    | 사원 이름 검색   | `GET /employees/search`                        | ✅ `EmployeeSearchInput` (#41)        |
 | [36](#36-블록-파일-목록-조회)             | 블록 파일 목록   | `GET /blocks/{blockId}/files`                  | ✅ `features/file/api.ts`             |
 | [37](#37-파일-업로드-시작)                | 업로드 시작      | `POST /files/uploads`                          | ✅ `features/file/api.ts`             |
 | [38](#38-업로드-완료-통보)                | 업로드 완료 통보 | `POST /files/uploads/{fileVersionId}/complete` | ✅ `features/file/api.ts`             |
@@ -1209,7 +1209,7 @@ data: {
 | **Method**    | `GET`                                         |
 | **Path**      | `/api/v1/employees/search`                    |
 | **인증 필요** | ✅ (로그인 사용자 전체 — **ADMIN 전용 아님**) |
-| **사용 위치** | 미연동 — 결재선 사원 검색(#41)에서 연결 예정  |
+| **사용 위치** | ✅ `features/employee/api.ts` — `EmployeeSearchInput` |
 
 **요청 Query** — `name` (✅, 이름 부분 일치)
 

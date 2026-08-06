@@ -6,6 +6,39 @@
 
 ---
 
+## [2026-08-06] 결재선 사원 검색 컴포넌트 🚧
+
+브랜치: `feat/approval-block` · 이슈: #41
+
+### 변경 파일
+
+| 파일                                            | 변경                                                             |
+| ----------------------------------------------- | ---------------------------------------------------------------- |
+| `src/features/employee/EmployeeSearchInput.tsx` | 생성 — 자동완성 입력 + 결과 리스트 (combobox)                    |
+| `src/features/employee/api.ts`                  | 수정 — `searchEmployees()` 추가                                  |
+| `src/features/employee/types.ts`                | 수정 — `EmployeeSearchResult` 추가                               |
+| `src/features/approval/ApprovalDraftForm.tsx`   | 수정 — 결재선 지정의 사번 직접 입력을 검색 컴포넌트로 교체       |
+
+### 주요 작업 내용
+
+- `GET /employees/search` 연동 (응답이 `content` 래퍼 없는 배열)
+- 250ms 디바운스 + `AbortController` 로 이전 요청 취소
+- 빈 입력이면 호출하지 않음 (400 `EMP_INVALID_PARAMETER` 사전 차단)
+- 키보드 조작(↑↓ · Enter · Esc), 검색 중 · 결과 없음 · 오류 3가지 빈 상태
+- 이미 결재선에 있는 사원은 `excludedIds` 로 후보에서 제외
+
+### 부수 결정
+
+- **`src/components` 가 아니라 `features/employee` 에 뒀다** — 사원 도메인 API 를 직접 부르는 컴포넌트라 도메인 밖으로 빼면 의존이 거꾸로 흐른다
+- `추가` 버튼을 없애고 **선택 즉시 결재선에 반영**한다 — `PUT` 이 어차피 전체 치환이라 중간 단계가 의미 없다
+- 중복 선택 검사를 결재선 쪽에서 빼고 컴포넌트의 `excludedIds` 로 옮겼다 — 고를 수 없게 막는 편이 고른 뒤 에러를 띄우는 것보다 낫다
+- 이미 추가된 사람을 **목록에서 숨기지 않고 `이미 추가됨` 으로 비활성** 표시한다 — 사라지면 "검색이 안 되는 것" 처럼 보인다
+- 결과 개수(`n명`)와 `성만 입력해도 돼요` 안내를 넣었다 — 참여자 목록 API 가 없어 목록을 못 펼치는 대신, 한 글자 부분 일치로 훑을 수 있다는 걸 알린다
+- 인사관리 목록과 **필드 이름이 달라** 타입을 합치지 않고 `EmployeeSearchResult` 를 따로 뒀다 (`department`·`position` vs `departmentPath`·`jobPositionName`)
+- `isLoading` 을 effect 안이 아니라 `onChange` 에서 켠다 — effect 본문의 동기 `setState` 가 `react-hooks/set-state-in-effect` 에 걸린다
+
+---
+
 ## [2026-08-06] 사원 등록 화면 구현 🚧
 
 브랜치: `feat/employee-create` · 이슈: #38

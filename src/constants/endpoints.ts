@@ -59,6 +59,30 @@ export const ENDPOINTS = {
   steps: {
     blocks: (stepId: number | string) => `${V1}/steps/${stepId}/blocks`,
   },
+  approvals: {
+    /** 재상신 회차 생성 */
+    revisions: (approvalId: number | string) =>
+      `${V1}/approvals/${approvalId}/revisions`,
+    /** 회차 상세 조회 · 제목/내용 수정 */
+    revision: (approvalId: number | string, revisionId: number | string) =>
+      `${V1}/approvals/${approvalId}/revisions/${revisionId}`,
+    /** 상신 (최초 · 재상신 겸용) */
+    submit: (approvalId: number | string, revisionId: number | string) =>
+      `${V1}/approvals/${approvalId}/revisions/${revisionId}/submit`,
+    /** 결재 문서 연결 */
+    documents: (approvalId: number | string, revisionId: number | string) =>
+      `${V1}/approvals/${approvalId}/revisions/${revisionId}/documents`,
+    /** 결재 문서 제거 */
+    document: (
+      approvalId: number | string,
+      revisionId: number | string,
+      documentId: number | string,
+    ) =>
+      `${V1}/approvals/${approvalId}/revisions/${revisionId}/documents/${documentId}`,
+    /** 결재선 등록 · 수정 (전체 치환) */
+    lines: (approvalId: number | string, revisionId: number | string) =>
+      `${V1}/approvals/${approvalId}/revisions/${revisionId}/lines`,
+  },
   blocks: {
     /** 체크리스트 항목 생성 — 블록 ID 기준 */
     checklistItems: (chkBlockId: number | string) =>
