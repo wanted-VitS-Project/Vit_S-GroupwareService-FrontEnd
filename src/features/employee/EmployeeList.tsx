@@ -8,11 +8,13 @@ import Pagination from '@/components/Pagination';
 import RowMenu from '@/components/RowMenu';
 import { EMPLOYEE_STATUS_LABELS, ROLE_LABELS } from '@/constants/status';
 import { getDepartments } from '@/features/department/api';
+import { toDepartmentOptions } from '@/features/department/options';
 import type { Department } from '@/features/department/types';
 
 import { getEmployees } from './api';
 import EmployeeStatusBadge, { employeeStatusOf } from './EmployeeStatusBadge';
 import PasswordResetModal from './PasswordResetModal';
+import { EMPLOYEE_ROUTES } from './routes';
 import type {
   EmployeeListQuery,
   EmployeePage,
@@ -39,17 +41,6 @@ function pickOption<T extends string>(value: string | null, options: T[]) {
 function pickInt(value: string | null, min: number) {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed >= min ? parsed : undefined;
-}
-
-/** 2단 트리를 셀렉트용 한 줄 목록으로 편다 */
-function toDepartmentOptions(departments: Department[]) {
-  return departments.flatMap((department) => [
-    { id: department.departmentId, label: department.name },
-    ...department.children.map((child) => ({
-      id: child.departmentId,
-      label: `— ${child.name}`,
-    })),
-  ]);
 }
 
 /**
@@ -184,6 +175,15 @@ export default function EmployeeList() {
     setReloadCount((count) => count + 1);
   }
 
+  /**
+   * 행 아무 곳이나 눌러도 상세로 간다.
+   * 이메일을 드래그해 복사하는 중이면 이동하지 않는다 — 놓는 순간 화면이 바뀌면 곤란하다.
+   */
+  function openDetail(userId: string) {
+    if (window.getSelection()?.toString()) return;
+    router.push(EMPLOYEE_ROUTES.detail(userId));
+  }
+
   return (
     <>
       <p className="text-xs text-slate-500">
@@ -204,7 +204,7 @@ export default function EmployeeList() {
         <div className="flex shrink-0 items-center gap-2">
           <BulkUploadButton />
           <Link
-            href="/settings/employees/new"
+            href={EMPLOYEE_ROUTES.create}
             className="shrink-0 rounded-lg bg-[#2B3A67] px-4 py-2 text-xs font-semibold text-white hover:bg-[#22305a]"
           >
             + 사원 등록
@@ -377,9 +377,14 @@ export default function EmployeeList() {
                   {rows.map((employee) => (
                     <tr
                       key={employee.userId}
-                      className="border-b border-[#1C1F2A]/5 last:border-b-0"
+                      onClick={() => openDetail(employee.userId)}
+                      className="group cursor-pointer border-b border-[#1C1F2A]/5 last:border-b-0 hover:bg-[#ECEEF4]/50"
                     >
-                      <td className="px-3 py-3.5">
+                      {/* 체크박스 · 케밥은 각자의 동작이 있다 — 행 이동으로 새지 않게 막는다 */}
+                      <td
+                        className="px-3 py-3.5"
+                        onClick={(event) => event.stopPropagation()}
+                      >
                         <input
                           type="checkbox"
                           checked={selectedIds.includes(employee.userId)}
@@ -388,12 +393,19 @@ export default function EmployeeList() {
                           className="size-3.5 cursor-pointer accent-[#2B3A67]"
                         />
                       </td>
-                      <td className="px-4 py-3.5">
+                      {/*
+                        행 클릭과 별개로 링크를 남긴다 — 키보드 이동 · 새 탭 열기가 되어야 한다.
+                        전파를 막지 않으면 `Ctrl+클릭` 이 새 탭을 열면서 현재 탭까지 이동시킨다
+                      */}
+                      <td
+                        className="px-4 py-3.5"
+                        onClick={(event) => event.stopPropagation()}
+                      >
                         <Link
-                          href={`/settings/employees/${employee.userId}`}
+                          href={EMPLOYEE_ROUTES.detail(employee.userId)}
                           className="block min-w-0"
                         >
-                          <span className="block truncate text-xs font-bold text-[#1C1F2A] hover:underline">
+                          <span className="block truncate text-xs font-bold text-[#1C1F2A] group-hover:underline">
                             {employee.name}
                           </span>
                           <span className="mt-0.5 block truncate text-[10px] text-[#6C7389]">
@@ -428,7 +440,10 @@ export default function EmployeeList() {
                           status={employeeStatusOf(employee)}
                         />
                       </td>
-                      <td className="px-3 py-3.5 text-right">
+                      <td
+                        className="px-3 py-3.5 text-right"
+                        onClick={(event) => event.stopPropagation()}
+                      >
                         <RowMenu
                           label={employee.name}
                           width={130}
@@ -437,7 +452,7 @@ export default function EmployeeList() {
                               label: '상세 보기',
                               onSelect: () =>
                                 router.push(
-                                  `/settings/employees/${employee.userId}`,
+                                  EMPLOYEE_ROUTES.detail(employee.userId),
                                 ),
                             },
                             {

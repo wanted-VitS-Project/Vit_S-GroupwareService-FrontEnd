@@ -6,6 +6,112 @@
 
 ---
 
+## [2026-08-06] 사원 정보 수정 화면 구현 🚧
+
+브랜치: `feat/employee-detail-edit` · 이슈: #39
+
+### 변경 파일
+
+| 파일                                               | 변경                                                             |
+| -------------------------------------------------- | ---------------------------------------------------------------- |
+| `src/features/employee/types.ts`                   | 수정 — `UpdateEmployeeRequest` 추가                              |
+| `src/features/employee/errorCodes.ts`              | 수정 — `EMP_DEPARTMENT_NOT_FOUND` · `EMP_JOB_POSITION_NOT_FOUND` |
+| `src/features/employee/api.ts`                     | 수정 — `updateEmployee()` 추가                                   |
+| `src/features/employee/EmployeeEditForm.tsx`       | 생성 — 폼 · 변경분 diff · 이탈 확인 · 에러 분기                  |
+| `src/features/employee/EmployeeDetail.tsx`         | 수정 — 헤더에 `정보 수정` 진입점 추가                            |
+| `src/features/employee/EmployeeList.tsx`           | 수정 — `toDepartmentOptions` 를 공용 모듈에서 가져오게 변경      |
+| `src/features/department/options.ts`               | 생성 — 2단 트리 → 셀렉트 옵션 변환 (목록 · 폼 공용)              |
+| `src/app/settings/employees/[id]/edit/page.tsx`    | 생성 — `EmployeeEditForm` 연결                                   |
+| `src/app/settings/employees/[id]/account/page.tsx` | **삭제** — 쓰지 않는 stub 라우트                                 |
+
+### 주요 작업 내용
+
+- 상세 조회로 폼 초기값을 채우고, **바뀐 필드만** `PATCH /employees/{userId}` 로 전송
+- 직급 · 부서 `미지정` 선택은 `null` 명시 전송, 손대지 않은 필드는 키 자체를 생략
+- 사번 · 권한은 읽기 전용 카드로 분리하고 권한은 상세 화면으로 안내
+- 변경 없음 → 저장 버튼 비활성, 이름 빈값 · 입사일 비움은 제출 전 차단
+- 404(부서 · 직급)는 해당 셀렉트에 인라인 에러 + 옵션 재조회, 사원 404 는 상세로 보내 안내를 맡긴다
+
+### 트러블슈팅
+
+- **`tsc` 가 삭제한 `account` 라우트를 찾지 못한다고 실패** — `.next/types/validator.ts` 가 이전 라우트를 참조하는 생성 캐시였다. `.next/types` 삭제 후 통과
+- **PowerShell 에서 `[id]` 경로 삭제 실패** — 대괄호를 와일드카드로 해석한다. `Remove-Item -LiteralPath` 로 처리
+
+### 부수 결정
+
+- **수정 화면 라우트를 `/settings/employees/[id]/edit` 로 확정**하고 기존 `[id]/account` stub 은 삭제했다 — 계정이 아니라 인사 정보를 다루는 화면이고, 계정 관련 동작은 이미 상세 카드에 있다
+- **부서에도 `미지정` 옵션을 둔다** — 명세 33 이 `departmentId: null` 클리어를 허용하고, 상세 화면도 `부서 미지정` 을 표시하고 있어 UI 가 그 상태를 만들 수 있어야 일관된다 (등록(#38)에서는 필수)
+- `email` · `phone` 삭제는 **빈 문자열**로 보낸다 — 명세에 `null` 표기가 없다. 백엔드 확인 대기 항목으로 `.ai/API.md` 에 등록
+- 이메일을 비우면 로그인 불가라 **입력 아래에 경고 문구**를 띄운다 (막지는 않는다)
+- 이탈 확인은 `beforeunload`(새로고침 · 탭 닫기) + 취소 버튼 `confirm` 두 갈래다 — App Router 에 라우팅 차단 API 가 없어 브라우저 뒤로가기는 막지 못한다
+- `toDepartmentOptions` 를 `features/department/options.ts` 로 올렸다 — 목록 필터와 수정 폼이 같은 변환을 쓴다
+
+### 검증
+
+| 명령                           | 결과               |
+| ------------------------------ | ------------------ |
+| `npx tsc --noEmit`             | ✅ 에러 0          |
+| `npx eslint src/features/... ` | ✅ 에러 0 · 경고 0 |
+| 브라우저 동작 확인             | 담당자 직접 확인   |
+
+---
+
+## [2026-08-06] 사원 상세 화면 구현 🚧
+
+브랜치: `feat/employee-detail-edit` · 이슈: #5
+
+### 변경 파일
+
+| 파일                                           | 변경                                                                        |
+| ---------------------------------------------- | --------------------------------------------------------------------------- |
+| `src/features/employee/types.ts`               | 수정 — `AccountStatus` · `EmployeeDetail` · `EmployeeGroup` · 응답 타입 3종 |
+| `src/features/employee/errorCodes.ts`          | 수정 — `ACC_*` 권한/상태 코드 5종 · `EMP_ALREADY_RESIGNED`                  |
+| `src/features/employee/api.ts`                 | 수정 — 상세 조회 · 권한 변경 · 계정 상태 · 퇴사 처리 추가                   |
+| `src/features/employee/EmployeeDetail.tsx`     | 생성 — 인사 · 계정 카드 · 그룹 칩 · 퇴사 구역                               |
+| `src/features/employee/RoleChangeModal.tsx`    | 생성 — 권한 변경 (ADMIN 옵션 제외)                                          |
+| `src/features/employee/AccountStatusModal.tsx` | 생성 — 계정 정지 · 활성화 토글                                              |
+| `src/features/employee/ResignationModal.tsx`   | 생성 — 퇴사일 입력 · 계정 동시 정지 안내                                    |
+| `src/app/settings/employees/[id]/page.tsx`     | `EmployeeDetail` 연결 (stub 교체)                                           |
+| `src/features/employee/EmployeeList.tsx`       | 수정 — 목록 행 전체를 눌러 상세로 진입                                      |
+| `src/features/employee/routes.ts`              | 생성 — 사원 화면 경로 단일 소스                                             |
+
+### 주요 작업 내용
+
+- 사원 상세 조회 연동 — 인사 정보 · 계정 정보 · 소속 그룹 칩 카드 구성
+- 목록에서 상세로 들어가는 동선 개선 — 이름 링크만이 아니라 **행 아무 곳이나** 클릭
+- 권한 변경(`PATCH /accounts/{id}/role`) · 계정 상태 토글(`PATCH /accounts/{id}/status`) 모달 연결
+- 퇴사 처리(`PATCH /employees/{id}/resignation`) — 퇴사일 입력 + 계정 즉시 정지 안내
+- 비밀번호 초기화는 목록의 `PasswordResetModal` 을 `targets={[employee]}` 로 그대로 재사용
+
+### 트러블슈팅
+
+- **행 전체 클릭 + 이름 링크가 겹쳐 `Ctrl+클릭` 이 새 탭과 현재 탭 이동을 동시에 일으켰다** — 링크의 클릭이 `tr` 로 전파돼 `router.push` 까지 실행됐다. 이름 칸 `td` 에 `stopPropagation` 을 걸어 해결 (PR #47 리뷰 지적)
+- **PowerShell 로 일괄 치환하다 `EmployeeDetail.tsx` 의 한글이 깨졌다** — `Get-Content` 가 UTF-8 파일을 ANSI 로 읽는다. 추적 전 파일이라 복구가 안 돼 다시 작성. **문자열 치환을 PowerShell 파이프로 하지 않는다**
+
+### 부수 결정
+
+- **자기 자신 · 퇴사자는 권한 · 계정 상태 버튼을 미리 비활성화**한다 — `ACC_SELF_MODIFICATION_NOT_ALLOWED` 를 사후에 받는 것보다 낫고, 비활성 이유는 `title` 툴팁으로 알린다
+- **동작 성공 후에는 응답을 부분 반영하지 않고 상세를 재조회**한다 — 권한 변경 응답에 `accountStatus` 가 없어 배지가 어긋날 수 있다
+- `ACC_STATUS_UNCHANGED` · `EMP_ALREADY_RESIGNED` · `*_NOT_FOUND` 는 **에러로 띄우지 않고 재조회 후 모달을 닫는다** — 화면이 뒤처졌다는 신호라 사용자가 할 일이 없다
+- 404 는 "다시 시도" 대신 **"목록으로"** 를 준다 — 재시도해도 결과가 같다
+- **이메일 미등록 사원은 비밀번호 초기화 버튼을 비활성화**하고 상단에 경고 배너를 띄운다 — 메일로 임시 비밀번호를 보내는 기능이라 주소가 없으면 반드시 실패한다
+- **퇴사자 상세의 액션 정책**: 권한 변경 · 계정 상태는 비활성(퇴사로 이미 정지됨), 비밀번호 초기화는 활성 유지(재입사 · 인수인계 대비)
+- 인사 정보 카드는 2열, 계정 정보 카드는 1열 — 계정 쪽은 값 우측에 동작 버튼이 붙어 2열로 만들면 좁다
+- 화면 경로를 `features/employee/routes.ts` 한 곳으로 모았다 — 목록 · 상세 · 수정 5곳에 같은 리터럴이 흩어져 있었다
+- 행 전체를 클릭 대상으로 삼되 **이름 칸의 `Link` 는 남겼다** — 행 `onClick` 은 키보드로 닿지 않고 `Ctrl+클릭` 새 탭도 안 된다. 체크박스 · 케밥 칸은 `stopPropagation` 으로 막고, 드래그 선택 중이면(`getSelection()`) 이동하지 않는다
+- 퇴사일 기본값은 오늘. `toISOString()` 은 UTC 라 하루 밀려 로컬 필드로 조립한다. 입력 `min` 은 입사일
+- 인사 정보 **수정 버튼은 이 이슈에 넣지 않았다** — #39 에서 화면과 함께 붙인다
+
+### 검증
+
+| 명령                                   | 결과               |
+| -------------------------------------- | ------------------ |
+| `npx tsc --noEmit`                     | ✅ 에러 0          |
+| `npx eslint src/features/employee ...` | ✅ 에러 0 · 경고 0 |
+| 브라우저 동작 확인                     | 담당자 직접 확인   |
+
+---
+
 ## [2026-08-06] 사원 관리 목록 화면 구현 🚧
 
 브랜치: `feat/employees` · 이슈: #4

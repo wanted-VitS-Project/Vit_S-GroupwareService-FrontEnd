@@ -7,6 +7,12 @@ export const EMPLOYEE_CODES = {
   invalidRequest: 'EMP_INVALID_REQUEST',
   /** 404 — 사원 없음(삭제 사원 포함) */
   notFound: 'EMP_NOT_FOUND',
+  /** 400 — 이미 퇴사 처리된 사원 */
+  alreadyResigned: 'EMP_ALREADY_RESIGNED',
+  /** 404 — 배정하려는 부서가 없음. 셀렉트를 다시 받는다 */
+  departmentNotFound: 'EMP_DEPARTMENT_NOT_FOUND',
+  /** 404 — 배정하려는 직급이 없음. 셀렉트를 다시 받는다 */
+  jobPositionNotFound: 'EMP_JOB_POSITION_NOT_FOUND',
   /** 409 — 이미 등록된 사번 */
   userIdDuplicated: 'EMP_USER_ID_DUPLICATED',
 } as const;
@@ -14,6 +20,16 @@ export const EMPLOYEE_CODES = {
 export const ACCOUNT_CODES = {
   /** 400 — userIds 가 비어 있음 */
   invalidRequest: 'ACC_INVALID_REQUEST',
+  /** 400 — 허용되지 않는 권한 값 */
+  invalidRole: 'ACC_INVALID_ROLE',
+  /** 400 — ADMIN 은 부여할 수 없다. 셀렉트에서 미리 제외한다 */
+  adminRoleNotAllowed: 'ACC_ADMIN_ROLE_NOT_ALLOWED',
+  /** 400 — 자기 자신은 바꿀 수 없다. 버튼을 미리 비활성화한다 */
+  selfModificationNotAllowed: 'ACC_SELF_MODIFICATION_NOT_ALLOWED',
+  /** 400 — 허용되지 않는 계정 상태 값 */
+  invalidStatus: 'ACC_INVALID_STATUS',
+  /** 400 — 이미 같은 상태. 화면이 뒤처졌다는 뜻이라 재조회한다 */
+  statusUnchanged: 'ACC_STATUS_UNCHANGED',
   /** 403 — 대상에 ADMIN 계정이 섞임. 요청 전체가 거부된다 */
   adminAccountNotAllowed: 'ACC_ADMIN_ACCOUNT_NOT_ALLOWED',
   /** 403 — 시스템 계정은 대상이 될 수 없다 */
