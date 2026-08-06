@@ -10,3 +10,17 @@ export const ROLE_LABELS: Record<Role, string> = {
   MASTER: '중간관리자',
   MEMBER: '사원',
 };
+
+/**
+ * 사원 계정 상태 배지.
+ * 백엔드는 `accountStatus` · `passwordStatus` 두 값을 따로 주고, 화면이 하나로 합친다.
+ */
+export type EmployeeStatus =
+  'ACTIVE' | 'RESET_REQUIRED' | 'INACTIVE' | 'RESIGNED';
+
+export const EMPLOYEE_STATUS_LABELS: Record<EmployeeStatus, string> = {
+  ACTIVE: '활성',
+  RESET_REQUIRED: '재설정 필요',
+  INACTIVE: '정지',
+  RESIGNED: '퇴사',
+};
