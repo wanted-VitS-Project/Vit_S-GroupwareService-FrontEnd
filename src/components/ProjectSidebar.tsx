@@ -6,11 +6,13 @@ import { useEffect, useRef, useState } from 'react';
 
 import {
   getProject,
+  getProjectMembers,
   getProjectStages,
   getProjectSteps,
 } from '@/features/project/api';
 import type {
   ProjectDetail,
+  ProjectMember,
   ProjectStage,
   ProjectStep,
 } from '@/features/project/types';
@@ -20,17 +22,9 @@ import { formatDateRange } from '@/lib/format';
  * 프로젝트 상세 화면 왼쪽 사이드바.
  * 프로젝트 개요 · 진행 단계 · 참여자를 보여주고 하위 화면 전환의 기준이 된다.
  *
- * ⚠️ 참여자 목록은 아직 API 가 없어 목 데이터로 그린다. (.ai/API.md)
  */
 
-// TODO: 참여자 조회 API 연동 후 제거
-const MOCK_MEMBERS = [
-  { userId: 'EMP001', initial: '김', color: '#374151' },
-  { userId: 'EMP002', initial: '이', color: '#9CA3AF' },
-  { userId: 'EMP003', initial: '박', color: '#1F2937' },
-  { userId: 'EMP004', initial: '최', color: '#4B5563' },
-  { userId: 'EMP005', initial: '정', color: '#9CA3AF' },
-];
+const MEMBER_COLORS = ['#374151', '#64748B', '#305CE3', '#7C3AED', '#0F766E'];
 
 /** `stageId: null` 인 스텝을 모아 보여줄 가상 스테이지 */
 const UNASSIGNED_STAGE_ID = -1;
@@ -48,6 +42,14 @@ export default function ProjectSidebar() {
     steps: ProjectStep[];
   } | null>(null);
   const [failedProjectId, setFailedProjectId] = useState<string | null>(null);
+  const [loadedMembers, setLoadedMembers] = useState<{
+    projectId: string;
+    members: ProjectMember[];
+  } | null>(null);
+  const [failedMembersProjectId, setFailedMembersProjectId] = useState<
+    string | null
+  >(null);
+  const [membersReloadCount, setMembersReloadCount] = useState(0);
 
   useEffect(() => {
     // 프로젝트를 빠르게 옮겨다닐 때 이전 요청을 실제로 끊는다
@@ -70,12 +72,34 @@ export default function ProjectSidebar() {
     return () => controller.abort();
   }, [projectId]);
 
+  // 참여자는 보조 정보다. 지연·실패해도 프로젝트 개요와 단계 탐색을 막지 않는다.
+  useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    getProjectMembers(projectId, signal)
+      .then((members) => {
+        setLoadedMembers({ projectId, members });
+        setFailedMembersProjectId((failed) =>
+          failed === projectId ? null : failed,
+        );
+      })
+      .catch(() => {
+        if (!signal.aborted) setFailedMembersProjectId(projectId);
+      });
+
+    return () => controller.abort();
+  }, [projectId, membersReloadCount]);
+
   // 현재 경로의 응답만 화면에 쓴다. 다른 프로젝트 데이터가 남아 보이지 않는다
   const current = loaded?.projectId === projectId ? loaded : null;
   const project = current?.project ?? null;
   const stages = current?.stages ?? null;
   const steps = current?.steps ?? null;
+  const members =
+    loadedMembers?.projectId === projectId ? loadedMembers.members : null;
   const hasFailed = failedProjectId === projectId;
+  const haveMembersFailed = failedMembersProjectId === projectId;
 
   /**
    * 선택 상태로 표시할 스텝.
@@ -350,32 +374,70 @@ export default function ProjectSidebar() {
       <div className="border-t border-[#EBEBEC] px-4 py-3">
         <p className="flex items-center gap-1.5 text-xs text-[#6C7389]">
           <UsersIcon />
-          참여자 ({MOCK_MEMBERS.length})
+          {members ? `참여자 (${members.length})` : '참여자'}
         </p>
-        <div className="flex items-center pt-2">
-          {MOCK_MEMBERS.map((member, index) => (
-            <span
-              key={member.userId}
-              style={{
-                backgroundColor: member.color,
-                marginLeft: index === 0 ? 0 : -8,
-                zIndex: index,
+        {haveMembersFailed ? (
+          <div className="flex items-center justify-between gap-2 pt-2">
+            <p role="alert" className="text-[10px] text-[#E7000B]">
+              참여자를 불러오지 못했습니다.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setFailedMembersProjectId(null);
+                setMembersReloadCount((count) => count + 1);
               }}
-              className="flex size-6 items-center justify-center rounded-full border border-white text-[9px] font-semibold text-white"
+              className="shrink-0 cursor-pointer rounded px-1.5 py-0.5 text-[10px] font-medium text-[#3B5BDB] hover:bg-[#EDF2FF]"
             >
-              {member.initial}
-            </span>
-          ))}
-          {/* TODO: 참여자 추가 모달 연결 */}
-          <button
-            type="button"
-            aria-label="참여자 추가"
-            style={{ marginLeft: -8, zIndex: MOCK_MEMBERS.length }}
-            className="flex size-6 cursor-pointer items-center justify-center rounded-full border border-white bg-[#ECEEF4] hover:bg-gray-200"
+              다시 시도
+            </button>
+          </div>
+        ) : !members ? (
+          <div
+            role="status"
+            aria-label="참여자를 불러오는 중입니다"
+            className="flex items-center pt-2"
           >
-            <PlusIcon />
-          </button>
-        </div>
+            {[0, 1, 2].map((item) => (
+              <span
+                key={item}
+                aria-hidden
+                style={{ marginLeft: item === 0 ? 0 : -8 }}
+                className="size-6 animate-pulse rounded-full border border-white bg-[#ECEEF4]"
+              />
+            ))}
+          </div>
+        ) : members.length === 0 ? (
+          <p className="pt-2 text-[10px] text-[#6C7389]">
+            등록된 참여자가 없습니다.
+          </p>
+        ) : (
+          <div className="flex items-center pt-2">
+            {members.map((member, index) => (
+              <span
+                key={member.memberId}
+                title={`${member.name}${member.department ? ` · ${member.department}` : ''}${member.resigned ? ' · 퇴사' : ''}`}
+                style={{
+                  backgroundColor: MEMBER_COLORS[index % MEMBER_COLORS.length],
+                  marginLeft: index === 0 ? 0 : -8,
+                  zIndex: index,
+                }}
+                className="flex size-6 items-center justify-center rounded-full border border-white text-[9px] font-semibold text-white"
+              >
+                {member.name.slice(0, 1)}
+              </span>
+            ))}
+            {/* TODO: 참여자 추가 모달 연결 */}
+            <button
+              type="button"
+              aria-label="참여자 추가"
+              style={{ marginLeft: -8, zIndex: members?.length ?? 0 }}
+              className="flex size-6 cursor-pointer items-center justify-center rounded-full border border-white bg-[#ECEEF4] hover:bg-gray-200"
+            >
+              <PlusIcon />
+            </button>
+          </div>
+        )}
       </div>
 
       <Link

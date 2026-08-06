@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { useState } from 'react';
 
 import Modal from '@/components/Modal';
+import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { messageOf } from '@/lib/api';
 
 import { createBlock } from './api';
@@ -43,6 +44,7 @@ export default function AddBlockModal({
   onCreated,
 }: AddBlockModalProps) {
   const params = useParams<{ stepId: string }>();
+  const currentUser = useCurrentUser();
 
   const [selectedCode, setSelectedCode] = useState<BlockTypeCode | null>(null);
   const [title, setTitle] = useState('');
@@ -74,6 +76,8 @@ export default function AddBlockModal({
         type: selected.code,
         // 비어 있으면 보내지 않는다 — 선택 필드다
         title: title.trim() || undefined,
+        // 새 블록은 생성자를 기본 담당자로 지정한다
+        owner: currentUser.userId,
         // 유형별 기본 폭을 항상 함께 보낸다 (1칸 또는 2칸)
         colSpan: selected.defaultColSpan,
         // 맨 뒤 — 마지막 행에 칸이 남으면 그 오른쪽, 모자라면 새 행

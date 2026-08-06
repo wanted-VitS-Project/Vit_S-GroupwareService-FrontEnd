@@ -3,6 +3,8 @@
 import { useRef, useState } from 'react';
 
 import { setPillDragImage, useBlockDrag } from './BlockDragContext';
+import BlockDeleteModal from './BlockDeleteModal';
+import BlockEditModal from './BlockEditModal';
 import BlockTypeIcon from './BlockTypeIcon';
 import { BLOCK_TYPES, type StepBlock } from './types';
 
@@ -36,7 +38,6 @@ interface BlockCardProps {
  * 같은 행의 블록끼리 높이를 맞추려고 `h-full` 로 늘어난다.
  *
  * 드래그는 **핸들에서만** 시작한다 — 카드 전체를 잡게 하면 본문의 입력·체크가 막힌다.
- * ⚠️ 블록 수정 · 삭제 API 미확정 — ⋯ 메뉴는 아직 동작하지 않는다.
  */
 export default function BlockCard({
   block,
@@ -107,7 +108,7 @@ export default function BlockCard({
         </h3>
 
         {headerExtra}
-        <BlockMenu title={label} />
+        <BlockMenu block={block} title={label} />
       </header>
 
       <div className="flex-1 p-3">{children}</div>
@@ -143,8 +144,14 @@ export default function BlockCard({
 }
 
 /** 블록 헤더의 `⋯` 메뉴 — 수정 · 삭제 */
-function BlockMenu({ title }: { title: string }) {
+function notifyBlockChanged() {
+  window.dispatchEvent(new Event('block:changed'));
+}
+
+function BlockMenu({ block, title }: { block: StepBlock; title: string }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   function close() {
@@ -152,65 +159,89 @@ function BlockMenu({ title }: { title: string }) {
     triggerRef.current?.focus();
   }
 
-  return (
-    <span
-      className="relative shrink-0"
-      onKeyDown={(event) => {
-        if (event.key !== 'Escape' || !isOpen) return;
-        event.stopPropagation();
-        close();
-      }}
-    >
-      <button
-        ref={triggerRef}
-        type="button"
-        aria-label={`${title} 메뉴`}
-        aria-haspopup="menu"
-        aria-expanded={isOpen}
-        onClick={() => setIsOpen((wasOpen) => !wasOpen)}
-        className={`flex size-5 cursor-pointer items-center justify-center rounded text-[#6C7389] hover:bg-[#ECEEF4] ${
-          isOpen ? 'bg-[#ECEEF4]' : ''
-        }`}
-      >
-        <MoreIcon />
-      </button>
+  function openDeleteModal() {
+    setIsOpen(false);
+    setIsDeleting(true);
+  }
 
-      {isOpen && (
-        <>
-          <button
-            type="button"
-            tabIndex={-1}
-            aria-label="메뉴 닫기"
-            onClick={() => setIsOpen(false)}
-            className="fixed inset-0 z-10 cursor-default"
-          />
-          <span
-            role="menu"
-            className="absolute top-full right-0 z-20 mt-1 flex w-28 flex-col overflow-hidden rounded-lg border border-[#1C1F2A]/10 bg-white shadow-lg"
-          >
-            {/* TODO: 블록 수정 · 삭제 API 연동 */}
+  return (
+    <>
+      <span
+        className="relative shrink-0"
+        onKeyDown={(event) => {
+          if (event.key !== 'Escape' || !isOpen) return;
+          event.stopPropagation();
+          close();
+        }}
+      >
+        <button
+          ref={triggerRef}
+          type="button"
+          aria-label={`${title} 메뉴`}
+          aria-haspopup="menu"
+          aria-expanded={isOpen}
+          onClick={() => setIsOpen((wasOpen) => !wasOpen)}
+          className={`flex size-5 cursor-pointer items-center justify-center rounded text-[#6C7389] hover:bg-[#ECEEF4] ${
+            isOpen ? 'bg-[#ECEEF4]' : ''
+          }`}
+        >
+          <MoreIcon />
+        </button>
+
+        {isOpen && (
+          <>
             <button
               type="button"
-              role="menuitem"
-              onClick={close}
-              className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-[#1C1F2A] hover:bg-gray-50"
+              tabIndex={-1}
+              aria-label="메뉴 닫기"
+              onClick={() => setIsOpen(false)}
+              className="fixed inset-0 z-10 cursor-default"
+            />
+            <span
+              role="menu"
+              className="absolute top-full right-0 z-20 mt-1 flex w-28 flex-col overflow-hidden rounded-lg border border-[#1C1F2A]/10 bg-white shadow-lg"
             >
-              <PencilIcon />
-              수정
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              onClick={close}
-              className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-[#E7000B] hover:bg-red-50"
-            >
-              <TrashIcon />
-              삭제
-            </button>
-          </span>
-        </>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setIsOpen(false);
+                  setIsEditing(true);
+                }}
+                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-[#1C1F2A] hover:bg-gray-50"
+              >
+                <PencilIcon />
+                수정
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={openDeleteModal}
+                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-[#E7000B] hover:bg-red-50"
+              >
+                <TrashIcon />
+                삭제
+              </button>
+            </span>
+          </>
+        )}
+      </span>
+      {isEditing && (
+        <BlockEditModal
+          block={block}
+          onClose={() => setIsEditing(false)}
+          onUpdated={notifyBlockChanged}
+        />
       )}
-    </span>
+      {isDeleting && (
+        <BlockDeleteModal
+          blockId={block.blockId}
+          blockTitle={title}
+          onClose={() => setIsDeleting(false)}
+          onDeleted={notifyBlockChanged}
+        />
+      )}
+    </>
   );
 }
 

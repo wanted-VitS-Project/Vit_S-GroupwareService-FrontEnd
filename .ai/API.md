@@ -1,8 +1,8 @@
 # 연동 API 명세서
 
+**최종 업데이트**: 2026-08-06 (참여자 조회 · 블록 수정/삭제 연동 — 45~47 추가)
 **최종 업데이트**: 2026-08-06 (블록 배치 변경 연동 — 44 추가 · 9 · 10번 배치 규칙 갱신)
 **최종 업데이트**: 2026-08-06 (사원 등록 연동 — 32 갱신)
-**최종 업데이트**: 2026-08-06 (파일 도메인 연동 — 36~43 추가 · 공통 절 신설)
 
 > 📌 이 파일은 **프론트가 연동하는 백엔드 API**를 정리하는 곳이에요. (내가 만드는 게 아니라 **호출하는** 입장)
 > AI는 API 연동 코드를 작성하기 전에 이 파일을 먼저 읽어요. (잘못된 경로/필드/타입으로 fetch 짜는 실수 방지)
@@ -59,6 +59,9 @@
 | [42](#42-다운로드-url-발급)               | 다운로드 URL     | `GET /file-versions/{id}/download`             | ✅ `features/file/api.ts`             |
 | [43](#43-미리보기-조회-pdf-바이너리)      | 미리보기 (PDF)   | `GET /file-versions/{id}/preview`              | ✅ `features/file/api.ts`             |
 | [44](#44-블록-배치-변경)                  | 블록 배치 변경   | `PATCH /steps/{stepId}/blocks/layout`          | ✅ `features/block/api.ts`            |
+| [45](#45-프로젝트-참여자-목록-조회)       | 참여자 목록      | `GET /projects/{projectId}/members`            | ✅ `features/project/api.ts`          |
+| [46](#46-블록-수정)                       | 블록 수정        | `PATCH /blocks/{blockId}`                      | ✅ `features/block/api.ts`            |
+| [47](#47-블록-삭제)                       | 블록 삭제        | `DELETE /blocks/{blockId}`                     | ✅ `features/block/api.ts`            |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
 > 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통)
@@ -71,8 +74,6 @@
 | 블록 생성 응답 `data` 스키마                      | 생성 직후 해당 블록 지정         | 9     |
 | `detail.chkBlockId` · `detail.items`              | 체크리스트 항목 추가 · 목록      | 10    |
 | `detail.txtId` · `detail.content`                 | 텍스트 본문 편집                 | 10    |
-| 블록 수정 · 삭제 API                              | `⋯` 메뉴                         | —     |
-| 프로젝트 참여자 목록 API                          | 사이드바 참여자 (`MOCK_MEMBERS`) | —     |
 | 사원 엑셀 템플릿 다운로드 · 일괄 등록 (구현 중)   | 화면은 "준비 중" 안내만          | —     |
 | 사원 목록에 **직급 필터** 없음                    | 직급별 사원 조회                 | 30    |
 | `email` · `phone` 을 빈 문자열로 지울 수 있는지   | 수정 폼에서 연락처 · 이메일 삭제 | 33    |
@@ -340,7 +341,7 @@ interface ChangePasswordRequest {
 
 > ⚠️ `progressRate` 는 **선택 필드**다. 스텝이 0개면 아예 오지 않으므로 `?? 0` 로 받는다.
 > ⚠️ `myPermission === 'VIEWER'` 면 수정·추가 버튼을 숨긴다. (실제 차단은 백엔드가 한다)
-> ❗ **참여자 목록 API 가 아직 없다.** `ProjectSidebar` 의 참여자 영역은 `MOCK_MEMBERS` 로 그리고 있다.
+> ✅ 참여자 목록은 45번 API로 연동했다. 사이드바와 블록 담당자 지정이 같은 목록을 사용한다.
 
 ---
 
@@ -1506,6 +1507,40 @@ interface UpdateBlockLayoutRequest {
 > ℹ️ `rowIndex` · `sortOrder` 는 서버가 준 값을 재활용하지 않고 **화면에 그려진 행 기준으로 0부터 다시 매겨** 보낸다 (`blockLayout.ts` → `toLayouts()`). 보이는 배치와 저장되는 배치가 어긋나지 않는다.
 > ℹ️ 응답으로 온 배치를 블록에 덮어쓴다 (`applyLayouts()`). 건너뛰면 다음 블록 생성이 옛 좌표로 자리를 잡는다.
 > ℹ️ `STEP_EDIT_DENIED` 는 전역 403(`/forbidden`) 대상이 아니다 — `isPermissionCode` 에 넣지 않아 보드가 직접 안내한다.
+
+---
+
+## 45. 프로젝트 참여자 목록 조회
+
+| 항목 | 값 |
+| --- | --- |
+| **Method** | `GET` |
+| **Path** | `/api/v1/projects/{projectId}/members` |
+| **권한** | 프로젝트 참여자 |
+| **사용 위치** | `src/features/project/api.ts` → `getProjectMembers()` |
+
+응답 `data` 는 `{ members: ProjectMember[] }` 이며 `memberId`, `userId`, `name`, nullable `department`, `permission`(`VIEWER`·`EDITOR`·`NONE`), `resigned` 를 담는다. 정렬은 이름 → 사번 오름차순이다.
+
+## 46. 블록 수정
+
+| 항목 | 값 |
+| --- | --- |
+| **Method** | `PATCH` |
+| **Path** | `/api/v1/blocks/{blockId}` |
+| **사용 위치** | `src/features/block/api.ts` → `updateBlock()` |
+
+요청은 `title?: string | null`, `owner?: string | null` 이다. 보낸 필드만 반영하고, `null` 은 해제, 생략은 기존 값 유지다. 둘 다 생략하면 400이다. 응답은 `blockId`, nullable `title`, nullable `owner`(`userId`·`name`), `updatedAt` 을 담는다.
+
+## 47. 블록 삭제
+
+| 항목 | 값 |
+| --- | --- |
+| **Method** | `DELETE` |
+| **Path** | `/api/v1/blocks/{blockId}` |
+| **권한** | 스텝 `EDITOR` |
+| **사용 위치** | `src/features/block/api.ts` → `deleteBlock()` |
+
+soft delete만 지원하며 응답 `data` 는 `null` 이다. 입금 연결 입금확인, 계산서 연결 조회, 진행 중 결재, 결재 대상 파일은 삭제 잠금 대상으로 409를 반환한다.
 
 ---
 

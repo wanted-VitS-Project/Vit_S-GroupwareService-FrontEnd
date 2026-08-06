@@ -18,6 +18,8 @@ export const ENDPOINTS = {
     stages: (projectId: number | string) =>
       `${V1}/projects/${projectId}/stages`,
     steps: (projectId: number | string) => `${V1}/projects/${projectId}/steps`,
+    members: (projectId: number | string) =>
+      `${V1}/projects/${projectId}/members`,
   },
   businessCategories: {
     /** 목록 조회 · 생성 */
@@ -63,6 +65,7 @@ export const ENDPOINTS = {
       `${V1}/steps/${stepId}/blocks/layout`,
   },
   blocks: {
+    detail: (blockId: number | string) => `${V1}/blocks/${blockId}`,
     /** 체크리스트 항목 생성 — 블록 ID 기준 */
     checklistItems: (chkBlockId: number | string) =>
       `${V1}/blocks/checklists/${chkBlockId}/items`,
