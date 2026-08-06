@@ -49,7 +49,7 @@
 | [32](#32-사원-등록-계정-동시-발급)        | 사원 등록        | `POST /employees`                              | ✅ `features/employee/api.ts`         |
 | [33](#33-사원-정보-수정)                  | 사원 수정        | `PATCH /employees/{userId}`                    | ✅ `features/employee/api.ts`         |
 | [34](#34-퇴사-처리)                       | 퇴사 처리        | `PATCH /employees/{userId}/resignation`        | ✅ `features/employee/api.ts`         |
-| [35](#35-사원-이름-검색-결재선-지정용)    | 사원 이름 검색   | `GET /employees/search`                        | ⬜ 결재선 검색 (#41)                  |
+| [35](#35-사원-이름-검색-결재선-지정용)    | 사원 이름 검색   | `GET /employees/search`                        | ✅ `EmployeeSearchInput` (#41)        |
 | [36](#36-블록-파일-목록-조회)             | 블록 파일 목록   | `GET /blocks/{blockId}/files`                  | ✅ `features/file/api.ts`             |
 | [37](#37-파일-업로드-시작)                | 업로드 시작      | `POST /files/uploads`                          | ✅ `features/file/api.ts`             |
 | [38](#38-업로드-완료-통보)                | 업로드 완료 통보 | `POST /files/uploads/{fileVersionId}/complete` | ✅ `features/file/api.ts`             |
@@ -62,9 +62,16 @@
 | [45](#45-프로젝트-참여자-목록-조회)       | 참여자 목록      | `GET /projects/{projectId}/members`            | ✅ `features/project/api.ts`          |
 | [46](#46-블록-수정)                       | 블록 수정        | `PATCH /blocks/{blockId}`                      | ✅ `features/block/api.ts`            |
 | [47](#47-블록-삭제)                       | 블록 삭제        | `DELETE /blocks/{blockId}`                     | ✅ `features/block/api.ts`            |
+| [48](#48-결재-회차-상세조회)              | 결재 회차 상세   | `GET /approvals/{id}/revisions/{revId}`        | ✅ `features/approval/api.ts`         |
+| [49](#49-결재-제목--내용-수정)            | 제목 · 내용 수정 | `PATCH /approvals/{id}/revisions/{revId}`      | ✅ `features/approval/api.ts`         |
+| [50](#50-재상신-회차-생성)                | 재상신 회차 생성 | `POST /approvals/{id}/revisions`               | ✅ `features/approval/api.ts`         |
+| [51](#51-결재-상신)                       | 결재 상신        | `POST /approvals/{id}/revisions/{revId}/submit`| ✅ `features/approval/api.ts`         |
+| [52](#52-결재-문서-추가)                  | 결재 문서 추가   | `POST /approvals/{id}/revisions/{revId}/documents` | ✅ `features/approval/api.ts`     |
+| [53](#53-결재-문서-제거)                  | 결재 문서 제거   | `DELETE /approvals/{id}/revisions/{revId}/documents/{docId}` | ✅ `features/approval/api.ts` |
+| [54](#54-결재선-등록--수정)               | 결재선 등록·수정 | `PUT /approvals/{id}/revisions/{revId}/lines`  | ✅ `features/approval/api.ts`         |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
-> 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통)
+> 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통)
 
 ### ❗ 백엔드 확인 대기
 
@@ -500,6 +507,7 @@ data: {
 > ℹ️ **`detail` 은 블록의 내용을 담는 하위 계층이다.** `blockId` 로 관리하는 것은 위 공통 필드까지고, 내용은 타입별 상세 ID(예: `CHECKLIST` 의 `chkBlockId`)로 관리한다.
 > ❗ **`detail` 스키마는 `FILE` 의 `{ fileCount: 3 }` 만 확인됐다.**
 > `CHECKLIST` 는 **`chkBlockId`(필수) 와 항목 배열**이 필요하다. 프론트는 `detail.chkBlockId` · `detail.items` 를 런타임 검증해서 읽고, 없거나 형태가 다르면 항목 추가를 막고 빈 목록으로 떨어뜨린다. **키 이름 확인 필요.**
+> `APPROVAL` 은 **`approvalId` · `revisionId`(둘 다 필수)** 가 필요하다. 결재 API 가 전부 `approvalId` 로 시작해서, 이 둘이 없으면 `blockId` 만으로는 어느 결재인지 알 수 없다 — `readApprovalBlockDetail()` 이 런타임 검증하고 없으면 블록이 안내만 띄운다.
 
 ---
 
@@ -1213,7 +1221,7 @@ data: {
 | **Method**    | `GET`                                         |
 | **Path**      | `/api/v1/employees/search`                    |
 | **인증 필요** | ✅ (로그인 사용자 전체 — **ADMIN 전용 아님**) |
-| **사용 위치** | 미연동 — 결재선 사원 검색(#41)에서 연결 예정  |
+| **사용 위치** | ✅ `features/employee/api.ts` — `EmployeeSearchInput` |
 
 **요청 Query** — `name` (✅, 이름 부분 일치)
 
@@ -1541,6 +1549,208 @@ interface UpdateBlockLayoutRequest {
 | **사용 위치** | `src/features/block/api.ts` → `deleteBlock()` |
 
 soft delete만 지원하며 응답 `data` 는 `null` 이다. 입금 연결 입금확인, 계산서 연결 조회, 진행 중 결재, 결재 대상 파일은 삭제 잠금 대상으로 409를 반환한다.
+---
+
+## 결재 도메인 — 공통
+
+| 항목            | 내용                                                                                                     |
+| --------------- | -------------------------------------------------------------------------------------------------------- |
+| **구조**        | **결재(`approvalId`) > 상신 회차(`revisionId`) > 결재선 · 결재 문서**                                     |
+| **회차**        | 상신할 때마다 새로 만들어지고 **이전 회차는 덮어쓰지 않고 이력으로 남는다**                               |
+| **상태**        | `DRAFT` · `IN_PROGRESS` · `REJECTED` · `COMPLETED` — 결재 전체와 회차가 같은 값을 쓴다                    |
+| **편집 권한**   | 기안자만. 그것도 **`DRAFT` 회차에서만** — 상신된 회차는 제목 · 내용 · 문서 · 결재선 전부 잠긴다           |
+| **조회 권한**   | 기안자 · 해당 회차 `ACTIVE` 이상 결재자(과거 이력 포함) · MASTER                                          |
+| **블록 연결**   | 블록 목록 응답의 `detail.approvalId` · `detail.revisionId` — 없으면 블록이 안내만 띄운다                  |
+| **코드 상수**   | `src/features/approval/errorCodes.ts`. 분기는 status 가 아니라 **`code`** 로 한다                        |
+
+> ℹ️ 결재 대상은 파일이 아니라 **파일 버전**(`fileVersionId`)이다 (AP-010). 업로드 자체는 파일 도메인 소관이고 결재 API 는 연결만 한다.
+> ℹ️ 결재선 등록은 `PUT` 이라 **전체 치환**이다. 한 명만 바꿔도 목록 전체를 보내야 하고, 빠뜨린 사람은 삭제된다.
+> ⚠️ 일반 결재자는 프로젝트 `member` 여야 한다(AP-017). **MASTER · ADMIN 은 이 검증에서 제외**돼 프로젝트에 없어도 지정할 수 있다(AP-019).
+
+### ❗ 결재 — 백엔드 확인 대기
+
+| 항목                                                | 막힌 기능                             | 이슈 |
+| --------------------------------------------------- | ------------------------------------- | ---- |
+| `lines[].status` · `comment` · `processedAt` 없음   | 진행 현황 스텝퍼 · 반려 사유 표시     | #52  |
+| `lines[].approverRole` 없음                         | 마지막 결재자 = MASTER 사전 검증      | #51  |
+| 승인 · 반려 API 없음                                | 결재 상세의 처리 버튼                 | D    |
+| 결재 목록 조회 API 없음                             | 결재 관리 페이지 전체                 | C    |
+| 회차 목록 조회 API 없음 (단건 조회만 있음)          | 회차 전환 · 이력 조회                 | E    |
+| 회차 상세 `finishedAt` 예시가 문자열 `"null"`       | 완료 일시 파싱                        | —    |
+
+> ℹ️ `approverPosition`("대표")은 **회사가 바꿀 수 있는 직급명**이라 MASTER 판정 근거로 쓸 수 없다. `role` 이 오기 전까지 AP-026 은 서버 400 문구로만 안내한다.
+
+---
+
+## 48. 결재 회차 상세조회
+
+| 항목          | 내용                                                       |
+| ------------- | ---------------------------------------------------------- |
+| **Method**    | `GET`                                                      |
+| **Path**      | `/api/v1/approvals/{approvalId}/revisions/{revisionId}`     |
+| **인증 필요** | ✅ 기안자 · 해당 회차 `ACTIVE` 이상 결재자 · MASTER         |
+| **사용 위치** | ✅ `features/approval/api.ts` — `getRevision()`             |
+
+**응답 data**
+
+| 필드                                        | 타입                | 설명                                  |
+| ------------------------------------------- | ------------------- | ------------------------------------- |
+| `revisionId` · `revisionNo`                 | `number`            | 회차 ID · 회차 번호(재상신마다 +1)    |
+| `title` · `content`                         | `string \| null`    | 작성 전이면 null                      |
+| `drafterId` · `drafterName`                 | `string`            | 기안자                                |
+| `drafterDepartment` · `drafterPosition`     | `string \| null`    | 기안자 소속 · 직급                    |
+| `status`                                    | `ApprovalStatus`    | 회차 상태                             |
+| `submittedAt`                               | `string \| null`    | DRAFT 는 아직 상신 전이라 null        |
+| `finishedAt`                                | `string \| null`    | ❗ 예시가 문자열 `"null"` — 확인 필요 |
+| `documents[]`                               | `documentId` · `fileVersionId` | 회차에 확정된 결재 문서    |
+| `lines[]`                                   | `lineId` · `approverId` · `approverName` · `approverPosition` · `approverDepartment` · `order` | 결재선 |
+
+| status | code                                             | 화면 처리                                          |
+| ------ | ------------------------------------------------ | -------------------------------------------------- |
+| 403    | `APPROVAL_LINE_NOT_VIEWABLE`                     | **`/forbidden` 아님** — 화면 안에서 "차례 아님" 안내 |
+| 404    | `APPROVAL_NOT_FOUND` · `APPROVAL_REVISION_NOT_FOUND` | 불러오지 못했다는 안내                          |
+
+> ⚠️ `lines[]` 에 **처리 상태가 없다.** 진행 현황 스텝퍼는 값이 오면 칠하고 없으면 순서 · 이름만 그린다 — 없는 값을 완료로 추측하면 실제와 어긋난 화면이 된다.
+
+---
+
+## 49. 결재 제목 · 내용 수정
+
+| 항목          | 내용                                                    |
+| ------------- | ------------------------------------------------------- |
+| **Method**    | `PATCH`                                                 |
+| **Path**      | `/api/v1/approvals/{approvalId}/revisions/{revisionId}`  |
+| **인증 필요** | ✅ 기안자                                                |
+| **사용 위치** | ✅ `features/approval/api.ts` — `updateRevision()`       |
+
+**요청 body** — `{ title?, content? }` · **보낸 필드만** 바뀐다 (둘 중 하나만 보내도 된다)
+
+**응답 data** — `revisionId` · `title` · `content` · `updatedAt`
+
+| status | code                          | 화면 처리                        |
+| ------ | ----------------------------- | -------------------------------- |
+| 403    | `APPROVAL_NOT_DRAFTER`        | 기안자만 수정할 수 있다는 안내   |
+| 409    | `APPROVAL_REVISION_NOT_DRAFT` | 이미 상신된 회차 — 편집 잠금     |
+
+> ℹ️ 프론트는 **블러 시점에 저장**한다. 직전에 보낸 값과 같으면 요청하지 않는다 (`ApprovalDraftForm`).
+
+---
+
+## 50. 재상신 회차 생성
+
+| 항목          | 내용                                        |
+| ------------- | ------------------------------------------- |
+| **Method**    | `POST`                                      |
+| **Path**      | `/api/v1/approvals/{approvalId}/revisions`   |
+| **인증 필요** | ✅ 기안자                                    |
+| **사용 위치** | ✅ `features/approval/api.ts` — `createRevision()` |
+
+**응답 data** — `revisionId` · `revisionNo` · `status` · `copiedFromRevisionNo` · `title` · `content` · `documents[]` · `lines[]`
+
+| status | code                    | 화면 처리                          |
+| ------ | ----------------------- | ---------------------------------- |
+| 200    | —                       | **이미 있는 DRAFT 회차를 그대로 반환(멱등)** |
+| 201    | —                       | 새 회차 생성                       |
+| 403    | `APPROVAL_NOT_DRAFTER`  | 기안자만 가능                      |
+| 409    | `APPROVAL_NOT_REJECTED` | 반려 상태가 아닌 결재의 재상신 시도 |
+
+> ⚠️ **멱등이다.** 이미 DRAFT 가 있으면 새로 만들지 않고 200 으로 돌려주므로 프론트가 중복 생성을 막을 필요가 없다.
+> ℹ️ 이전 회차의 제목 · 내용 · 문서를 복사하고 **결재선은 반려자부터 재구성**해서 온다(AP-065·066) — 프론트가 다시 만들지 않는다.
+
+---
+
+## 51. 결재 상신
+
+| 항목          | 내용                                                            |
+| ------------- | --------------------------------------------------------------- |
+| **Method**    | `POST`                                                          |
+| **Path**      | `/api/v1/approvals/{approvalId}/revisions/{revisionId}/submit`   |
+| **인증 필요** | ✅ 기안자                                                        |
+| **사용 위치** | ✅ `features/approval/api.ts` — `submitRevision()`               |
+
+**응답 data** — `approvalId` · `revisionId` · `revisionNo` · `status` · `submittedAt` · `firstActiveLineId`
+
+| status | code                                | 화면 처리                              |
+| ------ | ----------------------------------- | -------------------------------------- |
+| 400    | `APPROVAL_CONTENT_REQUIRED`         | 제목 · 내용을 입력해주세요             |
+| 400    | `APPROVAL_DOCUMENT_REQUIRED`        | 결재 문서를 한 개 이상 선택해주세요    |
+| 400    | `APPROVAL_LINE_EMPTY`               | 결재자를 한 명 이상 지정해주세요       |
+| 400    | `APPROVAL_LINE_ORDER_INVALID`       | 결재 순서가 중복되거나 비어 있습니다   |
+| 400    | `APPROVAL_LINE_APPROVER_NOT_MEMBER` | 프로젝트에 없는 결재자가 있습니다      |
+| 403    | `APPROVAL_NOT_DRAFTER`              | 기안자만 상신할 수 있다는 안내         |
+| 409    | `APPROVAL_REVISION_NOT_DRAFT`       | 이미 상신됨 — **중복 상신 포함**       |
+
+> ℹ️ **최초 상신 · 재상신 겸용**이다. 회차와 결재가 `IN_PROGRESS` 로, 1번 결재선이 `ACTIVE` 로 바뀐다.
+> ℹ️ 서버가 제목 · 내용 · 문서 · 결재선을 전부 재검증하므로 **프론트 검증은 왕복을 줄이는 용도**다 (AP-022~026).
+
+---
+
+## 52. 결재 문서 추가
+
+| 항목          | 내용                                                               |
+| ------------- | ------------------------------------------------------------------ |
+| **Method**    | `POST`                                                             |
+| **Path**      | `/api/v1/approvals/{approvalId}/revisions/{revisionId}/documents`   |
+| **인증 필요** | ✅ 기안자                                                           |
+| **사용 위치** | ✅ `features/approval/api.ts` — `addDocument()`                     |
+
+**요청 body** — `{ fileVersionId }`
+
+**응답 data** — `documentId` · `fileVersionId` · `fileName` · `fileSize` · `uploadedAt`
+
+| status | code                                            | 화면 처리                        |
+| ------ | ----------------------------------------------- | -------------------------------- |
+| 403    | `APPROVAL_NOT_DRAFTER`                          | 기안자만 가능                    |
+| 404    | `FILE_VERSION_NOT_FOUND`                        | 없는 파일 버전                   |
+| 409    | `FILE_VERSION_NOT_READY` · `DOCUMENT_ALREADY_LINKED` · `APPROVAL_REVISION_NOT_DRAFT` | 백엔드 문구 노출 |
+
+> ⚠️ **업로드는 이 API 가 하지 않는다.** 공용 파일 API 로 먼저 올리고 받은 `fileVersionId` 만 연결한다 (`features/file/upload.ts`).
+> ⚠️ `DOCUMENT_ALREADY_LINKED` 만 `APPROVAL_` 접두사가 없다 — 명세 그대로 둔다.
+
+---
+
+## 53. 결재 문서 제거
+
+| 항목          | 내용                                                                            |
+| ------------- | ------------------------------------------------------------------------------- |
+| **Method**    | `DELETE`                                                                        |
+| **Path**      | `/api/v1/approvals/{approvalId}/revisions/{revisionId}/documents/{documentId}`    |
+| **인증 필요** | ✅ 기안자                                                                        |
+| **사용 위치** | ✅ `features/approval/api.ts` — `removeDocument()`                               |
+
+**응답** — `204 No Content`
+
+| status | code                          | 화면 처리                    |
+| ------ | ----------------------------- | ---------------------------- |
+| 403    | `APPROVAL_NOT_DRAFTER`        | 기안자만 가능                |
+| 404    | `APPROVAL_DOCUMENT_NOT_FOUND` | 이미 지워진 문서             |
+| 409    | `APPROVAL_REVISION_NOT_DRAFT` | 상신된 회차의 문서는 못 지움 |
+
+> ⚠️ **하드 삭제다.** 이력 보존 대상이 아니라 DRAFT 회차에서만 허용된다.
+
+---
+
+## 54. 결재선 등록 · 수정
+
+| 항목          | 내용                                                           |
+| ------------- | -------------------------------------------------------------- |
+| **Method**    | `PUT`                                                          |
+| **Path**      | `/api/v1/approvals/{approvalId}/revisions/{revisionId}/lines`   |
+| **인증 필요** | ✅ 기안자                                                       |
+| **사용 위치** | ✅ `features/approval/api.ts` — `setLines()`                    |
+
+**요청 body** — `{ lines: [{ approverId, order }] }`
+
+**응답 data** — `{ lines: [{ lineId, approverId, approverName, approverPosition, approverDepartment, order }] }`
+
+| status | code                                | 화면 처리                                  |
+| ------ | ----------------------------------- | ------------------------------------------ |
+| 400    | `APPROVAL_LINE_APPROVER_NOT_MEMBER` | 프로젝트 member 가 아닌 결재자             |
+| 403    | `APPROVAL_NOT_DRAFTER`              | 기안자만 가능                              |
+| 409    | `APPROVAL_REVISION_NOT_DRAFT`       | 상신된 회차의 결재선은 잠김 (AP-021)       |
+
+> ⚠️ **전체 치환이다.** 한 명 추가·제거해도 목록 전체를 보낸다. `order` 는 화면 순서대로 **1부터 다시 매겨** 보낸다 — 빈 번호가 생기면 400 이다.
+> ℹ️ 결재자 선택은 [35. 사원 이름 검색](#35-사원-이름-검색-결재선-지정용)(`EmployeeSearchInput`)으로 한다.
 
 ---
 

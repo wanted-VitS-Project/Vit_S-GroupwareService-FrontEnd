@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import RowMenu from '@/components/RowMenu';
+import { JobPositionTableSkeleton } from '@/components/settings/SettingsSkeletons';
 
 import { getJobPositions, updateJobPosition } from './api';
 import DeleteJobPositionModal from './DeleteJobPositionModal';
@@ -134,9 +135,7 @@ export default function JobPositionList() {
             </button>
           </Centered>
         ) : !positions ? (
-          <Centered>
-            <p className="text-xs text-[#6C7389]">불러오는 중…</p>
-          </Centered>
+          <JobPositionTableSkeleton />
         ) : positions.length === 0 ? (
           <Centered>
             <BadgeIcon />

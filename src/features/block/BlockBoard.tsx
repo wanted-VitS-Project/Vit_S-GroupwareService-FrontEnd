@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 
+import ApprovalBlock from '@/features/approval/ApprovalBlock';
+
 import BlockCard from './BlockCard';
 import {
   computeRows,
@@ -474,8 +476,9 @@ function BlockBody({
   if (block.type === 'TEXT')
     return <TextBlock block={block} autoEdit={autoEdit} />;
   if (block.type === 'FILE') return <FileBlock block={block} />;
+  if (block.type === 'APPROVAL') return <ApprovalBlock block={block} />;
 
-  // TODO: 유형별 블록 구현 (IMAGE · APPROVAL · PAYMENT_CONFIRM · …)
+  // TODO: 유형별 블록 구현 (IMAGE · PAYMENT_CONFIRM · …)
   return (
     <BlockCard block={block}>
       <p className="text-[10px] text-[#6C7389]">준비 중인 블록입니다.</p>

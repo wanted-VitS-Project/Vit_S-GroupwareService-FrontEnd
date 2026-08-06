@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import RowMenu, { type RowMenuItem } from '@/components/RowMenu';
+import { DepartmentTableSkeleton } from '@/components/settings/SettingsSkeletons';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 import { getDepartments } from './api';
@@ -129,9 +130,7 @@ export default function DepartmentList() {
             </button>
           </Centered>
         ) : !rows ? (
-          <Centered>
-            <p className="text-xs text-[#6C7389]">불러오는 중…</p>
-          </Centered>
+          <DepartmentTableSkeleton />
         ) : rows.length === 0 ? (
           <Centered>
             <TreeIcon />

@@ -152,6 +152,9 @@ export const api = {
     request<T>(path, 'POST', body, signal),
   patch: <T>(path: string, body?: unknown, signal?: AbortSignal) =>
     request<T>(path, 'PATCH', body, signal),
+  /** 부분 수정이 아니라 **전체 치환**일 때만 쓴다 (예: 결재선) */
+  put: <T>(path: string, body?: unknown, signal?: AbortSignal) =>
+    request<T>(path, 'PUT', body, signal),
   delete: <T>(path: string, signal?: AbortSignal) =>
     request<T>(path, 'DELETE', undefined, signal),
 };

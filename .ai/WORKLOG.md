@@ -6,6 +6,125 @@
 
 ---
 
+## [2026-08-06] 설정 · 인사 · 카테고리 Skeleton UI 적용 ✅
+
+브랜치: `user/project` · 이슈: 확인 필요
+
+### 변경 파일
+
+| 파일 | 변경 |
+| --- | --- |
+| `src/components/Skeleton.tsx` | 생성 — 공용 Skeleton primitive · 그룹 · 표 · 필드 |
+| `src/components/settings/SettingsSkeletons.tsx` | 생성 — 설정 목록·상세·폼 조합 Skeleton |
+| `src/components/project/ProjectSkeleton.tsx` | 수정 — 공용 Skeleton primitive 재사용 |
+| `src/features/{employee,department,jobPosition,businessCategory}/*.tsx` | 수정 — 텍스트 로딩을 화면 구조형 Skeleton으로 교체 |
+| `src/app/settings/employees/page.tsx` | 수정 — Suspense fallback을 사원 표 Skeleton으로 교체 |
+
+### 주요 작업 내용
+
+- 설정 목록 4종의 에러 → 로딩 → 빈 상태 → 목록 분기 순서를 유지하면서 표 형태 Skeleton 적용
+- 사원 목록은 실제 페이지 크기 20행과 7열 구조, 부서는 트리 들여쓰기를 반영
+- 사원 상세·수정 폼은 카드·필드 구조를 본뜬 Skeleton 적용
+- 사원 등록은 부서·직급 옵션을 기다리는 셀렉트 2개만 Skeleton 처리
+- 프로젝트 전용 Skeleton도 새 공용 primitive를 사용하도록 중복 제거
+
+### 부수 결정
+
+- PrimeNG는 Angular 전용이라 설치하지 않고 형태·접근성 규칙만 React/Tailwind 공용 컴포넌트로 구현한다.
+- API 호출이 없는 설정 허브는 Skeleton 대상에서 제외한다.
+
+### 검증
+
+| 명령 | 결과 |
+| --- | --- |
+| `npm run lint` | ✅ 성공 |
+| `npx tsc --noEmit` | ✅ 성공 |
+| `npm run build` | ✅ 성공 |
+
+---
+
+## [2026-08-06] 결재 블록 초안 작성 · 상신 🚧
+
+브랜치: `feat/approval-block` · 이슈: #51
+
+### 변경 파일
+
+| 파일                                          | 변경                                                          |
+| --------------------------------------------- | ------------------------------------------------------------- |
+| `src/features/approval/types.ts`              | 생성 — 회차 · 결재선 · 문서 타입 + `readApprovalBlockDetail()` |
+| `src/features/approval/errorCodes.ts`         | 생성 — 결재 응답 코드 단일 소스                               |
+| `src/features/approval/api.ts`                | 생성 — 회차 · 문서 · 결재선 · 상신 7개 래핑                    |
+| `src/features/approval/ApprovalBlock.tsx`     | 생성 — 상태별 화면 분기(초안 · 진행 · 반려)                   |
+| `src/features/approval/ApprovalDraftForm.tsx` | 생성 — 제목 · 내용 · 문서 · 결재선 편집                       |
+| `src/features/approval/ApprovalProgress.tsx`  | 생성 — 결재 진행 현황 스텝퍼                                  |
+| `src/features/approval/ErrorText.tsx`         | 생성 — 결재 화면 공용 실패 안내                               |
+| `src/features/approval/submitCheck.ts`        | 생성 — 상신 전 검증 · 검증 코드 → 문구 변환                   |
+| `src/features/block/BlockBoard.tsx`           | 수정 — `APPROVAL` 분기 연결 (stub 교체)                       |
+| `src/constants/endpoints.ts`                  | 수정 — `approvals` 경로 6종                                   |
+| `src/constants/status.ts`                     | 수정 — `APPROVAL_STATUS_LABELS`                               |
+| `src/lib/api.ts`                              | 수정 — `api.put` 추가                                         |
+| `.ai/API.md`                                  | 수정 — 결재 API 45~51 절 · 결재 도메인 공통 절 추가           |
+
+### 주요 작업 내용
+
+- 결재 = **결재 > 상신 회차 > 결재선 · 문서** 3계층으로 타입 설계, 회차는 덮어쓰지 않고 이력으로 쌓는다
+- 제목 · 내용은 **블러 시 즉시 `PATCH`**, 문서 · 결재선은 조작 즉시 각자 API 호출 — 별도 저장 버튼 없음
+- 문서는 공용 파일 API 로 올린 뒤 `fileVersionId` 만 연결 (AP-009·010)
+- 반려 시 `수정` → 재상신 회차 생성(멱등) → 새 DRAFT 에서 재편집
+- 상신 전 검증(AP-022~024) — 사유가 있으면 상신 버튼을 잠그고 버튼 아래에 이유를 적는다
+- 상신 400 은 사전 차단과 **같은 문구**로 통일 (`SUBMIT_BLOCKER_LABELS`), 나머지는 백엔드 문구를 그대로 노출
+- 작성 중 이탈 확인 — 저장 안 된 입력이 있을 때만 `beforeunload` 를 건다
+
+### 트러블슈팅
+
+- **결재 블록이 "정보를 불러올 수 없습니다" 로만 표시됨** — 블록 목록 응답의 `detail` 이 `null` 로 와서 `approvalId` 를 알 수 없었다. 백엔드(Swagger) 쪽 문제였고 수정 후 정상 동작. 프론트는 `readApprovalBlockDetail()` 이 런타임 검증으로 걸러내 잘못된 ID 로 API 를 부르지 않는다
+
+### 부수 결정
+
+- **`blockId` 를 `approvalId` 로 폴백하지 않는다** — 다른 값이라 추측해서 부르면 남의 결재를 열거나 404 가 된다. 값이 없으면 안내만 띄운다
+- `lines[].status` 가 없으면 **진행 카운트를 아예 숨긴다** — 늘 `0 / 3` 으로 보이면 실제와 어긋난 화면이 된다
+- 재상신 회차 생성은 서버가 **멱등**이라 프론트에서 중복 생성을 막지 않는다
+- `APPROVAL_LINE_NOT_VIEWABLE`(403)은 `PERMISSION_CODES` 에 넣지 않는다 — 차례가 오면 볼 수 있어 `/forbidden` 이 아니라 화면 안에서 안내한다
+- 회차 배지는 `detail.revisionNo` 가 아니라 **방금 받은 회차**로 판단한다 — `detail` 쪽은 선택 필드라 없으면 2회차도 배지가 안 뜬다
+- 상신 전 검증이 **서버와 같은 코드**(`APPROVAL_CODES`)를 돌려준다 — 사전 차단이든 400 응답이든 화면 문구가 하나로 유지된다
+- `saved` 를 ref 가 아니라 state 로 뒀다 — 이탈 확인이 렌더 중에 읽어야 하는데 `react-hooks/refs` 가 ref 접근을 막는다
+- 제목 · 내용도 저장 성공 시 `onChanged` 로 상위에 올린다 — 안 그러면 상신 버튼이 옛 값으로 계속 잠긴다
+
+---
+
+## [2026-08-06] 결재선 사원 검색 컴포넌트 🚧
+
+브랜치: `feat/approval-block` · 이슈: #41
+
+### 변경 파일
+
+| 파일                                            | 변경                                                             |
+| ----------------------------------------------- | ---------------------------------------------------------------- |
+| `src/features/employee/EmployeeSearchInput.tsx` | 생성 — 자동완성 입력 + 결과 리스트 (combobox)                    |
+| `src/features/employee/api.ts`                  | 수정 — `searchEmployees()` 추가                                  |
+| `src/features/employee/types.ts`                | 수정 — `EmployeeSearchResult` 추가                               |
+| `src/features/approval/ApprovalDraftForm.tsx`   | 수정 — 결재선 지정의 사번 직접 입력을 검색 컴포넌트로 교체       |
+
+### 주요 작업 내용
+
+- `GET /employees/search` 연동 (응답이 `content` 래퍼 없는 배열)
+- 250ms 디바운스 + `AbortController` 로 이전 요청 취소
+- 빈 입력이면 호출하지 않음 (400 `EMP_INVALID_PARAMETER` 사전 차단)
+- 키보드 조작(↑↓ · Enter · Esc), 검색 중 · 결과 없음 · 오류 3가지 빈 상태
+- 이미 결재선에 있는 사원은 `excludedIds` 로 후보에서 제외
+
+### 부수 결정
+
+- **`src/components` 가 아니라 `features/employee` 에 뒀다** — 사원 도메인 API 를 직접 부르는 컴포넌트라 도메인 밖으로 빼면 의존이 거꾸로 흐른다
+- `추가` 버튼을 없애고 **선택 즉시 결재선에 반영**한다 — `PUT` 이 어차피 전체 치환이라 중간 단계가 의미 없다
+- 중복 선택 검사를 결재선 쪽에서 빼고 컴포넌트의 `excludedIds` 로 옮겼다 — 고를 수 없게 막는 편이 고른 뒤 에러를 띄우는 것보다 낫다
+- 이미 추가된 사람을 **목록에서 숨기지 않고 `이미 추가됨` 으로 비활성** 표시한다 — 사라지면 "검색이 안 되는 것" 처럼 보인다
+- 결과 개수(`n명`)와 `성만 입력해도 돼요` 안내를 넣었다 — 참여자 목록 API 가 없어 목록을 못 펼치는 대신, 한 글자 부분 일치로 훑을 수 있다는 걸 알린다
+- 인사관리 목록과 **필드 이름이 달라** 타입을 합치지 않고 `EmployeeSearchResult` 를 따로 뒀다 (`department`·`position` vs `departmentPath`·`jobPositionName`)
+- `isLoading` 을 effect 안이 아니라 `onChange` 에서 켠다 — effect 본문의 동기 `setState` 가 `react-hooks/set-state-in-effect` 에 걸린다
+
+---
+
 ## [2026-08-06] 프로젝트 참여자 · 블록 수정/삭제 API 연동 ✅
 
 브랜치: `user/project` · 이슈: #55
@@ -17,17 +136,22 @@
 | `src/constants/endpoints.ts`              | 수정 — 참여자 · 블록 상세 경로 추가                          |
 | `src/features/project/{api,types}.ts`     | 수정 — 프로젝트 참여자 조회 함수와 타입 추가                 |
 | `src/components/ProjectSidebar.tsx`       | 수정 — 목 참여자를 실제 API 응답으로 교체                    |
+| `src/components/project/{ProjectSkeleton,ProjectSidebarSkeleton}.tsx` | 생성 — 프로젝트 Skeleton primitive · 사이드바 조합 UI |
 | `src/features/block/{api,types}.ts`       | 수정 — 블록 부분 수정 · 삭제 요청/응답 추가                  |
 | `src/features/block/BlockEditModal.tsx`   | 생성 — 제목 · 담당자 수정/해제 및 기존 블록 모달 스타일 적용 |
 | `src/features/block/BlockDeleteModal.tsx` | 생성 — 삭제 확인 · 잠금 오류 안내 모달                       |
 | `src/features/block/BlockCard.tsx`        | 수정 — 수정 모달 · 삭제 확인/재조회 연결                     |
 | `src/features/block/AddBlockModal.tsx`    | 수정 — 생성자를 기본 담당자로 전송                           |
 | `src/features/block/StepBlocks.tsx`       | 수정 — 블록 변경 후 목록 재조회                              |
+| `src/features/block/BlockSkeletons.tsx`   | 생성 — 블록 보드 · 문서 목록 Skeleton UI                     |
 | `.ai/API.md`                              | 수정 — 45~47번 확정 명세 추가                                |
 
 ### 주요 작업 내용
 
 - 프로젝트 참여자 목록을 사이드바와 블록 담당자 선택에 공용 연동
+- PrimeNG Skeleton의 형태·접근성 규칙을 React/Tailwind 프로젝트 전용 컴포넌트로 적용
+- 사이드바 개요·단계·참여자와 블록 보드·문서 목록 로딩 UI를 실제 콘텐츠 구조에 맞게 분리
+- 프로젝트 사이드바의 고정 메뉴·정보 영역·스테이지 행 높이와 묶음별 상하 간격을 정돈
 - 블록 제목·담당자 부분 수정과 `null` 담당자 해제 규칙 반영
 - 블록 수정 모달의 헤더·입력 영역·푸터·저장 상태를 기존 블록 UI와 통일
 - 블록 soft delete와 삭제 잠금 오류 메시지 노출, 성공 후 목록 동기화

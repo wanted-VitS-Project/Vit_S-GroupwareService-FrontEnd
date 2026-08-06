@@ -8,6 +8,7 @@ import { getProjectSteps } from '@/features/project/api';
 import AddBlockButton from './AddBlockButton';
 import { getStepBlocks } from './api';
 import BlockBoard from './BlockBoard';
+import { BlockBoardSkeleton } from './BlockSkeletons';
 import type { StepBlock } from './types';
 
 /**
@@ -133,7 +134,7 @@ export default function StepBlocks() {
           블록을 불러오지 못했습니다.
         </p>
       ) : !blocks ? (
-        <BoardSkeleton />
+        <BlockBoardSkeleton />
       ) : (
         <BlockBoard
           stepId={stepId}
@@ -144,28 +145,6 @@ export default function StepBlocks() {
           onOrderChanged={(next) => setLoaded({ stepId, blocks: next })}
         />
       )}
-    </div>
-  );
-}
-
-/**
- * 조회 중 자리를 지키는 껍데기.
- * 문구 한 줄만 두면 보드 높이가 수백 px 급변해서 탭을 오갈 때 화면이 튄다.
- */
-function BoardSkeleton() {
-  return (
-    <div
-      role="status"
-      aria-label="블록을 불러오는 중입니다"
-      className="grid grid-cols-3 gap-4"
-    >
-      {[0, 1, 2].map((column) => (
-        <div
-          key={column}
-          aria-hidden
-          className="h-56 animate-pulse rounded-lg border border-[#1C1F2A]/10 bg-white"
-        />
-      ))}
     </div>
   );
 }

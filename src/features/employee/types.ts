@@ -47,6 +47,21 @@ export interface EmployeeDetail extends EmployeeSummary {
   groups: EmployeeGroup[];
 }
 
+/**
+ * 이름 검색 결과 한 명 (.ai/API.md 35) — 결재선 지정용.
+ *
+ * ⚠️ 인사관리 목록(`EmployeeSummary`)과 **필드 이름이 다르다.**
+ * 부서 · 직급이 `departmentPath` · `jobPositionName` 이 아니라
+ * `department` · `position` 으로 오고, 민감 정보 없이 4개 필드뿐이다.
+ */
+export interface EmployeeSearchResult {
+  userId: string;
+  name: string;
+  /** 동명이인 구분용. 미지정이면 null */
+  department: string | null;
+  position: string | null;
+}
+
 export interface EmployeeListQuery {
   /** 이름 또는 사번 부분 검색 — 서버가 하나로 받는다 */
   keyword?: string;

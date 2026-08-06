@@ -89,6 +89,7 @@ export default function EmployeeCreateForm() {
   >([]);
   const [jobPositions, setJobPositions] = useState<JobPosition[]>([]);
   const [hasOptionsFailed, setHasOptionsFailed] = useState(false);
+  const [areOptionsLoading, setAreOptionsLoading] = useState(true);
   const [optionsReloadCount, setOptionsReloadCount] = useState(0);
 
   useEffect(() => {
@@ -100,14 +101,24 @@ export default function EmployeeCreateForm() {
         setDepartmentOptions(toDepartmentOptions(departments));
         setJobPositions(positions);
         setHasOptionsFailed(false);
+        setAreOptionsLoading(false);
       })
       .catch(() => {
         // 부서는 필수라 옵션이 없으면 등록 자체를 못 한다
-        if (!signal.aborted) setHasOptionsFailed(true);
+        if (!signal.aborted) {
+          setHasOptionsFailed(true);
+          setAreOptionsLoading(false);
+        }
       });
 
     return () => controller.abort();
   }, [optionsReloadCount]);
+
+  function reloadOptions() {
+    setAreOptionsLoading(true);
+    setHasOptionsFailed(false);
+    setOptionsReloadCount((count) => count + 1);
+  }
 
   const isDirty =
     result === null &&
@@ -199,10 +210,10 @@ export default function EmployeeCreateForm() {
       } else if (code === EMPLOYEE_CODES.departmentNotFound) {
         // 고르는 사이 부서 · 직급이 삭제됐다. 옵션을 다시 받아 고쳐 고르게 한다
         setFieldErrors({ departmentId: message });
-        setOptionsReloadCount((count) => count + 1);
+        reloadOptions();
       } else if (code === EMPLOYEE_CODES.jobPositionNotFound) {
         setFieldErrors({ jobPositionId: message });
-        setOptionsReloadCount((count) => count + 1);
+        reloadOptions();
       } else if (code === EMPLOYEE_CODES.adminRoleNotAllowed) {
         setFieldErrors({ role: message });
       } else {
@@ -305,6 +316,7 @@ export default function EmployeeCreateForm() {
                   value: String(option.id),
                   label: option.label,
                 }))}
+                isLoading={areOptionsLoading}
                 onChange={(value) => change('departmentId', value)}
               />
               <SelectField
@@ -317,6 +329,7 @@ export default function EmployeeCreateForm() {
                   value: String(position.jobPositionId),
                   label: position.name,
                 }))}
+                isLoading={areOptionsLoading}
                 onChange={(value) => change('jobPositionId', value)}
               />
 
@@ -326,7 +339,7 @@ export default function EmployeeCreateForm() {
                   수 없습니다.{' '}
                   <button
                     type="button"
-                    onClick={() => setOptionsReloadCount((count) => count + 1)}
+                    onClick={reloadOptions}
                     className="cursor-pointer font-semibold underline"
                   >
                     다시 시도
