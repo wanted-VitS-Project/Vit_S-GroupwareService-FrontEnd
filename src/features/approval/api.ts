@@ -70,7 +70,8 @@ export function addDocument(
   revisionId: number,
   body: AddDocumentRequest,
 ) {
-  return api.post<Required<ApprovalDocument>>(
+  // `Required<>` 로 감싸지 않는다 — 서버가 파일명을 빼면 화면에 undefined 가 그대로 샌다
+  return api.post<ApprovalDocument>(
     ENDPOINTS.approvals.documents(approvalId, revisionId),
     body,
   );

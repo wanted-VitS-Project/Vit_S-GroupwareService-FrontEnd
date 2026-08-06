@@ -5,8 +5,13 @@
  * 회차는 상신할 때마다 새로 만들어지고 이전 회차는 이력으로 남는다 — 덮어쓰지 않는다.
  */
 
-/** 결재 전체 · 회차 공용 상태 */
-export type ApprovalStatus = 'DRAFT' | 'IN_PROGRESS' | 'REJECTED' | 'COMPLETED';
+import type { ApprovalStatusCode } from '@/constants/status';
+
+/**
+ * 결재 전체 · 회차 공용 상태.
+ * 값과 라벨을 한곳에서 관리하려고 `constants/status.ts` 의 타입을 그대로 쓴다.
+ */
+export type ApprovalStatus = ApprovalStatusCode;
 
 /**
  * 결재선 한 명의 처리 상태.

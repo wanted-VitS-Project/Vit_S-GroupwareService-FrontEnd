@@ -54,6 +54,8 @@ function Loaded({
    * 블록 `detail` 의 값은 그때부터 낡은 것이 된다.
    */
   const [revisionId, setRevisionId] = useState(detail.revisionId);
+  /** 회차를 다시 받아야 할 때 올린다 — 재상신은 멱등이라 ID 가 그대로일 수 있다 */
+  const [reloadKey, setReloadKey] = useState(0);
   const [revision, setRevision] = useState<ApprovalRevision | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -79,7 +81,7 @@ function Loaded({
       });
 
     return () => controller.abort();
-  }, [detail.approvalId, revisionId]);
+  }, [detail.approvalId, revisionId, reloadKey]);
 
   /** 문서 · 결재선이 바뀌면 회차를 통째로 다시 받지 않고 그 부분만 갈아끼운다 */
   function patchRevision(next: Partial<ApprovalRevision>) {
@@ -96,7 +98,16 @@ function Loaded({
     try {
       // 멱등이다 — 이미 DRAFT 가 있으면 그것을 그대로 돌려준다
       const created = await createRevision(detail.approvalId);
+
+      /**
+       * ⚠️ 회차를 비우고 다시 받는다. 반려 회차의 값을 그대로 두면
+       * 새 회차 화면에 옛 문서 · 결재선이 보이고, 그때 문서를 제거하면
+       * **다른 회차의 `documentId`** 로 삭제 요청이 나간다.
+       */
+      setRevision(null);
+      setHasFailed(false);
       setRevisionId(created.revisionId);
+      setReloadKey((key) => key + 1);
       setIsEditing(true);
     } catch (caught) {
       setError(messageOf(caught, '수정을 시작하지 못했습니다.'));
