@@ -6,6 +6,48 @@
 
 ---
 
+## [2026-08-06] 부서 관리 화면 구현 🚧
+
+브랜치: `feat/departments` · 이슈: #6
+
+### 변경 파일
+
+| 파일                                                | 변경                                             |
+| --------------------------------------------------- | ------------------------------------------------ |
+| `src/features/department/types.ts`                  | 생성 — `Department` 트리 · 요청 타입 · 길이 제한 |
+| `src/features/department/errorCodes.ts`             | 생성 — 400 · 404 · 409 응답 코드 단일 소스       |
+| `src/features/department/api.ts`                    | 생성 — 목록 · 생성 · 수정 · 삭제 호출            |
+| `src/features/department/DepartmentList.tsx`        | 생성 — 2단 트리 표 · 권한별 액션 노출            |
+| `src/features/department/DepartmentFormModal.tsx`   | 생성 — 추가(최상위 · 하위) · 부서명 수정         |
+| `src/features/department/DeleteDepartmentModal.tsx` | 생성 — 삭제 확인 · 사원/하위 부서 차단 안내      |
+| `src/app/settings/departments/page.tsx`             | `DepartmentList` 연결 (stub 교체)                |
+| `src/constants/endpoints.ts`                        | `departments` 엔드포인트 추가                    |
+
+### 주요 작업 내용
+
+- 부서 2단 트리 표 구현 — 하위 부서는 들여쓰기 + `└` 기호 + 옅은 색으로 구분
+- 부서 추가 모달을 최상위 · 하위 공용으로 구현 (`parentId` 유무로 갈림)
+- 삭제 차단 2단 방어 — 목록 값(`directEmployeeCount` · `children`)으로 먼저 막고, 409(`DEPT_HAS_EMPLOYEES` · `DEPT_HAS_CHILDREN`)로 다시 막는다
+- 행마다 "사원 보기" → `/settings/employees?departmentId={id}` 로 연결
+
+### 부수 결정
+
+- **상위 부서 이동 메뉴를 만들지 않는다** — 수정 API 가 `name` 만 받는다. 타입(`UpdateDepartmentRequest`)에도 이름만 두어 못 박았다
+- 하위 부서 행에는 **"하위 부서 추가" 메뉴를 숨긴다** — 2단이 한계라 누르면 `DEPT_MAX_DEPTH_EXCEEDED` 로 실패한다
+- 인원 표시는 `totalEmployeeCount`, 삭제 차단 판정은 `directEmployeeCount` — 두 값을 섞지 않는다
+- 조회는 전체 사용자라 화면 자체는 열되, **추가 · 수정 · 삭제 버튼은 ADMIN 에게만** 보인다 (실제 차단은 백엔드)
+- 부서명 중복 · 길이 오류(`DEPT_NAME_DUPLICATED` · `DEPT_INVALID_REQUEST`)는 입력 아래 인라인, 그 외는 하단 공통 문구
+
+### 검증
+
+| 명령               | 결과               |
+| ------------------ | ------------------ |
+| `npx tsc --noEmit` | ✅ 에러 0          |
+| `npx eslint src`   | ✅ 에러 0 · 경고 0 |
+| 브라우저 동작 확인 | 담당자 직접 확인   |
+
+---
+
 ## [2026-08-06] 직급 관리 화면 구현 🚧
 
 브랜치: `feat/job-positions` · 이슈: #40
