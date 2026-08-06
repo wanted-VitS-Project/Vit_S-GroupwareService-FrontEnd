@@ -5,33 +5,30 @@ import { useState } from 'react';
 import PanelModal, { ModalFooter } from '@/components/PanelModal';
 import { ApiError, messageOf } from '@/lib/api';
 
-import { deleteCategory } from './api';
-import { CATEGORY_CODES } from './errorCodes';
-import type { BusinessCategory } from './types';
+import { deleteJobPosition } from './api';
+import { JOB_POSITION_CODES } from './errorCodes';
+import type { JobPosition } from './types';
 
-interface DeleteCategoryModalProps {
-  category: BusinessCategory;
+interface DeleteJobPositionModalProps {
+  position: JobPosition;
   onClose: () => void;
-  /** 삭제 성공 · 이미 삭제된 경우 모두 목록을 다시 불러온다 */
+  /** 삭제 성공 · 이미 삭제된 경우 모두 재조회한다 */
   onDeleted: () => void;
 }
 
 /**
- * 사업 카테고리 삭제 모달. (.ai/API.md 18)
- *
- * `deletable === false` 면 처음부터 차단 안내를 띄운다.
- * 목록을 받은 뒤 다른 사람이 프로젝트를 연결할 수 있어 409 도 같은 화면으로 받는다 —
- * 이때는 건수가 담긴 백엔드 문구를 그대로 쓴다.
+ * 직급 삭제 모달. (.ai/API.md 29)
+ * `employeeCount > 0` 이면 미리 차단하고, 그 사이 배정된 경우는 409 로 다시 차단한다.
  */
-export default function DeleteCategoryModal({
-  category,
+export default function DeleteJobPositionModal({
+  position,
   onClose,
   onDeleted,
-}: DeleteCategoryModalProps) {
+}: DeleteJobPositionModalProps) {
   const [blockedMessage, setBlockedMessage] = useState(
-    category.deletable
-      ? ''
-      : '이 카테고리를 사용 중인 프로젝트가 있습니다. 해당 프로젝트에서 카테고리를 먼저 변경한 뒤 삭제해주세요.',
+    position.employeeCount > 0
+      ? `이 직급을 사용 중인 사원이 ${position.employeeCount}명 있습니다. 해당 사원의 직급을 먼저 바꾼 뒤 삭제해주세요.`
+      : '',
   );
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,20 +40,20 @@ export default function DeleteCategoryModal({
     setIsSubmitting(true);
 
     try {
-      await deleteCategory(category.categoryId);
+      await deleteJobPosition(position.jobPositionId);
       onDeleted();
       onClose();
     } catch (caught) {
       const code = caught instanceof ApiError ? caught.code : undefined;
 
-      if (code === CATEGORY_CODES.inUse) {
-        // 건수가 문구에 담겨 오므로 백엔드 message 가 가장 정확하다
-        setBlockedMessage(messageOf(caught, '사용 중인 카테고리입니다.'));
+      if (code === JOB_POSITION_CODES.inUse) {
+        // 인원 수가 담긴 백엔드 문구가 가장 정확하다
+        setBlockedMessage(messageOf(caught, '사용 중인 직급입니다.'));
         setIsSubmitting(false);
         return;
       }
-      // 이미 삭제된 카테고리 — 목록만 갱신하고 닫는다
-      if (code === CATEGORY_CODES.notFound) {
+      // 이미 삭제됨 — 목록만 갱신하고 닫는다
+      if (code === JOB_POSITION_CODES.notFound) {
         onDeleted();
         onClose();
         return;
@@ -68,9 +65,9 @@ export default function DeleteCategoryModal({
   }
 
   const isBlocked = blockedMessage !== '';
-  const title = isBlocked ? '삭제할 수 없습니다' : '사업 카테고리 삭제';
+  const title = isBlocked ? '삭제할 수 없습니다' : '직급 삭제';
 
-  /** 삭제 중에는 닫지 않는다 — 요청은 계속 날아간다 */
+  /** 삭제 중에는 닫지 않는다 */
   function requestClose() {
     if (!isSubmitting) onClose();
   }
@@ -80,11 +77,11 @@ export default function DeleteCategoryModal({
       <div className="space-y-4 p-5">
         <div className="flex items-center gap-2 rounded-lg border border-[#1C1F2A]/10 bg-[#ECEEF4]/50 px-3 py-2.5">
           <span className="min-w-0 truncate text-xs font-semibold text-[#1C1F2A]">
-            {category.name}
+            {position.name}
           </span>
-          {category.code && (
-            <span className="shrink-0 rounded border border-[#1C1F2A]/10 bg-white px-1.5 py-0.5 font-mono text-[10px] text-[#6C7389]">
-              {category.code}
+          {position.employeeCount > 0 && (
+            <span className="shrink-0 rounded border border-[#1C1F2A]/10 bg-white px-1.5 py-0.5 text-[10px] text-[#6C7389]">
+              {position.employeeCount}명 사용 중
             </span>
           )}
         </div>
@@ -95,9 +92,9 @@ export default function DeleteCategoryModal({
           </p>
         ) : (
           <p className="rounded-lg bg-[#F59E0B]/10 px-3 py-2.5 text-[11px] leading-relaxed break-keep text-[#92400E]">
-            삭제하면 프로젝트 생성 시 더 이상 선택할 수 없습니다.
+            삭제하면 사원 등록 · 수정 시 더 이상 선택할 수 없습니다.
             <br />
-            이미 이 카테고리가 지정된 프로젝트에서는 그대로 표시됩니다.
+            되돌릴 수 없으니 직급명을 확인해주세요.
           </p>
         )}
 

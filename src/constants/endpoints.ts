@@ -26,6 +26,13 @@ export const ENDPOINTS = {
     detail: (categoryId: number | string) =>
       `${V1}/business-categories/${categoryId}`,
   },
+  jobPositions: {
+    /** 목록 조회 · 생성 */
+    root: `${V1}/job-positions`,
+    /** 수정 · 삭제 */
+    detail: (jobPositionId: number | string) =>
+      `${V1}/job-positions/${jobPositionId}`,
+  },
   steps: {
     blocks: (stepId: number | string) => `${V1}/steps/${stepId}/blocks`,
   },

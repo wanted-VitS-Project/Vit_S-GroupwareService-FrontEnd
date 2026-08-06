@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 
+import PanelModal, { ModalFooter } from '@/components/PanelModal';
 import { ApiError, messageOf } from '@/lib/api';
 
 import { createCategory, updateCategory } from './api';
-import CategoryModal, { ModalFooter } from './CategoryModal';
 import { CATEGORY_CODES } from './errorCodes';
 import {
   type BusinessCategory,
@@ -119,7 +119,7 @@ export default function CategoryFormModal({
   const title = isEditing ? '사업 카테고리 수정' : '사업 카테고리 추가';
 
   return (
-    <CategoryModal title={title} onClose={requestClose}>
+    <PanelModal title={title} onClose={requestClose}>
       <form onSubmit={handleSubmit}>
         <div className="space-y-4 p-5">
           <Field
@@ -183,7 +183,7 @@ export default function CategoryFormModal({
           </div>
         </ModalFooter>
       </form>
-    </CategoryModal>
+    </PanelModal>
   );
 }
 
