@@ -11,8 +11,11 @@ import DeleteDepartmentModal from './DeleteDepartmentModal';
 import DepartmentFormModal from './DepartmentFormModal';
 import type { Department } from './types';
 
-/** 폼 모달 대상 — 'create' 는 최상위 추가, `{ parent }` 는 하위 추가, 부서 객체는 이름 수정 */
-type FormTarget = 'create' | { parent: Department } | Department;
+/**
+ * 폼 모달 대상. 그대로 모달 props 로 넘긴다.
+ * `department` 가 있으면 수정, 없으면 추가 — `parent` 가 있으면 그 아래 하위 부서로 만든다.
+ */
+type FormTarget = { department?: Department; parent?: Department };
 
 /** 트리를 표 한 줄씩으로 편다. 2단이 끝이라 깊이는 0 · 1 뿐이다 */
 function flatten(departments: Department[]) {
@@ -70,7 +73,7 @@ export default function DepartmentList() {
     return [
       {
         label: '부서명 수정',
-        onSelect: () => setFormTarget(department),
+        onSelect: () => setFormTarget({ department }),
       },
       // 2단이 끝이라 하위 부서에는 또 하위를 붙일 수 없다 (DEPT_MAX_DEPTH_EXCEEDED)
       ...(depth === 0
@@ -108,7 +111,7 @@ export default function DepartmentList() {
             부서는 삭제할 수 없습니다.
           </p>
         </div>
-        {canManage && <AddButton onClick={() => setFormTarget('create')} />}
+        {canManage && <AddButton onClick={() => setFormTarget({})} />}
       </div>
 
       <div className="rounded-xl border border-[#1C1F2A]/10 bg-white">
@@ -139,7 +142,7 @@ export default function DepartmentList() {
               부서를 추가하면 사원 등록 시 선택할 수 있어요
             </p>
             {canManage && (
-              <AddButton subtle onClick={() => setFormTarget('create')} />
+              <AddButton subtle onClick={() => setFormTarget({})} />
             )}
           </Centered>
         ) : (
@@ -219,16 +222,7 @@ export default function DepartmentList() {
 
       {formTarget && (
         <DepartmentFormModal
-          department={
-            formTarget === 'create' || 'parent' in formTarget
-              ? undefined
-              : formTarget
-          }
-          parent={
-            formTarget !== 'create' && 'parent' in formTarget
-              ? formTarget.parent
-              : undefined
-          }
+          {...formTarget}
           onClose={() => setFormTarget(null)}
           onSaved={reload}
         />
