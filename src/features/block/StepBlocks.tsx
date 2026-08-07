@@ -88,6 +88,30 @@ export default function StepBlocks() {
     return () => window.removeEventListener('block:changed', reload);
   }, []);
 
+  /**
+   * 다른 사람이 바꾼 배치를 받아오는 지점.
+   *
+   * 서버가 변경을 밀어주는 통로(WebSocket · SSE)가 없어 **실시간 반영은 불가능**하다.
+   * 대신 화면으로 **돌아오는 순간** 다시 읽는다 — 자리를 비운 사이의 변경이 가장 크고,
+   * 보고 있지 않은 동안 주기적으로 찔러 보는 것보다 요청도 적다.
+   *
+   * 나가기 직전에는 미뤄둔 배치를 먼저 보낸다. 그러지 않으면 탭을 옮기는 순간
+   * 마지막 이동이 대기 상태로 남고, 돌아와 재조회하면 그대로 사라진다.
+   */
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === 'hidden') {
+        flushLayout.current?.();
+        return;
+      }
+      setReloadCount((count) => count + 1);
+    }
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () =>
+      document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+
   // 스텝 상세 조회 API 가 없어 프로젝트 스텝 목록에서 이름을 찾는다
   useEffect(() => {
     const controller = new AbortController();
