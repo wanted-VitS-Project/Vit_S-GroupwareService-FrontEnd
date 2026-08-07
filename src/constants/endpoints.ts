@@ -63,6 +63,14 @@ export const ENDPOINTS = {
     /** 블록 배치 변경 — 스텝의 배치 전체를 한 번에 보낸다 */
     blocksLayout: (stepId: number | string) =>
       `${V1}/steps/${stepId}/blocks/layout`,
+    /** 이슈 목록 조회 · 생성 */
+    issues: (stepId: number | string) => `${V1}/steps/${stepId}/issues`,
+  },
+  issues: {
+    /** 상세 조회 · 부분 수정 · 삭제 */
+    detail: (issueId: number | string) => `${V1}/issues/${issueId}`,
+    /** 상태 변경 — 부분 수정과 엔드포인트가 다르다 */
+    status: (issueId: number | string) => `${V1}/issues/${issueId}/status`,
   },
   approvals: {
     /** 재상신 회차 생성 */

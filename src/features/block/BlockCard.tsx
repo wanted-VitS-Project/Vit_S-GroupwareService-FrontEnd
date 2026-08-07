@@ -2,29 +2,13 @@
 
 import { useRef, useState } from 'react';
 
+import MemberAvatar from '@/components/MemberAvatar';
+
 import { setPillDragImage, useBlockDrag } from './BlockDragContext';
 import BlockDeleteModal from './BlockDeleteModal';
 import BlockEditModal from './BlockEditModal';
 import BlockTypeIcon from './BlockTypeIcon';
 import { BLOCK_TYPES, type StepBlock } from './types';
-
-/** 담당자 아바타 색. 사번을 기준으로 고정 배정해 새로고침해도 같은 색이 나온다 */
-const AVATAR_COLORS = [
-  '#FE9A00',
-  '#2B7FFF',
-  '#FF2056',
-  '#8E51FF',
-  '#00BC7D',
-  '#0092B8',
-];
-
-function avatarColor(userId: string) {
-  const sum = [...userId].reduce(
-    (total, char) => total + char.charCodeAt(0),
-    0,
-  );
-  return AVATAR_COLORS[sum % AVATAR_COLORS.length];
-}
 
 interface BlockCardProps {
   block: StepBlock;
@@ -116,12 +100,14 @@ export default function BlockCard({
       <footer className="flex items-center gap-2 border-t border-[#1C1F2A]/[0.05] bg-[#ECEEF4]/20 px-3 py-1.5">
         {block.owner ? (
           <>
-            <span
-              style={{ backgroundColor: avatarColor(block.owner.userId) }}
-              className="flex size-5 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold text-white"
-            >
-              {block.owner.name.slice(0, 1)}
-            </span>
+            <MemberAvatar
+              userId={block.owner.userId}
+              name={block.owner.name}
+              size="xs"
+              withRing={false}
+              // 바로 옆에 이름 글자가 있다
+              decorative
+            />
             <span className="min-w-0 flex-1 truncate text-[9px] text-[#6C7389]">
               {block.owner.name}
             </span>

@@ -1,8 +1,9 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
+import MemberAvatar from '@/components/MemberAvatar';
 import Modal from '@/components/Modal';
 import { getProjectMembers } from '@/features/project/api';
 import type { ProjectMember } from '@/features/project/types';
@@ -72,6 +73,40 @@ export default function BlockEditModal({
     }
   }
 
+  /** 담당자는 한 명이라 고른 사람은 칩으로, 나머지는 후보 버튼으로 나눈다 */
+  const selectedMember = members.find((member) => member.userId === owner);
+  const candidates = members.filter((member) => member.userId !== owner);
+
+  /**
+   * 담당자를 고르거나 해제하면 방금 누른 버튼이 사라진다.
+   * 그대로 두면 초점이 문서로 떨어져 키보드 사용자가 모달을 처음부터 훑어야 한다.
+   */
+  const focusAfterRender = useRef<'chip' | 'candidate' | null>(null);
+  const releaseButtonRef = useRef<HTMLButtonElement>(null);
+  const candidateButtons = useRef(new Map<string, HTMLButtonElement>());
+  const candidateBoxRef = useRef<HTMLDivElement>(null);
+  /** 해제 후 초점을 돌려줄 후보 — 방금 해제한 사람 */
+  const releasedUserId = useRef<string | null>(null);
+
+  useEffect(() => {
+    const target = focusAfterRender.current;
+    if (!target) return;
+    focusAfterRender.current = null;
+
+    if (target === 'chip') {
+      releaseButtonRef.current?.focus();
+      return;
+    }
+
+    const back = releasedUserId.current
+      ? candidateButtons.current.get(releasedUserId.current)
+      : undefined;
+    releasedUserId.current = null;
+
+    if (back) back.focus();
+    else candidateBoxRef.current?.focus();
+  });
+
   return (
     <Modal
       title="블록 수정"
@@ -113,28 +148,87 @@ export default function BlockEditModal({
             className="w-full rounded-lg border border-[#1C1F2A]/10 bg-[#ECEEF4]/50 px-3 py-2 text-[11px] font-normal text-[#1C1F2A] placeholder:text-[#6C7389] focus:outline-2 focus:outline-offset-2 focus:outline-[#3B5BDB]"
           />
         </label>
-        <label className="block">
+        {/* 담당자 지정 — 이슈 담당자 지정과 같은 모양(칩 + 후보 버튼)을 쓴다 */}
+        <div>
           <span className="block pb-1.5 text-[11px] font-semibold text-[#1C1F2A]">
             담당자
           </span>
-          <select
-            value={owner}
-            onChange={(event) => setOwner(event.target.value)}
-            disabled={isMembersLoading || membersFailed || isSubmitting}
-            className="w-full cursor-pointer rounded-lg border border-[#1C1F2A]/10 bg-[#ECEEF4]/50 px-3 py-2 text-[11px] font-normal text-[#1C1F2A] focus:outline-2 focus:outline-offset-2 focus:outline-[#3B5BDB]"
+          <div className="flex min-h-[40px] flex-wrap items-center gap-1.5 rounded-lg border border-[#1C1F2A]/10 bg-[#ECEEF4]/50 p-2.5">
+            {selectedMember ? (
+              <span className="flex items-center gap-1 rounded-full border border-[#1C1F2A]/10 bg-white px-2 py-0.5">
+                <MemberAvatar
+                  userId={selectedMember.userId}
+                  name={selectedMember.name}
+                  size="xs"
+                  decorative
+                />
+                <span className="text-[10px] font-medium text-[#1C1F2A]">
+                  {selectedMember.name}
+                </span>
+                <button
+                  type="button"
+                  ref={releaseButtonRef}
+                  aria-label={`${selectedMember.name} 해제`}
+                  disabled={isSubmitting}
+                  onClick={() => {
+                    // 해제하면 이 버튼이 사라진다 — 다시 나타날 후보 버튼으로 초점을 넘긴다
+                    releasedUserId.current = selectedMember.userId;
+                    focusAfterRender.current = 'candidate';
+                    setOwner('');
+                  }}
+                  className="cursor-pointer text-[10px] text-[#6C7389] hover:text-[#1C1F2A] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  ✕
+                </button>
+              </span>
+            ) : (
+              <span className="text-[10px] text-[#6C7389]">
+                {isMembersLoading
+                  ? '참여자 불러오는 중…'
+                  : '아래에서 담당자를 선택하세요'}
+              </span>
+            )}
+          </div>
+          {/* 옮길 버튼이 사라졌을 때 초점을 받아줄 자리 */}
+          <div
+            ref={candidateBoxRef}
+            tabIndex={-1}
+            className="mt-1.5 flex flex-wrap gap-1.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3B5BDB]"
           >
-            <option value="">
-              {isMembersLoading ? '참여자 불러오는 중…' : '담당자 없음'}
-            </option>
-            {members.map((member) => (
-              <option key={member.memberId} value={member.userId}>
-                {member.name}
-                {member.department ? ` · ${member.department}` : ''}
-                {member.resigned ? ' (퇴사)' : ''}
-              </option>
-            ))}
-          </select>
-        </label>
+            {membersFailed ? (
+              <span className="text-[10px] text-[#6C7389]">
+                참여자를 불러오지 못했습니다.
+              </span>
+            ) : (
+              candidates.map((member) => (
+                <button
+                  key={member.memberId}
+                  type="button"
+                  ref={(node) => {
+                    if (node) candidateButtons.current.set(member.userId, node);
+                    else candidateButtons.current.delete(member.userId);
+                  }}
+                  disabled={isSubmitting}
+                  onClick={() => {
+                    // 고르면 이 버튼이 사라진다 — 새로 생기는 해제 버튼으로 초점을 넘긴다
+                    focusAfterRender.current = 'chip';
+                    setOwner(member.userId);
+                  }}
+                  title={`${member.name}${member.department ? ` · ${member.department}` : ''}${member.resigned ? ' · 퇴사' : ''}`}
+                  className="flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-[#6C7389] hover:bg-[#ECEEF4] hover:text-[#1C1F2A] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <MemberAvatar
+                    userId={member.userId}
+                    name={member.name}
+                    size="xs"
+                    decorative
+                  />
+                  {member.name}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
       </div>
       <div className="flex items-center justify-between gap-4 border-t border-[#1C1F2A]/10 bg-[#ECEEF4]/20 px-5 py-3.5">
         <p

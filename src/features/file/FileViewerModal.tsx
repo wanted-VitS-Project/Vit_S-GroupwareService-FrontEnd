@@ -289,7 +289,12 @@ export default function FileViewerModal({
           </aside>
         )}
 
-        <div className="flex min-w-0 flex-1 flex-col items-center gap-4 overflow-y-auto bg-[#F1F5F9] p-6">
+        {/*
+          `scrollbar-gutter: stable` — PDF 페이지를 그리는 순간 스크롤바가 생기며 폭이 줄면
+          `PdfPages` 의 ResizeObserver 가 다시 돌아 캔버스 전체를 한 번 더 그린다.
+          자리를 미리 비워 두면 그 왕복이 없다.
+        */}
+        <div className="flex min-w-0 flex-1 [scrollbar-gutter:stable] flex-col items-center gap-4 overflow-y-auto bg-[#F1F5F9] p-6">
           <PreviewPane
             preview={preview}
             onDownload={() =>
