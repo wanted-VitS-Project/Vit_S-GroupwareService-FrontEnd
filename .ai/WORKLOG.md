@@ -8,19 +8,19 @@
 
 ## [2026-08-07] 블록 수정 · 삭제 즉시 반영 · 복귀 시 목록 동기화 🚧
 
-브랜치: `user/project` · 이슈: 확인 필요
+브랜치: `user/project` · 이슈: #65
 
 ### 변경 파일
 
-| 파일                                       | 변경                                                     |
-| ------------------------------------------ | -------------------------------------------------------- |
+| 파일                                         | 변경                                                      |
+| -------------------------------------------- | --------------------------------------------------------- |
 | `src/features/block/BlockActionsContext.tsx` | 생성 — 보드 → 카드 `patch` · `remove` 배선                |
-| `src/features/block/BlockBoard.tsx`        | `patch` · `remove` 구현 · 프로바이더 · `isEcho` 판정 교체 |
-| `src/features/block/BlockCard.tsx`         | 수정 · 삭제를 컨텍스트로 라우팅 (없으면 이벤트 폴백)      |
-| `src/features/block/BlockEditModal.tsx`    | `onUpdated(updated)` — 응답을 그대로 넘김                 |
-| `src/features/block/BlockDeleteModal.tsx`  | `onDeleted(blockId)`                                      |
-| `src/features/block/StepBlocks.tsx`        | 이탈 시 대기 배치 flush · 복귀 시 재조회                  |
-| `.ai/API.md`                               | 44번 동시 편집 한계 · 확인 대기 항목 추가                 |
+| `src/features/block/BlockBoard.tsx`          | `patch` · `remove` 구현 · 프로바이더 · `isEcho` 판정 교체 |
+| `src/features/block/BlockCard.tsx`           | 수정 · 삭제를 컨텍스트로 라우팅 (없으면 이벤트 폴백)      |
+| `src/features/block/BlockEditModal.tsx`      | `onUpdated(updated)` — 응답을 그대로 넘김                 |
+| `src/features/block/BlockDeleteModal.tsx`    | `onDeleted(blockId)`                                      |
+| `src/features/block/StepBlocks.tsx`          | 이탈 시 대기 배치 flush · 복귀 시 재조회                  |
+| `.ai/API.md`                                 | 44번 동시 편집 한계 · 확인 대기 항목 추가                 |
 
 ### 주요 작업 내용
 
