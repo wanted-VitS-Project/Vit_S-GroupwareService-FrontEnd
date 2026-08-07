@@ -8,8 +8,9 @@ export function ApprovalDetailSkeleton() {
       <Skeleton className="mt-4 h-5 w-96" />
       <Skeleton className="mt-2 h-3 w-56" />
 
-      <div className="mt-6 flex gap-4">
-        <div className="flex flex-1 flex-col gap-4">
+      {/* 분기를 실제 화면(`ApprovalDetailView`)과 맞춘다 — 다르면 로딩이 끝나는 순간 배치가 튄다 */}
+      <div className="mt-6 flex flex-col gap-4 lg:flex-row">
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
           <div className="rounded-xl border border-[#1C1F2A]/10 p-4">
             <Skeleton className="h-3 w-16" />
             <Skeleton className="mt-3 h-3 w-full" />
@@ -22,7 +23,7 @@ export function ApprovalDetailSkeleton() {
           </div>
         </div>
 
-        <div className="w-72 shrink-0 rounded-xl border border-[#1C1F2A]/10 p-4">
+        <div className="w-full shrink-0 rounded-xl border border-[#1C1F2A]/10 p-4 lg:w-72">
           <Skeleton className="h-3 w-16" />
           {[0, 1, 2].map((row) => (
             <div key={row} className="mt-4 flex gap-3">

@@ -41,9 +41,10 @@ export default function ApprovalDocumentModal({
   const [preview, setPreview] = useState<Preview>({ kind: 'loading' });
   const [version, setVersion] = useState<FileVersionDetail | null>(null);
   const [downloadError, setDownloadError] = useState('');
+  /** 목록과 같은 값을 먼저 쓴다 — 헤더만 다른 이름이면 다른 문서로 오해한다 */
   const fileName =
-    version?.originalFileName ??
     document.fileName ??
+    version?.originalFileName ??
     `파일 버전 #${document.fileVersionId}`;
 
   // 결재가 고정한 버전의 정보. 휴지통에 있어도 오므로 미리보기와 따로 받는다
