@@ -73,7 +73,11 @@ export const ENDPOINTS = {
     status: (issueId: number | string) => `${V1}/issues/${issueId}/status`,
   },
   approvals: {
-    /** 재상신 회차 생성 */
+    /** 결재 관리 목록 */
+    root: `${V1}/approvals`,
+    /** 결재 상세 — **항상 현재 회차**다. 회차를 지정할 수 없다 */
+    detail: (approvalId: number | string) => `${V1}/approvals/${approvalId}`,
+    /** 재상신 회차 생성(POST) · 회차 이력 조회(GET) */
     revisions: (approvalId: number | string) =>
       `${V1}/approvals/${approvalId}/revisions`,
     /** 회차 상세 조회 · 제목/내용 수정 */
@@ -95,6 +99,13 @@ export const ENDPOINTS = {
     /** 결재선 등록 · 수정 (전체 치환) */
     lines: (approvalId: number | string, revisionId: number | string) =>
       `${V1}/approvals/${approvalId}/revisions/${revisionId}/lines`,
+  },
+  /** ⚠️ 승인 · 반려는 결재가 아니라 **결재선(`lineId`)** 을 대상으로 한다 */
+  approvalLines: {
+    approve: (lineId: number | string) =>
+      `${V1}/approval-lines/${lineId}/approve`,
+    reject: (lineId: number | string) =>
+      `${V1}/approval-lines/${lineId}/reject`,
   },
   blocks: {
     detail: (blockId: number | string) => `${V1}/blocks/${blockId}`,

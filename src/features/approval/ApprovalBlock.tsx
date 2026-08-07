@@ -264,11 +264,8 @@ function Loaded({
   );
 }
 
-/**
- * 반려 사유. 반려한 결재자의 의견을 쓴다.
- * ❗ `lines[].comment` 가 아직 명세에 없어 값이 오지 않으면 안내 문구로 대체한다.
- */
+/** 반려 사유. 반려한 결재자의 의견을 쓰고, 없으면 안내 문구로 대체한다 */
 function rejectionComment(revision: ApprovalRevision) {
   const rejected = revision.lines.find((line) => line.status === 'REJECTED');
-  return rejected?.comment || null;
+  return rejected?.opinion || null;
 }

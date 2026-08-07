@@ -3,15 +3,67 @@ import { api } from '@/lib/api';
 
 import type {
   AddDocumentRequest,
+  ApprovalDetail,
   ApprovalDocument,
+  ApprovalListItem,
+  ApprovalListQuery,
+  ApprovalPage,
   ApprovalRevision,
+  ApproveLineResponse,
   CreateRevisionResponse,
+  ProcessLineRequest,
+  RejectLineResponse,
   SetLinesRequest,
   SetLinesResponse,
   SubmitRevisionResponse,
   UpdateRevisionRequest,
   UpdateRevisionResponse,
 } from './types';
+
+/** 값이 있는 필터만 실어 보낸다 — 빈 문자열을 보내면 그 값으로 검색한다 */
+function toSearchParams(query: ApprovalListQuery) {
+  const params = new URLSearchParams();
+
+  if (query.scope) params.set('scope', query.scope);
+  if (query.status) params.set('status', query.status);
+  if (query.drafterId) params.set('drafterId', query.drafterId);
+  if (query.approverId) params.set('approverId', query.approverId);
+  if (query.fromDate) params.set('fromDate', query.fromDate);
+  if (query.toDate) params.set('toDate', query.toDate);
+  if (query.keyword) params.set('keyword', query.keyword);
+  if (query.revisionNo) params.set('revisionNo', String(query.revisionNo));
+  // page 는 0 이 유효한 값이라 falsy 로 거르지 않는다
+  if (query.page !== undefined) params.set('page', String(query.page));
+  if (query.size) params.set('size', String(query.size));
+
+  return params.toString();
+}
+
+/**
+ * 결재 관리 목록. 탭(`scope`)에 따라 대상이 달라진다 —
+ * `drafted` 내가 기안 · `pending` 내 차례 · `all` 전체(MASTER · ADMIN 전용).
+ *
+ * ⚠️ 타입은 실제 응답 기준이다. 명세의 응답 예시는 파일 버전 스키마로 잘못 표기돼 있다.
+ */
+export function getApprovals(query: ApprovalListQuery, signal?: AbortSignal) {
+  const search = toSearchParams(query);
+  const path = search
+    ? `${ENDPOINTS.approvals.root}?${search}`
+    : ENDPOINTS.approvals.root;
+
+  return api.get<ApprovalPage<ApprovalListItem>>(path, signal);
+}
+
+/**
+ * 결재 상세. **항상 현재 회차**를 준다 — 회차를 지정할 수 없다.
+ * 이전 회차가 필요하면 `getRevision()` 을 쓴다.
+ */
+export function getApproval(approvalId: number, signal?: AbortSignal) {
+  return api.get<ApprovalDetail>(
+    ENDPOINTS.approvals.detail(approvalId),
+    signal,
+  );
+}
 
 /**
  * 회차 상세. 기안자 · 해당 회차 결재자(과거 이력 포함) · MASTER 만 볼 수 있다.
@@ -85,6 +137,30 @@ export function removeDocument(
 ) {
   return api.delete<void>(
     ENDPOINTS.approvals.document(approvalId, revisionId, documentId),
+  );
+}
+
+/**
+ * 결재 승인. 대상은 결재가 아니라 **결재선**이다 —
+ * 그 결재선의 결재자 본인이, `ACTIVE` 일 때만 할 수 있다 (AP-041).
+ *
+ * 응답의 `approvalCompleted` 가 true 면 마지막 순번이라 결재 전체가 끝난 것이다.
+ */
+export function approveLine(lineId: number, body: ProcessLineRequest = {}) {
+  return api.post<ApproveLineResponse>(
+    ENDPOINTS.approvalLines.approve(lineId),
+    body,
+  );
+}
+
+/**
+ * 결재 반려. 이후 `WAITING` 단계는 전부 `CANCELED` 가 되고
+ * 회차 · 결재 전체가 `REJECTED` 로 종료된다 (AP-056~058).
+ */
+export function rejectLine(lineId: number, body: ProcessLineRequest = {}) {
+  return api.post<RejectLineResponse>(
+    ENDPOINTS.approvalLines.reject(lineId),
+    body,
   );
 }
 

@@ -8,7 +8,12 @@ import { messageOf } from '@/lib/api';
 
 import { addDocument, removeDocument, setLines, updateRevision } from './api';
 import ErrorText from './ErrorText';
-import type { ApprovalDocument, ApprovalLine, ApprovalRevision } from './types';
+import type {
+  ApprovalDetailLine,
+  ApprovalDocument,
+  ApprovalLine,
+  ApprovalRevision,
+} from './types';
 
 /** 제목 · 내용 입력 공통 스타일 */
 const FIELD_CLASS =
@@ -276,6 +281,20 @@ function DocumentSection({
 }
 
 /**
+ * 결재선 등록(`PUT`) 응답에 처리 상태가 오는지는 아직 확인 전이다.
+ * **DRAFT 회차라 아직 아무도 처리하지 않았으므로** 없으면 대기로 채운다 —
+ * 조회 응답과 모양을 맞춰야 상위가 한 가지 타입만 다룬다.
+ */
+function toDetailLines(lines: ApprovalLine[]): ApprovalDetailLine[] {
+  return lines.map((line) => ({
+    ...line,
+    status: line.status ?? 'WAITING',
+    opinion: line.opinion ?? null,
+    processedAt: line.processedAt ?? null,
+  }));
+}
+
+/**
  * 결재선. `PUT` 은 **전체 치환**이라 한 명만 바꿔도 목록 전체를 보낸다 (AP-015~020).
  * 순서는 목록의 위치대로 1부터 다시 매긴다 — 빈 번호가 생기면 400 이 된다.
  */
@@ -287,8 +306,8 @@ function LineSection({
 }: {
   approvalId: number;
   revisionId: number;
-  lines: ApprovalLine[];
-  onChanged: (lines: ApprovalLine[]) => void;
+  lines: ApprovalDetailLine[];
+  onChanged: (lines: ApprovalDetailLine[]) => void;
 }) {
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState('');
@@ -308,7 +327,7 @@ function LineSection({
           order: index + 1,
         })),
       });
-      onChanged(result.lines);
+      onChanged(toDetailLines(result.lines));
     } catch (caught) {
       // 프로젝트 member 가 아니거나 순서가 어긋난 경우 백엔드 문구가 가장 정확하다
       setError(messageOf(caught, '결재선을 저장하지 못했습니다.'));
