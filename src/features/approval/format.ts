@@ -9,5 +9,21 @@ export function formatDateTime(value: string, fallback = '-') {
   if (!matched) return fallback;
 
   const [, year, month, day, hour, minute] = matched;
+
+  /**
+   * 자릿수만 맞고 달력에 없는 값이 있다 — `2026-02-31` · `2026-99-99T99:99`.
+   * `Date.UTC` 는 이런 값을 다음 달로 넘겨버리므로, 넣은 값이 그대로 나오는지 되본다.
+   * 표시만 하고 시간대 변환은 하지 않아 로컬이 아닌 UTC 로 맞춘다.
+   */
+  const parsed = new Date(Date.UTC(+year, +month - 1, +day, +hour, +minute));
+  const isRealDate =
+    parsed.getUTCFullYear() === +year &&
+    parsed.getUTCMonth() === +month - 1 &&
+    parsed.getUTCDate() === +day &&
+    parsed.getUTCHours() === +hour &&
+    parsed.getUTCMinutes() === +minute;
+
+  if (!isRealDate) return fallback;
+
   return `${year}.${month}.${day} ${hour}:${minute}`;
 }

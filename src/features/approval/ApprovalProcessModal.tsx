@@ -101,14 +101,18 @@ export default function ApprovalProcessModal({
       <label className="mt-4 block">
         <span className="mb-1 block text-xs font-semibold text-[#1C1F2A]">
           결재 의견
+          {/* 별표는 눈으로만 보인다 — 보조기술에는 아래 `aria-required` 로 전한다 */}
           {isOpinionRequired && (
-            <span className="ml-0.5 text-[#E7000B]">*</span>
+            <span aria-hidden className="ml-0.5 text-[#E7000B]">
+              *
+            </span>
           )}
         </span>
         <textarea
           value={opinion}
           onChange={(event) => setOpinion(event.target.value)}
           placeholder={copy.placeholder}
+          aria-required={isOpinionRequired}
           rows={4}
           className="w-full resize-y rounded-lg border border-[#1C1F2A]/10 bg-[#ECEEF4]/40 px-3 py-2 text-xs text-[#1C1F2A] placeholder:text-[#6C7389] focus:outline-2 focus:outline-offset-2 focus:outline-[#3B5BDB]"
         />
