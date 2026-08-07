@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
+import { ISSUE_CHANGED_EVENT } from '@/features/issue/events';
 import {
   getProject,
   getProjectMembers,
@@ -34,6 +35,9 @@ const MEMBER_COLORS = ['#374151', '#64748B', '#305CE3', '#7C3AED', '#0F766E'];
 
 /** `stageId: null` 인 스텝을 모아 보여줄 가상 스테이지 */
 const UNASSIGNED_STAGE_ID = -1;
+
+/** 이슈 변경이 몰려 올 때 진척률 재조회를 합치는 대기 시간 */
+const REFRESH_QUIET_MS = 300;
 
 export default function ProjectSidebar() {
   // 스텝 화면(`/projects/{id}/steps/{stepId}`)이면 stepId 도 함께 들어온다
@@ -76,6 +80,52 @@ export default function ProjectSidebar() {
       });
 
     return () => controller.abort();
+  }, [projectId]);
+
+  /**
+   * 이슈가 바뀌면 스텝 진척률 · 전체 진척률을 다시 읽는다.
+   *
+   * 화면이 깜빡이지 않게 **가진 값을 지우지 않고** 도착한 값만 덮어쓴다.
+   * (`loaded` 를 null 로 되돌리면 스켈레톤이 다시 떠서 사이드바가 흔들린다)
+   * 스테이지는 이슈와 무관하므로 다시 읽지 않는다.
+   */
+  useEffect(() => {
+    let controller: AbortController | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    function refresh() {
+      // 연달아 오면 앞선 요청은 버린다
+      controller?.abort();
+      controller = new AbortController();
+      const { signal } = controller;
+
+      Promise.all([
+        getProject(projectId, signal),
+        getProjectSteps(projectId, signal),
+      ])
+        .then(([project, steps]) =>
+          setLoaded((prev) =>
+            prev && prev.projectId === projectId
+              ? { ...prev, project, steps }
+              : prev,
+          ),
+        )
+        // 갱신 실패는 조용히 넘긴다 — 이미 보이는 값이 있다
+        .catch(() => undefined);
+    }
+
+    /** 카드를 연달아 옮기면 이벤트가 몰려 온다 — 한 번으로 합쳐 보낸다 */
+    function schedule() {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(refresh, REFRESH_QUIET_MS);
+    }
+
+    window.addEventListener(ISSUE_CHANGED_EVENT, schedule);
+    return () => {
+      window.removeEventListener(ISSUE_CHANGED_EVENT, schedule);
+      if (timer) clearTimeout(timer);
+      controller?.abort();
+    };
   }, [projectId]);
 
   // 참여자는 보조 정보다. 지연·실패해도 프로젝트 개요와 단계 탐색을 막지 않는다.
@@ -204,8 +254,9 @@ export default function ProjectSidebar() {
                 <p className="pb-1 text-[10px] text-gray-500">전체 진행률</p>
                 <div className="flex items-center gap-2.5">
                   <div className="h-[5px] flex-1 rounded-full bg-[#ECEEF5]">
+                    {/* 갱신될 때 값이 튀지 않고 채워지도록 폭만 전환한다 */}
                     <div
-                      className="h-full rounded-full bg-[#305CE3]"
+                      className="h-full rounded-full bg-[#305CE3] transition-[width] duration-300"
                       style={{ width: `${progressRate}%` }}
                     />
                   </div>
@@ -584,18 +635,23 @@ function StepProgressBar({ step }: { step: ProjectStep }) {
     { key: 'inProgress', count: step.inProgressIssueCount, color: '#FFB900' },
     { key: 'done', count: step.doneIssueCount, color: '#2B7FFF' },
     { key: 'notStarted', count: notStarted, color: '#D1D5DB' },
-  ].filter((segment) => segment.count > 0);
+  ];
 
   // 이슈가 하나도 없으면 빈 바로 둔다
-  if (segments.length === 0) {
+  if (step.totalIssueCount === 0) {
     return <div className="h-1.5 rounded-full bg-[#D1D5DB]" />;
   }
 
   return (
     <div className="flex h-1.5 overflow-hidden rounded-full">
+      {/*
+        0인 구간도 지우지 않고 폭 0으로 둔다 — DOM 에서 빼면 이슈 상태가 바뀔 때
+        막대가 끊겼다 나타나 깜빡인다. 대신 비율만 부드럽게 전환한다.
+      */}
       {segments.map((segment) => (
         <span
           key={segment.key}
+          className="transition-[flex-grow] duration-300"
           style={{ flexGrow: segment.count, backgroundColor: segment.color }}
         />
       ))}
