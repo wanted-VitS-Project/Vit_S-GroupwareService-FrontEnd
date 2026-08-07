@@ -28,7 +28,7 @@ const COPY = {
       '반려하면 이후 결재 단계가 모두 취소되고 기안자에게 알림이 갑니다.',
     submit: '반려',
     busy: '반려 중…',
-    placeholder: '반려 사유를 남겨주세요 (선택)',
+    placeholder: '반려 사유를 입력해주세요',
     className: 'bg-[#E7000B] hover:bg-[#c60009]',
     failure: '반려하지 못했습니다.',
   },
@@ -37,7 +37,7 @@ const COPY = {
 /**
  * 승인 · 반려 처리 모달. (AP-041·042·053·054)
  *
- * 의견은 **선택**이라 비워도 보낼 수 있다.
+ * 승인 의견은 선택이고 **반려 사유는 필수**다.
  * 대상은 결재가 아니라 결재선(`lineId`)이고, 처리 결과를 상위가 그대로 화면에 반영한다.
  */
 export default function ApprovalProcessModal({
@@ -59,6 +59,13 @@ export default function ApprovalProcessModal({
   const [opinion, setOpinion] = useState('');
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState('');
+
+  /**
+   * ⚠️ 서버는 반려 의견도 선택으로 받지만(AP-054) **화면에서는 필수로 막는다** —
+   * 기안자가 왜 반려됐는지 모르면 무엇을 고쳐 재상신할지 알 수 없다 (AP-059·060).
+   */
+  const isOpinionRequired = kind === 'reject';
+  const isEmpty = opinion.trim() === '';
 
   async function submit() {
     if (isBusy) return;
@@ -94,11 +101,18 @@ export default function ApprovalProcessModal({
       <label className="mt-4 block">
         <span className="mb-1 block text-xs font-semibold text-[#1C1F2A]">
           결재 의견
+          {/* 별표는 눈으로만 보인다 — 보조기술에는 아래 `aria-required` 로 전한다 */}
+          {isOpinionRequired && (
+            <span aria-hidden className="ml-0.5 text-[#E7000B]">
+              *
+            </span>
+          )}
         </span>
         <textarea
           value={opinion}
           onChange={(event) => setOpinion(event.target.value)}
           placeholder={copy.placeholder}
+          aria-required={isOpinionRequired}
           rows={4}
           className="w-full resize-y rounded-lg border border-[#1C1F2A]/10 bg-[#ECEEF4]/40 px-3 py-2 text-xs text-[#1C1F2A] placeholder:text-[#6C7389] focus:outline-2 focus:outline-offset-2 focus:outline-[#3B5BDB]"
         />
@@ -118,7 +132,7 @@ export default function ApprovalProcessModal({
         <button
           type="button"
           onClick={submit}
-          disabled={isBusy}
+          disabled={isBusy || (isOpinionRequired && isEmpty)}
           className={`flex-1 cursor-pointer rounded-lg py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#ECEEF4] disabled:text-[#6C7389] ${copy.className}`}
         >
           {isBusy ? copy.busy : copy.submit}

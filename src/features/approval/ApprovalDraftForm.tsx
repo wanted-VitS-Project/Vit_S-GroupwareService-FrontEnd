@@ -314,6 +314,19 @@ function LineSection({
 
   const ordered = [...lines].sort((a, b) => a.order - b.order);
 
+  /**
+   * 결재 차수를 한 칸 옮긴다 (AP-018).
+   * 드래그 대신 ↑↓ 로 간다 — 블록이 좁고, 블록 자체의 드래그와 겹친다.
+   */
+  function move(index: number, step: -1 | 1) {
+    const target = index + step;
+    if (target < 0 || target >= ordered.length) return;
+
+    const next = ordered.map((line) => line.approverId);
+    [next[index], next[target]] = [next[target], next[index]];
+    void replace(next);
+  }
+
   async function replace(approverIds: string[]) {
     if (isBusy) return;
 
@@ -347,7 +360,7 @@ function LineSection({
           {ordered.map((line, index) => (
             <li
               key={line.lineId}
-              className="flex items-center gap-2 rounded border border-[#1C1F2A]/10 px-2 py-1.5"
+              className="flex items-center gap-1.5 rounded border border-[#1C1F2A]/10 px-2 py-1.5"
             >
               <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-[#FFFBEB] text-[9px] font-semibold text-[#BB4D00]">
                 {index + 1}
@@ -360,6 +373,20 @@ function LineSection({
                   </span>
                 )}
               </span>
+              <MoveButton
+                label={`${index + 1}차 결재자 위로`}
+                onClick={() => move(index, -1)}
+                disabled={isBusy || index === 0}
+              >
+                ↑
+              </MoveButton>
+              <MoveButton
+                label={`${index + 1}차 결재자 아래로`}
+                onClick={() => move(index, 1)}
+                disabled={isBusy || index === ordered.length - 1}
+              >
+                ↓
+              </MoveButton>
               <button
                 type="button"
                 onClick={() =>
@@ -392,11 +419,43 @@ function LineSection({
         }}
       />
 
-      <p className="mt-1 text-[10px] break-keep text-[#6C7389]">
-        마지막 결재자는 MASTER 여야 합니다.
-      </p>
+      {/**
+       * 권한 안내는 걷어냈다 — 응답에 `role` 이 없어 화면이 확인해줄 수 없는 문구였다.
+       * 지킬 수 없는 조건을 적어두면 사용자가 무엇을 고쳐야 할지 알 수 없다.
+       */}
+      {ordered.length > 1 && (
+        <p className="mt-1 text-[10px] break-keep text-[#6C7389]">
+          순서는 ↑↓ 로 바꿀 수 있습니다.
+        </p>
+      )}
 
       <ErrorText message={error} className="mt-1" />
     </section>
+  );
+}
+
+/** 결재 차수 이동 버튼. 아이콘만 있어 스크린리더용 이름을 따로 준다 */
+function MoveButton({
+  label,
+  onClick,
+  disabled,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      className="flex size-4 shrink-0 cursor-pointer items-center justify-center rounded text-[10px] leading-none text-[#6C7389] hover:bg-[#ECEEF4] hover:text-[#1C1F2A] disabled:cursor-not-allowed disabled:text-[#C7CCD9] disabled:hover:bg-transparent"
+    >
+      {children}
+    </button>
   );
 }
