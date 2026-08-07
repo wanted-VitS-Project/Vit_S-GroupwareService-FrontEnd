@@ -129,6 +129,7 @@ export default function BlockCard({
           <button
             type="button"
             onClick={() => setIsViewingIssues(true)}
+            aria-label={`연결된 이슈 ${block.linkedIssueDone} / ${block.linkedIssueTotal} 완료`}
             title={`연결된 이슈 ${block.linkedIssueDone} / ${block.linkedIssueTotal} 완료`}
             className="shrink-0 cursor-pointer rounded px-1 py-0.5 text-[9px] text-blue-600 hover:bg-blue-50 hover:text-blue-700"
           >

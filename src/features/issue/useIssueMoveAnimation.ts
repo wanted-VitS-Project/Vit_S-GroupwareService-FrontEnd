@@ -34,7 +34,10 @@ export function useIssueMoveAnimation() {
 
     const callback = (node: HTMLElement | null) => {
       if (node) nodes.current.set(key, node);
-      else nodes.current.delete(key);
+      else {
+        nodes.current.delete(key);
+        callbacks.current.delete(key);
+      }
     };
     callbacks.current.set(key, callback);
     return callback;

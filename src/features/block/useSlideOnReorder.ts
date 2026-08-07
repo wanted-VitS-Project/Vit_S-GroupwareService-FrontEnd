@@ -35,6 +35,8 @@ export function useSlideOnReorder(skipKey?: number | null) {
   const callbacks = useRef(
     new Map<number, (node: HTMLElement | null) => void>(),
   );
+  const visibleKeys = useRef(new Set<number>());
+  const observer = useRef<IntersectionObserver | null>(null);
   const beforeMove = useRef<Map<number, Spot> | null>(null);
   const skipKeyRef = useRef(skipKey);
 
@@ -42,21 +44,53 @@ export function useSlideOnReorder(skipKey?: number | null) {
     skipKeyRef.current = skipKey;
   }, [skipKey]);
 
-  const register = useCallback((key: number) => {
-    const cached = callbacks.current.get(key);
-    if (cached) return cached;
+  const getObserver = useCallback(() => {
+    if (observer.current) return observer.current;
 
-    const callback = (node: HTMLElement | null) => {
-      if (node) {
-        nodes.current.set(key, node);
-      } else {
-        nodes.current.delete(key);
-        callbacks.current.delete(key);
+    observer.current = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        const key = Number((entry.target as HTMLElement).dataset.slideKey);
+        if (!Number.isFinite(key)) continue;
+
+        if (entry.isIntersecting) visibleKeys.current.add(key);
+        else visibleKeys.current.delete(key);
       }
-    };
-    callbacks.current.set(key, callback);
-    return callback;
+    });
+    return observer.current;
   }, []);
+
+  useEffect(
+    () => () => {
+      observer.current?.disconnect();
+      observer.current = null;
+      visibleKeys.current.clear();
+    },
+    [],
+  );
+
+  const register = useCallback(
+    (key: number) => {
+      const cached = callbacks.current.get(key);
+      if (cached) return cached;
+
+      const callback = (node: HTMLElement | null) => {
+        if (node) {
+          node.dataset.slideKey = String(key);
+          nodes.current.set(key, node);
+          getObserver().observe(node);
+        } else {
+          const previous = nodes.current.get(key);
+          if (previous) observer.current?.unobserve(previous);
+          nodes.current.delete(key);
+          visibleKeys.current.delete(key);
+          callbacks.current.delete(key);
+        }
+      };
+      callbacks.current.set(key, callback);
+      return callback;
+    },
+    [getObserver],
+  );
 
   const capture = useCallback(() => {
     if (
@@ -68,20 +102,14 @@ export function useSlideOnReorder(skipKey?: number | null) {
     }
 
     const spots = new Map<number, Spot>();
-    const viewportHeight = window.innerHeight;
-    const viewportWidth = window.innerWidth;
-
-    for (const [key, node] of nodes.current) {
+    for (const key of visibleKeys.current) {
       if (spots.size >= MAX_ANIMATED_BLOCKS) break;
       if (key === skipKeyRef.current) continue;
 
+      const node = nodes.current.get(key);
+      if (!node) continue;
       const rect = node.getBoundingClientRect();
-      const isVisible =
-        rect.bottom >= 0 &&
-        rect.top <= viewportHeight &&
-        rect.right >= 0 &&
-        rect.left <= viewportWidth;
-      if (isVisible) spots.set(key, { left: rect.left, top: rect.top });
+      spots.set(key, { left: rect.left, top: rect.top });
     }
 
     beforeMove.current = spots;
