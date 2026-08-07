@@ -2,7 +2,7 @@
 
 import Modal from '@/components/Modal';
 
-import type { BlockImage } from './types';
+import { imageAltText, type BlockImage } from './types';
 
 /**
  * 이미지 크게 보기.
@@ -15,6 +15,7 @@ export default function ImageLightbox({
   orderIndex,
   totalCount,
   isLoading,
+  errorMessage,
   canGoPrev,
   canGoNext,
   onPrev,
@@ -26,6 +27,8 @@ export default function ImageLightbox({
   orderIndex: number;
   totalCount: number | null;
   isLoading: boolean;
+  /** 카드가 들고 있는 동작 실패 문구 — 모달이 카드를 덮으므로 여기서도 보여준다 */
+  errorMessage: string;
   canGoPrev: boolean;
   canGoNext: boolean;
   onPrev: () => void;
@@ -81,7 +84,7 @@ export default function ImageLightbox({
             {/* eslint-disable-next-line @next/next/no-img-element -- 저장소(S3) 도메인이 확정되지 않아 next/image 원격 패턴을 걸 수 없다 */}
             <img
               src={image.imageUrl}
-              alt={image.caption || image.originalName || '이미지'}
+              alt={imageAltText(image)}
               className={`max-h-full max-w-full rounded-lg object-contain ${
                 isLoading ? 'opacity-50' : ''
               }`}
@@ -102,8 +105,16 @@ export default function ImageLightbox({
         </NavButton>
       </div>
 
-      <div className="shrink-0 border-t border-[#1C1F2A]/10 bg-[#ECEEF4]/20 px-5 py-2 text-center font-mono text-[10px] text-[#6C7389]">
-        {totalCount ? `${orderIndex} / ${totalCount}` : orderIndex}
+      <div className="shrink-0 border-t border-[#1C1F2A]/10 bg-[#ECEEF4]/20 px-5 py-2 text-center">
+        {errorMessage ? (
+          <p role="alert" className="text-[10px] break-keep text-[#E7000B]">
+            {errorMessage}
+          </p>
+        ) : (
+          <p className="font-mono text-[10px] text-[#6C7389]">
+            {totalCount ? `${orderIndex} / ${totalCount}` : orderIndex}
+          </p>
+        )}
       </div>
     </Modal>
   );

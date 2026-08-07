@@ -9,7 +9,14 @@ import BlockCard from './BlockCard';
 import ImageEditModal from './ImageEditModal';
 import ImageLightbox from './ImageLightbox';
 import ImageUploadModal from './ImageUploadModal';
-import { readImageBlockDetail, type BlockImage, type StepBlock } from './types';
+import {
+  imageAltText,
+  isCount,
+  isPositiveInteger,
+  readImageBlockDetail,
+  type BlockImage,
+  type StepBlock,
+} from './types';
 
 /** 어느 이미지를 받아 올지 — 현재 정렬 번호와 방향으로 지정한다 */
 interface ImageRequest {
@@ -84,9 +91,17 @@ export default function ImageBlock({
 
     getImageItem(imgBlockId, request.from, request.direction, signal)
       .then((item) => {
+        // 정렬 번호가 성하지 않으면 캐시 · 다음 요청이 전부 어긋난다 — 실패로 본다
+        if (!isPositiveInteger(item.orderIndex)) {
+          setHasFailed(true);
+          setRequest(null);
+          return;
+        }
+
         cacheRef.current.set(item.orderIndex, item);
         setCurrent(item);
-        setTotalCount(item.totalCount);
+        // 장수를 못 믿을 값으로 받으면 차라리 "모름" 으로 둔다
+        setTotalCount(isCount(item.totalCount) ? item.totalCount : null);
         setHasFailed(false);
         setRequest(null);
       })
@@ -116,7 +131,10 @@ export default function ImageBlock({
     cacheRef.current.clear();
     setCurrent(null);
     setHasFailed(false);
-    setRequest({ from: Math.max(0, target - 1), direction: 'next' });
+    setRequest({
+      from: isPositiveInteger(target) ? target - 1 : 0,
+      direction: 'next',
+    });
   }
 
   /**
@@ -125,6 +143,21 @@ export default function ImageBlock({
    * `wrap` 이면 마지막 → 첫 장, 첫 장 → 마지막으로 넘어간다.
    * 카드 · 전체보기 모두 켜 두고, 장수를 모를 때만 순환하지 않는다.
    */
+  /** 서버가 확정해 준 목록으로 카드를 통째로 맞춘다 (수정 저장 · 재동기화) */
+  function applyImages(images: BlockImage[]) {
+    cacheRef.current.clear();
+    images.forEach((image) => cacheRef.current.set(image.orderIndex, image));
+    setTotalCount(images.length);
+    // 보고 있던 이미지가 남아 있으면 그 자리를 유지한다
+    setCurrent(
+      (previous) =>
+        images.find((image) => image.imgId === previous?.imgId) ??
+        images[0] ??
+        null,
+    );
+    setHasFailed(false);
+  }
+
   function go(step: 1 | -1, wrap = false) {
     if (!current || isLoading) return;
 
@@ -135,8 +168,8 @@ export default function ImageBlock({
       if (target > last) target = 1;
       if (target < 1) target = last;
     }
-    // 순환이 아닌데 범위를 벗어나면 부를 곳이 없다
-    if (target < 1 || (last !== null && target > last)) return;
+    // 순환이 아닌데 범위를 벗어나거나, 정렬 번호가 성치 않으면 부를 곳이 없다
+    if (!isPositiveInteger(target) || (last !== null && target > last)) return;
 
     const cached = cacheRef.current.get(target);
     if (cached) {
@@ -187,7 +220,20 @@ export default function ImageBlock({
 
     try {
       await deleteImageItem(current.imgId);
-      const remaining = (totalCount ?? 1) - 1;
+
+      if (totalCount === null) {
+        /*
+         * 권위 있는 장수를 모른다 (삭제 응답이 `null` 이라 여기서도 안 준다).
+         * 마음대로 "0장" 으로 단정하면 남아 있는 이미지를 화면에서 지워 버린다 —
+         * **앞 장**을 다시 받아 서버가 주는 `totalCount` 로 확정한다.
+         * (앞 장은 정렬 번호가 당겨져도 반드시 존재한다. 정말 비었으면 조회가 실패하고
+         *  아래 재시도 UI 가 뜬다 — 빈 상태로 속이지 않는다)
+         */
+        reloadFrom(Math.max(1, current.orderIndex - 1));
+        return;
+      }
+
+      const remaining = totalCount - 1;
       setTotalCount(remaining);
 
       if (remaining <= 0) {
@@ -216,7 +262,12 @@ export default function ImageBlock({
     );
   }
 
-  const isEmpty = !current && !isLoading;
+  /**
+   * 빈 블록과 **조회 실패**를 갈라 놓는다.
+   * 실패했는데 "이미지 추가" 판을 띄우면 있는 이미지를 없는 것처럼 속이게 된다.
+   */
+  const showRetry = !current && !isLoading && hasFailed;
+  const isEmpty = !current && !isLoading && !hasFailed;
 
   return (
     <BlockCard
@@ -230,7 +281,21 @@ export default function ImageBlock({
       }
     >
       <div className="flex h-full flex-col gap-1.5">
-        {isEmpty ? (
+        {showRetry ? (
+          // 못 불러온 것뿐이다 — 이미지가 없다고 단정하지 않는다
+          <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-md border border-[#1C1F2A]/10 bg-[#ECEEF4]/40">
+            <p role="alert" className="text-[10px] text-[#6C7389]">
+              이미지를 불러오지 못했습니다.
+            </p>
+            <button
+              type="button"
+              onClick={() => reloadFrom(1)}
+              className="cursor-pointer rounded-md border border-[#1C1F2A]/10 bg-white px-2.5 py-1 text-[10px] font-medium text-[#3B5BDB] hover:bg-[#3B5BDB]/10"
+            >
+              다시 시도
+            </button>
+          </div>
+        ) : isEmpty ? (
           <button
             type="button"
             onClick={() => setModal('upload')}
@@ -245,7 +310,7 @@ export default function ImageBlock({
               /* eslint-disable-next-line @next/next/no-img-element -- 저장소(S3) 도메인이 확정되지 않아 next/image 원격 패턴을 걸 수 없다 */
               <img
                 src={current.imageUrl}
-                alt={current.caption || current.originalName || '이미지'}
+                alt={imageAltText(current)}
                 className="size-full object-cover"
               />
             ) : (
@@ -320,18 +385,10 @@ export default function ImageBlock({
           {current?.caption || ' '}
         </p>
 
-        {(errorMessage || hasFailed) && (
+        {/* 조회 실패는 위 재시도 판이 맡는다. 여기는 다운로드 · 삭제처럼 동작 실패만 */}
+        {errorMessage && (
           <p role="alert" className="text-[9px] break-keep text-[#E7000B]">
-            {errorMessage || '이미지를 불러오지 못했습니다.'}
-            {hasFailed && (
-              <button
-                type="button"
-                onClick={() => reloadFrom(1)}
-                className="ml-1 cursor-pointer font-medium text-[#3B5BDB] underline"
-              >
-                다시 시도
-              </button>
-            )}
+            {errorMessage}
           </p>
         )}
 
@@ -375,19 +432,10 @@ export default function ImageBlock({
           onClose={() => setModal(null)}
           onSaved={(images) => {
             setModal(null);
-            cacheRef.current.clear();
-            images.forEach((image) =>
-              cacheRef.current.set(image.orderIndex, image),
-            );
-            setTotalCount(images.length);
-            // 보고 있던 이미지가 남아 있으면 그 자리를 유지한다
-            setCurrent(
-              images.find((image) => image.imgId === current?.imgId) ??
-                images[0] ??
-                null,
-            );
-            setHasFailed(false);
+            applyImages(images);
           }}
+          // 부분 실패 뒤 서버에서 다시 읽어 온 목록 — 모달은 열어 둔 채 카드만 맞춘다
+          onResynced={applyImages}
         />
       )}
 
@@ -397,6 +445,8 @@ export default function ImageBlock({
           orderIndex={orderIndex}
           totalCount={totalCount}
           isLoading={isLoading}
+          // 모달이 카드를 덮는다 — 다운로드 실패는 모달 안에서 보여야 한다
+          errorMessage={errorMessage}
           canGoPrev={canGoPrev || canLoop}
           canGoNext={canGoNext || canLoop}
           onPrev={() => go(-1, true)}

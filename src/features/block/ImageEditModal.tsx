@@ -7,7 +7,11 @@ import { messageOf } from '@/lib/api';
 import { useFlipReorder } from '@/lib/useFlipReorder';
 
 import { deleteImageItem, getImageItems, updateImageItems } from './api';
-import { IMAGE_CAPTION_MAX_LENGTH, type BlockImage } from './types';
+import {
+  imageAltText,
+  IMAGE_CAPTION_MAX_LENGTH,
+  type BlockImage,
+} from './types';
 import { useDragAutoScroll } from './useDragAutoScroll';
 
 /** 모달 안 목록은 짧다 — 가장자리 띠와 속도를 보드보다 좁게 잡는다 */
@@ -28,6 +32,7 @@ export default function ImageEditModal({
   seed,
   onClose,
   onSaved,
+  onResynced,
 }: {
   imgBlockId: number;
   /** 카드가 이미 들고 있는 한 장 — 목록을 받는 동안 보여줄 값 */
@@ -35,6 +40,8 @@ export default function ImageEditModal({
   onClose: () => void;
   /** 저장 후의 정렬된 전체 목록 */
   onSaved: (images: BlockImage[]) => void;
+  /** 부분 실패 뒤 서버에서 다시 읽은 목록 — 모달은 열린 채 카드만 맞춘다 */
+  onResynced: (images: BlockImage[]) => void;
 }) {
   const [images, setImages] = useState<BlockImage[] | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -98,16 +105,47 @@ export default function ImageEditModal({
     );
   }
 
+  /**
+   * 저장이 중간에 끊긴 뒤 **서버가 진짜 어떤 상태인지** 다시 읽어 온다.
+   *
+   * 삭제 3건 중 2건만 나갔거나, 삭제는 됐는데 순서 저장이 실패할 수 있다.
+   * 그대로 두면 화면은 옛 목록을 들고 있는데 서버에는 이미 지워진 이미지가 있다 —
+   * 사용자가 다시 저장을 눌러도 없는 `imgId` 를 보내게 된다.
+   */
+  async function resync(reason: string) {
+    try {
+      const loaded = await getImageItems(imgBlockId);
+      const sorted = [...loaded.images].sort(
+        (left, right) => left.orderIndex - right.orderIndex,
+      );
+      setImages(sorted);
+      setRemovedIds([]);
+      onResynced(sorted);
+      setErrorMessage(`${reason} 서버의 최신 목록으로 되돌렸습니다.`);
+    } catch {
+      setErrorMessage(
+        `${reason} 최신 목록도 불러오지 못했습니다 — 창을 닫고 새로고침해주세요.`,
+      );
+    }
+  }
+
   async function save() {
     if (isSaving || !images) return;
 
     setIsSaving(true);
     setErrorMessage('');
 
+    /*
+     * 삭제 → 순서·캡션 순으로 나간다. 지운 이미지가 섞인 목록을 보내면 정렬이 어긋난다.
+     * ⚠️ 이 둘을 한 번에 처리하는 API 가 없어 **중간에 끊길 수 있다** (부분 반영).
+     *    그래서 실패하면 반드시 서버 상태를 다시 읽어 화면과 맞춘다.
+     */
+    let hasDeleted = false;
+
     try {
-      // 삭제를 먼저 끝낸다 — 지운 이미지가 섞인 목록을 보내면 정렬이 어긋난다
       for (const imgId of removedIds) {
         await deleteImageItem(imgId);
+        hasDeleted = true;
       }
 
       const kept = images.filter((image) => !removedIds.includes(image.imgId));
@@ -123,7 +161,12 @@ export default function ImageEditModal({
         kept.map((image, index) => ({ ...image, orderIndex: index + 1 })),
       );
     } catch (caught) {
-      setErrorMessage(messageOf(caught, '이미지를 저장하지 못했습니다.'));
+      const message = messageOf(caught, '이미지를 저장하지 못했습니다.');
+
+      // 아무것도 안 지워졌으면 서버는 그대로다 — 굳이 다시 읽지 않고 재시도만 열어 둔다
+      if (hasDeleted) await resync(message);
+      else setErrorMessage(message);
+
       setIsSaving(false);
     }
   }
@@ -235,7 +278,7 @@ export default function ImageEditModal({
                   {/* eslint-disable-next-line @next/next/no-img-element -- 저장소(S3) 도메인이 확정되지 않아 next/image 원격 패턴을 걸 수 없다 */}
                   <img
                     src={image.imageUrl}
-                    alt={image.caption || image.originalName || '이미지'}
+                    alt={imageAltText(image)}
                     className="size-16 shrink-0 rounded-lg bg-[#ECEEF4] object-cover"
                   />
 

@@ -277,6 +277,29 @@ export interface BlockImage {
   caption: string;
   /** 1부터 시작하는 정렬 번호. 수정 API 가 항상 1..N 으로 다시 매긴다 */
   orderIndex: number;
+  /**
+   * 대체 텍스트 — 스크린리더에 읽어 줄 **이미지의 뜻**.
+   *
+   * ❗ 아직 백엔드 계약에 없다 (요청해 둠 — `.ai/API.md` 이미지 절).
+   * 캡션은 **보여 주는 문구**, `originalName` 은 **파일명**이라 둘 다 뜻을 보장하지 않는다.
+   * 값이 오면 그대로 쓰고, 없으면 `imageAltText()` 가 차선책으로 떨어진다.
+   */
+  altText?: string;
+}
+
+/**
+ * 스크린리더에 읽어 줄 문구.
+ *
+ * `altText` 가 가장 정확하다. 없을 때 캡션 · 파일명으로 떨어지는 것은 **차선**이고,
+ * 그마저 없으면 `'이미지'` 로 둔다 (빈 `alt` 는 장식용이라는 뜻이 되어 더 나쁘다).
+ */
+export function imageAltText(image: BlockImage) {
+  return (
+    image.altText?.trim() ||
+    image.caption.trim() ||
+    image.originalName.trim() ||
+    '이미지'
+  );
 }
 
 /** 캡션 최대 길이 — ❗ 백엔드 확인 필요. 우선 블록 제목과 같은 200자로 막는다 */
@@ -284,6 +307,27 @@ export const IMAGE_CAPTION_MAX_LENGTH = 200;
 
 /** 초안 안내 문구 기준 (JPG · PNG · GIF · WEBP · 최대 10MB) */
 export const IMAGE_MAX_SIZE_BYTES = 10 * 1024 * 1024;
+
+/**
+ * 올릴 수 있는 형식. **화면 안내 문구(JPG · PNG · GIF · WEBP)와 같은 목록**이다.
+ *
+ * `image/*` 로 두면 SVG · BMP 처럼 안내에 없는 형식이 통과한다
+ * (특히 SVG 는 스크립트를 품을 수 있어 저장소에 그대로 올리면 안 된다).
+ * ⚠️ 프론트 검사는 **편의**일 뿐이다 — 서버가 같은 목록으로 독립 검증해야 한다.
+ */
+export const IMAGE_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+] as const;
+
+/** `<input accept>` 에 그대로 넣는 값 */
+export const IMAGE_ACCEPT = IMAGE_MIME_TYPES.join(',');
+
+export function isAllowedImageType(type: string) {
+  return (IMAGE_MIME_TYPES as readonly string[]).includes(type);
+}
 
 /**
  * 이미지 블록의 `detail`.
@@ -299,28 +343,48 @@ export interface ImageBlockDetail {
   totalCount: number | null;
 }
 
+/**
+ * ID · 정렬 번호로 쓸 수 있는 값인지.
+ *
+ * `typeof v === 'number'` 만으로는 `NaN` · `Infinity` · 음수 · 소수가 모두 통과한다.
+ * 그런 값이 들어오면 캐시(`Map`) 조회가 빗나가고 `/items/NaN` 같은 요청까지 나간다.
+ */
+export function isPositiveInteger(value: unknown): value is number {
+  return Number.isSafeInteger(value) && (value as number) > 0;
+}
+
+/** 개수로 쓸 수 있는 값인지 — 0 은 "빈 블록" 이라는 뜻이라 허용한다 */
+export function isCount(value: unknown): value is number {
+  return Number.isSafeInteger(value) && (value as number) >= 0;
+}
+
 /** `fallbackOrder` — `orderIndex` 가 빠진 응답(첫 장만 실어 줄 때)의 기본 정렬 번호 */
 function readBlockImage(value: unknown, fallbackOrder: number) {
   if (typeof value !== 'object' || value === null) return null;
 
-  const { imgId, originalName, imageUrl, caption, orderIndex } = value as {
-    imgId?: unknown;
-    originalName?: unknown;
-    imageUrl?: unknown;
-    caption?: unknown;
-    orderIndex?: unknown;
-  };
+  const { imgId, originalName, imageUrl, caption, orderIndex, altText } =
+    value as {
+      imgId?: unknown;
+      originalName?: unknown;
+      imageUrl?: unknown;
+      caption?: unknown;
+      orderIndex?: unknown;
+      altText?: unknown;
+    };
 
-  // 이 둘이 없으면 화면에 그릴 수도, 어느 항목인지 지목할 수도 없다
-  if (typeof imgId !== 'number') return null;
-  if (typeof imageUrl !== 'string') return null;
+  // 이 둘이 성하지 않으면 화면에 그릴 수도, 어느 항목인지 지목할 수도 없다
+  if (!isPositiveInteger(imgId)) return null;
+  if (typeof imageUrl !== 'string' || imageUrl.trim() === '') return null;
 
   return {
     imgId,
     originalName: typeof originalName === 'string' ? originalName : '',
     imageUrl,
     caption: typeof caption === 'string' ? caption : '',
-    orderIndex: typeof orderIndex === 'number' ? orderIndex : fallbackOrder,
+    orderIndex: isPositiveInteger(orderIndex) ? orderIndex : fallbackOrder,
+    ...(typeof altText === 'string' && altText.trim() !== ''
+      ? { altText }
+      : {}),
   } satisfies BlockImage;
 }
 
@@ -345,7 +409,7 @@ export function readImageBlockDetail(detail: unknown): ImageBlockDetail | null {
     totalCount?: unknown;
     imageCount?: unknown;
   };
-  if (typeof source.imgBlockId !== 'number') return null;
+  if (!isPositiveInteger(source.imgBlockId)) return null;
 
   const parsed = Array.isArray(source.images)
     ? source.images
@@ -360,12 +424,11 @@ export function readImageBlockDetail(detail: unknown): ImageBlockDetail | null {
       ].filter((image): image is BlockImage => image !== null);
 
   // 장수 키도 확정 전이라 둘 다 본다. 목록이 통째로 왔으면 그 길이가 가장 정확하다
-  const declared =
-    typeof source.totalCount === 'number'
-      ? source.totalCount
-      : typeof source.imageCount === 'number'
-        ? source.imageCount
-        : null;
+  const declared = isCount(source.totalCount)
+    ? source.totalCount
+    : isCount(source.imageCount)
+      ? source.imageCount
+      : null;
 
   return {
     imgBlockId: source.imgBlockId,

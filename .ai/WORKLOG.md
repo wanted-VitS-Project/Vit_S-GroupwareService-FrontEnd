@@ -50,6 +50,17 @@
   - `IssueCard` 의 `onChangeStatus` prop 과 `IssueBoard` 의 `requestStatus` · `changeStatusRef` 도 함께 정리 (드롭 경로는 `changeStatus` 직접 호출)
   - ⚠️ 드래그를 쓸 수 없는 사용자는 상태를 바꿀 수단이 없어진다
 
+### 리뷰 반영
+
+- `detail` 숫자 파싱을 `Number.isSafeInteger` 기반으로 강화 — `NaN` · `Infinity` · 음수 · 소수를 걸러 `/items/NaN` 요청과 캐시 미스를 막음. 빈 `imageUrl` 도 제외
+- 업로드 대기 목록 key 를 배열 길이 → **일련번호**로 변경 (뺐다 다시 담을 때 key 충돌 → 오삭제 · 오이동)
+- 허용 형식을 안내 문구와 같은 `image/jpeg · png · gif · webp` 화이트리스트로 제한 (`accept` 포함) — 서버 독립 검증은 백엔드에 요청
+- 수정 저장이 부분 실패하면 71번으로 서버 목록을 다시 읽어 모달 · 카드를 재동기화하고 재시도를 허용
+- 전체보기에서 다운로드 실패 문구를 모달 안에 표시 (기존에는 모달 뒤 카드에만 떠서 안 보였음)
+- `BlockImage.altText`(선택) 계약 추가 + `imageAltText()` 로 대체 텍스트 일원화 — 백엔드 필드 추가 요청
+- 첫 조회 실패를 **빈 상태와 분리** — 실패 시 재시도 UI, 빈 상태는 서버가 0장이라고 한 경우만
+- 삭제 시 `totalCount` 를 모르면 0장으로 단정하지 않고 앞 장을 다시 조회해 서버 값으로 확정
+
 ### 부수 결정
 
 - `lib/api.ts` 에 `postForm()` 추가 — 기존 래퍼가 JSON `Content-Type` 을 고정해 multipart 전송이 불가능했다

@@ -8,8 +8,10 @@ import { useFlipReorder } from '@/lib/useFlipReorder';
 
 import { createImageItems } from './api';
 import {
+  IMAGE_ACCEPT,
   IMAGE_CAPTION_MAX_LENGTH,
   IMAGE_MAX_SIZE_BYTES,
+  isAllowedImageType,
   type BlockImage,
 } from './types';
 import { useDragAutoScroll } from './useDragAutoScroll';
@@ -19,7 +21,12 @@ const MODAL_AUTO_SCROLL = { edgePx: 56, maxStepPx: 12 };
 
 /** 업로드 대기 중인 한 장 — 미리보기는 로컬 object URL 로 만든다 */
 interface QueuedImage {
-  /** 목록 key. 같은 파일을 두 번 골라도 갈리게 한다 */
+  /**
+   * 목록 key. **한 번 쓰면 다시 쓰지 않는 일련번호**다.
+   *
+   * 파일명이나 목록 길이로 만들면 "빼고 같은 파일을 다시 담기" 에서 값이 겹친다 —
+   * 겹치면 삭제가 두 줄을 함께 지우고, 순서 변경이 엉뚱한 줄을 잡는다.
+   */
   key: string;
   file: File;
   previewUrl: string;
@@ -56,6 +63,8 @@ export default function ImageUploadModal({
   /** 위·아래 끝으로 끌면 목록이 따라 굴러가게 한다 */
   const listRef = useRef<HTMLDivElement>(null);
   useDragAutoScroll(draggingKey !== null, listRef, MODAL_AUTO_SCROLL);
+  /** 다음 항목에 붙일 일련번호. 뺐다 다시 담아도 값이 겹치지 않는다 */
+  const nextKeyRef = useRef(0);
 
   // 미리보기 object URL 은 모달이 닫힐 때 한 번에 정리한다
   const queuedRef = useRef<QueuedImage[]>([]);
@@ -72,7 +81,8 @@ export default function ImageUploadModal({
     const picked = [...(files ?? [])];
     if (picked.length === 0) return;
 
-    const accepted = picked.filter((file) => file.type.startsWith('image/'));
+    // 안내 문구(JPG · PNG · GIF · WEBP)와 **같은 목록**으로만 거른다
+    const accepted = picked.filter((file) => isAllowedImageType(file.type));
     const withinSize = accepted.filter(
       (file) => file.size <= IMAGE_MAX_SIZE_BYTES,
     );
@@ -80,7 +90,7 @@ export default function ImageUploadModal({
     if (withinSize.length < picked.length) {
       setErrorMessage(
         accepted.length < picked.length
-          ? '이미지 파일만 올릴 수 있습니다.'
+          ? 'JPG · PNG · GIF · WEBP 이미지만 올릴 수 있습니다.'
           : '10MB 이하 이미지만 올릴 수 있습니다.',
       );
     } else {
@@ -89,8 +99,8 @@ export default function ImageUploadModal({
 
     setQueued((previous) => [
       ...previous,
-      ...withinSize.map((file, index) => ({
-        key: `${file.name}-${file.lastModified}-${previous.length + index}`,
+      ...withinSize.map((file) => ({
+        key: `queued-${nextKeyRef.current++}`,
         file,
         previewUrl: URL.createObjectURL(file),
         caption: '',
@@ -207,7 +217,7 @@ export default function ImageUploadModal({
           ref={pickerRef}
           type="file"
           multiple
-          accept="image/*"
+          accept={IMAGE_ACCEPT}
           aria-label="이미지 파일 선택"
           className="hidden"
           onChange={(event) => {
