@@ -7,6 +7,17 @@ const EDGE_PX = 96;
 /** 가장자리에 완전히 붙었을 때 한 프레임에 움직일 거리 */
 const MAX_STEP_PX = 20;
 
+interface AutoScrollOptions {
+  /**
+   * 반응하기 시작하는 가장자리 폭.
+   * 모달처럼 굴릴 영역이 짧으면 좁혀야 한다 — 기본값이면 위아래 띠가 만나 버려
+   * 가운데에 "안 굴러가는 구간" 이 남지 않는다.
+   */
+  edgePx?: number;
+  /** 가장자리에 붙었을 때의 한 프레임 이동량 */
+  maxStepPx?: number;
+}
+
 /**
  * 블록 보드를 **실제로 굴릴 수 있는** 조상을 찾는다. 없으면 `null` — 문서(창)가 굴러간다.
  *
@@ -33,20 +44,24 @@ function findScrollParent(node: HTMLElement | null) {
 }
 
 /** 가장자리에 가까울수록 빠르게. 거리 0 → 최대 속도 */
-function stepFor(distance: number) {
-  const closeness = Math.min(Math.max(1 - distance / EDGE_PX, 0), 1);
-  return Math.ceil(closeness * MAX_STEP_PX);
+function stepFor(distance: number, edgePx: number, maxStepPx: number) {
+  const closeness = Math.min(Math.max(1 - distance / edgePx, 0), 1);
+  return Math.ceil(closeness * maxStepPx);
 }
 
 /**
- * 드래그 중 화면 위·아래 끝으로 커서를 가져가면 스크롤이 따라온다.
+ * 드래그 중 위·아래 끝으로 커서를 가져가면 스크롤이 따라온다.
  *
  * HTML5 드래그 중에는 휠·키보드 스크롤이 먹지 않아, 보이는 범위 밖으로는
- * 블록을 옮길 수 없다. `dragover` 의 커서 위치를 보고 직접 굴린다.
+ * 항목을 옮길 수 없다. `dragover` 의 커서 위치를 보고 직접 굴린다.
+ *
+ * 굴릴 대상은 `boardRef` 의 **조상 중 실제로 넘치는 것**이다 —
+ * 페이지 본문이든 모달 안 목록이든 같은 방식으로 찾는다.
  */
 export function useDragAutoScroll(
   isDragging: boolean,
   boardRef: RefObject<HTMLElement | null>,
+  { edgePx = EDGE_PX, maxStepPx = MAX_STEP_PX }: AutoScrollOptions = {},
 ) {
   useEffect(() => {
     if (!isDragging) return;
@@ -91,8 +106,9 @@ export function useDragAutoScroll(
       const fromTop = event.clientY - box.top;
       const fromBottom = box.bottom - event.clientY;
 
-      if (fromTop < EDGE_PX) step = -stepFor(fromTop);
-      else if (fromBottom < EDGE_PX) step = stepFor(fromBottom);
+      if (fromTop < edgePx) step = -stepFor(fromTop, edgePx, maxStepPx);
+      else if (fromBottom < edgePx)
+        step = stepFor(fromBottom, edgePx, maxStepPx);
       else step = 0;
     }
 
@@ -112,5 +128,5 @@ export function useDragAutoScroll(
       window.removeEventListener('drop', stop);
       cancelAnimationFrame(frame);
     };
-  }, [isDragging, boardRef]);
+  }, [isDragging, boardRef, edgePx, maxStepPx]);
 }

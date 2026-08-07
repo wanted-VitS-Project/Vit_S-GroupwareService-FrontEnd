@@ -1,17 +1,22 @@
 import { ENDPOINTS } from '@/constants/endpoints';
-import { api } from '@/lib/api';
+import { api, postForm, requestRaw } from '@/lib/api';
 
 import type {
   BlockLayout,
   CreateBlockRequest,
   CreateChecklistItemResponse,
+  CreateImageItemsResponse,
   DeleteChecklistItemResponse,
+  ImageItemResponse,
+  ImageItemsResponse,
   StepBlock,
   UpdateBlockLayoutResponse,
   UpdateBlockRequest,
   UpdateBlockResponse,
   UpdateChecklistItemRequest,
   UpdateChecklistItemResponse,
+  UpdateImageItemsRequest,
+  UpdateImageItemsResponse,
   UpdateTextBlockResponse,
 } from './types';
 
@@ -127,4 +132,141 @@ export function deleteChecklistItem(
     ENDPOINTS.blocks.checklistItem(chkId),
     signal,
   );
+}
+
+/**
+ * 이미지 한 장 조회 — `currentOrderIndex` 의 앞/뒤 한 장을 준다.
+ *
+ * ⚠️ 목록 조회 API 가 없어 **캐러셀 이동마다 한 번씩** 부른다.
+ *    첫 장은 `currentOrderIndex = 0` · `next` 로 받는다 (정렬 번호가 1부터라서).
+ */
+export function getImageItem(
+  imgBlockId: number | string,
+  currentOrderIndex: number,
+  direction: 'prev' | 'next',
+  signal?: AbortSignal,
+) {
+  return api.get<ImageItemResponse>(
+    `${ENDPOINTS.blocks.imageItemAt(imgBlockId, currentOrderIndex)}?direction=${direction}`,
+    signal,
+  );
+}
+
+/**
+ * 블록의 이미지 전체 목록 (`orderIndex` 오름차순).
+ *
+ * ⚠️ **편집 권한이 필요하다.** 열람만 가능한 사용자에게는 403 이 온다 —
+ *    카드 캐러셀이 이 API 를 쓰지 않고 `getImageItem()` 으로 한 장씩 받는 이유다.
+ *    순서 · 캡션 수정(PATCH)이 전체 치환이라 수정 모달이 이 목록을 받아 그대로 되보낸다.
+ */
+export function getImageItems(
+  imgBlockId: number | string,
+  signal?: AbortSignal,
+) {
+  return api.get<ImageItemsResponse>(
+    ENDPOINTS.blocks.imageItems(imgBlockId),
+    signal,
+  );
+}
+
+/**
+ * 이미지 항목 생성 — `multipart/form-data`.
+ *
+ * `files` 는 **화면에 정렬된 순서 그대로** 보낸다 (첫 번째가 1번).
+ * `captions` 는 같은 순서로 맞추고, 비어 있으면 빈 문자열을 넣는다.
+ */
+export function createImageItems(
+  imgBlockId: number | string,
+  items: { file: File; caption: string }[],
+  signal?: AbortSignal,
+) {
+  const form = new FormData();
+  items.forEach((item) => form.append('files', item.file));
+  form.append(
+    'request',
+    new Blob(
+      [JSON.stringify({ captions: items.map((item) => item.caption) })],
+      {
+        type: 'application/json',
+      },
+    ),
+  );
+
+  return postForm<CreateImageItemsResponse>(
+    ENDPOINTS.blocks.imageItems(imgBlockId),
+    form,
+    signal,
+  );
+}
+
+/**
+ * 이미지 순서 · 캡션 수정.
+ *
+ * ⚠️ 부분 수정이 아니라 **전체 치환**이다 — 보낸 순서대로 `orderIndex` 가 다시 매겨지고,
+ *    목록에서 빠진 이미지가 어떻게 되는지는 확인되지 않았다. 항상 전체를 보낸다.
+ * ⚠️ 경로의 마지막 값은 항목 ID 가 아니라 **블록 ID** 다.
+ */
+export function updateImageItems(
+  imgBlockId: number | string,
+  images: UpdateImageItemsRequest['images'],
+  signal?: AbortSignal,
+) {
+  return api.patch<UpdateImageItemsResponse>(
+    ENDPOINTS.blocks.imageItemsEdit(imgBlockId),
+    { images },
+    signal,
+  );
+}
+
+/** 이미지 항목 삭제 — 이쪽은 **항목 ID(`imgId`)** 다 */
+export function deleteImageItem(imgId: number | string, signal?: AbortSignal) {
+  return api.delete<null>(ENDPOINTS.blocks.imageItem(imgId), signal);
+}
+
+/**
+ * 응답 헤더에서 저장할 파일명을 꺼낸다.
+ * 한글 파일명은 `filename*=UTF-8''...` 로 오므로 그쪽을 먼저 본다.
+ */
+function fileNameFrom(disposition: string | null) {
+  if (!disposition) return null;
+
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1];
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded);
+    } catch {
+      // 잘못 인코딩된 값이면 아래 일반 filename 으로 넘어간다
+    }
+  }
+
+  return /filename="?([^";]+)"?/i.exec(disposition)?.[1] ?? null;
+}
+
+/**
+ * 이미지 다운로드 — `imgId` 를 주면 그 한 장, 없으면 블록 전체(zip).
+ *
+ * presigned URL 이 아니라 **서버가 바이너리를 직접** 준다. 세션 쿠키가 필요해
+ * `window.open` 으로 넘기지 않고 blob 으로 받아 앵커로 저장한다.
+ */
+export async function downloadBlockImages(
+  imgBlockId: number | string,
+  imgId?: number,
+  fallbackName = '이미지',
+) {
+  const base = ENDPOINTS.blocks.imageDownload(imgBlockId);
+  const response = await requestRaw(
+    imgId === undefined ? base : `${base}?imgId=${imgId}`,
+  );
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+
+  anchor.href = url;
+  anchor.download =
+    fileNameFrom(response.headers.get('Content-Disposition')) ?? fallbackName;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
 }

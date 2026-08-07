@@ -67,10 +67,12 @@ export default function StepBlocks() {
         // 다른 스텝에서 찍은 스냅샷이면 비교 자체가 무의미하다
         if (!before || before.stepId !== stepId) return;
 
-        // 입력창이 필요한 유형만 자동으로 띄운다
+        // 만들자마자 내용을 채워야 하는 유형만 자동으로 띄운다
+        // (TEXT — 본문 편집기 · IMAGE — 이미지 등록 모달)
         const created = blocks.find(
           (block) =>
-            block.type === 'TEXT' && !before.ids.includes(block.blockId),
+            (block.type === 'TEXT' || block.type === 'IMAGE') &&
+            !before.ids.includes(block.blockId),
         );
         if (created) setAutoEditBlockId(created.blockId);
       })

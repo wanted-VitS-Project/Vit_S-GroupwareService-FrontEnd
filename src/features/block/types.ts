@@ -267,6 +267,143 @@ export interface DeleteChecklistItemResponse {
   totalCount: number;
 }
 
+/** 이미지 블록의 이미지 한 장 */
+export interface BlockImage {
+  imgId: number;
+  originalName: string;
+  /** 저장소 URL — 그대로 `<img src>` 에 넣는다 */
+  imageUrl: string;
+  /** 없으면 빈 문자열 */
+  caption: string;
+  /** 1부터 시작하는 정렬 번호. 수정 API 가 항상 1..N 으로 다시 매긴다 */
+  orderIndex: number;
+}
+
+/** 캡션 최대 길이 — ❗ 백엔드 확인 필요. 우선 블록 제목과 같은 200자로 막는다 */
+export const IMAGE_CAPTION_MAX_LENGTH = 200;
+
+/** 초안 안내 문구 기준 (JPG · PNG · GIF · WEBP · 최대 10MB) */
+export const IMAGE_MAX_SIZE_BYTES = 10 * 1024 * 1024;
+
+/**
+ * 이미지 블록의 `detail`.
+ *
+ * **첫 이미지는 블록 목록 조회(10번)에 함께 실려 온다** — 카드는 이 값으로 바로 그리고,
+ * 두 번째 장부터 항목 조회 API(66번)로 한 장씩 받는다.
+ */
+export interface ImageBlockDetail {
+  imgBlockId: number;
+  /** 실려 온 이미지 — 보통 첫 장 하나다. 없으면 빈 배열 */
+  images: BlockImage[];
+  /** 전체 장수. 모르면 null — 0 과 구분해야 빈 블록 판정이 가능하다 */
+  totalCount: number | null;
+}
+
+/** `fallbackOrder` — `orderIndex` 가 빠진 응답(첫 장만 실어 줄 때)의 기본 정렬 번호 */
+function readBlockImage(value: unknown, fallbackOrder: number) {
+  if (typeof value !== 'object' || value === null) return null;
+
+  const { imgId, originalName, imageUrl, caption, orderIndex } = value as {
+    imgId?: unknown;
+    originalName?: unknown;
+    imageUrl?: unknown;
+    caption?: unknown;
+    orderIndex?: unknown;
+  };
+
+  // 이 둘이 없으면 화면에 그릴 수도, 어느 항목인지 지목할 수도 없다
+  if (typeof imgId !== 'number') return null;
+  if (typeof imageUrl !== 'string') return null;
+
+  return {
+    imgId,
+    originalName: typeof originalName === 'string' ? originalName : '',
+    imageUrl,
+    caption: typeof caption === 'string' ? caption : '',
+    orderIndex: typeof orderIndex === 'number' ? orderIndex : fallbackOrder,
+  } satisfies BlockImage;
+}
+
+/**
+ * `detail` 에서 이미지 블록 정보를 꺼낸다.
+ *
+ * 체크리스트 · 텍스트와 같은 **블록(`blockId`) > 블록의 내용(`imgBlockId`)** 구조라
+ * `imgBlockId` 가 없으면 조회 · 업로드 경로를 만들 수 없어 null 로 떨어뜨린다.
+ *
+ * ⚠️ 첫 이미지를 담는 **키 이름이 확정되지 않아** 세 모양을 모두 읽는다 —
+ *    `images: [...]` · `firstImage: {...}` · `detail` 바로 아래 평면(`imgId` · `imageUrl` …).
+ *    확정되면 해당 분기만 남기면 된다.
+ */
+export function readImageBlockDetail(detail: unknown): ImageBlockDetail | null {
+  if (typeof detail !== 'object' || detail === null) return null;
+
+  const source = detail as {
+    imgBlockId?: unknown;
+    images?: unknown;
+    firstImage?: unknown;
+    image?: unknown;
+    totalCount?: unknown;
+    imageCount?: unknown;
+  };
+  if (typeof source.imgBlockId !== 'number') return null;
+
+  const parsed = Array.isArray(source.images)
+    ? source.images
+        .map((image, index) => readBlockImage(image, index + 1))
+        .filter((image): image is BlockImage => image !== null)
+        .sort((left, right) => left.orderIndex - right.orderIndex)
+    : // 배열이 아니면 첫 장 하나만 온 것으로 본다 (정렬 번호가 없으면 1번)
+      [
+        readBlockImage(source.firstImage, 1) ??
+          readBlockImage(source.image, 1) ??
+          readBlockImage(detail, 1),
+      ].filter((image): image is BlockImage => image !== null);
+
+  // 장수 키도 확정 전이라 둘 다 본다. 목록이 통째로 왔으면 그 길이가 가장 정확하다
+  const declared =
+    typeof source.totalCount === 'number'
+      ? source.totalCount
+      : typeof source.imageCount === 'number'
+        ? source.imageCount
+        : null;
+
+  return {
+    imgBlockId: source.imgBlockId,
+    images: parsed,
+    // 첫 장만 왔을 때 그 길이(1)를 전체 장수로 쓰면 다음 장 버튼이 사라진다
+    totalCount: declared ?? (parsed.length > 1 ? parsed.length : null),
+  };
+}
+
+/** GET /api/v1/blocks/images/{imgBlockId}/items/{currentOrderIndex} */
+export interface ImageItemResponse extends BlockImage {
+  /** 해당 블록의 전체 이미지 개수 */
+  totalCount: number;
+}
+
+/** GET /api/v1/blocks/images/{imgBlockId}/items — 편집 권한 필요 */
+export interface ImageItemsResponse {
+  /** 활성 이미지 개수 */
+  totalCount: number;
+  /** `orderIndex` 오름차순 */
+  images: BlockImage[];
+}
+
+/** POST /api/v1/blocks/images/{imgBlockId}/items */
+export interface CreateImageItemsResponse {
+  imgBlockId: number;
+  images: (BlockImage & { createdAt: string })[];
+}
+
+/** PATCH /api/v1/blocks/images/items/{imgBlockId} — 정렬된 전체 목록을 보낸다 */
+export interface UpdateImageItemsRequest {
+  images: { imgId: number; caption: string | null }[];
+}
+
+export interface UpdateImageItemsResponse {
+  images: { imgId: number; orderIndex: number; caption: string }[];
+}
+
 /**
  * 블록 한 개의 배치. 배치 변경 요청 · 응답이 같은 모양이다.
  * 총 열 수는 3 고정이다 (BLK-003).

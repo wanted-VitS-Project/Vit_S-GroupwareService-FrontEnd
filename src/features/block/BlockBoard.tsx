@@ -25,6 +25,7 @@ import { BlockActionsProvider, type BlockActions } from './BlockActionsContext';
 import { BlockDragProvider, type BlockDragValue } from './BlockDragContext';
 import ChecklistBlock from './ChecklistBlock';
 import FileBlock from './FileBlock';
+import ImageBlock from './ImageBlock';
 import TextBlock from './TextBlock';
 import {
   BLOCK_COLUMNS,
@@ -601,9 +602,11 @@ const BlockBody = memo(function BlockBody({
   if (block.type === 'TEXT')
     return <TextBlock block={block} autoEdit={autoEdit} />;
   if (block.type === 'FILE') return <FileBlock block={block} />;
+  if (block.type === 'IMAGE')
+    return <ImageBlock block={block} autoUpload={autoEdit} />;
   if (block.type === 'APPROVAL') return <ApprovalBlock block={block} />;
 
-  // TODO: 유형별 블록 구현 (IMAGE · PAYMENT_CONFIRM · …)
+  // TODO: 유형별 블록 구현 (PAYMENT_CONFIRM · TAX_INVOICE_VIEW · …)
   return (
     <BlockCard block={block}>
       <p className="text-[10px] text-[#6C7389]">준비 중인 블록입니다.</p>
