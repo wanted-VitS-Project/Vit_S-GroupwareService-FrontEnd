@@ -193,6 +193,8 @@ export default function BlockBoard({
     onOrderChangedRef.current?.(next);
   }, []);
 
+  const slide = useSlideOnReorder(draggingId);
+
   const saver = useLayoutSaver({
     stepId,
     initial: order,
@@ -204,6 +206,7 @@ export default function BlockBoard({
       publish(saved);
     },
     onFailed: (message, confirmed) => {
+      slide.capture();
       liveOrder.current = confirmed;
       setOrder(confirmed);
       setSaveError(message);
@@ -255,7 +258,6 @@ export default function BlockBoard({
     saver.reset(toFlatOrder(resetTarget));
   }, [resetTarget, saver]);
 
-  const registerNode = useSlideOnReorder(draggingId);
   useDragAutoScroll(draggingId !== null, boardRef);
 
   /** 머무름을 채운 대상에 실제로 자리를 내준다 */
@@ -278,11 +280,12 @@ export default function BlockBoard({
       lastTarget.current = key;
       if (hasSameOrder(next, current)) return;
 
+      slide.capture();
       settledAt.current = Date.now() + SETTLE_MS;
       liveOrder.current = next;
       setOrder(next);
     },
-    [updateAiming],
+    [slide, updateAiming],
   );
 
   const start = useCallback(
@@ -495,7 +498,7 @@ export default function BlockBoard({
               const cells = row.map((block) => (
                 <div
                   key={block.blockId}
-                  ref={registerNode(block.blockId)}
+                  ref={slide.register(block.blockId)}
                   data-drop-block={block.blockId}
                   // 겨누는 중 — 자리를 내주기 직전이라는 신호
                   className={`min-w-0 rounded-lg ${

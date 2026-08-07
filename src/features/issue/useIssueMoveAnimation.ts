@@ -1,22 +1,13 @@
 'use client';
 
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-} from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 
-/** 서버에는 레이아웃이 없다 — 경고를 피하려고 클라이언트에서만 layout effect 를 쓴다 */
 const useBrowserLayoutEffect =
   typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
-/** 자리를 옮기는 데 걸리는 시간. 보드의 정착 대기 길이와 공유한다 */
-export const SLIDE_DURATION_MS = 180;
-
+const DURATION_MS = 200;
 const EASING = 'cubic-bezier(0.2, 0, 0, 1)';
-const MAX_ANIMATED_BLOCKS = 100;
+const MAX_ANIMATED_CARDS = 100;
 
 interface Spot {
   left: number;
@@ -24,41 +15,32 @@ interface Spot {
 }
 
 /**
- * 블록 순서가 실제로 바뀌는 순간에만 동작하는 FLIP 애니메이션.
+ * 상태 변경 직전/직후 위치 차이만 `transform` 으로 이어 붙이는 이슈 보드 전용 FLIP.
  *
- * `capture()` 가 현재 화면 위치를 기록하고, 다음 렌더 직후 새 위치와의 차이를
- * `transform` 으로 이어 붙인다. 매 렌더 전체 블록을 측정하지 않으며 화면 밖 블록과
- * 끌고 있는 블록은 제외하고, 한 번에 처리할 카드 수도 제한한다.
+ * 매 렌더 위치를 재지 않고 `capture()` 를 호출한 상태 변경에서만 동작한다.
+ * 화면 밖 카드는 제외하고 처리 수도 제한해, 큰 보드에서 한 번의 드롭이 과도한
+ * 레이아웃 측정과 애니메이션 생성을 일으키지 않게 한다.
  */
-export function useSlideOnReorder(skipKey?: number | null) {
+export function useIssueMoveAnimation() {
   const nodes = useRef(new Map<number, HTMLElement>());
   const callbacks = useRef(
     new Map<number, (node: HTMLElement | null) => void>(),
   );
   const beforeMove = useRef<Map<number, Spot> | null>(null);
-  const skipKeyRef = useRef(skipKey);
 
-  useBrowserLayoutEffect(() => {
-    skipKeyRef.current = skipKey;
-  }, [skipKey]);
-
-  const register = useCallback((key: number) => {
+  function register(key: number) {
     const cached = callbacks.current.get(key);
     if (cached) return cached;
 
     const callback = (node: HTMLElement | null) => {
-      if (node) {
-        nodes.current.set(key, node);
-      } else {
-        nodes.current.delete(key);
-        callbacks.current.delete(key);
-      }
+      if (node) nodes.current.set(key, node);
+      else nodes.current.delete(key);
     };
     callbacks.current.set(key, callback);
     return callback;
-  }, []);
+  }
 
-  const capture = useCallback(() => {
+  function capture() {
     if (
       document.visibilityState !== 'visible' ||
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -72,8 +54,7 @@ export function useSlideOnReorder(skipKey?: number | null) {
     const viewportWidth = window.innerWidth;
 
     for (const [key, node] of nodes.current) {
-      if (spots.size >= MAX_ANIMATED_BLOCKS) break;
-      if (key === skipKeyRef.current) continue;
+      if (spots.size >= MAX_ANIMATED_CARDS) break;
 
       const rect = node.getBoundingClientRect();
       const isVisible =
@@ -85,7 +66,7 @@ export function useSlideOnReorder(skipKey?: number | null) {
     }
 
     beforeMove.current = spots;
-  }, []);
+  }
 
   useBrowserLayoutEffect(() => {
     const previous = beforeMove.current;
@@ -96,8 +77,9 @@ export function useSlideOnReorder(skipKey?: number | null) {
       const node = nodes.current.get(key);
       if (!node) continue;
 
-      // capture 는 진행 중 transform 이 반영된 화면 위치다. 기존 효과를 제거한 뒤
-      // 새 레이아웃 위치를 재면 연속 이동·롤백도 보이던 자리에서 다시 출발한다.
+      // capture 는 진행 중 transform 이 반영된 현재 화면 위치를 저장했다.
+      // 새 레이아웃의 실제 위치를 재기 전에 기존 애니메이션만 제거하면,
+      // 중간에 롤백돼도 보이던 자리에서 자연스럽게 다시 출발한다.
       for (const animation of node.getAnimations()) animation.cancel();
       const after = node.getBoundingClientRect();
       const dx = before.left - after.left;
@@ -107,7 +89,7 @@ export function useSlideOnReorder(skipKey?: number | null) {
       node.style.willChange = 'transform';
       const animation = node.animate(
         [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }],
-        { duration: SLIDE_DURATION_MS, easing: EASING },
+        { duration: DURATION_MS, easing: EASING },
       );
       animation.finished
         .catch(() => undefined)
@@ -117,5 +99,5 @@ export function useSlideOnReorder(skipKey?: number | null) {
     }
   });
 
-  return useMemo(() => ({ capture, register }), [capture, register]);
+  return { capture, register };
 }

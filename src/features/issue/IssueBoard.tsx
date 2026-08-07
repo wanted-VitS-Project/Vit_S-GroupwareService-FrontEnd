@@ -13,6 +13,7 @@ import IssueCard from './IssueCard';
 import IssueDetailModal from './IssueDetailModal';
 import IssueFormModal from './IssueFormModal';
 import { IssueBoardSkeleton } from './IssueSkeletons';
+import { useIssueMoveAnimation } from './useIssueMoveAnimation';
 import {
   byDueDate,
   ISSUE_STATUS_LABELS,
@@ -82,6 +83,7 @@ export default function IssueBoard() {
    * 보드 전체가 두 번(잠금 · 해제) 더 그려진다.
    */
   const didDragRef = useRef(false);
+  const moveAnimation = useIssueMoveAnimation();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -169,6 +171,7 @@ export default function IssueBoard() {
 
   /** 상태를 바꾸고 목록 맨 앞으로 옮긴다 — 옮긴 이슈가 새 열의 맨 위에 보이게 */
   function moveToFront(issue: IssueSummary, status: IssueStatus) {
+    moveAnimation.capture();
     setLoaded((prev) =>
       prev === null
         ? prev
@@ -186,6 +189,7 @@ export default function IssueBoard() {
 
   /** 실패 시 원래 상태 · 원래 자리로 되돌린다 */
   function restoreAt(issue: IssueSummary, index: number) {
+    moveAnimation.capture();
     setLoaded((prev) => {
       if (prev === null) return prev;
 
@@ -409,18 +413,23 @@ export default function IssueBoard() {
                 {/* 남는 공간까지 이 영역이 차지해야 아래쪽 빈 자리도 드롭 대상이 된다 */}
                 <div className="flex flex-1 flex-col gap-2">
                   {columnIssues.map((issue) => (
-                    <IssueCard
+                    <div
                       key={issue.issueId}
-                      issue={issue}
-                      canEdit={canEdit}
-                      isDragging={draggingId === issue.issueId}
-                      onOpen={openDetail}
-                      onEdit={openEdit}
-                      onDelete={openDelete}
-                      onChangeStatus={requestStatus}
-                      onDragStart={handleDragStart}
-                      onDragEnd={handleDragEnd}
-                    />
+                      ref={moveAnimation.register(issue.issueId)}
+                      className="min-w-0"
+                    >
+                      <IssueCard
+                        issue={issue}
+                        canEdit={canEdit}
+                        isDragging={draggingId === issue.issueId}
+                        onOpen={openDetail}
+                        onEdit={openEdit}
+                        onDelete={openDelete}
+                        onChangeStatus={requestStatus}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                      />
+                    </div>
                   ))}
 
                   {columnIssues.length === 0 && (

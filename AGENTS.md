@@ -8,12 +8,12 @@
 
 > 이 파일(`AGENTS.md`)이 **메인 규칙 파일**이다. 루트의 `CLAUDE.md` 는 이 파일을 가리키는 얇은 포인터다. 두 파일은 각 AI 도구의 자동 로드를 위해 **루트에 위치해야 한다** (Codex → `AGENTS.md`, Claude Code → `CLAUDE.md` → `AGENTS.md`).
 
-| 문서         | 실제 경로        |
-| ------------ | ---------------- |
-| `STATE.md`   | `.ai/STATE.md`   |
-| `API.md`     | `.ai/API.md`     |
-| `WORKLOG.md` | `.ai/WORKLOG.md` |
-| 발표 자료    | `.ai/발표/`      |
+| 문서         | 실제 경로            |
+| ------------ | -------------------- |
+| `STATE.md`   | `.ai/local/STATE.md` |
+| `API.md`     | `.ai/API.md`         |
+| `WORKLOG.md` | `.ai/WORKLOG.md`     |
+| 발표 자료    | `.ai/발표/`          |
 
 ## 세션 연속성
 
