@@ -231,16 +231,6 @@ export default function IssueBoard() {
     }
   }
 
-  /** `memo` 를 살리려면 카드에 넘기는 함수 참조가 고정돼야 한다 */
-  const changeStatusRef = useRef(changeStatus);
-  useEffect(() => {
-    changeStatusRef.current = changeStatus;
-  });
-
-  const requestStatus = useCallback((issueId: number, status: IssueStatus) => {
-    changeStatusRef.current(issueId, status);
-  }, []);
-
   const handleDragStart = useCallback(
     (event: React.DragEvent, issue: IssueSummary) => {
       setDraggingId(issue.issueId);
@@ -425,7 +415,6 @@ export default function IssueBoard() {
                         onOpen={openDetail}
                         onEdit={openEdit}
                         onDelete={openDelete}
-                        onChangeStatus={requestStatus}
                         onDragStart={handleDragStart}
                         onDragEnd={handleDragEnd}
                       />

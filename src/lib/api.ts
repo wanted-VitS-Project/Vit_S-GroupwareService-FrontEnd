@@ -123,6 +123,39 @@ async function request<T>(
 }
 
 /**
+ * `multipart/form-data` 전송 (예: 이미지 항목 생성).
+ *
+ * ⚠️ `Content-Type` 을 직접 넣지 않는다 — 브라우저가 `boundary` 를 붙여서 채워야 한다.
+ *    JSON 파트는 호출 측에서 `Blob([...], { type: 'application/json' })` 로 담는다.
+ */
+export async function postForm<T>(
+  path: string,
+  form: FormData,
+  signal?: AbortSignal,
+) {
+  let response: Response;
+
+  try {
+    response = await fetch(`${BASE_URL}${path}`, {
+      method: 'POST',
+      credentials: 'include',
+      body: form,
+      signal,
+    });
+  } catch (caught) {
+    throw toNetworkError(caught);
+  }
+
+  if (!response.ok) await throwFailure(response);
+
+  const envelope = (await response
+    .json()
+    .catch(() => null)) as ApiEnvelope<T> | null;
+
+  return envelope?.data as T;
+}
+
+/**
  * 응답 본문이 우리 봉투가 아닌 API 용 (예: PDF 미리보기 바이너리).
  * 성공하면 `Response` 를 그대로 준다 — 헤더까지 봐야 하는 경우가 있다.
  * 실패는 JSON 실패 봉투로 오므로 `request` 와 동일하게 처리한다.

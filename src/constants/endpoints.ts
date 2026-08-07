@@ -119,6 +119,29 @@ export const ENDPOINTS = {
     text: (txtId: number | string) => `${V1}/blocks/texts/${txtId}`,
     /** 블록 파일 목록 — 상세 ID 없이 blockId 로 조회한다 */
     files: (blockId: number | string) => `${V1}/blocks/${blockId}/files`,
+    /**
+     * 이미지 항목 전체 조회(GET, 편집 권한) · 생성(POST, multipart).
+     * ⚠️ 조회는 **편집 권한**이 필요하다 — 열람만 가능한 사용자는 `imageItemAt` 을 쓴다.
+     */
+    imageItems: (imgBlockId: number | string) =>
+      `${V1}/blocks/images/${imgBlockId}/items`,
+    /**
+     * 이미지 한 장 조회 — 현재 정렬 번호 기준 앞/뒤 한 장.
+     * 목록 조회 API 가 없어 여기로 한 장씩 넘긴다. `?direction=prev|next` 필요.
+     */
+    imageItemAt: (imgBlockId: number | string, orderIndex: number | string) =>
+      `${V1}/blocks/images/${imgBlockId}/items/${orderIndex}`,
+    /** 이미지 다운로드 — `?imgId=` 없으면 블록 전체를 zip 으로 준다 */
+    imageDownload: (imgBlockId: number | string) =>
+      `${V1}/blocks/images/${imgBlockId}/download`,
+    /**
+     * 이미지 순서 · 캡션 수정 (전체 치환).
+     * ⚠️ 경로가 `.../items/{...}` 인데 넣는 값은 **항목 ID 가 아니라 블록 ID** 다.
+     */
+    imageItemsEdit: (imgBlockId: number | string) =>
+      `${V1}/blocks/images/items/${imgBlockId}`,
+    /** 이미지 항목 삭제 — 이쪽은 **항목 ID(`imgId`)** 다. 위 경로와 모양만 같다 */
+    imageItem: (imgId: number | string) => `${V1}/blocks/images/items/${imgId}`,
   },
   files: {
     /** 업로드 시작 — presigned PUT URL 발급 */

@@ -6,6 +6,80 @@
 
 ---
 
+## [2026-08-07] 이미지 블록 구현 ✅
+
+브랜치: `user/project` · 이슈: #72
+
+### 변경 파일
+
+| 파일                                      | 변경 |
+| ----------------------------------------- | ---- |
+| `src/features/block/ImageBlock.tsx`       | 생성 |
+| `src/lib/useFlipReorder.ts`               | 생성 |
+| `src/features/block/useDragAutoScroll.ts` | 수정 |
+| `src/features/issue/IssueCard.tsx`        | 수정 |
+| `src/features/issue/IssueBoard.tsx`       | 수정 |
+| `src/features/block/ImageUploadModal.tsx` | 생성 |
+| `src/features/block/ImageEditModal.tsx`   | 생성 |
+| `src/features/block/ImageLightbox.tsx`    | 생성 |
+| `src/features/block/api.ts`               | 수정 |
+| `src/features/block/types.ts`             | 수정 |
+| `src/features/block/BlockBoard.tsx`       | 수정 |
+| `src/features/block/StepBlocks.tsx`       | 수정 |
+| `src/constants/endpoints.ts`              | 수정 |
+| `src/lib/api.ts`                          | 수정 |
+| `.ai/API.md`                              | 수정 |
+| `.ai/local/STATE.md`                      | 수정 |
+
+### 주요 작업 내용
+
+- 초안(`비타s초안`)의 이미지 블록을 현재 블록 카드 · 공용 모달 구조에 맞춰 구현 (캐러셀 · 캡션 · 장수 표기)
+- 이미지 API 6종 연동 (66 한 장 조회 · 67 생성 · 68 순서/캡션 수정 · 69 삭제 · 70 다운로드 · 71 전체 조회)
+- 첫 장은 블록 목록 조회(10번) `detail` 로 함께 받아 카드가 뜨자마자 그리고, 두 번째 장부터 66번으로 한 장씩 받아 정렬 번호로 캐싱
+- 카드 · 전체보기의 캡션 줄을 항상 한 줄 자리로 고정해 캡션 작성/삭제 시 블록 높이가 흔들리지 않게 처리
+- 등록 모달 — 드래그&드롭 · 다중 선택 · 장별 캡션 · **드래그로 순서 변경**(보낸 순서가 곧 정렬 번호) · `image/*` · 10MB 선검증, `multipart/form-data` 전송
+- 수정 모달 — 드래그 순서 변경 · 캡션 편집 · 삭제 표시 후 저장 시 일괄 반영 (열 때 71번으로 전체 목록 1회 조회)
+- 등록 · 수정 모달 스크롤바를 감추고(`no-scrollbar`), 드래그로 위·아래 끝에 닿으면 목록이 따라 굴러가게 연결 (`useDragAutoScroll` 재사용 — 모달용 가장자리 · 속도 옵션 추가)
+- 등록 · 수정 모달의 순서 변경에 FLIP 미끄러짐 효과 추가 (`src/lib/useFlipReorder.ts` 신설) — 바뀌는 순간에만 측정, 화면 밖 · 100개 초과 · 모션 감소 · 숨겨진 탭 제외
+- 크게 보기(라이트박스)와 단일 · 전체(zip) 다운로드 연결 — 카드 · 전체보기 모두 마지막 ↔ 첫 장 순환 이동 지원
+- 이미지 블록을 새로 만들면 텍스트 블록처럼 등록 모달이 바로 열리도록 `StepBlocks` 자동 편집 대상에 추가
+
+### 함께 정리한 것
+
+- 이슈 카드 `⋯` 메뉴에서 `~(으)로 이동`(상태 변경) 항목 제거 — **상태 변경은 드래그&드롭 하나로만** 한다
+  - `IssueCard` 의 `onChangeStatus` prop 과 `IssueBoard` 의 `requestStatus` · `changeStatusRef` 도 함께 정리 (드롭 경로는 `changeStatus` 직접 호출)
+  - ⚠️ 드래그를 쓸 수 없는 사용자는 상태를 바꿀 수단이 없어진다
+
+### 리뷰 반영
+
+- `detail` 숫자 파싱을 `Number.isSafeInteger` 기반으로 강화 — `NaN` · `Infinity` · 음수 · 소수를 걸러 `/items/NaN` 요청과 캐시 미스를 막음. 빈 `imageUrl` 도 제외
+- 업로드 대기 목록 key 를 배열 길이 → **일련번호**로 변경 (뺐다 다시 담을 때 key 충돌 → 오삭제 · 오이동)
+- 허용 형식을 안내 문구와 같은 `image/jpeg · png · gif · webp` 화이트리스트로 제한 (`accept` 포함) — 서버 독립 검증은 백엔드에 요청
+- 수정 저장이 부분 실패하면 71번으로 서버 목록을 다시 읽어 모달 · 카드를 재동기화하고 재시도를 허용
+- 전체보기에서 다운로드 실패 문구를 모달 안에 표시 (기존에는 모달 뒤 카드에만 떠서 안 보였음)
+- `BlockImage.altText`(선택) 계약 추가 + `imageAltText()` 로 대체 텍스트 일원화 — 백엔드 필드 추가 요청
+- 첫 조회 실패를 **빈 상태와 분리** — 실패 시 재시도 UI, 빈 상태는 서버가 0장이라고 한 경우만
+- 삭제 시 `totalCount` 를 모르면 0장으로 단정하지 않고 앞 장을 다시 조회해 서버 값으로 확정
+
+### 부수 결정
+
+- `lib/api.ts` 에 `postForm()` 추가 — 기존 래퍼가 JSON `Content-Type` 을 고정해 multipart 전송이 불가능했다
+- 다운로드는 presigned 가 아니라 서버 바이너리라 `requestRaw()` 로 blob 을 받아 앵커로 저장한다 (세션 쿠키 필요)
+- 수정 모달의 삭제는 저장 시점에 실행한다 — 취소로 닫으면 아무것도 바뀌지 않아야 한다
+- 양 끝에서의 `prev`/`next` 동작이 명세에 없어 1번 · 마지막 장에서는 버튼을 아예 노출하지 않는다
+
+### 검증
+
+| 명령                               | 결과               |
+| ---------------------------------- | ------------------ |
+| `npx tsc --noEmit`                 | ✅ 에러 0          |
+| `npm run lint -- --max-warnings=0` | ✅ 에러 0 · 경고 0 |
+| `npm run build`                    | ✅ 성공            |
+
+> 🚧 백엔드 실동작 미확인 — `detail` 의 첫 이미지 키 이름, `items/0?direction=next` 예비 경로 확인 후 마감한다.
+
+---
+
 ## [2026-08-07] 이슈-블록 연결 · 이동 애니메이션 최적화 ✅
 
 브랜치: `issue` · 이슈: #68
@@ -62,7 +136,7 @@
 
 ---
 
-## [2026-08-07] 블록 수정 · 삭제 즉시 반영 · 복귀 시 목록 동기화 🚧
+## [2026-08-07] 블록 수정 · 삭제 즉시 반영 · 복귀 시 목록 동기화 ✅
 
 브랜치: `user/project` · 이슈: #65
 
@@ -269,18 +343,18 @@
 
 ### 변경 파일
 
-| 파일                                            | 변경                                          |
-| ----------------------------------------------- | --------------------------------------------- |
-| `src/app/approvals/page.tsx`                    | 생성 — 라우트 + Suspense 경계                 |
-| `src/features/approval/ApprovalList.tsx`        | 생성 — 목록 본체(탭 · 필터 · 행 · 페이징)     |
-| `src/features/approval/ApprovalStatusBadge.tsx` | 생성 — 결재 상태 배지 4종                     |
-| `src/features/approval/lineStatus.ts`           | 생성 — 결재선 상태 라벨 · 색 공용             |
-| `src/features/approval/routes.ts`               | 생성 — 결재 화면 경로 단일 소스               |
-| `src/components/approval/ApprovalSkeletons.tsx` | 생성 — 목록 로딩 스켈레톤                     |
-| `src/features/approval/{types,api}.ts`          | 수정 — 목록 · 상세 · 승인 · 반려 타입과 함수  |
-| `src/features/approval/errorCodes.ts`           | 수정 — 결재선 처리 코드 2종                   |
+| 파일                                            | 변경                                                 |
+| ----------------------------------------------- | ---------------------------------------------------- |
+| `src/app/approvals/page.tsx`                    | 생성 — 라우트 + Suspense 경계                        |
+| `src/features/approval/ApprovalList.tsx`        | 생성 — 목록 본체(탭 · 필터 · 행 · 페이징)            |
+| `src/features/approval/ApprovalStatusBadge.tsx` | 생성 — 결재 상태 배지 4종                            |
+| `src/features/approval/lineStatus.ts`           | 생성 — 결재선 상태 라벨 · 색 공용                    |
+| `src/features/approval/routes.ts`               | 생성 — 결재 화면 경로 단일 소스                      |
+| `src/components/approval/ApprovalSkeletons.tsx` | 생성 — 목록 로딩 스켈레톤                            |
+| `src/features/approval/{types,api}.ts`          | 수정 — 목록 · 상세 · 승인 · 반려 타입과 함수         |
+| `src/features/approval/errorCodes.ts`           | 수정 — 결재선 처리 코드 2종                          |
 | `src/constants/endpoints.ts`                    | 수정 — `approvals.root` · `detail` · `approvalLines` |
-| `.ai/API.md`                                    | 수정 — 55~58 절 추가, 명세·실물 차이표 정리   |
+| `.ai/API.md`                                    | 수정 — 55~58 절 추가, 명세·실물 차이표 정리          |
 
 ### 주요 작업 내용
 

@@ -10,24 +10,20 @@ import {
   IssuePriorityBadge,
   OverdueBadge,
 } from './IssueBadges';
-import {
-  ISSUE_STATUS_LABELS,
-  ISSUE_STATUS_ORDER,
-  overdueDays,
-  type IssueStatus,
-  type IssueSummary,
-} from './types';
+import { overdueDays, type IssueSummary } from './types';
 
 /**
  * 이슈 보드의 카드 한 장.
  *
  * 카드 전체가 드래그 손잡이다 — 열 사이로 끌어 상태를 바꾼다.
- * `⋯` 은 수정 · 삭제 · 상태 이동 (스텝 `EDITOR` 에게만 보인다).
+ * `⋯` 은 수정 · 삭제만 담는다 (스텝 `EDITOR` 에게만 보인다).
  *
  * ⚠️ 상세 열기는 **제목 버튼**이 맡는다. 카드에 메뉴 버튼이 들어 있어 겉껍데기를
  *    `role="button"` 으로 만들면 중첩 대화형 요소가 되어 보조기술에서 뜻이 어긋난다.
  *    (마우스 편의를 위해 카드 여백 클릭도 상세를 열지만, 초점·키보드는 제목 버튼이 받는다)
- * ⚠️ 드래그는 마우스 전용이라 상태 이동을 `⋯` 메뉴에도 둔다 — 키보드 사용자를 위해.
+ * ⚠️ **상태 변경은 드래그&드롭 하나로만 한다** (2026-08-07 결정).
+ *    메뉴에 있던 `~(으)로 이동` 항목을 없앴다 — 경로가 둘이면 어느 쪽이 정본인지 흐려진다.
+ *    대신 드래그를 쓸 수 없는 사용자는 상태를 바꿀 수단이 없다.
  *
  * ⚠️ `memo` 로 감싼다. 드래그 중에는 보드가 자주 다시 그려지는데, 그때마다
  *    카드 전부를 다시 그리면 이슈가 많은 스텝에서 화면이 버벅인다.
@@ -41,7 +37,6 @@ function IssueCard({
   onOpen,
   onEdit,
   onDelete,
-  onChangeStatus,
   onDragStart,
   onDragEnd,
 }: {
@@ -53,8 +48,6 @@ function IssueCard({
   onOpen: (issueId: number) => void;
   onEdit: (issueId: number) => void;
   onDelete: (issueId: number) => void;
-  /** 드래그를 쓸 수 없는 사용자를 위한 상태 이동 */
-  onChangeStatus: (issueId: number, status: IssueStatus) => void;
   onDragStart: (event: React.DragEvent, issue: IssueSummary) => void;
   onDragEnd: () => void;
 }) {
@@ -88,16 +81,10 @@ function IssueCard({
           >
             <RowMenu
               label={issue.title}
-              width={148}
+              // 상태 이동 항목이 빠져 `수정` · `삭제` 두 줄만 남는다
+              width={112}
               items={[
                 { label: '수정', onSelect: () => onEdit(issue.issueId) },
-                // 드래그 없이도 상태를 옮길 수 있어야 한다 (같은 changeStatus 흐름)
-                ...ISSUE_STATUS_ORDER.filter(
-                  (status) => status !== issue.status,
-                ).map((status) => ({
-                  label: `${ISSUE_STATUS_LABELS[status]}(으)로 이동`,
-                  onSelect: () => onChangeStatus(issue.issueId, status),
-                })),
                 {
                   label: '삭제',
                   danger: true,
