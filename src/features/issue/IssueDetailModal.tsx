@@ -71,21 +71,42 @@ export default function IssueDetailModal({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const [issue, setIssue] = useState<IssueDetail | null>(null);
-  const [errorMessage, setErrorMessage] = useState('');
+  /**
+   * 어느 이슈의 응답인지 함께 담는다 — `issueId` 가 바뀌면 즉시 무효가 되어
+   * 새 이슈를 불러오는 동안 **이전 이슈의 제목 · 버튼이 남지 않는다.**
+   */
+  const [loaded, setLoaded] = useState<{
+    issueId: number;
+    issue: IssueDetail;
+  } | null>(null);
+  /** 실패는 로딩과 구분한다 — null 로 두면 스켈레톤이 영원히 돈다 */
+  const [failed, setFailed] = useState<{
+    issueId: number;
+    message: string;
+  } | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
 
     getIssue(issueId, controller.signal)
-      .then(setIssue)
+      .then((issue) => {
+        setLoaded({ issueId, issue });
+        setFailed((prev) => (prev?.issueId === issueId ? null : prev));
+      })
       .catch((caught) => {
         if (isAbortError(caught)) return;
-        setErrorMessage(messageOf(caught, '이슈를 불러오지 못했습니다.'));
+        setFailed({
+          issueId,
+          message: messageOf(caught, '이슈를 불러오지 못했습니다.'),
+        });
       });
 
     return () => controller.abort();
-  }, [issueId]);
+  }, [issueId, retryCount]);
+
+  const issue = loaded?.issueId === issueId ? loaded.issue : null;
+  const failure = failed?.issueId === issueId ? failed.message : null;
 
   const overdue = issue ? overdueDays(issue) : 0;
   // 완료 시각은 'YYYY-MM-DDTHH:mm:ss' 로 온다 — 종료일은 날짜만 쓴다
@@ -115,6 +136,10 @@ export default function IssueDetailModal({
                   {issue.title}
                 </h2>
               </>
+            ) : failure ? (
+              <h2 className="text-base font-semibold text-[#1C1F2A]">
+                이슈 상세
+              </h2>
             ) : (
               <SkeletonGroup label="이슈를 불러오는 중">
                 <Skeleton className="mb-2 h-4 w-32" />
@@ -154,16 +179,29 @@ export default function IssueDetailModal({
       }
     >
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {errorMessage && (
-          <p
-            role="alert"
-            className="border-b border-[#FFC9C9] bg-[#FEF2F2] px-6 py-2 text-[10px] text-[#E7000B]"
-          >
-            {errorMessage}
-          </p>
-        )}
-
-        {!issue ? (
+        {failure ? (
+          <div className="flex flex-col items-center gap-3 px-6 py-12">
+            <p role="alert" className="text-xs text-[#E7000B]">
+              {failure}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setRetryCount((count) => count + 1)}
+                className="cursor-pointer rounded-lg border border-[#1C1F2A]/9 px-3 py-1.5 text-[11px] font-medium text-[#3B5BDB] hover:bg-[#EDF2FF]"
+              >
+                다시 시도
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="cursor-pointer rounded-lg px-3 py-1.5 text-[11px] font-medium text-[#6C7389] hover:bg-[#ECEEF4]"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        ) : !issue ? (
           <SkeletonGroup
             label="이슈 상세를 불러오는 중"
             className="flex flex-col gap-4 p-6"
@@ -279,6 +317,7 @@ export default function IssueDetailModal({
                         <MemberAvatar
                           userId={assignee.userId}
                           name={assignee.name}
+                          decorative
                         />
                         <span className="text-xs font-medium text-[#1C1F2A]">
                           {assignee.name}

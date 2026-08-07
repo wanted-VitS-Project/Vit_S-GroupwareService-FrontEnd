@@ -19,12 +19,17 @@ function avatarColor(userId: string) {
 /**
  * 이름 첫 글자를 딴 원형 아바타.
  * 블록 담당자 · 이슈 담당자 · 참여자 목록이 같은 모양 · 같은 색을 쓰도록 여기 모았다.
+ *
+ * 기본은 **이미지로 읽힌다** (`role="img"` + 이름). 아바타만 놓인 자리에서
+ * 스크린리더가 이니셜 한 글자만 읽지 않게 하기 위함이다.
+ * 옆에 이름 글자가 이미 있는 자리에서는 `decorative` 로 숨겨 같은 이름이 두 번 읽히지 않게 한다.
  */
 export default function MemberAvatar({
   userId,
   name,
   size = 'sm',
   withRing = true,
+  decorative = false,
 }: {
   userId: string;
   name: string;
@@ -32,10 +37,14 @@ export default function MemberAvatar({
   size?: 'xs' | 'sm';
   /** 겹쳐 놓을 때 경계를 만드는 흰 테두리 */
   withRing?: boolean;
+  /** 이름 글자가 바로 옆에 있는 자리 — 장식으로 숨긴다 */
+  decorative?: boolean;
 }) {
   return (
     <span
-      title={name}
+      {...(decorative
+        ? { 'aria-hidden': true }
+        : { role: 'img', 'aria-label': name, title: name })}
       style={{ backgroundColor: avatarColor(userId) }}
       className={`flex shrink-0 items-center justify-center rounded-full font-semibold text-white ${
         size === 'xs' ? 'size-5 text-[9px]' : 'size-6 text-[10px]'

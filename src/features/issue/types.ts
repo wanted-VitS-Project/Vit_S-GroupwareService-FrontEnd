@@ -189,11 +189,17 @@ export function byDueDate(left: IssueSummary, right: IssueSummary) {
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
+/** 'YYYY-MM-DD' 만 받는다 — 형식이 다르면 경과를 계산하지 않는다 */
+const DUE_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+
 /**
  * 마감일이 며칠 지났는지. 아직 안 지났거나 마감일이 없으면 `0`.
  *
  * 완료된 이슈는 지났다고 보지 않는다 — 이미 끝난 일에 경고를 띄울 이유가 없다.
- * `Date` 는 비교에만 쓴다. 자정 기준이라 시각은 결과에 영향을 주지 않는다.
+ *
+ * ⚠️ **달력 날짜 기준**으로 센다. 로컬 자정끼리 밀리초를 빼서 24시간으로 나누면
+ *    서머타임 전환일(23·25시간)에 하루가 밀린다. `Date.UTC` 는 전환이 없어
+ *    연·월·일만 넣으면 항상 정확한 날수 차이가 나온다.
  */
 export function overdueDays(issue: {
   dueDate: string | null;
@@ -201,17 +207,16 @@ export function overdueDays(issue: {
 }) {
   if (!issue.dueDate || issue.status === 'DONE') return 0;
 
-  // 'Z' 를 붙이지 않아 로컬 자정으로 읽힌다 — 사용자가 보는 날짜와 같은 기준
-  const due = Date.parse(`${issue.dueDate}T00:00:00`);
-  if (Number.isNaN(due)) return 0;
+  const matched = DUE_DATE_PATTERN.exec(issue.dueDate);
+  if (!matched) return 0;
 
+  const [, year, month, day] = matched;
+  const due = Date.UTC(Number(year), Number(month) - 1, Number(day));
+
+  // 사용자가 보는 '오늘' 은 로컬 날짜다 — 연·월·일만 뽑아 같은 기준으로 옮긴다
   const now = new Date();
-  const today = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-  ).getTime();
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
 
-  const passed = Math.floor((today - due) / DAY_IN_MS);
+  const passed = (today - due) / DAY_IN_MS;
   return passed > 0 ? passed : 0;
 }

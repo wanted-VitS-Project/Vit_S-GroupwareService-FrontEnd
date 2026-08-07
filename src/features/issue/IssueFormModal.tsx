@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
 import Modal from '@/components/Modal';
@@ -115,16 +115,47 @@ export default function IssueFormModal({
   onSaved: (issue: IssueDetail) => void;
 }) {
   const isEdit = issueId !== undefined;
+  /** 생성 모드는 `null` 로 표시한다 — 아래 상태가 어느 이슈의 것인지 가리는 열쇠다 */
+  const formKey = issueId ?? null;
 
-  /** 수정 모드에서 무엇이 바뀌었는지 비교할 원본 */
-  const [original, setOriginal] = useState<IssueDetail | null>(null);
-  const [values, setValues] = useState<IssueFormValues | null>(
-    isEdit ? null : EMPTY_FORM,
-  );
+  /**
+   * 입력값과 비교 원본을 **어느 이슈의 것인지와 함께** 담는다.
+   *
+   * ⚠️ 이렇게 묶지 않으면 `issueId` 가 A → B 로 바뀐 직후(B 상세가 오기 전) 저장했을 때
+   *    A 의 값으로 만든 본문이 B 에 PATCH 되어 **다른 이슈를 덮어쓴다.**
+   */
+  const [form, setForm] = useState<{
+    key: number | null;
+    /** 수정 모드에서 무엇이 바뀌었는지 비교할 원본 (생성 모드는 null) */
+    original: IssueDetail | null;
+    values: IssueFormValues;
+  } | null>(isEdit ? null : { key: null, original: null, values: EMPTY_FORM });
+  /** 상세 조회 실패 — 로딩과 구분한다 */
+  const [failed, setFailed] = useState<{
+    key: number | null;
+    message: string;
+  } | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [members, setMembers] = useState<ProjectMember[]>([]);
   const [blocks, setBlocks] = useState<StepBlock[]>([]);
-  const [errorMessage, setErrorMessage] = useState('');
+  /** 저장 오류도 대상과 함께 담는다 — 대상이 바뀌면 앞선 문구가 저절로 사라진다 */
+  const [saveError, setSaveError] = useState<{
+    key: number | null;
+    message: string;
+  } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // 지금 열려 있는 이슈의 것만 화면에 쓴다 (다른 이슈의 잔상 · 실패는 버린다)
+  const current = form?.key === formKey ? form : null;
+  const values = current?.values ?? null;
+  const original = current?.original ?? null;
+  const loadFailure = failed?.key === formKey ? failed.message : null;
+  const errorMessage = saveError?.key === formKey ? saveError.message : '';
+
+  /** 저장 오류 문구를 지금 대상에 붙여 둔다 */
+  function showError(message: string) {
+    setSaveError({ key: formKey, message });
+  }
 
   useEffect(() => {
     if (issueId === undefined) return;
@@ -132,16 +163,19 @@ export default function IssueFormModal({
 
     getIssue(issueId, controller.signal)
       .then((issue) => {
-        setOriginal(issue);
-        setValues(toFormValues(issue));
+        setForm({ key: issueId, original: issue, values: toFormValues(issue) });
+        setFailed((prev) => (prev?.key === issueId ? null : prev));
       })
       .catch((caught) => {
         if (isAbortError(caught)) return;
-        setErrorMessage(messageOf(caught, '이슈를 불러오지 못했습니다.'));
+        setFailed({
+          key: issueId,
+          message: messageOf(caught, '이슈를 불러오지 못했습니다.'),
+        });
       });
 
     return () => controller.abort();
-  }, [issueId]);
+  }, [issueId, retryCount]);
 
   // 담당자 · 블록 선택지 — 실패해도 나머지 입력은 계속할 수 있게 둔다
   useEffect(() => {
@@ -166,8 +200,44 @@ export default function IssueFormModal({
     return () => controller.abort();
   }, [projectId, stepId]);
 
+  /**
+   * 담당자를 넣거나 뺀 **다음 렌더에서** 초점을 옮길 대상.
+   *
+   * 고른 후보 버튼과 방금 뺀 제외 버튼은 DOM 에서 사라진다. 그대로 두면 초점이
+   * 문서로 떨어져 키보드 사용자가 모달을 처음부터 다시 훑어야 한다.
+   */
+  const focusAfterRender = useRef<{
+    kind: 'remove' | 'candidate';
+    userId: string;
+  } | null>(null);
+  const removeButtons = useRef(new Map<string, HTMLButtonElement>());
+  const candidateButtons = useRef(new Map<string, HTMLButtonElement>());
+  /** 옮길 버튼이 없을 때 붙잡아 둘 자리 (후보 영역) */
+  const assigneeBoxRef = useRef<HTMLDivElement>(null);
+
+  // 초점 이동은 DOM 조작이라 렌더가 끝난 뒤에 한다
+  useEffect(() => {
+    const target = focusAfterRender.current;
+    if (!target) return;
+    focusAfterRender.current = null;
+
+    const store =
+      target.kind === 'remove'
+        ? removeButtons.current
+        : candidateButtons.current;
+    const next = store.get(target.userId);
+
+    if (next) next.focus();
+    else assigneeBoxRef.current?.focus();
+  });
+
   function patch(next: Partial<IssueFormValues>) {
-    setValues((prev) => (prev === null ? prev : { ...prev, ...next }));
+    setForm((prev) =>
+      // 대상이 바뀐 뒤 늦게 들어온 입력은 버린다
+      prev === null || prev.key !== formKey
+        ? prev
+        : { ...prev, values: { ...prev.values, ...next } },
+    );
   }
 
   /** 수정 모드에서 실제로 바뀐 필드만 모은다. `null` 은 해제 신호다 */
@@ -198,20 +268,22 @@ export default function IssueFormModal({
   }
 
   async function submit() {
+    // 현재 대상의 상세를 아직 못 받았으면 저장하지 않는다 (다른 이슈를 덮어쓸 수 있다)
     if (values === null || isSaving) return;
+    if (isEdit && original === null) return;
 
     const title = values.title.trim();
     if (!title) {
-      setErrorMessage('이슈 이름을 입력해주세요.');
+      showError('이슈 이름을 입력해주세요.');
       return;
     }
     if (title.length > 200) {
-      setErrorMessage('이슈 이름은 200자까지 입력할 수 있습니다.');
+      showError('이슈 이름은 200자까지 입력할 수 있습니다.');
       return;
     }
 
     setIsSaving(true);
-    setErrorMessage('');
+    setSaveError(null);
 
     try {
       if (original !== null && issueId !== undefined) {
@@ -239,7 +311,7 @@ export default function IssueFormModal({
       });
       onSaved(created);
     } catch (caught) {
-      setErrorMessage(
+      showError(
         messageOf(
           caught,
           isEdit
@@ -289,7 +361,29 @@ export default function IssueFormModal({
         </div>
       }
     >
-      {values === null ? (
+      {loadFailure ? (
+        <div className="flex flex-col items-center gap-3 px-5 py-12">
+          <p role="alert" className="text-xs text-[#E7000B]">
+            {loadFailure}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setRetryCount((count) => count + 1)}
+              className="cursor-pointer rounded-lg border border-[#1C1F2A]/9 px-3 py-1.5 text-[11px] font-medium text-[#3B5BDB] hover:bg-[#EDF2FF]"
+            >
+              다시 시도
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="cursor-pointer rounded-lg px-3 py-1.5 text-[11px] font-medium text-[#6C7389] hover:bg-[#ECEEF4]"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      ) : values === null ? (
         <SkeletonGroup
           label="이슈를 불러오는 중"
           className="flex flex-col gap-4 p-5"
@@ -380,20 +474,34 @@ export default function IssueFormModal({
                       key={userId}
                       className="flex items-center gap-1 rounded-full border border-[#1C1F2A]/9 bg-white px-2 py-0.5"
                     >
-                      <MemberAvatar userId={userId} name={name} size="xs" />
+                      <MemberAvatar
+                        userId={userId}
+                        name={name}
+                        size="xs"
+                        decorative
+                      />
                       <span className="text-[10px] font-medium text-[#1C1F2A]">
                         {name}
                       </span>
                       <button
                         type="button"
+                        ref={(node) => {
+                          if (node) removeButtons.current.set(userId, node);
+                          else removeButtons.current.delete(userId);
+                        }}
                         aria-label={`${name} 제외`}
-                        onClick={() =>
+                        onClick={() => {
+                          // 이 버튼은 곧 사라진다 — 다시 나타날 후보 버튼으로 초점을 넘긴다
+                          focusAfterRender.current = {
+                            kind: 'candidate',
+                            userId,
+                          };
                           patch({
                             assigneeIds: values.assigneeIds.filter(
                               (picked) => picked !== userId,
                             ),
-                          })
-                        }
+                          });
+                        }}
                         className="cursor-pointer text-[10px] text-[#6C7389] hover:text-[#1C1F2A]"
                       >
                         ✕
@@ -403,7 +511,12 @@ export default function IssueFormModal({
                 })
               )}
             </div>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {/* 옮길 버튼이 사라졌을 때 초점을 받아줄 자리 */}
+            <div
+              ref={assigneeBoxRef}
+              tabIndex={-1}
+              className="mt-1.5 flex flex-wrap gap-1.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3B5BDB]"
+            >
               {members.length === 0 ? (
                 <span className="text-[10px] text-[#6C7389]">
                   참여자를 불러오지 못했습니다.
@@ -413,17 +526,28 @@ export default function IssueFormModal({
                   <button
                     key={member.userId}
                     type="button"
-                    onClick={() =>
+                    ref={(node) => {
+                      if (node)
+                        candidateButtons.current.set(member.userId, node);
+                      else candidateButtons.current.delete(member.userId);
+                    }}
+                    onClick={() => {
+                      // 고르면 이 버튼이 사라진다 — 새로 생기는 제외 버튼으로 초점을 넘긴다
+                      focusAfterRender.current = {
+                        kind: 'remove',
+                        userId: member.userId,
+                      };
                       patch({
                         assigneeIds: [...values.assigneeIds, member.userId],
-                      })
-                    }
+                      });
+                    }}
                     className="flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-[#6C7389] hover:bg-[#ECEEF4] hover:text-[#1C1F2A]"
                   >
                     <MemberAvatar
                       userId={member.userId}
                       name={member.name}
                       size="xs"
+                      decorative
                     />
                     {member.name}
                   </button>
@@ -497,7 +621,7 @@ export default function IssueFormModal({
           <button
             type="button"
             onClick={submit}
-            disabled={isSaving || values === null}
+            disabled={isSaving || values === null || loadFailure !== null}
             className="cursor-pointer rounded-lg bg-[#3B5BDB] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#3450C4] disabled:cursor-not-allowed disabled:bg-[#ECEEF4] disabled:text-[#6C7389]"
           >
             {isSaving ? '저장 중…' : isEdit ? '수정 완료' : '이슈 생성'}

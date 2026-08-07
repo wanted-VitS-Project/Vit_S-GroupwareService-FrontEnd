@@ -57,10 +57,17 @@ export default function IssueBoard() {
   /** 상태 변경 실패처럼 화면을 막지 않는 오류 */
   const [errorMessage, setErrorMessage] = useState('');
 
-  /** 스텝 EDITOR 여야 생성 · 수정 · 상태변경 · 삭제가 가능하다 */
-  const [canEdit, setCanEdit] = useState(false);
-  /** 모달 머리에 표시할 스텝 이름 — 스텝 상세 API 가 없어 목록에서 찾는다 */
-  const [stepName, setStepName] = useState('');
+  /**
+   * 스텝 권한 · 이름. **어느 스텝의 응답인지 함께 담는다.**
+   *
+   * ⚠️ 값만 들고 있으면 경로를 옮긴 뒤 도착한 이전 스텝의 응답이 현재 화면을 덮어
+   *    `VIEWER` 에게 생성 · 수정 · 삭제 · 드래그가 열릴 수 있다.
+   */
+  const [permission, setPermission] = useState<{
+    key: string;
+    canEdit: boolean;
+    stepName: string;
+  } | null>(null);
 
   const [openModal, setOpenModal] = useState<OpenModal>(null);
 
@@ -95,6 +102,8 @@ export default function IssueBoard() {
     return () => controller.abort();
   }, [stepId, reloadCount]);
 
+  const permissionKey = `${projectId}:${stepId}`;
+
   // 스텝 상세 조회 API 가 없어 프로젝트 스텝 목록에서 권한 · 이름을 찾는다
   useEffect(() => {
     const controller = new AbortController();
@@ -102,14 +111,22 @@ export default function IssueBoard() {
     getProjectSteps(projectId, controller.signal)
       .then((steps) => {
         const step = steps.find((current) => String(current.stepId) === stepId);
-        setCanEdit(step?.myPermission === 'EDITOR');
-        setStepName(step?.name ?? '');
+        setPermission({
+          key: `${projectId}:${stepId}`,
+          canEdit: step?.myPermission === 'EDITOR',
+          stepName: step?.name ?? '',
+        });
       })
       // 권한을 못 읽으면 보기 전용으로 둔다 — 눌러도 서버가 403 을 줄 뿐이다
-      .catch(() => setCanEdit(false));
+      .catch(() => undefined);
 
     return () => controller.abort();
   }, [projectId, stepId]);
+
+  // 다른 스텝의 응답은 쓰지 않는다 — 확인되기 전까지는 보기 전용이다
+  const current = permission?.key === permissionKey ? permission : null;
+  const canEdit = current?.canEdit ?? false;
+  const stepName = current?.stepName ?? '';
 
   const issues = loaded?.stepId === stepId ? loaded.issues : null;
   const hasFailed = failedStepId === stepId;
@@ -180,12 +197,21 @@ export default function IssueBoard() {
     });
   }
 
+  /**
+   * 상태 변경이 나가 있는 이슈. 응답 전에 같은 이슈를 또 옮기면
+   * 먼저 실패한 요청이 나중에 성공한 이동을 되돌려 **서버와 화면이 갈린다.**
+   * 그래서 이슈 단위로 한 번에 하나만 보낸다.
+   */
+  const sendingStatusRef = useRef(new Set<number>());
+
   /** 화면을 먼저 옮기고 호출한다. 실패하면 되돌린다 (명세 59번) */
   async function changeStatus(issueId: number, status: IssueStatus) {
     const index = issues?.findIndex((issue) => issue.issueId === issueId) ?? -1;
     const before = index >= 0 ? issues?.[index] : undefined;
     if (!before || before.status === status) return;
+    if (sendingStatusRef.current.has(issueId)) return;
 
+    sendingStatusRef.current.add(issueId);
     setErrorMessage('');
     moveToFront(before, status);
 
@@ -196,8 +222,20 @@ export default function IssueBoard() {
     } catch (caught) {
       restoreAt(before, index);
       setErrorMessage(messageOf(caught, '이슈 상태를 변경하지 못했습니다.'));
+    } finally {
+      sendingStatusRef.current.delete(issueId);
     }
   }
+
+  /** `memo` 를 살리려면 카드에 넘기는 함수 참조가 고정돼야 한다 */
+  const changeStatusRef = useRef(changeStatus);
+  useEffect(() => {
+    changeStatusRef.current = changeStatus;
+  });
+
+  const requestStatus = useCallback((issueId: number, status: IssueStatus) => {
+    changeStatusRef.current(issueId, status);
+  }, []);
 
   const handleDragStart = useCallback(
     (event: React.DragEvent, issue: IssueSummary) => {
@@ -379,6 +417,7 @@ export default function IssueBoard() {
                       onOpen={openDetail}
                       onEdit={openEdit}
                       onDelete={openDelete}
+                      onChangeStatus={requestStatus}
                       onDragStart={handleDragStart}
                       onDragEnd={handleDragEnd}
                     />

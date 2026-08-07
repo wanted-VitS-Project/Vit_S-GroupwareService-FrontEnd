@@ -105,6 +105,8 @@ export default function BlockCard({
               name={block.owner.name}
               size="xs"
               withRing={false}
+              // 바로 옆에 이름 글자가 있다
+              decorative
             />
             <span className="min-w-0 flex-1 truncate text-[9px] text-[#6C7389]">
               {block.owner.name}
