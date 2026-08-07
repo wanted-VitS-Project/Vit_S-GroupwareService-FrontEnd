@@ -1,13 +1,17 @@
-import type { ApprovalLine } from './types';
+import { LINE_STATUS_LABELS } from './lineStatus';
+import type { ApprovalDetailLine, ApprovalLineStatus } from './types';
 
 /**
  * 결재 진행 현황 스텝퍼. (AP-046)
  *
- * ❗ 회차 상세 응답의 `lines[]` 에 아직 처리 상태가 없다.
- * `status` 가 오면 ✓ · ✗ · 현재 차례를 칠하고, 없으면 순서와 이름만 그린다 —
- * 없는 값을 추측해 완료로 표시하면 실제와 어긋난 화면이 된다.
+ * 결재자별로 승인 ✓ · 반려 ✕ · 현재 차례 · 대기를 칠하고 완료 수를 센다.
+ * 상신 전(DRAFT)에는 전부 대기라 순서와 이름만 보인다.
  */
-export default function ApprovalProgress({ lines }: { lines: ApprovalLine[] }) {
+export default function ApprovalProgress({
+  lines,
+}: {
+  lines: ApprovalDetailLine[];
+}) {
   if (lines.length === 0) {
     return (
       <p className="text-[10px] text-[#6C7389]">지정된 결재자가 없습니다.</p>
@@ -16,8 +20,6 @@ export default function ApprovalProgress({ lines }: { lines: ApprovalLine[] }) {
 
   const ordered = [...lines].sort((a, b) => a.order - b.order);
   const doneCount = ordered.filter((line) => line.status === 'APPROVED').length;
-  /** 상태가 하나도 없으면 카운트가 늘 0이라 오해를 부른다 — 아예 숨긴다 */
-  const hasStatus = ordered.some((line) => line.status !== undefined);
 
   return (
     <div>
@@ -25,11 +27,9 @@ export default function ApprovalProgress({ lines }: { lines: ApprovalLine[] }) {
         <span className="text-[10px] font-semibold text-[#1C1F2A]">
           결재 진행 현황
         </span>
-        {hasStatus && (
-          <span className="text-[10px] text-[#3B5BDB]">
-            {doneCount} / {ordered.length} 완료
-          </span>
-        )}
+        <span className="text-[10px] text-[#3B5BDB]">
+          {doneCount} / {ordered.length} 완료
+        </span>
       </div>
 
       <ol className="mt-2 flex items-start">
@@ -63,47 +63,31 @@ export default function ApprovalProgress({ lines }: { lines: ApprovalLine[] }) {
 }
 
 /** 앞 단계가 끝났으면 선을 채워 어디까지 왔는지 보이게 한다 */
-function connectorClass(line: ApprovalLine) {
+function connectorClass(line: ApprovalDetailLine) {
   return line.status === 'APPROVED' ? 'bg-[#12B76A]' : 'bg-[#1C1F2A]/10';
 }
 
-function Marker({ line, step }: { line: ApprovalLine; step: number }) {
-  const base =
-    'flex size-5 shrink-0 items-center justify-center rounded-full border text-[9px] font-semibold';
+/** 동그라미 색. 승인만 채우고 나머지는 테두리로 구분한다 */
+const MARKER_CLASS: Record<ApprovalLineStatus, string> = {
+  APPROVED: 'border-[#12B76A] bg-[#12B76A] text-white',
+  REJECTED: 'border-[#E7000B] bg-white text-[#E7000B]',
+  ACTIVE: 'border-[#3B5BDB] bg-white text-[#3B5BDB]',
+  WAITING: 'border-[#1C1F2A]/15 bg-white text-[#6C7389]',
+  CANCELED: 'border-[#1C1F2A]/10 bg-white text-[#C7CCD9]',
+};
 
-  if (line.status === 'APPROVED') {
-    return (
-      <span
-        className={`${base} border-[#12B76A] bg-[#12B76A] text-white`}
-        title={`${line.approverName} 승인`}
-      >
-        ✓
-      </span>
-    );
-  }
-  if (line.status === 'REJECTED') {
-    return (
-      <span
-        className={`${base} border-[#E7000B] bg-white text-[#E7000B]`}
-        title={`${line.approverName} 반려`}
-      >
-        ✕
-      </span>
-    );
-  }
-  if (line.status === 'ACTIVE') {
-    return (
-      <span
-        className={`${base} border-[#3B5BDB] bg-white text-[#3B5BDB]`}
-        title={`${line.approverName} 결재 차례`}
-      >
-        {step}
-      </span>
-    );
-  }
+function Marker({ line, step }: { line: ApprovalDetailLine; step: number }) {
+  const symbol =
+    line.status === 'APPROVED' ? '✓' : line.status === 'REJECTED' ? '✕' : step;
+
   return (
-    <span className={`${base} border-[#1C1F2A]/15 bg-white text-[#6C7389]`}>
-      {step}
+    // 기호와 색만으로는 상태를 알 수 없다 — 보조기술에는 이름과 상태를 문장으로 준다
+    <span
+      role="img"
+      aria-label={`${line.approverName} ${LINE_STATUS_LABELS[line.status]}`}
+      className={`flex size-5 shrink-0 items-center justify-center rounded-full border text-[9px] font-semibold ${MARKER_CLASS[line.status]}`}
+    >
+      {symbol}
     </span>
   );
 }

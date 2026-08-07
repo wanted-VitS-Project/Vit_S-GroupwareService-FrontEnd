@@ -10,6 +10,7 @@ import { createRevision, getRevision, submitRevision } from './api';
 import ApprovalDraftForm from './ApprovalDraftForm';
 import ApprovalProgress from './ApprovalProgress';
 import ErrorText from './ErrorText';
+import { formatDateTime } from './format';
 import { findSubmitBlocker, submitBlockerLabel } from './submitCheck';
 import {
   type ApprovalBlockDetail,
@@ -61,6 +62,10 @@ function Loaded({
   const [isEditing, setIsEditing] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState('');
+  /** 재상신 회차로 갈아탄 뒤에도 보여줄 직전 반려 사유 */
+  const [rejectionNote, setRejectionNote] = useState<RejectionNote | null>(
+    null,
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -100,6 +105,12 @@ function Loaded({
       const created = await createRevision(detail.approvalId);
 
       /**
+       * 반려 사유를 따로 들고 있는다. 새 회차의 결재선은 아직 아무도 처리하지 않아
+       * 회차를 갈아타는 순간 사유가 사라지는데, **무엇을 고쳐야 하는지가 그 문구에 있다** (AP-059·060).
+       */
+      setRejectionNote(rejectionNoteOf(revision));
+
+      /**
        * ⚠️ 회차를 비우고 다시 받는다. 반려 회차의 값을 그대로 두면
        * 새 회차 화면에 옛 문서 · 결재선이 보이고, 그때 문서를 제거하면
        * **다른 회차의 `documentId`** 로 삭제 요청이 나간다.
@@ -123,13 +134,19 @@ function Loaded({
     setError('');
 
     try {
-      const result = await submitRevision(detail.approvalId, revisionId);
-      // 상신 직후 상태만 갈아끼운다. 결재선 진행 상태는 다음 조회에서 채워진다
-      patchRevision({
-        status: result.status,
-        submittedAt: result.submittedAt,
-      });
+      await submitRevision(detail.approvalId, revisionId);
+      /**
+       * 상태만 갈아끼우면 결재선이 상신 전(전부 대기) 그대로라 진행 현황이 비어 보인다.
+       * 1번 결재선이 `ACTIVE` 로 바뀐 회차를 다시 받는다 (AP-031·046).
+       */
+      setRevision(null);
+      setReloadKey((key) => key + 1);
       setIsEditing(false);
+      /**
+       * 반려 안내를 여기서 지운다. 상신이 끝나면 고칠 일이 없는데,
+       * 남겨두면 진행 중인 결재에 계속 `반려됨` 이 붙어 있게 된다.
+       */
+      setRejectionNote(null);
     } catch (caught) {
       /**
        * 검증 400 은 사전 차단과 같은 문구로 통일한다 —
@@ -164,6 +181,7 @@ function Loaded({
 
   const isDraft = revision.status === 'DRAFT';
   const isRejected = revision.status === 'REJECTED';
+  const isCompleted = revision.status === 'COMPLETED';
   /** 상신을 막는 사유. 없으면 상신할 수 있다 (AP-022~024) */
   const blocker = isDraft ? findSubmitBlocker(revision) : null;
 
@@ -180,14 +198,21 @@ function Loaded({
       }
     >
       <div className="flex flex-col gap-3">
-        {isRejected && (
-          <div className="rounded-lg border border-[#E7000B]/20 bg-[#E7000B]/5 px-2.5 py-2">
-            <p className="text-[10px] font-semibold text-[#E7000B]">ⓘ 반려됨</p>
-            <p className="mt-0.5 text-[10px] leading-relaxed break-keep text-[#E7000B]">
-              {rejectionComment(revision) ??
-                '반려 사유가 등록되지 않았습니다. 결재 상세에서 확인해주세요.'}
-            </p>
-          </div>
+        {/**
+         * 반려 사유는 **재상신 회차를 만든 뒤에도 남긴다** — 무엇을 고쳐야 하는지가 그 문구에 있다.
+         * 현재 회차가 반려 상태면 거기서, 이미 새 회차로 넘어왔으면 들고 있던 값에서 그린다.
+         */}
+        {(isRejected || rejectionNote) && (
+          <RejectionBanner
+            note={rejectionNote ?? rejectionNoteOf(revision)}
+            showRetryGuide={!isRejected}
+          />
+        )}
+
+        {isCompleted && (
+          <p className="rounded-lg border border-[#12B76A]/20 bg-[#12B76A]/5 px-2.5 py-2 text-[10px] font-semibold text-[#12B76A]">
+            ✓ 최종 승인 완료
+          </p>
         )}
 
         {isEditing ? (
@@ -223,10 +248,14 @@ function Loaded({
               >
                 결재 상세 보기
               </span>
-              {isRejected && (
+              {/**
+               * 상신 전에는 언제든 다시 고칠 수 있어야 한다 (AP-006).
+               * 반려된 결재는 새 회차를 먼저 만들어야 해서 `startRevise` 로 간다 (AP-062).
+               */}
+              {(isDraft || isRejected) && (
                 <button
                   type="button"
-                  onClick={startRevise}
+                  onClick={isRejected ? startRevise : () => setIsEditing(true)}
                   disabled={isBusy}
                   className="shrink-0 cursor-pointer rounded-lg border border-[#1C1F2A]/10 px-3 py-1.5 text-[10px] font-semibold text-[#1C1F2A] hover:bg-[#ECEEF4] disabled:cursor-not-allowed disabled:text-[#C7CCD9]"
                 >
@@ -234,6 +263,17 @@ function Loaded({
                 </button>
               )}
             </div>
+
+            {/* 완료 표시용 버튼. 누를 일이 없어 동작을 달지 않는다 */}
+            {isCompleted && (
+              <button
+                type="button"
+                aria-disabled
+                className="w-full cursor-pointer rounded-lg bg-[#4F39F6] py-2 text-[11px] font-semibold text-white hover:bg-[#4430d6]"
+              >
+                결재 승인 확인
+              </button>
+            )}
           </>
         )}
 
@@ -264,8 +304,63 @@ function Loaded({
   );
 }
 
-/** 반려 사유. 반려한 결재자의 의견을 쓰고, 없으면 안내 문구로 대체한다 */
-function rejectionComment(revision: ApprovalRevision) {
-  const rejected = revision.lines.find((line) => line.status === 'REJECTED');
-  return rejected?.opinion || null;
+/** 반려한 결재자와 사유. 회차를 갈아탄 뒤에도 보여주려고 값만 따로 뽑아 둔다 */
+interface RejectionNote {
+  approverName: string;
+  approverPosition: string | null;
+  opinion: string | null;
+  processedAt: string | null;
+}
+
+function rejectionNoteOf(
+  revision: ApprovalRevision | null,
+): RejectionNote | null {
+  const rejected = revision?.lines.find((line) => line.status === 'REJECTED');
+  if (!rejected) return null;
+
+  return {
+    approverName: rejected.approverName,
+    approverPosition: rejected.approverPosition,
+    opinion: rejected.opinion,
+    processedAt: rejected.processedAt,
+  };
+}
+
+/**
+ * 반려 안내. 누가 · 언제 · 왜 반려했는지 보여준다 (AP-059).
+ * 의견은 선택이라 없을 수 있고, 그때는 상세로 안내한다.
+ */
+function RejectionBanner({
+  note,
+  showRetryGuide,
+}: {
+  note: RejectionNote | null;
+  /** 재상신 회차를 만든 뒤에는 다음에 할 일을 함께 알려준다 (AP-060·062) */
+  showRetryGuide: boolean;
+}) {
+  return (
+    <div className="rounded-lg border border-[#E7000B]/20 bg-[#E7000B]/5 px-2.5 py-2">
+      <p className="text-[10px] font-semibold text-[#E7000B]">
+        ⓘ 반려됨
+        {note && ` · ${note.approverName}`}
+        {note?.approverPosition && ` ${note.approverPosition}`}
+      </p>
+
+      <p className="mt-0.5 text-[10px] leading-relaxed break-keep text-[#E7000B]">
+        {note?.opinion ||
+          '반려 사유가 등록되지 않았습니다. 결재 상세에서 확인해주세요.'}
+      </p>
+
+      {/* 형식이 어긋나면 빈 값이라 `empty:hidden` 으로 줄이 접힌다 */}
+      <p className="mt-1 text-[9px] text-[#E7000B]/70 empty:hidden">
+        {note?.processedAt ? formatDateTime(note.processedAt, '') : ''}
+      </p>
+
+      {showRetryGuide && (
+        <p className="mt-1.5 border-t border-[#E7000B]/15 pt-1.5 text-[10px] break-keep text-[#E7000B]">
+          내용을 수정한 뒤 다시 상신해주세요.
+        </p>
+      )}
+    </div>
+  );
 }
