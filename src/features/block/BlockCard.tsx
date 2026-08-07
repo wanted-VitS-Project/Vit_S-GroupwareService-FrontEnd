@@ -1,5 +1,6 @@
 'use client';
 
+import { useParams } from 'next/navigation';
 import { useRef, useState } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
@@ -8,6 +9,7 @@ import { useBlockActions } from './BlockActionsContext';
 import { setPillDragImage, useBlockDrag } from './BlockDragContext';
 import BlockDeleteModal from './BlockDeleteModal';
 import BlockEditModal from './BlockEditModal';
+import BlockIssuesPanel from './BlockIssuesPanel';
 import BlockTypeIcon from './BlockTypeIcon';
 import { BLOCK_TYPES, type StepBlock } from './types';
 
@@ -29,6 +31,8 @@ export default function BlockCard({
   headerExtra,
   children,
 }: BlockCardProps) {
+  const { stepId } = useParams<{ stepId: string }>();
+  const [isViewingIssues, setIsViewingIssues] = useState(false);
   const type = BLOCK_TYPES.find((option) => option.code === block.type);
   const drag = useBlockDrag();
   const label = block.title || type?.label || '블록';
@@ -93,7 +97,11 @@ export default function BlockCard({
         </h3>
 
         {headerExtra}
-        <BlockMenu block={block} title={label} />
+        <BlockMenu
+          block={block}
+          title={label}
+          onViewIssues={() => setIsViewingIssues(true)}
+        />
       </header>
 
       <div className="flex-1 p-3">{children}</div>
@@ -118,14 +126,25 @@ export default function BlockCard({
         )}
 
         {block.linkedIssueTotal > 0 && (
-          <span
+          <button
+            type="button"
+            onClick={() => setIsViewingIssues(true)}
+            aria-label={`연결된 이슈 ${block.linkedIssueDone} / ${block.linkedIssueTotal} 완료`}
             title={`연결된 이슈 ${block.linkedIssueDone} / ${block.linkedIssueTotal} 완료`}
-            className="shrink-0 text-[9px] text-[#6C7389]"
+            className="shrink-0 cursor-pointer rounded px-1 py-0.5 text-[9px] text-blue-600 hover:bg-blue-50 hover:text-blue-700"
           >
             # {block.linkedIssueDone} / {block.linkedIssueTotal}
-          </span>
+          </button>
         )}
       </footer>
+      {isViewingIssues && (
+        <BlockIssuesPanel
+          stepId={stepId}
+          blockId={block.blockId}
+          blockTitle={label}
+          onClose={() => setIsViewingIssues(false)}
+        />
+      )}
     </article>
   );
 }
@@ -141,7 +160,15 @@ function notifyBlockChanged() {
   window.dispatchEvent(new Event('block:changed'));
 }
 
-function BlockMenu({ block, title }: { block: StepBlock; title: string }) {
+function BlockMenu({
+  block,
+  title,
+  onViewIssues,
+}: {
+  block: StepBlock;
+  title: string;
+  onViewIssues: () => void;
+}) {
   const actions = useBlockActions();
   const [isOpen, setIsOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -200,6 +227,23 @@ function BlockMenu({ block, title }: { block: StepBlock; title: string }) {
                 role="menuitem"
                 onClick={() => {
                   setIsOpen(false);
+                  onViewIssues();
+                }}
+                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-[#1C1F2A] hover:bg-gray-50"
+              >
+                <HashIcon />
+                <span className="flex-1 text-left">연결된 이슈</span>
+                {block.linkedIssueTotal > 0 && (
+                  <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700">
+                    {block.linkedIssueTotal}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setIsOpen(false);
                   setIsEditing(true);
                 }}
                 className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-[#1C1F2A] hover:bg-gray-50"
@@ -242,6 +286,10 @@ function BlockMenu({ block, title }: { block: StepBlock; title: string }) {
       )}
     </>
   );
+}
+
+function HashIcon() {
+  return <span className="text-[11px] font-semibold text-blue-600">#</span>;
 }
 
 function MoreIcon() {

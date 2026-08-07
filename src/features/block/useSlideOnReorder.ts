@@ -1,116 +1,149 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from 'react';
 
 /** 서버에는 레이아웃이 없다 — 경고를 피하려고 클라이언트에서만 layout effect 를 쓴다 */
 const useBrowserLayoutEffect =
   typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
-/** 자리를 옮기는 데 걸리는 시간. 보드가 "정착 대기" 길이를 맞추는 데 쓴다 */
+/** 자리를 옮기는 데 걸리는 시간. 보드의 정착 대기 길이와 공유한다 */
 export const SLIDE_DURATION_MS = 180;
 
-/** 빠르게 출발해 부드럽게 멈춘다 — 따라오는 느낌보다 자리를 잡는 느낌이 낫다 */
 const EASING = 'cubic-bezier(0.2, 0, 0, 1)';
+const MAX_ANIMATED_BLOCKS = 100;
 
-/**
- * 순서가 바뀐 요소를 **원래 있던 자리에서 새 자리로 미끄러뜨린다** (FLIP).
- *
- * 그리기 전에 이전 위치를 기억해 뒀다가, 그린 직후 그 차이만큼 되돌려 놓고
- * 0 까지 애니메이션한다. 레이아웃은 이미 끝난 상태라 위치 계산이 어긋나지 않는다.
- *
- * ⚠️ 위치는 `getBoundingClientRect()` 가 아니라 **`offsetLeft`/`offsetTop`** 으로 잰다.
- *    rect 는 `transform` 이 반영된 값이라, 이동이 겹치면 "가짜 위치" 를 기준으로 삼게 되고
- *    오차가 누적돼 블록이 엉뚱한 곳에서 날아온다. offset 은 변형의 영향을 받지 않아
- *    **진행 중인 이동을 끊지 않고도** 진짜 자리를 알 수 있다.
- *
- * ⚠️ 자리가 그대로면 **아무것도 건드리지 않는다.** 이 훅은 매 렌더 도는데,
- *    무조건 취소했다가 다시 걸면 드래그 중 렌더마다 이동이 끊겨 블록이 툭툭 끊겨 보이고,
- *    애니메이션 객체도 초당 수백 개씩 만들어졌다 버려진다.
- *
- * 반환한 `register` 를 각 요소의 `ref` 로 넘긴다.
- */
-
-/** 변형이 섞이지 않은 자리 (offsetParent 기준) */
 interface Spot {
   left: number;
   top: number;
 }
 
+/**
+ * 블록 순서가 실제로 바뀌는 순간에만 동작하는 FLIP 애니메이션.
+ *
+ * `capture()` 가 현재 화면 위치를 기록하고, 다음 렌더 직후 새 위치와의 차이를
+ * `transform` 으로 이어 붙인다. 매 렌더 전체 블록을 측정하지 않으며 화면 밖 블록과
+ * 끌고 있는 블록은 제외하고, 한 번에 처리할 카드 수도 제한한다.
+ */
 export function useSlideOnReorder(skipKey?: number | null) {
   const nodes = useRef(new Map<number, HTMLElement>());
-  const previousSpots = useRef(new Map<number, Spot>());
-  /** key 마다 같은 함수를 돌려준다 — 매번 새로 만들면 렌더마다 ref 가 붙었다 떨어진다 */
   const callbacks = useRef(
     new Map<number, (node: HTMLElement | null) => void>(),
   );
+  const visibleKeys = useRef(new Set<number>());
+  const observer = useRef<IntersectionObserver | null>(null);
+  const beforeMove = useRef<Map<number, Spot> | null>(null);
+  const skipKeyRef = useRef(skipKey);
 
-  function register(key: number) {
-    const cached = callbacks.current.get(key);
-    if (cached) return cached;
-
-    const callback = (node: HTMLElement | null) => {
-      if (node) nodes.current.set(key, node);
-      else nodes.current.delete(key);
-    };
-    callbacks.current.set(key, callback);
-
-    return callback;
-  }
-
-  /**
-   * 의존성을 두지 않고 **매 렌더 잰다.**
-   * 순서가 그대로여도 빈 칸 안내가 생기고 사라지며 위치가 바뀐다 —
-   * 그때 갱신하지 않으면 다음 이동이 낡은 기준으로 계산된다.
-   * 위치가 그대로면 애니메이션 없이 넘어가므로 비용은 측정뿐이다.
-   */
   useBrowserLayoutEffect(() => {
-    const previous = previousSpots.current;
-    const current = new Map<number, Spot>();
-    const reduceMotion = window.matchMedia(
-      '(prefers-reduced-motion: reduce)',
-    ).matches;
+    skipKeyRef.current = skipKey;
+  }, [skipKey]);
 
-    for (const [key, node] of nodes.current) {
-      const spot = { left: node.offsetLeft, top: node.offsetTop };
-      current.set(key, spot);
+  const getObserver = useCallback(() => {
+    if (observer.current) return observer.current;
 
-      // 끌고 있는 블록은 커서를 따라다니므로 미끄러뜨리면 두 번 움직이는 것처럼 보인다
-      if (reduceMotion || key === skipKey) continue;
+    observer.current = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        const key = Number((entry.target as HTMLElement).dataset.slideKey);
+        if (!Number.isFinite(key)) continue;
 
-      const before = previous.get(key);
-      if (!before) continue;
-
-      const dx = before.left - spot.left;
-      const dy = before.top - spot.top;
-      // 자리가 그대로 — 가던 중이라면 그대로 두고 넘어간다
-      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
-
-      // 가던 중이었다면 지금까지 온 만큼을 얹어 이어 간다 — 끊고 다시 가면 튄다
-      const running = node.getAnimations();
-      let carryX = 0;
-      let carryY = 0;
-
-      if (running.length > 0) {
-        const { transform } = getComputedStyle(node);
-        if (transform && transform !== 'none') {
-          const matrix = new DOMMatrixReadOnly(transform);
-          carryX = matrix.m41;
-          carryY = matrix.m42;
-        }
-        for (const animation of running) animation.cancel();
+        if (entry.isIntersecting) visibleKeys.current.add(key);
+        else visibleKeys.current.delete(key);
       }
+    });
+    return observer.current;
+  }, []);
 
-      node.animate(
-        [
-          { transform: `translate(${dx + carryX}px, ${dy + carryY}px)` },
-          { transform: 'none' },
-        ],
-        { duration: SLIDE_DURATION_MS, easing: EASING },
-      );
+  useEffect(
+    () => () => {
+      observer.current?.disconnect();
+      observer.current = null;
+      visibleKeys.current.clear();
+    },
+    [],
+  );
+
+  const register = useCallback(
+    (key: number) => {
+      const cached = callbacks.current.get(key);
+      if (cached) return cached;
+
+      const callback = (node: HTMLElement | null) => {
+        if (node) {
+          node.dataset.slideKey = String(key);
+          nodes.current.set(key, node);
+          getObserver().observe(node);
+        } else {
+          const previous = nodes.current.get(key);
+          if (previous) observer.current?.unobserve(previous);
+          nodes.current.delete(key);
+          visibleKeys.current.delete(key);
+          callbacks.current.delete(key);
+        }
+      };
+      callbacks.current.set(key, callback);
+      return callback;
+    },
+    [getObserver],
+  );
+
+  const capture = useCallback(() => {
+    if (
+      document.visibilityState !== 'visible' ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      beforeMove.current = null;
+      return;
     }
 
-    previousSpots.current = current;
+    const spots = new Map<number, Spot>();
+    for (const key of visibleKeys.current) {
+      if (spots.size >= MAX_ANIMATED_BLOCKS) break;
+      if (key === skipKeyRef.current) continue;
+
+      const node = nodes.current.get(key);
+      if (!node) continue;
+      const rect = node.getBoundingClientRect();
+      spots.set(key, { left: rect.left, top: rect.top });
+    }
+
+    beforeMove.current = spots;
+  }, []);
+
+  useBrowserLayoutEffect(() => {
+    const previous = beforeMove.current;
+    if (!previous) return;
+    beforeMove.current = null;
+
+    for (const [key, before] of previous) {
+      const node = nodes.current.get(key);
+      if (!node) continue;
+
+      // capture 는 진행 중 transform 이 반영된 화면 위치다. 기존 효과를 제거한 뒤
+      // 새 레이아웃 위치를 재면 연속 이동·롤백도 보이던 자리에서 다시 출발한다.
+      for (const animation of node.getAnimations()) animation.cancel();
+      const after = node.getBoundingClientRect();
+      const dx = before.left - after.left;
+      const dy = before.top - after.top;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
+
+      node.style.willChange = 'transform';
+      const animation = node.animate(
+        [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }],
+        { duration: SLIDE_DURATION_MS, easing: EASING },
+      );
+      animation.finished
+        .catch(() => undefined)
+        .finally(() => {
+          if (node.getAnimations().length === 0) node.style.willChange = '';
+        });
+    }
   });
 
-  return register;
+  return useMemo(() => ({ capture, register }), [capture, register]);
 }
