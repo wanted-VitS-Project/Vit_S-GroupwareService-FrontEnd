@@ -1,8 +1,8 @@
 # 연동 API 명세서
 
+**최종 업데이트**: 2026-08-07 (이슈 도메인 연동 — 55~60 추가)
 **최종 업데이트**: 2026-08-06 (참여자 조회 · 블록 수정/삭제 연동 — 45~47 추가)
 **최종 업데이트**: 2026-08-06 (블록 배치 변경 연동 — 44 추가 · 9 · 10번 배치 규칙 갱신)
-**최종 업데이트**: 2026-08-06 (사원 등록 연동 — 32 갱신)
 
 > 📌 이 파일은 **프론트가 연동하는 백엔드 API**를 정리하는 곳이에요. (내가 만드는 게 아니라 **호출하는** 입장)
 > AI는 API 연동 코드를 작성하기 전에 이 파일을 먼저 읽어요. (잘못된 경로/필드/타입으로 fetch 짜는 실수 방지)
@@ -69,6 +69,12 @@
 | [52](#52-결재-문서-추가)                  | 결재 문서 추가   | `POST /approvals/{id}/revisions/{revId}/documents` | ✅ `features/approval/api.ts`     |
 | [53](#53-결재-문서-제거)                  | 결재 문서 제거   | `DELETE /approvals/{id}/revisions/{revId}/documents/{docId}` | ✅ `features/approval/api.ts` |
 | [54](#54-결재선-등록--수정)               | 결재선 등록·수정 | `PUT /approvals/{id}/revisions/{revId}/lines`  | ✅ `features/approval/api.ts`         |
+| [55](#55-스텝별-이슈-목록-조회)           | 이슈 목록        | `GET /steps/{stepId}/issues`                   | ✅ `features/issue/api.ts`            |
+| [56](#56-이슈-생성)                       | 이슈 생성        | `POST /steps/{stepId}/issues`                  | ✅ `features/issue/api.ts`            |
+| [57](#57-이슈-상세-조회)                  | 이슈 상세        | `GET /issues/{issueId}`                        | ✅ `features/issue/api.ts`            |
+| [58](#58-이슈-부분-수정)                  | 이슈 부분 수정   | `PATCH /issues/{issueId}`                      | ✅ `features/issue/api.ts`            |
+| [59](#59-이슈-상태-변경)                  | 이슈 상태 변경   | `PATCH /issues/{issueId}/status`               | ✅ `features/issue/api.ts`            |
+| [60](#60-이슈-삭제)                       | 이슈 삭제        | `DELETE /issues/{issueId}`                     | ✅ `features/issue/api.ts`            |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
 > 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통)
@@ -1751,6 +1757,154 @@ soft delete만 지원하며 응답 `data` 는 `null` 이다. 입금 연결 입�
 
 > ⚠️ **전체 치환이다.** 한 명 추가·제거해도 목록 전체를 보낸다. `order` 는 화면 순서대로 **1부터 다시 매겨** 보낸다 — 빈 번호가 생기면 400 이다.
 > ℹ️ 결재자 선택은 [35. 사원 이름 검색](#35-사원-이름-검색-결재선-지정용)(`EmployeeSearchInput`)으로 한다.
+
+---
+
+## 이슈 도메인 — 공통
+
+| 항목            | 내용                                                                                                       |
+| --------------- | ---------------------------------------------------------------------------------------------------------- |
+| **구조**        | **스텝(`stepId`) > 이슈(`issueId`) > 담당자(`issue_assign`) · 연결 블록(`issue_block`)**                    |
+| **상태**        | `TODO` · `IN_PROGRESS` · `DONE` — 보드 3열이 그대로 이 값이다                                              |
+| **우선순위**    | `LOW` · `MEDIUM` · `HIGH`                                                                                  |
+| **완료 시각**   | `completedAt` 은 **사용자가 입력하지 않는다.** `DONE` 진입 시 서버가 찍고, 벗어나면 `null` 로 되돌린다     |
+| **권한**        | 조회는 프로젝트 참여자 / 생성 · 수정 · 상태변경 · 삭제는 **스텝 `EDITOR`**                                 |
+| **삭제**        | soft delete (`deleted_at`). 목록 · 상세 · 집계에서 제외된다                                                |
+| **필터 · 정렬** | **서버가 하지 않는다.** 상태 · 담당자 · 블록 · 우선순위 · 제목 검색 · 마감일 정렬은 모두 프론트에서 처리   |
+| **없는 것**     | 화면용 `issueKey`, 시작일, 이슈별 진척도, 이슈 활동 이력 — 응답에 없다. 화면에서 만들지 않는다             |
+
+**Assignee** — `{ userId, name }` (`userId` 는 사번). 목록 응답 예시에 `profileImageUrl` 이 섞여 있지만 명세 표에 없어 쓰지 않는다.
+**Related Block** — `{ blockId, title, type }`. `title` · `type` 은 표시용이라 요청 body 에 보내지 않는다.
+
+## 55. 스텝별 이슈 목록 조회
+
+| 항목          | 값                                                       |
+| ------------- | -------------------------------------------------------- |
+| **Method**    | `GET`                                                    |
+| **Path**      | `/api/v1/steps/{stepId}/issues`                          |
+| **권한**      | 프로젝트 참여자                                          |
+| **사용 위치** | `src/features/issue/api.ts` → `getStepIssues()`          |
+
+**Query** — `blockId?: number` (해당 블록과 연결된 이슈만)
+
+**응답 data** — `{ issues: IssueSummary[] }`
+
+| 필드            | 타입                                | 비고                    |
+| --------------- | ----------------------------------- | ----------------------- |
+| `issueId`       | number                              |                         |
+| `title`         | string                              |                         |
+| `status`        | `TODO`·`IN_PROGRESS`·`DONE`         |                         |
+| `priority`      | `LOW`·`MEDIUM`·`HIGH`               |                         |
+| `dueDate`       | `YYYY-MM-DD` \| null                | 미지정이면 `null`       |
+| `assignees`     | `{ userId, name }[]`                |                         |
+| `relatedBlocks` | `{ blockId, title, type }[]`        |                         |
+
+> ℹ️ 목록에는 **`content` 가 없다.** 설명은 [57. 상세 조회](#57-이슈-상세-조회)로 받는다.
+> ℹ️ 결과가 없으면 `200` + 빈 배열이다.
+> ℹ️ 정렬은 `dueDate` 오름차순, **`null` 은 마지막**으로 프론트가 처리한다.
+> ℹ️ 필터 선택지는 [45. 참여자 목록](#45-프로젝트-참여자-목록-조회) · [10. 블록 일괄 조회](#10-스텝-블록-일괄-조회) 를 쓴다.
+
+## 56. 이슈 생성
+
+| 항목          | 값                                              |
+| ------------- | ----------------------------------------------- |
+| **Method**    | `POST`                                          |
+| **Path**      | `/api/v1/steps/{stepId}/issues`                 |
+| **권한**      | 스텝 `EDITOR`                                   |
+| **사용 위치** | `src/features/issue/api.ts` → `createIssue()`   |
+
+**요청 body**
+
+| 필드          | 타입             | 필수 | 비고                                             |
+| ------------- | ---------------- | ---- | ------------------------------------------------ |
+| `title`       | string           | ✅   | 공백 제외 필수, 최대 200자                       |
+| `content`     | string \| null   | —    |                                                  |
+| `dueDate`     | string           | —    | **`yyyy-MM-ddTHH:mm:ss`** (목록·수정과 형식이 다름) |
+| `status`      | 상태 enum        | —    | 기본 `TODO`                                      |
+| `priority`    | 우선순위 enum    | ✅   |                                                  |
+| `assigneeIds` | string[]         | —    | 사번 목록. 생략 · `[]` 이면 연결 없음            |
+| `blockIds`    | number[]         | —    | 생략 · `[]` 이면 연결 없음                       |
+
+**응답** — `201` · 상세 조회(57번)와 **같은 구조**. `DONE` 으로 생성하면 `completedAt` 이 찍힌다.
+
+> ⚠️ 생성만 `dueDate` 가 **날짜+시각**이고 수정(58)·조회(55·57)는 **날짜**다. 화면은 날짜만 받으므로 생성 시 `T00:00:00` 을 붙여 보낸다. (백엔드 확인 필요)
+> ℹ️ 화면에서 시작일 · 완료 시각은 입력받지 않는다.
+
+## 57. 이슈 상세 조회
+
+| 항목          | 값                                          |
+| ------------- | ------------------------------------------- |
+| **Method**    | `GET`                                       |
+| **Path**      | `/api/v1/issues/{issueId}`                  |
+| **권한**      | 스텝 접근 권한                              |
+| **사용 위치** | `src/features/issue/api.ts` → `getIssue()`  |
+
+**응답 data** — 목록(55) 필드 + `stepId`, `content`(nullable), `completedAt`(nullable, `YYYY-MM-DDTHH:mm:ss`)
+
+> ℹ️ 상태 버튼은 [59. 상태 변경](#59-이슈-상태-변경)을 호출한다.
+
+## 58. 이슈 부분 수정
+
+| 항목          | 값                                             |
+| ------------- | ---------------------------------------------- |
+| **Method**    | `PATCH`                                        |
+| **Path**      | `/api/v1/issues/{issueId}`                     |
+| **권한**      | 스텝 `EDITOR`                                  |
+| **사용 위치** | `src/features/issue/api.ts` → `updateIssue()`  |
+
+**요청 body** — 전달한 필드만 수정한다.
+
+| 전달 방식              | 처리                                        |
+| ---------------------- | ------------------------------------------- |
+| 필드 미전달            | 기존 값 유지                                |
+| `title`                | 전달 시 빈 값 불가, 최대 200자              |
+| `content: null`        | 설명 삭제                                   |
+| `dueDate: null`        | 마감일 해제 (값은 `YYYY-MM-DD`)             |
+| `priority`             | 우선순위 변경                               |
+| `assigneeIds: [...]`   | **최종 전체 목록**으로 동기화 (추가분 아님) |
+| `blockIds: [...]`      | **최종 전체 목록**으로 동기화               |
+| `assigneeIds: null`    | 400                                         |
+| `blockIds: null`       | 400                                         |
+
+**응답 data** — 상세 조회(57)와 같은 구조 (최신 상태)
+
+> ⚠️ `status` · `completedAt` · `stepId` 는 이 API 로 바꾸지 않는다.
+> ⚠️ `assigneeIds` 는 참여자 응답의 **`userId`** 를 쓴다. `memberId` 는 project_member 행 ID 라 담당자 값으로 쓰면 안 된다.
+> ⚠️ `permission: NONE` 참여자를 담당자로 넣으면 참여자 검증에서 거절될 수 있다.
+> ℹ️ 명세는 `blockIds` 선택지를 `GET /steps/{stepId}/blocks/options` 로 안내하지만 **그 절이 없다.** 프론트는 [10. 블록 일괄 조회](#10-스텝-블록-일괄-조회)(`blockId`·`title`·`type` 포함)를 쓴다. (백엔드 확인 필요)
+
+## 59. 이슈 상태 변경
+
+| 항목          | 값                                                  |
+| ------------- | --------------------------------------------------- |
+| **Method**    | `PATCH`                                             |
+| **Path**      | `/api/v1/issues/{issueId}/status`                   |
+| **권한**      | 스텝 `EDITOR`                                       |
+| **사용 위치** | `src/features/issue/api.ts` → `updateIssueStatus()` |
+
+**요청 body** — `{ status: 'TODO' | 'IN_PROGRESS' | 'DONE' }`
+**응답 data** — `{ issueId, status, completedAt, updatedAt }`
+
+| 변경 결과       | `completedAt` |
+| --------------- | ------------- |
+| `TODO`          | `null`        |
+| `IN_PROGRESS`   | `null`        |
+| `DONE`          | 현재 시각     |
+
+> ℹ️ 같은 상태로 다시 보내면 아무것도 바꾸지 않고 현재 값을 돌려준다.
+> ℹ️ 드래그는 **화면을 먼저 옮기고** 호출한다. 실패하면 원래 열로 되돌린다.
+> ℹ️ 같은 열 안에서 순서만 바꾸는 것은 저장하지 않으므로 호출하지 않는다.
+
+## 60. 이슈 삭제
+
+| 항목          | 값                                            |
+| ------------- | --------------------------------------------- |
+| **Method**    | `DELETE`                                      |
+| **Path**      | `/api/v1/issues/{issueId}`                    |
+| **권한**      | 스텝 `EDITOR`                                 |
+| **사용 위치** | `src/features/issue/api.ts` → `deleteIssue()` |
+
+soft delete 이며 응답 `data` 는 `null` 이다. 담당자 · 블록은 삭제되지 않고 **연결만** 끊긴다. 이미 삭제된 이슈는 없는 이슈와 같게 처리된다.
 
 ---
 

@@ -6,19 +6,85 @@
 
 ---
 
+## [2026-08-07] 스텝 이슈 보드 화면 · 이슈 API 연동 · 드래그 성능 개선 ✅
+
+브랜치: `issue` · 이슈: #63
+
+### 변경 파일
+
+| 파일                                                  | 변경                                                                               |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `src/features/issue/types.ts`                         | 생성 — 이슈 응답·요청 타입 · 상태/우선순위 라벨·색 · `byDueDate` · `overdueDays`   |
+| `src/features/issue/api.ts`                           | 생성 — 목록 · 생성 · 상세 · 부분수정 · 상태변경 · 삭제 6종 + `toCreateDueDate`     |
+| `src/features/issue/events.ts`                        | 생성 — `issue:changed` 전역 이벤트 (사이드바 진척률 갱신용)                        |
+| `src/features/issue/IssueBoard.tsx`                   | 생성 — 상태 3열 칸반 · 드래그 상태 변경 · 모달 오케스트레이션 · 스텝 `EDITOR` 가드 |
+| `src/features/issue/IssueCard.tsx`                    | 생성 — 카드 (우선순위 · 마감 경과 · 담당자 · 연결 블록 수 · 마감일), `memo`        |
+| `src/features/issue/IssueBadges.tsx`                  | 생성 — 상태/우선순위/마감경과 배지 · 담당자 아바타 목록 · 블록 아이콘 상자         |
+| `src/features/issue/IssueDetailModal.tsx`             | 생성 — 상세 재조회 · 상태 표시(변경 불가) · 연결 블록 · 마감/종료일                |
+| `src/features/issue/IssueFormModal.tsx`               | 생성 — 생성·수정 공용 폼 (담당자 · 관련 블록 선택), 바뀐 필드만 PATCH              |
+| `src/features/issue/DeleteIssueModal.tsx`             | 생성 — 삭제 확인 · 오류 안내                                                       |
+| `src/features/issue/IssueSkeletons.tsx`               | 생성 — 보드 로딩 Skeleton                                                          |
+| `src/components/MemberAvatar.tsx`                     | 생성 — 담당자 아바타 공용화 (사번 기준 색 고정)                                    |
+| `src/app/projects/[id]/steps/[stepId]/issue/page.tsx` | 수정 — 스텁 → `IssueBoard` 연결                                                    |
+| `src/constants/endpoints.ts`                          | 수정 — `steps.issues` · `issues.detail` · `issues.status`                          |
+| `src/components/ProjectSidebar.tsx`                   | 수정 — `issue:changed` 구독(디바운스 300ms) · 진척률 막대 전환                     |
+| `src/features/block/BlockBoard.tsx`                   | 수정 — 드래그 컨텍스트·강조 상태 리렌더 범위 축소, `BlockBody` `memo`              |
+| `src/features/block/BlockEditModal.tsx`               | 수정 — 담당자 `select` → 칩 + 후보 버튼 (이슈와 동일 스타일)                       |
+| `src/features/block/BlockCard.tsx`                    | 수정 — 자체 아바타 → `MemberAvatar`                                                |
+| `src/features/file/FileViewerModal.tsx`               | 수정 — 미리보기 영역 `scrollbar-gutter: stable`                                    |
+| `.ai/API.md`                                          | 수정 — 이슈 도메인 공통 절 + 55~60번 추가                                          |
+
+### 주요 작업 내용
+
+- 이슈 보드를 상태 3열 칸반으로 구현하고 **드래그로만** 상태를 바꾼다 — 화면을 먼저 옮기고 `PATCH /issues/{id}/status` 호출, 실패 시 원래 자리로 복구
+- 서버가 정렬·필터를 하지 않아 **첫 조회만 마감일 순(미지정 마지막)**, 이후 생성·이동한 이슈는 열 맨 위로 올린다
+- 생성은 항상 `TODO`(시작 전) 고정, 상세 모달은 상태를 표시만 한다 — 변경 진입점을 드래그 하나로 통일
+- 수정은 **바뀐 필드만** `PATCH`, 담당자·연결 블록은 최종 전체 목록으로 동기화
+- 마감일이 지나면 경과 일수를 `D+N` · `N일 지남` 으로 표시 (완료 이슈는 제외), 종료일은 `completedAt` 날짜, 없으면 `-`
+- 이슈 변경 시 `issue:changed` 로 사이드바의 스텝 진척률·전체 진척률을 **스켈레톤 없이** 갱신
+- 담당자 지정 UI 를 이슈·블록 양쪽 동일하게 맞추고 아바타를 `MemberAvatar` 로 공용화
+
+### 트러블슈팅
+
+- **드래그 중 화면 흔들림** — 열 상단에 드롭 자리표시자를 끼워 넣어 카드가 밀렸고, 호버 카드에 `translate`, 드래그 카드에 `scale`·`rotate` 가 걸려 있었다. 자리표시자를 없애고 강조를 **배경 · ring** 으로만 처리, 크기·위치를 바꾸는 효과를 제거해 레이아웃이 고정되게 했다.
+- **`dragover` 리렌더 폭주 (과부하 의심 지점)** — `dragover` 는 커서를 멈춰도 계속 들어오는데 매번 `setState` 를 불러 열 3개 + 카드 전부가 초당 수십 번 다시 그려졌다. 같은 코드베이스의 `BlockBoard` 는 이미 값 비교 가드를 두고 있었고(`if (slot !== activeSlot)`), 같은 규칙을 이슈 보드에도 적용했다. 추가로 `IssueCard` 를 `memo` 로 감싸고 콜백을 고정, 보이지 않는 `didDrag` 플래그를 state → ref 로 옮겼다.
+- **블록 보드 이동 재검증** — 이동 규칙(방향 기반 swap · 머무름 110ms · 정착 180ms · 꼬리 슬롯 · 캡처 단계 판정 · 저장 세대 가드)에는 결함이 없었고, 드래그 컨텍스트 객체가 매 렌더 새로 만들어져 모든 `BlockCard` 가 다시 그려지던 것이 병목이었다. 컨텍스트 값을 `draggingId` 기준으로만 갱신하고 강조 상태에 ref 가드를 붙였다.
+- **PDF 미리보기 캔버스 재렌더** — 페이지가 그려지며 스크롤바가 생겨 폭이 줄고 `ResizeObserver` 가 다시 돌아 캔버스 전체를 한 번 더 그렸다. 스크롤 영역에 `scrollbar-gutter: stable` 을 넣어 왕복을 없앴다.
+
+### 부수 결정
+
+- 화면 표기 ID 는 `#{issueId}` — 명세(57번)가 `issueKey` 를 주지 않는다고 명시했다. 시안의 `I-003` 형식은 쓰지 않는다.
+- `dueDate` 형식이 생성(`yyyy-MM-ddTHH:mm:ss`)과 수정·조회(`YYYY-MM-DD`)에서 다르다 → 생성 시 `T00:00:00` 을 붙여 보낸다(`toCreateDueDate`). **백엔드 확인 필요.**
+- 블록 선택지는 명세가 안내한 `GET /steps/{stepId}/blocks/options` 절이 없어 **10번 `/blocks`** 를 쓴다. **백엔드 확인 필요.**
+- 목록 응답 예시의 `assignees[].profileImageUrl` 은 명세 표에 없어 쓰지 않는다.
+- 스텝 권한·이름은 스텝 상세 API 가 없어 프로젝트 스텝 목록(`myPermission` · `name`)에서 찾는다.
+- 이슈 필터·검색 UI 는 이번 범위에서 제외하고 백로그로 넘긴다 (명세상 전부 프론트 처리).
+
+### 검증
+
+| 명령                       | 결과                       |
+| -------------------------- | -------------------------- |
+| `npx tsc --noEmit`         | ✅ 에러 0                  |
+| `npx eslint src`           | ✅ 에러 0 · 경고 0         |
+| `npx prettier --check`     | ✅ 규칙 준수               |
+| `npm run build`            | ✅ 성공 · 라우트 31개      |
+| 실제 백엔드 대상 동작 확인 | ⬜ 미완 (사용자 확인 대기) |
+
+---
+
 ## [2026-08-06] 설정 · 인사 · 카테고리 Skeleton UI 적용 ✅
 
 브랜치: `user/project` · 이슈: 확인 필요
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| --- | --- |
-| `src/components/Skeleton.tsx` | 생성 — 공용 Skeleton primitive · 그룹 · 표 · 필드 |
-| `src/components/settings/SettingsSkeletons.tsx` | 생성 — 설정 목록·상세·폼 조합 Skeleton |
-| `src/components/project/ProjectSkeleton.tsx` | 수정 — 공용 Skeleton primitive 재사용 |
-| `src/features/{employee,department,jobPosition,businessCategory}/*.tsx` | 수정 — 텍스트 로딩을 화면 구조형 Skeleton으로 교체 |
-| `src/app/settings/employees/page.tsx` | 수정 — Suspense fallback을 사원 표 Skeleton으로 교체 |
+| 파일                                                                    | 변경                                                 |
+| ----------------------------------------------------------------------- | ---------------------------------------------------- |
+| `src/components/Skeleton.tsx`                                           | 생성 — 공용 Skeleton primitive · 그룹 · 표 · 필드    |
+| `src/components/settings/SettingsSkeletons.tsx`                         | 생성 — 설정 목록·상세·폼 조합 Skeleton               |
+| `src/components/project/ProjectSkeleton.tsx`                            | 수정 — 공용 Skeleton primitive 재사용                |
+| `src/features/{employee,department,jobPosition,businessCategory}/*.tsx` | 수정 — 텍스트 로딩을 화면 구조형 Skeleton으로 교체   |
+| `src/app/settings/employees/page.tsx`                                   | 수정 — Suspense fallback을 사원 표 Skeleton으로 교체 |
 
 ### 주요 작업 내용
 
@@ -35,11 +101,11 @@
 
 ### 검증
 
-| 명령 | 결과 |
-| --- | --- |
-| `npm run lint` | ✅ 성공 |
+| 명령               | 결과    |
+| ------------------ | ------- |
+| `npm run lint`     | ✅ 성공 |
 | `npx tsc --noEmit` | ✅ 성공 |
-| `npm run build` | ✅ 성공 |
+| `npm run build`    | ✅ 성공 |
 
 ---
 
@@ -49,21 +115,21 @@
 
 ### 변경 파일
 
-| 파일                                          | 변경                                                          |
-| --------------------------------------------- | ------------------------------------------------------------- |
+| 파일                                          | 변경                                                           |
+| --------------------------------------------- | -------------------------------------------------------------- |
 | `src/features/approval/types.ts`              | 생성 — 회차 · 결재선 · 문서 타입 + `readApprovalBlockDetail()` |
-| `src/features/approval/errorCodes.ts`         | 생성 — 결재 응답 코드 단일 소스                               |
+| `src/features/approval/errorCodes.ts`         | 생성 — 결재 응답 코드 단일 소스                                |
 | `src/features/approval/api.ts`                | 생성 — 회차 · 문서 · 결재선 · 상신 7개 래핑                    |
-| `src/features/approval/ApprovalBlock.tsx`     | 생성 — 상태별 화면 분기(초안 · 진행 · 반려)                   |
-| `src/features/approval/ApprovalDraftForm.tsx` | 생성 — 제목 · 내용 · 문서 · 결재선 편집                       |
-| `src/features/approval/ApprovalProgress.tsx`  | 생성 — 결재 진행 현황 스텝퍼                                  |
-| `src/features/approval/ErrorText.tsx`         | 생성 — 결재 화면 공용 실패 안내                               |
-| `src/features/approval/submitCheck.ts`        | 생성 — 상신 전 검증 · 검증 코드 → 문구 변환                   |
-| `src/features/block/BlockBoard.tsx`           | 수정 — `APPROVAL` 분기 연결 (stub 교체)                       |
-| `src/constants/endpoints.ts`                  | 수정 — `approvals` 경로 6종                                   |
-| `src/constants/status.ts`                     | 수정 — `APPROVAL_STATUS_LABELS`                               |
-| `src/lib/api.ts`                              | 수정 — `api.put` 추가                                         |
-| `.ai/API.md`                                  | 수정 — 결재 API 45~51 절 · 결재 도메인 공통 절 추가           |
+| `src/features/approval/ApprovalBlock.tsx`     | 생성 — 상태별 화면 분기(초안 · 진행 · 반려)                    |
+| `src/features/approval/ApprovalDraftForm.tsx` | 생성 — 제목 · 내용 · 문서 · 결재선 편집                        |
+| `src/features/approval/ApprovalProgress.tsx`  | 생성 — 결재 진행 현황 스텝퍼                                   |
+| `src/features/approval/ErrorText.tsx`         | 생성 — 결재 화면 공용 실패 안내                                |
+| `src/features/approval/submitCheck.ts`        | 생성 — 상신 전 검증 · 검증 코드 → 문구 변환                    |
+| `src/features/block/BlockBoard.tsx`           | 수정 — `APPROVAL` 분기 연결 (stub 교체)                        |
+| `src/constants/endpoints.ts`                  | 수정 — `approvals` 경로 6종                                    |
+| `src/constants/status.ts`                     | 수정 — `APPROVAL_STATUS_LABELS`                                |
+| `src/lib/api.ts`                              | 수정 — `api.put` 추가                                          |
+| `.ai/API.md`                                  | 수정 — 결재 API 45~51 절 · 결재 도메인 공통 절 추가            |
 
 ### 주요 작업 내용
 
@@ -98,12 +164,12 @@
 
 ### 변경 파일
 
-| 파일                                            | 변경                                                             |
-| ----------------------------------------------- | ---------------------------------------------------------------- |
-| `src/features/employee/EmployeeSearchInput.tsx` | 생성 — 자동완성 입력 + 결과 리스트 (combobox)                    |
-| `src/features/employee/api.ts`                  | 수정 — `searchEmployees()` 추가                                  |
-| `src/features/employee/types.ts`                | 수정 — `EmployeeSearchResult` 추가                               |
-| `src/features/approval/ApprovalDraftForm.tsx`   | 수정 — 결재선 지정의 사번 직접 입력을 검색 컴포넌트로 교체       |
+| 파일                                            | 변경                                                       |
+| ----------------------------------------------- | ---------------------------------------------------------- |
+| `src/features/employee/EmployeeSearchInput.tsx` | 생성 — 자동완성 입력 + 결과 리스트 (combobox)              |
+| `src/features/employee/api.ts`                  | 수정 — `searchEmployees()` 추가                            |
+| `src/features/employee/types.ts`                | 수정 — `EmployeeSearchResult` 추가                         |
+| `src/features/approval/ApprovalDraftForm.tsx`   | 수정 — 결재선 지정의 사번 직접 입력을 검색 컴포넌트로 교체 |
 
 ### 주요 작업 내용
 
@@ -131,20 +197,20 @@
 
 ### 변경 파일
 
-| 파일                                      | 변경                                                         |
-| ----------------------------------------- | ------------------------------------------------------------ |
-| `src/constants/endpoints.ts`              | 수정 — 참여자 · 블록 상세 경로 추가                          |
-| `src/features/project/{api,types}.ts`     | 수정 — 프로젝트 참여자 조회 함수와 타입 추가                 |
-| `src/components/ProjectSidebar.tsx`       | 수정 — 목 참여자를 실제 API 응답으로 교체                    |
-| `src/components/project/{ProjectSkeleton,ProjectSidebarSkeleton}.tsx` | 생성 — 프로젝트 Skeleton primitive · 사이드바 조합 UI |
-| `src/features/block/{api,types}.ts`       | 수정 — 블록 부분 수정 · 삭제 요청/응답 추가                  |
-| `src/features/block/BlockEditModal.tsx`   | 생성 — 제목 · 담당자 수정/해제 및 기존 블록 모달 스타일 적용 |
-| `src/features/block/BlockDeleteModal.tsx` | 생성 — 삭제 확인 · 잠금 오류 안내 모달                       |
-| `src/features/block/BlockCard.tsx`        | 수정 — 수정 모달 · 삭제 확인/재조회 연결                     |
-| `src/features/block/AddBlockModal.tsx`    | 수정 — 생성자를 기본 담당자로 전송                           |
-| `src/features/block/StepBlocks.tsx`       | 수정 — 블록 변경 후 목록 재조회                              |
-| `src/features/block/BlockSkeletons.tsx`   | 생성 — 블록 보드 · 문서 목록 Skeleton UI                     |
-| `.ai/API.md`                              | 수정 — 45~47번 확정 명세 추가                                |
+| 파일                                                                  | 변경                                                         |
+| --------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `src/constants/endpoints.ts`                                          | 수정 — 참여자 · 블록 상세 경로 추가                          |
+| `src/features/project/{api,types}.ts`                                 | 수정 — 프로젝트 참여자 조회 함수와 타입 추가                 |
+| `src/components/ProjectSidebar.tsx`                                   | 수정 — 목 참여자를 실제 API 응답으로 교체                    |
+| `src/components/project/{ProjectSkeleton,ProjectSidebarSkeleton}.tsx` | 생성 — 프로젝트 Skeleton primitive · 사이드바 조합 UI        |
+| `src/features/block/{api,types}.ts`                                   | 수정 — 블록 부분 수정 · 삭제 요청/응답 추가                  |
+| `src/features/block/BlockEditModal.tsx`                               | 생성 — 제목 · 담당자 수정/해제 및 기존 블록 모달 스타일 적용 |
+| `src/features/block/BlockDeleteModal.tsx`                             | 생성 — 삭제 확인 · 잠금 오류 안내 모달                       |
+| `src/features/block/BlockCard.tsx`                                    | 수정 — 수정 모달 · 삭제 확인/재조회 연결                     |
+| `src/features/block/AddBlockModal.tsx`                                | 수정 — 생성자를 기본 담당자로 전송                           |
+| `src/features/block/StepBlocks.tsx`                                   | 수정 — 블록 변경 후 목록 재조회                              |
+| `src/features/block/BlockSkeletons.tsx`                               | 생성 — 블록 보드 · 문서 목록 Skeleton UI                     |
+| `.ai/API.md`                                                          | 수정 — 45~47번 확정 명세 추가                                |
 
 ### 주요 작업 내용
 

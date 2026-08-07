@@ -1,6 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from 'react';
 
 import ApprovalBlock from '@/features/approval/ApprovalBlock';
 
@@ -135,18 +143,46 @@ export default function BlockBoard({
   /** 타이머 안에서는 렌더 시점의 `draggingId` 를 믿을 수 없다 */
   const draggingRef = useRef<number | null>(null);
 
-  function cancelDwell() {
+  const cancelDwell = useCallback(() => {
     if (dwellTimer.current) clearTimeout(dwellTimer.current);
     dwellTimer.current = null;
     pendingTarget.current = null;
-  }
+  }, []);
+
+  /**
+   * 강조 상태(`activeSlot` · `aimingId`)는 **값이 바뀔 때만** 갱신한다.
+   *
+   * `dragover` 는 커서를 멈춰도 계속 들어온다. 같은 값으로 setState 를 부르면
+   * 보드가 초당 수십 번 다시 그려지고, 그때마다 `useSlideOnReorder` 가
+   * 모든 블록의 위치를 재서(강제 리플로우) 프레임이 밀린다.
+   */
+  const activeSlotRef = useRef<number | null>(null);
+  const aimingIdRef = useRef<number | null>(null);
+
+  const updateActiveSlot = useCallback((next: number | null) => {
+    if (activeSlotRef.current === next) return;
+    activeSlotRef.current = next;
+    setActiveSlot(next);
+  }, []);
+
+  const updateAiming = useCallback((next: number | null) => {
+    if (aimingIdRef.current === next) return;
+    aimingIdRef.current = next;
+    setAimingId(next);
+  }, []);
 
   // 놓지 않은 채 화면을 떠나도 타이머가 남지 않게 한다
-  useEffect(() => cancelDwell, []);
+  useEffect(() => cancelDwell, [cancelDwell]);
 
-  function publish(next: StepBlock[]) {
-    onOrderChanged?.(next);
-  }
+  /** prop 을 ref 로 붙들어 둔다 — 콜백 참조를 고정해야 컨텍스트가 매 렌더 바뀌지 않는다 */
+  const onOrderChangedRef = useRef(onOrderChanged);
+  useEffect(() => {
+    onOrderChangedRef.current = onOrderChanged;
+  });
+
+  const publish = useCallback((next: StepBlock[]) => {
+    onOrderChangedRef.current?.(next);
+  }, []);
 
   const saver = useLayoutSaver({
     stepId,
@@ -213,48 +249,55 @@ export default function BlockBoard({
   useDragAutoScroll(draggingId !== null, boardRef);
 
   /** 머무름을 채운 대상에 실제로 자리를 내준다 */
-  function applyMove(blockId: number, mode: 'swap' | 'after', key: string) {
-    dwellTimer.current = null;
-    pendingTarget.current = null;
-    setAimingId(null);
+  const applyMove = useCallback(
+    (blockId: number, mode: 'swap' | 'after', key: string) => {
+      dwellTimer.current = null;
+      pendingTarget.current = null;
+      updateAiming(null);
 
-    const dragged = draggingRef.current;
-    // 기다리는 사이에 놓았으면 화면을 건드리지 않는다 — 보이는 대로만 확정한다
-    if (dragged === null) return;
+      const dragged = draggingRef.current;
+      // 기다리는 사이에 놓았으면 화면을 건드리지 않는다 — 보이는 대로만 확정한다
+      if (dragged === null) return;
 
-    const current = liveOrder.current;
-    const next =
-      mode === 'after'
-        ? moveAfter(current, dragged, blockId)
-        : moveTo(current, dragged, blockId);
+      const current = liveOrder.current;
+      const next =
+        mode === 'after'
+          ? moveAfter(current, dragged, blockId)
+          : moveTo(current, dragged, blockId);
 
-    lastTarget.current = key;
-    if (hasSameOrder(next, current)) return;
+      lastTarget.current = key;
+      if (hasSameOrder(next, current)) return;
 
-    settledAt.current = Date.now() + SETTLE_MS;
-    liveOrder.current = next;
-    setOrder(next);
-  }
+      settledAt.current = Date.now() + SETTLE_MS;
+      liveOrder.current = next;
+      setOrder(next);
+    },
+    [updateAiming],
+  );
 
-  const drag: BlockDragValue = {
-    draggingId,
-    start: (blockId) => {
-      orderBeforeDrag.current = order;
+  const start = useCallback(
+    (blockId: number) => {
+      // 드래그 전이면 `liveOrder` 가 최신 순서다 (아래 effect 가 매 렌더 맞춰 둔다)
+      orderBeforeDrag.current = liveOrder.current;
       lastTarget.current = null;
-      liveOrder.current = order;
       draggingRef.current = blockId;
       settledAt.current = 0;
       cancelDwell();
       setDraggingId(blockId);
-      setActiveSlot(null);
-      setAimingId(null);
+      updateActiveSlot(null);
+      updateAiming(null);
       setSaveError('');
     },
-    hover: (blockId, mode) => {
+    [cancelDwell, updateActiveSlot, updateAiming],
+  );
+
+  const hover = useCallback(
+    (blockId: number, mode: 'swap' | 'after') => {
+      // state 대신 ref 를 본다 — 참조를 고정해야 컨텍스트가 매 렌더 바뀌지 않는다
+      const draggingId = draggingRef.current;
       if (draggingId === null) return;
 
-      const slot = mode === 'after' ? blockId : null;
-      if (slot !== activeSlot) setActiveSlot(slot);
+      updateActiveSlot(mode === 'after' ? blockId : null);
 
       /**
        * 끌고 있는 블록 자신 위의 이벤트.
@@ -265,7 +308,7 @@ export default function BlockBoard({
        */
       if (blockId === draggingId) {
         cancelDwell();
-        setAimingId(null);
+        updateAiming(null);
         lastTarget.current = null;
         return;
       }
@@ -282,36 +325,49 @@ export default function BlockBoard({
       // 지나쳐 간 대상은 버린다. 빠르게 훑으면 아무것도 확정되지 않는다
       cancelDwell();
       pendingTarget.current = key;
-      setAimingId(mode === 'swap' ? blockId : null);
+      updateAiming(mode === 'swap' ? blockId : null);
       dwellTimer.current = setTimeout(
         () => applyMove(blockId, mode, key),
         HOVER_DWELL_MS,
       );
     },
-    finish: () => {
-      // 놓기 · 취소 · 컨테이너 드롭에서 모두 불린다 — 처음 한 번만 처리한다
-      if (draggingId === null) return;
+    [applyMove, cancelDwell, updateActiveSlot, updateAiming],
+  );
 
-      cancelDwell();
+  const finish = useCallback(() => {
+    // 놓기 · 취소 · 컨테이너 드롭에서 모두 불린다 — 처음 한 번만 처리한다
+    if (draggingRef.current === null) return;
 
-      const before = orderBeforeDrag.current;
-      const final = liveOrder.current;
-      orderBeforeDrag.current = null;
-      lastTarget.current = null;
-      draggingRef.current = null;
+    cancelDwell();
 
-      setDraggingId(null);
-      setActiveSlot(null);
-      setAimingId(null);
+    const before = orderBeforeDrag.current;
+    const final = liveOrder.current;
+    orderBeforeDrag.current = null;
+    lastTarget.current = null;
+    draggingRef.current = null;
 
-      if (!before || hasSameOrder(final, before)) return;
+    setDraggingId(null);
+    updateActiveSlot(null);
+    updateAiming(null);
 
-      // 화면은 이미 확정돼 있다 — 전송만 더 움직이지 않을 때까지 미룬다
-      saver.schedule(final);
-      // 저장을 기다리지 않고 바로 알린다 — 새 블록 자리 계산이 옛 좌표를 보면 안 된다
-      publish(final);
-    },
-  };
+    if (!before || hasSameOrder(final, before)) return;
+
+    // 화면은 이미 확정돼 있다 — 전송만 더 움직이지 않을 때까지 미룬다
+    saver.schedule(final);
+    // 저장을 기다리지 않고 바로 알린다 — 새 블록 자리 계산이 옛 좌표를 보면 안 된다
+    publish(final);
+  }, [cancelDwell, publish, saver, updateActiveSlot, updateAiming]);
+
+  /**
+   * 컨텍스트 값은 `draggingId` 가 바뀔 때만 새로 만든다.
+   *
+   * 매 렌더 새 객체를 내려주면 강조 표시가 바뀔 때마다 **모든 `BlockCard` 가**
+   * 다시 그려진다 (본문에 에디터 · 파일 목록이 달린 카드까지).
+   */
+  const drag: BlockDragValue = useMemo(
+    () => ({ draggingId, start, hover, finish }),
+    [draggingId, start, hover, finish],
+  );
 
   const rows = useMemo(() => computeRows(order), [order]);
   const isDragging = draggingId !== null;
@@ -464,8 +520,14 @@ function DropSlot({
   );
 }
 
-/** 유형별 본문 분기. 아직 구현되지 않은 유형은 껍데기만 그린다 */
-function BlockBody({
+/**
+ * 유형별 본문 분기. 아직 구현되지 않은 유형은 껍데기만 그린다.
+ *
+ * ⚠️ `memo` 로 감싼다. 강조 표시나 순서가 바뀌어 보드가 다시 그려질 때
+ *    블록 본문(에디터 · 체크리스트 · 파일 목록)까지 다시 그리면 이동이 버벅인다.
+ *    `moveTo`/`moveAfter` 는 블록 **객체를 그대로 옮기므로** 순서만 바뀌면 여기서 멈춘다.
+ */
+const BlockBody = memo(function BlockBody({
   block,
   autoEdit,
 }: {
@@ -484,4 +546,4 @@ function BlockBody({
       <p className="text-[10px] text-[#6C7389]">준비 중인 블록입니다.</p>
     </BlockCard>
   );
-}
+});
