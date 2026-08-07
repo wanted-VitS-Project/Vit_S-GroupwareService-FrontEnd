@@ -69,14 +69,25 @@ function readScope(searchParams: URLSearchParams, canSeeAll: boolean) {
   );
 }
 
-/** `최근 N일` 을 서버가 받는 `yyyy-MM-dd` 로 바꾼다 */
+/**
+ * `최근 N일` 을 서버가 받는 `yyyy-MM-dd` 로 바꾼다.
+ *
+ * ⚠️ URL 값이라 아무 숫자나 들어올 수 있다 — **셀렉트에 있는 값만** 받는다.
+ * 큰 수를 그대로 빼면 Invalid Date 가 되고 `toISOString()` 이 예외를 던져 목록이 통째로 죽는다.
+ *
+ * ⚠️ `toISOString()` 은 UTC 라 한국 시간 오전에는 **하루 이른 날짜**가 나온다.
+ * 로컬 연·월·일을 직접 붙인다.
+ */
 function toFromDate(days: string | null) {
-  const parsed = Number(days);
-  if (!Number.isInteger(parsed) || parsed <= 0) return undefined;
+  const allowed = PERIOD_OPTIONS.find((option) => option.value === days);
+  if (!allowed) return undefined;
 
   const date = new Date();
-  date.setDate(date.getDate() - parsed);
-  return date.toISOString().slice(0, 10);
+  date.setDate(date.getDate() - Number(allowed.value));
+
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
 }
 
 /**
