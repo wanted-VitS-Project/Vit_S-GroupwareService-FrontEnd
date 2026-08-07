@@ -132,6 +132,9 @@ export const ENDPOINTS = {
     versions: (fileId: number | string) => `${V1}/files/${fileId}/versions`,
   },
   fileVersions: {
+    /** 버전 단건 조회 (결재용) — 문서가 휴지통이어도 반환된다 */
+    detail: (fileVersionId: number | string) =>
+      `${V1}/file-versions/${fileVersionId}`,
     /** 다운로드 URL 발급 (presigned, 5분) */
     download: (fileVersionId: number | string) =>
       `${V1}/file-versions/${fileVersionId}/download`,

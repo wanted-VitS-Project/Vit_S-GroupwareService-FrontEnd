@@ -288,6 +288,8 @@ export default function ApprovalList() {
                 key={row.approvalId}
                 row={row}
                 isMyTurn={row.currentApproverId === user.userId}
+                // 내가 올린 결재는 내가 처리할 일이 없다 — 행 전체가 이미 상세 링크다
+                showAction={scope !== 'drafted'}
               />
             ))}
           </ul>
@@ -297,6 +299,8 @@ export default function ApprovalList() {
               page={query.page ?? 0}
               totalPages={page.totalPages}
               totalElements={page.totalElements}
+              // 건수는 탭 옆에 이미 있다 — 아래에 또 적으면 같은 수가 두 번 나온다
+              showTotal={false}
               onChange={(next) => applyFilter({ page: String(next) })}
             />
           )}
@@ -310,9 +314,11 @@ export default function ApprovalList() {
 function ApprovalRow({
   row,
   isMyTurn,
+  showAction,
 }: {
   row: ApprovalListItem;
   isMyTurn: boolean;
+  showAction: boolean;
 }) {
   const doneCount = row.lines.filter(
     (line) => line.status === 'APPROVED',
@@ -335,14 +341,20 @@ function ApprovalRow({
           </p>
         </div>
 
-        {/* 재상신된 결재만 회차를 붙인다 — 1회차는 붙여봐야 정보가 없다 */}
-        {row.currentRevisionNo > 1 && (
-          <span className="shrink-0 rounded bg-[#ECEEF4] px-1.5 py-0.5 text-[11px] text-[#6C7389]">
-            {row.currentRevisionNo}회차
-          </span>
-        )}
+        {/**
+         * 아래 네 칸은 **너비를 고정한다** — 회차 배지가 있는 행과 없는 행,
+         * 결재자가 1명인 행과 3명인 행에서 열이 어긋나면 목록이 훑기 어려워진다.
+         */}
+        <span className="w-12 shrink-0 text-center">
+          {/* 재상신된 결재만 회차를 붙인다 — 1회차는 붙여봐야 정보가 없다 */}
+          {row.currentRevisionNo > 1 && (
+            <span className="rounded bg-[#ECEEF4] px-1.5 py-0.5 text-[11px] text-[#6C7389]">
+              {row.currentRevisionNo}회차
+            </span>
+          )}
+        </span>
 
-        <span className="shrink-0 text-[11px] text-[#6C7389]">
+        <span className="w-12 shrink-0 text-center text-[11px] text-[#6C7389]">
           {doneCount} / {row.lines.length}
         </span>
 
@@ -350,7 +362,7 @@ function ApprovalRow({
           {formatDate(row.submittedAt ?? row.createdAt)}
         </span>
 
-        <span className="flex shrink-0 -space-x-1.5">
+        <span className="flex w-20 shrink-0 justify-end -space-x-1.5 overflow-hidden">
           {row.lines.map((line) => (
             <span
               key={line.approverId}
@@ -364,15 +376,17 @@ function ApprovalRow({
           ))}
         </span>
 
-        <span
-          className={`w-14 shrink-0 rounded-lg py-1.5 text-center text-[11px] font-semibold ${
-            isMyTurn
-              ? 'bg-[#4F39F6] text-white'
-              : 'border border-[#1C1F2A]/10 text-[#6C7389]'
-          }`}
-        >
-          {isMyTurn ? '결재' : '상세'}
-        </span>
+        {showAction && (
+          <span
+            className={`w-14 shrink-0 rounded-lg py-1.5 text-center text-[11px] font-semibold ${
+              isMyTurn
+                ? 'bg-[#4F39F6] text-white'
+                : 'border border-[#1C1F2A]/10 text-[#6C7389]'
+            }`}
+          >
+            {isMyTurn ? '결재' : '상세'}
+          </span>
+        )}
       </Link>
     </li>
   );

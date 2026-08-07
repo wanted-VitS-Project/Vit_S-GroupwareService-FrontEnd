@@ -149,6 +149,48 @@
 
 ---
 
+## [2026-08-07] 결재 관리 상세 · 승인/반려 🚧
+
+브랜치: `feat/approval-page` · 이슈: #61
+
+### 변경 파일
+
+| 파일                                            | 변경                                             |
+| ----------------------------------------------- | ------------------------------------------------ |
+| `src/app/approvals/[approvalId]/page.tsx`       | 생성 — 상세 라우트(숫자 아닌 세그먼트는 404)     |
+| `src/features/approval/ApprovalDetailView.tsx`  | 생성 — 상세 본문 · 상태별 분기                   |
+| `src/features/approval/ApprovalTimeline.tsx`    | 생성 — 결재선 타임라인(의견 · 처리 일시)         |
+| `src/features/approval/ApprovalProcessModal.tsx` | 생성 — 승인 · 반려 공용 모달                    |
+| `src/features/approval/ApprovalDocumentModal.tsx` | 생성 — 결재 문서 뷰어(버전 전환 없음)          |
+| `src/components/approval/ApprovalSkeletons.tsx` | 수정 — 상세 스켈레톤 추가                        |
+| `src/features/file/{api,types}.ts`              | 수정 — `getFileVersion()` · `FileVersionDetail`  |
+| `src/constants/endpoints.ts`                    | 수정 — `fileVersions.detail`                     |
+| `src/components/Pagination.tsx`                 | 수정 — `showTotal` · `unit` 옵션 추가            |
+| `src/features/approval/ApprovalList.tsx`        | 수정 — 열 너비 고정, 기안 탭 액션 버튼 제거      |
+
+### 주요 작업 내용
+
+- `GET /approvals/{approvalId}` 연동 — 항상 현재 회차를 보여준다
+- 결재선 타임라인에 승인 · 반려 · 대기와 의견 말풍선 · 처리 일시 표시
+- 승인 · 반려 처리(`POST /approval-lines/{lineId}/approve|reject`)와 의견(선택) 입력
+- 결재 문서 뷰어 — 미리보기(PDF 앞 5페이지) · 다운로드 · `결재 이후 새 버전` 안내
+
+### 트러블슈팅
+
+- **결재 문서 미리보기가 403 으로 막힌다** — 파일 API 가 스텝 참여 여부를 본다. 결재자 지정은 프로젝트 참여와 별개(AP-019)라 프로젝트에 없는 MASTER 는 자기가 결재할 문서를 열 수 없다. 화면에는 전용 안내를 띄우고 백엔드에 권한 기준 확장을 요청함
+- **모달 제목이 두 번 나왔다** — `Modal` 에 `header` 를 넘기지 않아 기본 제목 줄과 커스텀 헤더가 함께 그려졌다
+
+### 부수 결정
+
+- **처리 후 재조회하지 않는다** — 승인 응답의 `nextActiveLineId` · `approvalCompleted` 로 다음 상태를 알 수 있어, 타임라인을 그 자리에서 갱신한다
+- 빈 의견은 **키 자체를 빼서** 보낸다 — 빈 문자열이 저장되면 타임라인에 빈 말풍선이 뜬다
+- 결재 문서 뷰어에 **버전 전환 패널을 두지 않았다** — 결재 대상은 상신 시점에 확정된 한 버전이라(AP-013·014) 다른 버전을 열 수 있으면 무엇을 결재하는지 흐려진다
+- **`원본 블록 보기`(AP-079) 미구현** — 쓰지 않기로 결정. 응답의 `blockOrigin` 은 그대로 받되 화면에서 소비하지 않는다
+- **차례 전 결재자 전용 화면(AP-039·075) 미구현** — 목록에 노출되지 않아 눌러서 갈 길이 없다. URL 직접 접근만 남고 그때는 백엔드 문구를 그대로 보여준다
+- 목록 행의 회차 · 진행 · 날짜 · 아바타 칸 **너비를 고정**했다 — 회차 배지와 결재자 수가 행마다 달라 열이 어긋났다
+
+---
+
 ## [2026-08-07] 결재 관리 목록 화면 🚧
 
 브랜치: `feat/approval-page` · 이슈: #60

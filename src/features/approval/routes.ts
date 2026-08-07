@@ -8,7 +8,4 @@ const APPROVALS = '/approvals';
 export const APPROVAL_ROUTES = {
   list: APPROVALS,
   detail: (approvalId: number | string) => `${APPROVALS}/${approvalId}`,
-  /** 결재가 만들어진 원본 스텝 — 목록·상세의 `프로젝트 > Step` 경로에서 쓴다 */
-  origin: (projectId: number | string, stepId: number | string) =>
-    `/projects/${projectId}/steps/${stepId}`,
 } as const;
