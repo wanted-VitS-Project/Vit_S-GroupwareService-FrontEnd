@@ -112,6 +112,22 @@ export interface FileVersionsResponse {
   content: FileVersion[];
 }
 
+/**
+ * GET /file-versions/{fileVersionId} — 버전 단건 조회 (결재용).
+ *
+ * 결재가 **고정한 버전**을 여는 용도라 버전 이력 응답과 두 가지가 다르다.
+ * - `latest` 가 false 면 결재 이후 새 버전이 올라온 것이다
+ * - 문서가 휴지통에 있어도 반환된다(`fileDeleted: true`) — 결재 이력이 남아야 한다
+ */
+export interface FileVersionDetail extends FileVersion {
+  fileId: number;
+  /** 표시명 */
+  fileName: string;
+  latestVersionNo: number;
+  /** 원본 문서가 휴지통으로 갔는지 */
+  fileDeleted: boolean;
+}
+
 /** GET /file-versions/{fileVersionId}/download */
 export interface DownloadUrlResponse {
   fileVersionId: number;

@@ -5,6 +5,7 @@ import type {
   BlockFilesResponse,
   CompleteUploadResponse,
   DownloadUrlResponse,
+  FileVersionDetail,
   FileVersionsResponse,
   RenameFileResponse,
   StartUploadRequest,
@@ -81,6 +82,22 @@ export function getDownloadUrl(
 ) {
   return api.get<DownloadUrlResponse>(
     ENDPOINTS.fileVersions.download(fileVersionId),
+    signal,
+  );
+}
+
+/**
+ * 버전 단건 조회 (결재용). 결재가 고정한 버전을 그대로 연다.
+ *
+ * ℹ️ 미리보기 · 다운로드와 달리 **문서가 휴지통에 있어도 반환된다** — 결재 이력이 남아야 한다.
+ * `latest` 가 false 면 결재 이후 새 버전이 올라온 것이다.
+ */
+export function getFileVersion(
+  fileVersionId: number | string,
+  signal?: AbortSignal,
+) {
+  return api.get<FileVersionDetail>(
+    ENDPOINTS.fileVersions.detail(fileVersionId),
     signal,
   );
 }

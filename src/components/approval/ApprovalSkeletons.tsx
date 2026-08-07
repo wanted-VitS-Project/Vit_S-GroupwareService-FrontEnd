@@ -1,5 +1,45 @@
 import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
 
+/** 결재 상세 로딩. 좌측 본문 + 우측 결재선 2단 구성을 그대로 흉내 낸다 */
+export function ApprovalDetailSkeleton() {
+  return (
+    <SkeletonGroup label="결재를 불러오는 중입니다" className="flex flex-col">
+      <Skeleton className="h-3 w-32" />
+      <Skeleton className="mt-4 h-5 w-96" />
+      <Skeleton className="mt-2 h-3 w-56" />
+
+      {/* 분기를 실제 화면(`ApprovalDetailView`)과 맞춘다 — 다르면 로딩이 끝나는 순간 배치가 튄다 */}
+      <div className="mt-6 flex flex-col gap-4 lg:flex-row">
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
+          <div className="rounded-xl border border-[#1C1F2A]/10 p-4">
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="mt-3 h-3 w-full" />
+            <Skeleton className="mt-1.5 h-3 w-4/5" />
+          </div>
+          <div className="rounded-xl border border-[#1C1F2A]/10 p-4">
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="mt-3 h-10 w-full rounded-lg" />
+            <Skeleton className="mt-1.5 h-10 w-full rounded-lg" />
+          </div>
+        </div>
+
+        <div className="w-full shrink-0 rounded-xl border border-[#1C1F2A]/10 p-4 lg:w-72">
+          <Skeleton className="h-3 w-16" />
+          {[0, 1, 2].map((row) => (
+            <div key={row} className="mt-4 flex gap-3">
+              <Skeleton shape="circle" className="size-7" />
+              <div className="flex flex-1 flex-col gap-1.5">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-2.5 w-28" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </SkeletonGroup>
+  );
+}
+
 /**
  * 결재 관리 목록 로딩. 표가 아니라 **카드 행**이라 `SkeletonTable` 을 쓰지 않는다.
  * 행 높이를 실제와 맞춰 두어야 목록이 뜨는 순간 화면이 튀지 않는다.

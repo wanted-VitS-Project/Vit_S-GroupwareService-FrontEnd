@@ -5,6 +5,10 @@ interface PaginationProps {
   page: number;
   totalPages: number;
   totalElements: number;
+  /** 세는 단위. 사람이 아닌 목록은 바꿔 넘긴다 (예: '건') */
+  unit?: string;
+  /** 전체 건수를 감춘다 — 화면에 이미 같은 수가 있으면 중복이다 */
+  showTotal?: boolean;
   onChange: (page: number) => void;
 }
 
@@ -13,6 +17,8 @@ export default function Pagination({
   page,
   totalPages,
   totalElements,
+  unit = '명',
+  showTotal = true,
   onChange,
 }: PaginationProps) {
   const lastPage = totalPages || 1;
@@ -21,8 +27,9 @@ export default function Pagination({
 
   return (
     <div className="flex items-center justify-between gap-4 border-t border-[#1C1F2A]/10 px-5 py-3">
+      {/* 감춰도 자리는 남겨야 페이지 이동이 오른쪽에 그대로 붙는다 */}
       <p className="text-[11px] text-[#6C7389]">
-        전체 {totalElements.toLocaleString('ko-KR')}명
+        {showTotal && `전체 ${totalElements.toLocaleString('ko-KR')}${unit}`}
       </p>
 
       <nav aria-label="페이지 이동" className="flex items-center gap-2">
