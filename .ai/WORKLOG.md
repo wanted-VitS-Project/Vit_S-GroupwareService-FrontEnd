@@ -43,6 +43,46 @@
 
 ---
 
+## [2026-08-07] 결재 관리 목록 화면 🚧
+
+브랜치: `feat/approval-page` · 이슈: #60
+
+### 변경 파일
+
+| 파일                                            | 변경                                          |
+| ----------------------------------------------- | --------------------------------------------- |
+| `src/app/approvals/page.tsx`                    | 생성 — 라우트 + Suspense 경계                 |
+| `src/features/approval/ApprovalList.tsx`        | 생성 — 목록 본체(탭 · 필터 · 행 · 페이징)     |
+| `src/features/approval/ApprovalStatusBadge.tsx` | 생성 — 결재 상태 배지 4종                     |
+| `src/features/approval/lineStatus.ts`           | 생성 — 결재선 상태 라벨 · 색 공용             |
+| `src/features/approval/routes.ts`               | 생성 — 결재 화면 경로 단일 소스               |
+| `src/components/approval/ApprovalSkeletons.tsx` | 생성 — 목록 로딩 스켈레톤                     |
+| `src/features/approval/{types,api}.ts`          | 수정 — 목록 · 상세 · 승인 · 반려 타입과 함수  |
+| `src/features/approval/errorCodes.ts`           | 수정 — 결재선 처리 코드 2종                   |
+| `src/constants/endpoints.ts`                    | 수정 — `approvals.root` · `detail` · `approvalLines` |
+| `.ai/API.md`                                    | 수정 — 55~58 절 추가, 명세·실물 차이표 정리   |
+
+### 주요 작업 내용
+
+- `GET /approvals` 연동 — 탭이 곧 `scope`(`pending` · `drafted` · `all`)이고 대상은 서버가 정한다
+- 상태 · 기간 · 키워드 필터와 페이징을 **URL 쿼리**로 관리 (사원 목록과 동일)
+- 목록 행 — 상태 배지 · `프로젝트 > Step` 경로 · 회차 · 진행 카운트 · 결재선 아바타 · 자기 차례 강조
+- 로딩 스켈레톤 · 빈 상태 · 실패 재시도 처리
+
+### 트러블슈팅
+
+- **응답 스키마가 명세와 달랐다** — Swagger 의 `content[]` 가 파일 버전 스키마로 표기돼 있었다. 실제 실행 결과로 타입을 만들었고, 명세·실물 차이를 `.ai/API.md` 결재 절에 표로 남겼다
+- **`scope=drafted` 가 계속 빈 배열이었다** — Swagger 세션 계정과 앱 로그인 계정이 달랐다. 그 결재의 기안자는 `ADMIN001` 이었다
+
+### 부수 결정
+
+- **`전체` 탭은 MASTER · ADMIN 에게 렌더 자체를 하지 않는다** — 403 `APPROVAL_SCOPE_ALL_FORBIDDEN` 을 받고 숨기면 늦다
+- 기간 필터는 URL 에 `period=30`(최근 N일)으로 두고 요청 직전 `fromDate` 로 바꾼다 — 날짜를 URL 에 박으면 내일 열었을 때 어제 기준이 된다
+- 탭 옆 건수는 **현재 탭만** 표시한다 — 다른 탭 건수를 채우려면 요청이 3배가 된다
+- 결재선 상태 라벨 · 색을 `lineStatus.ts` 로 뺐다 — 목록 아바타 · 블록 스텝퍼 · 상세 타임라인이 같은 색을 써야 한다
+
+---
+
 ## [2026-08-06] 결재 블록 초안 작성 · 상신 🚧
 
 브랜치: `feat/approval-block` · 이슈: #51

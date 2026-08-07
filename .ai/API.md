@@ -69,6 +69,10 @@
 | [52](#52-결재-문서-추가)                  | 결재 문서 추가   | `POST /approvals/{id}/revisions/{revId}/documents` | ✅ `features/approval/api.ts`     |
 | [53](#53-결재-문서-제거)                  | 결재 문서 제거   | `DELETE /approvals/{id}/revisions/{revId}/documents/{docId}` | ✅ `features/approval/api.ts` |
 | [54](#54-결재선-등록--수정)               | 결재선 등록·수정 | `PUT /approvals/{id}/revisions/{revId}/lines`  | ✅ `features/approval/api.ts`         |
+| [55](#55-결재관리-목록조회)               | 결재 목록        | `GET /approvals`                               | ✅ `features/approval/api.ts`         |
+| [56](#56-결재-상세조회)                   | 결재 상세        | `GET /approvals/{id}`                          | ✅ `features/approval/api.ts`         |
+| [57](#57-결재-승인)                       | 결재 승인        | `POST /approval-lines/{lineId}/approve`        | ✅ `features/approval/api.ts`         |
+| [58](#58-결재-반려)                       | 결재 반려        | `POST /approval-lines/{lineId}/reject`         | ✅ `features/approval/api.ts`         |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
 > 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통)
@@ -1569,16 +1573,23 @@ soft delete만 지원하며 응답 `data` 는 `null` 이다. 입금 연결 입�
 
 ### ❗ 결재 — 백엔드 확인 대기
 
-| 항목                                                | 막힌 기능                             | 이슈 |
-| --------------------------------------------------- | ------------------------------------- | ---- |
-| `lines[].status` · `comment` · `processedAt` 없음   | 진행 현황 스텝퍼 · 반려 사유 표시     | #52  |
-| `lines[].approverRole` 없음                         | 마지막 결재자 = MASTER 사전 검증      | #51  |
-| 승인 · 반려 API 없음                                | 결재 상세의 처리 버튼                 | D    |
-| 결재 목록 조회 API 없음                             | 결재 관리 페이지 전체                 | C    |
-| 회차 목록 조회 API 없음 (단건 조회만 있음)          | 회차 전환 · 이력 조회                 | E    |
-| 회차 상세 `finishedAt` 예시가 문자열 `"null"`       | 완료 일시 파싱                        | —    |
+| 항목                                       | 막힌 기능                        | 이슈 |
+| ------------------------------------------ | -------------------------------- | ---- |
+| `lines[].approverRole` 없음                | 마지막 결재자 = MASTER 사전 검증 | #51  |
+| 회차 이력(`GET .../revisions`) 응답 스키마 | 회차 전환 · 이력 조회            | #62  |
 
 > ℹ️ `approverPosition`("대표")은 **회사가 바꿀 수 있는 직급명**이라 MASTER 판정 근거로 쓸 수 없다. `role` 이 오기 전까지 AP-026 은 서버 400 문구로만 안내한다.
+>
+> ⚠️ **명세(Swagger)와 실제 응답이 다른 곳이 많다.** 아래는 2026-08-07 실행으로 확인한 값 기준이다.
+>
+> | 항목                            | 명세                       | 실제                                                     |
+> | ------------------------------- | -------------------------- | -------------------------------------------------------- |
+> | 회차·결재 상세 `lines[]`        | 상태 없음                  | **`status` · `opinion` · `processedAt` 온다**            |
+> | 회차·결재 상세 `documents[]`    | `documentId`·`fileVersionId` 뿐 | **`fileName` · `fileSize` · `uploadedAt` 온다**      |
+> | 회차 상세 `finishedAt`          | 문자열 `"null"`            | 진짜 `null`                                              |
+> | 목록 · 이력 `content[]`         | 파일 버전 스키마           | 결재 스키마 (아래 55번)                                  |
+>
+> ℹ️ 의견 필드 이름은 **`opinion`** 이다 (`comment` 아님). 승인 · 반려 요청 body 와 같은 이름이다.
 
 ---
 
@@ -1751,6 +1762,122 @@ soft delete만 지원하며 응답 `data` 는 `null` 이다. 입금 연결 입�
 
 > ⚠️ **전체 치환이다.** 한 명 추가·제거해도 목록 전체를 보낸다. `order` 는 화면 순서대로 **1부터 다시 매겨** 보낸다 — 빈 번호가 생기면 400 이다.
 > ℹ️ 결재자 선택은 [35. 사원 이름 검색](#35-사원-이름-검색-결재선-지정용)(`EmployeeSearchInput`)으로 한다.
+
+---
+
+## 55. 결재관리 목록조회
+
+| 항목          | 내용                                          |
+| ------------- | --------------------------------------------- |
+| **Method**    | `GET`                                         |
+| **Path**      | `/api/v1/approvals`                           |
+| **인증 필요** | ✅ 로그인 사용자 전체                          |
+| **사용 위치** | ✅ `features/approval/api.ts` — `getApprovals()` |
+
+**요청 Query**
+
+| 이름                       | 설명                                                       |
+| -------------------------- | ---------------------------------------------------------- |
+| `scope`                    | `drafted`(기본, 내가 기안) · `pending`(내 차례) · `all`     |
+| `status`                   | 결재 상태                                                  |
+| `drafterId` · `approverId` | 사번. ⚠️ **`scope=all` 에서만 적용된다**                    |
+| `fromDate` · `toDate`      | `yyyy-MM-dd`                                               |
+| `keyword`                  | 결재 제목 또는 프로젝트명                                  |
+| `revisionNo`               | 현재 회차 번호                                             |
+| `page` · `size`            | **0-based**, 기본 10                                       |
+
+**응답 data** — `{ content[], totalElements, totalPages }` (사원 목록과 달리 `page` · `size` 가 없다)
+
+| 필드                                    | 설명                                     |
+| --------------------------------------- | ---------------------------------------- |
+| `approvalId`                            | 상세 이동 키                             |
+| `title` · `status` · `currentRevisionNo` | 행 제목 · 상태 배지 · 회차               |
+| `drafterId` · `drafterName`             | 기안자                                   |
+| `currentApproverId` · `currentApproverName` | 지금 차례인 결재자. 완료 · 반려면 null |
+| `projectId` · `projectName` · `stepId` · `stepName` | `프로젝트 > Step` 경로 · 원본 이동 |
+| `lines[]`                               | `approverId` · `approverName` · `order` · **`status`** |
+| `createdAt` · `submittedAt` · `completedAt` | DRAFT 는 `submittedAt` 이 null       |
+
+| status | code                            | 화면 처리                                       |
+| ------ | ------------------------------- | ----------------------------------------------- |
+| 403    | `APPROVAL_SCOPE_ALL_FORBIDDEN`  | MASTER · ADMIN 이 아닌 `scope=all` — 탭 자체를 감춰 사전 차단 |
+
+> ⚠️ 목록의 `lines[]` 에는 **`lineId` 가 없다.** 승인 · 반려는 `lineId` 가 필요하므로 상세를 거쳐야 한다.
+> ℹ️ 진행 카운트(`1 / 3`)는 `lines[].status === 'APPROVED'` 를 세어 화면에서 만든다.
+
+---
+
+## 56. 결재 상세조회
+
+| 항목          | 내용                                         |
+| ------------- | -------------------------------------------- |
+| **Method**    | `GET`                                        |
+| **Path**      | `/api/v1/approvals/{approvalId}`             |
+| **인증 필요** | ✅ 기안자 · 현재 회차 `ACTIVE` 이상 결재자 · MASTER |
+| **사용 위치** | ✅ `features/approval/api.ts` — `getApproval()` |
+
+**응답 data** — 회차 상세(48번)와 대부분 같고 차이는 아래 셋이다.
+
+| 항목          | 결재 상세 (56)          | 회차 상세 (48)            |
+| ------------- | ----------------------- | ------------------------- |
+| 대상 회차     | **항상 현재 회차**      | 지정한 회차               |
+| `blockOrigin` | ✅ `blockId` · `stepId` · `projectId` | ❌            |
+| 상신 · 종료 일시 | ❌                   | ✅ `submittedAt` · `finishedAt` |
+
+| status | code                         | 화면 처리                                          |
+| ------ | ---------------------------- | -------------------------------------------------- |
+| 403    | `APPROVAL_LINE_NOT_VIEWABLE` | **`/forbidden` 아님** — 화면 안에서 "차례 아님" 안내 |
+| 404    | `APPROVAL_NOT_FOUND`         | 없는 결재                                          |
+
+> ℹ️ **회차를 지정할 수 없다.** 이전 회차는 48번(회차 상세)으로 받는다.
+> ℹ️ `blockOrigin` 으로 `원본 블록 보기`(AP-079)를 만든다 — `/projects/{projectId}/steps/{stepId}`.
+
+---
+
+## 57. 결재 승인
+
+| 항목          | 내용                                           |
+| ------------- | ---------------------------------------------- |
+| **Method**    | `POST`                                         |
+| **Path**      | `/api/v1/approval-lines/{lineId}/approve`      |
+| **인증 필요** | ✅ 그 결재선의 결재자 본인, `ACTIVE` 상태일 때만 |
+| **사용 위치** | ✅ `features/approval/api.ts` — `approveLine()` |
+
+**요청 body** — `{ opinion?: string }` (선택, AP-042)
+
+**응답 data** — `lineId` · `status` · `processedAt` · `nextActiveLineId` · `approvalCompleted`
+
+| status | code                               | 화면 처리                      |
+| ------ | ---------------------------------- | ------------------------------ |
+| 403    | `APPROVAL_LINE_FORBIDDEN`          | 그 결재선의 결재자가 아님      |
+| 409    | `APPROVAL_LINE_ALREADY_PROCESSED`  | 이미 처리된 결재선 (AP-040)    |
+
+> ⚠️ **대상이 결재가 아니라 결재선(`lineId`)이다.** `lineId` 는 상세 응답의 `lines[]` 에서만 얻는다.
+> ⚠️ **없는 `lineId` 도 403 으로 온다** — 404 가 아니라서 "없는 결재"와 "권한 없음"을 구분할 수 없다.
+> ℹ️ `approvalCompleted: true` 면 마지막 순번이라 결재 전체가 완료된다 — 재조회 없이 화면을 완료로 바꿀 수 있다.
+
+---
+
+## 58. 결재 반려
+
+| 항목          | 내용                                          |
+| ------------- | --------------------------------------------- |
+| **Method**    | `POST`                                        |
+| **Path**      | `/api/v1/approval-lines/{lineId}/reject`      |
+| **인증 필요** | ✅ 그 결재선의 결재자 본인, `ACTIVE` 상태일 때만 |
+| **사용 위치** | ✅ `features/approval/api.ts` — `rejectLine()` |
+
+**요청 body** — `{ opinion?: string }` (선택, AP-054)
+
+**응답 data** — `lineId` · `status` · `processedAt`
+
+| status | code                              | 화면 처리                   |
+| ------ | --------------------------------- | --------------------------- |
+| 403    | `APPROVAL_LINE_FORBIDDEN`         | 그 결재선의 결재자가 아님   |
+| 409    | `APPROVAL_LINE_ALREADY_PROCESSED` | 이미 처리된 결재선          |
+
+> ℹ️ 반려하면 이후 `WAITING` 단계가 전부 `CANCELED` 가 되고 회차 · 결재 전체가 `REJECTED` 로 끝난다 (AP-056~058).
+> ℹ️ 기안자는 `수정`(재상신 회차 생성, 50번)으로 다시 진행한다.
 
 ---
 

@@ -1,6 +1,13 @@
-import PageTitle from '@/components/PageTitle';
+import { Suspense } from 'react';
 
-// TODO: 결재 관리 화면 구현 (결재 요청 · 승인 · 반려)
-export default function ApprovalsPage() {
-  return <PageTitle title="결재 관리" />;
+import { ApprovalListSkeleton } from '@/components/approval/ApprovalSkeletons';
+import ApprovalList from '@/features/approval/ApprovalList';
+
+export default function Page() {
+  // useSearchParams 를 쓰는 화면은 Suspense 경계가 있어야 프리렌더가 통과한다
+  return (
+    <Suspense fallback={<ApprovalListSkeleton rows={10} />}>
+      <ApprovalList />
+    </Suspense>
+  );
 }

@@ -26,7 +26,20 @@ export const APPROVAL_CODES = {
   revisionNotDraft: 'APPROVAL_REVISION_NOT_DRAFT',
   /** 409 — 반려되지 않은 결재를 재상신하려 했다 */
   notRejected: 'APPROVAL_NOT_REJECTED',
+  /**
+   * 403 — 그 결재선의 결재자가 아니다.
+   * ⚠️ **없는 `lineId` 도 이 코드로 온다** — 404 로 구분되지 않는다.
+   */
+  lineForbidden: 'APPROVAL_LINE_FORBIDDEN',
+  /** 409 — 이미 승인 · 반려한 결재선의 중복 처리 (AP-040) */
+  lineAlreadyProcessed: 'APPROVAL_LINE_ALREADY_PROCESSED',
 } as const;
+
+/** 승인 · 반려 실패 문구. 백엔드 문구가 없을 때만 쓴다 */
+export const LINE_PROCESS_LABELS: Record<string, string> = {
+  [APPROVAL_CODES.lineForbidden]: '이 결재를 처리할 권한이 없습니다.',
+  [APPROVAL_CODES.lineAlreadyProcessed]: '이미 처리된 결재입니다.',
+};
 
 /**
  * 결재 문서 연결에서 넘어오는 파일 도메인 코드.
