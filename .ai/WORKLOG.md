@@ -6,6 +6,46 @@
 
 ---
 
+## [2026-08-07] 블록 수정 · 삭제 즉시 반영 · 복귀 시 목록 동기화 🚧
+
+브랜치: `user/project` · 이슈: #65
+
+### 변경 파일
+
+| 파일                                         | 변경                                                      |
+| -------------------------------------------- | --------------------------------------------------------- |
+| `src/features/block/BlockActionsContext.tsx` | 생성 — 보드 → 카드 `patch` · `remove` 배선                |
+| `src/features/block/BlockBoard.tsx`          | `patch` · `remove` 구현 · 프로바이더 · `isEcho` 판정 교체 |
+| `src/features/block/BlockCard.tsx`           | 수정 · 삭제를 컨텍스트로 라우팅 (없으면 이벤트 폴백)      |
+| `src/features/block/BlockEditModal.tsx`      | `onUpdated(updated)` — 응답을 그대로 넘김                 |
+| `src/features/block/BlockDeleteModal.tsx`    | `onDeleted(blockId)`                                      |
+| `src/features/block/StepBlocks.tsx`          | 이탈 시 대기 배치 flush · 복귀 시 재조회                  |
+| `.ai/API.md`                                 | 44번 동시 편집 한계 · 확인 대기 항목 추가                 |
+
+### 주요 작업 내용
+
+- **이름 · 담당자 수정 즉시 반영** — 재조회 대신 응답을 그 블록에만 꽂는다. `rowIndex` · `sortOrder` · `colSpan` · `detail` 은 건드리지 않아 자리도 본문도 그대로다
+- **삭제 즉시 반영** — 목록에서 빼기만 한다. 남은 블록의 서버 좌표는 그대로지만 화면도 서버도 같은 패킹 규칙을 써서 순서가 달라지지 않는다. 빈자리는 FLIP 이 메운다
+- **복귀 시 동기화** — `visibilitychange` 로 나갈 때 대기 배치를 보내고, 돌아올 때 목록을 다시 읽는다
+
+### 트러블슈팅
+
+- **문제**: 이름 · 담당자를 바꾸면 반영이 느리고 배치가 흔들린다
+- **원인**: 전역 `block:changed` → 전체 재조회. ① `PATCH` + 목록 `GET` 왕복 2번이 끝나야 보이고 ② 새 배열이 `toFlatOrder()` 로 **서버 좌표에 맞춰 다시 정렬**돼 아직 저장 전인 배치가 튀며 ③ `saver.reset()` 이 대기 중이던 배치까지 버린다
+- **해결**: `BlockActionsContext` 로 응답을 해당 블록에만 반영. 전역 이벤트는 **블록이 생기는 변화**에만 남겼다
+
+- **문제**: 다른 사람이 이름 · 담당자만 바꾼 목록을 통째로 무시한다
+- **원인**: `isEcho` 를 **블록 ID 나열 비교**로 판정했다. ID 순서가 같으면 "내가 올린 목록" 으로 오인한다
+- **해결**: `blocks === echoed` 참조 비교로 바꿨다. 우리가 올려보낸 배열을 state 로 들고 비교한다 (렌더 중 ref 접근 금지 규칙 회피)
+
+### 부수 결정
+
+- **삭제 후 배치를 다시 보내지 않는다** — 남은 좌표에 빈 번호가 생겨도 평면 순서 → 3칸 패킹 결과는 같다. 불필요한 전량 덮어쓰기를 만들지 않는다
+- **실시간 동기화는 백엔드 대기로 미룬다** — SSE(변경 알림) + 배치 버전(`If-Match` → 409)이 필요하다. 요청서 `.ai/local/REQUEST-realtime-layout.md`, 착수 계획 `.ai/local/PLAN-realtime-layout.md`
+- **폴백은 유지** — SSE 가 붙어도 `visibilitychange` 재조회는 연결이 끊긴 동안의 공백을 메우므로 남긴다
+
+---
+
 ## [2026-08-07] 스텝 이슈 보드 화면 · 이슈 API 연동 · 드래그 성능 개선 ✅
 
 브랜치: `issue` · 이슈: #63
