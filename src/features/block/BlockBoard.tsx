@@ -21,11 +21,16 @@ import {
   toFlatOrder,
   toSpan,
 } from './blockLayout';
+import { BlockActionsProvider, type BlockActions } from './BlockActionsContext';
 import { BlockDragProvider, type BlockDragValue } from './BlockDragContext';
 import ChecklistBlock from './ChecklistBlock';
 import FileBlock from './FileBlock';
 import TextBlock from './TextBlock';
-import { BLOCK_COLUMNS, type StepBlock } from './types';
+import {
+  BLOCK_COLUMNS,
+  type StepBlock,
+  type UpdateBlockResponse,
+} from './types';
 import { useDragAutoScroll } from './useDragAutoScroll';
 import { useLayoutSaver } from './useLayoutSaver';
 import { SLIDE_DURATION_MS, useSlideOnReorder } from './useSlideOnReorder';
@@ -180,7 +185,11 @@ export default function BlockBoard({
     onOrderChangedRef.current = onOrderChanged;
   });
 
+  /** 우리가 위로 올려보낸 목록 — 그게 `blocks` 로 되돌아온 것은 재조회가 아니다 */
+  const [echoed, setEchoed] = useState<StepBlock[] | null>(null);
+
   const publish = useCallback((next: StepBlock[]) => {
+    setEchoed(next);
     onOrderChangedRef.current?.(next);
   }, []);
 
@@ -212,16 +221,17 @@ export default function BlockBoard({
   }, [flushLayoutRef, saver]);
 
   /**
-   * 우리가 올려보낸 순서가 그대로 돌아온 것인지.
+   * 우리가 올려보낸 목록이 그대로 돌아온 것인지.
    *
    * 이건 **재조회가 아니다.** 구분하지 않으면 저장 응답이 부모를 갱신 → prop 이 바뀜 →
    * 아래 동기화가 돌아 **응답을 기다리는 동안 한 이동이 화면에서 되돌아가고
    * 전송도 취소된다.** `toFlatOrder()` 는 아직 저장 전인 옛 좌표로 다시 정렬하므로,
    * 그대로 두면 방금 옮긴 결과가 통째로 뒤집힌다.
+   *
+   * ⚠️ 블록 ID 나열만 비교하면 안 된다. **다른 사람이 이름 · 담당자만 바꾼 목록**은
+   *    ID 순서가 같아서 "내가 올린 것" 으로 오인되고, 그 변경을 통째로 무시하게 된다.
    */
-  const isEcho =
-    blocks.length === order.length &&
-    blocks.every((block, index) => block.blockId === order[index].blockId);
+  const isEcho = blocks === echoed;
 
   /** 밖에서 목록이 새로 오면 로컬 순서를 버리고 서버 순서를 따른다 */
   const [synced, setSynced] = useState(blocks);
@@ -369,6 +379,54 @@ export default function BlockBoard({
     [draggingId, start, hover, finish],
   );
 
+  /** 드래그 배선과 같은 이유로 참조를 고정한다 — 매 렌더 바뀌면 카드가 전부 다시 그려진다 */
+  const patch = useCallback(
+    (updated: UpdateBlockResponse) => {
+      const current = liveOrder.current;
+      const index = current.findIndex(
+        (block) => block.blockId === updated.blockId,
+      );
+      if (index === -1) return;
+
+      const next = [...current];
+      // 자리(`rowIndex` · `sortOrder` · `colSpan`)와 본문(`detail`)은 그대로 둔다 —
+      // 바뀐 두 값만 갈아끼워야 배치도 안 흔들리고 본문도 다시 불러오지 않는다
+      next[index] = {
+        ...current[index],
+        title: updated.title,
+        owner: updated.owner,
+      };
+
+      liveOrder.current = next;
+      setOrder(next);
+      publish(next);
+    },
+    [publish],
+  );
+
+  const remove = useCallback(
+    (blockId: number) => {
+      const current = liveOrder.current;
+      const next = current.filter((block) => block.blockId !== blockId);
+      if (next.length === current.length) return;
+
+      liveOrder.current = next;
+      setOrder(next);
+      publish(next);
+      /*
+       * 배치를 다시 보내지 않는다. 남은 블록의 서버 좌표는 그대로고,
+       * 어차피 화면도 서버도 "평면 순서를 3칸씩 다시 패킹" 하는 같은 규칙을 쓴다 —
+       * 빈 번호가 생겨도 순서는 달라지지 않는다.
+       */
+    },
+    [publish],
+  );
+
+  const actions: BlockActions = useMemo(
+    () => ({ patch, remove }),
+    [patch, remove],
+  );
+
   const rows = useMemo(() => computeRows(order), [order]);
   const isDragging = draggingId !== null;
   const lastRow = rows.at(-1);
@@ -389,101 +447,103 @@ export default function BlockBoard({
   }
 
   return (
-    <BlockDragProvider value={drag}>
-      <div className="flex flex-col gap-4">
-        {saveError && (
-          <p
-            role="alert"
-            className="rounded border border-[#E7000B]/20 bg-[#E7000B]/5 px-2.5 py-1.5 text-[10px] text-[#E7000B]"
-          >
-            {saveError}
-          </p>
-        )}
+    <BlockActionsProvider value={actions}>
+      <BlockDragProvider value={drag}>
+        <div className="flex flex-col gap-4">
+          {saveError && (
+            <p
+              role="alert"
+              className="rounded border border-[#E7000B]/20 bg-[#E7000B]/5 px-2.5 py-1.5 text-[10px] text-[#E7000B]"
+            >
+              {saveError}
+            </p>
+          )}
 
-        <div
-          ref={boardRef}
-          // 끄는 동안 텍스트가 파랗게 잡히면 이동이 지저분해 보인다
-          className={`grid grid-cols-3 items-stretch gap-4 ${
-            isDragging ? 'select-none' : ''
-          }`}
-          /*
+          <div
+            ref={boardRef}
+            // 끄는 동안 텍스트가 파랗게 잡히면 이동이 지저분해 보인다
+            className={`grid grid-cols-3 items-stretch gap-4 ${
+              isDragging ? 'select-none' : ''
+            }`}
+            /*
             **캡처 단계**에서 받는다. 버블 단계로 받으면 카드 안쪽 자식이 이벤트를 멈췄을 때
             판정이 통째로 빠지고, 그 블록은 "드래그해도 반응이 없는 블록" 이 된다.
             여백에 놓아도 취소되지 않도록 preventDefault 는 항상 건다.
           */
-          onDragOverCapture={(event) => {
-            // 블록 드래그가 아닐 때(예: 바탕화면 파일)는 손대지 않는다
-            if (draggingId === null) return;
+            onDragOverCapture={(event) => {
+              // 블록 드래그가 아닐 때(예: 바탕화면 파일)는 손대지 않는다
+              if (draggingId === null) return;
 
-            // 여백에 놓아도 취소되지 않도록 항상 건다
-            event.preventDefault();
+              // 여백에 놓아도 취소되지 않도록 항상 건다
+              event.preventDefault();
 
-            const target = readDropTarget(event.target);
-            if (target) drag.hover(target.blockId, target.mode);
-          }}
-          onDropCapture={(event) => {
-            if (draggingId === null) return;
+              const target = readDropTarget(event.target);
+              if (target) drag.hover(target.blockId, target.mode);
+            }}
+            onDropCapture={(event) => {
+              if (draggingId === null) return;
 
-            event.preventDefault();
-            drag.finish();
-          }}
-        >
-          {/*
+              event.preventDefault();
+              drag.finish();
+            }}
+          >
+            {/*
             행 단위로 훑되 **평평한 배열 하나**로 내보낸다 (Fragment 로 묶지 않는다).
             빈 칸 안내는 행의 마지막 블록 뒤에 꽂아 grid 가 남은 칸에 배치하게 둔다.
           */}
-          {rows.flatMap((row, rowIndex) => {
-            const cells = row.map((block) => (
-              <div
-                key={block.blockId}
-                ref={registerNode(block.blockId)}
-                data-drop-block={block.blockId}
-                // 겨누는 중 — 자리를 내주기 직전이라는 신호
-                className={`min-w-0 rounded-lg ${
-                  COL_SPAN_CLASS[toSpan(block.colSpan)]
-                } ${
-                  aimingId === block.blockId
-                    ? 'ring-2 ring-[#3B5BDB]/40 ring-offset-2'
-                    : ''
-                }`}
-              >
-                <BlockBody
-                  block={block}
-                  autoEdit={block.blockId === autoEditBlockId}
-                />
-              </div>
-            ));
+            {rows.flatMap((row, rowIndex) => {
+              const cells = row.map((block) => (
+                <div
+                  key={block.blockId}
+                  ref={registerNode(block.blockId)}
+                  data-drop-block={block.blockId}
+                  // 겨누는 중 — 자리를 내주기 직전이라는 신호
+                  className={`min-w-0 rounded-lg ${
+                    COL_SPAN_CLASS[toSpan(block.colSpan)]
+                  } ${
+                    aimingId === block.blockId
+                      ? 'ring-2 ring-[#3B5BDB]/40 ring-offset-2'
+                      : ''
+                  }`}
+                >
+                  <BlockBody
+                    block={block}
+                    autoEdit={block.blockId === autoEditBlockId}
+                  />
+                </div>
+              ));
 
-            const free = BLOCK_COLUMNS - usedColumns(row);
-            const rowLast = row[row.length - 1];
+              const free = BLOCK_COLUMNS - usedColumns(row);
+              const rowLast = row[row.length - 1];
 
-            // 마지막 행의 빈 칸은 아래 꼬리 자리와 뜻이 같다 — 둘 다 켜지면 어디로 갈지 헷갈린다
-            if (isDragging && free > 0 && rowIndex < rows.length - 1) {
-              cells.push(
-                <DropSlot
-                  key={`slot-${rowIndex}`}
-                  span={free}
-                  afterBlockId={rowLast.blockId}
-                  isActive={activeSlot === rowLast.blockId}
-                />,
-              );
-            }
+              // 마지막 행의 빈 칸은 아래 꼬리 자리와 뜻이 같다 — 둘 다 켜지면 어디로 갈지 헷갈린다
+              if (isDragging && free > 0 && rowIndex < rows.length - 1) {
+                cells.push(
+                  <DropSlot
+                    key={`slot-${rowIndex}`}
+                    span={free}
+                    afterBlockId={rowLast.blockId}
+                    isActive={activeSlot === rowLast.blockId}
+                  />,
+                );
+              }
 
-            return cells;
-          })}
+              return cells;
+            })}
 
-          {needsTailSlot && lastRow && (
-            <DropSlot
-              key="slot-tail"
-              span={BLOCK_COLUMNS}
-              label="맨 뒤로 보내기"
-              afterBlockId={lastRow[lastRow.length - 1].blockId}
-              isActive={activeSlot === lastRow[lastRow.length - 1].blockId}
-            />
-          )}
+            {needsTailSlot && lastRow && (
+              <DropSlot
+                key="slot-tail"
+                span={BLOCK_COLUMNS}
+                label="맨 뒤로 보내기"
+                afterBlockId={lastRow[lastRow.length - 1].blockId}
+                isActive={activeSlot === lastRow[lastRow.length - 1].blockId}
+              />
+            )}
+          </div>
         </div>
-      </div>
-    </BlockDragProvider>
+      </BlockDragProvider>
+    </BlockActionsProvider>
   );
 }
 

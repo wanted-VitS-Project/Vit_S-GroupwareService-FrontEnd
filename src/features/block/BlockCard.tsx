@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
 
+import { useBlockActions } from './BlockActionsContext';
 import { setPillDragImage, useBlockDrag } from './BlockDragContext';
 import BlockDeleteModal from './BlockDeleteModal';
 import BlockEditModal from './BlockEditModal';
@@ -129,12 +130,19 @@ export default function BlockCard({
   );
 }
 
-/** 블록 헤더의 `⋯` 메뉴 — 수정 · 삭제 */
+/**
+ * 목록을 다시 불러오라고 화면 전체에 알린다.
+ *
+ * 블록이 **없어지거나 생기는** 변화에만 쓴다. 이름 · 담당자처럼 그 블록 안에서 끝나는
+ * 수정은 재조회하지 않고 응답을 곧바로 꽂는다 (`BlockActionsContext`) —
+ * 왕복이 끝날 때까지 옛 값이 남거나, 새 배열로 갈리며 배치가 흔들리지 않게.
+ */
 function notifyBlockChanged() {
   window.dispatchEvent(new Event('block:changed'));
 }
 
 function BlockMenu({ block, title }: { block: StepBlock; title: string }) {
+  const actions = useBlockActions();
   const [isOpen, setIsOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -216,7 +224,10 @@ function BlockMenu({ block, title }: { block: StepBlock; title: string }) {
         <BlockEditModal
           block={block}
           onClose={() => setIsEditing(false)}
-          onUpdated={notifyBlockChanged}
+          // 보드 밖에서 쓰인 카드(컨텍스트 없음)는 재조회로 되돌아간다
+          onUpdated={(updated) =>
+            actions ? actions.patch(updated) : notifyBlockChanged()
+          }
         />
       )}
       {isDeleting && (
@@ -224,7 +235,9 @@ function BlockMenu({ block, title }: { block: StepBlock; title: string }) {
           blockId={block.blockId}
           blockTitle={title}
           onClose={() => setIsDeleting(false)}
-          onDeleted={notifyBlockChanged}
+          onDeleted={(deletedId) =>
+            actions ? actions.remove(deletedId) : notifyBlockChanged()
+          }
         />
       )}
     </>

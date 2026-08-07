@@ -11,7 +11,11 @@ import { messageOf } from '@/lib/api';
 
 import { updateBlock } from './api';
 import BlockTypeIcon from './BlockTypeIcon';
-import { BLOCK_TITLE_MAX_LENGTH, type StepBlock } from './types';
+import {
+  BLOCK_TITLE_MAX_LENGTH,
+  type StepBlock,
+  type UpdateBlockResponse,
+} from './types';
 
 export default function BlockEditModal({
   block,
@@ -20,7 +24,8 @@ export default function BlockEditModal({
 }: {
   block: StepBlock;
   onClose: () => void;
-  onUpdated: () => void;
+  /** 응답을 그대로 넘긴다 — 받는 쪽이 재조회 없이 화면에 꽂을 수 있게 */
+  onUpdated: (updated: UpdateBlockResponse) => void;
 }) {
   const { id: projectId } = useParams<{ id: string }>();
   const [title, setTitle] = useState(block.title ?? '');
@@ -61,11 +66,11 @@ export default function BlockEditModal({
     setIsSubmitting(true);
     setErrorMessage('');
     try {
-      await updateBlock(block.blockId, {
+      const updated = await updateBlock(block.blockId, {
         ...(titleChanged ? { title: nextTitle || null } : {}),
         ...(ownerChanged ? { owner: owner || null } : {}),
       });
-      onUpdated();
+      onUpdated(updated);
       onClose();
     } catch (caught) {
       setErrorMessage(messageOf(caught, '블록을 수정하지 못했습니다.'));
