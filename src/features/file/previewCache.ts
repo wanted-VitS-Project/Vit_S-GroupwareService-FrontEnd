@@ -49,11 +49,18 @@ export function loadPreview(fileVersionId: number | string) {
     return cached;
   }
 
-  const pending = getPreview(fileVersionId).catch((caught: unknown) => {
-    // 실패는 남기지 않는다 — 다시 열었을 때 재시도가 돼야 한다
-    cache.delete(key);
-    throw caught;
-  });
+  const pending: Promise<PreviewResult> = getPreview(fileVersionId).catch(
+    (caught: unknown) => {
+      /**
+       * 실패는 남기지 않는다 — 다시 열었을 때 재시도가 돼야 한다.
+       *
+       * ⚠️ **동일성 확인이 필수다.** `evictOverflow` 로 밀려난 뒤 같은 키로 새
+       *    요청이 들어와 있을 수 있는데, 그때 지우면 **멀쩡한 새 요청까지** 날린다.
+       */
+      if (cache.get(key) === pending) cache.delete(key);
+      throw caught;
+    },
+  );
 
   cache.set(key, pending);
   evictOverflow();

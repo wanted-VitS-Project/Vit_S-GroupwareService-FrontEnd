@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import Modal from '@/components/Modal';
 import {
   downloadVersion,
   getBlockFiles,
@@ -41,8 +42,35 @@ import type { StepBlock } from './types';
  */
 const FileViewerModal = dynamic(
   () => import('@/features/file/FileViewerModal'),
-  { ssr: false },
+  { ssr: false, loading: () => <FileViewerFallback /> },
 );
+
+/**
+ * 청크가 아직 도착하지 않았을 때의 자리.
+ *
+ * `loading` 을 넘기지 않으면 `next/dynamic` 이 `null` 을 그려서, 문서를 눌러도
+ * **아무 반응이 없는 것처럼** 보인다. hover 프리로드가 대부분 앞서 끝내지만
+ * 바로 클릭했거나 회선이 느리면 이 화면이 잠깐 뜬다.
+ */
+function FileViewerFallback() {
+  return (
+    <Modal
+      title="문서 보기"
+      className="flex h-[85vh] w-full max-w-[820px] flex-col overflow-hidden rounded-xl border border-[#1C1F2A]/10 shadow-2xl"
+    >
+      <div
+        role="status"
+        aria-label="문서 뷰어를 불러오는 중입니다"
+        className="flex min-h-0 flex-1 justify-center bg-[#F1F5F9] p-6"
+      >
+        <div
+          aria-hidden
+          className="h-[600px] w-full max-w-[576px] animate-pulse rounded border border-[#E2E8F0] bg-white shadow-sm"
+        />
+      </div>
+    </Modal>
+  );
+}
 
 /** 프리로드는 한 번이면 된다 */
 let isViewerPreloaded = false;

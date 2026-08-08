@@ -14,9 +14,22 @@ import { ApiError, messageOf } from '@/lib/api';
 
 import type { ApprovalDocument } from './types';
 
-/** pdfjs 는 초기 번들에서 분리한다 — 아래 effect 가 미리보기 fetch 와 나란히 받아 온다 */
+/**
+ * pdfjs 는 초기 번들에서 분리한다 — 아래 effect 가 미리보기 fetch 와 나란히 받아 온다.
+ *
+ * 둘 중 **미리보기 응답이 먼저 끝날 수 있다.** `loading` 이 없으면 그 사이 본문이
+ * 빈 영역으로 남으므로 자리를 지키는 표시를 넘긴다.
+ */
 const PdfPages = dynamic(() => import('@/features/file/PdfPages'), {
   ssr: false,
+  loading: () => (
+    <div role="status" aria-label="미리보기 뷰어를 불러오는 중입니다">
+      <div
+        aria-hidden
+        className="h-[600px] w-full animate-pulse rounded-lg border border-[#E2E8F0] bg-white shadow-sm"
+      />
+    </div>
+  ),
 });
 
 /** 미리보기 상태 — 로딩 · 지원 안 함 · 실패를 화면에서 구분해야 한다 */

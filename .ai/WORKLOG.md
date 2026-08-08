@@ -38,6 +38,9 @@
 | 자리표시자 높이가 0 이면 5장이 동시에 교차 판정 | 렌더 전에는 페이지 크기를 모름                                 | `pdf.getPage(1).getViewport()` 로 **메타데이터만** 읽어 비율 확보 (실패 시 A4 기본값)   |
 | `rootMargin` 이 먹지 않음                       | 스크롤을 모달 본문이 갖는데 `root` 가 뷰포트였음               | `findScrollParent()` 로 실제 스크롤 조상을 찾아 `root` 로 지정                          |
 | 프리페치를 붙여도 캐시가 비어 다시 받음         | 모달 언마운트 시 `controller.abort()` 가 공유 중인 요청을 끊음 | 두 모달의 정리 함수를 `abort` → `isStale` 플래그로 교체 — 요청은 살리고 **결과만 무시** |
+| 청크 로드 중 화면이 비어 클릭이 안 먹은 듯 보임 | `next/dynamic` 은 `loading` 이 없으면 `null` 을 렌더 | 두 동적 컴포넌트에 `role="status"` 로딩 fallback 추가 (리뷰 반영) |
+| 캔버스가 나오기 직전 슬롯이 0 으로 주저앉음 | `isVisible`(관찰 진입)로 높이를 풀었는데 `loading={null}` 이라 그 사이 내용이 없음 | `onRenderSuccess` 로 `isRendered` 를 따로 두고 그전까지 `minHeight` 유지 (리뷰 반영) |
+| 실패한 옛 요청이 같은 키의 새 요청을 지움 | `evictOverflow` 로 밀려난 Promise 의 `catch` 가 키만 보고 삭제 | 삭제 전 `cache.get(key) === pending` 동일성 확인 (리뷰 반영) |
 
 ### 부수 결정
 

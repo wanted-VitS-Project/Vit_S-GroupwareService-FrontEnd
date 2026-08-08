@@ -116,7 +116,15 @@ function LazyPage({
   ratio: number;
 }) {
   const slotRef = useRef<HTMLDivElement>(null);
+  /** 관찰 범위에 들어왔는가 — 렌더 **시작** 조건이다 */
   const [isVisible, setIsVisible] = useState(false);
+  /**
+   * 캔버스가 실제로 그려졌는가 — 자리 높이를 **놓아도 되는** 조건이다.
+   *
+   * `isVisible` 로 높이를 풀면 `loading={null}` 인 동안 슬롯이 0 으로 주저앉아
+   * 스크롤 위치가 튀고, 아래 페이지들이 한꺼번에 관찰 범위에 들어온다.
+   */
+  const [isRendered, setIsRendered] = useState(false);
 
   useEffect(() => {
     const slot = slotRef.current;
@@ -143,8 +151,11 @@ function LazyPage({
   return (
     <div
       ref={slotRef}
-      // 그리기 전에도 자리를 차지해야 스크롤 길이가 흔들리지 않는다
-      style={isVisible ? undefined : { height: Math.round(width * ratio) }}
+      /*
+        캔버스가 나오기 전까지 자리를 지킨다. `height` 가 아니라 `minHeight` 인 건
+        추정 비율이 실제보다 작아도 캔버스가 잘리지 않게 하기 위해서다.
+      */
+      style={isRendered ? undefined : { minHeight: Math.round(width * ratio) }}
       className="mb-4 overflow-hidden rounded border border-[#E2E8F0] bg-white shadow-sm last:mb-0"
     >
       {isVisible && (
@@ -155,6 +166,7 @@ function LazyPage({
           // 페이지 이미지만 필요하다. 텍스트 · 주석 레이어는 그리지 않는다
           renderTextLayer={false}
           renderAnnotationLayer={false}
+          onRenderSuccess={() => setIsRendered(true)}
           loading={null}
           error={null}
           className="[&_canvas]:block [&_canvas]:!h-auto [&_canvas]:!w-full"
