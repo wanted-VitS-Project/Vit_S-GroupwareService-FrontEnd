@@ -91,10 +91,11 @@ function ActivityLogItem({
             같은 줄의 블록 칩이 다시 접혀 줄 전체가 흔들린다.
           */}
           <span
-            title={time?.full}
+            // 읽을 수 없는 값이면 빈칸으로 두지 않는다 — 시각이 왜 없는지 알 수 있게
+            title={time?.full ?? `시각을 읽을 수 없습니다 (${log.createdAt})`}
             className="ml-auto w-14 shrink-0 text-right text-[10px] text-[#9AA1B4]"
           >
-            {time?.relative ?? ''}
+            {time?.relative ?? '시각 미상'}
           </span>
         </div>
 
@@ -204,8 +205,15 @@ function FullValue({
   return (
     <div>
       <p className="mb-0.5 text-[10px] font-medium text-[#6C7389]">{label}</p>
+      {/*
+        자체 스크롤 영역이라 포커스를 받을 수 있어야 한다 —
+        그렇지 않으면 키보드 사용자는 잘린 뒷부분을 볼 방법이 없다
+      */}
       <pre
-        className={`max-h-40 overflow-auto rounded border px-2 py-1.5 text-[10px] leading-relaxed whitespace-pre-wrap ${
+        tabIndex={0}
+        role="region"
+        aria-label={label}
+        className={`max-h-40 overflow-auto rounded border px-2 py-1.5 text-[10px] leading-relaxed whitespace-pre-wrap focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#3B5BDB] ${
           tone === 'before'
             ? 'border-[#1C1F2A]/9 bg-white text-[#9AA1B4]'
             : 'border-[#8EC5FF] bg-[#EFF6FF] text-[#1C1F2A]'

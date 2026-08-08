@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { getStepBlocks } from '@/features/block/api';
 import type { StepBlock } from '@/features/block/types';
+import { isAbortError } from '@/lib/api';
 
 import ActivityLogItem from './ActivityLogItem';
 import {
@@ -36,10 +37,17 @@ export default function StepActivityLog() {
     stepId: string;
     blocks: StepBlock[];
   } | null>(null);
+  /** 필터 목록 조회 실패 — 목록 본문과 달리 화면을 막지는 않는다 */
+  const [blocksFailedStepId, setBlocksFailedStepId] = useState<string | null>(
+    null,
+  );
+  /** 값이 바뀌면 필터 목록을 다시 불러온다 */
+  const [blocksReloadCount, setBlocksReloadCount] = useState(0);
 
   const blockFilter = filter.stepId === stepId ? filter.value : ALL_BLOCKS;
   const blocks =
     loadedBlocks?.stepId === stepId ? loadedBlocks.blocks : undefined;
+  const hasBlocksFailed = blocksFailedStepId === stepId;
 
   /** 필터를 바꿨을 때 목록 맨 위로 되돌리기 위한 기준점 */
   const topRef = useRef<HTMLDivElement>(null);
@@ -62,17 +70,27 @@ export default function StepActivityLog() {
     const controller = new AbortController();
 
     getStepBlocks(stepId, controller.signal)
-      .then((blocks) => setLoadedBlocks({ stepId, blocks }))
-      // 필터를 못 읽어도 '전체' 목록은 볼 수 있다 — 화면을 막지 않는다
-      .catch(() => undefined);
+      .then((blocks) => {
+        setLoadedBlocks({ stepId, blocks });
+        setBlocksFailedStepId((failed) => (failed === stepId ? null : failed));
+      })
+      .catch((caught) => {
+        // 취소는 실패가 아니다. 필터를 못 읽어도 '전체' 목록은 계속 볼 수 있다
+        if (!isAbortError(caught)) setBlocksFailedStepId(stepId);
+      });
 
     return () => controller.abort();
-  }, [stepId]);
+  }, [stepId, blocksReloadCount]);
 
   const groups = visible ? groupByDate(visible.logs) : [];
 
   return (
-    <div ref={topRef} className="flex flex-col gap-4">
+    <div
+      ref={topRef}
+      // 첫 조회 중임을 보조기술에 알린다 — 스켈레톤은 눈으로만 보이는 신호다
+      aria-busy={!visible && !hasFailed}
+      className="flex flex-col gap-4"
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-semibold text-[#1C1F2A]">활동 기록</h2>
@@ -87,25 +105,46 @@ export default function StepActivityLog() {
           )}
         </div>
 
-        <label className="flex items-center gap-2 text-[11px] text-[#6C7389]">
-          블록
-          <select
-            value={blockFilter}
-            onChange={(event) => {
-              setFilter({ stepId, value: event.target.value });
-              // 목록이 통째로 갈리는데 스크롤이 중간에 남아 있으면 아무 데나 떨어진다
-              topRef.current?.scrollIntoView({ block: 'start' });
-            }}
-            className="cursor-pointer rounded-md border border-[#1C1F2A]/10 bg-white px-2 py-1.5 text-[11px] text-[#1C1F2A] focus:border-[#3B5BDB] focus:outline-none"
-          >
-            <option value={ALL_BLOCKS}>전체</option>
-            {blocks?.map((block) => (
-              <option key={block.blockId} value={String(block.blockId)}>
-                {block.title || '제목 없는 블록'}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="flex items-center gap-2">
+          {/* 필터를 못 읽었다는 사실과 다시 시도할 방법을 알린다 — 조용히 비워 두지 않는다 */}
+          {hasBlocksFailed && (
+            <span className="flex items-center gap-1.5">
+              <span role="alert" className="text-[10px] text-[#E7000B]">
+                블록 목록을 불러오지 못했습니다.
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setBlocksFailedStepId(null);
+                  setBlocksReloadCount((count) => count + 1);
+                }}
+                className="cursor-pointer rounded px-1.5 py-0.5 text-[10px] font-semibold text-[#3B5BDB] hover:bg-[#EDF2FF]"
+              >
+                다시 시도
+              </button>
+            </span>
+          )}
+
+          <label className="flex items-center gap-2 text-[11px] text-[#6C7389]">
+            블록
+            <select
+              value={blockFilter}
+              onChange={(event) => {
+                setFilter({ stepId, value: event.target.value });
+                // 목록이 통째로 갈리는데 스크롤이 중간에 남아 있으면 아무 데나 떨어진다
+                topRef.current?.scrollIntoView({ block: 'start' });
+              }}
+              className="cursor-pointer rounded-md border border-[#1C1F2A]/10 bg-white px-2 py-1.5 text-[11px] text-[#1C1F2A] focus:border-[#3B5BDB] focus:outline-none"
+            >
+              <option value={ALL_BLOCKS}>전체</option>
+              {blocks?.map((block) => (
+                <option key={block.blockId} value={String(block.blockId)}>
+                  {block.title || '제목 없는 블록'}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
 
       {hasFailed ? (

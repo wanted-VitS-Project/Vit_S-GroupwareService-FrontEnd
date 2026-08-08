@@ -5,6 +5,7 @@ import { useState } from 'react';
 import Modal from '@/components/Modal';
 import { Skeleton } from '@/components/Skeleton';
 
+import ActivityIcon from './ActivityIcon';
 import ActivityLogItem from './ActivityLogItem';
 import {
   ActivityLogMoreSkeleton,
@@ -88,6 +89,8 @@ export default function BlockActivityLogPanel({
     >
       <div
         ref={setScrollArea}
+        // 첫 조회 중임을 보조기술에 알린다 — 스켈레톤은 눈으로만 보이는 신호다
+        aria-busy={!visible && !hasFailed}
         className="min-h-0 flex-1 [scrollbar-gutter:stable] overflow-y-auto p-3"
       >
         {hasFailed ? (
@@ -169,23 +172,5 @@ export default function BlockActivityLogPanel({
         )}
       </div>
     </Modal>
-  );
-}
-
-/** 활동 — 심전도 모양 선 (초안의 `Activity` 아이콘) */
-function ActivityIcon({ className = 'size-3' }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-      className={className}
-    >
-      <path d="M3 12h4l3 8 4-16 3 8h4" />
-    </svg>
   );
 }

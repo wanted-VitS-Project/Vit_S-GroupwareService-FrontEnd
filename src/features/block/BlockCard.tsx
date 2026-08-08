@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { useRef, useState } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
+import ActivityIcon from '@/features/activityLog/ActivityIcon';
 import BlockActivityLogPanel from '@/features/activityLog/BlockActivityLogPanel';
 
 import { useBlockActions } from './BlockActionsContext';
@@ -261,7 +262,7 @@ function BlockMenu({
                 }}
                 className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-[#1C1F2A] hover:bg-gray-50"
               >
-                <ActivityIcon />
+                <ActivityIcon className="size-2.5 shrink-0 text-violet-500" />
                 <span className="flex-1 text-left">활동 로그</span>
               </button>
               <button
@@ -315,24 +316,6 @@ function BlockMenu({
 
 function HashIcon() {
   return <span className="text-[11px] font-semibold text-blue-600">#</span>;
-}
-
-/** 활동 — 심전도 모양 선 (활동 로그 팝업 헤더와 같은 모양) */
-function ActivityIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-      className="size-2.5 shrink-0 text-violet-500"
-    >
-      <path d="M3 12h4l3 8 4-16 3 8h4" />
-    </svg>
-  );
 }
 
 function MoreIcon() {

@@ -5,9 +5,14 @@
  *    `new Date()` 에 넣으면 브라우저마다 UTC 로 읽을 수 있어 **직접 쪼개서** 로컬로 만든다.
  */
 
-/** 'YYYY-MM-DDTHH:mm:ss' — 초는 없어도 받는다 */
+/**
+ * 'YYYY-MM-DDTHH:mm:ss' — 초 · 소수점 이하는 없어도 받는다.
+ *
+ * ⚠️ **끝까지 검사한다.** 뒤가 열려 있으면 타임존이 붙은 값(`...Z` · `+09:00`)까지
+ *    받아들여 몇 시간 어긋난 시각을 그대로 보여주게 된다.
+ */
 const DATE_TIME_PATTERN =
-  /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/;
+  /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?$/;
 
 export interface ActivityTime {
   /** 날짜 그룹 키 — 같은 날이면 같은 값 */
@@ -43,6 +48,20 @@ export function parseActivityTime(
     Number(second),
   );
   if (Number.isNaN(at.getTime())) return null;
+
+  /*
+   * `Date` 는 범위를 벗어난 값을 조용히 넘긴다 — 2월 30일은 3월 2일이 되고
+   * 25시는 다음 날이 된다. 그대로 두면 날짜 머리(2월 30일)와 상대 시간(3월 기준)이
+   * 서로 다른 날을 가리킨다. 넣은 값과 나온 값이 **모두** 같을 때만 인정한다.
+   */
+  const isSameMoment =
+    at.getFullYear() === Number(year) &&
+    at.getMonth() === Number(month) - 1 &&
+    at.getDate() === Number(day) &&
+    at.getHours() === Number(hour) &&
+    at.getMinutes() === Number(minute) &&
+    at.getSeconds() === Number(second);
+  if (!isSameMoment) return null;
 
   const dateKey = `${year}-${month}-${day}`;
   const clock = `${hour}:${minute}`;

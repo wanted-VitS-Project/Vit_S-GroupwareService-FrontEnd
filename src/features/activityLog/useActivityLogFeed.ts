@@ -54,6 +54,12 @@ export function useActivityLogFeed(
 
     getStepActivityLogs(stepId, { blockId, signal: controller.signal })
       .then((page) => {
+        /*
+         * 조건이 바뀐 뒤 도착한 응답은 버린다. 취소는 걸어 뒀지만 이미 응답이
+         * 도착한 뒤라면 그대로 통과해, 지난 조건의 첫 페이지가 새 목록을 덮는다.
+         */
+        if (controller.signal.aborted) return;
+
         setLoaded({
           key: requestKey,
           stepId,
@@ -98,6 +104,25 @@ export function useActivityLogFeed(
    * state 로만 막으면 같은 커서를 두 번 부른다.
    */
   const loadingMoreRef = useRef(false);
+  /** 나가 있는 이어 읽기 요청 — 조건이 바뀌면 끊는다 */
+  const loadMoreAbortRef = useRef<AbortController | null>(null);
+
+  /**
+   * 조건이 바뀌면 나가 있던 이어 읽기를 끊고 진행 상태를 되돌린다.
+   *
+   * ⚠️ 이게 없으면 A 조건의 커서 요청이 끝날 때까지 `loadingMoreRef` 가 잠겨 있어
+   *    그 사이 전환한 B 조건의 감시 지점 요청이 통째로 무시된다. 감시 지점은
+   *    "보이기 시작할 때" 한 번만 알리므로 그대로 **자동 이어 읽기가 멈춘다.**
+   */
+  useEffect(() => {
+    return () => {
+      loadMoreAbortRef.current?.abort();
+      loadMoreAbortRef.current = null;
+      loadingMoreRef.current = false;
+      setIsLoadingMore(false);
+      setErrorMessage('');
+    };
+  }, [requestKey]);
 
   const loadMore = useCallback(async () => {
     if (loadingMoreRef.current) return;
@@ -106,12 +131,18 @@ export function useActivityLogFeed(
     const key = current.key;
     const cursor = current.nextCursor;
 
+    const controller = new AbortController();
+    loadMoreAbortRef.current = controller;
     loadingMoreRef.current = true;
     setIsLoadingMore(true);
     setErrorMessage('');
 
     try {
-      const page = await getStepActivityLogs(stepId, { blockId, cursor });
+      const page = await getStepActivityLogs(stepId, {
+        blockId,
+        cursor,
+        signal: controller.signal,
+      });
 
       setLoaded((prev) => {
         // 기다리는 사이 조건이 바뀌었으면 지금 결과는 버린다
@@ -137,8 +168,12 @@ export function useActivityLogFeed(
         );
       }
     } finally {
-      loadingMoreRef.current = false;
-      setIsLoadingMore(false);
+      // 조건이 바뀌어 다음 요청이 이미 나갔으면 그쪽 잠금을 풀어버리면 안 된다
+      if (loadMoreAbortRef.current === controller) {
+        loadMoreAbortRef.current = null;
+        loadingMoreRef.current = false;
+        setIsLoadingMore(false);
+      }
     }
   }, [current, stepId, blockId]);
 
