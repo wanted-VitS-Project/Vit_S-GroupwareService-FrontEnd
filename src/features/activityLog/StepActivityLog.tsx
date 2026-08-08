@@ -1,32 +1,19 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { getStepBlocks } from '@/features/block/api';
 import type { StepBlock } from '@/features/block/types';
-import { isAbortError, messageOf } from '@/lib/api';
 
 import ActivityLogItem from './ActivityLogItem';
 import {
   ActivityLogMoreSkeleton,
   ActivityLogSkeleton,
 } from './ActivityLogSkeletons';
-import { getStepActivityLogs } from './api';
-import { parseActivityTime } from './time';
-import { ALL_BLOCKS, type ActivityLog } from './types';
-
-/** 커서 페이지네이션 상태. 어느 조회 조건의 결과인지 함께 들고 있는다 */
-interface LoadedLogs {
-  key: string;
-  /** 같은 스텝 안에서 필터만 바뀐 것인지 가리는 데 쓴다 */
-  stepId: string;
-  /** 이 목록이 어느 필터의 결과인지 — 새 조건을 부르는 동안 화면은 이 값을 따른다 */
-  filter: string;
-  logs: ActivityLog[];
-  nextCursor: number | null;
-  hasNext: boolean;
-}
+import { groupByDate } from './time';
+import { ALL_BLOCKS } from './types';
+import { useActivityLogFeed } from './useActivityLogFeed';
 
 /**
  * 스텝 활동 기록 화면. (.ai/API.md 72번)
@@ -34,8 +21,7 @@ interface LoadedLogs {
  * 서버는 **문장을 만들어 주지 않는다** — 원자 데이터만 오고 날짜 그룹 · 상대 시간 ·
  * 문장 조립은 모두 여기서 한다.
  *
- * 블록 필터를 바꾸면 목록과 커서를 **모두 초기화**하고 다시 조회한다.
- * 이어 읽기는 화면 맨 아래 감시 지점이 보이면 자동으로 다음 커서를 부른다.
+ * 목록 조회 · 이어 읽기는 `useActivityLogFeed` 가 맡는다 (블록 팝업과 같은 규칙).
  */
 export default function StepActivityLog() {
   const params = useParams<{ id: string; stepId: string }>();
@@ -58,17 +44,18 @@ export default function StepActivityLog() {
   /** 필터를 바꿨을 때 목록 맨 위로 되돌리기 위한 기준점 */
   const topRef = useRef<HTMLDivElement>(null);
 
-  const [loaded, setLoaded] = useState<LoadedLogs | null>(null);
-  const [failedKey, setFailedKey] = useState<string | null>(null);
-  /** 값이 바뀌면 첫 페이지부터 다시 불러온다 */
-  const [reloadCount, setReloadCount] = useState(0);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  /** 이어 읽기 실패처럼 화면을 막지 않는 오류 */
-  const [errorMessage, setErrorMessage] = useState('');
-
-  /** 조회 조건 — 스텝이나 필터가 바뀌면 이전 응답은 통째로 버린다 */
-  const requestKey = `${stepId}:${blockFilter}`;
   const blockId = blockFilter === ALL_BLOCKS ? undefined : Number(blockFilter);
+
+  const {
+    visible,
+    isSwitching,
+    hasFailed,
+    isLoadingMore,
+    errorMessage,
+    loadMore,
+    retry,
+    setSentinel,
+  } = useActivityLogFeed(stepId, blockId);
 
   // 필터 목록
   useEffect(() => {
@@ -81,122 +68,6 @@ export default function StepActivityLog() {
 
     return () => controller.abort();
   }, [stepId]);
-
-  // 첫 페이지
-  useEffect(() => {
-    const controller = new AbortController();
-
-    getStepActivityLogs(stepId, { blockId, signal: controller.signal })
-      .then((page) => {
-        setLoaded({
-          key: requestKey,
-          stepId,
-          filter: blockFilter,
-          logs: page.activities,
-          nextCursor: page.nextCursor,
-          hasNext: page.hasNext,
-        });
-        setFailedKey((failed) => (failed === requestKey ? null : failed));
-        setErrorMessage('');
-      })
-      .catch((caught) => {
-        // 취소는 실패가 아니다
-        if (!isAbortError(caught)) setFailedKey(requestKey);
-      });
-
-    return () => controller.abort();
-    // blockId 는 requestKey 에서 파생된 값이라 의존성에 따로 넣지 않는다
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestKey, reloadCount]);
-
-  // 다른 조건의 응답은 쓰지 않는다 — 조회 · 이어 읽기는 항상 이 값만 본다
-  const current = loaded?.key === requestKey ? loaded : null;
-  const hasFailed = failedKey === requestKey;
-
-  /**
-   * 필터만 바꾼 경우의 **직전 목록**. 그리기에만 쓴다.
-   *
-   * 조건이 바뀔 때마다 목록을 지우고 스켈레톤을 다시 띄우면 화면이 통째로 깜빡인다.
-   * (사이드바 진척률 갱신에서 정한 규칙과 같다 — `loaded` 를 비우지 않는다)
-   * 스텝이 바뀐 경우는 아예 다른 화면이라 그대로 스켈레톤을 보여준다.
-   */
-  const previous =
-    loaded && loaded.key !== requestKey && loaded.stepId === stepId
-      ? loaded
-      : null;
-
-  const visible = current ?? previous;
-  /** 이전 목록을 띄운 채 새 조건을 불러오는 중 */
-  const isSwitching = current === null && previous !== null;
-
-  /**
-   * 이어 읽기가 나가 있는지. 감시 지점은 스크롤 중 여러 번 걸려
-   * state 로만 막으면 같은 커서를 두 번 부른다.
-   */
-  const loadingMoreRef = useRef(false);
-
-  const loadMore = useCallback(async () => {
-    if (loadingMoreRef.current) return;
-    if (!current?.hasNext || current.nextCursor === null) return;
-
-    const key = current.key;
-    const cursor = current.nextCursor;
-
-    loadingMoreRef.current = true;
-    setIsLoadingMore(true);
-    setErrorMessage('');
-
-    try {
-      const page = await getStepActivityLogs(stepId, { blockId, cursor });
-
-      setLoaded((prev) => {
-        // 기다리는 사이 필터가 바뀌었으면 지금 결과는 버린다
-        if (prev === null || prev.key !== key) return prev;
-
-        // 조회 중 새 기록이 쌓여도 같은 항목이 두 번 그려지지 않게 걸러낸다
-        const seen = new Set(prev.logs.map((log) => log.activityLogId));
-        const added = page.activities.filter(
-          (log) => !seen.has(log.activityLogId),
-        );
-
-        return {
-          ...prev,
-          logs: [...prev.logs, ...added],
-          nextCursor: page.nextCursor,
-          hasNext: page.hasNext,
-        };
-      });
-    } catch (caught) {
-      if (!isAbortError(caught)) {
-        setErrorMessage(
-          messageOf(caught, '활동 기록을 더 불러오지 못했습니다.'),
-        );
-      }
-    } finally {
-      loadingMoreRef.current = false;
-      setIsLoadingMore(false);
-    }
-  }, [current, stepId, blockId]);
-
-  /** 목록 맨 아래 감시 지점. 붙였다 뗐다 해야 해서 콜백 ref 로 받는다 */
-  const [sentinel, setSentinel] = useState<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!sentinel || !current?.hasNext) return;
-    // 이어 읽기가 실패한 상태에서는 자동으로 다시 부르지 않는다 — 무한 재시도가 된다
-    if (errorMessage) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) loadMore();
-      },
-      // 바닥에 닿기 전에 미리 부른다
-      { rootMargin: '200px' },
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [sentinel, current?.hasNext, errorMessage, loadMore]);
 
   const groups = visible ? groupByDate(visible.logs) : [];
 
@@ -244,10 +115,7 @@ export default function StepActivityLog() {
           </p>
           <button
             type="button"
-            onClick={() => {
-              setFailedKey(null);
-              setReloadCount((count) => count + 1);
-            }}
+            onClick={retry}
             className="cursor-pointer rounded px-2 py-1 text-[11px] font-medium text-[#3B5BDB] hover:bg-[#EDF2FF]"
           >
             다시 시도
@@ -281,8 +149,8 @@ export default function StepActivityLog() {
                     key={log.activityLogId}
                     log={log}
                     isLast={index === group.logs.length - 1}
-                    // 지금 그려진 목록이 어느 필터의 결과인지를 따른다
-                    showBlock={visible.filter === ALL_BLOCKS}
+                    // 지금 그려진 목록이 어느 조건의 결과인지를 따른다
+                    showBlock={visible.blockId === undefined}
                   />
                 ))}
               </ul>
@@ -326,30 +194,4 @@ export default function StepActivityLog() {
       )}
     </div>
   );
-}
-
-interface LogGroup {
-  dateKey: string;
-  dateLabel: string;
-  logs: ActivityLog[];
-}
-
-/**
- * 날짜별로 묶는다. 응답이 이미 최신순이라 **순서를 다시 세우지 않고** 훑으며 자른다.
- * 시각을 못 읽은 기록은 버리지 않고 '날짜 미상' 으로 모아 둔다.
- */
-function groupByDate(logs: ActivityLog[]): LogGroup[] {
-  const groups: LogGroup[] = [];
-
-  for (const log of logs) {
-    const time = parseActivityTime(log.createdAt);
-    const dateKey = time?.dateKey ?? 'unknown';
-    const dateLabel = time?.dateLabel ?? '날짜 미상';
-
-    const last = groups[groups.length - 1];
-    if (last?.dateKey === dateKey) last.logs.push(log);
-    else groups.push({ dateKey, dateLabel, logs: [log] });
-  }
-
-  return groups;
 }

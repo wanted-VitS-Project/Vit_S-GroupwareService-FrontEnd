@@ -78,3 +78,29 @@ function relativeOf(at: Date, now: Date) {
 function pad(value: number) {
   return String(value).padStart(2, '0');
 }
+
+export interface ActivityLogGroup<T extends { createdAt: string }> {
+  dateKey: string;
+  dateLabel: string;
+  logs: T[];
+}
+
+/**
+ * 날짜별로 묶는다. 응답이 이미 최신순이라 **순서를 다시 세우지 않고** 훑으며 자른다.
+ * 시각을 못 읽은 기록은 버리지 않고 '날짜 미상' 으로 모아 둔다.
+ */
+export function groupByDate<T extends { createdAt: string }>(logs: T[]) {
+  const groups: ActivityLogGroup<T>[] = [];
+
+  for (const log of logs) {
+    const time = parseActivityTime(log.createdAt);
+    const dateKey = time?.dateKey ?? 'unknown';
+    const dateLabel = time?.dateLabel ?? '날짜 미상';
+
+    const last = groups[groups.length - 1];
+    if (last?.dateKey === dateKey) last.logs.push(log);
+    else groups.push({ dateKey, dateLabel, logs: [log] });
+  }
+
+  return groups;
+}

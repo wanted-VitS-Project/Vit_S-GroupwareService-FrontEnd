@@ -8,23 +8,26 @@
 
 ## [2026-08-08] 스텝 활동 기록(`/log`) 화면 구현 ✅
 
-브랜치: `log` · 이슈: #74
+브랜치: `log` · 이슈: #74 + #75
 
 ### 변경 파일
 
-| 파일                                                | 변경 |
-| --------------------------------------------------- | ---- |
-| `src/features/activityLog/types.ts`                 | 생성 |
-| `src/features/activityLog/api.ts`                   | 생성 |
-| `src/features/activityLog/time.ts`                  | 생성 |
-| `src/features/activityLog/ActivityLogItem.tsx`      | 생성 |
-| `src/features/activityLog/ActivityLogSkeletons.tsx` | 생성 |
-| `src/features/activityLog/StepActivityLog.tsx`      | 생성 |
-| `src/app/projects/[id]/steps/[stepId]/log/page.tsx` | 수정 |
-| `src/app/projects/[id]/steps/[stepId]/layout.tsx`   | 수정 |
-| `src/constants/endpoints.ts`                        | 수정 |
-| `.ai/API.md`                                        | 수정 |
-| `.ai/local/STATE.md`                                | 수정 |
+| 파일                                                 | 변경 |
+| ---------------------------------------------------- | ---- |
+| `src/features/activityLog/types.ts`                  | 생성 |
+| `src/features/activityLog/api.ts`                    | 생성 |
+| `src/features/activityLog/time.ts`                   | 생성 |
+| `src/features/activityLog/ActivityLogItem.tsx`       | 생성 |
+| `src/features/activityLog/ActivityLogSkeletons.tsx`  | 생성 |
+| `src/features/activityLog/StepActivityLog.tsx`       | 생성 |
+| `src/features/activityLog/useActivityLogFeed.ts`     | 생성 |
+| `src/features/activityLog/BlockActivityLogPanel.tsx` | 생성 |
+| `src/features/block/BlockCard.tsx`                   | 수정 |
+| `src/app/projects/[id]/steps/[stepId]/log/page.tsx`  | 수정 |
+| `src/app/projects/[id]/steps/[stepId]/layout.tsx`    | 수정 |
+| `src/constants/endpoints.ts`                         | 수정 |
+| `.ai/API.md`                                         | 수정 |
+| `.ai/local/STATE.md`                                 | 수정 |
 
 ### 주요 작업 내용
 
@@ -33,6 +36,8 @@
 - 블록 필터 — `GET /steps/{id}/blocks` 로 선택지를 채우고, 바꾸면 목록 · 커서를 초기화한 뒤 재조회
 - 문장 조립을 화면에서 전부 처리 — 윗줄 `수행자 + 블록(제목 · 유형 아이콘) + 동작 배지`, 아랫줄 `displayName + 동작 + 변경 값`
 - `fieldName` 별 표시 규칙 구현 — `title`·`content`·`caption` 은 펼쳐서 전문, `orderIndex` 는 `N번째 → M번째`, `isCompleted`·`status` 는 값 사전 매칭, `lines` 는 그대로
+- **블록별 활동 로그 팝업** — 블록 카드 `⋯` → `활동 로그`. 같은 API 에 `?blockId=` 를 붙여 조회 (연결 이슈 패널과 같은 자리 · 크기)
+- 목록 조회 · 커서 이어 읽기를 `useActivityLogFeed` 훅으로 추출 — 스텝 화면과 블록 팝업이 같은 규칙(중복 제거 · 조건 전환 시 직전 목록 유지 · 실패 처리)을 공유
 
 ### 트러블슈팅
 
@@ -54,6 +59,8 @@
 - 블록 필터가 걸린 목록에서는 줄마다 반복되는 블록 칩을 감춘다 (`showBlock`) — 단 **지금 그려진 목록의 필터**를 따른다 (조회 중인 새 조건이 아니라)
 - 필터를 바꾸면 목록 맨 위로 스크롤을 되돌린다 — 목록이 통째로 갈리는데 스크롤이 중간에 남으면 아무 데나 떨어진다
 - `ActivityLogItem` 은 `memo` — 이어 읽기마다 이미 그린 줄까지 다시 그리면 펼친 `<details>` 가 접히고 스크롤이 끊긴다
+- 팝업의 감시 지점은 **팝업 자신**(`root`)을 기준으로 잰다 — 화면 기준으로 재면 목록이 짧을 때 계속 걸려 이어 읽기가 멈추지 않는다
+- 블록 팝업은 줄마다 블록 이름을 반복하지 않는다 (`showBlock={false}`) — 헤더에 이미 블록명이 있다
 - 명세 예시의 `fieldName` 이 `completed`, 단어 사전은 `isCompleted` 라 **두 이름 모두** 값 사전에 등록 — 실제 값은 백엔드 확인 필요
 
 ---
