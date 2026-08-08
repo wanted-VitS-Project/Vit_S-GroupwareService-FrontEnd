@@ -168,6 +168,12 @@ export default function ApprovalDetailView({
    * 이펙트에서 비우면 새 회차를 받기 전에 렌더가 한 번 더 돈다.
    */
   function selectRevision(revisionId: number | null) {
+    /**
+     * 보고 있는 회차를 다시 누른 경우. 여기서 비우면 `pastRevisionId` 는 그대로라
+     * 이펙트가 돌지 않아 **`불러오는 중…` 에서 멈춘다.**
+     */
+    if (revisionId === pastRevisionId) return;
+
     setPastRevisionId(revisionId);
     setPastRevision(null);
     setPastError('');
