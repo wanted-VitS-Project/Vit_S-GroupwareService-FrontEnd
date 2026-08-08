@@ -9,6 +9,7 @@ import type {
   ApprovalListQuery,
   ApprovalPage,
   ApprovalRevision,
+  ApprovalRevisionHistory,
   ApproveLineResponse,
   CreateRevisionResponse,
   ProcessLineRequest,
@@ -76,6 +77,19 @@ export function getRevision(
 ) {
   return api.get<ApprovalRevision>(
     ENDPOINTS.approvals.revision(approvalId, revisionId),
+    signal,
+  );
+}
+
+/**
+ * 결재 이력. 이 결재의 **전체 회차**를 회차 번호 오름차순으로 준다.
+ *
+ * 조회 권한은 회차 상세와 같되 **전체 회차를 통틀어** 판정한다 —
+ * 한 회차에서만 결재자였어도 이력 전체를 볼 수 있다.
+ */
+export function getRevisions(approvalId: number, signal?: AbortSignal) {
+  return api.get<ApprovalRevisionHistory>(
+    ENDPOINTS.approvals.revisions(approvalId),
     signal,
   );
 }

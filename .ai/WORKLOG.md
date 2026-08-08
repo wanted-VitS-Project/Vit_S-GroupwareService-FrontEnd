@@ -349,6 +349,43 @@
 
 ---
 
+## [2026-08-07] 결재 회차 이력 조회 · 회차 전환 ✅
+
+브랜치: `feat/approval-detail` · 이슈: #62
+
+### 변경 파일
+
+| 파일                                           | 변경                                                 |
+| ---------------------------------------------- | ---------------------------------------------------- |
+| `src/features/approval/types.ts`               | 수정 — `ApprovalRevisionSummary` · `ApprovalRevisionHistory` |
+| `src/features/approval/api.ts`                 | 수정 — `getRevisions()`                              |
+| `src/features/approval/ApprovalDetailView.tsx` | 수정 — 회차 전환 탭 · 지난 회차 열람 · 본문 분리     |
+| `.ai/API.md`                                   | 수정 — 66번 절 신설 · 대기표에서 제거                |
+
+### 주요 작업 내용
+
+- `GET /approvals/{approvalId}/revisions` 연동 — 전체 회차를 회차 번호 오름차순으로 받는다
+- 상세 화면에 회차 전환 탭 추가, 회차가 2개 이상일 때만 그린다
+- 지난 회차를 고르면 회차 상세(48번)를 따로 받아 같은 본문(`RevisionBody`)으로 그린다
+- 지난 회차에서는 승인 · 반려 버튼을 아예 노출하지 않는다
+
+### 트러블슈팅
+
+- **`setState` 를 이펙트에서 부른다는 lint 오류** (`react-hooks/set-state-in-effect`) — 회차를 바꿀 때 직전 내용·실패 문구를 이펙트 안에서 비우고 있었다. 초기화를 클릭 핸들러(`selectRevision`)로 옮겨 렌더가 한 번 더 도는 것도 함께 없앴다
+- **지난 회차를 받는 동안 머리말이 어긋났다** — 상태 배지와 회차 번호가 현재 회차 값을 그대로 보여줬다. 이력 요약에 `status` · `revisionNo` 가 있어 그것으로 채우고, 이력에 없는 제목만 `불러오는 중…` 으로 둔다
+- **Swagger 응답 예시가 사원 스키마**(`userId` · `departmentPath`)로 잘못 표기돼 있었다 — 실행 결과 기준으로 타입을 만들고 `API.md` 의 명세·실물 차이 표에 남겼다
+
+### 부수 결정
+
+- **응답 봉투에 기존 `ApprovalPage<T>` 를 쓰지 않았다** — 이력 응답에는 `totalElements` · `totalPages` 가 없다. 없는 필드를 타입에 넣으면 `undefined` 가 화면으로 샌다
+- **현재 회차 판정은 `isCurrent` 로 한다** — `revisionNo` 최댓값으로 짚으면 재상신 DRAFT 가 생겼을 때 어긋난다
+- **현재 회차는 다시 부르지 않는다** — `pastRevisionId === null` 을 현재 회차로 두고 이미 받아 둔 결재 상세를 그대로 쓴다
+- **이력 조회 실패는 화면을 접지 않는다** — 곁다리라 못 받으면 전환 탭만 빠지고 현재 회차는 그대로 보인다
+- **결재 블록에는 회차 전환을 넣지 않았다** — 블록이 3열 그리드의 1칸이라 탭을 놓을 폭이 없다. `N회차` 배지로 재상신 사실만 알리고 이력 열람은 상세에 맡긴다
+- `ViewedRevision = Omit<ApprovalDetail, 'blockOrigin'>` — 결재 상세와 회차 상세가 `blockOrigin` 만 빼고 필드가 같아 본문을 한 컴포넌트로 공유한다
+
+---
+
 ## [2026-08-07] 결재 관리 상세 · 승인/반려 · 결재 블록 ✅
 
 브랜치: `feat/approval-page` → `feat/approval-detail` · 이슈: #61
