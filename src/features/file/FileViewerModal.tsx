@@ -5,10 +5,11 @@ import { useEffect, useState } from 'react';
 import Modal from '@/components/Modal';
 import { messageOf } from '@/lib/api';
 
-import { downloadVersion, getFileVersions, getPreview } from './api';
+import { downloadVersion, getFileVersions } from './api';
 import { FILE_CODES } from './errorCodes';
 import { extensionLabel, extensionStyle, formatFileSize } from './format';
 import PdfPages from './PdfPages';
+import { loadPreview } from './previewCache';
 import type { BlockFile, FileVersion, FileVersionsResponse } from './types';
 
 /** 미리보기 상태 — 로딩 · 지원 안 함 · 실패를 화면에서 구분해야 한다 */
@@ -84,12 +85,16 @@ export default function FileViewerModal({
   const style = extensionStyle(current.extension);
 
   useEffect(() => {
-    const controller = new AbortController();
-    const { signal } = controller;
+    /**
+     * hover 프리페치가 시작해 둔 요청을 이어받는다.
+     * 중단(`abort`)하지 않고 **결과만 무시**한다 — 끊어 버리면 캐시가 비어
+     * 다시 열 때 처음부터 받아야 하고, 프리페치가 무의미해진다.
+     */
+    let isStale = false;
 
-    getPreview(versionId, signal)
+    loadPreview(versionId)
       .then(({ blob, previewPageCount, totalPageCount }) => {
-        if (signal.aborted) return;
+        if (isStale) return;
         // react-pdf 가 Blob 을 그대로 받는다 — object URL 을 만들지 않아 해제도 필요 없다
         setPreviewOf({
           versionId,
@@ -102,7 +107,7 @@ export default function FileViewerModal({
         });
       })
       .catch((caught) => {
-        if (signal.aborted) return;
+        if (isStale) return;
 
         const code =
           caught && typeof caught === 'object' && 'code' in caught
@@ -121,7 +126,9 @@ export default function FileViewerModal({
         });
       });
 
-    return () => controller.abort();
+    return () => {
+      isStale = true;
+    };
   }, [versionId]);
 
   // 패널을 처음 펼칠 때만 이력을 불러온다 (재시도 시에도 다시 탄다)

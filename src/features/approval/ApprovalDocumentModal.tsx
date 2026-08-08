@@ -1,20 +1,36 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 
 import Modal from '@/components/Modal';
-import {
-  downloadVersion,
-  getFileVersion,
-  getPreview,
-} from '@/features/file/api';
+import { downloadVersion, getFileVersion } from '@/features/file/api';
 import { FILE_CODES } from '@/features/file/errorCodes';
 import { formatFileSize } from '@/features/file/format';
-import PdfPages from '@/features/file/PdfPages';
+import { preloadPdfViewer } from '@/features/file/pdfViewer';
+import { loadPreview } from '@/features/file/previewCache';
 import type { FileVersionDetail } from '@/features/file/types';
 import { ApiError, messageOf } from '@/lib/api';
 
 import type { ApprovalDocument } from './types';
+
+/**
+ * pdfjs 는 초기 번들에서 분리한다 — 아래 effect 가 미리보기 fetch 와 나란히 받아 온다.
+ *
+ * 둘 중 **미리보기 응답이 먼저 끝날 수 있다.** `loading` 이 없으면 그 사이 본문이
+ * 빈 영역으로 남으므로 자리를 지키는 표시를 넘긴다.
+ */
+const PdfPages = dynamic(() => import('@/features/file/PdfPages'), {
+  ssr: false,
+  loading: () => (
+    <div role="status" aria-label="미리보기 뷰어를 불러오는 중입니다">
+      <div
+        aria-hidden
+        className="h-[600px] w-full animate-pulse rounded-lg border border-[#E2E8F0] bg-white shadow-sm"
+      />
+    </div>
+  ),
+});
 
 /** 미리보기 상태 — 로딩 · 지원 안 함 · 실패를 화면에서 구분해야 한다 */
 type Preview =
@@ -61,20 +77,24 @@ export default function ApprovalDocumentModal({
   }, [document.fileVersionId]);
 
   useEffect(() => {
-    const controller = new AbortController();
-    const { signal } = controller;
+    // 요청을 중단하지 않고 결과만 무시한다 — 캐시를 살려 두기 위해서다
+    let isStale = false;
 
-    getPreview(document.fileVersionId, signal)
-      .then(({ blob, previewPageCount, totalPageCount }) =>
+    // 미리보기 바이너리를 기다리는 동안 뷰어 청크·워커를 같이 받아 둔다
+    preloadPdfViewer();
+
+    loadPreview(document.fileVersionId)
+      .then(({ blob, previewPageCount, totalPageCount }) => {
+        if (isStale) return;
         setPreview({
           kind: 'ready',
           blob,
           shown: previewPageCount,
           total: totalPageCount,
-        }),
-      )
+        });
+      })
       .catch((caught: unknown) => {
-        if (signal.aborted) return;
+        if (isStale) return;
 
         const code = caught instanceof ApiError ? caught.code : undefined;
 
@@ -97,7 +117,9 @@ export default function ApprovalDocumentModal({
         });
       });
 
-    return () => controller.abort();
+    return () => {
+      isStale = true;
+    };
   }, [document.fileVersionId]);
 
   async function download() {
