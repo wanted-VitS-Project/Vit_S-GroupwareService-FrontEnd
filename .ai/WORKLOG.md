@@ -6,6 +6,58 @@
 
 ---
 
+## [2026-08-08] 스텝 활동 기록(`/log`) 화면 구현 ✅
+
+브랜치: `log` · 이슈: #74
+
+### 변경 파일
+
+| 파일                                                | 변경 |
+| --------------------------------------------------- | ---- |
+| `src/features/activityLog/types.ts`                 | 생성 |
+| `src/features/activityLog/api.ts`                   | 생성 |
+| `src/features/activityLog/time.ts`                  | 생성 |
+| `src/features/activityLog/ActivityLogItem.tsx`      | 생성 |
+| `src/features/activityLog/ActivityLogSkeletons.tsx` | 생성 |
+| `src/features/activityLog/StepActivityLog.tsx`      | 생성 |
+| `src/app/projects/[id]/steps/[stepId]/log/page.tsx` | 수정 |
+| `src/app/projects/[id]/steps/[stepId]/layout.tsx`   | 수정 |
+| `src/constants/endpoints.ts`                        | 수정 |
+| `.ai/API.md`                                        | 수정 |
+| `.ai/local/STATE.md`                                | 수정 |
+
+### 주요 작업 내용
+
+- 초안(`비타s초안`)의 `LogsTab` 타임라인 디자인을 현재 화면 톤(색 · 글자 크기 · 스켈레톤)에 맞춰 구현 — 날짜 그룹 머리 + 세로선 타임라인 + 동작 아이콘
+- 활동 기록 조회 API(72번) 연동 — 커서 기반 무한 스크롤(`IntersectionObserver`, 바닥 200px 전에 선조회)
+- 블록 필터 — `GET /steps/{id}/blocks` 로 선택지를 채우고, 바꾸면 목록 · 커서를 초기화한 뒤 재조회
+- 문장 조립을 화면에서 전부 처리 — 윗줄 `수행자 + 블록(제목 · 유형 아이콘) + 동작 배지`, 아랫줄 `displayName + 동작 + 변경 값`
+- `fieldName` 별 표시 규칙 구현 — `title`·`content`·`caption` 은 펼쳐서 전문, `orderIndex` 는 `N번째 → M번째`, `isCompleted`·`status` 는 값 사전 매칭, `lines` 는 그대로
+
+### 트러블슈팅
+
+| 문제                                        | 원인                                                                           | 해결                                                                                    |
+| ------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| `react-hooks/set-state-in-effect` 린트 오류 | 스텝 변경 시 필터를 되돌리려고 effect 안에서 `setState` 를 동기 호출           | 필터 · 블록 목록에 **어느 스텝의 값인지**를 함께 담아 렌더 중 파생값으로 계산           |
+| 무한 스크롤이 같은 커서를 두 번 조회        | 감시 지점이 스크롤 중 여러 번 걸리는데 `state` 플래그는 반영이 한 박자 늦음    | `loadingMoreRef` 로 진행 중 여부를 즉시 잠그고 응답 후 해제                             |
+| 이어 읽기 실패 후 자동 재시도가 무한 반복   | 감시 지점이 계속 화면에 남아 있어 실패하자마자 다시 호출                       | 오류 상태에서는 observer 를 붙이지 않고 `다시 시도` 버튼으로만 재호출                   |
+| 스크롤바가 생길 때마다 화면이 좌우로 흔들림 | 목록이 늘어나며 스크롤바가 생기는 순간 본문 폭이 줄어듦 (무한 스크롤이라 반복) | 스텝 레이아웃 본문에 `scrollbar-gutter: stable` — 스크롤바는 그대로 보인다              |
+| 블록 필터를 바꿀 때마다 화면 전체가 깜빡임  | 조회 조건이 바뀌는 즉시 목록을 버리고 스켈레톤을 다시 띄움                     | 직전 목록을 띄운 채 새 조건을 조회하고, 도착하면 갈아끼움 (`isSwitching` 동안만 흐리게) |
+| 목록 바닥이 깜빡임                          | 이어 읽는 동안 `마지막 기록입니다` 문구와 스켈레톤이 번갈아 나타남             | 이어 읽는 중에는 마무리 문구를 감춤                                                     |
+
+### 부수 결정
+
+- `createdAt` 에 타임존 표기가 없어(`2026-08-02T14:32:00`) `new Date(문자열)` 대신 **직접 쪼개 로컬 시각**으로 만든다 — 브라우저별 UTC 해석 차이로 날짜가 밀리는 것을 막는다
+- 날짜 그룹은 밀리초 차가 아니라 **달력 날짜**로 비교한다 — 자정 직후 기록이 '어제' 로 밀리지 않게
+- 상대 시간(`방금` · `N분 전` · `N시간 전`)은 **24시간 이내만** 쓰고, 그 이후는 시각(`14:32`)을 그대로 보여준다
+- 페이지네이션 중 새 기록이 쌓여도 같은 항목이 두 번 그려지지 않게 `activityLogId` 로 걸러 이어 붙인다
+- 블록 필터가 걸린 목록에서는 줄마다 반복되는 블록 칩을 감춘다 (`showBlock`) — 단 **지금 그려진 목록의 필터**를 따른다 (조회 중인 새 조건이 아니라)
+- 필터를 바꾸면 목록 맨 위로 스크롤을 되돌린다 — 목록이 통째로 갈리는데 스크롤이 중간에 남으면 아무 데나 떨어진다
+- `ActivityLogItem` 은 `memo` — 이어 읽기마다 이미 그린 줄까지 다시 그리면 펼친 `<details>` 가 접히고 스크롤이 끊긴다
+- 명세 예시의 `fieldName` 이 `completed`, 단어 사전은 `isCompleted` 라 **두 이름 모두** 값 사전에 등록 — 실제 값은 백엔드 확인 필요
+
+---
+
 ## [2026-08-07] 이미지 블록 구현 ✅
 
 브랜치: `user/project` · 이슈: #72
@@ -285,22 +337,22 @@
 
 ### 변경 파일
 
-| 파일                                            | 변경                                             |
-| ----------------------------------------------- | ------------------------------------------------ |
-| `src/app/approvals/[approvalId]/page.tsx`       | 생성 — 상세 라우트(숫자 아닌 세그먼트는 404)     |
-| `src/features/approval/ApprovalDetailView.tsx`  | 생성 — 상세 본문 · 상태별 분기                   |
-| `src/features/approval/ApprovalTimeline.tsx`    | 생성 — 결재선 타임라인(의견 · 처리 일시)         |
-| `src/features/approval/ApprovalProcessModal.tsx` | 생성 — 승인 · 반려 공용 모달                    |
-| `src/features/approval/ApprovalDocumentModal.tsx` | 생성 — 결재 문서 뷰어(버전 전환 없음)          |
-| `src/components/approval/ApprovalSkeletons.tsx` | 수정 — 상세 스켈레톤 추가                        |
-| `src/features/file/{api,types}.ts`              | 수정 — `getFileVersion()` · `FileVersionDetail`  |
-| `src/constants/endpoints.ts`                    | 수정 — `fileVersions.detail`                     |
-| `src/components/Pagination.tsx`                 | 수정 — `showTotal` · `unit` 옵션 추가            |
-| `src/features/approval/ApprovalList.tsx`        | 수정 — 열 너비 고정, 기안 탭 액션 버튼 제거      |
-| `src/features/approval/format.ts`               | 생성 — `formatDateTime()` (타임라인 · 블록 공용) |
-| `src/features/approval/ApprovalBlock.tsx`       | 수정 — 반려 배너 · 완료 안내 · DRAFT 수정 진입   |
-| `src/features/approval/ApprovalDraftForm.tsx`   | 수정 — 결재선 순서 이동(↑↓) · 안내 문구 정리     |
-| `src/features/approval/ApprovalProgress.tsx`    | 수정 — 상태별 마커 · 완료 카운트 · 스크린리더 라벨 |
+| 파일                                              | 변경                                               |
+| ------------------------------------------------- | -------------------------------------------------- |
+| `src/app/approvals/[approvalId]/page.tsx`         | 생성 — 상세 라우트(숫자 아닌 세그먼트는 404)       |
+| `src/features/approval/ApprovalDetailView.tsx`    | 생성 — 상세 본문 · 상태별 분기                     |
+| `src/features/approval/ApprovalTimeline.tsx`      | 생성 — 결재선 타임라인(의견 · 처리 일시)           |
+| `src/features/approval/ApprovalProcessModal.tsx`  | 생성 — 승인 · 반려 공용 모달                       |
+| `src/features/approval/ApprovalDocumentModal.tsx` | 생성 — 결재 문서 뷰어(버전 전환 없음)              |
+| `src/components/approval/ApprovalSkeletons.tsx`   | 수정 — 상세 스켈레톤 추가                          |
+| `src/features/file/{api,types}.ts`                | 수정 — `getFileVersion()` · `FileVersionDetail`    |
+| `src/constants/endpoints.ts`                      | 수정 — `fileVersions.detail`                       |
+| `src/components/Pagination.tsx`                   | 수정 — `showTotal` · `unit` 옵션 추가              |
+| `src/features/approval/ApprovalList.tsx`          | 수정 — 열 너비 고정, 기안 탭 액션 버튼 제거        |
+| `src/features/approval/format.ts`                 | 생성 — `formatDateTime()` (타임라인 · 블록 공용)   |
+| `src/features/approval/ApprovalBlock.tsx`         | 수정 — 반려 배너 · 완료 안내 · DRAFT 수정 진입     |
+| `src/features/approval/ApprovalDraftForm.tsx`     | 수정 — 결재선 순서 이동(↑↓) · 안내 문구 정리       |
+| `src/features/approval/ApprovalProgress.tsx`      | 수정 — 상태별 마커 · 완료 카운트 · 스크린리더 라벨 |
 
 ### 주요 작업 내용
 
