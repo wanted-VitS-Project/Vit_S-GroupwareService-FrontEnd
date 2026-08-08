@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -9,7 +10,11 @@ import {
   renameFile,
 } from '@/features/file/api';
 import DuplicateNameModal from '@/features/file/DuplicateNameModal';
-import FileViewerModal from '@/features/file/FileViewerModal';
+import { preloadPdfViewer } from '@/features/file/pdfViewer';
+import {
+  cancelPreviewPrefetch,
+  schedulePreviewPrefetch,
+} from '@/features/file/previewCache';
 import {
   extensionLabel,
   extensionStyle,
@@ -28,6 +33,28 @@ import { messageOf } from '@/lib/api';
 import BlockCard from './BlockCard';
 import { FileListSkeleton } from './BlockSkeletons';
 import type { StepBlock } from './types';
+
+/**
+ * 뷰어는 pdfjs 를 끌고 오므로 초기 번들에서 분리한다.
+ * 문서 목록에 마우스를 올리는 순간 `preloadPdfViewer` 가 먼저 받아 두기 때문에
+ * 실제로 열 때는 이미 캐시에 있다.
+ */
+const FileViewerModal = dynamic(
+  () => import('@/features/file/FileViewerModal'),
+  { ssr: false },
+);
+
+/** 프리로드는 한 번이면 된다 */
+let isViewerPreloaded = false;
+
+/** 문서 목록에 마우스가 닿는 순간 뷰어 청크 · pdf.js 워커를 미리 받는다 */
+function preloadViewer() {
+  if (isViewerPreloaded) return;
+  isViewerPreloaded = true;
+
+  void import('@/features/file/FileViewerModal').catch(() => {});
+  preloadPdfViewer();
+}
 
 /** 업로드가 끊긴 지점별 안내 — 사용자가 다음에 뭘 할지 알 수 있게 나눈다 */
 const STAGE_HINT: Record<UploadStage, string> = {
@@ -189,7 +216,11 @@ export default function FileBlock({ block }: { block: StepBlock }) {
               등록된 문서가 없습니다.
             </p>
           ) : (
-            <ul className="flex flex-col gap-1">
+            // 열기 직전 신호 — 여기서 뷰어 청크·pdf.js 워커를 미리 받아 둔다
+            <ul
+              onPointerEnter={preloadViewer}
+              className="flex flex-col gap-1"
+            >
               {files.map((file) => (
                 <FileRow
                   key={file.fileId}
@@ -307,7 +338,16 @@ function FileRow({
   const style = extensionStyle(file.extension);
 
   return (
-    <li className="group/file relative flex items-start gap-2 rounded-lg p-1.5 hover:bg-[#ECEEF4]/60">
+    <li
+      /*
+        미리보기 fetch 는 서버가 원본을 잘라 주느라 느리다. 행에 머무는 동안
+        미리 시작해 두면 클릭이 그 요청을 이어받는다.
+        뷰어가 여는 버전과 같은 `latestVersionId` 를 미리 받아야 의미가 있다.
+      */
+      onPointerEnter={() => schedulePreviewPrefetch(file.latestVersionId)}
+      onPointerLeave={cancelPreviewPrefetch}
+      className="group/file relative flex items-start gap-2 rounded-lg p-1.5 hover:bg-[#ECEEF4]/60"
+    >
       {/* 셀 전체가 뷰어 진입점. 버튼만 위로 올려 클릭을 가로챈다 */}
       {!isEditing && (
         <button
