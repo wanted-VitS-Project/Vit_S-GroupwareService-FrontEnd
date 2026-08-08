@@ -234,6 +234,36 @@ export interface CreateRevisionResponse {
   lines: ApprovalLine[];
 }
 
+/**
+ * 결재 이력 한 줄. (.ai/API.md 73)
+ *
+ * 회차를 **고르는 데 필요한 것만** 온다 — 제목 · 내용 · 결재선은 없다.
+ * 고른 회차의 내용은 회차 상세(`getRevision()`)로 따로 받는다.
+ */
+export interface ApprovalRevisionSummary {
+  revisionId: number;
+  /** 1부터. 재상신마다 +1 */
+  revisionNo: number;
+  status: ApprovalStatus;
+  /** DRAFT 회차는 아직 상신 전이라 null */
+  submittedAt: string | null;
+  /** 진행 중이면 null */
+  finishedAt: string | null;
+  /**
+   * 지금 살아 있는 회차. 목록에 **하나만** true 다 —
+   * 회차 번호로 마지막을 짚지 않고 이 값을 그대로 쓴다.
+   */
+  isCurrent: boolean;
+}
+
+/**
+ * GET /approvals/{approvalId}/revisions — 결재 이력.
+ * 회차 번호 오름차순이고, **페이징이 없다** (`totalElements` 조차 없다).
+ */
+export interface ApprovalRevisionHistory {
+  content: ApprovalRevisionSummary[];
+}
+
 /** POST /approvals/{approvalId}/revisions/{revisionId}/submit */
 export interface SubmitRevisionResponse {
   approvalId: number;

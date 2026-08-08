@@ -86,6 +86,7 @@
 | [69](#69-이미지-항목-삭제)                | 이미지 삭제      | `DELETE /blocks/images/items/{imgId}`          | ✅ `features/block/api.ts`            |
 | [70](#70-이미지-다운로드)                 | 이미지 다운로드  | `GET /blocks/images/{id}/download`             | ✅ `features/block/api.ts`            |
 | [71](#71-이미지-항목-전체-조회)           | 이미지 전체 조회 | `GET /blocks/images/{id}/items`                | ✅ `features/block/api.ts`            |
+| [73](#73-결재-이력조회)                   | 결재 이력        | `GET /approvals/{id}/revisions`                | ✅ `features/approval/api.ts`         |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
 > 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통) · [이미지 도메인 — 공통](#이미지-도메인--공통)
@@ -1594,7 +1595,6 @@ soft delete만 지원하며 응답 `data` 는 `null` 이다. 입금 연결 입�
 
 | 항목                                                                | 막힌 기능                             | 이슈 |
 | ------------------------------------------------------------------- | ------------------------------------- | ---- |
-| 회차 이력(`GET .../revisions`) 응답 스키마                          | 회차 전환 · 이력 조회                 | #62  |
 | **결재 문서 열람이 스텝 권한을 본다** (403 `FILE_ACCESS_PERMISSION_REQUIRED`) | 결재자의 문서 미리보기 · 다운로드 | #61  |
 | 처리를 마친 결재를 다시 찾을 `scope` 가 없다                        | 승인 후 목록에서 사라짐               | #60  |
 
@@ -1611,7 +1611,8 @@ soft delete만 지원하며 응답 `data` 는 `null` 이다. 입금 연결 입�
 > | 회차·결재 상세 `lines[]`        | 상태 없음                  | **`status` · `opinion` · `processedAt` 온다**            |
 > | 회차·결재 상세 `documents[]`    | `documentId`·`fileVersionId` 뿐 | **`fileName` · `fileSize` · `uploadedAt` 온다**      |
 > | 회차 상세 `finishedAt`          | 문자열 `"null"`            | 진짜 `null`                                              |
-> | 목록 · 이력 `content[]`         | 파일 버전 스키마           | 결재 스키마 (아래 61번)                                  |
+> | 목록 `content[]`                | 파일 버전 스키마           | 결재 스키마 (아래 61번)                                  |
+> | 이력 `content[]`                | 사원 스키마                | 회차 요약 스키마 (아래 73번)                             |
 >
 > ℹ️ 의견 필드 이름은 **`opinion`** 이다 (`comment` 아님). 승인 · 반려 요청 body 와 같은 이름이다.
 
@@ -2351,6 +2352,37 @@ data: {
 > ℹ️ 화면 조립 — 윗줄 `actor.name` + `block.title` + `block.type`, 아랫줄 `displayName` + 동작.
 > ℹ️ 필터 선택지는 [10. 블록 일괄 조회](#10-스텝-블록-일괄-조회) 로 받는다. 필터를 바꾸면 **목록 · 커서를 초기화**하고 다시 조회한다.
 > ❗ 명세 예시의 `fieldName` 이 `completed` 인데 단어 사전은 `isCompleted` 다 — 실제로 무엇이 오는지 **확인 필요**. 지금은 두 이름 모두 받는다.
+---
+
+## 73. 결재 이력조회
+
+| 항목          | 내용                                                     |
+| ------------- | -------------------------------------------------------- |
+| **Method**    | `GET`                                                    |
+| **Path**      | `/api/v1/approvals/{approvalId}/revisions`                |
+| **인증 필요** | ✅ 회차 상세와 같은 기준이되 **전체 회차를 통틀어** 판정   |
+| **사용 위치** | ✅ `features/approval/api.ts` — `getRevisions()`           |
+
+**응답 data** — `{ content: [] }` · **페이징이 없다** (`totalElements` · `totalPages` 도 없음)
+
+| 필드          | 타입             | 설명                                        |
+| ------------- | ---------------- | ------------------------------------------- |
+| `revisionId`  | `number`         | 회차 ID — 회차 상세(48번) 조회에 쓴다       |
+| `revisionNo`  | `number`         | 1부터. 재상신마다 +1                        |
+| `status`      | `ApprovalStatus` | 회차 상태                                   |
+| `submittedAt` | `string \| null` | DRAFT 회차는 상신 전이라 null               |
+| `finishedAt`  | `string \| null` | 진행 중이면 null                            |
+| `isCurrent`   | `boolean`        | 지금 살아 있는 회차 — 목록에 **하나만** true |
+
+| status | code                         | 화면 처리                                            |
+| ------ | ---------------------------- | ---------------------------------------------------- |
+| 403    | `APPROVAL_LINE_NOT_VIEWABLE` | **`/forbidden` 아님** — 화면 안에서 권한 없음 안내    |
+| 404    | `APPROVAL_NOT_FOUND`         | 불러오지 못했다는 안내                               |
+
+> ⚠️ **회차 번호 오름차순**이다 (1회차가 먼저). 최신부터 보이려면 화면에서 뒤집는다.
+> ⚠️ 응답에 제목 · 내용 · 결재선 · 문서가 **없다.** 고른 회차의 내용은 회차 상세(48번)를 따로 부른다.
+> ℹ️ 현재 회차 판정은 `revisionNo` 최댓값이 아니라 **`isCurrent`** 로 한다 — 재상신 DRAFT 가 생기면 최댓값과 어긋난다.
+> ❗ Swagger 응답 예시가 **사원 스키마**(`userId` · `departmentPath`)로 잘못 표기돼 있다. 위 표는 2026-08-07 실행 결과 기준이다.
 
 ---
 
