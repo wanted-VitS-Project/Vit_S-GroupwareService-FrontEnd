@@ -2287,5 +2287,72 @@ data: {
 
 ---
 
+## 활동 기록 도메인 — 공통
+
+| 항목            | 내용                                                                                                     |
+| --------------- | -------------------------------------------------------------------------------------------------------- |
+| **구조**        | **스텝(`stepId`) > 블록(`blockId`) > 블록 내부 데이터(`resourceId`)**                                     |
+| **문장 조립**   | ⚠️ **BE 는 완성된 문장을 주지 않는다.** 화면 조립에 필요한 원자 데이터만 온다                             |
+| **대상 구분**   | `resource.resourceId == null` → `BLOCK` / `!= null` → `RESOURCE` (서버가 `targetType` 으로 계산해 준다)   |
+| **표시명**      | `resource.name` 이 있으면 그 값, 없으면 `block.title` → `displayName` (활동 시점 **스냅샷**)              |
+| **동작**        | DB 의 `create` · `modify` · `delete` → 응답은 `CREATE` · `MODIFY` · `DELETE`                              |
+| **시간 표기**   | `오늘` · `어제` · 날짜 그룹, `14:32` · `2시간 전` 은 `createdAt` 기준으로 **프론트가** 만든다             |
+| **블록 전용 API** | **없다.** 블록 활동 로그 팝업도 같은 경로에 `?blockId=` 를 붙여 쓴다                                    |
+| **제외 대상**   | 이슈 생성 · 수정 · 상태 변경 · 삭제는 **기록 · 조회 대상이 아니다**                                       |
+
+## 72. 스텝별 활동 기록 조회
+
+| 항목          | 값                                                                |
+| ------------- | ----------------------------------------------------------------- |
+| **Method**    | `GET`                                                             |
+| **Path**      | `/api/v1/steps/{stepId}/activity-logs`                            |
+| **권한**      | 프로젝트 참여자                                                   |
+| **사용 위치** | `src/features/activityLog/api.ts` → `getStepActivityLogs()`       |
+
+**Query** — `blockId?: number` · `cursor?: number` (이전 응답의 `nextCursor`) · `size?: int` (기본 `20`)
+
+**응답 data**
+
+```ts
+data: {
+  activities: {
+    activityLogId: number;
+    action: 'CREATE' | 'MODIFY' | 'DELETE';
+    targetType: 'BLOCK' | 'RESOURCE';
+    displayName: string | null;   // resource.name ?? block.title
+    fieldName: string | null;     // 수정 필드. 해당 없으면 null
+    beforeValue: string | null;
+    afterValue: string | null;
+    resource: { resourceId: number | null; name: string | null };
+    actor: { userId: string; name: string; profileImageUrl: string | null };
+    block: { blockId: number; title: string | null; type: BlockTypeCode };
+    createdAt: string;            // 'YYYY-MM-DDTHH:mm:ss' (타임존 표기 없음)
+  }[];
+  nextCursor: number | null;      // 없으면 null
+  hasNext: boolean;
+}
+```
+
+**`fieldName` 별 표시 규칙** — 화면이 값을 어떻게 그릴지 결정한다
+
+| 방식             | 대상 필드                   | 처리                                        |
+| ---------------- | --------------------------- | ------------------------------------------- |
+| 펼치기           | `title` `content` `caption` | 접었다 펴서 before/after **전문** 표시      |
+| 그대로 표시      | `orderIndex`                | 1부터 시작하는 위치 → `N번째 → M번째`       |
+| 값 사전 매칭     | `isCompleted` `status`      | 아래 사전으로 바꿔 짧게 인라인 표시         |
+| 변환 불필요      | `lines`                     | 사번이 아니라 **이름 CSV** 로 내려온다      |
+
+| `fieldName`   | 값                                                                          | 표시                                                    |
+| ------------- | --------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `isCompleted` | `true` · `false`                                                            | 완료 · 미완료                                           |
+| `status`      | `DRAFT` `IN_PROGRESS` `ACTIVE` `WAITING` `APPROVED` `REJECTED` `COMPLETED` `CANCELED` | 초안 · 진행중 · 진행중 · 대기 · 승인 · 반려 · 완료 · 취소 |
+
+> ℹ️ 결과가 없으면 `200` + `{ activities: [], nextCursor: null, hasNext: false }`.
+> ℹ️ 화면 조립 — 윗줄 `actor.name` + `block.title` + `block.type`, 아랫줄 `displayName` + 동작.
+> ℹ️ 필터 선택지는 [10. 블록 일괄 조회](#10-스텝-블록-일괄-조회) 로 받는다. 필터를 바꾸면 **목록 · 커서를 초기화**하고 다시 조회한다.
+> ❗ 명세 예시의 `fieldName` 이 `completed` 인데 단어 사전은 `isCompleted` 다 — 실제로 무엇이 오는지 **확인 필요**. 지금은 두 이름 모두 받는다.
+
+---
+
 > ✏️ 새 API를 연동할 때 위 양식대로 계속 추가하세요.
 > 핵심은 **백엔드 응답 타입을 정확히** 적어두는 것 — AI가 타입 안전하게 연동 코드를 짜줘요.

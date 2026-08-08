@@ -4,6 +4,8 @@ import { useParams } from 'next/navigation';
 import { useRef, useState } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
+import ActivityIcon from '@/features/activityLog/ActivityIcon';
+import BlockActivityLogPanel from '@/features/activityLog/BlockActivityLogPanel';
 
 import { useBlockActions } from './BlockActionsContext';
 import { setPillDragImage, useBlockDrag } from './BlockDragContext';
@@ -33,6 +35,7 @@ export default function BlockCard({
 }: BlockCardProps) {
   const { stepId } = useParams<{ stepId: string }>();
   const [isViewingIssues, setIsViewingIssues] = useState(false);
+  const [isViewingLogs, setIsViewingLogs] = useState(false);
   const type = BLOCK_TYPES.find((option) => option.code === block.type);
   const drag = useBlockDrag();
   const label = block.title || type?.label || '블록';
@@ -101,6 +104,7 @@ export default function BlockCard({
           block={block}
           title={label}
           onViewIssues={() => setIsViewingIssues(true)}
+          onViewLogs={() => setIsViewingLogs(true)}
         />
       </header>
 
@@ -145,6 +149,14 @@ export default function BlockCard({
           onClose={() => setIsViewingIssues(false)}
         />
       )}
+      {isViewingLogs && (
+        <BlockActivityLogPanel
+          stepId={stepId}
+          blockId={block.blockId}
+          blockTitle={label}
+          onClose={() => setIsViewingLogs(false)}
+        />
+      )}
     </article>
   );
 }
@@ -164,10 +176,12 @@ function BlockMenu({
   block,
   title,
   onViewIssues,
+  onViewLogs,
 }: {
   block: StepBlock;
   title: string;
   onViewIssues: () => void;
+  onViewLogs: () => void;
 }) {
   const actions = useBlockActions();
   const [isOpen, setIsOpen] = useState(false);
@@ -238,6 +252,18 @@ function BlockMenu({
                     {block.linkedIssueTotal}
                   </span>
                 )}
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setIsOpen(false);
+                  onViewLogs();
+                }}
+                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-[#1C1F2A] hover:bg-gray-50"
+              >
+                <ActivityIcon className="size-2.5 shrink-0 text-violet-500" />
+                <span className="flex-1 text-left">활동 로그</span>
               </button>
               <button
                 type="button"

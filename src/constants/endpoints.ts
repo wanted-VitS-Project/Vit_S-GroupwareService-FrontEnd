@@ -65,6 +65,9 @@ export const ENDPOINTS = {
       `${V1}/steps/${stepId}/blocks/layout`,
     /** 이슈 목록 조회 · 생성 */
     issues: (stepId: number | string) => `${V1}/steps/${stepId}/issues`,
+    /** 활동 기록 조회 — 블록별 조회도 이 경로에 `?blockId=` 로 붙인다 */
+    activityLogs: (stepId: number | string) =>
+      `${V1}/steps/${stepId}/activity-logs`,
   },
   issues: {
     /** 상세 조회 · 부분 수정 · 삭제 */
