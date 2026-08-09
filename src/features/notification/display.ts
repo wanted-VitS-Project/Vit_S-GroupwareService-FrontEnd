@@ -28,7 +28,10 @@ interface NotificationIcon {
  * 새 알림 종류가 생겨도 화면이 비거나 깨지지 않는다.
  */
 const ICONS: Record<string, NotificationIcon> = {
-  APPROVAL_REQUESTED: { symbol: '📄', className: 'bg-[#EEF2FF]' },
+  APPROVAL_REQUESTED: {
+    symbol: '📄',
+    className: 'bg-[#EEF2FF] text-[#3B5BDB]',
+  },
   APPROVAL_REJECTED: { symbol: '⊗', className: 'bg-[#FEF2F2] text-[#E7000B]' },
   APPROVAL_COMPLETED: { symbol: '✓', className: 'bg-[#ECFDF5] text-[#12B76A]' },
   ISSUE_ASSIGNED: { symbol: '⚠', className: 'bg-[#FFFBEB] text-[#BB4D00]' },

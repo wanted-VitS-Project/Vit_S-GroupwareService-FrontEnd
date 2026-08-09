@@ -38,6 +38,8 @@ const POLL_MS = 60_000;
 export default function NotificationBell() {
   const router = useRouter();
   const boxRef = useRef<HTMLDivElement>(null);
+  /** Esc 로 닫았을 때 포커스를 돌려놓을 곳 — 안 그러면 키보드 사용자가 위치를 잃는다 */
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -56,8 +58,15 @@ export default function NotificationBell() {
       controller.signal,
     )
       .then((page) => setUnreadCount(page.totalElements))
-      // 배지는 곁다리다 — 못 받으면 숫자만 빠지고 종은 그대로 눌린다
-      .catch(() => setUnreadCount(0));
+      .catch(() => {
+        /**
+         * **직전 숫자를 그대로 둔다.** 0 으로 내리면 안 읽은 알림이 없는 것처럼 보여
+         * 사용자가 알림을 놓친다 — 못 받은 것과 없는 것은 다르다.
+         *
+         * 취소도 여기로 온다. 취소는 새 요청이 이미 떠 있다는 뜻이라,
+         * 늦게 도착한 취소가 방금 받은 숫자를 덮어쓰면 안 된다.
+         */
+      });
 
     return () => controller.abort();
   }, [reloadKey]);
@@ -116,7 +125,14 @@ export default function NotificationBell() {
       if (!boxRef.current?.contains(event.target as Node)) setIsOpen(false);
     };
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsOpen(false);
+      if (event.key !== 'Escape') return;
+
+      setIsOpen(false);
+      /**
+       * Esc 로 닫을 때만 포커스를 종으로 되돌린다.
+       * 바깥 클릭은 사용자가 이미 다른 곳을 짚은 것이라, 그때 뺏어오면 방해가 된다.
+       */
+      triggerRef.current?.focus();
     };
 
     document.addEventListener('mousedown', closeOnOutside);
@@ -172,8 +188,10 @@ export default function NotificationBell() {
   return (
     <div ref={boxRef} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setIsOpen((open) => !open)}
+        aria-haspopup="dialog"
         aria-expanded={isOpen}
         aria-label={
           unreadCount > 0 ? `알림 ${unreadCount}건 읽지 않음` : '알림'
@@ -190,7 +208,11 @@ export default function NotificationBell() {
       </button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 z-20 mt-2 w-95 overflow-hidden rounded-xl border border-[#1C1F2A]/10 bg-white shadow-lg">
+        <div
+          role="dialog"
+          aria-label="알림"
+          className="absolute top-full right-0 z-20 mt-2 w-95 overflow-hidden rounded-xl border border-[#1C1F2A]/10 bg-white shadow-lg"
+        >
           <div className="flex items-center justify-between px-4 py-3">
             <span className="text-sm font-bold text-[#1C1F2A]">알림</span>
             <button
