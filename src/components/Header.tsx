@@ -8,6 +8,7 @@ import { findActiveMenu, isUnder } from '@/constants/menu';
 import { logout } from '@/features/auth/api';
 import type { Role } from '@/features/auth/types';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
+import NotificationBell from '@/features/notification/NotificationBell';
 import { ApiError } from '@/lib/api';
 
 /** 헤더 제목. 메뉴에 없는 화면은 별도로 적어둔다. */
@@ -69,7 +70,7 @@ export default function Header() {
             {error}
           </span>
         )}
-        <Link href="/notifications">알림</Link>
+        <NotificationBell />
         <Link href="/mypage">내 정보</Link>
         <button
           type="button"

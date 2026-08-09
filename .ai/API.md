@@ -87,6 +87,11 @@
 | [70](#70-이미지-다운로드)                 | 이미지 다운로드  | `GET /blocks/images/{id}/download`             | ✅ `features/block/api.ts`            |
 | [71](#71-이미지-항목-전체-조회)           | 이미지 전체 조회 | `GET /blocks/images/{id}/items`                | ✅ `features/block/api.ts`            |
 | [73](#73-결재-이력조회)                   | 결재 이력        | `GET /approvals/{id}/revisions`                | ✅ `features/approval/api.ts`         |
+| [74](#74-알림-목록-조회)                  | 알림 목록        | `GET /notifications`                           | ✅ `features/notification/api.ts`     |
+| [75](#75-알림-이동-대상-조회)             | 알림 이동 대상   | `GET /notifications/{id}/target`               | ✅ `features/notification/api.ts`     |
+| [76](#76-알림-읽음-처리)                  | 알림 읽음        | `PATCH /notifications/{id}/read`               | ✅ `features/notification/api.ts`     |
+| [77](#77-알림-전체-읽음-처리)             | 알림 전체 읽음   | `PATCH /notifications/read-all`                | ✅ `features/notification/api.ts`     |
+| [78](#78-알림-삭제)                       | 알림 삭제        | `DELETE /notifications/{id}`                   | ✅ `features/notification/api.ts`     |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
 > 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통) · [이미지 도메인 — 공통](#이미지-도메인--공통)
@@ -2383,6 +2388,128 @@ data: {
 > ⚠️ 응답에 제목 · 내용 · 결재선 · 문서가 **없다.** 고른 회차의 내용은 회차 상세(48번)를 따로 부른다.
 > ℹ️ 현재 회차 판정은 `revisionNo` 최댓값이 아니라 **`isCurrent`** 로 한다 — 재상신 DRAFT 가 생기면 최댓값과 어긋난다.
 > ❗ Swagger 응답 예시가 **사원 스키마**(`userId` · `departmentPath`)로 잘못 표기돼 있다. 위 표는 2026-08-07 실행 결과 기준이다.
+
+---
+
+## 알림 도메인 — 공통
+
+| 항목            | 내용                                                                                                     |
+| --------------- | -------------------------------------------------------------------------------------------------------- |
+| **대상**        | **본인 알림만** 조회 · 처리된다. 남의 알림은 403 `NOTIFICATION_FORBIDDEN`                                 |
+| **정렬**        | 최신순(`createdAt` 내림차순) 고정 — 정렬 파라미터가 없다                                                 |
+| **읽음 표기**   | ⚠️ `isRead` 같은 boolean 이 **없다.** `readAt` 이 `null` 이면 안 읽음                                     |
+| **삭제**        | 논리 삭제다. 지운 알림은 목록에서 빠지고 다시 부르면 404                                                 |
+| **자동 읽음**   | 이동 대상 조회(75번)가 **읽음 처리를 겸한다** — 클릭 이동 시 읽음 API 를 따로 부르지 않는다               |
+
+> ❗ **`notificationType` 의 전체 목록을 받지 못했다.** 확인된 값은 `APPROVAL_REQUESTED` · `APPROVAL_REJECTED` · `APPROVAL_COMPLETED` 셋뿐이다. 시안에는 이슈 배정 · 새 댓글도 있어 `ISSUE_*` · `COMMENT_*` 가 더 있을 것으로 보인다 — **화면은 모르는 값이 와도 기본 아이콘으로 떨어지게** 짠다.
+> ❗ **`category` 로 넣을 수 있는 값 목록도 미확인.** 설명상 `notificationType` 의 **접두어**(`APPROVAL` 등)를 그대로 쓴다.
+
+---
+
+## 74. 알림 목록 조회
+
+| 항목          | 내용                                              |
+| ------------- | ------------------------------------------------- |
+| **Method**    | `GET`                                             |
+| **Path**      | `/api/v1/notifications`                            |
+| **인증 필요** | ✅ 본인 알림만                                     |
+| **사용 위치** | ✅ `features/notification/api.ts` — `getNotifications()` |
+
+**요청 Query** — 전부 선택
+
+| 파라미터   | 타입      | 설명                                             |
+| ---------- | --------- | ------------------------------------------------ |
+| `category` | `string`  | `notificationType` 접두어. 미지정이면 전체       |
+| `isRead`   | `boolean` | 안 읽음만 보려면 `false`                         |
+| `page`     | `number`  | **0부터**. 기본 0                                |
+| `size`     | `number`  | 기본 10, **최대 100**                            |
+
+**응답 data** — `{ content[], totalElements, totalPages }` (`page` · `size` 는 안 온다)
+
+| 필드               | 타입             | 설명                                        |
+| ------------------ | ---------------- | ------------------------------------------- |
+| `notificationId`   | `number`         | 알림 ID                                     |
+| `notificationType` | `string`         | 예: `APPROVAL_REQUESTED` — 아이콘 · 분류 근거 |
+| `title`            | `string`         | 예: `결재 요청`                             |
+| `message`          | `string`         | 본문 한 줄                                  |
+| `readAt`           | `string \| null` | **null 이면 안 읽음**                       |
+| `createdAt`        | `string`         | `2026-08-07T18:47:37` — 상대 시간 표기 근거 |
+
+> ℹ️ 헤더 배지 숫자는 `?isRead=false` 의 **`totalElements`** 를 쓴다 (목록 길이가 아니다 — `size` 에 잘린다).
+> ℹ️ `isRead=true` 는 **읽은 것만** 준다 (2026-08-08 실행 확인). 알림 페이지의 `미확인` · `확인` 탭이 이 값 하나만 바꿔 쓴다.
+
+---
+
+## 75. 알림 이동 대상 조회
+
+| 항목          | 내용                                                    |
+| ------------- | ------------------------------------------------------- |
+| **Method**    | `GET`                                                   |
+| **Path**      | `/api/v1/notifications/{notificationId}/target`          |
+| **사용 위치** | ✅ `features/notification/api.ts` — `getNotificationTarget()` |
+
+**응답 data**
+
+| 필드       | 타입                       | 설명                                    |
+| ---------- | -------------------------- | --------------------------------------- |
+| `type`     | `string`                   | 예: `APPROVAL`. 이동할 곳이 없으면 `NONE` |
+| `targetId` | `number \| null`           | `NONE` 이면 null                        |
+| `extra`    | `Record<string, string> \| null` | 도메인별 덤. 없으면 null           |
+
+| status | code                       | 화면 처리                      |
+| ------ | -------------------------- | ------------------------------ |
+| 403    | `NOTIFICATION_FORBIDDEN`   | 남의 알림 — 이동하지 않는다    |
+| 404    | `NOTIFICATION_NOT_FOUND`   | 지워진 알림 — 목록에서 제거    |
+
+> ⚠️ **조회 성공 시 자동으로 읽음 처리된다.** 그래서 `type=NONE`(이동할 곳 없음)이어도 **읽음은 된다** — 에러가 아니라 200 이다.
+> ⚠️ 경로는 **프론트가 조립한다.** `type` + `targetId` 로 만들며, 모르는 `type` 이면 이동하지 않고 읽음 처리만 남긴다.
+> ❗ **`type` 의 전체 목록 미확인.** 확인된 값은 `APPROVAL` · `NONE` 뿐이다.
+
+---
+
+## 76. 알림 읽음 처리
+
+| 항목          | 내용                                             |
+| ------------- | ------------------------------------------------ |
+| **Method**    | `PATCH`                                          |
+| **Path**      | `/api/v1/notifications/{notificationId}/read`     |
+| **사용 위치** | ✅ `features/notification/api.ts` — `readNotification()` |
+
+**응답 data** — `notificationId` · `readAt`
+
+> ℹ️ **멱등이다.** 이미 읽은 알림을 다시 불러도 200 이고 최초 읽음 시각을 덮어쓰지 않는다.
+> ℹ️ 이동 없이 **읽음만** 표시할 때 쓴다 (케밥 메뉴의 `읽음`). 클릭 이동은 75번이 겸한다.
+
+---
+
+## 77. 알림 전체 읽음 처리
+
+| 항목          | 내용                                       |
+| ------------- | ------------------------------------------ |
+| **Method**    | `PATCH`                                    |
+| **Path**      | `/api/v1/notifications/read-all`            |
+| **사용 위치** | ✅ `features/notification/api.ts` — `readAllNotifications()` |
+
+> ❗ **응답 본문 미확인** — Swagger 문서를 받지 못했다. 프론트는 응답을 쓰지 않고 성공 여부만 보므로, 몇 건 처리됐는지가 오더라도 화면은 목록을 다시 받아 그린다.
+
+---
+
+## 78. 알림 삭제
+
+| 항목          | 내용                                        |
+| ------------- | ------------------------------------------- |
+| **Method**    | `DELETE`                                    |
+| **Path**      | `/api/v1/notifications/{notificationId}`     |
+| **사용 위치** | ✅ `features/notification/api.ts` — `deleteNotification()` |
+
+**응답** — `204` (본문 없음)
+
+| status | code                       | 화면 처리                              |
+| ------ | -------------------------- | -------------------------------------- |
+| 403    | `NOTIFICATION_FORBIDDEN`   | 남의 알림                              |
+| 404    | `NOTIFICATION_NOT_FOUND`   | 이미 지워진 알림 — 목록에서 빼면 된다  |
+
+> ℹ️ **논리 삭제다.** 하드 삭제가 아니라 목록에서만 빠진다.
 
 ---
 

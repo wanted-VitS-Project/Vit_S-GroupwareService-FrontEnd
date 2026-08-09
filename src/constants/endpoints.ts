@@ -168,4 +168,19 @@ export const ENDPOINTS = {
     preview: (fileVersionId: number | string) =>
       `${V1}/file-versions/${fileVersionId}/preview`,
   },
+  notifications: {
+    /** 알림 목록 — `category` · `isRead` · `page` · `size` 로 거른다 */
+    root: `${V1}/notifications`,
+    /** 개별 삭제(논리 삭제) */
+    detail: (notificationId: number | string) =>
+      `${V1}/notifications/${notificationId}`,
+    /** 이동 대상 조회 — **읽음 처리를 겸한다** */
+    target: (notificationId: number | string) =>
+      `${V1}/notifications/${notificationId}/target`,
+    /** 이동 없이 읽음만 표시 (멱등) */
+    read: (notificationId: number | string) =>
+      `${V1}/notifications/${notificationId}/read`,
+    /** 전체 읽음 */
+    readAll: `${V1}/notifications/read-all`,
+  },
 } as const;
