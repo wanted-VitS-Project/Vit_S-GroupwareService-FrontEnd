@@ -29,6 +29,18 @@ export const APPROVAL_STATUS_LABELS: Record<ApprovalStatusCode, string> = {
   COMPLETED: '승인',
 };
 
+/** 프로젝트 상태 (.ai/API.md 프로젝트 목록 절) */
+export type ProjectStatusCode =
+  'NOT_STARTED' | 'IN_PROGRESS' | 'SETTLEMENT' | 'COMPLETED' | 'CLOSED';
+
+export const PROJECT_STATUS_LABELS: Record<ProjectStatusCode, string> = {
+  NOT_STARTED: '진행 전',
+  IN_PROGRESS: '진행중',
+  SETTLEMENT: '정산중',
+  COMPLETED: '완료',
+  CLOSED: '종결',
+};
+
 export const EMPLOYEE_STATUS_LABELS: Record<EmployeeStatus, string> = {
   ACTIVE: '활성',
   RESET_REQUIRED: '재설정 필요',

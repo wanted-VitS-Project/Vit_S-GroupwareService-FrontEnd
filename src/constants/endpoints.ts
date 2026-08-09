@@ -14,6 +14,8 @@ export const ENDPOINTS = {
     termsAgreements: `${V1}/auth/terms-agreements`,
   },
   projects: {
+    /** 내 프로젝트 목록 — 권한 밖 건은 403 이 아니라 목록에서 빠진다 */
+    root: `${V1}/projects`,
     detail: (projectId: number | string) => `${V1}/projects/${projectId}`,
     stages: (projectId: number | string) =>
       `${V1}/projects/${projectId}/stages`,

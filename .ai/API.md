@@ -1,8 +1,8 @@
 # 연동 API 명세서
 
+**최종 업데이트**: 2026-08-09 (내 프로젝트 목록 — 84 추가)
 **최종 업데이트**: 2026-08-09 (비타메이트 AI 블록 연동 — 74~78 추가, 비타메이트 공통 절 신설)
 **최종 업데이트**: 2026-08-07 (이미지 항목 전체 조회 — 71 추가, 수정 모달이 이걸로 교체)
-**최종 업데이트**: 2026-08-07 (이미지 도메인 연동 — 66~70 추가)
 
 > 📌 이 파일은 **프론트가 연동하는 백엔드 API**를 정리하는 곳이에요. (내가 만드는 게 아니라 **호출하는** 입장)
 > AI는 API 연동 코드를 작성하기 전에 이 파일을 먼저 읽어요. (잘못된 경로/필드/타입으로 fetch 짜는 실수 방지)
@@ -97,6 +97,7 @@
 | [81](#81-알림-읽음-처리)                  | 알림 읽음        | `PATCH /notifications/{id}/read`               | ✅ `features/notification/api.ts`     |
 | [82](#82-알림-전체-읽음-처리)             | 알림 전체 읽음   | `PATCH /notifications/read-all`                | ✅ `features/notification/api.ts`     |
 | [83](#83-알림-삭제)                       | 알림 삭제        | `DELETE /notifications/{id}`                   | ✅ `features/notification/api.ts`     |
+| [84](#84-프로젝트-목록-조회)              | 프로젝트 목록    | `GET /projects`                                | ✅ `features/project/api.ts`          |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
 > 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통) · [이미지 도메인 — 공통](#이미지-도메인--공통)
@@ -2705,6 +2706,67 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | 404    | `NOTIFICATION_NOT_FOUND`   | 이미 지워진 알림 — 목록에서 빼면 된다  |
 
 > ℹ️ **논리 삭제다.** 하드 삭제가 아니라 목록에서만 빠진다.
+
+---
+
+## 84. 프로젝트 목록 조회
+
+| 항목          | 내용                                             |
+| ------------- | ------------------------------------------------ |
+| **Method**    | `GET`                                            |
+| **Path**      | `/api/v1/projects`                               |
+| **인증 필요** | ✅ 참여자 (`MASTER` · `ADMIN` 은 전 프로젝트)    |
+| **사용 위치** | `src/features/project/api.ts` → `getProjects()`  |
+| **요구사항**  | PRJ-013 · PRJ-015                                |
+
+**Request Parameter** — 전부 선택
+
+| 파라미터             | 타입     | 설명                                                                  |
+| -------------------- | -------- | --------------------------------------------------------------------- |
+| `status`             | `string` | `NOT_STARTED`·`IN_PROGRESS`·`SETTLEMENT`·`COMPLETED`·`CLOSED`         |
+| `businessCategoryId` | `number` | 사업 카테고리 필터                                                    |
+| `startedOnFrom`      | `string` | 기간 필터 시작 (`yyyy-MM-dd`)                                         |
+| `startedOnTo`        | `string` | 기간 필터 종료                                                        |
+| `keyword`            | `string` | **과업명 · 발주처** 검색                                              |
+| `page`               | `number` | 기본 0                                                                |
+| `size`               | `number` | 기본 20. **1~100 으로 보정**된다 — 벗어나도 400 이 아니라 잘린다      |
+
+**Response (200 OK)**
+
+```ts
+{
+  httpStatus: 200,
+  message: '프로젝트 목록 조회 성공',
+  data: {
+    content: {
+      projectId: number;
+      name: string;              // 과업명
+      clientName: string;        // 발주처
+      status: string;            // 위 enum
+      startedOn: string;         // '2026-08-01'
+      endedOn: string;           // '2026-12-31'
+      contractAmount: number;
+      progressRate?: number;     // 스텝 0개면 응답에 없다
+      businessCategories: { categoryId: number; name: string; code: string | null }[];
+      members: { userId: string; name: string }[];   // 카드 아바타용 · 이름 오름차순
+      myIssueInProgressCount: number;
+      myApprovalOpenCount: number;
+    }[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+  }
+}
+```
+
+> ⭐ **정렬은 `created_at DESC` → `project_id DESC` 고정이다.** 정렬 파라미터를 받지 않는다.
+> ⭐ **권한이 없는 프로젝트는 403 이 아니라 목록에서 빠진다.** 상세 조회(6번)는 반대로 403 을 낸다 — 화면이 역할별로 목록을 거르지 않는다.
+> ⭐ `members` 가 목록에 실려 오므로 카드마다 45번(참여자 목록)을 부르지 않는다. 없었다면 20건 페이지에서 21콜이 된다.
+> ⚠️ `myApprovalOpenCount` 는 `결재 대기` 가 **아니다** — 요청자가 **기안한** `IN_PROGRESS`+`REJECTED` 수라 결재함 숫자와 다르다.
+> ⚠️ **상세와 달리 `stepCount` · `doneStepCount` 가 없다.** 카드에 `완료/전체` 를 그릴 수 없어 위 두 건수 뱃지로 대신했다.
+> ⚠️ **상태별 집계 API 가 없다.** 통계 카드는 상태마다 `size=1` 로 물어 `totalElements` 만 쓴다 (`getProjectCount()`).
+> **보관 기능이 없다** — 종결(`CLOSED`) 건도 `status` 필터로 다시 볼 수 있다 (PRJ-015).
 
 ---
 
