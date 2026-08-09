@@ -97,6 +97,8 @@ async function request<T>(
   method: string,
   body?: unknown,
   signal?: AbortSignal,
+  /** 그 API 에만 필요한 추가 헤더 (예: `Idempotency-Key`) */
+  headers?: Record<string, string>,
 ) {
   let response: Response;
 
@@ -105,7 +107,7 @@ async function request<T>(
       method,
       // 인증 수단이 HttpOnly 세션 쿠키라 요청마다 쿠키를 싣는다
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...headers },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal,
     });
@@ -181,8 +183,12 @@ export async function requestRaw(path: string, signal?: AbortSignal) {
 export const api = {
   get: <T>(path: string, signal?: AbortSignal) =>
     request<T>(path, 'GET', undefined, signal),
-  post: <T>(path: string, body?: unknown, signal?: AbortSignal) =>
-    request<T>(path, 'POST', body, signal),
+  post: <T>(
+    path: string,
+    body?: unknown,
+    signal?: AbortSignal,
+    headers?: Record<string, string>,
+  ) => request<T>(path, 'POST', body, signal, headers),
   patch: <T>(path: string, body?: unknown, signal?: AbortSignal) =>
     request<T>(path, 'PATCH', body, signal),
   /** 부분 수정이 아니라 **전체 치환**일 때만 쓴다 (예: 결재선) */
