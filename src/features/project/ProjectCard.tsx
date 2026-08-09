@@ -36,8 +36,16 @@ const CATEGORY_TAG_LIMIT = 1;
 export default function ProjectCard({ row }: { row: ProjectListItem }) {
   const panelId = useId();
   const [isOpen, setIsOpen] = useState(false);
+  /**
+   * 한 번이라도 펼쳤으면 패널을 **언마운트하지 않는다** —
+   * 접을 때 지워버리면 받아둔 상세 · 스테이지 · 스텝이 함께 사라져
+   * 다시 펼칠 때마다 3콜이 새로 나간다.
+   */
+  const [hasOpened, setHasOpened] = useState(false);
 
-  const style = PROJECT_STATUS_STYLE[row.status];
+  /** 백엔드가 새 상태값을 보내도 화면이 죽지 않게 기본값을 둔다 (응답 런타임 검증이 없다) */
+  const style =
+    PROJECT_STATUS_STYLE[row.status] ?? PROJECT_STATUS_STYLE.NOT_STARTED;
   const shown = row.members.slice(0, AVATAR_LIMIT);
   const restCount = row.members.length - shown.length;
   const categoryTags = row.businessCategories.slice(0, CATEGORY_TAG_LIMIT);
@@ -148,7 +156,10 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
         {/* 펼침 방향을 화살표로 알린다 — `aria-expanded` 만으로는 눈에 보이지 않는다 */}
         <button
           type="button"
-          onClick={() => setIsOpen((open) => !open)}
+          onClick={() => {
+            setIsOpen((open) => !open);
+            setHasOpened(true);
+          }}
           aria-expanded={isOpen}
           aria-controls={panelId}
           aria-label={`${row.name} ${isOpen ? '접기' : '펼치기'}`}
@@ -158,9 +169,16 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
         </button>
       </div>
 
-      {/* 접힌 동안에는 그리지 않는다 — 10장이 타임라인을 숨겨 들고 있을 이유가 없다 */}
-      {isOpen && (
-        <div id={panelId} className="border-t border-[#E5E7EB] px-5 py-4">
+      {/*
+        펼치기 전에는 아예 그리지 않고, 한 번 펼친 뒤에는 **감추기만** 한다 —
+        받아둔 데이터를 유지해 접었다 펼 때마다 재조회하지 않기 위함이다
+      */}
+      {hasOpened && (
+        <div
+          id={panelId}
+          hidden={!isOpen}
+          className="border-t border-[#E5E7EB] px-5 py-4"
+        >
           <div className="flex flex-wrap items-center gap-5">
             {/**
              * ⚠️ 시안 라벨은 `결재 대기` 지만 이 값은 **기안자 관점**이다 —
@@ -298,7 +316,11 @@ function ProjectPanel({ projectId }: { projectId: number }) {
 
   if (hasFailed) {
     return (
-      <p className="mt-5 flex items-center gap-3 text-[13px] text-[#6B7280]">
+      // 패널을 연 뒤 비동기로 바뀌는 상태라, 알리지 않으면 스크린리더가 실패를 못 읽는다
+      <p
+        role="alert"
+        className="mt-5 flex items-center gap-3 text-[13px] text-[#6B7280]"
+      >
         진행 상황을 불러오지 못했어요.
         <button
           type="button"
@@ -313,7 +335,7 @@ function ProjectPanel({ projectId }: { projectId: number }) {
 
   if (!data) {
     return (
-      <p className="mt-5 text-[13px] text-[#9CA3AF]">
+      <p aria-live="polite" className="mt-5 text-[13px] text-[#9CA3AF]">
         진행 상황을 불러오는 중…
       </p>
     );
@@ -398,6 +420,13 @@ function StageBox({ name, steps }: { name: string; steps: ProjectStep[] }) {
          */
         <div
           id={bodyId}
+          /*
+            스텝이 많으면 가로로 굴러가는데 안에 포커스 받을 요소가 하나도 없다 —
+            `tabIndex` 가 없으면 키보드만 쓰는 사용자는 화면 밖 스텝을 볼 방법이 없다
+          */
+          tabIndex={0}
+          role="group"
+          aria-label={`${name} 스텝 진행 상황`}
           className="flex h-[124px] items-center overflow-x-auto overflow-y-hidden bg-white px-5"
         >
           {sorted.length === 0 ? (
@@ -405,7 +434,8 @@ function StageBox({ name, steps }: { name: string; steps: ProjectStep[] }) {
           ) : (
             <ol className="flex w-full items-start">
               {sorted.map((step, index) => {
-                const style = STEP_STYLE[step.status];
+                // 상태 배지와 같은 이유로 기본값을 둔다 — 모르는 상태에 화면이 죽지 않게
+                const style = STEP_STYLE[step.status] ?? STEP_STYLE.NOT_STARTED;
                 const isLast = index === sorted.length - 1;
 
                 return (

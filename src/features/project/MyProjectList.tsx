@@ -101,7 +101,13 @@ export default function MyProjectList() {
     return () => controller.abort();
   }, [requestKey, query]);
 
-  /** 필터를 바꾸면 첫 페이지로 돌아간다 — 3페이지에서 조건을 바꾸면 빈 화면이 된다 */
+  /**
+   * 필터를 바꾸면 첫 페이지로 돌아간다 — 3페이지에서 조건을 바꾸면 빈 화면이 된다.
+   *
+   * 히스토리 처리가 갈린다 — **필터는 `replace`, 페이지 이동은 `push`** 다.
+   * 필터를 만질 때마다 쌓으면 뒤로가기가 조작 이력을 되짚느라 목록을 못 벗어나고,
+   * 반대로 페이지까지 `replace` 하면 3페이지에서 뒤로가기가 목록 밖으로 나가버린다.
+   */
   function applyFilter(patch: Record<string, string | undefined>) {
     const next = new URLSearchParams(searchParams.toString());
 
@@ -109,17 +115,25 @@ export default function MyProjectList() {
       if (value) next.set(key, value);
       else next.delete(key);
     }
-    if (!('page' in patch)) next.delete('page');
 
-    router.replace(next.toString() ? `?${next}` : '?');
+    const isPageMove = 'page' in patch;
+    if (!isPageMove) next.delete('page');
+
+    const href = next.toString() ? `?${next}` : '?';
+    if (isPageMove) router.push(href);
+    else router.replace(href);
   }
 
   const rows = page?.content ?? null;
+  /**
+   * ⚠️ `??` 를 쓰면 안 된다 — 빈 문자열은 nullish 가 아니라 거기서 체인이 멈춘다.
+   * `?keyword=` 처럼 값이 비어 들어오면 뒤 항목을 평가하지 않아 판정이 틀어진다.
+   */
   const hasFilter = Boolean(
-    status ??
-    query.businessCategoryId ??
-    query.startedOnFrom ??
-    query.startedOnTo ??
+    status ||
+    query.businessCategoryId ||
+    query.startedOnFrom ||
+    query.startedOnTo ||
     query.keyword,
   );
 
@@ -161,9 +175,13 @@ export default function MyProjectList() {
           />
         </div>
 
+        {/*
+          `tablist` 가 아니라 `group` 이다 — 연결된 `tabpanel` 도, 화살표 키 이동도 없어
+          탭으로 알리면 스크린리더 사용자가 동작하지 않는 조작을 시도하게 된다
+        */}
         <div
-          role="tablist"
-          aria-label="프로젝트 상태"
+          role="group"
+          aria-label="프로젝트 상태 필터"
           className="flex items-center gap-1 rounded-lg border border-[#E5E7EB] bg-white p-1"
         >
           <StatusTab
@@ -213,7 +231,16 @@ export default function MyProjectList() {
           </p>
         </Centered>
       ) : (
-        <div className="flex flex-col gap-3">
+        /*
+          재조회 중에는 직전 목록을 그대로 두되 진행 중임을 알린다 —
+          아무 표시가 없으면 응답이 느릴 때 사용자가 같은 조작을 반복한다
+        */
+        <div
+          aria-busy={isLoading}
+          className={`flex flex-col gap-3 transition-opacity ${
+            isLoading ? 'opacity-60' : ''
+          }`}
+        >
           <ul className="flex flex-col gap-3">
             {rows.map((row) => (
               <ProjectCard key={row.projectId} row={row} />
@@ -249,6 +276,15 @@ export default function MyProjectList() {
  */
 function ProjectSummary({ reloadCount }: { reloadCount: number }) {
   const [counts, setCounts] = useState<number[] | null>(null);
+  /** 카드만 따로 다시 부른다 — 목록은 멀쩡한데 통계만 실패할 수 있다 */
+  const [retryCount, setRetryCount] = useState(0);
+  /**
+   * 몇 번째 시도가 실패했는지 들고 있는다.
+   * `counts === null` 만으로는 **아직 세는 중**과 **실패**를 구분할 수 없어,
+   * 실패해도 카드가 영영 `–` 로 남고 재시도할 방법이 없다.
+   */
+  const [failedAt, setFailedAt] = useState<number | null>(null);
+  const hasFailed = failedAt === retryCount;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -260,11 +296,11 @@ function ProjectSummary({ reloadCount }: { reloadCount: number }) {
       .then(setCounts)
       // 통계는 보조 정보다 — 실패해도 목록까지 실패 화면으로 만들지 않는다
       .catch(() => {
-        if (!signal.aborted) setCounts(null);
+        if (!signal.aborted) setFailedAt(retryCount);
       });
 
     return () => controller.abort();
-  }, [reloadCount]);
+  }, [reloadCount, retryCount]);
 
   /** 종결(`CLOSED`)은 어느 카드에도 들어가지 않는다 — 그래서 전체는 네 값의 합이다 */
   const total = counts?.reduce((sum, count) => sum + count, 0) ?? null;
@@ -286,8 +322,32 @@ function ProjectSummary({ reloadCount }: { reloadCount: number }) {
   /** 카드 순서(`전체` + 네 상태)에 맞춘 표시값 */
   const values = counts === null ? null : [total, ...counts];
 
+  if (hasFailed) {
+    return (
+      <section
+        aria-label="프로젝트 상태 요약"
+        className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-5 py-4"
+      >
+        <p role="alert" className="text-[13px] text-[#6B7280]">
+          상태별 건수를 불러오지 못했어요.
+        </p>
+        <button
+          type="button"
+          onClick={() => setRetryCount((count) => count + 1)}
+          className="cursor-pointer rounded-lg border border-[#E5E7EB] px-2.5 py-1 text-xs font-semibold text-[#111827] hover:bg-[#F3F4F6]"
+        >
+          다시 시도
+        </button>
+      </section>
+    );
+  }
+
   return (
-    <section aria-label="프로젝트 상태 요약" className="grid grid-cols-5 gap-7">
+    /* 좁은 화면에서 5열을 유지하면 카드 폭이 좁아져 숫자가 아이콘과 겹친다 */
+    <section
+      aria-label="프로젝트 상태 요약"
+      className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5 xl:gap-7"
+    >
       {cards.map((card, index) => (
         <div
           key={card.label}
@@ -302,7 +362,7 @@ function ProjectSummary({ reloadCount }: { reloadCount: number }) {
           </span>
           <div className="min-w-0">
             <p className="truncate text-[13px] text-[#6B7280]">{card.label}</p>
-            <p className="mt-0.5 text-[22px] leading-8 font-semibold text-[#111827]">
+            <p className="mt-0.5 truncate text-[22px] leading-8 font-semibold text-[#111827]">
               {/* 아직 세는 중이면 자리만 잡아 둔다 — 0 을 먼저 보이면 잘못된 값을 읽힌다 */}
               {values ? (values[index] ?? 0).toLocaleString('ko-KR') : '–'}
               <span className="ml-1 text-[13px] font-medium text-[#6B7280]">
@@ -349,7 +409,12 @@ function CategoryPeriodFilter({
     return () => controller.abort();
   }, []);
 
-  const hasValue = Boolean(categoryId ?? from ?? to);
+  /**
+   * ⚠️ `??` 가 아니라 `||` 다 — `from` · `to` 는 값이 없으면 **빈 문자열**로 들어온다.
+   * 빈 문자열은 nullish 가 아니라 `??` 체인이 거기서 멈춰,
+   * `to` 만 지정한 경우 초기화 버튼이 나타나지 않는다.
+   */
+  const hasValue = Boolean(categoryId || from || to);
 
   return (
     <div
@@ -450,8 +515,7 @@ function StatusTab({
   return (
     <button
       type="button"
-      role="tab"
-      aria-selected={isActive}
+      aria-pressed={isActive}
       onClick={onClick}
       className={`cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium ${
         isActive

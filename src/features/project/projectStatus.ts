@@ -14,7 +14,11 @@ export const PROJECT_STATUS_STYLE: Record<ProjectStatus, { badge: string }> = {
   CLOSED: { badge: 'bg-[#F5F3FF] text-[#7C3AED]' },
 };
 
-/** 통계 카드에 세우는 상태. `전체` 는 상태 필터 없이 센다 (`CLOSED` 도 전체에 포함된다) */
+/**
+ * 통계 카드에 세우는 상태.
+ * `전체` 카드는 **이 네 값의 합**이라 종결(`CLOSED`)은 전체에서 빠진다 —
+ * 카드로 세우지 않는 상태를 합계에만 넣으면 카드끼리 수가 맞지 않는다.
+ */
 export const PROJECT_SUMMARY_STATUSES: ProjectStatus[] = [
   'NOT_STARTED',
   'IN_PROGRESS',
