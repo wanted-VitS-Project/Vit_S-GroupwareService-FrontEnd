@@ -69,17 +69,17 @@ const SECTIONS: { title: string; items: SettingItem[] }[] = [
 export default function Page() {
   return (
     <>
-      <p className="text-xs text-slate-500">설정</p>
+      <p className="text-xs text-text-secondary">설정</p>
       <PageTitle title="설정" />
 
       <div className="space-y-8">
         {SECTIONS.map((section) => (
           <section key={section.title}>
-            <h3 className="mb-2 px-1 text-xs font-medium text-[#6C7389]">
+            <h3 className="mb-2 px-1 text-xs font-medium text-text-secondary">
               {section.title}
             </h3>
 
-            <div className="divide-y divide-[#1C1F2A]/5 overflow-hidden rounded-xl border border-[#1C1F2A]/10 bg-white">
+            <div className="divide-y divide-border-default overflow-hidden rounded-xl border border-border-default bg-white">
               {section.items.map((item) => (
                 <SettingRow key={item.label} item={item} />
               ))}
@@ -94,14 +94,14 @@ export default function Page() {
 function SettingRow({ item }: { item: SettingItem }) {
   const content = (
     <>
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#ECEEF4]/60 text-[#6C7389]">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-bg-surface text-text-secondary">
         <SettingIconMark icon={item.icon} />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-bold text-[#1C1F2A]">
+        <span className="block text-sm font-bold text-text-primary">
           {item.label}
         </span>
-        <span className="mt-0.5 block text-xs break-keep text-[#6C7389]">
+        <span className="mt-0.5 block text-xs break-keep text-text-secondary">
           {item.description}
         </span>
       </span>
@@ -113,7 +113,7 @@ function SettingRow({ item }: { item: SettingItem }) {
     return (
       <div className="flex items-center gap-4 px-5 py-4 opacity-60">
         {content}
-        <span className="shrink-0 rounded bg-[#ECEEF4] px-2 py-0.5 text-[10px] text-[#6C7389]">
+        <span className="shrink-0 rounded bg-bg-hover px-2 py-0.5 text-[10px] text-text-secondary">
           준비 중
         </span>
       </div>
@@ -123,7 +123,7 @@ function SettingRow({ item }: { item: SettingItem }) {
   return (
     <Link
       href={item.href}
-      className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-[#ECEEF4]/40"
+      className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-bg-surface"
     >
       {content}
       <ChevronIcon />
@@ -196,7 +196,7 @@ function ChevronIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className="size-4 shrink-0 text-[#C7CCD9]"
+      className="size-4 shrink-0 text-text-muted"
     >
       <path d="m9 6 6 6-6 6" />
     </svg>

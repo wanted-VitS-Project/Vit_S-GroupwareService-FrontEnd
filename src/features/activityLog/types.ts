@@ -75,16 +75,16 @@ export const ACTIVITY_ACTION_STYLES: Record<
   { badge: string; icon: string }
 > = {
   CREATE: {
-    badge: 'border-[#7BF1A8] bg-[#DCFCE7] text-[#008236]',
-    icon: 'border-[#7BF1A8] bg-[#DCFCE7] text-[#008236]',
+    badge: 'border-green-border bg-green-bg text-green-text',
+    icon: 'border-green-border bg-green-bg text-green-text',
   },
   MODIFY: {
-    badge: 'border-[#8EC5FF] bg-[#DBEAFE] text-[#1447E6]',
-    icon: 'border-[#8EC5FF] bg-[#DBEAFE] text-[#1447E6]',
+    badge: 'border-blue-border bg-blue-bg text-btn-primary-hover',
+    icon: 'border-blue-border bg-blue-bg text-btn-primary-hover',
   },
   DELETE: {
-    badge: 'border-[#FFA2A2] bg-[#FFE2E2] text-[#C10007]',
-    icon: 'border-[#FFA2A2] bg-[#FFE2E2] text-[#C10007]',
+    badge: 'border-red-border bg-red-bg text-[#C10007]',
+    icon: 'border-red-border bg-red-bg text-[#C10007]',
   },
 };
 

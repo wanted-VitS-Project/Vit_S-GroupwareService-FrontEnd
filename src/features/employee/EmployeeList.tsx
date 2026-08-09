@@ -187,8 +187,11 @@ export default function EmployeeList() {
 
   return (
     <>
-      <p className="text-xs text-slate-500">
-        <Link href="/settings" className="hover:text-[#1C1F2A] hover:underline">
+      <p className="text-xs text-text-secondary">
+        <Link
+          href="/settings"
+          className="hover:text-text-primary hover:underline"
+        >
           설정
         </Link>{' '}
         &gt; 사원 관리
@@ -197,7 +200,7 @@ export default function EmployeeList() {
       <div className="mt-2 mb-6 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h2 className="text-lg font-bold">사원 관리</h2>
-          <p className="mt-1.5 text-xs break-keep text-[#6C7389]">
+          <p className="mt-1.5 text-xs break-keep text-text-secondary">
             사원 정보와 계정 상태를 관리합니다. 등록하면 로그인 계정이 함께
             발급됩니다.
           </p>
@@ -206,7 +209,7 @@ export default function EmployeeList() {
           <BulkUploadButton />
           <Link
             href={EMPLOYEE_ROUTES.create}
-            className="shrink-0 rounded-lg bg-[#2B3A67] px-4 py-2 text-xs font-semibold text-white hover:bg-[#22305a]"
+            className="shrink-0 rounded-lg bg-btn-primary px-4 py-2 text-xs font-semibold text-white hover:bg-btn-primary-hover"
           >
             + 사원 등록
           </Link>
@@ -230,12 +233,12 @@ export default function EmployeeList() {
             value={keywordInput}
             onChange={(event) => setKeywordInput(event.target.value)}
             placeholder="이름 · 사번 검색"
-            className="w-full rounded-lg border border-[#1C1F2A]/10 py-2 pr-10 pl-3 text-xs text-[#1C1F2A] placeholder:text-[#6C7389] focus:outline-2 focus:outline-offset-2 focus:outline-[#3B5BDB]"
+            className="w-full rounded-lg border border-border-default py-2 pr-10 pl-3 text-xs text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
           />
           <button
             type="submit"
             aria-label="검색"
-            className="absolute top-1/2 right-1 flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-[#6C7389] hover:bg-[#ECEEF4] hover:text-[#1C1F2A]"
+            className="absolute top-1/2 right-1 flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-text-secondary hover:bg-bg-hover hover:text-text-primary"
           >
             <SearchIcon />
           </button>
@@ -269,7 +272,7 @@ export default function EmployeeList() {
           }))}
         />
 
-        <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-[#6C7389]">
+        <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-text-secondary">
           <input
             type="checkbox"
             checked={query.resigned ?? false}
@@ -278,13 +281,13 @@ export default function EmployeeList() {
                 resigned: event.target.checked ? 'true' : undefined,
               })
             }
-            className="size-3.5 cursor-pointer accent-[#2B3A67]"
+            className="size-3.5 cursor-pointer accent-btn-primary"
           />
           퇴사자 포함
         </label>
 
         {hasDepartmentFailed && (
-          <span role="alert" className="text-[10px] text-[#E7000B]">
+          <span role="alert" className="text-[10px] text-text-danger">
             부서 목록을 불러오지 못했습니다.{' '}
             <button
               type="button"
@@ -298,22 +301,22 @@ export default function EmployeeList() {
       </form>
 
       {selected.length > 0 && (
-        <div className="mb-2 flex items-center justify-between gap-4 rounded-lg border border-[#3B5BDB]/20 bg-[#3B5BDB]/5 px-4 py-2.5">
-          <p className="text-[11px] font-medium text-[#1C1F2A]">
+        <div className="mb-2 flex items-center justify-between gap-4 rounded-lg border border-border-primary/20 bg-blue-bg-soft px-4 py-2.5">
+          <p className="text-[11px] font-medium text-text-primary">
             {selected.length}명 선택됨
           </p>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setSelectedIds([])}
-              className="cursor-pointer rounded-lg px-3 py-1.5 text-[11px] font-medium text-[#6C7389] hover:bg-white"
+              className="cursor-pointer rounded-lg px-3 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-white"
             >
               선택 해제
             </button>
             <button
               type="button"
               onClick={() => setResetTargets(selected)}
-              className="cursor-pointer rounded-lg bg-[#2B3A67] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#22305a]"
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover"
             >
               비밀번호 초기화
             </button>
@@ -321,16 +324,16 @@ export default function EmployeeList() {
         </div>
       )}
 
-      <div className="rounded-xl border border-[#1C1F2A]/10 bg-white">
+      <div className="rounded-xl border border-border-default bg-white">
         {hasFailed ? (
           <Centered>
-            <p className="text-xs text-[#6C7389]">
+            <p className="text-xs text-text-secondary">
               사원을 불러오지 못했습니다.
             </p>
             <button
               type="button"
               onClick={reload}
-              className="cursor-pointer rounded-lg bg-[#2B3A67] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#22305a]"
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover"
             >
               다시 시도
             </button>
@@ -340,10 +343,10 @@ export default function EmployeeList() {
         ) : rows.length === 0 ? (
           <Centered>
             <PeopleIcon />
-            <p className="text-sm font-bold text-[#1C1F2A]">
+            <p className="text-sm font-bold text-text-primary">
               조건에 맞는 사원이 없습니다
             </p>
-            <p className="text-xs break-keep text-[#6C7389]">
+            <p className="text-xs break-keep text-text-secondary">
               검색어나 필터를 바꿔보세요
             </p>
           </Centered>
@@ -352,14 +355,14 @@ export default function EmployeeList() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[880px] border-collapse text-left">
                 <thead>
-                  <tr className="border-b border-[#1C1F2A]/10 text-[11px] text-[#6C7389]">
+                  <tr className="border-b border-border-default text-[11px] text-text-secondary">
                     <th className="w-10 px-3 py-3">
                       <input
                         type="checkbox"
                         checked={isAllSelected}
                         onChange={toggleAll}
                         aria-label="이 페이지 전체 선택"
-                        className="size-3.5 cursor-pointer accent-[#2B3A67]"
+                        className="size-3.5 cursor-pointer accent-btn-primary"
                       />
                     </th>
                     <th className="w-44 px-4 py-3 font-medium">이름 · 사번</th>
@@ -377,7 +380,7 @@ export default function EmployeeList() {
                     <tr
                       key={employee.userId}
                       onClick={() => openDetail(employee.userId)}
-                      className="group cursor-pointer border-b border-[#1C1F2A]/5 last:border-b-0 hover:bg-[#ECEEF4]/50"
+                      className="group cursor-pointer border-b border-border-default last:border-b-0 hover:bg-bg-surface"
                     >
                       {/* 체크박스 · 케밥은 각자의 동작이 있다 — 행 이동으로 새지 않게 막는다 */}
                       <td
@@ -389,7 +392,7 @@ export default function EmployeeList() {
                           checked={selectedIds.includes(employee.userId)}
                           onChange={() => toggleOne(employee.userId)}
                           aria-label={`${employee.name} 선택`}
-                          className="size-3.5 cursor-pointer accent-[#2B3A67]"
+                          className="size-3.5 cursor-pointer accent-btn-primary"
                         />
                       </td>
                       {/*
@@ -404,32 +407,32 @@ export default function EmployeeList() {
                           href={EMPLOYEE_ROUTES.detail(employee.userId)}
                           className="block min-w-0"
                         >
-                          <span className="block truncate text-xs font-bold text-[#1C1F2A] group-hover:underline">
+                          <span className="block truncate text-xs font-bold text-text-primary group-hover:underline">
                             {employee.name}
                           </span>
-                          <span className="mt-0.5 block truncate text-[10px] text-[#6C7389]">
+                          <span className="mt-0.5 block truncate text-[10px] text-text-secondary">
                             {employee.userId}
                           </span>
                         </Link>
                       </td>
                       <td className="px-4 py-3.5">
-                        <span className="block truncate text-xs text-[#1C1F2A]">
+                        <span className="block truncate text-xs text-text-primary">
                           {employee.departmentPath ?? '미지정'}
                         </span>
-                        <span className="mt-0.5 block truncate text-[10px] text-[#6C7389]">
+                        <span className="mt-0.5 block truncate text-[10px] text-text-secondary">
                           {employee.jobPositionName ?? '직급 없음'}
                         </span>
                       </td>
-                      <td className="px-4 py-3.5 text-xs text-[#6C7389]">
+                      <td className="px-4 py-3.5 text-xs text-text-secondary">
                         {ROLE_LABELS[employee.role]}
                       </td>
                       <td className="px-4 py-3.5">
                         {employee.emailRegistered ? (
-                          <span className="block truncate text-xs text-[#6C7389]">
+                          <span className="block truncate text-xs text-text-secondary">
                             {employee.email}
                           </span>
                         ) : (
-                          <span className="inline-block rounded bg-[#F59E0B]/10 px-1.5 py-0.5 text-[10px] font-medium text-[#92400E]">
+                          <span className="inline-block rounded bg-yellow-bg-soft px-1.5 py-0.5 text-[10px] font-medium text-yellow-text">
                             ⚠ 이메일 미등록 · 로그인 불가
                           </span>
                         )}
@@ -508,7 +511,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value || undefined)}
-        className="cursor-pointer rounded-lg border border-[#1C1F2A]/10 px-2.5 py-2 text-xs text-[#1C1F2A] focus:outline-2 focus:outline-offset-2 focus:outline-[#3B5BDB]"
+        className="cursor-pointer rounded-lg border border-border-default px-2.5 py-2 text-xs text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
       >
         <option value="">{label} 전체</option>
         {options.map((option) => (
@@ -526,10 +529,10 @@ function BulkUploadButton() {
   return (
     <span
       title="백엔드 준비 중입니다"
-      className="flex cursor-not-allowed items-center gap-1.5 rounded-lg border border-[#1C1F2A]/10 px-3 py-2 text-xs font-medium text-[#C7CCD9]"
+      className="flex cursor-not-allowed items-center gap-1.5 rounded-lg border border-border-default px-3 py-2 text-xs font-medium text-text-muted"
     >
       일괄 등록
-      <span className="rounded bg-[#ECEEF4] px-1.5 py-0.5 text-[10px] text-[#6C7389]">
+      <span className="rounded bg-bg-hover px-1.5 py-0.5 text-[10px] text-text-secondary">
         준비 중
       </span>
     </span>
@@ -571,7 +574,7 @@ function PeopleIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className="mb-2 size-10 text-[#C7CCD9]"
+      className="mb-2 size-10 text-text-muted"
     >
       <circle cx="9" cy="8" r="3.5" />
       <path d="M2 20a7 7 0 0 1 14 0" />

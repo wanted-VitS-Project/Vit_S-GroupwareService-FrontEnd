@@ -52,7 +52,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             본문 스크롤과 별개로 **바깥 스크롤바**가 생긴다
           */}
           <main
-            className={`relative min-h-0 min-w-0 flex-1 bg-slate-50 ${
+            className={`relative min-h-0 min-w-0 flex-1 bg-bg-surface ${
               isProject ? '' : '[scrollbar-gutter:stable] overflow-y-auto p-6'
             }`}
           >

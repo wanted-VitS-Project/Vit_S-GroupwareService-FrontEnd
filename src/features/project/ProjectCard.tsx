@@ -54,7 +54,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
   return (
     <li
       className={`overflow-hidden rounded-xl border bg-white ${
-        isOpen ? 'border-[#E5E7EB]' : 'border-[#EFF0F2]'
+        isOpen ? 'border-border-default' : 'border-border-default'
       }`}
     >
       {/**
@@ -63,7 +63,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
        * 링크 안에 버튼을 넣을 수 없어 형제로 나란히 둔다.
        */}
       <div
-        className={`flex items-center gap-2 pr-3 ${isOpen ? 'bg-[#F3F4F6]' : ''}`}
+        className={`flex items-center gap-2 pr-3 ${isOpen ? 'bg-bg-hover' : ''}`}
       >
         <Link
           href={PROJECT_ROUTES.detail(row.projectId)}
@@ -91,29 +91,29 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
             {categoryTags.map((category) => (
               <span
                 key={category.categoryId}
-                className="min-w-0 truncate rounded-[9px] border-[1.5px] border-[#E5E7EB] bg-[#F6F8FC] px-3 py-0.5 text-xs font-medium text-[#374151]"
+                className="min-w-0 truncate rounded-[9px] border-[1.5px] border-border-default bg-bg-surface px-3 py-0.5 text-xs font-medium text-gray-text-soft"
               >
                 {category.name}
               </span>
             ))}
             {restCategoryCount > 0 && (
-              <span className="shrink-0 rounded-[9px] border-[1.5px] border-[#E5E7EB] bg-[#F6F8FC] px-2 py-0.5 text-xs font-medium text-[#6B7280]">
+              <span className="shrink-0 rounded-[9px] border-[1.5px] border-border-default bg-bg-surface px-2 py-0.5 text-xs font-medium text-text-secondary">
                 +{restCategoryCount}
               </span>
             )}
           </span>
 
-          <h3 className="min-w-0 flex-1 truncate text-[15px] font-semibold text-[#38424E]">
+          <h3 className="min-w-0 flex-1 truncate text-[15px] font-semibold text-gray-text-soft">
             {row.name}
           </h3>
 
           {/* 발주처는 이름이 길 수 있어 줄어들 수 있게 둔다 — 넘치면 말줄임 */}
-          <span className="w-32 min-w-0 shrink truncate text-[13px] text-[#38424E]">
-            <span className="text-[#6B7280]">발주처 </span>
+          <span className="w-32 min-w-0 shrink truncate text-[13px] text-gray-text-soft">
+            <span className="text-text-secondary">발주처 </span>
             {row.clientName}
           </span>
 
-          <span className="w-40 shrink-0 text-[13px] whitespace-nowrap text-[#38424E]">
+          <span className="w-40 shrink-0 text-[13px] whitespace-nowrap text-gray-text-soft">
             {formatDateRange(row.startedOn, row.endedOn)}
           </span>
 
@@ -131,7 +131,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
               />
             ))}
             {restCount > 0 && (
-              <span className="flex size-6 items-center justify-center rounded-full border border-white bg-[#E5E7EB] text-[10px] font-semibold text-[#6B7280]">
+              <span className="flex size-6 items-center justify-center rounded-full border border-white bg-bg-hover-secondary text-[10px] font-semibold text-text-secondary">
                 +{restCount}
               </span>
             )}
@@ -140,14 +140,14 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
 
           <span className="flex w-32 shrink-0 items-center gap-3">
             {/* 스텝이 0개면 진척률이 응답에 없다 — 0% 로 단정하지 않고 빈 바로 둔다 */}
-            <span className="h-2 flex-1 overflow-hidden rounded-full bg-[#D9D9E3]">
+            <span className="h-2 flex-1 overflow-hidden rounded-full bg-bg-hover-secondary">
               {/* 색은 상태와 무관하게 하나로 둔다 — 채운 길이만으로 진행도를 읽는다 */}
               <span
                 style={{ width: `${row.progressRate ?? 0}%` }}
-                className="block h-full rounded-l-full bg-[#2B7FFF]"
+                className="block h-full rounded-l-full bg-btn-primary"
               />
             </span>
-            <span className="w-9 text-right text-[13px] font-semibold text-[#38424E]">
+            <span className="w-9 text-right text-[13px] font-semibold text-gray-text-soft">
               {row.progressRate === undefined ? '–' : `${row.progressRate}%`}
             </span>
           </span>
@@ -177,7 +177,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
         <div
           id={panelId}
           hidden={!isOpen}
-          className="border-t border-[#E5E7EB] px-5 py-4"
+          className="border-t border-border-default px-5 py-4"
         >
           <div className="flex flex-wrap items-center gap-5">
             {/**
@@ -189,16 +189,16 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
               count={row.myIssueInProgressCount}
               className="text-[#EF4444]"
             />
-            <span aria-hidden className="h-4 w-px bg-[#E5E7EB]" />
+            <span aria-hidden className="h-4 w-px bg-bg-hover-secondary" />
             <CountItem
               label="내 결재"
               count={row.myApprovalOpenCount}
-              className="text-[#F59E0B]"
+              className="text-yellow-border"
             />
 
             <Link
               href={PROJECT_ROUTES.detail(row.projectId)}
-              className="ml-auto flex items-center gap-2 rounded-lg bg-[#2563EB] px-5 py-2 text-[13px] font-medium text-white hover:bg-[#1D4FD7]"
+              className="ml-auto flex items-center gap-2 rounded-lg bg-btn-primary px-5 py-2 text-[13px] font-medium text-white hover:bg-btn-primary-hover"
             >
               프로젝트 전체 보기
               <ArrowIcon />
@@ -223,10 +223,10 @@ function CountItem({
 }) {
   return (
     <span className="flex items-center gap-2">
-      <span className="text-[13px] text-[#6B7280]">{label}</span>
+      <span className="text-[13px] text-text-secondary">{label}</span>
       {/* 0건은 색으로 강조하지 않는다 — 할 일이 없다는 뜻이다 */}
       <span
-        className={`text-[13px] font-semibold ${count > 0 ? className : 'text-[#9CA3AF]'}`}
+        className={`text-[13px] font-semibold ${count > 0 ? className : 'text-text-muted'}`}
       >
         {count}건
       </span>
@@ -238,9 +238,15 @@ type StageState = 'DONE' | 'IN_PROGRESS' | 'NOT_STARTED';
 
 /** 스테이지 머리글 배지. 스텝 배지와 달리 미착수를 `진행전` 이라 부른다 (시안) */
 const STAGE_BADGE: Record<StageState, { className: string; label: string }> = {
-  DONE: { className: 'bg-[#D0FAE5] text-[#007A55]', label: '완료' },
-  IN_PROGRESS: { className: 'bg-[#DBEAFE] text-[#2563EB]', label: '진행중' },
-  NOT_STARTED: { className: 'bg-[#E5E7EB] text-[#1F2937]', label: '진행전' },
+  DONE: { className: 'bg-green-bg text-green-text', label: '완료' },
+  IN_PROGRESS: {
+    className: 'bg-blue-bg text-text-primary-blue',
+    label: '진행중',
+  },
+  NOT_STARTED: {
+    className: 'bg-bg-hover-secondary text-gray-text',
+    label: '진행전',
+  },
 };
 
 const STEP_STYLE: Record<
@@ -248,21 +254,21 @@ const STEP_STYLE: Record<
   { node: string; label: string; line: string; sub: string }
 > = {
   DONE: {
-    node: 'border-[#22C55E] bg-[#ECFDF3]',
+    node: 'border-[#22C55E] bg-green-bg',
     label: 'text-[#16A34A]',
     line: 'bg-[#22C55E]',
     sub: '완료',
   },
   IN_PROGRESS: {
-    node: 'border-[#3B6FF6] bg-[#EDF4FF]',
-    label: 'text-[#3B6FF6]',
-    line: 'bg-[#BFDBFE]',
+    node: 'border-border-primary bg-blue-bg-soft',
+    label: 'text-text-primary-blue',
+    line: 'bg-blue-border-soft',
     sub: '진행중',
   },
   NOT_STARTED: {
-    node: 'border-[#D1D5DB] bg-[#F9FAFB]',
-    label: 'text-[#9CA3AF]',
-    line: 'bg-[#E5E7EB]',
+    node: 'border-btn-gray-bg-hover bg-bg-surface',
+    label: 'text-text-muted',
+    line: 'bg-bg-hover-secondary',
     sub: '대기',
   },
 };
@@ -319,13 +325,13 @@ function ProjectPanel({ projectId }: { projectId: number }) {
       // 패널을 연 뒤 비동기로 바뀌는 상태라, 알리지 않으면 스크린리더가 실패를 못 읽는다
       <p
         role="alert"
-        className="mt-5 flex items-center gap-3 text-[13px] text-[#6B7280]"
+        className="mt-5 flex items-center gap-3 text-[13px] text-text-secondary"
       >
         진행 상황을 불러오지 못했어요.
         <button
           type="button"
           onClick={() => setReloadCount((count) => count + 1)}
-          className="cursor-pointer rounded-lg border border-[#E5E7EB] px-2.5 py-1 text-xs font-semibold text-[#111827] hover:bg-[#F3F4F6]"
+          className="cursor-pointer rounded-lg border border-border-default px-2.5 py-1 text-xs font-semibold text-text-primary hover:bg-bg-hover"
         >
           다시 시도
         </button>
@@ -335,7 +341,7 @@ function ProjectPanel({ projectId }: { projectId: number }) {
 
   if (!data) {
     return (
-      <p aria-live="polite" className="mt-5 text-[13px] text-[#9CA3AF]">
+      <p aria-live="polite" className="mt-5 text-[13px] text-text-muted">
         진행 상황을 불러오는 중…
       </p>
     );
@@ -347,13 +353,13 @@ function ProjectPanel({ projectId }: { projectId: number }) {
   return (
     <>
       {data.detail.description && (
-        <p className="mt-4 text-[13px] whitespace-pre-line text-[#111827]">
+        <p className="mt-4 text-[13px] whitespace-pre-line text-text-primary">
           {data.detail.description}
         </p>
       )}
 
       {data.stages.length === 0 && unassigned.length === 0 ? (
-        <p className="mt-5 text-[13px] text-[#9CA3AF]">
+        <p className="mt-5 text-[13px] text-text-muted">
           등록된 스테이지가 없어요.
         </p>
       ) : (
@@ -389,15 +395,15 @@ function StageBox({ name, steps }: { name: string; steps: ProjectStep[] }) {
   const sorted = [...steps].sort((a, b) => a.sortOrder - b.sortOrder);
 
   return (
-    <li className="overflow-hidden rounded-lg border border-[#E5E7EB]">
+    <li className="overflow-hidden rounded-lg border border-border-default">
       <button
         type="button"
         onClick={() => setIsOpen((open) => !open)}
         aria-expanded={isOpen}
         aria-controls={bodyId}
-        className="flex w-full cursor-pointer items-center gap-4 bg-[#F6F8FC] px-3 py-2 text-left hover:bg-[#EEF2F9]"
+        className="flex w-full cursor-pointer items-center gap-4 bg-bg-surface px-3 py-2 text-left hover:bg-bg-hover"
       >
-        <span className="min-w-0 truncate text-[13px] font-medium text-[#374151]">
+        <span className="min-w-0 truncate text-[13px] font-medium text-gray-text-soft">
           {name}
         </span>
         <span
@@ -430,7 +436,7 @@ function StageBox({ name, steps }: { name: string; steps: ProjectStep[] }) {
           className="flex h-[124px] items-center overflow-x-auto overflow-y-hidden bg-white px-5"
         >
           {sorted.length === 0 ? (
-            <p className="text-xs text-[#9CA3AF]">등록된 스텝이 없어요.</p>
+            <p className="text-xs text-text-muted">등록된 스텝이 없어요.</p>
           ) : (
             <ol className="flex w-full items-start">
               {sorted.map((step, index) => {
@@ -451,7 +457,7 @@ function StageBox({ name, steps }: { name: string; steps: ProjectStep[] }) {
                       >
                         {step.status === 'DONE' && <CheckIcon />}
                         {step.status === 'IN_PROGRESS' && (
-                          <span className="size-2.5 rounded-full bg-[#3B6FF6]" />
+                          <span className="size-2.5 rounded-full bg-btn-primary" />
                         )}
                       </span>
                       <span
@@ -460,7 +466,7 @@ function StageBox({ name, steps }: { name: string; steps: ProjectStep[] }) {
                       >
                         {step.name}
                       </span>
-                      <span className="mt-0.5 text-[11px] text-[#9CA3AF]">
+                      <span className="mt-0.5 text-[11px] text-text-muted">
                         {style.sub}
                       </span>
                     </div>
@@ -499,7 +505,7 @@ function ChevronIcon({
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className={`size-4 shrink-0 text-[#A4A6B1] transition-transform ${
+      className={`size-4 shrink-0 text-text-muted transition-transform ${
         isOpen ? '-rotate-90' : 'rotate-90'
       } ${className}`}
     >

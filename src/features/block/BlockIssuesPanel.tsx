@@ -65,22 +65,22 @@ export default function BlockIssuesPanel({
       <Modal
         title="연결된 이슈"
         onClose={onClose}
-        className="mt-auto mr-4 mb-4 ml-auto flex h-[72vh] max-h-[560px] w-[380px] flex-col overflow-hidden rounded-xl border border-[#1C1F2A]/10 shadow-2xl"
+        className="mt-auto mr-4 mb-4 ml-auto flex h-[72vh] max-h-[560px] w-[380px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
         header={
-          <div className="flex shrink-0 items-center gap-2 border-b border-[#1C1F2A]/10 px-4 py-3">
-            <span className="flex size-5 shrink-0 items-center justify-center rounded border border-blue-200 bg-blue-100 text-[11px] font-semibold text-blue-600">
+          <div className="flex shrink-0 items-center gap-2 border-b border-border-default px-4 py-3">
+            <span className="flex size-5 shrink-0 items-center justify-center rounded border border-blue-border-soft bg-blue-bg text-[11px] font-semibold text-text-primary-blue">
               #
             </span>
             <div className="min-w-0 flex-1">
-              <h2 className="text-xs font-semibold text-[#1C1F2A]">
+              <h2 className="text-xs font-semibold text-text-primary">
                 연결된 이슈
               </h2>
-              <p className="truncate text-[10px] text-[#6C7389]">
+              <p className="truncate text-[10px] text-text-secondary">
                 {blockTitle}
               </p>
             </div>
             {issues && (
-              <span className="shrink-0 rounded-full bg-[#3B5BDB]/10 px-2 py-0.5 text-[10px] font-semibold text-[#3B5BDB]">
+              <span className="shrink-0 rounded-full bg-blue-bg-soft px-2 py-0.5 text-[10px] font-semibold text-text-primary-blue">
                 {issues.length}건
               </span>
             )}
@@ -91,7 +91,7 @@ export default function BlockIssuesPanel({
               type="button"
               onClick={onClose}
               aria-label="닫기"
-              className="flex size-6 cursor-pointer items-center justify-center rounded text-[#6C7389] hover:bg-[#ECEEF4]"
+              className="flex size-6 cursor-pointer items-center justify-center rounded text-text-secondary hover:bg-bg-hover"
             >
               ✕
             </button>
@@ -102,7 +102,7 @@ export default function BlockIssuesPanel({
           <div
             role="group"
             aria-label="이슈 상태 필터"
-            className="flex shrink-0 items-center gap-1 border-b border-[#1C1F2A]/[0.06] bg-[#F8F9FC] px-3 py-2"
+            className="flex shrink-0 items-center gap-1 border-b border-border-default bg-bg-surface px-3 py-2"
           >
             {STATUS_FILTERS.map((filter) => {
               const isActive = statusFilter === filter;
@@ -123,16 +123,16 @@ export default function BlockIssuesPanel({
                   onClick={() => setStatusFilter(filter)}
                   className={`relative flex size-8 cursor-pointer items-center justify-center rounded-lg border transition-colors ${
                     isActive
-                      ? 'border-[#3B5BDB]/30 bg-white text-[#3B5BDB] shadow-sm'
-                      : 'border-transparent text-[#8B92A6] hover:border-[#1C1F2A]/10 hover:bg-white hover:text-[#4B5267]'
+                      ? 'border-border-primary/30 bg-white text-text-primary-blue shadow-sm'
+                      : 'border-transparent text-text-muted hover:border-border-default hover:bg-white hover:text-gray-text-soft'
                   }`}
                 >
                   <StatusFilterIcon filter={filter} />
                   <span
                     className={`absolute -top-1 -right-1 flex min-w-3.5 items-center justify-center rounded-full px-1 text-[8px] leading-3.5 font-semibold ${
                       isActive
-                        ? 'bg-[#3B5BDB] text-white'
-                        : 'bg-[#E3E6EE] text-[#6C7389]'
+                        ? 'bg-btn-primary text-white'
+                        : 'bg-bg-hover-secondary text-text-secondary'
                     }`}
                   >
                     {count}
@@ -140,7 +140,7 @@ export default function BlockIssuesPanel({
                 </button>
               );
             })}
-            <span className="ml-auto text-[9px] font-medium text-[#6C7389]">
+            <span className="ml-auto text-[9px] font-medium text-text-secondary">
               {statusFilter === 'ALL'
                 ? '전체'
                 : ISSUE_STATUS_LABELS[statusFilter]}
@@ -150,7 +150,7 @@ export default function BlockIssuesPanel({
         {!issues && !error && (
           <SkeletonGroup
             label="이슈 상태 필터를 불러오는 중"
-            className="flex shrink-0 items-center gap-1 border-b border-[#1C1F2A]/[0.06] bg-[#F8F9FC] px-3 py-2"
+            className="flex shrink-0 items-center gap-1 border-b border-border-default bg-bg-surface px-3 py-2"
           >
             {[0, 1, 2, 3].map((filter) => (
               <span
@@ -170,7 +170,7 @@ export default function BlockIssuesPanel({
         <div className="min-h-0 flex-1 overflow-y-auto p-3">
           {error ? (
             <div className="flex h-full min-h-28 flex-col items-center justify-center gap-2 text-center">
-              <p role="alert" className="text-[11px] text-[#E7000B]">
+              <p role="alert" className="text-[11px] text-text-danger">
                 {error}
               </p>
               <button
@@ -180,7 +180,7 @@ export default function BlockIssuesPanel({
                   setError('');
                   setRetryCount((count) => count + 1);
                 }}
-                className="cursor-pointer text-[10px] font-semibold text-[#3B5BDB] hover:underline"
+                className="cursor-pointer text-[10px] font-semibold text-text-primary-blue hover:underline"
               >
                 다시 시도
               </button>
@@ -198,13 +198,13 @@ export default function BlockIssuesPanel({
             </SkeletonGroup>
           ) : issues.length === 0 ? (
             <div className="flex h-full min-h-28 flex-col items-center justify-center gap-1 text-center">
-              <span className="flex size-10 items-center justify-center rounded-full bg-[#ECEEF4] text-[#6C7389]">
+              <span className="flex size-10 items-center justify-center rounded-full bg-bg-hover text-text-secondary">
                 #
               </span>
-              <p className="text-[11px] text-[#6C7389]">
+              <p className="text-[11px] text-text-secondary">
                 연결된 이슈가 없습니다.
               </p>
-              <p className="text-[10px] text-[#9AA1B4]">
+              <p className="text-[10px] text-text-muted">
                 이슈 생성·수정에서 이 블록을 연결하세요.
               </p>
             </div>
@@ -212,16 +212,16 @@ export default function BlockIssuesPanel({
             <div className="flex h-full min-h-28 flex-col items-center justify-center gap-1 text-center">
               <StatusFilterIcon
                 filter={statusFilter}
-                className="size-6 text-[#B0B5C3]"
+                className="size-6 text-text-muted"
               />
-              <p className="text-[11px] text-[#6C7389]">
+              <p className="text-[11px] text-text-secondary">
                 {ISSUE_STATUS_LABELS[statusFilter as IssueStatus]} 이슈가
                 없습니다.
               </p>
               <button
                 type="button"
                 onClick={() => setStatusFilter('ALL')}
-                className="cursor-pointer text-[10px] font-semibold text-[#3B5BDB] hover:underline"
+                className="cursor-pointer text-[10px] font-semibold text-text-primary-blue hover:underline"
               >
                 전체 이슈 보기
               </button>
@@ -234,10 +234,10 @@ export default function BlockIssuesPanel({
                     type="button"
                     onClick={() => setSelectedIssueId(issue.issueId)}
                     aria-label={`${issue.title} 이슈 상세 보기`}
-                    className="w-full cursor-pointer rounded-lg border border-[#1C1F2A]/10 bg-white p-3 text-left transition-[border-color,box-shadow] hover:border-[#3B5BDB]/30 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3B5BDB]"
+                    className="w-full cursor-pointer rounded-lg border border-border-default bg-white p-3 text-left transition-[border-color,box-shadow] hover:border-border-primary/30 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-primary"
                   >
                     <div className="mb-1.5 flex items-center gap-1.5">
-                      <span className="text-[9px] text-[#6C7389]">
+                      <span className="text-[9px] text-text-secondary">
                         #{issue.issueId}
                       </span>
                       <IssuePriorityBadge priority={issue.priority} />
@@ -245,10 +245,10 @@ export default function BlockIssuesPanel({
                         <IssueStatusBadge status={issue.status} />
                       </span>
                     </div>
-                    <p className="mb-2 text-[11px] leading-snug font-semibold text-[#1C1F2A]">
+                    <p className="mb-2 text-[11px] leading-snug font-semibold text-text-primary">
                       {issue.title}
                     </p>
-                    <div className="flex items-center justify-between gap-2 text-[9px] text-[#6C7389]">
+                    <div className="flex items-center justify-between gap-2 text-[9px] text-text-secondary">
                       <div className="flex min-w-0 items-center">
                         {issue.assignees.slice(0, 3).map((assignee, index) => (
                           <span
@@ -295,7 +295,7 @@ export default function BlockIssuesPanel({
 
 function IssueCardSkeleton() {
   return (
-    <div className="rounded-lg border border-[#1C1F2A]/10 bg-white p-3">
+    <div className="rounded-lg border border-border-default bg-white p-3">
       <div className="mb-2 flex items-center gap-1.5">
         <Skeleton className="h-2.5 w-7" />
         <Skeleton className="h-4 w-11 rounded-full" />

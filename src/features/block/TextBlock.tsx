@@ -50,14 +50,14 @@ export default function TextBlock({
             // 저장 직후 새 내용으로 다시 마운트한다
             <MarkdownView key={content} content={content} />
           ) : (
-            <p className="text-[10px] text-[#6C7389]/60">
+            <p className="text-[10px] text-text-muted">
               내용이 없습니다. 편집으로 작성해보세요.
             </p>
           )}
         </div>
 
-        <div className="flex items-center justify-between border-t border-[#1C1F2A]/[0.045] pt-1">
-          <span className="font-mono text-[9px] text-[#6C7389]">
+        <div className="flex items-center justify-between border-t border-border-default pt-1">
+          <span className="font-mono text-[9px] text-text-secondary">
             {content.length}자
           </span>
 
@@ -65,14 +65,14 @@ export default function TextBlock({
             <button
               type="button"
               onClick={() => setIsEditing(true)}
-              className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium text-[#3B5BDB] hover:bg-[#3B5BDB]/10"
+              className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
             >
               <PencilIcon />
               편집
             </button>
           ) : (
             // detail.txtId 없이는 어느 본문을 고칠지 알 수 없다
-            <span className="text-[9px] text-[#6C7389]">편집 불가</span>
+            <span className="text-[9px] text-text-secondary">편집 불가</span>
           )}
         </div>
       </div>

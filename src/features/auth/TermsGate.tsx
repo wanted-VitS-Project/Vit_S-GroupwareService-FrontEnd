@@ -53,19 +53,19 @@ export default function TermsGate({
 
   return (
     <Modal title={hasAgreed ? '약관 확인' : '약관 동의'} stepLabel={stepLabel}>
-      <p className="mt-2 text-sm text-slate-500">
+      <p className="mt-2 text-sm text-text-secondary">
         {hasAgreed
           ? '이미 동의한 약관입니다.'
           : '서비스 이용을 위해 약관 동의가 필요합니다.'}
       </p>
 
       {/* TODO: 실제 약관 문구로 교체 (배포 전 필수) */}
-      <div className="mt-6 h-56 overflow-y-auto rounded bg-slate-100 p-4 text-xs whitespace-pre-line text-slate-600">
+      <div className="mt-6 h-56 overflow-y-auto rounded bg-bg-hover p-4 text-xs whitespace-pre-line text-text-secondary">
         약관 내용 추가 예정입니다.
       </div>
 
       {/* 에러가 떠도 버튼 위치가 흔들리지 않게 자리를 잡아둔다 */}
-      <p role="alert" className="mt-4 min-h-5 text-xs text-rose-600">
+      <p role="alert" className="mt-4 min-h-5 text-xs text-text-danger">
         {error}
       </p>
 

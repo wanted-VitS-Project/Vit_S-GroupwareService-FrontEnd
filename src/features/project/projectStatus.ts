@@ -7,11 +7,11 @@ import type { ProjectStatus } from './types';
  * 채운 길이로만 진행도를 읽힌다.
  */
 export const PROJECT_STATUS_STYLE: Record<ProjectStatus, { badge: string }> = {
-  NOT_STARTED: { badge: 'bg-[#F3F4F6] text-[#6B7280]' },
-  IN_PROGRESS: { badge: 'bg-[#EDF4FF] text-[#3B6FF6]' },
-  SETTLEMENT: { badge: 'bg-[#FFF7E6] text-[#D97706]' },
-  COMPLETED: { badge: 'bg-[#ECFDF3] text-[#16A34A]' },
-  CLOSED: { badge: 'bg-[#F5F3FF] text-[#7C3AED]' },
+  NOT_STARTED: { badge: 'bg-bg-hover text-text-secondary' },
+  IN_PROGRESS: { badge: 'bg-blue-bg-soft text-text-primary-blue' },
+  SETTLEMENT: { badge: 'bg-yellow-bg-soft text-yellow-text' },
+  COMPLETED: { badge: 'bg-green-bg text-[#16A34A]' },
+  CLOSED: { badge: 'bg-purple-bg-soft text-purple-text' },
 };
 
 /**

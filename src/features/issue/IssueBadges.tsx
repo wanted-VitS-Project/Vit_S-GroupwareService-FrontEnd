@@ -94,7 +94,7 @@ export function AssigneeAvatars({
   size?: 'xs' | 'sm';
 }) {
   if (assignees.length === 0) {
-    return <span className="text-[10px] text-[#6C7389]">담당자 없음</span>;
+    return <span className="text-[10px] text-text-secondary">담당자 없음</span>;
   }
 
   return (

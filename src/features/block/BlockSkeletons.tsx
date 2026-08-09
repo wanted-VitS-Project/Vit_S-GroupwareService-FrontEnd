@@ -12,9 +12,9 @@ export function BlockBoardSkeleton() {
       {[0, 1, 2].map((column) => (
         <div
           key={column}
-          className="h-56 rounded-lg border border-[#1C1F2A]/10 bg-white p-3"
+          className="h-56 rounded-lg border border-border-default bg-white p-3"
         >
-          <div className="flex items-center gap-2 border-b border-[#1C1F2A]/10 pb-3">
+          <div className="flex items-center gap-2 border-b border-border-default pb-3">
             <ProjectSkeleton shape="circle" className="size-5" />
             <ProjectSkeleton className="h-3 w-24" />
           </div>
@@ -36,7 +36,7 @@ export function FileListSkeleton() {
       {[0, 1, 2].map((row) => (
         <div
           key={row}
-          className="flex h-11 items-center gap-2 rounded-lg bg-[#ECEEF4]/40 px-2.5"
+          className="flex h-11 items-center gap-2 rounded-lg bg-bg-surface px-2.5"
         >
           <ProjectSkeleton className="size-5 shrink-0" />
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">

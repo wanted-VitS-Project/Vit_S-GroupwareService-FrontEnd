@@ -175,14 +175,14 @@ export default function ImageEditModal({
     <Modal
       title="이미지 수정"
       onClose={isSaving ? undefined : onClose}
-      className="flex max-h-[85vh] w-full max-w-[480px] flex-col overflow-hidden rounded-xl border border-[#1C1F2A]/10 shadow-2xl"
+      className="flex max-h-[85vh] w-full max-w-[480px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
       header={
-        <div className="flex shrink-0 items-center justify-between border-b border-[#1C1F2A]/10 px-5 py-3.5">
+        <div className="flex shrink-0 items-center justify-between border-b border-border-default px-5 py-3.5">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-[#1C1F2A]">
+            <h2 className="text-sm font-semibold text-text-primary">
               이미지 수정
             </h2>
-            <span className="font-mono text-[10px] text-[#6C7389]">
+            <span className="font-mono text-[10px] text-text-secondary">
               {remaining.length}장
             </span>
           </div>
@@ -191,14 +191,14 @@ export default function ImageEditModal({
             aria-label="닫기"
             disabled={isSaving}
             onClick={onClose}
-            className="cursor-pointer text-[#6C7389] hover:text-[#1C1F2A] disabled:cursor-not-allowed disabled:opacity-40"
+            className="cursor-pointer text-text-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
           >
             ✕
           </button>
         </div>
       }
     >
-      <p className="shrink-0 border-b border-[#1C1F2A]/10 bg-[#ECEEF4]/20 px-5 py-2 text-[10px] text-[#6C7389]">
+      <p className="shrink-0 border-b border-border-default bg-bg-surface px-5 py-2 text-[10px] text-text-secondary">
         순서를 바꾸려면 왼쪽 핸들을 드래그하세요
       </p>
 
@@ -206,13 +206,13 @@ export default function ImageEditModal({
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto p-4">
         {loadFailed ? (
           <div className="flex flex-col items-center gap-2 py-8">
-            <p className="text-[11px] text-[#6C7389]">
+            <p className="text-[11px] text-text-secondary">
               이미지 목록을 불러오지 못했습니다.
             </p>
             <button
               type="button"
               onClick={() => setRetryCount((count) => count + 1)}
-              className="cursor-pointer rounded-md border border-[#1C1F2A]/10 px-2.5 py-1 text-[10px] font-medium text-[#3B5BDB] hover:bg-[#3B5BDB]/10"
+              className="cursor-pointer rounded-md border border-border-default px-2.5 py-1 text-[10px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
             >
               다시 시도
             </button>
@@ -226,7 +226,7 @@ export default function ImageEditModal({
             {[0, 1, 2].map((row) => (
               <div
                 key={row}
-                className="h-[76px] animate-pulse rounded-xl bg-[#ECEEF4]/60"
+                className="h-[76px] animate-pulse rounded-xl bg-bg-surface"
               />
             ))}
           </div>
@@ -257,15 +257,15 @@ export default function ImageEditModal({
                   }}
                   className={`flex gap-3 rounded-xl border p-2.5 ${
                     hoverIndex === index && draggingIndex !== index
-                      ? 'border-[#3B5BDB]/50 bg-[#3B5BDB]/5'
-                      : 'border-[#1C1F2A]/10'
+                      ? 'border-border-primary/50 bg-blue-bg-soft'
+                      : 'border-border-default'
                   } ${draggingIndex === index ? 'opacity-40' : ''} ${
                     isRemoved ? 'opacity-50' : ''
                   }`}
                 >
                   <span
                     aria-hidden
-                    className="flex cursor-grab flex-col justify-center gap-0.5 text-[#6C7389]/50 active:cursor-grabbing"
+                    className="flex cursor-grab flex-col justify-center gap-0.5 text-text-muted active:cursor-grabbing"
                   >
                     {[0, 1, 2].map((row) => (
                       <span key={row} className="flex gap-0.5">
@@ -279,11 +279,11 @@ export default function ImageEditModal({
                   <img
                     src={image.imageUrl}
                     alt={imageAltText(image)}
-                    className="size-16 shrink-0 rounded-lg bg-[#ECEEF4] object-cover"
+                    className="size-16 shrink-0 rounded-lg bg-bg-hover object-cover"
                   />
 
                   <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
-                    <p className="truncate font-mono text-[9px] text-[#6C7389]">
+                    <p className="truncate font-mono text-[9px] text-text-secondary">
                       {isRemoved ? '삭제 예정' : `이미지 ${index + 1}`} ·{' '}
                       {image.originalName}
                     </p>
@@ -296,7 +296,7 @@ export default function ImageEditModal({
                       onChange={(event) =>
                         updateCaption(image.imgId, event.target.value)
                       }
-                      className="w-full rounded-lg border border-[#1C1F2A]/10 bg-[#ECEEF4]/40 px-2.5 py-1.5 text-[11px] text-[#1C1F2A] outline-none placeholder:text-[#6C7389]/60 focus:border-[#3B5BDB] disabled:cursor-not-allowed"
+                      className="w-full rounded-lg border border-border-default bg-bg-surface px-2.5 py-1.5 text-[11px] text-text-primary outline-none placeholder:text-text-muted focus:border-border-primary disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -317,8 +317,8 @@ export default function ImageEditModal({
                     }
                     className={`shrink-0 cursor-pointer self-center rounded-md px-1.5 py-1 text-[10px] font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
                       isRemoved
-                        ? 'text-[#3B5BDB] hover:bg-[#3B5BDB]/10'
-                        : 'text-[#6C7389] hover:bg-red-50 hover:text-[#E7000B]'
+                        ? 'text-text-primary-blue hover:bg-blue-bg-soft'
+                        : 'text-text-secondary hover:bg-red-bg-soft hover:text-text-danger'
                     }`}
                   >
                     {isRemoved ? '되돌리기' : '삭제'}
@@ -330,14 +330,14 @@ export default function ImageEditModal({
         )}
 
         {errorMessage && (
-          <p role="alert" className="mt-3 text-[10px] text-[#E7000B]">
+          <p role="alert" className="mt-3 text-[10px] text-text-danger">
             {errorMessage}
           </p>
         )}
       </div>
 
-      <div className="flex shrink-0 items-center justify-between gap-2 border-t border-[#1C1F2A]/10 bg-[#ECEEF4]/20 px-5 py-3.5">
-        <span className="text-[10px] text-[#6C7389]">
+      <div className="flex shrink-0 items-center justify-between gap-2 border-t border-border-default bg-bg-surface px-5 py-3.5">
+        <span className="text-[10px] text-text-secondary">
           {removedIds.length > 0 && `저장 시 ${removedIds.length}장 삭제`}
         </span>
         <div className="flex gap-2">
@@ -345,7 +345,7 @@ export default function ImageEditModal({
             type="button"
             onClick={onClose}
             disabled={isSaving}
-            className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-[#6C7389] hover:bg-[#ECEEF4] disabled:cursor-not-allowed disabled:opacity-40"
+            className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
           >
             취소
           </button>
@@ -353,7 +353,7 @@ export default function ImageEditModal({
             type="button"
             onClick={save}
             disabled={isSaving || !images}
-            className="cursor-pointer rounded-lg bg-[#3B5BDB] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#324BB8] disabled:cursor-not-allowed disabled:bg-[#ECEEF4] disabled:text-[#6C7389]"
+            className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
           >
             {isSaving ? '저장 중…' : '저장'}
           </button>

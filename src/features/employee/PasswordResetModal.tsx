@@ -92,15 +92,15 @@ export default function PasswordResetModal({
                 {result.failures.map((failure) => (
                   <li
                     key={failure.userId}
-                    className="rounded-lg border border-[#1C1F2A]/10 px-3 py-2"
+                    className="rounded-lg border border-border-default px-3 py-2"
                   >
-                    <p className="text-[11px] font-semibold text-[#1C1F2A]">
+                    <p className="text-[11px] font-semibold text-text-primary">
                       {failure.name}{' '}
-                      <span className="font-normal text-[#6C7389]">
+                      <span className="font-normal text-text-secondary">
                         {failure.userId}
                       </span>
                     </p>
-                    <p className="mt-0.5 text-[10px] break-keep text-[#E7000B]">
+                    <p className="mt-0.5 text-[10px] break-keep text-text-danger">
                       {PASSWORD_RESET_FAILURE_LABELS[failure.reason]}
                     </p>
                   </li>
@@ -109,7 +109,7 @@ export default function PasswordResetModal({
             )}
 
             {resendTargets.length > 0 && (
-              <p className="rounded-lg bg-[#F59E0B]/10 px-3 py-2.5 text-[11px] leading-relaxed break-keep text-[#92400E]">
+              <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-[11px] leading-relaxed break-keep text-yellow-text">
                 {resendTargets.length}명은 비밀번호가 이미 바뀌었지만 메일이
                 가지 않았습니다. 재발송하지 않으면 로그인할 수 없습니다.
               </p>
@@ -117,23 +117,25 @@ export default function PasswordResetModal({
           </>
         ) : (
           <>
-            <div className="rounded-lg border border-[#1C1F2A]/10 bg-[#ECEEF4]/50 px-3 py-2.5">
-              <span className="block text-[10px] text-[#6C7389]">대상</span>
-              <span className="mt-0.5 block text-xs font-semibold text-[#1C1F2A]">
+            <div className="rounded-lg border border-border-default bg-bg-surface px-3 py-2.5">
+              <span className="block text-[10px] text-text-secondary">
+                대상
+              </span>
+              <span className="mt-0.5 block text-xs font-semibold text-text-primary">
                 {targets.length === 1
                   ? `${targets[0].name} (${targets[0].userId})`
                   : `${targets.length}명`}
               </span>
             </div>
 
-            <p className="rounded-lg bg-[#F59E0B]/10 px-3 py-2.5 text-[11px] leading-relaxed break-keep text-[#92400E]">
+            <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-[11px] leading-relaxed break-keep text-yellow-text">
               임시 비밀번호를 발급해 각자의 이메일로 보냅니다.
               <br />
               대상 사원은 다음 로그인 때 비밀번호를 반드시 변경해야 합니다.
             </p>
 
             {missingEmailCount > 0 && (
-              <p className="text-[10px] break-keep text-[#E7000B]">
+              <p className="text-[10px] break-keep text-text-danger">
                 이메일이 등록되지 않은 사원 {missingEmailCount}명은 실패로
                 처리됩니다.
               </p>
@@ -144,7 +146,7 @@ export default function PasswordResetModal({
         {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}
         <p
           role="alert"
-          className="text-[10px] break-keep text-[#E7000B] empty:hidden"
+          className="text-[10px] break-keep text-text-danger empty:hidden"
         >
           {error}
         </p>
@@ -161,7 +163,7 @@ export default function PasswordResetModal({
                     submit(resendTargets.map((failure) => failure.userId))
                   }
                   disabled={isSubmitting}
-                  className="cursor-pointer rounded-lg border border-[#1C1F2A]/10 px-4 py-1.5 text-[11px] font-semibold text-[#1C1F2A] hover:bg-[#ECEEF4] disabled:cursor-not-allowed disabled:text-[#C7CCD9]"
+                  className="cursor-pointer rounded-lg border border-border-default px-4 py-1.5 text-[11px] font-semibold text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
                 >
                   {isSubmitting ? '재발송 중…' : '메일 재발송'}
                 </button>
@@ -170,7 +172,7 @@ export default function PasswordResetModal({
                 type="button"
                 onClick={requestClose}
                 disabled={isSubmitting}
-                className="cursor-pointer rounded-lg bg-[#2B3A67] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#22305a] disabled:cursor-not-allowed disabled:bg-[#ECEEF4] disabled:text-[#6C7389]"
+                className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
               >
                 확인
               </button>
@@ -181,7 +183,7 @@ export default function PasswordResetModal({
                 type="button"
                 onClick={onClose}
                 disabled={isSubmitting}
-                className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-[#6C7389] hover:bg-[#ECEEF4] disabled:cursor-not-allowed disabled:text-[#C7CCD9]"
+                className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
               >
                 취소
               </button>
@@ -189,7 +191,7 @@ export default function PasswordResetModal({
                 type="button"
                 onClick={() => submit(targets.map((target) => target.userId))}
                 disabled={isSubmitting}
-                className="cursor-pointer rounded-lg bg-[#2B3A67] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#22305a] disabled:cursor-not-allowed disabled:bg-[#ECEEF4] disabled:text-[#6C7389]"
+                className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
               >
                 {isSubmitting ? '재설정 중…' : '재설정'}
               </button>
@@ -236,14 +238,14 @@ function Summary({
 }) {
   const toneClass =
     tone === 'success'
-      ? 'text-[#087443]'
+      ? 'text-green-text'
       : tone === 'danger'
-        ? 'text-[#E7000B]'
-        : 'text-[#1C1F2A]';
+        ? 'text-text-danger'
+        : 'text-text-primary';
 
   return (
-    <div className="flex-1 rounded-lg border border-[#1C1F2A]/10 px-3 py-2 text-center">
-      <span className="block text-[10px] text-[#6C7389]">{label}</span>
+    <div className="flex-1 rounded-lg border border-border-default px-3 py-2 text-center">
+      <span className="block text-[10px] text-text-secondary">{label}</span>
       <span className={`mt-0.5 block text-sm font-bold ${toneClass}`}>
         {count}
       </span>

@@ -14,7 +14,9 @@ export default function ApprovalProgress({
 }) {
   if (lines.length === 0) {
     return (
-      <p className="text-[10px] text-[#6C7389]">지정된 결재자가 없습니다.</p>
+      <p className="text-[10px] text-text-secondary">
+        지정된 결재자가 없습니다.
+      </p>
     );
   }
 
@@ -24,10 +26,10 @@ export default function ApprovalProgress({
   return (
     <div>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-semibold text-[#1C1F2A]">
+        <span className="text-[10px] font-semibold text-text-primary">
           결재 진행 현황
         </span>
-        <span className="text-[10px] text-[#3B5BDB]">
+        <span className="text-[10px] text-text-primary-blue">
           {doneCount} / {ordered.length} 완료
         </span>
       </div>
@@ -52,7 +54,7 @@ export default function ApprovalProgress({
                 }`}
               />
             </div>
-            <span className="mt-1 w-full truncate px-0.5 text-center text-[9px] text-[#6C7389]">
+            <span className="mt-1 w-full truncate px-0.5 text-center text-[9px] text-text-secondary">
               {line.approverName}
             </span>
           </li>
@@ -64,16 +66,16 @@ export default function ApprovalProgress({
 
 /** 앞 단계가 끝났으면 선을 채워 어디까지 왔는지 보이게 한다 */
 function connectorClass(line: ApprovalDetailLine) {
-  return line.status === 'APPROVED' ? 'bg-[#12B76A]' : 'bg-[#1C1F2A]/10';
+  return line.status === 'APPROVED' ? 'bg-[#12B76A]' : 'bg-bg-sidebar/10';
 }
 
 /** 동그라미 색. 승인만 채우고 나머지는 테두리로 구분한다 */
 const MARKER_CLASS: Record<ApprovalLineStatus, string> = {
   APPROVED: 'border-[#12B76A] bg-[#12B76A] text-white',
-  REJECTED: 'border-[#E7000B] bg-white text-[#E7000B]',
-  ACTIVE: 'border-[#3B5BDB] bg-white text-[#3B5BDB]',
-  WAITING: 'border-[#1C1F2A]/15 bg-white text-[#6C7389]',
-  CANCELED: 'border-[#1C1F2A]/10 bg-white text-[#C7CCD9]',
+  REJECTED: 'border-border-danger bg-white text-text-danger',
+  ACTIVE: 'border-border-primary bg-white text-text-primary-blue',
+  WAITING: 'border-border-default bg-white text-text-secondary',
+  CANCELED: 'border-border-default bg-white text-text-muted',
 };
 
 function Marker({ line, step }: { line: ApprovalDetailLine; step: number }) {

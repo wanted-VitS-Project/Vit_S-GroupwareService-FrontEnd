@@ -118,7 +118,7 @@ export default function RowMenu({
         onClick={toggle}
         aria-label={`${label} 관리`}
         aria-expanded={isOpen}
-        className="cursor-pointer rounded px-2 py-1 text-[#6C7389] hover:bg-[#ECEEF4]"
+        className="cursor-pointer rounded px-2 py-1 text-text-secondary hover:bg-bg-hover"
       >
         ⋯
       </button>
@@ -129,7 +129,7 @@ export default function RowMenu({
             ref={menuRef}
             role="menu"
             style={{ top: position.top, left: position.left, width }}
-            className="fixed z-50 overflow-hidden rounded-lg border border-[#1C1F2A]/10 bg-white py-1 shadow-lg"
+            className="fixed z-50 overflow-hidden rounded-lg border border-border-default bg-white py-1 shadow-lg"
           >
             {items.map((item, index) => (
               <button
@@ -141,8 +141,8 @@ export default function RowMenu({
                   close();
                   item.onSelect();
                 }}
-                className={`block w-full cursor-pointer px-3 py-1.5 text-left text-[11px] hover:bg-[#ECEEF4] ${
-                  item.danger ? 'text-[#E7000B]' : 'text-[#1C1F2A]'
+                className={`block w-full cursor-pointer px-3 py-1.5 text-left text-[11px] hover:bg-bg-hover ${
+                  item.danger ? 'text-text-danger' : 'text-text-primary'
                 }`}
               >
                 {item.label}

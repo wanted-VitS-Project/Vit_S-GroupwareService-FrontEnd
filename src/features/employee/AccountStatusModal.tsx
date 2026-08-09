@@ -70,28 +70,28 @@ export default function AccountStatusModal({
       onClose={requestClose}
     >
       <div className="space-y-4 p-5">
-        <div className="rounded-lg border border-[#1C1F2A]/10 bg-[#ECEEF4]/50 px-3 py-2.5">
-          <span className="block text-[10px] text-[#6C7389]">대상</span>
-          <span className="mt-0.5 block truncate text-xs font-semibold text-[#1C1F2A]">
+        <div className="rounded-lg border border-border-default bg-bg-surface px-3 py-2.5">
+          <span className="block text-[10px] text-text-secondary">대상</span>
+          <span className="mt-0.5 block truncate text-xs font-semibold text-text-primary">
             {employee.name} ({employee.userId})
           </span>
         </div>
 
         {isSuspending ? (
-          <p className="rounded-lg bg-[#F59E0B]/10 px-3 py-2.5 text-[11px] leading-relaxed break-keep text-[#92400E]">
+          <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-[11px] leading-relaxed break-keep text-yellow-text">
             정지하면 이 사원은 로그인할 수 없습니다.
             <br />
             사원 정보와 과거 이력은 그대로 남고, 언제든 다시 활성화할 수
             있습니다.
           </p>
         ) : (
-          <p className="rounded-lg bg-[#ECEEF4]/50 px-3 py-2.5 text-[11px] leading-relaxed break-keep text-[#6C7389]">
+          <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-[11px] leading-relaxed break-keep text-text-secondary">
             다시 로그인할 수 있게 됩니다. 비밀번호는 정지 이전 그대로입니다.
           </p>
         )}
 
         {isSuspending && !employee.resignedAt && (
-          <p className="text-[10px] break-keep text-[#6C7389]">
+          <p className="text-[10px] break-keep text-text-secondary">
             퇴사한 사원이라면 정지 대신 퇴사 처리를 하면 퇴사일까지 함께
             기록됩니다.
           </p>
@@ -100,7 +100,7 @@ export default function AccountStatusModal({
         {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}
         <p
           role="alert"
-          className="text-[10px] break-keep text-[#E7000B] empty:hidden"
+          className="text-[10px] break-keep text-text-danger empty:hidden"
         >
           {error}
         </p>
@@ -112,7 +112,7 @@ export default function AccountStatusModal({
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-[#6C7389] hover:bg-[#ECEEF4] disabled:cursor-not-allowed disabled:text-[#C7CCD9]"
+            className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
           >
             취소
           </button>
@@ -120,10 +120,10 @@ export default function AccountStatusModal({
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className={`cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#ECEEF4] disabled:text-[#6C7389] ${
+            className={`cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary ${
               isSuspending
-                ? 'bg-[#E7000B] hover:bg-[#c50009]'
-                : 'bg-[#2B3A67] hover:bg-[#22305a]'
+                ? 'bg-red-text hover:bg-[#c50009]'
+                : 'bg-btn-primary hover:bg-btn-primary-hover'
             }`}
           >
             {isSubmitting ? '처리 중…' : isSuspending ? '정지' : '활성화'}

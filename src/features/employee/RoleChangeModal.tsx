@@ -70,15 +70,15 @@ export default function RoleChangeModal({
     <PanelModal title="권한 변경" onClose={requestClose}>
       <form onSubmit={handleSubmit}>
         <div className="space-y-4 p-5">
-          <div className="rounded-lg border border-[#1C1F2A]/10 bg-[#ECEEF4]/50 px-3 py-2.5">
-            <span className="block text-[10px] text-[#6C7389]">대상</span>
-            <span className="mt-0.5 block truncate text-xs font-semibold text-[#1C1F2A]">
+          <div className="rounded-lg border border-border-default bg-bg-surface px-3 py-2.5">
+            <span className="block text-[10px] text-text-secondary">대상</span>
+            <span className="mt-0.5 block truncate text-xs font-semibold text-text-primary">
               {employee.name} ({employee.userId})
             </span>
           </div>
 
           <fieldset className="space-y-2">
-            <legend className="pb-1.5 text-[11px] font-semibold text-[#1C1F2A]">
+            <legend className="pb-1.5 text-[11px] font-semibold text-text-primary">
               변경할 권한
             </legend>
             {ROLE_OPTIONS.map((option) => (
@@ -86,8 +86,8 @@ export default function RoleChangeModal({
                 key={option}
                 className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 ${
                   role === option
-                    ? 'border-[#3B5BDB] bg-[#3B5BDB]/5'
-                    : 'border-[#1C1F2A]/10 hover:bg-[#ECEEF4]/50'
+                    ? 'border-border-primary bg-blue-bg-soft'
+                    : 'border-border-default hover:bg-bg-surface'
                 }`}
               >
                 <input
@@ -99,12 +99,12 @@ export default function RoleChangeModal({
                     setRole(option);
                     setError('');
                   }}
-                  className="size-3.5 shrink-0 cursor-pointer accent-[#2B3A67]"
+                  className="size-3.5 shrink-0 cursor-pointer accent-btn-primary"
                 />
-                <span className="min-w-0 text-[11px] font-semibold text-[#1C1F2A]">
+                <span className="min-w-0 text-[11px] font-semibold text-text-primary">
                   {ROLE_LABELS[option]}
                   {option === employee.role && (
-                    <span className="ml-1.5 font-normal text-[#6C7389]">
+                    <span className="ml-1.5 font-normal text-text-secondary">
                       현재
                     </span>
                   )}
@@ -113,7 +113,7 @@ export default function RoleChangeModal({
             ))}
           </fieldset>
 
-          <p className="text-[10px] break-keep text-[#6C7389]">
+          <p className="text-[10px] break-keep text-text-secondary">
             관리자 권한은 이 화면에서 부여할 수 없습니다.
           </p>
         </div>
@@ -122,7 +122,7 @@ export default function RoleChangeModal({
           {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}
           <p
             role="alert"
-            className="mr-auto text-[10px] break-keep text-[#E7000B]"
+            className="mr-auto text-[10px] break-keep text-text-danger"
           >
             {error}
           </p>
@@ -131,14 +131,14 @@ export default function RoleChangeModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-[#6C7389] hover:bg-[#ECEEF4] disabled:cursor-not-allowed disabled:text-[#C7CCD9]"
+              className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
             >
               취소
             </button>
             <button
               type="submit"
               disabled={!canSubmit}
-              className="cursor-pointer rounded-lg bg-[#2B3A67] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#22305a] disabled:cursor-not-allowed disabled:bg-[#ECEEF4] disabled:text-[#6C7389]"
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
             >
               {isSubmitting ? '변경 중…' : '변경'}
             </button>

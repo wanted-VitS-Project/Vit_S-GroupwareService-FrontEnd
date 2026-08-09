@@ -48,7 +48,7 @@ export default function NotificationList() {
             className={`cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold ${
               chip.value === category
                 ? 'border-[#4F39F6] bg-[#4F39F6]/5 text-[#4F39F6]'
-                : 'border-[#1C1F2A]/10 text-[#6C7389] hover:bg-[#ECEEF4]'
+                : 'border-border-default text-text-secondary hover:bg-bg-hover'
             }`}
           >
             {chip.label}

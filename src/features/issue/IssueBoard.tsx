@@ -277,15 +277,17 @@ export default function IssueBoard() {
 
   if (hasFailed) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-[#1C1F2A]/10 px-4 py-12">
-        <p className="text-xs text-[#6C7389]">이슈를 불러오지 못했습니다.</p>
+      <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border-default px-4 py-12">
+        <p className="text-xs text-text-secondary">
+          이슈를 불러오지 못했습니다.
+        </p>
         <button
           type="button"
           onClick={() => {
             setFailedStepId(null);
             setReloadCount((count) => count + 1);
           }}
-          className="cursor-pointer rounded px-2 py-1 text-[11px] font-medium text-[#3B5BDB] hover:bg-[#EDF2FF]"
+          className="cursor-pointer rounded px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
         >
           다시 시도
         </button>
@@ -297,14 +299,14 @@ export default function IssueBoard() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-[#1C1F2A]">이슈 보드</h2>
+          <h2 className="text-sm font-semibold text-text-primary">이슈 보드</h2>
           {issues && (
-            <span className="rounded-full bg-[#ECEEF4] px-2 py-0.5 text-[10px] text-[#6C7389]">
+            <span className="rounded-full bg-bg-hover px-2 py-0.5 text-[10px] text-text-secondary">
               총 {issues.length}건
             </span>
           )}
           {draggingIssue && (
-            <span className="text-[10px] font-medium text-[#3B5BDB]">
+            <span className="text-[10px] font-medium text-text-primary-blue">
               드래그하여 상태 변경
             </span>
           )}
@@ -313,7 +315,7 @@ export default function IssueBoard() {
           <button
             type="button"
             onClick={() => setOpenModal({ kind: 'create' })}
-            className="cursor-pointer rounded-lg bg-[#3B5BDB] px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-[#3450C4]"
+            className="cursor-pointer rounded-lg bg-btn-primary px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover"
           >
             + 이슈 생성
           </button>
@@ -323,7 +325,7 @@ export default function IssueBoard() {
       {errorMessage && (
         <p
           role="alert"
-          className="rounded-lg border border-[#FFC9C9] bg-[#FEF2F2] px-3 py-2 text-[10px] text-[#E7000B]"
+          className="rounded-lg border border-red-border bg-red-bg-soft px-3 py-2 text-[10px] text-text-danger"
         >
           {errorMessage}
         </p>
@@ -385,11 +387,11 @@ export default function IssueBoard() {
                     <span className={`size-1.5 rounded-full ${dot}`} />
                     {ISSUE_STATUS_LABELS[status]}
                   </span>
-                  <span className="text-[10px] text-[#6C7389]">
+                  <span className="text-[10px] text-text-secondary">
                     {columnIssues.length}
                   </span>
                   {showDropHint && (
-                    <span className="ml-auto text-[10px] font-medium text-[#3B5BDB]">
+                    <span className="ml-auto text-[10px] font-medium text-text-primary-blue">
                       여기에 놓기
                     </span>
                   )}
@@ -422,7 +424,7 @@ export default function IssueBoard() {
                   ))}
 
                   {columnIssues.length === 0 && (
-                    <p className="rounded-lg border border-dashed border-[#1C1F2A]/10 px-3 py-6 text-center text-[10px] text-[#6C7389]">
+                    <p className="rounded-lg border border-dashed border-border-default px-3 py-6 text-center text-[10px] text-text-secondary">
                       이슈가 없습니다.
                     </p>
                   )}

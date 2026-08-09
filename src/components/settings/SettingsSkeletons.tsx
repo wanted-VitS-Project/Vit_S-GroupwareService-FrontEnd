@@ -167,7 +167,7 @@ export function CategoryTableSkeleton() {
 export function EmployeeDetailSkeleton() {
   return (
     <SkeletonGroup label="사원 정보를 불러오는 중입니다" className="mt-6">
-      <div className="mb-4 flex items-center justify-between rounded-xl border border-[#1C1F2A]/10 bg-white p-5">
+      <div className="mb-4 flex items-center justify-between rounded-xl border border-border-default bg-white p-5">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <Skeleton className="h-5 w-24" />
@@ -181,7 +181,7 @@ export function EmployeeDetailSkeleton() {
         {[0, 1].map((card) => (
           <div
             key={card}
-            className="rounded-xl border border-[#1C1F2A]/10 bg-white p-5"
+            className="rounded-xl border border-border-default bg-white p-5"
           >
             <Skeleton className="mb-4 h-4 w-24" />
             <div className="flex flex-col gap-4">
@@ -195,7 +195,7 @@ export function EmployeeDetailSkeleton() {
           </div>
         ))}
       </div>
-      <div className="mt-4 flex gap-2 rounded-xl border border-[#1C1F2A]/10 bg-white p-5">
+      <div className="mt-4 flex gap-2 rounded-xl border border-border-default bg-white p-5">
         <Skeleton className="h-6 w-20 rounded-full" />
         <Skeleton className="h-6 w-28 rounded-full" />
       </div>
@@ -208,7 +208,7 @@ export function EmployeeFormSkeleton() {
     <SkeletonGroup label="사원 정보를 불러오는 중입니다" className="mt-6">
       <Skeleton className="mb-2 h-5 w-24" />
       <Skeleton className="mb-6 h-3 w-72" />
-      <div className="grid grid-cols-2 gap-x-5 gap-y-4 rounded-xl border border-[#1C1F2A]/10 bg-white p-5">
+      <div className="grid grid-cols-2 gap-x-5 gap-y-4 rounded-xl border border-border-default bg-white p-5">
         {Array.from({ length: 8 }, (_, field) => (
           <SkeletonField key={field} />
         ))}

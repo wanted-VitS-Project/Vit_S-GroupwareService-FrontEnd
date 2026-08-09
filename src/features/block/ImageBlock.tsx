@@ -255,7 +255,7 @@ export default function ImageBlock({
     // detail.imgBlockId 없이는 어느 이미지 블록인지 지목할 수 없다
     return (
       <BlockCard block={block}>
-        <p className="text-[10px] text-[#6C7389]">
+        <p className="text-[10px] text-text-secondary">
           이미지를 불러올 수 없습니다.
         </p>
       </BlockCard>
@@ -274,7 +274,7 @@ export default function ImageBlock({
       block={block}
       headerExtra={
         totalCount !== null && totalCount > 0 ? (
-          <span className="shrink-0 font-mono text-[9px] text-[#6C7389]">
+          <span className="shrink-0 font-mono text-[9px] text-text-secondary">
             {totalCount}장
           </span>
         ) : undefined
@@ -283,14 +283,14 @@ export default function ImageBlock({
       <div className="flex h-full flex-col gap-1.5">
         {showRetry ? (
           // 못 불러온 것뿐이다 — 이미지가 없다고 단정하지 않는다
-          <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-md border border-[#1C1F2A]/10 bg-[#ECEEF4]/40">
-            <p role="alert" className="text-[10px] text-[#6C7389]">
+          <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-md border border-border-default bg-bg-surface">
+            <p role="alert" className="text-[10px] text-text-secondary">
               이미지를 불러오지 못했습니다.
             </p>
             <button
               type="button"
               onClick={() => reloadFrom(1)}
-              className="cursor-pointer rounded-md border border-[#1C1F2A]/10 bg-white px-2.5 py-1 text-[10px] font-medium text-[#3B5BDB] hover:bg-[#3B5BDB]/10"
+              className="cursor-pointer rounded-md border border-border-default bg-white px-2.5 py-1 text-[10px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
             >
               다시 시도
             </button>
@@ -299,13 +299,13 @@ export default function ImageBlock({
           <button
             type="button"
             onClick={() => setModal('upload')}
-            className="flex aspect-video w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-md border-2 border-dashed border-[#1C1F2A]/10 bg-[#ECEEF4]/40 hover:border-[#3B5BDB]/40 hover:bg-[#3B5BDB]/5"
+            className="flex aspect-video w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-md border-2 border-dashed border-border-default bg-bg-surface hover:border-border-primary/40 hover:bg-blue-bg-soft"
           >
             <ImageIcon />
-            <span className="text-[10px] text-[#6C7389]">이미지 추가</span>
+            <span className="text-[10px] text-text-secondary">이미지 추가</span>
           </button>
         ) : (
-          <div className="group/image relative aspect-video overflow-hidden rounded-md bg-[#ECEEF4]">
+          <div className="group/image relative aspect-video overflow-hidden rounded-md bg-bg-hover">
             {current ? (
               /* eslint-disable-next-line @next/next/no-img-element -- 저장소(S3) 도메인이 확정되지 않아 next/image 원격 패턴을 걸 수 없다 */
               <img
@@ -317,7 +317,7 @@ export default function ImageBlock({
               <span
                 aria-label="이미지를 불러오는 중입니다"
                 role="status"
-                className="block size-full animate-pulse bg-[#ECEEF4]"
+                className="block size-full animate-pulse bg-bg-hover"
               />
             )}
 
@@ -380,20 +380,20 @@ export default function ImageBlock({
         */}
         <p
           title={current?.caption || undefined}
-          className="h-3.5 truncate text-[10px] leading-[14px] text-[#6C7389]"
+          className="h-3.5 truncate text-[10px] leading-[14px] text-text-secondary"
         >
           {current?.caption || ' '}
         </p>
 
         {/* 조회 실패는 위 재시도 판이 맡는다. 여기는 다운로드 · 삭제처럼 동작 실패만 */}
         {errorMessage && (
-          <p role="alert" className="text-[9px] break-keep text-[#E7000B]">
+          <p role="alert" className="text-[9px] break-keep text-text-danger">
             {errorMessage}
           </p>
         )}
 
         <div className="mt-auto flex items-center justify-between gap-2 pt-0.5">
-          <span className="shrink-0 font-mono text-[9px] text-[#6C7389]">
+          <span className="shrink-0 font-mono text-[9px] text-text-secondary">
             {current && totalCount ? `${orderIndex} / ${totalCount}` : '—'}
           </span>
 
@@ -403,7 +403,7 @@ export default function ImageBlock({
             </TextButton>
             {current && (
               <>
-                <span className="text-[10px] text-[#6C7389]/40">|</span>
+                <span className="text-[10px] text-text-muted">|</span>
                 <TextButton onClick={() => download()}>
                   <DownloadIcon /> 전체 다운로드
                 </TextButton>
@@ -522,7 +522,7 @@ function ImageMenu({
       {isOpen && (
         <span
           role="menu"
-          className="absolute top-7 right-0 z-20 flex w-32 flex-col overflow-hidden rounded-lg border border-[#1C1F2A]/10 bg-white shadow-lg"
+          className="absolute top-7 right-0 z-20 flex w-32 flex-col overflow-hidden rounded-lg border border-border-default bg-white shadow-lg"
         >
           <MenuItem onClick={onEdit}>이미지 수정</MenuItem>
           <MenuItem onClick={onDownload}>다운로드</MenuItem>
@@ -554,8 +554,8 @@ function MenuItem({
       onClick={onClick}
       className={`cursor-pointer px-2.5 py-1.5 text-left text-[10px] font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
         danger
-          ? 'text-[#E7000B] hover:bg-red-50'
-          : 'text-[#1C1F2A] hover:bg-gray-50'
+          ? 'text-text-danger hover:bg-red-bg-soft'
+          : 'text-text-primary hover:bg-bg-surface'
       }`}
     >
       {children}
@@ -574,7 +574,7 @@ function TextButton({
     <button
       type="button"
       onClick={onClick}
-      className="flex cursor-pointer items-center gap-1 rounded px-1 py-0.5 text-[10px] text-[#6C7389] hover:bg-[#3B5BDB]/10 hover:text-[#3B5BDB]"
+      className="flex cursor-pointer items-center gap-1 rounded px-1 py-0.5 text-[10px] text-text-secondary hover:bg-blue-bg-soft hover:text-text-primary-blue"
     >
       {children}
     </button>
@@ -591,7 +591,7 @@ function ImageIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className="size-5 text-[#6C7389]"
+      className="size-5 text-text-secondary"
     >
       <rect x="3" y="4" width="18" height="16" rx="2" />
       <circle cx="8.5" cy="9.5" r="1.5" />

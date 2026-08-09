@@ -26,7 +26,7 @@ export default function AddBlockButton({
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-[#3B5BDB] px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-[#3450c4]"
+        className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-btn-primary px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover"
       >
         <svg
           viewBox="0 0 24 24"

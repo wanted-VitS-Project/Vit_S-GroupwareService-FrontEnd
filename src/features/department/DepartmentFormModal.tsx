@@ -108,11 +108,11 @@ export default function DepartmentFormModal({
       <form onSubmit={handleSubmit}>
         <div className="space-y-4 p-5">
           {parent && (
-            <div className="rounded-lg border border-[#1C1F2A]/10 bg-[#ECEEF4]/50 px-3 py-2.5">
-              <span className="block text-[10px] text-[#6C7389]">
+            <div className="rounded-lg border border-border-default bg-bg-surface px-3 py-2.5">
+              <span className="block text-[10px] text-text-secondary">
                 상위 부서
               </span>
-              <span className="mt-0.5 block truncate text-xs font-semibold text-[#1C1F2A]">
+              <span className="mt-0.5 block truncate text-xs font-semibold text-text-primary">
                 {parent.name}
               </span>
             </div>
@@ -122,11 +122,11 @@ export default function DepartmentFormModal({
             <div className="flex items-end justify-between gap-2 pb-1.5">
               <label
                 htmlFor="departmentName"
-                className="text-[11px] font-semibold text-[#1C1F2A]"
+                className="text-[11px] font-semibold text-text-primary"
               >
-                부서명 <span className="text-[#E7000B]">*</span>
+                부서명 <span className="text-text-danger">*</span>
               </label>
-              <span className="text-[10px] text-[#6C7389]">
+              <span className="text-[10px] text-text-secondary">
                 {name.length} / {DEPARTMENT_NAME_MAX_LENGTH}
               </span>
             </div>
@@ -139,22 +139,22 @@ export default function DepartmentFormModal({
               placeholder="개발팀"
               aria-invalid={nameError ? true : undefined}
               aria-describedby={nameError ? 'departmentName-error' : undefined}
-              className={`w-full rounded-lg border bg-[#ECEEF4]/50 px-3 py-2 text-[11px] text-[#1C1F2A] placeholder:text-[#6C7389] focus:outline-2 focus:outline-offset-2 ${
+              className={`w-full rounded-lg border bg-bg-surface px-3 py-2 text-[11px] text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 ${
                 nameError
-                  ? 'border-[#E7000B] focus:outline-[#E7000B]'
-                  : 'border-[#1C1F2A]/10 focus:outline-[#3B5BDB]'
+                  ? 'border-border-danger focus:outline-border-danger'
+                  : 'border-border-default focus:outline-border-primary'
               }`}
             />
             {nameError ? (
               <p
                 id="departmentName-error"
                 role="alert"
-                className="mt-1 text-[10px] break-keep text-[#E7000B]"
+                className="mt-1 text-[10px] break-keep text-text-danger"
               >
                 {nameError}
               </p>
             ) : (
-              <p className="mt-1 text-[10px] break-keep text-[#6C7389]">
+              <p className="mt-1 text-[10px] break-keep text-text-secondary">
                 {isEditing
                   ? '이름을 바꿔도 소속 사원 배정은 그대로 유지됩니다.'
                   : '부서명은 전체에서 중복될 수 없습니다.'}
@@ -167,7 +167,7 @@ export default function DepartmentFormModal({
           {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}
           <p
             role="alert"
-            className="mr-auto text-[10px] break-keep text-[#E7000B]"
+            className="mr-auto text-[10px] break-keep text-text-danger"
           >
             {error}
           </p>
@@ -176,14 +176,14 @@ export default function DepartmentFormModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-[#6C7389] hover:bg-[#ECEEF4] disabled:cursor-not-allowed disabled:text-[#C7CCD9]"
+              className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
             >
               취소
             </button>
             <button
               type="submit"
               disabled={!canSubmit}
-              className="cursor-pointer rounded-lg bg-[#2B3A67] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#22305a] disabled:cursor-not-allowed disabled:bg-[#ECEEF4] disabled:text-[#6C7389]"
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
             >
               {isSubmitting ? '저장 중…' : isEditing ? '저장' : '추가'}
             </button>

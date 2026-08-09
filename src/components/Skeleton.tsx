@@ -11,7 +11,7 @@ export function Skeleton({
     <span
       {...props}
       aria-hidden="true"
-      className={`block animate-pulse bg-[#ECEEF4] ${
+      className={`block animate-pulse bg-bg-hover ${
         shape === 'circle' ? 'rounded-full' : 'rounded-md'
       } ${className}`}
     />
@@ -63,7 +63,7 @@ export function SkeletonTable({
     <SkeletonGroup label={label} className={wrapperClassName}>
       <table className={tableClassName}>
         <thead className="sticky top-0 bg-white">
-          <tr className="border-b border-[#1C1F2A]/10 text-[11px] text-[#6C7389]">
+          <tr className="border-b border-border-default text-[11px] text-text-secondary">
             {columns.map((column) => (
               <th
                 key={column.label}
@@ -78,7 +78,7 @@ export function SkeletonTable({
           {Array.from({ length: rows }, (_, row) => (
             <tr
               key={row}
-              className="border-b border-[#1C1F2A]/5 last:border-b-0"
+              className="border-b border-border-default last:border-b-0"
             >
               {columns.map((column) => (
                 <td

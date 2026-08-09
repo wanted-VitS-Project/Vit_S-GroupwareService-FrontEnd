@@ -26,9 +26,9 @@ export default function Pagination({
   const currentPage = Math.min(page + 1, lastPage);
 
   return (
-    <div className="flex items-center justify-between gap-4 border-t border-[#1C1F2A]/10 px-5 py-3">
+    <div className="flex items-center justify-between gap-4 border-t border-border-default px-5 py-3">
       {/* 감춰도 자리는 남겨야 페이지 이동이 오른쪽에 그대로 붙는다 */}
-      <p className="text-[11px] text-[#6C7389]">
+      <p className="text-[11px] text-text-secondary">
         {showTotal && `전체 ${totalElements.toLocaleString('ko-KR')}${unit}`}
       </p>
 
@@ -44,7 +44,7 @@ export default function Pagination({
         <span
           aria-live="polite"
           aria-label={`${lastPage}페이지 중 ${currentPage}페이지`}
-          className="text-[11px] text-[#6C7389]"
+          className="text-[11px] text-text-secondary"
         >
           {currentPage} / {lastPage}
         </span>
@@ -77,7 +77,7 @@ function PageButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="cursor-pointer rounded border border-[#1C1F2A]/10 px-2 py-1 text-xs text-[#6C7389] hover:bg-[#ECEEF4] hover:text-[#1C1F2A] disabled:cursor-not-allowed disabled:text-[#C7CCD9] disabled:hover:bg-transparent"
+      className="cursor-pointer rounded border border-border-default px-2 py-1 text-xs text-text-secondary hover:bg-bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:text-text-muted disabled:hover:bg-transparent"
     >
       {children}
     </button>
