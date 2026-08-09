@@ -6,6 +6,47 @@
 
 ---
 
+## [2026-08-09] 내 프로젝트 목록 화면 ✅
+
+브랜치: `user/project` · 이슈: #83
+
+### 변경 파일
+
+| 파일                                             | 변경 |
+| ------------------------------------------------ | ---- |
+| `src/features/project/MyProjectList.tsx`         | 생성 |
+| `src/features/project/ProjectCard.tsx`           | 생성 |
+| `src/features/project/projectStatus.ts`          | 생성 |
+| `src/features/project/routes.ts`                 | 생성 |
+| `src/components/project/ProjectListSkeleton.tsx` | 생성 |
+| `src/app/projects/page.tsx`                      | 수정 |
+| `src/features/project/api.ts`                    | 수정 |
+| `src/features/project/types.ts`                  | 수정 |
+| `src/constants/endpoints.ts`                     | 수정 |
+| `src/constants/status.ts`                        | 수정 |
+| `.ai/API.md`                                     | 수정 |
+
+### 주요 작업 내용
+
+- `GET /api/v1/projects` 연동 — `getProjects()` · 상태별 건수용 `getProjectCount()`
+- `/projects` 화면 구현 — 상태 요약 카드 5개 · 검색 · 상태 탭 · 카테고리/기간 필터 · 카드 목록 · 페이지네이션
+- 필터 상태를 URL 쿼리에 두어 뒤로가기 · 링크 공유가 되게 함 (결재 목록과 같은 방식)
+- 프로젝트 상태 라벨·색을 `constants/status.ts` + `features/project/projectStatus.ts` 로 단일화
+- 카드 접기/펼치기 — 펼치면 설명 · 내 이슈 · 내 결재 건수 · `프로젝트 전체 보기` · **스테이지 박스(그 안에 스텝 타임라인)** 노출
+- 스테이지 박스도 개별 접기/펼치기. 기간(시작일 범위) · 사업분류 칩 필터바 추가
+
+### 부수 결정
+
+- 시안의 `현재 단계` · `완료/전체` 는 목록 응답에 없다 → 발주처, `myIssueInProgressCount`·`myApprovalOpenCount` 뱃지로 대체
+- 시안 상태 탭(`검토중` 등)을 API enum 5종으로 교체. 통계 카드는 시안대로 5장 유지하고 `CLOSED` 는 탭으로만 조회
+- 집계 API 가 없어 통계 카드는 상태마다 `size=1` 요청 — 목록 필터와 무관하게 **마운트 시 1회만** 호출
+- 스테이지 API(7번)에 상태 필드가 없어 **스텝 상태에서 스테이지 상태를 파생** (전부 DONE → 완료 / 하나라도 진행 → 진행중 / 그 외 대기)
+- 상세·스테이지·스텝 조회는 카드를 **펼칠 때 최초 1회만** — 목록 로드 시 전부 부르면 10건 페이지에서 31콜이 된다
+- 시안의 카드 `description` 은 목록 응답에 없어 **상세(6번)를 펼칠 때 함께** 호출
+- `stageId === null` 인 스텝은 감추지 않고 `스테이지 미지정` 박스로 모아 표시
+
+---
+
 ## [2026-08-09] 비타메이트 AI 블록 구현 ✅
 
 브랜치: `user/project` · 이슈: #80
@@ -487,23 +528,23 @@
 
 ### 변경 파일
 
-| 파일                                                | 변경                                             |
-| --------------------------------------------------- | ------------------------------------------------ |
-| `src/features/notification/types.ts`                | 생성 — 알림 타입 · `isUnread()`                  |
+| 파일                                                | 변경                                              |
+| --------------------------------------------------- | ------------------------------------------------- |
+| `src/features/notification/types.ts`                | 생성 — 알림 타입 · `isUnread()`                   |
 | `src/features/notification/api.ts`                  | 생성 — 목록 · 이동 대상 · 읽음 · 전체 읽음 · 삭제 |
-| `src/features/notification/display.ts`              | 생성 — 종류별 아이콘 · 이동 경로 조립            |
-| `src/features/notification/time.ts`                 | 생성 — `10분 전` · `어제` · `3일 전`             |
-| `src/features/notification/events.ts`               | 생성 — `notification:changed` 창 이벤트          |
-| `src/features/notification/routes.ts`               | 생성 — 화면 경로 단일 소스                       |
-| `src/features/notification/NotificationBell.tsx`    | 생성 — 헤더 종 · 배지 · 드롭다운                 |
-| `src/features/notification/NotificationRow.tsx`     | 생성 — 알림 한 줄 (드롭다운 · 페이지 공용)       |
-| `src/features/notification/NotificationMenu.tsx`    | 생성 — 케밥 메뉴(삭제 · 읽음 · 취소)             |
-| `src/features/notification/NotificationSection.tsx` | 생성 — `미확인` · `확인` 구역                    |
-| `src/features/notification/NotificationList.tsx`    | 생성 — 알림 페이지 껍데기                        |
-| `src/app/notifications/page.tsx`                    | 수정 — stub → 실제 화면                          |
-| `src/components/Header.tsx`                         | 수정 — `알림` 텍스트 링크 → 종 아이콘            |
-| `src/constants/endpoints.ts`                        | 수정 — `notifications` 5개 경로                  |
-| `.ai/API.md`                                        | 수정 — 74~78번 절 · 알림 도메인 공통 신설        |
+| `src/features/notification/display.ts`              | 생성 — 종류별 아이콘 · 이동 경로 조립             |
+| `src/features/notification/time.ts`                 | 생성 — `10분 전` · `어제` · `3일 전`              |
+| `src/features/notification/events.ts`               | 생성 — `notification:changed` 창 이벤트           |
+| `src/features/notification/routes.ts`               | 생성 — 화면 경로 단일 소스                        |
+| `src/features/notification/NotificationBell.tsx`    | 생성 — 헤더 종 · 배지 · 드롭다운                  |
+| `src/features/notification/NotificationRow.tsx`     | 생성 — 알림 한 줄 (드롭다운 · 페이지 공용)        |
+| `src/features/notification/NotificationMenu.tsx`    | 생성 — 케밥 메뉴(삭제 · 읽음 · 취소)              |
+| `src/features/notification/NotificationSection.tsx` | 생성 — `미확인` · `확인` 구역                     |
+| `src/features/notification/NotificationList.tsx`    | 생성 — 알림 페이지 껍데기                         |
+| `src/app/notifications/page.tsx`                    | 수정 — stub → 실제 화면                           |
+| `src/components/Header.tsx`                         | 수정 — `알림` 텍스트 링크 → 종 아이콘             |
+| `src/constants/endpoints.ts`                        | 수정 — `notifications` 5개 경로                   |
+| `.ai/API.md`                                        | 수정 — 74~78번 절 · 알림 도메인 공통 신설         |
 
 ### 주요 작업 내용
 
