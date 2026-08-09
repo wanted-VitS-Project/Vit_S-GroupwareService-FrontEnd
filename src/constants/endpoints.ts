@@ -20,6 +20,12 @@ export const ENDPOINTS = {
     steps: (projectId: number | string) => `${V1}/projects/${projectId}/steps`,
     members: (projectId: number | string) =>
       `${V1}/projects/${projectId}/members`,
+    /**
+     * 프로젝트의 모든 파일 버전 — 비타메이트 분석 대상 선택에 쓴다.
+     * ⚠️ 비타메이트가 아니라 **파일 도메인** API 다 (`features/file/api.ts`).
+     */
+    fileVersions: (projectId: number | string) =>
+      `${V1}/projects/${projectId}/file-versions`,
   },
   businessCategories: {
     /** 목록 조회 · 생성 */
@@ -145,6 +151,22 @@ export const ENDPOINTS = {
       `${V1}/blocks/images/items/${imgBlockId}`,
     /** 이미지 항목 삭제 — 이쪽은 **항목 ID(`imgId`)** 다. 위 경로와 모양만 같다 */
     imageItem: (imgId: number | string) => `${V1}/blocks/images/items/${imgId}`,
+    /**
+     * 비타메이트 분석 요청(POST) · 블록별 분석 이력 조회(GET).
+     *
+     * ⚠️ POST 는 `Idempotency-Key` 헤더가 **필수**다.
+     * ⚠️ GET 은 최신순 최대 20건이고 `documents`/`result`/`citations` 가 없다 —
+     *    본문이 필요하면 `vitamate.analysis` 로 한 번 더 조회한다.
+     */
+    vitamateAnalyses: (blockId: number | string) =>
+      `${V1}/blocks/${blockId}/vitamate/analyses`,
+  },
+  vitamate: {
+    /** 검토 유형 · 세부 카테고리 · 기본 프롬프트(`exampleText`) */
+    reviewTemplates: `${V1}/vitamate/review-templates`,
+    /** 분석 단건 조회 — 진행 중 polling 도 이 경로를 쓴다 */
+    analysis: (analysisId: number | string) =>
+      `${V1}/vitamate/analyses/${analysisId}`,
   },
   files: {
     /** 업로드 시작 — presigned PUT URL 발급 */

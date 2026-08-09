@@ -7,7 +7,7 @@ import { onNotificationChanged } from './events';
 import NotificationSection from './NotificationSection';
 
 /**
- * 알림 페이지. (알림 도메인 · .ai/API.md 74~76 · 78)
+ * 알림 페이지. (알림 도메인 · .ai/API.md 79~81 · 83)
  *
  * `미확인` · `확인` 을 **한 화면에 위아래로** 보여준다. 탭으로 나누면 방금 읽은 알림이
  * 어디로 갔는지 보이지 않는데, 나란히 두면 위에서 아래로 옮겨가는 게 그대로 드러난다.

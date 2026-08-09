@@ -23,7 +23,7 @@ function toSearchParams(query: NotificationQuery) {
 }
 
 /**
- * 알림 목록. **본인 알림만** 최신순으로 온다 (.ai/API.md 74).
+ * 알림 목록. **본인 알림만** 최신순으로 온다 (.ai/API.md 79).
  *
  * ℹ️ 배지 숫자는 `content.length` 가 아니라 `totalElements` 를 쓴다 — 목록은 `size` 에 잘린다.
  */
@@ -40,7 +40,7 @@ export function getNotifications(
 }
 
 /**
- * 알림 이동 대상 (.ai/API.md 75).
+ * 알림 이동 대상 (.ai/API.md 80).
  *
  * ⚠️ **조회가 읽음 처리를 겸한다.** 그래서 클릭 이동 경로에서는 읽음 API 를 따로 부르지 않는다.
  * 이동할 곳이 없으면 `type: 'NONE'` 으로 오는데 그것도 200 이고, 읽음은 그대로 된다.

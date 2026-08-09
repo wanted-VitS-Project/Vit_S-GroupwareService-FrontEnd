@@ -1,5 +1,5 @@
 /**
- * 알림 도메인 타입. (.ai/API.md 74~78 · 알림 도메인 공통)
+ * 알림 도메인 타입. (.ai/API.md 79~83 · 알림 도메인 공통)
  *
  * ⚠️ **`isRead` 같은 boolean 이 없다.** `readAt` 이 `null` 이면 안 읽음이다.
  */
@@ -17,7 +17,7 @@ export type NotificationType =
   | 'APPROVAL_COMPLETED'
   | (string & {});
 
-/** 알림 한 줄 (.ai/API.md 74) */
+/** 알림 한 줄 (.ai/API.md 79) */
 export interface NotificationItem {
   notificationId: number;
   notificationType: NotificationType;
@@ -50,7 +50,7 @@ export interface NotificationQuery {
 }
 
 /**
- * 알림 클릭 시 이동 대상 (.ai/API.md 75).
+ * 알림 클릭 시 이동 대상 (.ai/API.md 80).
  *
  * 도메인을 가리지 않는 모양이라 **경로는 프론트가 조립한다.**
  * 이동할 곳이 없으면 `type: 'NONE'` 으로 오고, 그것도 정상 응답(200)이다.

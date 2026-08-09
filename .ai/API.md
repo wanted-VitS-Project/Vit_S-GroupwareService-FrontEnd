@@ -1,8 +1,8 @@
 # 연동 API 명세서
 
+**최종 업데이트**: 2026-08-09 (비타메이트 AI 블록 연동 — 74~78 추가, 비타메이트 공통 절 신설)
 **최종 업데이트**: 2026-08-07 (이미지 항목 전체 조회 — 71 추가, 수정 모달이 이걸로 교체)
 **최종 업데이트**: 2026-08-07 (이미지 도메인 연동 — 66~70 추가)
-**최종 업데이트**: 2026-08-07 (블록 배치 PATCH 부분 수정 계약 정정)
 
 > 📌 이 파일은 **프론트가 연동하는 백엔드 API**를 정리하는 곳이에요. (내가 만드는 게 아니라 **호출하는** 입장)
 > AI는 API 연동 코드를 작성하기 전에 이 파일을 먼저 읽어요. (잘못된 경로/필드/타입으로 fetch 짜는 실수 방지)
@@ -87,11 +87,16 @@
 | [70](#70-이미지-다운로드)                 | 이미지 다운로드  | `GET /blocks/images/{id}/download`             | ✅ `features/block/api.ts`            |
 | [71](#71-이미지-항목-전체-조회)           | 이미지 전체 조회 | `GET /blocks/images/{id}/items`                | ✅ `features/block/api.ts`            |
 | [73](#73-결재-이력조회)                   | 결재 이력        | `GET /approvals/{id}/revisions`                | ✅ `features/approval/api.ts`         |
-| [74](#74-알림-목록-조회)                  | 알림 목록        | `GET /notifications`                           | ✅ `features/notification/api.ts`     |
-| [75](#75-알림-이동-대상-조회)             | 알림 이동 대상   | `GET /notifications/{id}/target`               | ✅ `features/notification/api.ts`     |
-| [76](#76-알림-읽음-처리)                  | 알림 읽음        | `PATCH /notifications/{id}/read`               | ✅ `features/notification/api.ts`     |
-| [77](#77-알림-전체-읽음-처리)             | 알림 전체 읽음   | `PATCH /notifications/read-all`                | ✅ `features/notification/api.ts`     |
-| [78](#78-알림-삭제)                       | 알림 삭제        | `DELETE /notifications/{id}`                   | ✅ `features/notification/api.ts`     |
+| [74](#74-프로젝트-파일-버전-목록)         | 프로젝트 버전 목록 | `GET /projects/{projectId}/file-versions`    | ✅ `features/file/api.ts`             |
+| [75](#75-검토-템플릿-목록)                | 검토 템플릿      | `GET /vitamate/review-templates`               | ✅ `features/vitamate/api.ts`         |
+| [76](#76-비타메이트-분석-요청)            | 분석 요청        | `POST /blocks/{blockId}/vitamate/analyses`     | ✅ `features/vitamate/api.ts`         |
+| [77](#77-비타메이트-분석-단건-조회)       | 분석 단건 조회   | `GET /vitamate/analyses/{analysisId}`          | ✅ `features/vitamate/api.ts`         |
+| [78](#78-블록별-분석-이력)                | 분석 이력        | `GET /blocks/{blockId}/vitamate/analyses`      | ✅ `features/vitamate/api.ts`         |
+| [79](#79-알림-목록-조회)                  | 알림 목록        | `GET /notifications`                           | ✅ `features/notification/api.ts`     |
+| [80](#80-알림-이동-대상-조회)             | 알림 이동 대상   | `GET /notifications/{id}/target`               | ✅ `features/notification/api.ts`     |
+| [81](#81-알림-읽음-처리)                  | 알림 읽음        | `PATCH /notifications/{id}/read`               | ✅ `features/notification/api.ts`     |
+| [82](#82-알림-전체-읽음-처리)             | 알림 전체 읽음   | `PATCH /notifications/read-all`                | ✅ `features/notification/api.ts`     |
+| [83](#83-알림-삭제)                       | 알림 삭제        | `DELETE /notifications/{id}`                   | ✅ `features/notification/api.ts`     |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
 > 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통) · [이미지 도메인 — 공통](#이미지-도메인--공통)
@@ -2391,6 +2396,196 @@ data: {
 
 ---
 
+## 비타메이트 도메인 — 공통
+
+AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고르고, 문서를 기준(`REFERENCE`)과 검토 대상(`TARGET`)으로 나눠 선택한 뒤**, 서버가 준 기본 프롬프트를 확인·보완해 요청한다.
+
+| 항목             | 규칙                                                                       |
+| ---------------- | -------------------------------------------------------------------------- |
+| 분석 방식        | **비동기.** 요청은 `202` + `PENDING` 만 주고 결과는 폴링으로 받는다        |
+| 폴링             | 요청 후 15초 대기 → 3초 간격 조회 → 종료 상태면 중단. 2분 초과 시 문구 전환 |
+| 중복 방지        | 요청에 `Idempotency-Key` 헤더 **필수**                                      |
+| 문서 역할        | 같은 `fileVersionId` 를 기준·대상에 동시에 넣을 수 없다 (서버 400)         |
+| 선택 가능 문서   | `indexStatus = COMPLETED` 인 파일 버전만                                    |
+| 과거 이력        | 최신 파일이 아니라 **분석 당시 `fileVersionId`** 기준 정보를 보여준다       |
+| 레거시 분석      | `reviewType = null` · `reviewCategoryCodes = []` · `prompt = null` 로 온다  |
+
+**`analysisStatus` 별 필드 규칙**
+
+| 상태         | `result` | `errorMessage` | `completedAt` | `documents` | `citations` |
+| ------------ | -------- | -------------- | ------------- | ----------- | ----------- |
+| `PENDING`    | `null`   | `null`         | `null`        | 선택 문서   | `[]`        |
+| `PROCESSING` | `null`   | `null`         | `null`        | 선택 문서   | `[]`        |
+| `COMPLETED`  | 필수     | `null`         | 필수          | 선택 문서   | `[]` 가능   |
+| `FAILED`     | `null`   | 필수           | 필수          | 선택 문서   | `[]`        |
+
+> ❗ **`result` 는 형식이 없는 자유 문자열이다.** 프론트가 요약·지적사항·경고로 나눠 그리려고 `features/vitamate/types.ts` 의 `parseResult()` 로 파싱하고, **실패하면 마크다운 원문**을 그대로 보여준다. 구조화된 필드로 계약이 잡히면 이 파서를 지운다.
+> ❗ **"블록의 최신 분석" 전용 조회 API 가 없다.** 지금은 78번(이력, 최신순)의 첫 건 `analysisId` 로 77번을 한 번 더 부른다. 백엔드에 전용 API 를 요청할지 논의 필요.
+
+---
+
+## 74. 프로젝트 파일 버전 목록
+
+| 항목          | 내용                                                          |
+| ------------- | ------------------------------------------------------------- |
+| **Method**    | `GET`                                                         |
+| **Path**      | `/api/v1/projects/{projectId}/file-versions`                  |
+| **인증 필요** | ✅ 프로젝트 참여자                                            |
+| **사용 위치** | ✅ `features/file/api.ts` — `getProjectFileVersions()`        |
+
+**응답 data** — 배열 그대로 (없으면 `[]`). 휴지통 버전은 오지 않는다.
+
+| 필드               | 타입              | 설명                                             |
+| ------------------ | ----------------- | ------------------------------------------------ |
+| `fileId`           | `number`          | 문서 ID                                          |
+| `name`             | `string`          | 표시명                                           |
+| `fileVersionId`    | `number`          | **분석 요청에 넣는 값**                          |
+| `versionNo`        | `number`          | 1부터                                            |
+| `latest`           | `boolean`         | 이 문서의 최신 버전인지                          |
+| `originalFileName` | `string`          | 원본 파일명                                      |
+| `extension`        | `string`          | 확장자                                           |
+| `sizeBytes`        | `number`          | 바이트                                           |
+| `pageCount`        | `number \| null`  | PDF 만 값이 있다                                 |
+| `previewable`      | `boolean`         | 미리보기 가능 여부                               |
+| `completedAt`      | `string`          | 업로드 완료 시각                                 |
+| `indexStatus`      | `IndexStatus`     | `PENDING` `PROCESSING` `COMPLETED` `FAILED`      |
+
+> ⚠️ **파일 도메인 API 다** (비타메이트 도메인 아님).
+> ⚠️ 스텝이 아니라 **프로젝트 전체**라, 다른 스텝에 올린 기준 문서도 고를 수 있다.
+> ℹ️ `indexStatus !== COMPLETED` 인 버전은 목록에는 보이되 **선택은 막는다** ("AI가 아직 읽는 중").
+
+---
+
+## 75. 검토 템플릿 목록
+
+| 항목          | 내용                                                    |
+| ------------- | ------------------------------------------------------- |
+| **Method**    | `GET`                                                   |
+| **Path**      | `/api/v1/vitamate/review-templates`                     |
+| **인증 필요** | ✅ 프로젝트 참여자                                      |
+| **사용 위치** | ✅ `features/vitamate/api.ts` — `getReviewTemplates()`  |
+
+**응답 data** — `{ reviewTypes: [] }`
+
+| 필드                          | 타입       | 설명                                       |
+| ----------------------------- | ---------- | ------------------------------------------ |
+| `reviewType`                  | `string`   | 유형 코드 — 분석 요청에 그대로 넣는다      |
+| `reviewTypeName`              | `string`   | 화면 표시명                                |
+| `description`                 | `string`   | 유형 설명                                  |
+| `categories[].categoryCode`   | `string`   | 카테고리 코드 (예: `COST_REPORT`)          |
+| `categories[].categoryName`   | `string`   | 화면 표시명                                |
+| `categories[].guideText`      | `string`   | 보조 안내 문구                             |
+| `categories[].exampleText`    | `string`   | **프롬프트 입력창 기본값**                 |
+| `categories[].templateVersion`| `number`   | 적용 템플릿 버전                           |
+
+> ⚠️ 실제 AI 지시문(`promptTemplate`)은 이 API 로 **절대 내려오지 않는다.** 화면 기본값은 `exampleText` 다.
+> ℹ️ 카테고리를 여러 개 골라도 요청 `prompt` 는 **문자열 하나**다 — `exampleText` 들을 줄바꿈으로 합쳐 채운다.
+
+---
+
+## 76. 비타메이트 분석 요청
+
+| 항목          | 내용                                                 |
+| ------------- | ---------------------------------------------------- |
+| **Method**    | `POST`                                               |
+| **Path**      | `/api/v1/blocks/{blockId}/vitamate/analyses`         |
+| **인증 필요** | ✅ 프로젝트 참여자                                   |
+| **헤더**      | ⚠️ `Idempotency-Key` **필수**                        |
+| **사용 위치** | ✅ `features/vitamate/api.ts` — `createAnalysis()`   |
+
+**요청 body**
+
+| 필드                       | 타입       | 필수 | 설명                                     |
+| -------------------------- | ---------- | ---- | ---------------------------------------- |
+| `referenceFileVersionIds`  | `number[]` | ✅   | 기준 문서 — 1개 이상                     |
+| `targetFileVersionIds`     | `number[]` | ✅   | 검토 대상 — 1개 이상, 기준과 겹칠 수 없다 |
+| `reviewType`               | `string`   | ✅   | 75번에서 고른 유형                       |
+| `reviewCategoryCodes`      | `string[]` | ✅   | 75번에서 고른 세부 카테고리              |
+| `prompt`                   | `string`   | ✅   | `exampleText` 를 사용자가 확인·보완한 값 |
+
+**응답 data** — `202`
+
+| 필드             | 타입     | 설명                    |
+| ---------------- | -------- | ----------------------- |
+| `analysisId`     | `number` | 폴링에 쓸 분석 ID       |
+| `analysisStatus` | `string` | `PENDING`               |
+| `requestedAt`    | `string` | 요청 시각               |
+
+| status | 화면 처리                                                      |
+| ------ | -------------------------------------------------------------- |
+| 400    | 기준·대상 중복 등 — 프론트가 먼저 막지만 문구는 서버 것을 쓴다 |
+| 409    | 같은 키인데 내용이 다름 → "이미 다른 분석 요청이 처리 중"       |
+
+> ⚠️ **같은 키 + 같은 내용**이면 새 분석이 생기지 않고 기존 `analysisId` 가 온다. 그래서 `재실행`(같은 설정으로 새 결과를 원하는 동작)은 **키를 새로 뽑는다.**
+> ℹ️ 결과는 이 응답에 없다 — 77번으로 폴링한다.
+
+---
+
+## 77. 비타메이트 분석 단건 조회
+
+| 항목          | 내용                                               |
+| ------------- | -------------------------------------------------- |
+| **Method**    | `GET`                                              |
+| **Path**      | `/api/v1/vitamate/analyses/{analysisId}`           |
+| **인증 필요** | ✅ 스텝 접근 권한                                  |
+| **사용 위치** | ✅ `features/vitamate/api.ts` — `getAnalysis()`    |
+
+**응답 data**
+
+| 필드                          | 타입               | 설명                                     |
+| ----------------------------- | ------------------ | ---------------------------------------- |
+| `analysisId`                  | `number`           | 분석 ID                                  |
+| `blockId`                     | `number`           | AI 블록 ID                               |
+| `reviewType`                  | `string \| null`   | 레거시 분석은 null                       |
+| `reviewCategoryCodes`         | `string[]`         | 고른 세부 카테고리                       |
+| `prompt`                      | `string \| null`   | 확정된 프롬프트                          |
+| `analysisStatus`              | `AnalysisStatus`   | 위 상태 표 참고                          |
+| `result`                      | `string \| null`   | **형식 없는 자유 문자열**                |
+| `errorMessage`                | `string \| null`   | 실패 사유 (내부 예외는 노출 금지)        |
+| `createdAt`                   | `string`           | 요청 시각                                |
+| `completedAt`                 | `string \| null`   | 완료·실패 시각. 실패해도 채워진다        |
+| `documents[].fileVersionId`   | `number`           | 분석 당시 파일 버전                      |
+| `documents[].fileName`        | `string`           | 분석 당시 문서명                         |
+| `documents[].documentRole`    | `REFERENCE\|TARGET`| 문서 역할                                |
+| `citations[].rankOrder`       | `number`           | 근거 순서                                |
+| `citations[].fileVersionId`   | `number`           | 근거가 속한 파일 버전                    |
+| `citations[].documentChunkId` | `number`           | 문서 청크 ID                             |
+| `citations[].pageNumber`      | `number \| null`   | 페이지 번호                              |
+| `citations[].excerpt`         | `string`           | 근거 발췌문                              |
+
+> ⚠️ `citations` 에는 **문서명이 없다** — 같은 응답의 `documents` 에서 `fileVersionId` 로 찾는다.
+> ⚠️ 권한 없는 분석은 `403`·`404` 로 처리하고 **본문을 노출하지 않는다.**
+> ℹ️ 삭제된 문서 버전도 이력 표시를 위해 당시 문서명이 남는다.
+
+---
+
+## 78. 블록별 분석 이력
+
+| 항목          | 내용                                                  |
+| ------------- | ----------------------------------------------------- |
+| **Method**    | `GET`                                                 |
+| **Path**      | `/api/v1/blocks/{blockId}/vitamate/analyses`          |
+| **인증 필요** | ✅ 프로젝트 참여자                                    |
+| **사용 위치** | ✅ `features/vitamate/api.ts` — `getBlockAnalyses()`  |
+
+**응답 data** — 최신순(`createdAt DESC`), **최대 20건 · 페이징 없음**
+
+| 필드                  | 타입             | 설명                        |
+| --------------------- | ---------------- | --------------------------- |
+| `analysisId`          | `number`         | 상세 조회(77번) 키          |
+| `reviewType`          | `string \| null` | 검토 유형                   |
+| `reviewCategoryCodes` | `string[]`       | 세부 카테고리               |
+| `prompt`              | `string \| null` | 프롬프트                    |
+| `analysisStatus`      | `AnalysisStatus` | 상태                        |
+| `createdAt`           | `string`         | 요청 시각                   |
+| `completedAt`         | `string \| null` | 완료·실패 시각              |
+
+> ⚠️ **`documents` · `result` · `citations` 가 없다.** 목록에서는 본문을 못 그리고, 눌러서 77번으로 상세를 받는다.
+> ⚠️ 20건을 넘으면 그 이전 건은 이 목록에서 안 보인다 (v1 페이징 없음) — 화면에 안내 문구를 단다.
+> ❗ 감싸는 키(`{ analyses: [] }` vs 배열 그대로)가 **확정 전**이라 프론트가 두 모양을 모두 받는다.
+
+---
+
 ## 알림 도메인 — 공통
 
 | 항목            | 내용                                                                                                     |
@@ -2399,14 +2594,14 @@ data: {
 | **정렬**        | 최신순(`createdAt` 내림차순) 고정 — 정렬 파라미터가 없다                                                 |
 | **읽음 표기**   | ⚠️ `isRead` 같은 boolean 이 **없다.** `readAt` 이 `null` 이면 안 읽음                                     |
 | **삭제**        | 논리 삭제다. 지운 알림은 목록에서 빠지고 다시 부르면 404                                                 |
-| **자동 읽음**   | 이동 대상 조회(75번)가 **읽음 처리를 겸한다** — 클릭 이동 시 읽음 API 를 따로 부르지 않는다               |
+| **자동 읽음**   | 이동 대상 조회(80번)가 **읽음 처리를 겸한다** — 클릭 이동 시 읽음 API 를 따로 부르지 않는다               |
 
 > ❗ **`notificationType` 의 전체 목록을 받지 못했다.** 확인된 값은 `APPROVAL_REQUESTED` · `APPROVAL_REJECTED` · `APPROVAL_COMPLETED` 셋뿐이다. 시안에는 이슈 배정 · 새 댓글도 있어 `ISSUE_*` · `COMMENT_*` 가 더 있을 것으로 보인다 — **화면은 모르는 값이 와도 기본 아이콘으로 떨어지게** 짠다.
 > ❗ **`category` 로 넣을 수 있는 값 목록도 미확인.** 설명상 `notificationType` 의 **접두어**(`APPROVAL` 등)를 그대로 쓴다.
 
 ---
 
-## 74. 알림 목록 조회
+## 79. 알림 목록 조회
 
 | 항목          | 내용                                              |
 | ------------- | ------------------------------------------------- |
@@ -2440,7 +2635,7 @@ data: {
 
 ---
 
-## 75. 알림 이동 대상 조회
+## 80. 알림 이동 대상 조회
 
 | 항목          | 내용                                                    |
 | ------------- | ------------------------------------------------------- |
@@ -2467,7 +2662,7 @@ data: {
 
 ---
 
-## 76. 알림 읽음 처리
+## 81. 알림 읽음 처리
 
 | 항목          | 내용                                             |
 | ------------- | ------------------------------------------------ |
@@ -2478,11 +2673,11 @@ data: {
 **응답 data** — `notificationId` · `readAt`
 
 > ℹ️ **멱등이다.** 이미 읽은 알림을 다시 불러도 200 이고 최초 읽음 시각을 덮어쓰지 않는다.
-> ℹ️ 이동 없이 **읽음만** 표시할 때 쓴다 (케밥 메뉴의 `읽음`). 클릭 이동은 75번이 겸한다.
+> ℹ️ 이동 없이 **읽음만** 표시할 때 쓴다 (케밥 메뉴의 `읽음`). 클릭 이동은 80번이 겸한다.
 
 ---
 
-## 77. 알림 전체 읽음 처리
+## 82. 알림 전체 읽음 처리
 
 | 항목          | 내용                                       |
 | ------------- | ------------------------------------------ |
@@ -2494,7 +2689,7 @@ data: {
 
 ---
 
-## 78. 알림 삭제
+## 83. 알림 삭제
 
 | 항목          | 내용                                        |
 | ------------- | ------------------------------------------- |

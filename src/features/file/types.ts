@@ -138,6 +138,75 @@ export interface DownloadUrlResponse {
   expiresAt: string;
 }
 
+/**
+ * 문서를 AI 가 읽을 수 있게 쪼개 넣었는지 (`file_index`).
+ * `COMPLETED` 여야 비타메이트 분석 대상으로 고를 수 있다.
+ */
+export type IndexStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+
+/**
+ * 인덱싱 상태를 다시 보는 간격.
+ *
+ * 분석 폴링(3초)보다 느슨하게 둔다 — 인덱싱은 분석보다 오래 걸리고,
+ * 프로젝트 목록 전체를 받는 요청이라 자주 부를수록 손해다.
+ */
+export const INDEX_POLL_INTERVAL_MS = 5_000;
+
+/**
+ * 이 시간을 넘기면 **간격을 늘린다** (멈추지는 않는다).
+ *
+ * 인덱싱이 걸린 문서가 있으면 조건이 영원히 참이라 5초 간격을 계속 두면 부담이다.
+ * 그렇다고 아주 멈추면 10분 뒤 인덱싱이 끝나도 문서가 계속 회색으로 남아,
+ * 사용자는 화면을 닫았다 열기 전까지 그 사실을 알 수 없다.
+ */
+export const INDEX_POLL_SLOW_AFTER_MS = 5 * 60_000;
+
+/** 위 시간을 넘긴 뒤의 느슨한 간격 */
+export const INDEX_POLL_SLOW_INTERVAL_MS = 30_000;
+
+/** 조회가 실패했을 때 재시도 간격의 시작값 — 실패할수록 두 배로 늘린다 */
+export const INDEX_RETRY_BASE_MS = 5_000;
+
+/** 재시도 간격 상한 */
+export const INDEX_RETRY_MAX_MS = 60_000;
+
+/** 이만큼 연속 실패하면 재시도를 접는다 — 무한히 두드리지 않는다 */
+export const INDEX_MAX_FAILURES = 5;
+
+/** 아직 AI 가 읽는 중인지 — 끝난 상태(`COMPLETED`·`FAILED`)와 가른다 */
+function isIndexPending(indexStatus: string) {
+  return indexStatus === 'PENDING' || indexStatus === 'PROCESSING';
+}
+
+/** 읽는 중인 문서가 남아 있는지 — 목록을 더 볼지 정한다 */
+export function hasIndexingDocument(versions: { indexStatus: string }[]) {
+  return versions.some((version) => isIndexPending(version.indexStatus));
+}
+
+/**
+ * GET /projects/{projectId}/file-versions 의 한 줄.
+ *
+ * 스텝·블록이 아니라 **프로젝트 전체**의 파일 버전이라, 비타메이트 분석에서
+ * 다른 스텝에 올린 기준 문서까지 고를 수 있다. 휴지통 버전은 오지 않는다.
+ */
+export interface ProjectFileVersion {
+  fileId: number;
+  /** 표시명 */
+  name: string;
+  fileVersionId: number;
+  versionNo: number;
+  /** 이 문서의 최신 버전인지 */
+  latest: boolean;
+  originalFileName: string;
+  extension: string;
+  sizeBytes: number;
+  /** PDF 만 값이 있다 */
+  pageCount: number | null;
+  previewable: boolean;
+  completedAt: string;
+  indexStatus: IndexStatus;
+}
+
 /** 업로드 상한 — 서버도 검증하지만 큰 파일을 헛되게 올리지 않으려고 먼저 막는다 */
 export const FILE_MAX_SIZE_BYTES = 50 * 1024 * 1024;
 
