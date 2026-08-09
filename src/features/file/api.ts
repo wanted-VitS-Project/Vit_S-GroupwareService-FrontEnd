@@ -7,6 +7,7 @@ import type {
   DownloadUrlResponse,
   FileVersionDetail,
   FileVersionsResponse,
+  ProjectFileVersion,
   RenameFileResponse,
   StartUploadRequest,
   StartUploadResponse,
@@ -26,6 +27,20 @@ export function getBlockFiles(
     : ENDPOINTS.blocks.files(blockId);
 
   return api.get<BlockFilesResponse>(path, options.signal);
+}
+
+/**
+ * 프로젝트의 모든 파일 버전 — 비타메이트 분석 문서 선택에 쓴다.
+ * 응답 `data` 가 배열 그대로다 (없으면 빈 배열).
+ */
+export function getProjectFileVersions(
+  projectId: number | string,
+  signal?: AbortSignal,
+) {
+  return api.get<ProjectFileVersion[]>(
+    ENDPOINTS.projects.fileVersions(projectId),
+    signal,
+  );
 }
 
 /** 업로드 시작 — `fileId` 를 주면 그 문서의 새 버전, 없으면 새 문서(v1) */
