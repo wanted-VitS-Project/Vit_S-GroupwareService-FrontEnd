@@ -3,18 +3,20 @@ import { messageOf } from '@/lib/api';
 import { getProjectFileVersions } from './api';
 import {
   hasIndexingDocument,
+  INDEX_MAX_FAILURES,
   INDEX_POLL_INTERVAL_MS,
-  INDEX_POLL_MAX_MS,
+  INDEX_POLL_SLOW_AFTER_MS,
+  INDEX_POLL_SLOW_INTERVAL_MS,
+  INDEX_RETRY_BASE_MS,
+  INDEX_RETRY_MAX_MS,
   type ProjectFileVersion,
 } from './types';
 
 /**
  * 프로젝트 파일 버전 목록의 **프로젝트당 하나뿐인** 조회·폴링.
  *
- * 이 목록을 보는 곳이 여럿이다 — 문서 업로드 블록(AI 준비 배지)과 비타메이트
- * 실행 모달(분석 대상 선택). 컴포넌트마다 각자 받으면 같은 프로젝트 전체 목록을
- * 스텝에 있는 문서 블록 수만큼 중복해서 받고, 인덱싱 중에는 폴링까지 그만큼 겹친다.
- *
+ * 이 목록을 보는 곳이 여럿이라(비타메이트 실행 모달 · 문서 선택 모달) 컴포넌트마다
+ * 각자 받으면 같은 프로젝트 전체 목록을 중복해서 받고, 인덱싱 중에는 폴링까지 겹친다.
  * 그래서 구독 구조로 두고 **조회 1회 · 타이머 1개**만 돈다.
  */
 
@@ -34,10 +36,12 @@ interface Store {
   state: ProjectFileVersionsState;
   listeners: Set<Listener>;
   timer: ReturnType<typeof setTimeout> | undefined;
-  /** 폴링 상한(`INDEX_POLL_MAX_MS`) 기준점 */
+  /** 폴링 간격을 늘릴 시점을 재는 기준 */
   watchStartedAt: number;
   /** 마지막으로 응답을 받은 시각 — 다시 볼지 판단한다 */
   fetchedAt: number;
+  /** 연속 실패 횟수 — 재시도 간격과 포기 시점을 정한다 */
+  failureCount: number;
   /** 도는 중인 조회. 구독자가 몰려도 요청은 하나만 나간다 */
   inFlight: Promise<void> | undefined;
 }
@@ -64,6 +68,7 @@ function storeOf(projectId: string) {
     timer: undefined,
     watchStartedAt: 0,
     fetchedAt: 0,
+    failureCount: 0,
     inFlight: undefined,
   };
   stores.set(projectId, created);
@@ -83,13 +88,38 @@ function isHidden() {
   return typeof document !== 'undefined' && document.hidden;
 }
 
-/** 더 볼 것이 남았는지 — 읽는 중인 문서가 있고 상한을 안 넘겼을 때만 */
+/**
+ * 더 볼 것이 남았는지.
+ *
+ * 실패한 뒤에는 목록이 비어 있어도 다시 시도해야 한다 — 첫 조회가 네트워크 문제로
+ * 실패했을 때 `versions` 만 보고 판단하면 "인덱싱 중인 문서 없음" 으로 읽혀
+ * 재시도가 영영 걸리지 않는다.
+ */
 function shouldKeepWatching(store: Store) {
   if (store.listeners.size === 0) return false;
+  if (store.failureCount > 0) return store.failureCount <= INDEX_MAX_FAILURES;
   if (store.state.versions === null) return false;
-  if (!hasIndexingDocument(store.state.versions)) return false;
 
-  return Date.now() - store.watchStartedAt <= INDEX_POLL_MAX_MS;
+  return hasIndexingDocument(store.state.versions);
+}
+
+/**
+ * 다음 조회까지의 간격.
+ *
+ * 실패 중이면 두 배씩 물러나고, 오래 걸리는 인덱싱은 5분 뒤부터 느슨하게 본다.
+ * **어느 경우에도 완전히 놓지는 않는다** — 늦게라도 끝나면 화면이 풀려야 한다.
+ */
+function nextDelay(store: Store) {
+  if (store.failureCount > 0) {
+    return Math.min(
+      INDEX_RETRY_BASE_MS * 2 ** (store.failureCount - 1),
+      INDEX_RETRY_MAX_MS,
+    );
+  }
+
+  return Date.now() - store.watchStartedAt > INDEX_POLL_SLOW_AFTER_MS
+    ? INDEX_POLL_SLOW_INTERVAL_MS
+    : INDEX_POLL_INTERVAL_MS;
 }
 
 function schedule(store: Store, projectId: string) {
@@ -100,7 +130,7 @@ function schedule(store: Store, projectId: string) {
 
   store.timer = setTimeout(() => {
     void load(projectId);
-  }, INDEX_POLL_INTERVAL_MS);
+  }, nextDelay(store));
 }
 
 function load(projectId: string) {
@@ -111,6 +141,7 @@ function load(projectId: string) {
   store.inFlight = getProjectFileVersions(projectId)
     .then((versions) => {
       store.fetchedAt = Date.now();
+      store.failureCount = 0;
       publish(store, { versions, loadError: '' });
     })
     .catch((caught) => {
@@ -118,6 +149,7 @@ function load(projectId: string) {
        * 한 번 실패했다고 접지 않는다 — 일시적인 끊김이면 다음 회차에 붙는다.
        * 이미 받아 둔 목록이 있으면 그대로 두고 안내만 얹는다.
        */
+      store.failureCount += 1;
       publish(store, {
         versions: store.state.versions ?? [],
         loadError: messageOf(caught, '문서 목록을 불러오지 못했습니다.'),
@@ -173,7 +205,21 @@ export function subscribeProjectFileVersions(
   store.listeners.add(listener);
   bindVisibility();
 
-  if (isFirst) store.watchStartedAt = Date.now();
+  if (isFirst) {
+    store.watchStartedAt = Date.now();
+    // 지난 실패는 새 구독의 판단을 막지 않는다
+    store.failureCount = 0;
+  }
+
+  /*
+   * 지금 값을 곧바로 건네준다.
+   *
+   * 훅은 렌더에서 `readProjectFileVersions()` 를 읽고 effect 에서 구독하는데,
+   * 그 사이에 조회가 끝나면 이 구독자만 갱신을 놓친다. 인덱싱 중인 문서가 없으면
+   * 다음 `publish` 도 없어서 화면이 영영 로딩으로 남는다.
+   * 값이 그대로면 참조가 같아 React 가 렌더를 건너뛴다.
+   */
+  listener(store.state);
 
   // 값이 없거나 낡았을 때만 새로 받는다 — 두 번째 구독자는 캐시를 그대로 쓴다
   if (

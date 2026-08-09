@@ -5,7 +5,7 @@ import { useState } from 'react';
 import Modal from '@/components/Modal';
 import { ModalFooter } from '@/components/PanelModal';
 import { extensionLabel, extensionStyle } from '@/features/file/format';
-import type { ProjectFileVersion } from '@/features/file/types';
+import type { IndexStatus, ProjectFileVersion } from '@/features/file/types';
 
 import { type DocumentRole, ROLE_LABEL } from './types';
 
@@ -158,8 +158,11 @@ export default function FileVersionPickerModal({
   );
 }
 
-/** 인덱싱이 안 끝난 문서를 왜 못 고르는지 알려주는 문구 */
-const INDEX_HINT: Record<string, string> = {
+/**
+ * 인덱싱이 안 끝난 문서를 왜 못 고르는지 알려주는 문구.
+ * `COMPLETED` 에는 문구가 없어 `Partial` 이다.
+ */
+const INDEX_HINT: Partial<Record<IndexStatus, string>> = {
   PENDING: 'AI가 아직 읽는 중',
   PROCESSING: 'AI가 아직 읽는 중',
   FAILED: 'AI가 읽지 못한 문서',
@@ -177,7 +180,15 @@ function VersionRow({
   onToggle: () => void;
 }) {
   const isIndexed = version.indexStatus === 'COMPLETED';
-  const isDisabled = !isIndexed || isTaken;
+  const isBlocked = !isIndexed || isTaken;
+  /**
+   * 이미 고른 항목은 **막지 않는다.**
+   *
+   * 목록은 폴링으로 갱신되므로 모달이 열린 채로 상태가 바뀔 수 있다. 고른 버전이
+   * 재인덱싱으로 `PENDING` 이 되면 체크박스가 잠겨 **해제할 수도 없이** 그대로
+   * 전송된다. 색은 그대로 흐리게 두되 해제는 열어 둔다.
+   */
+  const isDisabled = isBlocked && !isChecked;
   const hint = isTaken
     ? '반대쪽에 이미 선택됨'
     : (INDEX_HINT[version.indexStatus] ?? '');
@@ -190,7 +201,8 @@ function VersionRow({
           isDisabled
             ? 'cursor-not-allowed border-[#1C1F2A]/10 opacity-50'
             : isChecked
-              ? 'cursor-pointer border-[#4F39F6] bg-[#EEF2FF]'
+              ? // 고를 수 없게 된 뒤에도 고른 상태면 흐리게 표시해 해제를 유도한다
+                `cursor-pointer border-[#4F39F6] bg-[#EEF2FF] ${isBlocked ? 'opacity-60' : ''}`
               : 'cursor-pointer border-[#1C1F2A]/10 hover:bg-[#ECEEF4]/50'
         }`}
       >

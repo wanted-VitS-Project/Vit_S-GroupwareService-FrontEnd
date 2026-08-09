@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import MarkdownView from '@/features/block/MarkdownView';
 
@@ -25,10 +25,14 @@ const SEVERITY_BAR: Record<FindingSeverity, string> = {
   low: 'border-l-[#6C7389]',
 };
 
+/**
+ * 색 막대가 뜻하는 것 — **등급이 아니라 지적 유형**이다.
+ * 시각 사용자는 색으로 구분하므로 비시각 사용자에게도 같은 정보를 준다.
+ */
 const SEVERITY_LABEL: Record<FindingSeverity, string> = {
-  high: '불일치',
-  medium: '누락',
-  low: '확인',
+  high: '값이 어긋난 항목',
+  medium: '비어 있는 항목',
+  low: '확인이 필요한 항목',
 };
 
 /**
@@ -47,7 +51,8 @@ export default function AnalysisResultView({
   documents: AnalysisDocument[];
   citations: AnalysisCitation[];
 }) {
-  const parsed = parseResult(result);
+  // 폴링 중에도 카드가 다시 그려진다 — 긴 결과를 매 렌더마다 줄 단위로 파싱하지 않는다
+  const parsed = useMemo(() => parseResult(result), [result]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -108,7 +113,7 @@ function FindingList({ findings }: { findings: ResultFinding[] }) {
             <p className="flex items-center gap-1.5 text-[11px] font-semibold break-keep text-[#1C1F2A]">
               <span className="min-w-0 flex-1">{finding.title}</span>
               <span className="sr-only">
-                심각도 {SEVERITY_LABEL[finding.severity]}
+                — {SEVERITY_LABEL[finding.severity]}
               </span>
             </p>
             {finding.detail && (

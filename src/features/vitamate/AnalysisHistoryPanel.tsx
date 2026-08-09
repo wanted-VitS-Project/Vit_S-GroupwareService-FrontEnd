@@ -9,7 +9,13 @@ import { messageOf } from '@/lib/api';
 import AnalysisResultView from './AnalysisResultView';
 import { getAnalysis, getBlockAnalyses } from './api';
 import StatusBadge from './StatusBadge';
-import { type Analysis, type AnalysisSummary, isRunning } from './types';
+import {
+  type Analysis,
+  type AnalysisDocument,
+  type AnalysisSummary,
+  isRunning,
+  ROLE_LABEL,
+} from './types';
 
 /**
  * 분석 이력 패널. (최신순 · 최대 20건 · 페이징 없음)
@@ -107,7 +113,11 @@ export default function AnalysisHistoryPanel({
             ))}
           </ul>
         ) : listError ? (
-          <p className="py-10 text-center text-xs text-[#6C7389]">
+          // 빈 목록과 같은 모양이면 실패를 "아직 없음" 으로 오해한다
+          <p
+            role="alert"
+            className="rounded border border-[#FFC9C9] bg-[#FEF2F2] px-2.5 py-3 text-center text-[11px] break-keep text-[#E7000B]"
+          >
             {listError}
           </p>
         ) : analyses.length === 0 ? (
@@ -242,9 +252,14 @@ function AnalysisDetail({
               documents={analysis.documents}
               citations={analysis.citations}
             />
+          ) : isRunning(analysis.analysisStatus) ? (
+            // 진행 중인데 "결과 없음" 이라고 하면 끝났는데 빈 것으로 읽힌다
+            <p className="text-[10px] text-[#6C7389]">
+              아직 검토하고 있어요. 잠시 후 다시 확인해주세요.
+            </p>
           ) : (
             <p className="text-[10px] text-[#6C7389]">
-              아직 결과가 없는 분석입니다.
+              결과가 비어 있는 분석입니다.
             </p>
           )}
         </>
@@ -257,11 +272,7 @@ function AnalysisDetail({
 export function DocumentRoleList({
   documents,
 }: {
-  documents: {
-    fileVersionId: number;
-    fileName: string;
-    documentRole: string;
-  }[];
+  documents: AnalysisDocument[];
 }) {
   if (documents.length === 0) return null;
 
@@ -272,8 +283,9 @@ export function DocumentRoleList({
           key={document.fileVersionId}
           className="flex max-w-full items-center gap-1 rounded border border-[#1C1F2A]/10 bg-[#F8FAFC] px-1.5 py-0.5"
         >
+          {/* 블록 카드와 같은 매퍼를 쓴다 — 한쪽만 REFERENCE 로 보이면 용어가 갈린다 */}
           <span className="shrink-0 text-[8px] font-bold tracking-wider text-[#6C7389]">
-            {document.documentRole}
+            {ROLE_LABEL[document.documentRole]}
           </span>
           <span className="min-w-0 truncate text-[10px] text-[#1C1F2A]">
             {document.fileName}

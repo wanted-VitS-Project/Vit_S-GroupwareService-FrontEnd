@@ -155,6 +155,9 @@ export const POLL_INTERVAL_MS = 3_000;
 /** 이 시간을 넘기면 폴링은 유지하되 "예상보다 지연" 문구로 바꾼다 */
 export const POLL_SLOW_AFTER_MS = 120_000;
 
+/** 조회가 연속 실패할 때 물러날 간격의 상한 — 죽은 서버를 3초마다 두드리지 않는다 */
+export const POLL_MAX_BACKOFF_MS = 30_000;
+
 /*
  * 문서 인덱싱(`indexStatus`) 관련 상수 · 헬퍼는 **파일 도메인**에 있다
  * (`features/file/types.ts`) — 문서 업로드 블록도 같은 값을 쓴다.
@@ -307,10 +310,25 @@ export function parseResult(result: string): ParsedResult | null {
     const heading = headingOf(text);
     if (heading) {
       const next = bucketOf(heading);
-      // 못 알아본 제목은 구획을 바꾸지 않는다 — 엉뚱한 곳에 쌓이는 것보다 낫다
       if (next) {
         current = next;
         sawHeading = true;
+        continue;
+      }
+
+      /*
+       * 못 알아본 제목도 **버리지 않는다.**
+       *
+       * `## 지적 사항` 아래의 `### 금액 불일치` 처럼, 구획을 가르지는 못해도
+       * 그 자체가 내용인 경우가 많다. 건너뛰면 제목이 사라지고 뒤따르는 설명만
+       * 남아 엉뚱한 항목에 붙는다.
+       */
+      if (current === 'findings') {
+        findings.push(splitFinding(heading));
+      } else if (current === 'warning') {
+        warning.push(heading);
+      } else {
+        summary.push(heading);
       }
       continue;
     }

@@ -153,12 +153,25 @@ export type IndexStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
 export const INDEX_POLL_INTERVAL_MS = 5_000;
 
 /**
- * 이 시간을 넘기면 폴링을 멈춘다.
+ * 이 시간을 넘기면 **간격을 늘린다** (멈추지는 않는다).
  *
- * 인덱싱이 걸려 버린 문서가 하나라도 있으면 조건이 영원히 참이라,
- * 상한이 없으면 화면을 열어 둔 내내 5초마다 요청이 나간다.
+ * 인덱싱이 걸린 문서가 있으면 조건이 영원히 참이라 5초 간격을 계속 두면 부담이다.
+ * 그렇다고 아주 멈추면 10분 뒤 인덱싱이 끝나도 문서가 계속 회색으로 남아,
+ * 사용자는 화면을 닫았다 열기 전까지 그 사실을 알 수 없다.
  */
-export const INDEX_POLL_MAX_MS = 5 * 60_000;
+export const INDEX_POLL_SLOW_AFTER_MS = 5 * 60_000;
+
+/** 위 시간을 넘긴 뒤의 느슨한 간격 */
+export const INDEX_POLL_SLOW_INTERVAL_MS = 30_000;
+
+/** 조회가 실패했을 때 재시도 간격의 시작값 — 실패할수록 두 배로 늘린다 */
+export const INDEX_RETRY_BASE_MS = 5_000;
+
+/** 재시도 간격 상한 */
+export const INDEX_RETRY_MAX_MS = 60_000;
+
+/** 이만큼 연속 실패하면 재시도를 접는다 — 무한히 두드리지 않는다 */
+export const INDEX_MAX_FAILURES = 5;
 
 /** 아직 AI 가 읽는 중인지 — 끝난 상태(`COMPLETED`·`FAILED`)와 가른다 */
 function isIndexPending(indexStatus: string) {

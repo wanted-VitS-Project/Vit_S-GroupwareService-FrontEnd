@@ -47,6 +47,10 @@ export default function AiBlock({ block }: { block: StepBlock }) {
   );
   /** 이 화면에서 방금 요청했는지 — 첫 15초를 건너뛸지 정한다 */
   const [justRequested, setJustRequested] = useState(false);
+  /** 최신 분석을 찾다가 실패했는지 — "분석 없음" 과 구분해야 한다 */
+  const [resolveError, setResolveError] = useState('');
+  /** 값이 바뀌면 최신 분석을 다시 찾는다 */
+  const [resolveCount, setResolveCount] = useState(0);
 
   const [isRunModalOpen, setIsRunModalOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -67,15 +71,22 @@ export default function AiBlock({ block }: { block: StepBlock }) {
       .then((list) => {
         // 최신순이라 첫 건이 최신이다
         if (list.length > 0) setAnalysisId(list[0].analysisId);
+        setResolveError('');
       })
-      // 이력을 못 읽어도 새로 실행하는 길은 열어 둔다
-      .catch(() => undefined)
+      .catch((caught) => {
+        if (signal.aborted) return;
+        /*
+         * 삼키면 안 된다 — 실패를 "분석 없음" 으로 보여주면, 이미 결과가 있는데도
+         * 사용자가 새로 실행해서 **같은 분석을 중복 생성**한다.
+         */
+        setResolveError(messageOf(caught, '분석 이력을 불러오지 못했습니다.'));
+      })
       .finally(() => {
         if (!signal.aborted) setIsResolving(false);
       });
 
     return () => controller.abort();
-  }, [block.blockId, detail.latestAnalysisId]);
+  }, [block.blockId, detail.latestAnalysisId, resolveCount]);
 
   /** 같은 설정으로 새 분석을 만든다 — 새 결과를 원하는 것이므로 키를 새로 뽑는다 */
   async function rerun() {
@@ -123,11 +134,29 @@ export default function AiBlock({ block }: { block: StepBlock }) {
               aria-hidden
               className="h-16 animate-pulse rounded bg-[#ECEEF4]"
             />
+          ) : resolveError ? (
+            // "분석 없음" 으로 보여주면 중복 실행을 부른다
+            <FailureNotice
+              message={resolveError}
+              onRetry={() => {
+                setIsResolving(true);
+                setResolveError('');
+                setResolveCount((count) => count + 1);
+              }}
+            />
           ) : (
             <EmptyState onRun={() => setIsRunModalOpen(true)} />
           )
         ) : !analysis ? (
-          <RunningState requestedAt={null} isSlow={false} />
+          /*
+           * 조회가 실패했는데 진행 중 스피너를 계속 돌리면 실패를 놓친다.
+           * 폴링은 뒤에서 계속 재시도하므로 재시도 버튼은 두지 않는다.
+           */
+          loadError ? (
+            <FailureNotice message={loadError} />
+          ) : (
+            <RunningState requestedAt={null} isSlow={false} />
+          )
         ) : (
           <>
             <RequestSummary analysis={analysis} />
@@ -158,7 +187,10 @@ export default function AiBlock({ block }: { block: StepBlock }) {
           </>
         )}
 
-        {loadError && <p className="text-[10px] text-[#BB4D00]">{loadError}</p>}
+        {/* 결과를 이미 보여주는 중이라면 안내만 얹는다 (위에서 이미 그렸으면 생략) */}
+        {loadError && analysis && (
+          <p className="text-[10px] text-[#BB4D00]">{loadError}</p>
+        )}
         {actionError && (
           <p role="alert" className="text-[10px] text-[#E7000B]">
             {actionError}
@@ -175,7 +207,7 @@ export default function AiBlock({ block }: { block: StepBlock }) {
               title={
                 canRerun
                   ? '같은 설정으로 다시 분석한다'
-                  : '검토 유형이 없는 이전 분석이라 수정 후 실행해야 한다'
+                  : '검토 유형 또는 프롬프트가 없는 이전 분석이라 수정 후 실행해야 한다'
               }
               className="cursor-pointer rounded-md bg-[#4F39F6] px-2.5 py-1 text-[10px] font-semibold text-white hover:bg-[#4429E0] disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -297,6 +329,40 @@ function RoleRow({
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+/**
+ * 조회 실패 안내.
+ *
+ * "분석 없음"·"진행 중" 과 **눈에 띄게 달라야** 한다 — 같은 모양이면 사용자가
+ * 실패를 정상 상태로 오해하고, 이미 있는 분석을 또 실행하게 된다.
+ */
+function FailureNotice({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry?: () => void;
+}) {
+  return (
+    <div
+      role="alert"
+      className="flex flex-col items-center gap-2 rounded border border-[#FFC9C9] bg-[#FEF2F2] px-2.5 py-3"
+    >
+      <p className="text-center text-[10px] break-keep text-[#E7000B]">
+        {message}
+      </p>
+      {onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="cursor-pointer rounded-md border border-[#FFC9C9] bg-white px-2.5 py-1 text-[10px] font-medium text-[#E7000B] hover:bg-[#FEF2F2]"
+        >
+          다시 시도
+        </button>
+      )}
     </div>
   );
 }

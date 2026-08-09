@@ -227,13 +227,17 @@ export default function AnalysisRunModal({
               검토 유형을 불러오지 못했습니다.
             </p>
           ) : (
-            <div role="tablist" className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5">
+              {/*
+                탭이 아니라 **값 하나를 고르는** 컨트롤이다. `role="tab"` 을 쓰면
+                스크린리더가 연결된 tabpanel · 방향키 이동 · roving tabindex 를
+                기대하는데 그 동작이 없어 오히려 혼란스럽다. 눌린 상태만 알린다.
+              */}
               {reviewTypes.map((type) => (
                 <button
                   key={type.reviewType}
                   type="button"
-                  role="tab"
-                  aria-selected={type.reviewType === effectiveType}
+                  aria-pressed={type.reviewType === effectiveType}
                   title={type.description}
                   onClick={() => changeType(type.reviewType)}
                   className={`cursor-pointer rounded-md border px-2.5 py-1 text-[11px] font-medium ${
@@ -303,12 +307,15 @@ export default function AnalysisRunModal({
           <p className="text-[10px] text-[#E7000B]">{versionsError}</p>
         )}
 
+        {/* 카운터는 `maxLength` 와 같은 기준(원문 길이)이어야 한다 — 공백을 뺀 수를
+            보여주면 2000 미만인데도 입력이 막혀 고장으로 보인다 */}
         <Field
           label="프롬프트"
-          hint={`${trimmedPrompt.length} / ${PROMPT_MAX_LENGTH}`}
+          hint={`${prompt.length} / ${PROMPT_MAX_LENGTH}`}
         >
           <textarea
             rows={5}
+            aria-label="프롬프트"
             value={prompt}
             maxLength={PROMPT_MAX_LENGTH}
             onChange={(event) => {
