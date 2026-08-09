@@ -201,11 +201,11 @@ export default function ProjectSidebar() {
   ];
 
   return (
-    <aside className="flex h-full w-70 shrink-0 flex-col border-r border-gray-200 bg-white">
+    <aside className="flex h-full w-70 shrink-0 flex-col border-r border-border-default bg-white">
       {/* 이탈 경로는 항상 같은 자리에 있어야 한다 — 스크롤 영역 밖에 둔다 */}
       <Link
         href="/"
-        className="flex h-12 shrink-0 items-center gap-2 border-b border-gray-200 px-4 text-sm font-medium text-gray-500 hover:bg-gray-50"
+        className="flex h-12 shrink-0 items-center gap-2 border-b border-border-default px-4 text-sm font-medium text-text-secondary hover:bg-bg-surface"
       >
         <ArrowLeftIcon />
         홈으로 돌아가기
@@ -213,23 +213,23 @@ export default function ProjectSidebar() {
 
       {/* 스크롤 영역 — 홈 · 참여자 · 설정은 위아래에 고정한다. 폭이 좁아 스크롤바는 숨긴다 */}
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto">
-        <div className="flex flex-col gap-3 border-b border-gray-200 px-4 py-4">
+        <div className="flex flex-col gap-3 border-b border-border-default px-4 py-4">
           <div className="flex items-center gap-2">
-            <p className="min-w-0 flex-1 truncate text-xs font-semibold tracking-[0.9px] text-gray-500 uppercase">
+            <p className="min-w-0 flex-1 truncate text-xs font-semibold tracking-[0.9px] text-text-secondary uppercase">
               {category || (project ? '카테고리 없음' : '')}
             </p>
             {/* TODO: 사이드바 접기 동작 — 요구사항 확정 후 */}
             <button
               type="button"
               aria-label="사이드바 접기"
-              className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded hover:bg-gray-100"
+              className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded hover:bg-bg-hover"
             >
               <PanelIcon />
             </button>
           </div>
 
           {hasFailed ? (
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-text-secondary">
               프로젝트 정보를 불러오지 못했습니다.
             </p>
           ) : !project ? (
@@ -237,36 +237,38 @@ export default function ProjectSidebar() {
           ) : (
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-0.5">
-                <p className="text-xl font-bold break-keep text-gray-900">
+                <p className="text-xl font-bold break-keep text-text-primary">
                   {project.name}
                 </p>
-                <p className="text-sm font-semibold text-gray-500">
+                <p className="text-sm font-semibold text-text-secondary">
                   {project.clientName}
                 </p>
               </div>
               {project.description && (
-                <p className="text-xs leading-5 text-gray-500">
+                <p className="text-xs leading-5 text-text-secondary">
                   {project.description}
                 </p>
               )}
 
               <div>
-                <p className="pb-1 text-[10px] text-gray-500">전체 진행률</p>
+                <p className="pb-1 text-[10px] text-text-secondary">
+                  전체 진행률
+                </p>
                 <div className="flex items-center gap-2.5">
-                  <div className="h-[5px] flex-1 rounded-full bg-[#ECEEF5]">
+                  <div className="h-[5px] flex-1 rounded-full bg-bg-hover">
                     {/* 갱신될 때 값이 튀지 않고 채워지도록 폭만 전환한다 */}
                     <div
-                      className="h-full rounded-full bg-[#305CE3] transition-[width] duration-300"
+                      className="h-full rounded-full bg-btn-primary transition-[width] duration-300"
                       style={{ width: `${progressRate}%` }}
                     />
                   </div>
-                  <span className="text-xs font-medium text-[#305CE3]">
+                  <span className="text-xs font-medium text-text-primary-blue">
                     {progressRate}%
                   </span>
                 </div>
               </div>
 
-              <p className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
                 <CalendarIcon />
                 {formatDateRange(project.startedOn, project.endedOn)}
               </p>
@@ -274,8 +276,8 @@ export default function ProjectSidebar() {
           )}
         </div>
 
-        <div className="flex h-12 items-center justify-between border-b border-[#EBEBEC] px-4">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase">
+        <div className="flex h-12 items-center justify-between border-b border-border-default px-4">
+          <h2 className="text-sm font-semibold text-text-secondary uppercase">
             진행 단계
           </h2>
           {canEdit && (
@@ -283,13 +285,13 @@ export default function ProjectSidebar() {
               {/* TODO: 단계 수정 · 추가 모달 연결 */}
               <button
                 type="button"
-                className="cursor-pointer rounded border border-blue-600 px-1.5 py-0.5 text-xs font-medium text-blue-600 hover:bg-blue-50"
+                className="cursor-pointer rounded border border-border-primary px-1.5 py-0.5 text-xs font-medium text-text-primary-blue hover:bg-blue-bg-soft"
               >
                 단계수정
               </button>
               <button
                 type="button"
-                className="flex cursor-pointer items-center gap-0.5 rounded border border-blue-600 px-1.5 py-0.5 text-xs font-medium text-blue-600 hover:bg-blue-50"
+                className="flex cursor-pointer items-center gap-0.5 rounded border border-border-primary px-1.5 py-0.5 text-xs font-medium text-text-primary-blue hover:bg-blue-bg-soft"
               >
                 <PlusIcon />
                 추가
@@ -300,14 +302,14 @@ export default function ProjectSidebar() {
 
         {!stages || !steps ? (
           hasFailed ? (
-            <p className="px-4 py-3 text-xs text-gray-500">
+            <p className="px-4 py-3 text-xs text-text-secondary">
               진행 단계를 불러오지 못했습니다.
             </p>
           ) : (
             <ProjectStagesSkeleton />
           )
         ) : groups.length === 0 ? (
-          <p className="px-4 py-3 text-xs text-gray-500">
+          <p className="px-4 py-3 text-xs text-text-secondary">
             등록된 스테이지가 없습니다.
           </p>
         ) : (
@@ -324,8 +326,8 @@ export default function ProjectSidebar() {
 
             return (
               <div key={stage.stageId}>
-                <div className="group flex h-12 items-center border-b border-[#EBEBEC] px-2">
-                  <div className="flex flex-1 items-center gap-1 rounded-md p-1.5 group-hover:bg-[#ECEEF4]">
+                <div className="group flex h-12 items-center border-b border-border-default px-2">
+                  <div className="flex flex-1 items-center gap-1 rounded-md p-1.5 group-hover:bg-bg-hover">
                     <button
                       type="button"
                       aria-expanded={isOpen}
@@ -338,8 +340,8 @@ export default function ProjectSidebar() {
                       <span
                         className={`truncate text-left text-sm uppercase ${
                           isOpen
-                            ? 'font-semibold text-[#305CE3]'
-                            : 'font-medium text-gray-900'
+                            ? 'font-semibold text-text-primary-blue'
+                            : 'font-medium text-text-primary'
                         }`}
                       >
                         {stage.name}
@@ -357,7 +359,7 @@ export default function ProjectSidebar() {
                         // 노출 · 호버 · 아이콘 색을 RowMenu 의 ⋯ 버튼과 동일하게 맞춘다.
                         // group-focus-within 은 쓰지 않는다 — 스테이지를 클릭한 뒤
                         // 포커스가 남아 버튼이 계속 보인다
-                        className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded text-[#6C7389] opacity-0 group-hover:opacity-100 hover:bg-black/5 focus-visible:opacity-100"
+                        className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded text-text-secondary opacity-0 group-hover:opacity-100 hover:bg-black/5 focus-visible:opacity-100"
                       >
                         <PlusIcon />
                       </button>
@@ -366,8 +368,8 @@ export default function ProjectSidebar() {
                     <span
                       className={`shrink-0 text-sm uppercase ${
                         isOpen
-                          ? 'font-semibold text-[#305CE3]'
-                          : 'font-medium text-gray-500'
+                          ? 'font-semibold text-text-primary-blue'
+                          : 'font-medium text-text-secondary'
                       }`}
                     >
                       {stage.stepCount}
@@ -384,13 +386,13 @@ export default function ProjectSidebar() {
                 {isOpen && stageSteps.length === 0 && (
                   // 새로 만든 스테이지는 스텝이 0개다. 펼쳤을 때 아무 변화도 없으면
                   // 동작이 실패한 것으로 오해한다
-                  <p className="border-b border-[#EBEBEC] px-6 py-3 text-xs text-gray-500">
+                  <p className="border-b border-border-default px-6 py-3 text-xs text-text-secondary">
                     등록된 스텝이 없습니다.
                   </p>
                 )}
 
                 {isOpen && stageSteps.length > 0 && (
-                  <div className="flex flex-col gap-1.5 border-b border-[#EBEBEC] py-2">
+                  <div className="flex flex-col gap-1.5 border-b border-border-default py-2">
                     {stageSteps.map((step) => (
                       <StepCard
                         key={step.stepId}
@@ -408,14 +410,14 @@ export default function ProjectSidebar() {
         )}
       </div>
 
-      <div className="border-t border-[#EBEBEC] px-4 py-3.5">
-        <p className="flex items-center gap-1.5 text-xs text-[#6C7389]">
+      <div className="border-t border-border-default px-4 py-3.5">
+        <p className="flex items-center gap-1.5 text-xs text-text-secondary">
           <UsersIcon />
           {members ? `참여자 (${members.length})` : '참여자'}
         </p>
         {haveMembersFailed ? (
           <div className="flex items-center justify-between gap-2 pt-2">
-            <p role="alert" className="text-[10px] text-[#E7000B]">
+            <p role="alert" className="text-[10px] text-text-danger">
               참여자를 불러오지 못했습니다.
             </p>
             <button
@@ -424,7 +426,7 @@ export default function ProjectSidebar() {
                 setFailedMembersProjectId(null);
                 setMembersReloadCount((count) => count + 1);
               }}
-              className="shrink-0 cursor-pointer rounded px-1.5 py-0.5 text-[10px] font-medium text-[#3B5BDB] hover:bg-[#EDF2FF]"
+              className="shrink-0 cursor-pointer rounded px-1.5 py-0.5 text-[10px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
             >
               다시 시도
             </button>
@@ -432,7 +434,7 @@ export default function ProjectSidebar() {
         ) : !members ? (
           <ProjectMembersSkeleton />
         ) : members.length === 0 ? (
-          <p className="pt-2 text-[10px] text-[#6C7389]">
+          <p className="pt-2 text-[10px] text-text-secondary">
             등록된 참여자가 없습니다.
           </p>
         ) : (
@@ -456,7 +458,7 @@ export default function ProjectSidebar() {
               type="button"
               aria-label="참여자 추가"
               style={{ marginLeft: -8, zIndex: members?.length ?? 0 }}
-              className="flex size-6 cursor-pointer items-center justify-center rounded-full border border-white bg-[#ECEEF4] hover:bg-gray-200"
+              className="flex size-6 cursor-pointer items-center justify-center rounded-full border border-white bg-bg-hover hover:bg-bg-hover-secondary"
             >
               <PlusIcon />
             </button>
@@ -466,7 +468,7 @@ export default function ProjectSidebar() {
 
       <Link
         href={`/projects/${projectId}/settings`}
-        className="flex h-12 shrink-0 items-center gap-2 border-t border-[#EBEBEC] px-4 text-sm font-medium text-gray-500 hover:bg-gray-50"
+        className="flex h-12 shrink-0 items-center gap-2 border-t border-border-default px-4 text-sm font-medium text-text-secondary hover:bg-bg-surface"
       >
         <SettingsIcon />
         프로젝트 설정
@@ -490,7 +492,7 @@ function StepCard({
       {/* 카드 전체가 링크. 메뉴 버튼만 링크 위로 올려 클릭을 가로챈다 */}
       <div
         className={`group/step relative flex flex-col gap-1 rounded-lg p-2 ${
-          isActive ? 'bg-[#EDF2FF]' : 'hover:bg-[#ECEEF4]'
+          isActive ? 'bg-blue-bg-soft' : 'hover:bg-bg-hover'
         }`}
       >
         <Link
@@ -504,18 +506,18 @@ function StepCard({
           <span
             aria-hidden
             className={`size-2 shrink-0 rounded-full ${
-              isActive ? 'bg-[#3B5BDB]' : 'bg-gray-500'
+              isActive ? 'bg-btn-primary' : 'bg-text-secondary'
             }`}
           />
           <span
             className={`flex-1 truncate text-xs font-semibold ${
-              isActive ? 'text-[#3B5BDB]' : 'text-gray-500'
+              isActive ? 'text-text-primary-blue' : 'text-text-secondary'
             }`}
           >
             {step.name}
           </span>
           <span
-            className={`text-xs ${isActive ? 'text-[#3B5BDB]' : 'text-gray-500'}`}
+            className={`text-xs ${isActive ? 'text-text-primary-blue' : 'text-text-secondary'}`}
           >
             {step.progressRate ?? 0}%
           </span>
@@ -597,14 +599,14 @@ function RowMenu({
           />
           <span
             role="menu"
-            className="absolute top-full right-0 z-20 mt-1 flex w-32 flex-col overflow-hidden rounded-lg border border-[#1C1F2A]/10 bg-white shadow-lg"
+            className="absolute top-full right-0 z-20 mt-1 flex w-32 flex-col overflow-hidden rounded-lg border border-border-default bg-white shadow-lg"
           >
             {/* TODO: 이름 수정 · 삭제 API 연동 */}
             <button
               type="button"
               role="menuitem"
               onClick={close}
-              className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-[11px] font-medium text-[#1C1F2A] hover:bg-gray-50"
+              className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-[11px] font-medium text-text-primary hover:bg-bg-surface"
             >
               <PencilIcon />
               이름 수정
@@ -613,7 +615,7 @@ function RowMenu({
               type="button"
               role="menuitem"
               onClick={close}
-              className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-[11px] font-medium text-[#E7000B] hover:bg-red-50"
+              className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-[11px] font-medium text-text-danger hover:bg-red-bg-soft"
             >
               <TrashIcon />
               삭제
@@ -639,7 +641,7 @@ function StepProgressBar({ step }: { step: ProjectStep }) {
 
   // 이슈가 하나도 없으면 빈 바로 둔다
   if (step.totalIssueCount === 0) {
-    return <div className="h-1.5 rounded-full bg-[#D1D5DB]" />;
+    return <div className="h-1.5 rounded-full bg-btn-gray-bg-hover" />;
   }
 
   return (
@@ -662,15 +664,23 @@ function StepProgressBar({ step }: { step: ProjectStep }) {
 function Legend() {
   return (
     <div className="flex items-center justify-between px-4 pt-1 text-[10px]">
-      <span className="text-gray-500">* 스텝별 이슈 진척률</span>
+      <span className="text-text-secondary">* 스텝별 이슈 진척률</span>
       <span className="flex items-center gap-2">
         <LegendItem
           color="#FFB900"
-          textClass="text-[#E17100]"
+          textClass="text-yellow-text"
           label="진행 중"
         />
-        <LegendItem color="#2563EB" textClass="text-blue-600" label="완료" />
-        <LegendItem color="#D1D5DB" textClass="text-gray-500" label="진행 전" />
+        <LegendItem
+          color="#2563EB"
+          textClass="text-text-primary-blue"
+          label="완료"
+        />
+        <LegendItem
+          color="#D1D5DB"
+          textClass="text-text-secondary"
+          label="진행 전"
+        />
       </span>
     </div>
   );
@@ -736,7 +746,7 @@ function ChevronIcon({ isOpen }: { isOpen: boolean }) {
   return (
     <Svg
       strokeWidth={2}
-      className={`size-4 shrink-0 text-gray-400 transition-transform ${
+      className={`size-4 shrink-0 text-text-muted transition-transform ${
         isOpen ? 'rotate-90' : ''
       }`}
     >
@@ -747,7 +757,7 @@ function ChevronIcon({ isOpen }: { isOpen: boolean }) {
 
 function PanelIcon() {
   return (
-    <Svg strokeWidth={1} className="size-4 text-[#6C7389]">
+    <Svg strokeWidth={1} className="size-4 text-text-secondary">
       <rect x="3" y="3" width="18" height="18" rx="2" />
       <path d="M9 3v18M13 9l3 3-3 3" />
     </Svg>
@@ -773,7 +783,7 @@ function PlusIcon() {
 
 function MoreIcon() {
   return (
-    <Svg className="size-3 shrink-0 text-[#6C7389]">
+    <Svg className="size-3 shrink-0 text-text-secondary">
       <circle cx="5" cy="12" r="1" fill="currentColor" />
       <circle cx="12" cy="12" r="1" fill="currentColor" />
       <circle cx="19" cy="12" r="1" fill="currentColor" />
@@ -801,7 +811,7 @@ function TrashIcon() {
 
 function UsersIcon() {
   return (
-    <Svg strokeWidth={1} className="size-4 shrink-0 text-[#6C7389]">
+    <Svg strokeWidth={1} className="size-4 shrink-0 text-text-secondary">
       <circle cx="12" cy="7" r="4" />
       <path d="M3 21a9 9 0 0 1 18 0" />
     </Svg>
@@ -810,7 +820,7 @@ function UsersIcon() {
 
 function SettingsIcon() {
   return (
-    <Svg strokeWidth={1} className="size-4 shrink-0 text-[#6C7389]">
+    <Svg strokeWidth={1} className="size-4 shrink-0 text-text-secondary">
       <circle cx="12" cy="12" r="3" />
       <circle cx="12" cy="12" r="9" />
       <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />

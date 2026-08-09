@@ -26,7 +26,7 @@ export default function StepTabs() {
     <nav
       aria-label="스텝 화면"
       // 사이드바 '홈으로 돌아가기' 줄과 같은 높이(h-13)로 맞춘다
-      className="h-13 shrink-0 border-b border-gray-200 bg-white px-4"
+      className="h-13 shrink-0 border-b border-border-default bg-white px-4"
     >
       <ul className="flex h-full items-stretch">
         {TABS.map((tab) => {
@@ -41,8 +41,8 @@ export default function StepTabs() {
                 aria-current={isActive ? 'page' : undefined}
                 className={`flex items-center gap-1.5 border-b-2 px-3 text-base font-medium ${
                   isActive
-                    ? 'border-[#3B5BDB] text-[#3B5BDB]'
-                    : 'border-transparent text-[#6C7389] hover:text-[#1C1F2A]'
+                    ? 'border-border-primary text-text-primary-blue'
+                    : 'border-transparent text-text-secondary hover:text-text-primary'
                 }`}
               >
                 <TabIcon name={tab.icon} />

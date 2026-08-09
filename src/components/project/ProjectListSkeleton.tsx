@@ -13,7 +13,7 @@ export default function ProjectListSkeleton({ rows = 6 }: { rows?: number }) {
       {Array.from({ length: rows }, (_, row) => (
         <div
           key={row}
-          className="flex h-[74px] items-center gap-4 rounded-xl border border-[#E5E7EB] bg-white px-5"
+          className="flex h-[74px] items-center gap-4 rounded-xl border border-border-default bg-white px-5"
         >
           <Skeleton className="h-[21px] w-11 rounded-md" />
           <div className="min-w-0 flex-1">

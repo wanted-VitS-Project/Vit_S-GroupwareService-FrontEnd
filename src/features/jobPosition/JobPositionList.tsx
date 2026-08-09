@@ -95,8 +95,11 @@ export default function JobPositionList() {
 
   return (
     <>
-      <p className="text-xs text-slate-500">
-        <Link href="/settings" className="hover:text-[#1C1F2A] hover:underline">
+      <p className="text-xs text-text-secondary">
+        <Link
+          href="/settings"
+          className="hover:text-text-primary hover:underline"
+        >
           설정
         </Link>{' '}
         &gt; 직급 관리
@@ -105,7 +108,7 @@ export default function JobPositionList() {
       <div className="mt-2 mb-6 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h2 className="text-lg font-bold">직급 관리</h2>
-          <p className="mt-1.5 text-xs break-keep text-[#6C7389]">
+          <p className="mt-1.5 text-xs break-keep text-text-secondary">
             사원에게 지정할 직급과 노출 순서를 관리합니다. 사용 중인 직급은
             삭제할 수 없습니다.
           </p>
@@ -115,21 +118,21 @@ export default function JobPositionList() {
 
       <p
         role="alert"
-        className="mb-2 text-[11px] break-keep text-[#E7000B] empty:hidden"
+        className="mb-2 text-[11px] break-keep text-text-danger empty:hidden"
       >
         {moveError}
       </p>
 
-      <div className="rounded-xl border border-[#1C1F2A]/10 bg-white">
+      <div className="rounded-xl border border-border-default bg-white">
         {hasFailed ? (
           <Centered>
-            <p className="text-xs text-[#6C7389]">
+            <p className="text-xs text-text-secondary">
               직급을 불러오지 못했습니다.
             </p>
             <button
               type="button"
               onClick={reload}
-              className="cursor-pointer rounded-lg bg-[#2B3A67] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#22305a]"
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover"
             >
               다시 시도
             </button>
@@ -139,10 +142,10 @@ export default function JobPositionList() {
         ) : positions.length === 0 ? (
           <Centered>
             <BadgeIcon />
-            <p className="text-sm font-bold text-[#1C1F2A]">
+            <p className="text-sm font-bold text-text-primary">
               등록된 직급이 없습니다
             </p>
-            <p className="text-xs break-keep text-[#6C7389]">
+            <p className="text-xs break-keep text-text-secondary">
               직급을 추가하면 사원 등록 시 선택할 수 있어요
             </p>
             <AddButton subtle onClick={() => setFormTarget('create')} />
@@ -152,7 +155,7 @@ export default function JobPositionList() {
           <div className="max-h-[60vh] overflow-y-auto">
             <table className="w-full table-fixed border-collapse text-left">
               <thead className="sticky top-0 bg-white">
-                <tr className="border-b border-[#1C1F2A]/10 text-[11px] text-[#6C7389]">
+                <tr className="border-b border-border-default text-[11px] text-text-secondary">
                   <th className="w-16 px-5 py-3 font-medium">순서</th>
                   <th className="px-5 py-3 font-medium">직급명</th>
                   <th className="w-28 px-5 py-3 font-medium">사용 인원</th>
@@ -166,23 +169,23 @@ export default function JobPositionList() {
                 {positions.map((position, index) => (
                   <tr
                     key={position.jobPositionId}
-                    className="border-b border-[#1C1F2A]/5 last:border-b-0"
+                    className="border-b border-border-default last:border-b-0"
                   >
-                    <td className="px-5 py-3.5 text-xs text-[#6C7389]">
+                    <td className="px-5 py-3.5 text-xs text-text-secondary">
                       {index + 1}
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className="block truncate text-xs font-bold text-[#1C1F2A]">
+                      <span className="block truncate text-xs font-bold text-text-primary">
                         {position.name}
                       </span>
                     </td>
                     <td className="px-5 py-3.5">
                       {position.employeeCount > 0 ? (
-                        <span className="text-xs text-[#6C7389]">
+                        <span className="text-xs text-text-secondary">
                           {position.employeeCount}명
                         </span>
                       ) : (
-                        <span className="text-xs text-[#C7CCD9]">미사용</span>
+                        <span className="text-xs text-text-muted">미사용</span>
                       )}
                     </td>
                     <td className="px-5 py-3.5">
@@ -257,8 +260,8 @@ function AddButton({
       onClick={onClick}
       className={`shrink-0 cursor-pointer rounded-lg px-4 py-2 text-xs font-semibold ${
         subtle
-          ? 'border border-[#1C1F2A]/10 text-[#1C1F2A] hover:bg-[#ECEEF4]'
-          : 'bg-[#2B3A67] text-white hover:bg-[#22305a]'
+          ? 'border border-border-default text-text-primary hover:bg-bg-hover'
+          : 'bg-btn-primary text-white hover:bg-btn-primary-hover'
       }`}
     >
       + 직급 추가
@@ -283,7 +286,7 @@ function MoveButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={`${name} ${direction === 'up' ? '위로' : '아래로'} 이동`}
-      className="cursor-pointer rounded border border-[#1C1F2A]/10 px-1.5 py-1 text-[#6C7389] hover:bg-[#ECEEF4] hover:text-[#1C1F2A] disabled:cursor-not-allowed disabled:text-[#C7CCD9] disabled:hover:bg-transparent"
+      className="cursor-pointer rounded border border-border-default px-1.5 py-1 text-text-secondary hover:bg-bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:text-text-muted disabled:hover:bg-transparent"
     >
       <svg
         viewBox="0 0 24 24"
@@ -319,7 +322,7 @@ function BadgeIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className="mb-2 size-10 text-[#C7CCD9]"
+      className="mb-2 size-10 text-text-muted"
     >
       <circle cx="12" cy="9" r="5" />
       <path d="m8.5 13.5-1 7 4.5-2.5 4.5 2.5-1-7" />

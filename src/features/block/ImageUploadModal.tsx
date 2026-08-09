@@ -168,16 +168,18 @@ export default function ImageUploadModal({
     <Modal
       title="이미지 등록"
       onClose={isUploading ? undefined : onClose}
-      className="flex max-h-[85vh] w-full max-w-[480px] flex-col overflow-hidden rounded-xl border border-[#1C1F2A]/10 shadow-2xl"
+      className="flex max-h-[85vh] w-full max-w-[480px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
       header={
-        <div className="flex shrink-0 items-center justify-between border-b border-[#1C1F2A]/10 px-5 py-3.5">
-          <h2 className="text-sm font-semibold text-[#1C1F2A]">이미지 등록</h2>
+        <div className="flex shrink-0 items-center justify-between border-b border-border-default px-5 py-3.5">
+          <h2 className="text-sm font-semibold text-text-primary">
+            이미지 등록
+          </h2>
           <button
             type="button"
             aria-label="닫기"
             disabled={isUploading}
             onClick={onClose}
-            className="cursor-pointer text-[#6C7389] hover:text-[#1C1F2A] disabled:cursor-not-allowed disabled:opacity-40"
+            className="cursor-pointer text-text-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
           >
             ✕
           </button>
@@ -201,14 +203,14 @@ export default function ImageUploadModal({
           }}
           className={`flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed px-4 py-6 ${
             isDropping
-              ? 'border-[#3B5BDB] bg-[#3B5BDB]/5'
-              : 'border-[#1C1F2A]/10 hover:border-[#3B5BDB]/40 hover:bg-[#ECEEF4]/50'
+              ? 'border-border-primary bg-blue-bg-soft'
+              : 'border-border-default hover:border-border-primary/40 hover:bg-bg-surface'
           }`}
         >
-          <span className="text-xs font-semibold text-[#1C1F2A]">
+          <span className="text-xs font-semibold text-text-primary">
             파일을 드래그하거나 클릭하여 업로드
           </span>
-          <span className="text-[10px] text-[#6C7389]">
+          <span className="text-[10px] text-text-secondary">
             JPG, PNG, GIF, WEBP · 최대 10MB
           </span>
         </button>
@@ -230,11 +232,11 @@ export default function ImageUploadModal({
         {queued.length > 0 && (
           <div ref={listRef} className="mt-4 flex flex-col gap-2">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-[10px] font-semibold text-[#1C1F2A]">
+              <p className="text-[10px] font-semibold text-text-primary">
                 {queued.length}개 파일 선택됨
               </p>
               {queued.length > 1 && (
-                <p className="text-[10px] text-[#6C7389]">
+                <p className="text-[10px] text-text-secondary">
                   왼쪽 핸들을 드래그해 순서를 바꿀 수 있어요
                 </p>
               )}
@@ -264,13 +266,13 @@ export default function ImageUploadModal({
                 }}
                 className={`flex items-center gap-2 rounded-lg border p-2 ${
                   hoverKey === item.key && draggingKey !== item.key
-                    ? 'border-[#3B5BDB]/50 bg-[#3B5BDB]/5'
-                    : 'border-[#1C1F2A]/10 bg-[#ECEEF4]/30'
+                    ? 'border-border-primary/50 bg-blue-bg-soft'
+                    : 'border-border-default bg-bg-surface'
                 } ${draggingKey === item.key ? 'opacity-40' : ''}`}
               >
                 <span
                   aria-hidden
-                  className="flex shrink-0 cursor-grab flex-col gap-0.5 text-[#6C7389]/50 active:cursor-grabbing"
+                  className="flex shrink-0 cursor-grab flex-col gap-0.5 text-text-muted active:cursor-grabbing"
                 >
                   {[0, 1, 2].map((row) => (
                     <span key={row} className="flex gap-0.5">
@@ -284,10 +286,10 @@ export default function ImageUploadModal({
                 <img
                   src={item.previewUrl}
                   alt=""
-                  className="size-10 shrink-0 rounded-md bg-[#ECEEF4] object-cover"
+                  className="size-10 shrink-0 rounded-md bg-bg-hover object-cover"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[11px] font-medium text-[#1C1F2A]">
+                  <p className="truncate text-[11px] font-medium text-text-primary">
                     {index + 1}. {item.file.name}
                   </p>
                   <input
@@ -304,7 +306,7 @@ export default function ImageUploadModal({
                         ),
                       )
                     }
-                    className="mt-1 w-full rounded border border-[#1C1F2A]/10 bg-white px-2 py-1 text-[10px] text-[#1C1F2A] outline-none placeholder:text-[#6C7389]/60 focus:border-[#3B5BDB]"
+                    className="mt-1 w-full rounded border border-border-default bg-white px-2 py-1 text-[10px] text-text-primary outline-none placeholder:text-text-muted focus:border-border-primary"
                   />
                 </div>
                 <button
@@ -312,7 +314,7 @@ export default function ImageUploadModal({
                   aria-label={`${item.file.name} 목록에서 빼기`}
                   disabled={isUploading}
                   onClick={() => removeQueued(item.key)}
-                  className="shrink-0 cursor-pointer px-1 text-[11px] text-[#6C7389] hover:text-[#E7000B] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="shrink-0 cursor-pointer px-1 text-[11px] text-text-secondary hover:text-text-danger disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   ✕
                 </button>
@@ -322,18 +324,18 @@ export default function ImageUploadModal({
         )}
 
         {errorMessage && (
-          <p role="alert" className="mt-3 text-[10px] text-[#E7000B]">
+          <p role="alert" className="mt-3 text-[10px] text-text-danger">
             {errorMessage}
           </p>
         )}
       </div>
 
-      <div className="flex shrink-0 justify-end gap-2 border-t border-[#1C1F2A]/10 bg-[#ECEEF4]/20 px-5 py-3.5">
+      <div className="flex shrink-0 justify-end gap-2 border-t border-border-default bg-bg-surface px-5 py-3.5">
         <button
           type="button"
           onClick={onClose}
           disabled={isUploading}
-          className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-[#6C7389] hover:bg-[#ECEEF4] disabled:cursor-not-allowed disabled:opacity-40"
+          className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
         >
           취소
         </button>
@@ -341,7 +343,7 @@ export default function ImageUploadModal({
           type="button"
           onClick={upload}
           disabled={queued.length === 0 || isUploading}
-          className="cursor-pointer rounded-lg bg-[#3B5BDB] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#324BB8] disabled:cursor-not-allowed disabled:bg-[#ECEEF4] disabled:text-[#6C7389]"
+          className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
         >
           {isUploading ? '올리는 중…' : `등록하기 (${queued.length})`}
         </button>

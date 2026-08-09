@@ -8,19 +8,19 @@ import type { AnalysisStatus } from './types';
 const STYLE: Record<AnalysisStatus, { label: string; className: string }> = {
   PENDING: {
     label: '대기 중',
-    className: 'border-[#FEE685] bg-[#FFFBEB] text-[#BB4D00]',
+    className: 'border-yellow-border bg-yellow-bg-soft text-yellow-text',
   },
   PROCESSING: {
     label: '분석 중',
-    className: 'border-[#FEE685] bg-[#FFFBEB] text-[#BB4D00]',
+    className: 'border-yellow-border bg-yellow-bg-soft text-yellow-text',
   },
   COMPLETED: {
     label: '완료',
-    className: 'border-[#A4F4CF] bg-[#ECFDF5] text-[#009966]',
+    className: 'border-green-border bg-green-bg text-green-text',
   },
   FAILED: {
     label: '실패',
-    className: 'border-[#FFC9C9] bg-[#FEF2F2] text-[#E7000B]',
+    className: 'border-red-border bg-red-bg-soft text-text-danger',
   },
 };
 

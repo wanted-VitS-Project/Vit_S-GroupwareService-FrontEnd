@@ -78,23 +78,23 @@ export default function DeleteCategoryModal({
   return (
     <PanelModal title={title} onClose={requestClose}>
       <div className="space-y-4 p-5">
-        <div className="flex items-center gap-2 rounded-lg border border-[#1C1F2A]/10 bg-[#ECEEF4]/50 px-3 py-2.5">
-          <span className="min-w-0 truncate text-xs font-semibold text-[#1C1F2A]">
+        <div className="flex items-center gap-2 rounded-lg border border-border-default bg-bg-surface px-3 py-2.5">
+          <span className="min-w-0 truncate text-xs font-semibold text-text-primary">
             {category.name}
           </span>
           {category.code && (
-            <span className="shrink-0 rounded border border-[#1C1F2A]/10 bg-white px-1.5 py-0.5 font-mono text-[10px] text-[#6C7389]">
+            <span className="shrink-0 rounded border border-border-default bg-white px-1.5 py-0.5 font-mono text-[10px] text-text-secondary">
               {category.code}
             </span>
           )}
         </div>
 
         {isBlocked ? (
-          <p className="rounded-lg bg-[#E7000B]/5 px-3 py-2.5 text-[11px] leading-relaxed break-keep text-[#E7000B]">
+          <p className="rounded-lg bg-red-bg-soft px-3 py-2.5 text-[11px] leading-relaxed break-keep text-text-danger">
             {blockedMessage}
           </p>
         ) : (
-          <p className="rounded-lg bg-[#F59E0B]/10 px-3 py-2.5 text-[11px] leading-relaxed break-keep text-[#92400E]">
+          <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-[11px] leading-relaxed break-keep text-yellow-text">
             삭제하면 프로젝트 생성 시 더 이상 선택할 수 없습니다.
             <br />
             이미 이 카테고리가 지정된 프로젝트에서는 그대로 표시됩니다.
@@ -102,7 +102,7 @@ export default function DeleteCategoryModal({
         )}
 
         {error && (
-          <p role="alert" className="text-[10px] break-keep text-[#E7000B]">
+          <p role="alert" className="text-[10px] break-keep text-text-danger">
             {error}
           </p>
         )}
@@ -114,7 +114,7 @@ export default function DeleteCategoryModal({
             <button
               type="button"
               onClick={onClose}
-              className="cursor-pointer rounded-lg bg-[#2B3A67] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#22305a]"
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover"
             >
               확인
             </button>
@@ -124,7 +124,7 @@ export default function DeleteCategoryModal({
                 type="button"
                 onClick={onClose}
                 disabled={isSubmitting}
-                className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-[#6C7389] hover:bg-[#ECEEF4] disabled:cursor-not-allowed disabled:text-[#C7CCD9]"
+                className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
               >
                 취소
               </button>
@@ -132,7 +132,7 @@ export default function DeleteCategoryModal({
                 type="button"
                 onClick={handleDelete}
                 disabled={isSubmitting}
-                className="cursor-pointer rounded-lg bg-[#E7000B] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#c50009] disabled:cursor-not-allowed disabled:bg-[#ECEEF4] disabled:text-[#6C7389]"
+                className="cursor-pointer rounded-lg bg-red-text px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#c50009] disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
               >
                 {isSubmitting ? '삭제 중…' : '삭제'}
               </button>

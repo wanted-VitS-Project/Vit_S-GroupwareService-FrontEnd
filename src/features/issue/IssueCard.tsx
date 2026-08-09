@@ -63,8 +63,8 @@ function IssueCard({
         canEdit ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
       } ${
         isDragging
-          ? 'border-dashed border-[#3B5BDB]/40 bg-[#ECEEF4]/40 opacity-50'
-          : 'border-[#1C1F2A]/10 hover:border-[#3B5BDB]/30'
+          ? 'border-dashed border-border-primary/40 bg-bg-surface opacity-50'
+          : 'border-border-default hover:border-border-primary/30'
       }`}
     >
       <div className="mb-1.5 flex items-start justify-between gap-2">
@@ -103,14 +103,14 @@ function IssueCard({
           event.stopPropagation();
           onOpen(issue.issueId);
         }}
-        className="mb-2 block cursor-pointer text-left text-[11px] leading-snug font-semibold text-[#1C1F2A] hover:text-[#3B5BDB] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3B5BDB]"
+        className="mb-2 block cursor-pointer text-left text-[11px] leading-snug font-semibold text-text-primary hover:text-text-primary-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-primary"
       >
         {issue.title}
       </button>
 
       <div className="flex items-center justify-between gap-2">
         <AssigneeAvatars assignees={issue.assignees} />
-        <div className="flex items-center gap-2 text-[10px] text-[#6C7389]">
+        <div className="flex items-center gap-2 text-[10px] text-text-secondary">
           {issue.relatedBlocks.length > 0 && (
             <span title={`연결된 블록 ${issue.relatedBlocks.length}개`}>
               🔗 {issue.relatedBlocks.length}

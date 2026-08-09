@@ -136,7 +136,7 @@ export default function StepBlocks() {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="min-w-0 truncate text-sm font-semibold text-[#1C1F2A]">
+        <h2 className="min-w-0 truncate text-sm font-semibold text-text-primary">
           {stepName || '스텝'}
         </h2>
         <AddBlockButton
@@ -156,7 +156,7 @@ export default function StepBlocks() {
       </div>
 
       {hasFailed ? (
-        <p className="rounded-lg border border-dashed border-[#1C1F2A]/10 px-4 py-10 text-center text-xs text-[#6C7389]">
+        <p className="rounded-lg border border-dashed border-border-default px-4 py-10 text-center text-xs text-text-secondary">
           블록을 불러오지 못했습니다.
         </p>
       ) : !blocks ? (

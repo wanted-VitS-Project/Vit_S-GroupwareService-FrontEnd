@@ -79,7 +79,7 @@ export default function ChangePasswordModal({
   if (isDone) {
     return (
       <Modal title="비밀번호 변경" onClose={onClose}>
-        <p className="mt-4 text-sm text-slate-500">
+        <p className="mt-4 text-sm text-text-secondary">
           비밀번호를 변경했습니다.
           <br />
           다음 로그인부터 새 비밀번호를 사용해주세요.
@@ -96,7 +96,7 @@ export default function ChangePasswordModal({
       onClose={forced ? undefined : onClose}
     >
       <form onSubmit={handleSubmit}>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-2 text-sm text-text-secondary">
           {forced
             ? '최초 로그인입니다. 안전한 사용을 위해 비밀번호를 변경해주세요.'
             : '새 비밀번호를 입력해주세요.'}
@@ -128,7 +128,7 @@ export default function ChangePasswordModal({
           />
         </div>
 
-        <ul className="mt-6 space-y-1.5 rounded bg-slate-100 p-4">
+        <ul className="mt-6 space-y-1.5 rounded bg-bg-hover p-4">
           {PASSWORD_RULES.map((rule) => {
             const isMet = rule.test(newPassword);
 
@@ -136,7 +136,7 @@ export default function ChangePasswordModal({
               <li
                 key={rule.label}
                 className={`flex items-center gap-2 text-xs ${
-                  isMet ? 'text-emerald-600' : 'text-slate-400'
+                  isMet ? 'text-green-text' : 'text-text-muted'
                 }`}
               >
                 <CheckIcon filled={isMet} />
@@ -147,7 +147,7 @@ export default function ChangePasswordModal({
         </ul>
 
         {/* 에러가 떠도 버튼 위치가 흔들리지 않게 자리를 잡아둔다 */}
-        <p role="alert" className="mt-4 min-h-5 text-xs text-rose-600">
+        <p role="alert" className="mt-4 min-h-5 text-xs text-text-danger">
           {error}
         </p>
 
@@ -159,7 +159,7 @@ export default function ChangePasswordModal({
           <button
             type="button"
             onClick={onBack}
-            className="mt-2 w-full cursor-pointer rounded-lg py-2.5 text-sm font-bold text-slate-500 transition-colors hover:bg-slate-100"
+            className="mt-2 w-full cursor-pointer rounded-lg py-2.5 text-sm font-bold text-text-secondary transition-colors hover:bg-bg-hover"
           >
             이전
           </button>
@@ -194,7 +194,7 @@ function PasswordField({
 
   return (
     <div className="space-y-1.5">
-      <label htmlFor={id} className="block text-xs text-slate-500">
+      <label htmlFor={id} className="block text-xs text-text-secondary">
         {label}
       </label>
       <div className="relative">
@@ -209,8 +209,8 @@ function PasswordField({
           // pr-10 — 토글 버튼과 입력 글자가 겹치지 않게 자리를 비운다
           className={`w-full rounded border py-2 pr-10 pl-3 text-sm outline-none ${
             invalid
-              ? 'border-rose-400'
-              : 'border-slate-200 focus:border-slate-900'
+              ? 'border-red-border'
+              : 'border-border-default focus:border-text-primary'
           }`}
         />
         <PasswordVisibilityToggle
@@ -221,7 +221,7 @@ function PasswordField({
         />
       </div>
       {description && (
-        <p id={descriptionId} className="text-xs text-rose-600">
+        <p id={descriptionId} className="text-xs text-text-danger">
           {description}
         </p>
       )}

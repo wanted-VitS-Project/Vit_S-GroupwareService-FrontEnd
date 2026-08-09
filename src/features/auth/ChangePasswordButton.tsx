@@ -13,7 +13,7 @@ export default function ChangePasswordButton() {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="cursor-pointer rounded-lg border border-slate-200 px-4 py-2 text-sm hover:bg-slate-50"
+        className="cursor-pointer rounded-lg border border-border-default px-4 py-2 text-sm hover:bg-bg-surface"
       >
         비밀번호 변경
       </button>

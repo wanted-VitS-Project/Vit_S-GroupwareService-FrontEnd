@@ -30,17 +30,26 @@ interface NotificationIcon {
 const ICONS: Record<string, NotificationIcon> = {
   APPROVAL_REQUESTED: {
     symbol: '📄',
-    className: 'bg-[#EEF2FF] text-[#3B5BDB]',
+    className: 'bg-blue-bg-soft text-text-primary-blue',
   },
-  APPROVAL_REJECTED: { symbol: '⊗', className: 'bg-[#FEF2F2] text-[#E7000B]' },
-  APPROVAL_COMPLETED: { symbol: '✓', className: 'bg-[#ECFDF5] text-[#12B76A]' },
-  ISSUE_ASSIGNED: { symbol: '⚠', className: 'bg-[#FFFBEB] text-[#BB4D00]' },
-  COMMENT_CREATED: { symbol: '💬', className: 'bg-[#ECEEF4] text-[#6C7389]' },
+  APPROVAL_REJECTED: {
+    symbol: '⊗',
+    className: 'bg-red-bg-soft text-text-danger',
+  },
+  APPROVAL_COMPLETED: { symbol: '✓', className: 'bg-green-bg text-[#12B76A]' },
+  ISSUE_ASSIGNED: {
+    symbol: '⚠',
+    className: 'bg-yellow-bg-soft text-yellow-text',
+  },
+  COMMENT_CREATED: {
+    symbol: '💬',
+    className: 'bg-bg-hover text-text-secondary',
+  },
 };
 
 const DEFAULT_ICON: NotificationIcon = {
   symbol: '•',
-  className: 'bg-[#ECEEF4] text-[#6C7389]',
+  className: 'bg-bg-hover text-text-secondary',
 };
 
 export function iconOf(notificationType: NotificationType) {

@@ -140,10 +140,10 @@ export default function MyProjectList() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h2 className="text-[22px] leading-8 font-bold text-[#111827]">
+        <h2 className="text-[22px] leading-8 font-bold text-text-primary">
           내 프로젝트
         </h2>
-        <p className="mt-1 text-[13px] text-[#6B7280]">
+        <p className="mt-1 text-[13px] text-text-secondary">
           참여 중인 모든 프로젝트를 조회하고 관리합니다.
         </p>
       </div>
@@ -161,7 +161,7 @@ export default function MyProjectList() {
           <label htmlFor="projectSearch" className="sr-only">
             프로젝트 검색
           </label>
-          <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[#9CA3AF]">
+          <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-text-muted">
             <SearchIcon />
           </span>
           <input
@@ -171,7 +171,7 @@ export default function MyProjectList() {
             onChange={(event) => setKeywordInput(event.target.value)}
             /* 백엔드 `keyword` 는 과업명뿐 아니라 발주처도 함께 검색한다 */
             placeholder="과업명 · 발주처 검색"
-            className="h-[41px] w-full rounded-lg border border-[#E5E7EB] bg-white pr-4 pl-9 text-[13px] text-[#111827] placeholder:text-[#9CA3AF] focus:outline-2 focus:outline-offset-2 focus:outline-[#3B6FF6]"
+            className="h-[41px] w-full rounded-lg border border-border-default bg-white pr-4 pl-9 text-[13px] text-text-primary placeholder:text-text-muted focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
           />
         </div>
 
@@ -182,7 +182,7 @@ export default function MyProjectList() {
         <div
           role="group"
           aria-label="프로젝트 상태 필터"
-          className="flex items-center gap-1 rounded-lg border border-[#E5E7EB] bg-white p-1"
+          className="flex items-center gap-1 rounded-lg border border-border-default bg-white p-1"
         >
           <StatusTab
             label="전체"
@@ -209,13 +209,13 @@ export default function MyProjectList() {
 
       {hasFailed ? (
         <Centered>
-          <p className="text-[13px] text-[#6B7280]">
+          <p className="text-[13px] text-text-secondary">
             프로젝트 목록을 불러오지 못했어요.
           </p>
           <button
             type="button"
             onClick={() => setReloadCount((count) => count + 1)}
-            className="mt-3 cursor-pointer rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-xs font-semibold text-[#111827] hover:bg-[#F3F4F6]"
+            className="mt-3 cursor-pointer rounded-lg border border-border-default bg-white px-3 py-1.5 text-xs font-semibold text-text-primary hover:bg-bg-hover"
           >
             다시 시도
           </button>
@@ -224,7 +224,7 @@ export default function MyProjectList() {
         <ProjectListSkeleton rows={PAGE_SIZE} />
       ) : !rows || rows.length === 0 ? (
         <Centered>
-          <p className="text-[13px] text-[#6B7280]">
+          <p className="text-[13px] text-text-secondary">
             {hasFilter
               ? '조건에 맞는 프로젝트가 없어요.'
               : '참여 중인 프로젝트가 없어요.'}
@@ -248,7 +248,7 @@ export default function MyProjectList() {
           </ul>
 
           {page && (
-            <div className="rounded-xl border border-[#E5E7EB] bg-white">
+            <div className="rounded-xl border border-border-default bg-white">
               <Pagination
                 page={query.page ?? 0}
                 totalPages={page.totalPages}
@@ -326,15 +326,15 @@ function ProjectSummary({ reloadCount }: { reloadCount: number }) {
     return (
       <section
         aria-label="프로젝트 상태 요약"
-        className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-5 py-4"
+        className="flex items-center gap-3 rounded-xl border border-border-default bg-white px-5 py-4"
       >
-        <p role="alert" className="text-[13px] text-[#6B7280]">
+        <p role="alert" className="text-[13px] text-text-secondary">
           상태별 건수를 불러오지 못했어요.
         </p>
         <button
           type="button"
           onClick={() => setRetryCount((count) => count + 1)}
-          className="cursor-pointer rounded-lg border border-[#E5E7EB] px-2.5 py-1 text-xs font-semibold text-[#111827] hover:bg-[#F3F4F6]"
+          className="cursor-pointer rounded-lg border border-border-default px-2.5 py-1 text-xs font-semibold text-text-primary hover:bg-bg-hover"
         >
           다시 시도
         </button>
@@ -351,7 +351,7 @@ function ProjectSummary({ reloadCount }: { reloadCount: number }) {
       {cards.map((card, index) => (
         <div
           key={card.label}
-          className="flex h-24 items-center gap-4 rounded-xl border border-[#E5E7EB] bg-white px-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+          className="flex h-24 items-center gap-4 rounded-xl border border-border-default bg-white px-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
         >
           <span
             aria-hidden
@@ -361,11 +361,13 @@ function ProjectSummary({ reloadCount }: { reloadCount: number }) {
             {card.icon}
           </span>
           <div className="min-w-0">
-            <p className="truncate text-[13px] text-[#6B7280]">{card.label}</p>
-            <p className="mt-0.5 truncate text-[22px] leading-8 font-semibold text-[#111827]">
+            <p className="truncate text-[13px] text-text-secondary">
+              {card.label}
+            </p>
+            <p className="mt-0.5 truncate text-[22px] leading-8 font-semibold text-text-primary">
               {/* 아직 세는 중이면 자리만 잡아 둔다 — 0 을 먼저 보이면 잘못된 값을 읽힌다 */}
               {values ? (values[index] ?? 0).toLocaleString('ko-KR') : '–'}
-              <span className="ml-1 text-[13px] font-medium text-[#6B7280]">
+              <span className="ml-1 text-[13px] font-medium text-text-secondary">
                 개
               </span>
             </p>
@@ -419,16 +421,18 @@ function CategoryPeriodFilter({
   return (
     <div
       id="projectFilters"
-      className="flex flex-wrap items-center gap-3 rounded-xl border border-[#EFF0F2] bg-white px-5 py-3"
+      className="flex flex-wrap items-center gap-3 rounded-xl border border-border-default bg-white px-5 py-3"
     >
-      <span className="text-[15px] font-semibold text-[#38424E]">기간</span>
+      <span className="text-[15px] font-semibold text-gray-text-soft">
+        기간
+      </span>
       <DateTag
         label="시작일 (부터)"
         value={from}
         max={to || undefined}
         onChange={(value) => onChange({ from: value })}
       />
-      <span aria-hidden className="h-3 w-px bg-[#E5E7EB]" />
+      <span aria-hidden className="h-3 w-px bg-bg-hover-secondary" />
       <DateTag
         label="시작일 (까지)"
         value={to}
@@ -436,10 +440,10 @@ function CategoryPeriodFilter({
         onChange={(value) => onChange({ to: value })}
       />
 
-      <span aria-hidden className="mx-2 h-6 w-px bg-[#E5E7EB]" />
+      <span aria-hidden className="mx-2 h-6 w-px bg-bg-hover-secondary" />
 
       <label className="flex items-center gap-3">
-        <span className="text-[15px] font-semibold text-[#38424E]">
+        <span className="text-[15px] font-semibold text-gray-text-soft">
           사업분류
         </span>
         <select
@@ -447,7 +451,7 @@ function CategoryPeriodFilter({
           onChange={(event) =>
             onChange({ categoryId: event.target.value || undefined })
           }
-          className="w-44 cursor-pointer rounded-[9px] border-[1.5px] border-[#E5E7EB] bg-white px-3 py-1 text-[13px] font-medium text-[#374151] focus:outline-2 focus:outline-offset-2 focus:outline-[#2563EB]"
+          className="w-44 cursor-pointer rounded-[9px] border-[1.5px] border-border-default bg-white px-3 py-1 text-[13px] font-medium text-gray-text-soft focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
         >
           {/* 아직 못 받았어도 `전체` 는 고를 수 있어야 한다 — 필터를 지우는 유일한 값이다 */}
           <option value="">전체</option>
@@ -465,7 +469,7 @@ function CategoryPeriodFilter({
           onClick={() =>
             onChange({ categoryId: undefined, from: undefined, to: undefined })
           }
-          className="ml-auto cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium text-[#6B7280] hover:bg-[#F3F4F6]"
+          className="ml-auto cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-bg-hover"
         >
           초기화
         </button>
@@ -489,7 +493,7 @@ function DateTag({
   onChange: (value: string | undefined) => void;
 }) {
   return (
-    <label className="flex items-center rounded-[9px] border-[1.5px] border-[#E5E7EB] bg-[#F6F8FC] px-3 py-1">
+    <label className="flex items-center rounded-[9px] border-[1.5px] border-border-default bg-bg-surface px-3 py-1">
       <span className="sr-only">{label}</span>
       <input
         type="date"
@@ -497,7 +501,7 @@ function DateTag({
         min={min}
         max={max}
         onChange={(event) => onChange(event.target.value || undefined)}
-        className="w-36 cursor-pointer bg-transparent text-[13px] font-medium text-[#374151] focus:outline-none"
+        className="w-36 cursor-pointer bg-transparent text-[13px] font-medium text-gray-text-soft focus:outline-none"
       />
     </label>
   );
@@ -519,8 +523,8 @@ function StatusTab({
       onClick={onClick}
       className={`cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium ${
         isActive
-          ? 'bg-[#EDF4FF] text-[#3B6FF6]'
-          : 'text-[#4B5563] hover:bg-[#F3F4F6]'
+          ? 'bg-blue-bg-soft text-text-primary-blue'
+          : 'text-btn-gray-text-hover hover:bg-bg-hover'
       }`}
     >
       {label}
@@ -530,7 +534,7 @@ function StatusTab({
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-[#E5E7EB] bg-white py-16">
+    <div className="flex flex-col items-center justify-center rounded-xl border border-border-default bg-white py-16">
       {children}
     </div>
   );

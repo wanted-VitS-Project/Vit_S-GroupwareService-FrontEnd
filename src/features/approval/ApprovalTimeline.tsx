@@ -33,22 +33,22 @@ export default function ApprovalTimeline({
                   : line.order}
             </span>
             {index < ordered.length - 1 && (
-              <span className="w-px flex-1 bg-[#1C1F2A]/10" />
+              <span className="w-px flex-1 bg-bg-sidebar/10" />
             )}
           </div>
 
           <div className="min-w-0 flex-1 pb-5">
             <p className="flex flex-wrap items-center gap-1.5">
-              <span className="text-xs font-semibold text-[#1C1F2A]">
+              <span className="text-xs font-semibold text-text-primary">
                 {line.approverName}
               </span>
               {line.approverPosition && (
-                <span className="text-[11px] text-[#6C7389]">
+                <span className="text-[11px] text-text-secondary">
                   {line.approverPosition}
                 </span>
               )}
               {line.approverId === currentUserId && (
-                <span className="rounded bg-[#ECEEF4] px-1.5 py-0.5 text-[10px] text-[#6C7389]">
+                <span className="rounded bg-bg-hover px-1.5 py-0.5 text-[10px] text-text-secondary">
                   나
                 </span>
               )}
@@ -60,19 +60,19 @@ export default function ApprovalTimeline({
             </p>
 
             {line.approverDepartment && (
-              <p className="mt-0.5 text-[11px] text-[#6C7389]">
+              <p className="mt-0.5 text-[11px] text-text-secondary">
                 {line.approverDepartment}
               </p>
             )}
 
             {line.opinion && (
-              <p className="mt-1.5 rounded-lg bg-[#ECEEF4]/60 px-2.5 py-2 text-[11px] break-keep text-[#1C1F2A]">
+              <p className="mt-1.5 rounded-lg bg-bg-surface px-2.5 py-2 text-[11px] break-keep text-text-primary">
                 {line.opinion}
               </p>
             )}
 
             {line.processedAt && (
-              <p className="mt-1 text-[10px] text-[#6C7389]">
+              <p className="mt-1 text-[10px] text-text-secondary">
                 {formatDateTime(line.processedAt)}
               </p>
             )}

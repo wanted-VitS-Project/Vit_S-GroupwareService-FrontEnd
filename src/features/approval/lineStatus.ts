@@ -13,9 +13,9 @@ export const LINE_STATUS_LABELS: Record<ApprovalLineStatus, string> = {
 };
 
 export const LINE_STATUS_CLASS: Record<ApprovalLineStatus, string> = {
-  WAITING: 'bg-[#ECEEF4] text-[#6C7389]',
-  ACTIVE: 'bg-[#EEF2FF] text-[#3B5BDB]',
-  APPROVED: 'bg-[#ECFDF3] text-[#12B76A]',
-  REJECTED: 'bg-[#FEF2F2] text-[#E7000B]',
-  CANCELED: 'bg-[#ECEEF4] text-[#C7CCD9]',
+  WAITING: 'bg-bg-hover text-text-secondary',
+  ACTIVE: 'bg-blue-bg-soft text-text-primary-blue',
+  APPROVED: 'bg-green-bg text-[#12B76A]',
+  REJECTED: 'bg-red-bg-soft text-text-danger',
+  CANCELED: 'bg-bg-hover text-text-muted',
 };

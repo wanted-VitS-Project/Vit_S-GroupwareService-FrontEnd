@@ -11,19 +11,19 @@ export function ApprovalDetailSkeleton() {
       {/* 분기를 실제 화면(`ApprovalDetailView`)과 맞춘다 — 다르면 로딩이 끝나는 순간 배치가 튄다 */}
       <div className="mt-6 flex flex-col gap-4 lg:flex-row">
         <div className="flex min-w-0 flex-1 flex-col gap-4">
-          <div className="rounded-xl border border-[#1C1F2A]/10 p-4">
+          <div className="rounded-xl border border-border-default p-4">
             <Skeleton className="h-3 w-16" />
             <Skeleton className="mt-3 h-3 w-full" />
             <Skeleton className="mt-1.5 h-3 w-4/5" />
           </div>
-          <div className="rounded-xl border border-[#1C1F2A]/10 p-4">
+          <div className="rounded-xl border border-border-default p-4">
             <Skeleton className="h-3 w-16" />
             <Skeleton className="mt-3 h-10 w-full rounded-lg" />
             <Skeleton className="mt-1.5 h-10 w-full rounded-lg" />
           </div>
         </div>
 
-        <div className="w-full shrink-0 rounded-xl border border-[#1C1F2A]/10 p-4 lg:w-72">
+        <div className="w-full shrink-0 rounded-xl border border-border-default p-4 lg:w-72">
           <Skeleton className="h-3 w-16" />
           {[0, 1, 2].map((row) => (
             <div key={row} className="mt-4 flex gap-3">
@@ -53,7 +53,7 @@ export function ApprovalListSkeleton({ rows = 6 }: { rows?: number }) {
       {Array.from({ length: rows }, (_, row) => (
         <div
           key={row}
-          className="flex items-center gap-4 rounded-xl border border-[#1C1F2A]/10 px-4 py-3.5"
+          className="flex items-center gap-4 rounded-xl border border-border-default px-4 py-3.5"
         >
           <Skeleton className="h-5 w-12 rounded-full" />
 

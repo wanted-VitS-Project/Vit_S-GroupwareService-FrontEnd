@@ -40,17 +40,17 @@ export default function ImageLightbox({
     <Modal
       title={image.caption || image.originalName || '이미지 크게 보기'}
       onClose={onClose}
-      className="flex max-h-[90vh] w-full max-w-[880px] flex-col overflow-hidden rounded-xl border border-[#1C1F2A]/10 shadow-2xl"
+      className="flex max-h-[90vh] w-full max-w-[880px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
       header={
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#1C1F2A]/10 px-5 py-3">
-          <p className="min-w-0 truncate text-[11px] font-semibold text-[#1C1F2A]">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border-default px-5 py-3">
+          <p className="min-w-0 truncate text-[11px] font-semibold text-text-primary">
             {image.originalName || '이미지'}
           </p>
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={onDownload}
-              className="cursor-pointer rounded-lg px-2.5 py-1 text-[10px] font-medium text-[#3B5BDB] hover:bg-[#3B5BDB]/10"
+              className="cursor-pointer rounded-lg px-2.5 py-1 text-[10px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
             >
               다운로드
             </button>
@@ -58,7 +58,7 @@ export default function ImageLightbox({
               type="button"
               aria-label="닫기"
               onClick={onClose}
-              className="cursor-pointer text-[#6C7389] hover:text-[#1C1F2A]"
+              className="cursor-pointer text-text-secondary hover:text-text-primary"
             >
               ✕
             </button>
@@ -66,7 +66,7 @@ export default function ImageLightbox({
         </div>
       }
     >
-      <div className="flex min-h-0 flex-1 items-center gap-3 bg-[#1C1F2A]/[0.03] p-4">
+      <div className="flex min-h-0 flex-1 items-center gap-3 bg-bg-sidebar/[0.03] p-4">
         <NavButton
           label="이전 이미지"
           disabled={!canGoPrev || isLoading}
@@ -91,7 +91,7 @@ export default function ImageLightbox({
             />
           </div>
           {/* 캡션도 있든 없든 한 줄 자리를 잡아 둔다 */}
-          <p className="line-clamp-2 h-8 max-w-lg text-center text-[11px] leading-4 text-[#1C1F2A]">
+          <p className="line-clamp-2 h-8 max-w-lg text-center text-[11px] leading-4 text-text-primary">
             {image.caption}
           </p>
         </div>
@@ -105,13 +105,13 @@ export default function ImageLightbox({
         </NavButton>
       </div>
 
-      <div className="shrink-0 border-t border-[#1C1F2A]/10 bg-[#ECEEF4]/20 px-5 py-2 text-center">
+      <div className="shrink-0 border-t border-border-default bg-bg-surface px-5 py-2 text-center">
         {errorMessage ? (
-          <p role="alert" className="text-[10px] break-keep text-[#E7000B]">
+          <p role="alert" className="text-[10px] break-keep text-text-danger">
             {errorMessage}
           </p>
         ) : (
-          <p className="font-mono text-[10px] text-[#6C7389]">
+          <p className="font-mono text-[10px] text-text-secondary">
             {totalCount ? `${orderIndex} / ${totalCount}` : orderIndex}
           </p>
         )}
@@ -137,7 +137,7 @@ function NavButton({
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#1C1F2A]/10 bg-white text-[#1C1F2A] hover:bg-[#ECEEF4] disabled:cursor-not-allowed disabled:opacity-30"
+      className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border-default bg-white text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-30"
     >
       {children}
     </button>

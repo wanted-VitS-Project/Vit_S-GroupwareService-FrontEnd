@@ -20,7 +20,7 @@ export function IssueBoardSkeleton() {
             {Array.from({ length: count }, (_, card) => (
               <div
                 key={card}
-                className="rounded-lg border border-[#1C1F2A]/10 bg-white p-3"
+                className="rounded-lg border border-border-default bg-white p-3"
               >
                 <Skeleton className="mb-2 h-4 w-12" />
                 <Skeleton className="mb-3 h-3 w-4/5" />

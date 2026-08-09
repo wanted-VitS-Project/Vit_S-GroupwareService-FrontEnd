@@ -22,7 +22,7 @@ interface ModalProps {
 }
 
 /** 모달 동작에 필요해 항상 적용한다 */
-const BASE_PANEL = 'm-auto bg-white backdrop:bg-slate-900/50';
+const BASE_PANEL = 'm-auto bg-white backdrop:bg-text-primary/50';
 /** className 을 넘기지 않을 때의 크기 · 여백 */
 const DEFAULT_PANEL = 'w-full max-w-sm rounded-xl p-8 shadow-lg';
 
@@ -73,7 +73,7 @@ export default function Modal({
         <div className="flex items-start justify-between gap-4">
           <div>
             {stepLabel && (
-              <p className="text-xs font-bold text-slate-400">{stepLabel}</p>
+              <p className="text-xs font-bold text-text-muted">{stepLabel}</p>
             )}
             <h2 className="text-lg font-bold">{title}</h2>
           </div>
@@ -82,7 +82,7 @@ export default function Modal({
               type="button"
               onClick={onClose}
               aria-label="닫기"
-              className="cursor-pointer text-slate-400 hover:text-slate-900"
+              className="cursor-pointer text-text-muted hover:text-text-primary"
             >
               ✕
             </button>
@@ -102,7 +102,7 @@ export function ModalButton({
   return (
     <button
       {...props}
-      className={`mt-6 w-full cursor-pointer rounded-lg bg-slate-900 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 ${className}`}
+      className={`mt-6 w-full cursor-pointer rounded-lg bg-text-primary py-3 text-sm font-bold text-white transition-colors hover:bg-bg-sidebar-hover disabled:cursor-not-allowed disabled:bg-bg-hover-secondary ${className}`}
     />
   );
 }

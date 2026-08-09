@@ -4,10 +4,10 @@ import type { ApprovalStatus } from './types';
 
 /** 상태별 색. 진행 중만 강조하고 나머지는 결과(초록·빨강)와 중립으로 나눈다 */
 const STATUS_CLASS: Record<ApprovalStatus, string> = {
-  DRAFT: 'bg-[#ECEEF4] text-[#6C7389]',
-  IN_PROGRESS: 'bg-[#EEF2FF] text-[#3B5BDB]',
-  REJECTED: 'bg-[#FEF2F2] text-[#E7000B]',
-  COMPLETED: 'bg-[#ECFDF3] text-[#12B76A]',
+  DRAFT: 'bg-bg-hover text-text-secondary',
+  IN_PROGRESS: 'bg-blue-bg-soft text-text-primary-blue',
+  REJECTED: 'bg-red-bg-soft text-text-danger',
+  COMPLETED: 'bg-green-bg text-[#12B76A]',
 };
 
 export default function ApprovalStatusBadge({

@@ -50,7 +50,7 @@ function ActivityLogItem({
       {!isLast && (
         <span
           aria-hidden
-          className="absolute top-8 bottom-0 left-[13px] w-px bg-[#1C1F2A]/10"
+          className="absolute top-8 bottom-0 left-[13px] w-px bg-bg-sidebar/10"
         />
       )}
 
@@ -69,12 +69,12 @@ function ActivityLogItem({
             size="xs"
             decorative
           />
-          <span className="text-[11px] font-semibold text-[#1C1F2A]">
+          <span className="text-[11px] font-semibold text-text-primary">
             {log.actor.name}
           </span>
 
           {showBlock && (
-            <span className="inline-flex min-w-0 items-center gap-1 rounded border border-[#1C1F2A]/9 bg-[#F7F8FB] px-1.5 py-0.5 text-[10px] text-[#6C7389]">
+            <span className="inline-flex min-w-0 items-center gap-1 rounded border border-border-default bg-bg-surface px-1.5 py-0.5 text-[10px] text-text-secondary">
               <IssueBlockIcon type={log.block.type} size={16} />
               <span className="truncate">{blockTitle}</span>
             </span>
@@ -93,14 +93,14 @@ function ActivityLogItem({
           <span
             // 읽을 수 없는 값이면 빈칸으로 두지 않는다 — 시각이 왜 없는지 알 수 있게
             title={time?.full ?? `시각을 읽을 수 없습니다 (${log.createdAt})`}
-            className="ml-auto w-14 shrink-0 text-right text-[10px] text-[#9AA1B4]"
+            className="ml-auto w-14 shrink-0 text-right text-[10px] text-text-muted"
           >
             {time?.relative ?? '시각 미상'}
           </span>
         </div>
 
-        <div className="mt-1 rounded-md bg-[#F7F8FB] px-2.5 py-1.5 text-[11px] leading-relaxed text-[#4A5164]">
-          <span className="font-medium text-[#1C1F2A]">‘{targetName}’</span>{' '}
+        <div className="mt-1 rounded-md bg-bg-surface px-2.5 py-1.5 text-[11px] leading-relaxed text-gray-text-soft">
+          <span className="font-medium text-text-primary">‘{targetName}’</span>{' '}
           {log.action === 'MODIFY' && log.fieldName ? (
             <>
               {targetKind}의 {fieldLabel(log.fieldName)} 수정
@@ -135,7 +135,7 @@ function FieldChange({ log }: { log: ActivityLog }) {
   if (fieldDisplay(log.fieldName) === 'expand') {
     return (
       <details className="group mt-1">
-        <summary className="flex w-fit cursor-pointer list-none items-center gap-1 text-[10px] font-medium text-[#3B5BDB] hover:underline">
+        <summary className="flex w-fit cursor-pointer list-none items-center gap-1 text-[10px] font-medium text-text-primary-blue hover:underline">
           <svg
             viewBox="0 0 24 24"
             fill="none"
@@ -161,7 +161,7 @@ function FieldChange({ log }: { log: ActivityLog }) {
   return (
     <span className="ml-1 inline-flex flex-wrap items-center gap-1 align-middle">
       <InlineValue value={before} tone="before" />
-      <span aria-hidden className="text-[#9AA1B4]">
+      <span aria-hidden className="text-text-muted">
         →
       </span>
       <span className="sr-only">에서</span>
@@ -183,8 +183,8 @@ function InlineValue({
     <span
       className={`rounded border px-1.5 py-0.5 text-[10px] ${
         tone === 'before'
-          ? 'border-[#1C1F2A]/9 bg-white text-[#9AA1B4] line-through'
-          : 'border-[#8EC5FF] bg-[#DBEAFE] font-medium text-[#1447E6]'
+          ? 'border-border-default bg-white text-text-muted line-through'
+          : 'border-blue-border bg-blue-bg font-medium text-btn-primary-hover'
       }`}
     >
       {value || '없음'}
@@ -204,7 +204,9 @@ function FullValue({
 }) {
   return (
     <div>
-      <p className="mb-0.5 text-[10px] font-medium text-[#6C7389]">{label}</p>
+      <p className="mb-0.5 text-[10px] font-medium text-text-secondary">
+        {label}
+      </p>
       {/*
         자체 스크롤 영역이라 포커스를 받을 수 있어야 한다 —
         그렇지 않으면 키보드 사용자는 잘린 뒷부분을 볼 방법이 없다
@@ -213,10 +215,10 @@ function FullValue({
         tabIndex={0}
         role="region"
         aria-label={label}
-        className={`max-h-40 overflow-auto rounded border px-2 py-1.5 text-[10px] leading-relaxed whitespace-pre-wrap focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#3B5BDB] ${
+        className={`max-h-40 overflow-auto rounded border px-2 py-1.5 text-[10px] leading-relaxed whitespace-pre-wrap focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-border-primary ${
           tone === 'before'
-            ? 'border-[#1C1F2A]/9 bg-white text-[#9AA1B4]'
-            : 'border-[#8EC5FF] bg-[#EFF6FF] text-[#1C1F2A]'
+            ? 'border-border-default bg-white text-text-muted'
+            : 'border-blue-border bg-blue-bg-soft text-text-primary'
         }`}
       >
         {value || '없음'}

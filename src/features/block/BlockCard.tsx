@@ -51,11 +51,11 @@ export default function BlockCard({
       // 끄는 중인 카드는 "여기서 빠져나간 자리" 로 읽히게 점선 + 반투명으로 낮춘다
       className={`flex h-full flex-col rounded-lg border bg-white transition-[opacity,border-color] duration-150 ${
         isDragging
-          ? 'border-dashed border-[#3B5BDB]/40 opacity-40'
-          : 'border-[#1C1F2A]/10'
+          ? 'border-dashed border-border-primary/40 opacity-40'
+          : 'border-border-default'
       }`}
     >
-      <header className="flex items-center gap-2 border-b border-[#1C1F2A]/10 px-3 py-2">
+      <header className="flex items-center gap-2 border-b border-border-default px-3 py-2">
         <span
           aria-label={drag ? `${label} 위치 이동 핸들` : undefined}
           aria-hidden={drag ? undefined : true}
@@ -72,14 +72,14 @@ export default function BlockCard({
           // 점 6개(약 12×10px)만으로는 잡기 어렵다 — 여백으로 실제 클릭 영역을 넓힌다
           className={`-m-1 flex flex-col gap-0.5 rounded p-1 ${
             drag
-              ? 'cursor-grab opacity-40 hover:bg-[#ECEEF4] hover:opacity-80 active:cursor-grabbing'
+              ? 'cursor-grab opacity-40 hover:bg-bg-hover hover:opacity-80 active:cursor-grabbing'
               : 'opacity-25'
           }`}
         >
           {[0, 1, 2].map((row) => (
             <span key={row} className="flex gap-0.5">
-              <span className="size-1 rounded-full bg-[#6C7389]" />
-              <span className="size-1 rounded-full bg-[#6C7389]" />
+              <span className="size-1 rounded-full bg-text-secondary" />
+              <span className="size-1 rounded-full bg-text-secondary" />
             </span>
           ))}
         </span>
@@ -95,7 +95,7 @@ export default function BlockCard({
           <BlockTypeIcon code={block.type} />
         </span>
 
-        <h3 className="min-w-0 flex-1 truncate text-[11px] font-semibold text-[#1C1F2A]">
+        <h3 className="min-w-0 flex-1 truncate text-[11px] font-semibold text-text-primary">
           {block.title || type?.label}
         </h3>
 
@@ -110,7 +110,7 @@ export default function BlockCard({
 
       <div className="flex-1 p-3">{children}</div>
 
-      <footer className="flex items-center gap-2 border-t border-[#1C1F2A]/[0.05] bg-[#ECEEF4]/20 px-3 py-1.5">
+      <footer className="flex items-center gap-2 border-t border-border-default bg-bg-surface px-3 py-1.5">
         {block.owner ? (
           <>
             <MemberAvatar
@@ -121,12 +121,14 @@ export default function BlockCard({
               // 바로 옆에 이름 글자가 있다
               decorative
             />
-            <span className="min-w-0 flex-1 truncate text-[9px] text-[#6C7389]">
+            <span className="min-w-0 flex-1 truncate text-[9px] text-text-secondary">
               {block.owner.name}
             </span>
           </>
         ) : (
-          <span className="flex-1 text-[9px] text-[#6C7389]">담당자 없음</span>
+          <span className="flex-1 text-[9px] text-text-secondary">
+            담당자 없음
+          </span>
         )}
 
         {block.linkedIssueTotal > 0 && (
@@ -135,7 +137,7 @@ export default function BlockCard({
             onClick={() => setIsViewingIssues(true)}
             aria-label={`연결된 이슈 ${block.linkedIssueDone} / ${block.linkedIssueTotal} 완료`}
             title={`연결된 이슈 ${block.linkedIssueDone} / ${block.linkedIssueTotal} 완료`}
-            className="shrink-0 cursor-pointer rounded px-1 py-0.5 text-[9px] text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+            className="shrink-0 cursor-pointer rounded px-1 py-0.5 text-[9px] text-text-primary-blue hover:bg-blue-bg-soft hover:text-btn-primary-hover"
           >
             # {block.linkedIssueDone} / {block.linkedIssueTotal}
           </button>
@@ -216,8 +218,8 @@ function BlockMenu({
           aria-haspopup="menu"
           aria-expanded={isOpen}
           onClick={() => setIsOpen((wasOpen) => !wasOpen)}
-          className={`flex size-5 cursor-pointer items-center justify-center rounded text-[#6C7389] hover:bg-[#ECEEF4] ${
-            isOpen ? 'bg-[#ECEEF4]' : ''
+          className={`flex size-5 cursor-pointer items-center justify-center rounded text-text-secondary hover:bg-bg-hover ${
+            isOpen ? 'bg-bg-hover' : ''
           }`}
         >
           <MoreIcon />
@@ -234,7 +236,7 @@ function BlockMenu({
             />
             <span
               role="menu"
-              className="absolute top-full right-0 z-20 mt-1 flex w-28 flex-col overflow-hidden rounded-lg border border-[#1C1F2A]/10 bg-white shadow-lg"
+              className="absolute top-full right-0 z-20 mt-1 flex w-28 flex-col overflow-hidden rounded-lg border border-border-default bg-white shadow-lg"
             >
               <button
                 type="button"
@@ -243,12 +245,12 @@ function BlockMenu({
                   setIsOpen(false);
                   onViewIssues();
                 }}
-                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-[#1C1F2A] hover:bg-gray-50"
+                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-text-primary hover:bg-bg-surface"
               >
                 <HashIcon />
                 <span className="flex-1 text-left">연결된 이슈</span>
                 {block.linkedIssueTotal > 0 && (
-                  <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700">
+                  <span className="rounded-full bg-blue-bg px-1.5 py-0.5 text-[9px] font-bold text-btn-primary-hover">
                     {block.linkedIssueTotal}
                   </span>
                 )}
@@ -260,9 +262,9 @@ function BlockMenu({
                   setIsOpen(false);
                   onViewLogs();
                 }}
-                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-[#1C1F2A] hover:bg-gray-50"
+                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-text-primary hover:bg-bg-surface"
               >
-                <ActivityIcon className="size-2.5 shrink-0 text-violet-500" />
+                <ActivityIcon className="size-2.5 shrink-0 text-purple-text" />
                 <span className="flex-1 text-left">활동 로그</span>
               </button>
               <button
@@ -272,7 +274,7 @@ function BlockMenu({
                   setIsOpen(false);
                   setIsEditing(true);
                 }}
-                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-[#1C1F2A] hover:bg-gray-50"
+                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-text-primary hover:bg-bg-surface"
               >
                 <PencilIcon />
                 수정
@@ -281,7 +283,7 @@ function BlockMenu({
                 type="button"
                 role="menuitem"
                 onClick={openDeleteModal}
-                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-[#E7000B] hover:bg-red-50"
+                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-text-danger hover:bg-red-bg-soft"
               >
                 <TrashIcon />
                 삭제
@@ -315,7 +317,9 @@ function BlockMenu({
 }
 
 function HashIcon() {
-  return <span className="text-[11px] font-semibold text-blue-600">#</span>;
+  return (
+    <span className="text-[11px] font-semibold text-text-primary-blue">#</span>
+  );
 }
 
 function MoreIcon() {

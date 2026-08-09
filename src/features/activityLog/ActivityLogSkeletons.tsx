@@ -14,7 +14,7 @@ export function ActivityLogSkeleton() {
         <div key={group}>
           <div className="mb-3 flex items-center gap-3">
             <Skeleton className="h-3 w-12" />
-            <span className="h-px flex-1 bg-[#1C1F2A]/10" />
+            <span className="h-px flex-1 bg-bg-sidebar/10" />
           </div>
           <div className="flex flex-col gap-5">
             {Array.from({ length: count }, (_, row) => (

@@ -61,12 +61,12 @@ export default function Header() {
   }
 
   return (
-    <header className="flex h-18 shrink-0 items-center justify-between border-b border-slate-200 px-6">
+    <header className="flex h-18 shrink-0 items-center justify-between border-b border-border-default px-6">
       <h1 className="font-bold">{titleOf(pathname, user.role)}</h1>
 
       <div className="flex items-center gap-4 text-sm">
         {error && (
-          <span role="alert" className="text-rose-600">
+          <span role="alert" className="text-text-danger">
             {error}
           </span>
         )}
@@ -76,7 +76,7 @@ export default function Header() {
           type="button"
           onClick={handleLogout}
           disabled={isPending}
-          className="cursor-pointer text-slate-500 transition-colors hover:text-slate-900 disabled:cursor-not-allowed disabled:text-slate-300"
+          className="cursor-pointer text-text-secondary transition-colors hover:text-text-primary disabled:cursor-not-allowed disabled:text-slate-300"
         >
           {isPending ? '로그아웃 중…' : '로그아웃'}
         </button>
