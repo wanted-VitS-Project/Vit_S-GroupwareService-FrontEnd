@@ -23,8 +23,8 @@ import type { CreateEmployeeResult, ManagedRole } from './types';
 
 /**
  * 사번 최대 길이.
- * ⚠️ 명세(.ai/API.md 32)에 길이가 없어 ERD 의 `block.owner VARCHAR(20)` 을 근거로 뒀다.
- * 백엔드 확인 후 값이 다르면 여기만 고친다.
+ * ⚠️ 최종 명세(.ai/API.md 32)에도 길이 제한이 없어 ERD 의 `block.owner VARCHAR(20)` 을 근거로 둔다.
+ * **명세에 없는 값이라 더 묻지 않기로 했다** (2026-08-10) — 바꿔야 하면 여기만 고친다.
  */
 const USER_ID_MAX_LENGTH = 20;
 
@@ -233,7 +233,7 @@ export default function EmployeeCreateForm() {
           href="/settings"
           className="hover:text-text-primary hover:underline"
         >
-          설정
+          전사 관리
         </Link>{' '}
         &gt;{' '}
         <Link

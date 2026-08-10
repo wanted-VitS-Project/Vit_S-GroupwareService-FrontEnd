@@ -219,8 +219,12 @@ export const DialogIcons = {
   info: <DialogIcon>{INFO_PATHS}</DialogIcon>,
   /** 끝났다고 알릴 때 — 저장 완료 */
   success: <DialogIcon>{SUCCESS_PATHS}</DialogIcon>,
-  /** 주의를 줄 때. 되돌릴 수는 있다 */
-  warning: <DialogIcon>{WARNING_PATHS}</DialogIcon>,
+  /**
+   * 주의를 줄 때. 되돌릴 수는 있다.
+   * 경고인데 파랑이면 안내처럼 읽혀 지나친다 — 색은 `danger` 와 같은 빨강을 쓰고,
+   * **모양(삼각형 vs 팔각형+X)으로 위험도를 가른다.**
+   */
+  warning: <DialogIcon isDanger>{WARNING_PATHS}</DialogIcon>,
   /** **되돌릴 수 없을 때** — 삭제 */
   danger: <DialogIcon isDanger>{DANGER_PATHS}</DialogIcon>,
 };

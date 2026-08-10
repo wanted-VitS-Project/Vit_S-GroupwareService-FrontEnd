@@ -52,6 +52,20 @@ export const ENDPOINTS = {
     /** 비밀번호 재설정 — 개인 · 다중 공용 */
     passwordResets: `${V1}/accounts/password-resets`,
   },
+  pages: {
+    /**
+     * 내가 볼 수 있는 페이지 — **사이드바 노출의 유일한 근거**다.
+     * 아래 `root` 와 반환 집합이 다르다 (이쪽이 더 넓다).
+     */
+    mine: `${V1}/my/pages`,
+    /** 권한 부여 대상 페이지 목록 — `BIDDING` · `FINANCE` 둘뿐 */
+    root: `${V1}/pages`,
+    /** 접근 가능자 목록 조회 · 권한 부여(등급 변경 겸용) */
+    permissions: (pageCode: string) => `${V1}/pages/${pageCode}/permissions`,
+    /** 권한 회수 — 명시 부여 기록만 지운다 */
+    permission: (pageCode: string, userId: string) =>
+      `${V1}/pages/${pageCode}/permissions/${userId}`,
+  },
   departments: {
     /** 목록 조회 · 생성 */
     root: `${V1}/departments`,

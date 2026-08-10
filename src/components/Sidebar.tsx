@@ -4,13 +4,15 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import MenuIcon from '@/components/MenuIcon';
-import { findActiveMenu, MENU_BY_ROLE } from '@/constants/menu';
+import { findActiveMenu } from '@/constants/menu';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
+import { useMenuItems } from '@/features/pagePermission/useMyPages';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const user = useCurrentUser();
-  const activeHref = findActiveMenu(pathname, user.role)?.href;
+  const { items, status, refetch } = useMenuItems();
+  const activeHref = findActiveMenu(pathname, items)?.href;
   /** 소속이 없는 계정(ADMIN 등)은 직급 · 부서가 `null` 로 온다 */
   const hasSubInfo = Boolean(user.jobPositionName || user.departmentPath);
 
@@ -71,7 +73,7 @@ export default function Sidebar() {
 
       <nav aria-label="주 메뉴" className="p-4">
         <ul className="flex flex-col gap-1">
-          {MENU_BY_ROLE[user.role].map((item) => {
+          {items.map((item) => {
             const isActive = item.href === activeHref;
 
             return (
@@ -98,9 +100,49 @@ export default function Sidebar() {
               </li>
             );
           })}
+
+          {/*
+            고정 항목은 이미 그려져 있어 화면이 비지는 않는다 —
+            비어 보이는 자리(권한 메뉴)만 상태를 표시한다.
+          */}
+          {status === 'loading' && <MenuPlaceholder />}
+          {status === 'failed' && <MenuRetry onRetry={refetch} />}
         </ul>
       </nav>
     </aside>
+  );
+}
+
+/** 불러오는 동안 메뉴 자리를 잡아둔다 — 뜰 때 아래 항목이 밀리지 않는다 */
+function MenuPlaceholder() {
+  return (
+    <li aria-hidden className="flex flex-col gap-1">
+      {[0, 1].map((index) => (
+        <span
+          key={index}
+          className="block h-11 animate-pulse rounded-sidebar bg-bg-sidebar-hover"
+        />
+      ))}
+    </li>
+  );
+}
+
+/**
+ * 메뉴를 못 불러온 상태.
+ * 권한 없음이 아니라 **알 수 없음**이라 임의로 숨기지 않고 다시 시도하게 둔다.
+ */
+function MenuRetry({ onRetry }: { onRetry: () => void }) {
+  return (
+    <li className="rounded-sidebar bg-bg-sidebar-hover px-3 py-3">
+      <p className="text-body-m text-text-muted">메뉴를 불러오지 못했습니다.</p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="mt-1.5 cursor-pointer text-body-m font-medium text-text-white underline underline-offset-2"
+      >
+        다시 시도
+      </button>
+    </li>
   );
 }
 

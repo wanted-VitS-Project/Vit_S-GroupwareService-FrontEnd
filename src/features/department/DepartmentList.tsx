@@ -102,7 +102,7 @@ export default function DepartmentList() {
           href="/settings"
           className="hover:text-text-primary hover:underline"
         >
-          설정
+          전사 관리
         </Link>{' '}
         &gt; 부서 관리
       </p>

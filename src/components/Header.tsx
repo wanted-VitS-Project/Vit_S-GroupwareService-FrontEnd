@@ -4,9 +4,11 @@ import { usePathname } from 'next/navigation';
 
 import ProfileMenu from '@/components/ProfileMenu';
 import { findActiveMenu, isProjectScope, isUnder } from '@/constants/menu';
-import type { Role } from '@/features/auth/types';
-import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import NotificationBell from '@/features/notification/NotificationBell';
+import {
+  type ResolvedMenuItem,
+  useMenuItems,
+} from '@/features/pagePermission/useMyPages';
 import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_WIDTH,
@@ -17,11 +19,11 @@ import {
 const EXTRA_TITLES: Record<string, string> = {
   '/notifications': '알림',
   '/mypage': '마이페이지',
-  '/settings': '설정',
+  '/settings': '전사 관리',
 };
 
-function titleOf(pathname: string, role: Role) {
-  const menu = findActiveMenu(pathname, role);
+function titleOf(pathname: string, items: ResolvedMenuItem[]) {
+  const menu = findActiveMenu(pathname, items);
   if (menu) return menu.label;
 
   const extra = Object.keys(EXTRA_TITLES).find((path) =>
@@ -32,7 +34,7 @@ function titleOf(pathname: string, role: Role) {
 
 export default function Header() {
   const pathname = usePathname();
-  const user = useCurrentUser();
+  const { items } = useMenuItems();
   /**
    * 프로젝트 상세는 왼쪽 `ProjectSidebar` 가 흰색이라 화면에서 어두운 면이 사라진다 —
    * 그 자리를 헤더가 대신 든다. 색만 바뀌고 구조는 같다.
@@ -97,7 +99,7 @@ export default function Header() {
             isDark ? 'pl-8 text-text-white' : 'text-text-primary'
           }`}
         >
-          {titleOf(pathname, user.role)}
+          {titleOf(pathname, items)}
         </h1>
       </div>
 

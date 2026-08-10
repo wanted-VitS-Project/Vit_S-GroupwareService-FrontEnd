@@ -216,3 +216,49 @@ export function EmployeeFormSkeleton() {
     </SkeletonGroup>
   );
 }
+
+export function PagePermissionTableSkeleton() {
+  return (
+    <SkeletonTable
+      label="접근 가능자를 불러오는 중입니다"
+      // 부여 대상이 두 페이지뿐이라 인원이 적다 — 8줄을 깔면 실제 표와 높이 차가 크다
+      rows={4}
+      columns={[
+        {
+          label: '이름 · 사번',
+          headerClassName: 'w-44 px-5 py-3 font-medium',
+          render: () => (
+            <div className="flex flex-col gap-1.5">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-2.5 w-14" />
+            </div>
+          ),
+        },
+        {
+          label: '부서 · 직급',
+          render: () => <Skeleton className="h-3 w-32" />,
+        },
+        {
+          label: '전역 권한',
+          headerClassName: 'w-28 px-5 py-3 font-medium',
+          render: () => <Skeleton className="h-5 w-14 rounded-full" />,
+        },
+        {
+          label: '등급',
+          headerClassName: 'w-24 px-5 py-3 font-medium',
+          render: () => <Skeleton className="h-5 w-12 rounded-full" />,
+        },
+        {
+          label: '권한 출처',
+          headerClassName: 'w-32 px-5 py-3 font-medium',
+          render: shortLine,
+        },
+        {
+          label: '관리',
+          headerClassName: 'w-14 px-5 py-3 text-transparent',
+          render: menuDot,
+        },
+      ]}
+    />
+  );
+}

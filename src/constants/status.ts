@@ -5,9 +5,16 @@
 
 import type { Role } from '@/features/auth/types';
 
+/**
+ * 전역 권한 라벨.
+ *
+ * `MASTER` 가 화면에서 부르는 이름이 **관리자**다 —
+ * `ADMIN` 은 고객사가 쓰는 계정이 아니라 계정 · 인사를 다루는 시스템 계정이라
+ * 이름을 겹치지 않게 `시스템 관리자` 로 둔다.
+ */
 export const ROLE_LABELS: Record<Role, string> = {
-  ADMIN: '관리자',
-  MASTER: '중간관리자',
+  ADMIN: '시스템 관리자',
+  MASTER: '관리자',
   MEMBER: '사원',
 };
 

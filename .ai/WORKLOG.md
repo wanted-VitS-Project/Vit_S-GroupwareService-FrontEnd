@@ -6,6 +6,156 @@
 
 ---
 
+## [2026-08-10] 페이지 권한 후속 — 하이브리드 메뉴 해소 · 순서 기준 일원화 ✅
+
+브랜치: `feat/page-permission` · 이슈: #98 (같은 브랜치 후속 커밋)
+
+### 변경 파일
+
+| 파일 | 변경 |
+| ---- | ---- |
+| `src/features/pagePermission/catalog.ts` | 수정 (`PAGE_ROUTES` 4개 → 7개 · `UNROUTED_PAGES` 신설 · 내부 정렬 제거) |
+| `src/features/pagePermission/useMyPages.ts` | 수정 (`MENU_ORDER` 정렬로 고정 · 동적 병합) |
+| `src/features/pagePermission/MyPagesProvider.tsx` | 수정 (`/my/pages` 응답 dev 로그) |
+| `src/features/pagePermission/PageAccessGate.tsx` | 수정 (`isPageGated()` 로 대상 축소 · 조회 실패 시 재시도) |
+| `src/constants/menu.ts` | 수정 (`MENU_ORDER` 신설 · `FIXED_HEAD`/`FIXED_TAIL` → `FIXED_BY_ROLE`) |
+
+### 주요 작업 내용
+
+- **하이브리드 메뉴를 걷어냈다** — 실제 응답으로 `pageCode` 11개를 확인해 화면이 있는 7개를 `PAGE_ROUTES` 로 옮겼다. 대시보드 · 결재 관리 · 전사 관리까지 전부 `/my/pages` 가 그린다
+- **고정으로 남은 건 `프로젝트 조회` 하나** — ADMIN 은 시스템 계정이라 `MY_PROJECT` 를 받지 못한다. 전사 프로젝트 조회는 그와 별개 화면이라 `FIXED_BY_ROLE` 에 남겼다
+- **`UNROUTED_PAGES` 신설** — 화면이 없어 일부러 빼는 코드에 이유를 적어 콘솔 경고를 막는다. **처음 보는 코드만** 경고가 뜬다
+- **순서 기준을 `MENU_ORDER` 한 곳으로** — 합친 뒤 `href` 배열 순서로 정렬한다. 배열에 없는 항목은 뒤로 밀릴 뿐 사라지지 않는다
+
+### 부수 결정
+
+- **`ADMIN_CONSOLE(관리자)` 이 `/settings` 전사 관리 허브다** — 이름만으로는 `SETTINGS(설정)` 과 구분이 안 됐다. `source` 가 갈랐다: `ADMIN_CONSOLE` 은 `ADMIN_ONLY`, `SETTINGS` 는 전원(`DEFAULT`)이다. `/settings` 하위가 사원 · 부서 · 카테고리 · 페이지 권한이라 관리자 전용이 맞다
+- **`SETTINGS(설정)` 은 개인 설정으로 본다** — 전원에게 내려오고 대응 화면이 없어 `UNROUTED_PAGES` 에 남겼다
+- **사이드바 라벨이 `전사 관리` → `관리자` 로 바뀐다** — 라벨은 백엔드 `name` 을 쓴다는 원칙의 결과다. 이름을 프론트가 덮으면 백엔드가 바꿔도 배포 전까지 반영되지 않는다
+- **고정 앞/뒤(head · tail) 구분을 없앴다** — 정렬을 `MENU_ORDER` 가 하니 붙이는 위치가 의미를 잃는다. `FIXED_HEAD` 는 이미 전 역할 빈 배열이었다
+- **정렬 위치를 `toMenuItems()` 에서 `useMenuItems()` 로 옮겼다** — 고정 항목까지 섞인 뒤에 세워야 `프로젝트 조회` 를 `관리자` 앞에 둘 수 있다
+
+### 트러블슈팅
+
+**1. dev 로그가 콘솔에 안 떴다**
+
+`pageCode` 가 어느 화면인지 판단하려고 `/my/pages` 응답을 `console.info` 로 찍었는데 아무것도 보이지 않았다.
+
+| 항목 | 내용 |
+| ---- | ---- |
+| 원인 | `[browser]` 로 터미널에 전달되는 로그는 **warn · error 뿐**이다. DevTools 도 Info 레벨을 접어두면 같이 묻힌다 |
+| 해결 | 개발 중 눈으로 확인할 로그는 `console.warn` 으로 남긴다 |
+
+**2. 매핑을 넓히자 모든 화면이 `/my/pages` 를 기다리게 됐다** (코드 리뷰 지적)
+
+| 항목 | 내용 |
+| ---- | ---- |
+| 원인 | `PageAccessGate` 가 `findPageCode(pathname) !== undefined` 로 대상을 판단했다. 매핑이 4개일 땐 사실상 `BIDDING` · `FINANCE` 뿐이었지만 7개로 넓히자 대시보드 · 결재 관리 · 전사 관리까지 걸렸다 |
+| 해결 | `PageRoute` 에 `requiresPermission` 을 두고 `isPageGated()` 로 갈랐다. **메뉴에 그리는 것과 접근을 막는 것은 다른 문제**다 |
+
+**3. 권한 조회에 실패하면 대상 화면 본문이 그려졌다** (코드 리뷰 지적)
+
+`status === 'failed'` 를 통과시키고 있었다. 실패는 *권한 없음* 이 아니라 *알 수 없음* 이라, 판단 근거 없이 본문을 그리는 대신 `ErrorStateTwoButton` 으로 재시도하게 바꿨다. 대상이 `/notices` · `/finance/*` 둘뿐이라 나머지 화면 UX 에는 영향이 없다.
+
+**4. 매핑만 옮기면 메뉴 순서가 뒤틀렸다**
+
+`ADMIN_CONSOLE` 을 `PAGE_ROUTES` 로 옮기자 `관리자` 가 `프로젝트 조회` 위로 올라갔다. 동적 항목이 고정 tail 보다 먼저 붙기 때문인데, 순서 기준이 `PAGE_ORDER`(동적) · head/tail(고정) 두 군데로 갈려 있어 그 구조로는 해결할 수 없었다. `MENU_ORDER` 하나로 합치고 병합 후 정렬로 바꿨다.
+
+### 검증
+
+- `tsc --noEmit` · `eslint` · `next build` 통과
+- dev 콘솔로 `/my/pages` 응답 11개 코드 · 이름 · 등급 확인. 경로 미매핑 경고가 사라진 것으로 매핑 누락 없음 확인
+- ⚠️ 사이드바 렌더 결과(순서 · 라벨)는 사용자 화면에서 확인 필요
+
+---
+
+## [2026-08-10] 페이지 권한 연동 — 사이드바 `/my/pages` 전환 · 권한 부여 화면 ✅
+
+브랜치: `feat/page-permission` · 이슈: 확인 필요
+
+### 변경 파일
+
+| 파일 | 변경 |
+| ---- | ---- |
+| `src/features/pagePermission/types.ts` | 생성 (등급 3값 · 근거 4종 · 응답 타입) |
+| `src/features/pagePermission/errorCodes.ts` | 생성 (`PAGE_*` 4개) |
+| `src/features/pagePermission/api.ts` | 생성 (98~102 5개 함수) |
+| `src/features/pagePermission/catalog.ts` | 생성 (`pageCode` ↔ 라우트 매핑 · `toMenuItems()` · `isPageDenied()`) |
+| `src/features/pagePermission/display.ts` | 생성 (라벨 · 배지 · 회수 불가 사유) |
+| `src/features/pagePermission/MyPagesProvider.tsx` | 생성 (`/my/pages` 1회 조회 컨텍스트) |
+| `src/features/pagePermission/useMyPages.ts` | 생성 (`useMyPages()` · `useMenuItems()`) |
+| `src/features/pagePermission/PageAccessGate.tsx` | 생성 (`NONE` 진입 차단) |
+| `src/features/pagePermission/PagePermissionList.tsx` | 생성 (페이지 탭 + 접근 가능자 표) |
+| `src/features/pagePermission/GrantPermissionModal.tsx` | 생성 (부여 · 등급 변경 겸용) |
+| `src/features/pagePermission/RevokePermissionModal.tsx` | 생성 (회수 확인 + 계속 보임 안내) |
+| `src/app/settings/page-permissions/page.tsx` | 생성 (라우트) |
+| `src/constants/endpoints.ts` | 수정 (`pages` 블록 추가) |
+| `src/constants/menu.ts` | 수정 (`MENU_BY_ROLE` 제거 → 고정 앞/뒤 + `findActiveMenu(pathname, items)`) |
+| `src/components/Sidebar.tsx` | 수정 (동적 메뉴 · 로딩 · 실패 재시도) |
+| `src/components/Header.tsx` | 수정 (제목을 같은 목록에서 뽑음) |
+| `src/components/AppShell.tsx` | 수정 (`MyPagesProvider` + `PageAccessGate`) |
+| `src/components/settings/SettingsSkeletons.tsx` | 수정 (`PagePermissionTableSkeleton`) |
+| `src/app/settings/page.tsx` | 수정 (페이지 권한 항목 활성 · `전사 관리` 로 개칭) |
+| `src/components/AlertDialog.tsx` | 수정 (`warning` 아이콘 파랑 → 빨강) |
+| `src/constants/status.ts` | 수정 (`ROLE_LABELS` — MASTER `관리자` · ADMIN `시스템 관리자`) |
+| 브레드크럼 7개 화면 | 수정 (`설정` → `전사 관리`) |
+| `.ai/API.md` | 수정 (미연동 16건 명세 추가 · 98~102 연동 표시) |
+
+### 주요 작업 내용
+
+- **사이드바가 `GET /my/pages` 응답을 그린다** — 메뉴 노출 규칙을 프론트가 갖지 않는다. `pageCode` → 경로 · 아이콘만 프론트 몫이고 라벨은 백엔드 `name` 을 쓴다
+- **`permission: NONE` 접근 차단** — `PageAccessGate` 가 본문만 감싸 `/forbidden` 으로 보낸다. 셸은 감싸지 않아 사이드바 · 헤더가 깜빡이지 않는다
+- **권한 부여 화면** — 부여 대상이 `BIDDING` · `FINANCE` 둘뿐이라 목록 화면 대신 탭으로 고른다. 표에는 명시 부여자 + 전역 권한 열람자가 함께 나오고, 회수 불가 행은 이유를 붙인다
+- **부여 · 회수 모달** — 부여/등급 변경은 `PanelModal`, 저장 직전 확인과 회수 확인은 공용 `AlertDialogTwoButton`. 버튼은 `globals.css` 의 `.btn` 계열을 쓴다
+- **저장 전 확인 단계** — 권한은 눌러서 바로 바뀌면 안 되는 값이라 `부여` · `변경` 을 누르면 대상 · 등급을 요약해 한 번 더 묻는다. 실패하면 확인 창을 닫고 폼으로 되돌린다(고칠 곳이 폼에 있다)
+
+### 부수 결정
+
+- **하이브리드 전환** — 카탈로그 11개 중 코드가 확인된 건 4개뿐이라, 대시보드 · 결재 관리 · 프로젝트 조회 · 전사 관리는 `constants/menu.ts` 고정 항목으로 남겼다. 전면 전환하면 코드를 모르는 메뉴가 통째로 사라진다
+- **매핑 없는 `pageCode` 는 메뉴에서 제외** — 갈 곳 없는 버튼을 그리는 것보다 낫다. 개발 모드에서 콘솔로 알린다
+- **목록 조회 실패는 통과** — 이 가드는 편의지 통제가 아니다. 실제 차단은 백엔드 403 이 한다
+- **`설정` → `전사 관리`** — 표시 문구만 바꾸고 라우트(`/settings`)는 유지했다. 경로까지 바꾸면 북마크 · 이력이 깨진다
+- **전역 권한 사용자도 케밥을 그린다** — 부여 API 가 막는 건 ADMIN 뿐이라 MASTER 에게도 등급은 줄 수 있다. 회수 항목만 빠지고, 그 이유는 `권한 출처` 열의 자물쇠 + 툴팁으로 알린다
+- **공용 `warning` 아이콘을 빨강으로** — 파랑이면 안내처럼 읽혀 경고가 지나쳐진다. `danger` 와 색은 같고 **모양(삼각형 vs 팔각형+X)으로 위험도를 가른다.** `warning` 을 쓰는 다른 8곳도 함께 바뀐다
+- **접근 가드는 권한이 걸린 경로에서만 기다린다** — 모든 화면이 `/my/pages` 응답을 기다리면 첫 렌더가 통째로 느려진다
+- **전역 권한 라벨을 `관리자` · `사원` 으로** — `MASTER` 가 화면에서 부르는 이름이 관리자다. 이름이 겹치는 `ADMIN` 은 `시스템 관리자` 로 밀었다 (`ROLE_LABELS` 한 곳)
+- **하이브리드 메뉴를 유지한다** — 백엔드 확인 결과 권한 부여 대상은 `BIDDING` · `FINANCE` 둘뿐이고 나머지 페이지는 전원 열람이다. 나머지 `pageCode` 를 받아 동적으로 옮길 이유가 없다
+
+### 트러블슈팅
+
+**1. `react-hooks/set-state-in-effect` 로 lint 실패**
+
+이펙트 안에서 `setStatus('loading')` · `setAccessors(null)` 로 상태를 비우자 규칙 위반이 났다.
+
+| 항목 | 내용 |
+| ---- | ---- |
+| 원인 | 이펙트 본문의 동기 `setState` 는 렌더를 한 번 더 돌린다 |
+| 해결 | 로딩 전환은 이벤트 핸들러(`refetch`)로 옮기고, 목록은 `key` 로 요청을 구분해 **키가 어긋나면 자동으로 로딩 상태**가 되게 했다 (`JobPositionList` 와 같은 방식) |
+
+**2. 표가 깨지고 등급 배지를 눌러도 반응이 없었다**
+
+`회수 불가` 를 `w-14`(56px) 열에 넣어 글자마다 줄바꿈됐고, 사용자는 등급 배지(`편집`)를 버튼으로 오해했다.
+
+| 항목 | 내용 |
+| ---- | ---- |
+| 원인 | ① 좁은 열에 텍스트 ② `revocable: false` 행은 케밥을 아예 안 그려 누를 것이 없었다 |
+| 해결 | `회수 불가` 를 `권한 출처` 열의 자물쇠 아이콘 + 툴팁으로 옮기고, 케밥은 `ADMIN_ONLY` 가 아니면 항상 그린다(회수 항목만 조건부) |
+
+**3. 스켈레톤이 출렁였다**
+
+재조회마다 표를 비워 8줄 스켈레톤 → 1줄 표로 높이가 크게 튀었다. 같은 페이지의 재조회면 **직전 목록을 유지**하고(탭 이동은 비운다), 스켈레톤 줄 수를 4로 줄였다. 표 컨테이너에는 `overflow-hidden` 이 없어 sticky 헤더의 각진 흰 배경이 둥근 모서리 위로 튀어나오던 것도 함께 고쳤다.
+
+**4. `.ai/API.md` 에 prettier 를 돌렸다가 687줄이 뒤집혔다**
+
+`--write` 로 명세 문서를 포맷하니 기존 표 정렬이 전부 바뀌어 diff 가 1,800줄이 됐다. 되돌리고 추가분만 손으로 정렬했다 (STATE.md 2026-08-07 기록과 같은 함정).
+
+### 검증
+
+- `tsc --noEmit` · `eslint` · `next build` 통과
+- ⚠️ 브라우저 확인은 못 했다 — ADMIN 로그인이 필요해 화면 동작은 미검증이다
+
+---
+
 ## [2026-08-10] 프로젝트 사이드바 접기/펼치기 · 시안 크기 반영 · 아이콘 정비 ✅
 
 브랜치: `feat/project-sidebar-collapse` · 이슈: #99

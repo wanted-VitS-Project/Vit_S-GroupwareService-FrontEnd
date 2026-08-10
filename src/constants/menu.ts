@@ -1,6 +1,10 @@
 /**
- * 역할별 사이드바 메뉴 정의. 메뉴를 컴포넌트에 하드코딩하지 않는다.
+ * 사이드바 **고정** 메뉴 정의.
  *
+ * 메뉴는 `GET /my/pages` 응답이 그린다 (`features/pagePermission/catalog.ts`).
+ * 여기 남은 것은 **카탈로그에 대응하는 코드가 없는** 항목뿐이다.
+ *
+ * ⚠️ 대응 코드가 생기면 `PAGE_ROUTES` 로 옮기고 여기서 지운다.
  * ⚠️ 메뉴 노출은 화면 편의일 뿐 권한 통제가 아니다. 실제 차단은 백엔드가 한다.
  */
 
@@ -17,51 +21,35 @@ export interface MenuItem {
   exact?: boolean;
 }
 
-const DASHBOARD: MenuItem = {
-  label: '대시보드',
-  href: '/',
-  icon: 'dashboard',
-  exact: true,
-};
-const NOTICES: MenuItem = {
-  label: '공고 조회',
-  href: '/notices',
-  icon: 'search',
-};
-const FINANCE: MenuItem = {
-  label: '재무 관리',
-  href: '/finance/invoices',
-  icon: 'card',
-};
-
-/** ADMIN — 전체 프로젝트를 조회하고 조직 설정을 관리한다 (결재 대상이 아니다) */
-const ADMIN_MENU: MenuItem[] = [
-  DASHBOARD,
-  NOTICES,
-  { label: '프로젝트 조회', href: '/projects', icon: 'folder' },
-  FINANCE,
-  // 하위 관리 화면(사원 · 부서 · 카테고리 …)은 설정 허브에서 타고 들어간다
-  { label: '설정', href: '/settings', icon: 'settings' },
+/**
+ * 사이드바 노출 **순서**의 유일한 기준 (`href` 기준).
+ *
+ * 동적 · 고정을 한 줄에 세워야 하는데 백엔드 응답 순서는 화면 흐름과 무관하고,
+ * 고정 항목을 앞뒤로 붙이는 방식으로는 `프로젝트 조회` 를 `관리자` 앞에 둘 수 없다.
+ * 그래서 합친 뒤 **이 배열 순서로 정렬한다** (여기 없는 항목은 뒤로 밀린다).
+ */
+export const MENU_ORDER = [
+  '/',
+  '/approvals',
+  '/notices',
+  '/projects/new',
+  '/projects',
+  '/finance/invoices',
+  '/settings',
 ];
 
 /**
- * MASTER(중간관리자) · MEMBER(사원) — 프로젝트를 직접 만들고 자기 프로젝트를 본다.
- * 두 역할의 메뉴는 같고, 항목별 접근 권한은 백엔드가 판단한다.
- * (권한 없이 들어가면 403 → /forbidden)
+ * `/my/pages` 로 대체되지 않는 고정 항목 (ADMIN 전용).
+ *
+ * `MY_PROJECT` 는 ADMIN 에게 내려오지 않는다 — 시스템 계정이라 프로젝트 참여자가
+ * 될 수 없다. 전사 프로젝트 조회는 그와 별개 화면이라 고정으로 둔다.
+ *
+ * ⚠️ 같은 `href` 가 동적 메뉴에도 오면 `useMenuItems()` 가 이쪽을 걷어낸다 (중복 방지).
  */
-const STAFF_MENU: MenuItem[] = [
-  DASHBOARD,
-  { label: '결재 관리', href: '/approvals', icon: 'approval' },
-  NOTICES,
-  { label: '프로젝트 생성', href: '/projects/new', icon: 'plus', exact: true },
-  { label: '내 프로젝트', href: '/projects', icon: 'folder' },
-  FINANCE,
-];
-
-export const MENU_BY_ROLE: Record<Role, MenuItem[]> = {
-  ADMIN: ADMIN_MENU,
-  MASTER: STAFF_MENU,
-  MEMBER: STAFF_MENU,
+export const FIXED_BY_ROLE: Record<Role, MenuItem[]> = {
+  ADMIN: [{ label: '프로젝트 조회', href: '/projects', icon: 'folder' }],
+  MASTER: [],
+  MEMBER: [],
 };
 
 /** 공통 레이아웃(사이드바 · 헤더)을 씌우지 않는 경로 */
@@ -94,9 +82,15 @@ export function isUnder(pathname: string, base: string) {
 /**
  * 현재 경로에 해당하는 메뉴 하나.
  * `/projects/new` 처럼 여러 항목이 걸리면 가장 구체적인(경로가 긴) 것을 고른다.
+ *
+ * 메뉴가 역할 고정이 아니라 `/my/pages` 응답까지 합쳐진 목록이라,
+ * 역할이 아니라 **완성된 목록**을 받는다 (`useMenuItems()`).
  */
-export function findActiveMenu(pathname: string, role: Role) {
-  return MENU_BY_ROLE[role]
+export function findActiveMenu<T extends MenuItem>(
+  pathname: string,
+  items: T[],
+) {
+  return items
     .filter((item) =>
       item.exact ? pathname === item.href : isUnder(pathname, item.href),
     )
