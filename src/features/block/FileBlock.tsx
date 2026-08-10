@@ -29,6 +29,7 @@ import {
   type UploadStage,
 } from '@/features/file/upload';
 import { messageOf } from '@/lib/api';
+import { useModalTarget } from '@/lib/useModal';
 
 import BlockCard from './BlockCard';
 import { FileListSkeleton } from './BlockSkeletons';
@@ -139,13 +140,10 @@ export default function FileBlock({ block }: { block: StepBlock }) {
   const [editingFileId, setEditingFileId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState('');
   /** 뷰어로 열어둔 문서 */
-  const [viewer, setViewer] = useState<BlockFile | null>(null);
-  const [trashTarget, setTrashTarget] = useState<BlockFile | null>(null);
+  const viewerModal = useModalTarget<BlockFile>();
+  const trashModal = useModalTarget<BlockFile>();
   /** 동명 문서 확인 대기 — 확인하면 같은 파일을 다시 올린다 */
-  const [duplicate, setDuplicate] = useState<{
-    file: File;
-    message: string;
-  } | null>(null);
+  const duplicateModal = useModalTarget<{ file: File; message: string }>();
 
   const pickerRef = useRef<HTMLInputElement>(null);
   /** 새 버전을 올릴 대상. 비어 있으면 새 문서 */
@@ -169,6 +167,8 @@ export default function FileBlock({ block }: { block: StepBlock }) {
 
   const files = loaded?.content ?? null;
   const canEdit = loaded?.canEdit ?? false;
+  // 지역 상수로 받아야 JSX 안에서 `null` 이 아님이 좁혀진다
+  const duplicatePending = duplicateModal.target;
 
   function reload() {
     setReloadCount((count) => count + 1);
@@ -196,7 +196,7 @@ export default function FileBlock({ block }: { block: StepBlock }) {
     } catch (caught) {
       if (caught instanceof DuplicateNameError) {
         // 확인을 받은 뒤 같은 파일로 한 번만 다시 올린다
-        setDuplicate({ file, message: caught.message });
+        duplicateModal.open({ file, message: caught.message });
       } else if (caught instanceof Error) {
         setErrorMessage(caught.message + stageHintOf(caught));
       } else {
@@ -277,7 +277,7 @@ export default function FileBlock({ block }: { block: StepBlock }) {
                   }}
                   onCancelRename={() => setEditingFileId(null)}
                   onSaveName={() => saveName(file)}
-                  onOpen={() => setViewer(file)}
+                  onOpen={() => viewerModal.open(file)}
                   onDownload={() =>
                     downloadVersion(file.latestVersionId).catch((caught) =>
                       setErrorMessage(
@@ -286,7 +286,7 @@ export default function FileBlock({ block }: { block: StepBlock }) {
                     )
                   }
                   onAddVersion={() => pickFile(file.fileId)}
-                  onTrash={() => setTrashTarget(file)}
+                  onTrash={() => trashModal.open(file)}
                 />
               ))}
             </ul>
@@ -318,28 +318,30 @@ export default function FileBlock({ block }: { block: StepBlock }) {
         </div>
       </div>
 
-      {viewer && (
-        <FileViewerModal file={viewer} onClose={() => setViewer(null)} />
+      {viewerModal.target && (
+        <FileViewerModal
+          file={viewerModal.target}
+          onClose={viewerModal.close}
+        />
       )}
 
-      {trashTarget && (
+      {trashModal.target && (
         <TrashFileModal
-          fileId={trashTarget.fileId}
-          fileName={trashTarget.name}
-          onClose={() => setTrashTarget(null)}
+          fileId={trashModal.target.fileId}
+          fileName={trashModal.target.name}
+          onClose={trashModal.close}
           onTrashed={reload}
         />
       )}
 
-      {duplicate && (
+      {duplicatePending && (
         <DuplicateNameModal
-          fileName={duplicate.file.name}
-          message={duplicate.message}
-          onCancel={() => setDuplicate(null)}
+          fileName={duplicatePending.file.name}
+          message={duplicatePending.message}
+          onCancel={duplicateModal.close}
           onConfirm={() => {
-            const { file } = duplicate;
-            setDuplicate(null);
-            upload(file, true);
+            duplicateModal.close();
+            upload(duplicatePending.file, true);
           }}
         />
       )}

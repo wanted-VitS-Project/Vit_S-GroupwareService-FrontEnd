@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 import RowMenu from '@/components/RowMenu';
 import { JobPositionTableSkeleton } from '@/components/settings/SettingsSkeletons';
+import { useModalTarget } from '@/lib/useModal';
 
 import { getJobPositions, updateJobPosition } from './api';
 import DeleteJobPositionModal from './DeleteJobPositionModal';
@@ -30,8 +31,8 @@ export default function JobPositionList() {
   /** 순서 변경 중 — 연타로 순서가 꼬이지 않게 잠근다 */
   const [isMoving, setIsMoving] = useState(false);
   const [moveError, setMoveError] = useState('');
-  const [formTarget, setFormTarget] = useState<FormTarget | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<JobPosition | null>(null);
+  const formModal = useModalTarget<FormTarget>();
+  const deleteModal = useModalTarget<JobPosition>();
 
   const requestKey = String(reloadCount);
   const current = result?.key === requestKey ? result : null;
@@ -113,7 +114,7 @@ export default function JobPositionList() {
             삭제할 수 없습니다.
           </p>
         </div>
-        <AddButton onClick={() => setFormTarget('create')} />
+        <AddButton onClick={() => formModal.open('create')} />
       </div>
 
       <p
@@ -148,7 +149,7 @@ export default function JobPositionList() {
             <p className="text-xs break-keep text-text-secondary">
               직급을 추가하면 사원 등록 시 선택할 수 있어요
             </p>
-            <AddButton subtle onClick={() => setFormTarget('create')} />
+            <AddButton subtle onClick={() => formModal.open('create')} />
           </Centered>
         ) : (
           // 목록이 길어지면 이 영역만 스크롤된다
@@ -210,12 +211,12 @@ export default function JobPositionList() {
                         items={[
                           {
                             label: '수정',
-                            onSelect: () => setFormTarget(position),
+                            onSelect: () => formModal.open(position),
                           },
                           {
                             label: '삭제',
                             danger: true,
-                            onSelect: () => setDeleteTarget(position),
+                            onSelect: () => deleteModal.open(position),
                           },
                         ]}
                       />
@@ -228,18 +229,20 @@ export default function JobPositionList() {
         )}
       </div>
 
-      {formTarget && (
+      {formModal.target && (
         <JobPositionFormModal
-          position={formTarget === 'create' ? undefined : formTarget}
-          onClose={() => setFormTarget(null)}
+          position={
+            formModal.target === 'create' ? undefined : formModal.target
+          }
+          onClose={formModal.close}
           onSaved={reload}
         />
       )}
 
-      {deleteTarget && (
+      {deleteModal.target && (
         <DeleteJobPositionModal
-          position={deleteTarget}
-          onClose={() => setDeleteTarget(null)}
+          position={deleteModal.target}
+          onClose={deleteModal.close}
           onDeleted={reload}
         />
       )}
