@@ -90,11 +90,16 @@ export function AlertDialogTwoButton({
   onCancel: () => void;
 }) {
   return (
+    /**
+     * 처리 중에는 `onClose` 를 아예 넘기지 않는다 —
+     * 버튼만 막으면 Esc · 배경 클릭으로 빠져나가 **결과를 못 보고 닫힌다.**
+     * `Modal` 은 `onClose` 가 없으면 닫을 수 없는 모달로 동작한다.
+     */
     <Shell
       icon={icon}
       title={title}
       description={description}
-      onClose={onCancel}
+      onClose={isBusy ? undefined : onCancel}
     >
       <button
         type="button"
@@ -124,7 +129,8 @@ function Shell({
   onClose,
   children,
 }: AlertDialogProps & {
-  onClose: () => void;
+  /** 없으면 닫을 수 없는 다이얼로그다 — 처리 중일 때 그렇게 쓴다 */
+  onClose?: () => void;
   children: React.ReactNode;
 }) {
   return (
@@ -174,11 +180,21 @@ const WARNING_PATHS = (
   </>
 );
 
+/** 팔각형 + X — 도로 정지 표지와 같은 모양이라 '멈춤'으로 읽힌다 */
+const DANGER_PATHS = (
+  <>
+    <path d="M8.6 3h6.8L21 8.6v6.8L15.4 21H8.6L3 15.4V8.6z" />
+    <path d="m9.5 9.5 5 5" />
+    <path d="m14.5 9.5-5 5" />
+  </>
+);
+
 /**
  * 다이얼로그 아이콘 4종.
  *
  * 색만 다르면 색을 구별하지 못하는 사용자에게는 전부 같아 보인다 —
- * **모양도 함께** 다르게 뒀다 (원+느낌표 · 체크 · 삼각형).
+ * **넷 다 모양이 다르다** (원+느낌표 · 원+체크 · 삼각형 · 팔각형+X).
+ * 특히 `warning` 과 `danger` 는 회색조로 봐도 갈린다.
  */
 export const DialogIcons = {
   /** 물어볼 때 — 변경사항을 저장할까요? */
@@ -188,7 +204,7 @@ export const DialogIcons = {
   /** 주의를 줄 때. 되돌릴 수는 있다 */
   warning: <DialogIcon>{WARNING_PATHS}</DialogIcon>,
   /** **되돌릴 수 없을 때** — 삭제 */
-  danger: <DialogIcon isDanger>{WARNING_PATHS}</DialogIcon>,
+  danger: <DialogIcon isDanger>{DANGER_PATHS}</DialogIcon>,
 };
 
 function DialogIcon({
