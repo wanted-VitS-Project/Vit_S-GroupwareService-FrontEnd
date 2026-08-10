@@ -11,6 +11,7 @@ import {
 } from 'react';
 
 import ApprovalBlock from '@/features/approval/ApprovalBlock';
+import SettlementBlock from '@/features/settlement/SettlementBlock';
 import AiBlock from '@/features/vitamate/AiBlock';
 
 import BlockCard from './BlockCard';
@@ -607,6 +608,7 @@ const BlockBody = memo(function BlockBody({
     return <ImageBlock block={block} autoUpload={autoEdit} />;
   if (block.type === 'APPROVAL') return <ApprovalBlock block={block} />;
   if (block.type === 'AI') return <AiBlock block={block} />;
+  if (block.type === 'SETTLEMENT') return <SettlementBlock block={block} />;
 
   // TODO: 유형별 블록 구현 (PAYMENT_CONFIRM · TAX_INVOICE_VIEW · …)
   return (

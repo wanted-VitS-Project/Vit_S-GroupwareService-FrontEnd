@@ -12,7 +12,12 @@ export type BlockTypeCode =
   | 'TAX_INVOICE_VIEW'
   | 'APPROVAL'
   | 'AI'
-  | 'BID_NOTICE';
+  | 'BID_NOTICE'
+  /**
+   * ❗ **값 확인 필요.** 9번 표의 9값에 정산이 없고 "ERD enum 10값" 중 남은 1값으로 보인다.
+   * API 경로가 `/blocks/settlements/...` 라 그 이름을 따랐다 — 틀리면 이 문자열만 고치면 된다.
+   */
+  | 'SETTLEMENT';
 
 export interface BlockTypeOption {
   code: BlockTypeCode;
@@ -95,6 +100,16 @@ export const BLOCK_TYPES: BlockTypeOption[] = [
     label: '입금 확인',
     description: '회차별 입금 예정·실제 입금 내역을 확인',
     titleLabel: '회차명',
+    // 정산 계열 — 금액 · 일자 · 상태를 표로 늘어놓는다
+    defaultColSpan: 2,
+    background: '#F5F3FF',
+    border: '#DDD6FF',
+    icon: '#7F22FE',
+  },
+  {
+    code: 'SETTLEMENT',
+    label: '정산',
+    description: '회차별 정산 예정 금액·일자와 실제 정산 진행률을 관리',
     // 정산 계열 — 금액 · 일자 · 상태를 표로 늘어놓는다
     defaultColSpan: 2,
     background: '#F5F3FF',

@@ -42,6 +42,15 @@ const PATHS: Record<BlockTypeCode, React.ReactNode> = {
       <path d="m9 15.5 1.8 1.8L14.5 13" />
     </>
   ),
+  /** 정산 — 회차별 금액을 표로 늘어놓는 블록이라 계산서 모양으로 둔다 */
+  SETTLEMENT: (
+    <>
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <path d="M8 7h8M8 11h8" />
+      <path d="M8 15h4" />
+      <path d="M16 15v4" />
+    </>
+  ),
   TAX_INVOICE_VIEW: (
     <>
       <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6" />
