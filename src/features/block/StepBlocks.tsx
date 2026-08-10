@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
+import { ErrorStateTwoButton } from '@/components/ErrorState';
 import { getProjectSteps } from '@/features/project/api';
 
 import AddBlockButton from './AddBlockButton';
@@ -156,9 +157,14 @@ export default function StepBlocks() {
       </div>
 
       {hasFailed ? (
-        <p className="rounded-lg border border-dashed border-border-default px-4 py-10 text-center text-xs text-text-secondary">
-          블록을 불러오지 못했습니다.
-        </p>
+        <ErrorStateTwoButton
+          title="블록을 불러오지 못했습니다."
+          description="잠시 후 다시 시도해주세요."
+          retryLabel="다시 시도"
+          onRetry={() => setReloadCount((count) => count + 1)}
+          actionLabel="프로젝트로 이동"
+          actionHref={`/projects/${projectId}`}
+        />
       ) : !blocks ? (
         <BlockBoardSkeleton />
       ) : (

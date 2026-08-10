@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 import Pagination from '@/components/Pagination';
+import { ErrorStateTwoButton } from '@/components/ErrorState';
 import ProjectListSkeleton from '@/components/project/ProjectListSkeleton';
 import { PROJECT_STATUS_LABELS } from '@/constants/status';
 import { getCategories } from '@/features/businessCategory/api';
@@ -208,18 +209,12 @@ export default function MyProjectList() {
       />
 
       {hasFailed ? (
-        <Centered>
-          <p className="text-[13px] text-text-secondary">
-            프로젝트 목록을 불러오지 못했어요.
-          </p>
-          <button
-            type="button"
-            onClick={() => setReloadCount((count) => count + 1)}
-            className="mt-3 cursor-pointer rounded-lg border border-border-default bg-white px-3 py-1.5 text-xs font-semibold text-text-primary hover:bg-bg-hover"
-          >
-            다시 시도
-          </button>
-        </Centered>
+        <ErrorStateTwoButton
+          title="프로젝트 목록을 불러오지 못했습니다."
+          description="잠시 후 다시 시도해주세요."
+          retryLabel="다시 시도"
+          onRetry={() => setReloadCount((count) => count + 1)}
+        />
       ) : isLoading && !rows ? (
         <ProjectListSkeleton rows={PAGE_SIZE} />
       ) : !rows || rows.length === 0 ? (
