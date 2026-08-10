@@ -34,19 +34,23 @@ export interface BlockTypeOption {
    * 새 유형을 추가하면 여기서 폭을 정해야 한다 — 선택 필드가 아니다.
    */
   defaultColSpan: 1 | 2;
-  /** 아이콘 상자 배경 */
+  /**
+   * 아이콘 배지 색 3종. 인라인 `style` 로 들어가므로 유틸리티 클래스가 아니라
+   * hex 나 `var(--color-*)` 를 쓴다.
+   *
+   * 유형을 구별하는 **고유 액센트**라 시맨틱 토큰으로 뭉갤 수 없다 —
+   * globals.css 에 같은 색이 있는 유형만 `var()` 로 옮겨 두고, 나머지는 hex 로 남겼다.
+   */
   background: string;
-  /** 아이콘 상자 테두리 */
   border: string;
-  /** 아이콘 선 색 */
   icon: string;
 }
 
 /**
  * 모달에 노출되는 순서 그대로 둔다 (2열 그리드).
  *
- * 가로 1칸 — 텍스트 · 이미지 · 체크리스트 · 결재
- * 가로 2칸 — 문서 업로드 · 정산(입금 확인 · 세금계산서) · 입찰 · AI
+ * 가로 1칸 — 텍스트 · 이미지 · 체크리스트 · 결재 · 정산
+ * 가로 2칸 — 문서 업로드 · 입금 확인 · 세금계산서 · 입찰 · AI
  */
 export const BLOCK_TYPES: BlockTypeOption[] = [
   {
@@ -110,11 +114,15 @@ export const BLOCK_TYPES: BlockTypeOption[] = [
     code: 'SETTLEMENT',
     label: '정산',
     description: '회차별 정산 예정 금액·일자와 실제 정산 진행률을 관리',
-    // 정산 계열 — 금액 · 일자 · 상태를 표로 늘어놓는다
-    defaultColSpan: 2,
-    background: '#F5F3FF',
-    border: '#DDD6FF',
-    icon: '#7F22FE',
+    // 라벨 · 값을 한 줄씩 쌓는 구조라 1칸으로 충분하다 (표를 늘어놓는 다른 정산 계열과 다르다)
+    defaultColSpan: 1,
+    /**
+     * 이 세 줄만 토큰이다 — 다른 유형은 아직 hex 다.
+     * 인라인 `style` 로 들어가므로 유틸리티 클래스가 아니라 `var()` 로 읽는다.
+     */
+    background: 'var(--color-purple-bg-soft)',
+    border: 'var(--color-purple-border)',
+    icon: 'var(--color-purple-text)',
   },
   {
     code: 'TAX_INVOICE_VIEW',
