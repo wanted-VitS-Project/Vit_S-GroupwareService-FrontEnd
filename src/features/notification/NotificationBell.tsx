@@ -35,7 +35,12 @@ const POLL_MS = 60_000;
  * 배지 숫자는 `?isRead=false` 의 **`totalElements`** 다 — 목록 길이는 `size` 에 잘려 실제와 다르다.
  * 목록은 **열 때마다** 다시 받는다. 알림은 밖에서 늘어나는 값이라 캐시해두면 금방 낡는다.
  */
-export default function NotificationBell() {
+export default function NotificationBell({
+  /** 프로젝트 화면의 어두운 헤더 위에 놓일 때 (색만 달라진다) */
+  isDark = false,
+}: {
+  isDark?: boolean;
+}) {
   const router = useRouter();
   const boxRef = useRef<HTMLDivElement>(null);
   /** Esc 로 닫았을 때 포커스를 돌려놓을 곳 — 안 그러면 키보드 사용자가 위치를 잃는다 */
@@ -196,7 +201,11 @@ export default function NotificationBell() {
         aria-label={
           unreadCount > 0 ? `알림 ${unreadCount}건 읽지 않음` : '알림'
         }
-        className="relative flex cursor-pointer items-center rounded-lg p-1.5 text-text-secondary hover:bg-bg-hover hover:text-text-primary"
+        className={`relative flex cursor-pointer items-center rounded-sidebar p-1.5 ${
+          isDark
+            ? 'text-text-muted hover:bg-bg-sidebar-hover hover:text-text-white'
+            : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
+        }`}
       >
         <BellIcon />
 

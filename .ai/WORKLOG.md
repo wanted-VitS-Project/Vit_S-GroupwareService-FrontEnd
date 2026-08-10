@@ -6,6 +6,49 @@
 
 ---
 
+## [2026-08-10] 공용 다이얼로그 · 오류 화면 · 헤더/사이드바 정리 🚧
+
+브랜치: `feat/common-dialog` · 이슈: #87
+
+### 변경 파일
+
+| 파일                                            | 변경                                             |
+| ----------------------------------------------- | ------------------------------------------------ |
+| `src/components/AlertDialog.tsx`                | 생성 (공용 다이얼로그 2종 + 아이콘 4종)          |
+| `src/components/ErrorState.tsx`                 | 생성 (전체 화면 오류 안내 2종)                   |
+| `src/components/ProfileMenu.tsx`                | 생성 (헤더 프로필 드롭다운)                      |
+| `src/app/globals.css`                           | 수정 (`.btn-danger` 추가 — 삭제 확인 버튼)       |
+| `src/components/Header.tsx`                     | 수정 (로그아웃 분리 · 프로젝트 헤더 · 로고 칸)   |
+| `src/components/Sidebar.tsx`                    | 수정 (프로필 크기 · 메뉴 대비 · 소속 없는 계정)  |
+| `src/features/notification/NotificationBell.tsx` | 수정 (`isDark` prop)                            |
+| `.ai/STRUCTURE.md`                              | 수정 (공용 컴포넌트 표 + 모달 사용법 3-1 신설)   |
+| `src/app/error.tsx`                             | 수정 (`ErrorStateTwoButton` 적용)                |
+| `src/app/not-found.tsx`                         | 수정 (`ErrorStateOneButton` 적용)                |
+| `src/app/forbidden/page.tsx`                    | 수정 (stub → `ErrorStateOneButton`)              |
+
+### 주요 작업 내용
+
+- **공용 다이얼로그** — `AlertDialogOneButton`(알리기) · `AlertDialogTwoButton`(고르기). 아이콘은 `DialogIcons` 4종(info · success · warning · danger)을 쓰는 쪽에서 골라 넘긴다
+- **공용 오류 화면** — `ErrorStateOneButton` · `ErrorStateTwoButton`. `error.tsx` · `not-found.tsx` · `/forbidden` 세 화면을 여기에 얹었다
+- **로그아웃을 프로필 드롭다운으로** — `ProfileMenu` 신설(마이페이지 · 로그아웃). 바깥 클릭 · Esc 닫기는 `NotificationBell` 과 같은 규칙
+- **프로젝트 상세 헤더를 어둡게 + 로고 칸(`w-70`)** — 색 분기는 `isDark` prop 하나로, 값은 기존 토큰 유틸리티만 쓴다
+- **사이드바 · 헤더 프로필 통일** — 명세대로 이름 18/600 · 부가정보 14/400, 헤더 제목 20/600. 메뉴 보조색은 `text-muted`
+- **소속 없는 계정 대응** — 직급 · 부서가 `null` 인 계정(ADMIN 등)은 빈 줄을 그리지 않고 이름을 16px 한 줄로 떨어뜨린다
+
+### 부수 결정
+
+- **다이얼로그와 오류 화면을 나눴다** — 하나는 화면 위에 **덮어서** 확인을 받고(`AlertDialog`), 하나는 보여줄 것이 없어 그 자리에 **대신 놓인다**(`ErrorState`). 껍데기가 비슷해 보여도 쓰임이 달라 합치지 않았다
+- **아이콘은 색만이 아니라 모양도 다르게** — 색을 구별하지 못하는 사용자에게 색만 다른 아이콘은 전부 같아 보인다 (원+느낌표 · 체크 · 삼각형)
+- **프로젝트 상세 헤더를 어둡게** — `ProjectSidebar` 가 흰색이라 화면에서 어두운 면이 사라진다. 헤더가 그 자리를 대신 든다
+- **⚠️ 색 분기를 CSS 클래스가 아니라 `isDark` prop 으로 되돌렸다.** 처음엔 `globals.css` 에 `.app-header` · `.header-profile*` 등 컴포넌트 클래스 9개(171줄)를 만들었는데, **한 곳에서만 쓰는 스타일이 전역 파일만 불린다.** 기존 토큰 유틸리티로 되돌리니 globals.css 추가분은 `.btn-danger` 14줄뿐이다
+- **로고 칸 폭 `w-70` 은 `ProjectSidebar` 와 묶여 있다** — 오른쪽 선이 사이드바 경계선과 한 줄로 이어져야 해서, 폭을 바꿀 때는 둘을 함께 고친다
+- **사이드바 메뉴 보조색을 시안 값에서 올렸다** — `#6B7280` 은 `#111827` 위에서 대비 4.1:1 로 WCAG AA(4.5:1) 미달. `#9CA3AF` 로 올려 7:1
+- **타이포는 디자인 명세를 기준으로 맞췄다** — 헤더 제목 20/600, 프로필 이름 18/600, 부가정보 14/400 (한때 16/12 로 줄였다가 명세 확인 후 되돌림)
+- **모달 · 다이얼로그 · 오류 화면 선택 기준을 `.ai/STRUCTURE.md` §3-1 에 정리** — 셋의 껍데기가 닮아 쓰는 쪽이 헷갈린다
+- **검증은 `tsc` · `eslint` · `prettier` 까지** — 로그인 게이트 때문에 AI 쪽 브라우저 확인이 막혀 있다
+
+---
+
 ## [2026-08-09] 글로벌 디자인 토큰 도입 · 하드코딩 색상 일괄 교체 ✅
 
 브랜치: `style` · 이슈: #85
