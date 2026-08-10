@@ -64,6 +64,13 @@ export default function SettlementForm({
   const [draft, setDraft] = useState<SettlementDraft | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState('');
+  /**
+   * 409 로 탭이 저절로 되돌아갔다는 안내.
+   *
+   * `error` 와 나눠 둔다 — 되돌린 직후 **원래 타입 조회가 성공**하면서 성공 분기의
+   * `setError('')` 가 안내를 지워버린다. 그러면 탭이 왜 튕겼는지 알 수 없다.
+   */
+  const [revertNotice, setRevertNotice] = useState('');
 
   /**
    * 타입을 고르면 추천값과 원본 계좌번호를 받는다.
@@ -93,13 +100,21 @@ export default function SettlementForm({
         if (signal.aborted) return;
 
         setDraft(null);
+
         /**
          * 409 는 **출금 → 입금으로 바꿀 수 없다**는 뜻이다 (`SETL-006`).
          * 고른 탭을 되돌리지 않으면 화면은 `입금`, 서버는 `출금` 인 채로 어긋난다 —
          * 그 상태로 저장하면 같은 이유로 또 막힌다.
+         *
+         * ⚠️ 안내를 `error` 가 아니라 `revertNotice` 에 넣는다. 되돌린 타입으로 조회가
+         * 곧 **성공**하면서 성공 분기의 `setError('')` 가 안내를 지워버리기 때문이다.
          */
         if (caught instanceof ApiError && caught.status === 409) {
           setType(initialType);
+          setRevertNotice(
+            messageOf(caught, '이미 저장된 타입이라 되돌렸습니다.'),
+          );
+          return;
         }
 
         /**
@@ -159,8 +174,16 @@ export default function SettlementForm({
           <button
             key={value}
             type="button"
-            aria-current={value === type}
-            onClick={() => setType(value)}
+            /**
+             * `aria-current` 가 아니라 `aria-pressed` 다 — 목록 속 '현재 항목'이 아니라
+             * 입금 · 출금을 켜고 끄는 **토글**이라 '선택됨 / 선택 안 됨'으로 읽혀야 한다.
+             */
+            aria-pressed={value === type}
+            onClick={() => {
+              // 직접 다시 고르는 순간 되돌림 안내는 역할을 다했다
+              setRevertNotice('');
+              setType(value);
+            }}
             className={`flex-1 cursor-pointer rounded-lg border py-1.5 text-[10px] font-semibold ${
               value === type
                 ? 'border-border-primary bg-btn-primary/5 text-text-primary-blue'
@@ -175,6 +198,13 @@ export default function SettlementForm({
       {type === null && (
         <p className="text-[10px] break-keep text-text-secondary">
           입금 · 출금을 고르면 추천 회차와 금액을 불러옵니다.
+        </p>
+      )}
+
+      {/* 탭이 저절로 되돌아간 이유 — 조회가 성공해도 지우지 않는다 */}
+      {revertNotice !== '' && (
+        <p role="status" className="text-[10px] break-keep text-yellow-text">
+          {revertNotice}
         </p>
       )}
 

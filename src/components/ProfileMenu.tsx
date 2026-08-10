@@ -91,11 +91,11 @@ export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
         type="button"
         onClick={() => setIsOpen((open) => !open)}
         /**
-         * `role="menu"` 를 쓰지 않는다 — 그 역할은 **화살표 키 이동 · 항목 포커스 관리**를
-         * 함께 구현해야 한다. 여기는 링크 · 버튼 하나씩 든 평범한 팝오버라
+         * `role="menu"` 도 `aria-haspopup` 도 쓰지 않는다 — 둘 다 **화살표 키 이동 ·
+         * 항목 포커스 관리**를 함께 구현해야 하는 메뉴 규약이다. 여기는 링크 · 버튼
+         * 하나씩 든 평범한 펼침(disclosure)이라 `aria-expanded` 만으로 충분하고,
          * 기본 Tab 이동이 더 잘 맞는다.
          */
-        aria-haspopup="true"
         aria-expanded={isOpen}
         className={`flex max-w-60 cursor-pointer items-center gap-3 rounded-sidebar px-2 py-1 ${
           isDark ? 'hover:bg-bg-sidebar-hover' : 'hover:bg-bg-hover'

@@ -49,8 +49,12 @@ export default function Sidebar() {
             >
               {user.name}
             </span>
+            {/*
+              `shrink-0` 로 이름이 먼저 줄어들게 두되, 상한 없이 두면 긴 직급명이
+              `ChevronIcon` 까지 밀어낸다 — 45% 에서 잘리게 한다.
+            */}
             {user.jobPositionName && (
-              <span className="shrink-0 text-body-m text-text-muted">
+              <span className="max-w-[45%] shrink-0 truncate text-body-m text-text-muted">
                 {user.jobPositionName}
               </span>
             )}

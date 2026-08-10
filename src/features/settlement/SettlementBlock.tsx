@@ -154,8 +154,16 @@ function Row({ label, value }: { label: string; value: string }) {
  * 여기서는 **0~100** 으로 본다. 0~1 이면 절반 정산이 `0.5%` 로 보이므로 바로 드러난다.
  */
 function Progress({ ratio }: { ratio: number }) {
-  // 서버 값이 범위를 벗어나도 막대가 칸을 넘지 않게 한다
-  const percent = Math.min(Math.max(ratio, 0), 100);
+  /**
+   * 서버 값이 범위를 벗어나도 막대가 칸을 넘지 않게 한다.
+   *
+   * ⚠️ `Number.isFinite` 를 먼저 본다 — 저장 응답(`saved`)은 `readItem` 을 거치지 않아
+   * `NaN` 이 그대로 올 수 있고, `Math.min(Math.max(NaN, 0), 100)` 은 `NaN` 이다.
+   * 그러면 `NaN%` 라고 적히고 막대 폭도 깨진다.
+   */
+  const percent = Number.isFinite(ratio)
+    ? Math.min(Math.max(ratio, 0), 100)
+    : 0;
 
   return (
     <div className="mt-3">

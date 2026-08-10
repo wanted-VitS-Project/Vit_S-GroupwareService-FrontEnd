@@ -142,21 +142,51 @@ function readStatus(value: unknown): SettlementStatus | null {
     : null;
 }
 
+/** 숫자 칸 — 유한수만 통과시킨다. `NaN` · `Infinity` 는 그리는 쪽에서 깨진다 */
+function readNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+/** 문자열 칸 — 빈 문자열은 값이 없는 것으로 본다 */
+function readText(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() !== '' ? value : null;
+}
+
 /**
  * 작성된 항목. `detail` 은 항목 필드를 **평면으로** 담는다 (중첩 객체가 아니다).
  *
  * **회차와 예정 금액이 둘 다 있어야** 작성된 것으로 본다 — 작성 전에는 둘 다 `null` 이고,
  * 하나만 있는 상태는 서버가 만들지 않는다(둘 다 필수 입력).
+ *
+ * ⚠️ 통째로 단언(`as`)하지 않고 **화면이 직접 읽는 필드를 하나씩 정규화**한다.
+ * 두 필드만 확인하고 넘기면 `plannedDate` 가 숫자거나 `paidAmountRatio` 가 문자열일 때
+ * 표기 단계(`toLocaleString` · 진행률 계산)에서 `NaN%` 나 빈 화면으로 터진다.
  */
 function readItem(source: Record<string, unknown>): SettlementItem | null {
-  if (
-    typeof source.roundNo !== 'number' ||
-    typeof source.plannedAmount !== 'number'
-  ) {
-    return null;
-  }
+  const roundNo = readNumber(source.roundNo);
+  const plannedAmount = readNumber(source.plannedAmount);
 
-  return source as unknown as SettlementItem;
+  if (roundNo === null || plannedAmount === null) return null;
+
+  return {
+    settleId: readNumber(source.settleId) ?? 0,
+    roundNo,
+    plannedAmount,
+    totalAmount: readNumber(source.totalAmount) ?? 0,
+    plannedTaxAmount: readNumber(source.plannedTaxAmount) ?? 0,
+    plannedDate: readText(source.plannedDate) ?? '',
+    traderName: readText(source.traderName) ?? '',
+    // 계좌 3종은 입금이면 아예 없다 — 없는 것과 잘못된 것을 똑같이 `undefined` 로 둔다
+    bankName: readText(source.bankName) ?? undefined,
+    accountNumber: readText(source.accountNumber) ?? undefined,
+    accountHolder: readText(source.accountHolder) ?? undefined,
+    // 재무팀이 채우기 전에는 `null` 이 정상이다
+    actualAmount: readNumber(source.actualAmount),
+    actualDate: readText(source.actualDate),
+    status: readStatus(source.status) ?? 'PENDING',
+    paidAmountRatio: readNumber(source.paidAmountRatio) ?? 0,
+    createdAt: readText(source.createdAt) ?? '',
+  };
 }
 
 /**
