@@ -1,8 +1,11 @@
 import { ENDPOINTS } from '@/constants/endpoints';
-import { api } from '@/lib/api';
+import { api, postForm, requestRaw } from '@/lib/api';
+import { saveResponseAsFile } from '@/lib/download';
 
 import type {
   AccountStatus,
+  BulkRegisterResult,
+  BulkValidateResult,
   CreateEmployeeRequest,
   CreateEmployeeResult,
   EmployeeDetail,
@@ -108,4 +111,51 @@ export function resetPasswords(userIds: string[]) {
   return api.post<PasswordResetResult>(ENDPOINTS.accounts.passwordResets, {
     userIds,
   });
+}
+
+/**
+ * 엑셀 템플릿 다운로드 (.ai/API.md 87).
+ *
+ * ⚠️ 응답이 공통 봉투가 아니라 **`.xlsx` 바이너리**라 `api.get` 을 쓸 수 없다.
+ */
+export async function downloadBulkTemplate(signal?: AbortSignal) {
+  const response = await requestRaw(ENDPOINTS.employees.bulkTemplate, signal);
+
+  await saveResponseAsFile(response, '사원_일괄등록_템플릿.xlsx');
+}
+
+/**
+ * 일괄 등록 검증 (.ai/API.md 88) — 등록하지 않고 행 오류만 받는다.
+ *
+ * ⚠️ **오류 행이 있어도 200** 이다. 호출 측이 `errorCount` 로 분기해야 한다.
+ * 던져지는 400 은 파일 자체 문제 3종뿐이다 (`BULK_FILE_CODES`).
+ */
+export function validateBulkEmployees(file: File, signal?: AbortSignal) {
+  const form = new FormData();
+  form.append('file', file);
+
+  return postForm<BulkValidateResult>(
+    ENDPOINTS.employees.bulkValidate,
+    form,
+    signal,
+  );
+}
+
+/**
+ * 일괄 등록 (.ai/API.md 89).
+ *
+ * `skipErrors` 를 켜면 오류 행을 건너뛰고 나머지만 등록한다 —
+ * 끄면 오류가 하나라도 있을 때 400(`EMP_HAS_ERRORS`) 으로 전체가 거부된다.
+ * 행마다 독립 트랜잭션이라 **부분 등록이 정상 동작**이다.
+ */
+export function registerBulkEmployees(
+  file: File,
+  skipErrors: boolean,
+  signal?: AbortSignal,
+) {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('skipErrors', String(skipErrors));
+
+  return postForm<BulkRegisterResult>(ENDPOINTS.employees.bulk, form, signal);
 }

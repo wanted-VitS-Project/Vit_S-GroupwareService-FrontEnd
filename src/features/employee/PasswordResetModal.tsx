@@ -163,7 +163,7 @@ export default function PasswordResetModal({
                     submit(resendTargets.map((failure) => failure.userId))
                   }
                   disabled={isSubmitting}
-                  className="cursor-pointer rounded-lg border border-border-default px-4 py-1.5 text-[11px] font-semibold text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+                  className="btn btn-sm btn-gray-outlined"
                 >
                   {isSubmitting ? '재발송 중…' : '메일 재발송'}
                 </button>
@@ -172,7 +172,7 @@ export default function PasswordResetModal({
                 type="button"
                 onClick={requestClose}
                 disabled={isSubmitting}
-                className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+                className="btn btn-sm btn-primary"
               >
                 확인
               </button>
@@ -191,7 +191,7 @@ export default function PasswordResetModal({
                 type="button"
                 onClick={() => submit(targets.map((target) => target.userId))}
                 disabled={isSubmitting}
-                className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+                className="btn btn-sm btn-primary"
               >
                 {isSubmitting ? '재설정 중…' : '재설정'}
               </button>

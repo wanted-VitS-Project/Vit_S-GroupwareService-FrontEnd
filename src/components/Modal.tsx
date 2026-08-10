@@ -11,6 +11,14 @@ interface ModalProps {
   stepLabel?: string;
   /** 없으면 닫을 수 없는 모달이다 (강제 흐름) */
   onClose?: () => void;
+  /**
+   * 배경(백드롭) 클릭으로 닫을지. 기본 `true`.
+   *
+   * 여러 단계로 이어지거나 입력이 쌓이는 흐름에서는 꺼 둔다 —
+   * 표를 훑다 바깥을 한 번 잘못 눌러 처음부터 다시 하게 되면 곤란하다.
+   * 끄더라도 닫기 버튼 · Esc 는 그대로 살아 있어 갇히지 않는다.
+   */
+  dismissOnBackdrop?: boolean;
   /** 기본 제목 · 닫기 줄 대신 그릴 헤더. 넘기면 title 은 aria-label 로만 쓰인다 */
   header?: React.ReactNode;
   /**
@@ -52,6 +60,7 @@ export default function Modal({
   title,
   stepLabel,
   onClose,
+  dismissOnBackdrop = true,
   header,
   className = DEFAULT_PANEL,
   children,
@@ -87,6 +96,7 @@ export default function Modal({
       }}
       // 내용 영역 클릭은 자식이 target 이라 백드롭만 걸린다
       onClick={(event) => {
+        if (!dismissOnBackdrop) return;
         if (event.target === dialogRef.current) onClose?.();
       }}
       className={`${BASE_PANEL} ${className}`}

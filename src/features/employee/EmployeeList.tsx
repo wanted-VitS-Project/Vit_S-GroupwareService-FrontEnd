@@ -11,8 +11,10 @@ import { EMPLOYEE_STATUS_LABELS, ROLE_LABELS } from '@/constants/status';
 import { getDepartments } from '@/features/department/api';
 import { toDepartmentOptions } from '@/features/department/options';
 import type { Department } from '@/features/department/types';
+import { useModal, useModalTarget } from '@/lib/useModal';
 
 import { getEmployees } from './api';
+import BulkUploadModal from './BulkUploadModal';
 import EmployeeStatusBadge, { employeeStatusOf } from './EmployeeStatusBadge';
 import PasswordResetModal from './PasswordResetModal';
 import { EMPLOYEE_ROUTES } from './routes';
@@ -92,9 +94,9 @@ export default function EmployeeList() {
   } | null>(null);
   /** 체크한 사번. 페이지를 옮기면 비운다 — 안 보이는 대상까지 처리하면 위험하다 */
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [resetTargets, setResetTargets] = useState<EmployeeSummary[] | null>(
-    null,
-  );
+  /** 여러 명을 한 번에 초기화할 수 있어 대상이 배열이다 */
+  const resetModal = useModalTarget<EmployeeSummary[]>();
+  const bulkModal = useModal();
 
   const requestKey = `${reloadCount} ${searchParams.toString()}`;
   const current = result?.key === requestKey ? result : null;
@@ -206,10 +208,16 @@ export default function EmployeeList() {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <BulkUploadButton />
+          <button
+            type="button"
+            onClick={bulkModal.open}
+            className="btn btn-md btn-gray-outlined shrink-0"
+          >
+            일괄 등록
+          </button>
           <Link
             href={EMPLOYEE_ROUTES.create}
-            className="shrink-0 rounded-lg bg-btn-primary px-4 py-2 text-xs font-semibold text-white hover:bg-btn-primary-hover"
+            className="btn btn-md btn-primary shrink-0"
           >
             + 사원 등록
           </Link>
@@ -315,8 +323,8 @@ export default function EmployeeList() {
             </button>
             <button
               type="button"
-              onClick={() => setResetTargets(selected)}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover"
+              onClick={() => resetModal.open(selected)}
+              className="btn btn-sm btn-primary"
             >
               비밀번호 초기화
             </button>
@@ -333,7 +341,7 @@ export default function EmployeeList() {
             <button
               type="button"
               onClick={reload}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover"
+              className="btn btn-sm btn-primary"
             >
               다시 시도
             </button>
@@ -459,7 +467,7 @@ export default function EmployeeList() {
                             },
                             {
                               label: '비밀번호 초기화',
-                              onSelect: () => setResetTargets([employee]),
+                              onSelect: () => resetModal.open([employee]),
                             },
                           ]}
                         />
@@ -480,10 +488,18 @@ export default function EmployeeList() {
         )}
       </div>
 
-      {resetTargets && (
+      {bulkModal.isOpen && (
+        <BulkUploadModal
+          onClose={bulkModal.close}
+          // 일부만 등록돼도 목록은 달라진다 — 모달을 닫기 전에 갱신해 둔다
+          onRegistered={reload}
+        />
+      )}
+
+      {resetModal.target && (
         <PasswordResetModal
-          targets={resetTargets}
-          onClose={() => setResetTargets(null)}
+          targets={resetModal.target}
+          onClose={resetModal.close}
           onDone={() => {
             setSelectedIds([]);
             reload();
@@ -521,21 +537,6 @@ function FilterSelect({
         ))}
       </select>
     </label>
-  );
-}
-
-/** 엑셀 일괄 등록은 백엔드 준비 중 — 진입점만 두고 안내한다 */
-function BulkUploadButton() {
-  return (
-    <span
-      title="백엔드 준비 중입니다"
-      className="flex cursor-not-allowed items-center gap-1.5 rounded-lg border border-border-default px-3 py-2 text-xs font-medium text-text-muted"
-    >
-      일괄 등록
-      <span className="rounded bg-bg-hover px-1.5 py-0.5 text-[10px] text-text-secondary">
-        준비 중
-      </span>
-    </span>
   );
 }
 

@@ -113,14 +113,14 @@ export default function EmployeeDetail({ userId }: { userId: string }) {
             <button
               type="button"
               onClick={reload}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover"
+              className="btn btn-sm btn-primary"
             >
               다시 시도
             </button>
           ) : (
             <Link
               href={EMPLOYEE_ROUTES.list}
-              className="rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover"
+              className="btn btn-sm btn-primary"
             >
               목록으로
             </Link>
@@ -166,7 +166,7 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
         </div>
         <Link
           href={EMPLOYEE_ROUTES.edit(employee.userId)}
-          className="shrink-0 rounded-lg border border-border-default px-4 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover"
+          className="btn btn-md btn-gray-outlined shrink-0"
         >
           정보 수정
         </Link>
