@@ -62,12 +62,21 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
   /** 서버 ID 와 겹치지 않게 임시 항목은 음수 ID 를 쓴다 */
   const nextTempId = useRef(-1);
   /**
-   * 항목별 마지막 토글 순번.
+   * 항목별 마지막 변경 번호.
    *
-   * 연타하면 요청이 여러 개 나가고 **보낸 순서대로 돌아오지 않는다.**
-   * 늦게 온 옛 응답이 화면을 되돌리지 않도록, 자기 순번이 아직 최신일 때만 손댄다.
+   * 한 항목을 연달아 고치면 요청이 여러 개 나가고 **보낸 순서대로 돌아오지 않는다.**
+   * 늦게 온 옛 응답이 최신 화면을 덮지 않도록, **모든 변경 경로**가 번호를 올리고
+   * 자기 번호가 아직 최신일 때만 화면에 손댄다. (토글 · 내용 수정 · 삭제 공통)
    */
-  const toggleSeq = useRef(new Map<number, number>());
+  const revisions = useRef(new Map<number, number>());
+  /**
+   * 항목별 요청 줄.
+   *
+   * 번호 검사는 **화면**을 지킬 뿐, 서버가 요청을 역순으로 처리하면 새로고침했을 때
+   * 옛 값이 남는다. 같은 항목의 요청은 앞 요청이 끝난 뒤에 보내 겹칠 여지를 없앤다.
+   * (다른 항목끼리는 그대로 동시에 나간다)
+   */
+  const queues = useRef(new Map<number, Promise<unknown>>());
 
   const completedCount = items.filter((item) => item.isCompleted).length;
   // 지역 상수로 받아야 JSX 안에서 `null` 이 아님이 좁혀진다
@@ -80,6 +89,29 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
         current.chkId === chkId ? { ...current, ...changes } : current,
       ),
     );
+  }
+
+  /** 이 항목의 변경 번호를 올리고 방금 딴 번호를 준다 */
+  function bumpRevision(chkId: number) {
+    const next = (revisions.current.get(chkId) ?? 0) + 1;
+    revisions.current.set(chkId, next);
+    return next;
+  }
+
+  /** 그 사이 같은 항목을 또 고쳤다면 이 응답은 이미 낡았다 */
+  function isLatest(chkId: number, revision: number) {
+    return revisions.current.get(chkId) === revision;
+  }
+
+  /** 같은 항목의 앞 요청이 끝난 뒤에 보낸다 — 서버가 순서를 뒤집을 여지를 없앤다 */
+  function enqueue<T>(chkId: number, send: () => Promise<T>) {
+    // 앞 요청의 실패가 뒤 요청까지 막지 않게 한 번 삼킨다 (처리는 각자 catch 에서)
+    const queued = (queues.current.get(chkId) ?? Promise.resolve())
+      .catch(() => undefined)
+      .then(send);
+
+    queues.current.set(chkId, queued);
+    return queued;
   }
 
   function addItem() {
@@ -118,8 +150,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
     if (item.isPending) return;
 
     const nextCompleted = !item.isCompleted;
-    const seq = (toggleSeq.current.get(item.chkId) ?? 0) + 1;
-    toggleSeq.current.set(item.chkId, seq);
+    const revision = bumpRevision(item.chkId);
 
     patchItem(item.chkId, { isCompleted: nextCompleted });
     setErrorMessage('');
@@ -128,11 +159,11 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
      * 성공해도 응답으로 다시 그리지 않는다 — 화면에 이미 같은 값이 들어가 있고,
      * 늦게 온 옛 응답으로 덮어쓰면 방금 누른 상태가 뒤집힌다.
      */
-    void updateChecklistItem(item.chkId, {
-      changeStatusTo: nextCompleted,
-    }).catch((caught: unknown) => {
+    void enqueue(item.chkId, () =>
+      updateChecklistItem(item.chkId, { changeStatusTo: nextCompleted }),
+    ).catch((caught: unknown) => {
       // 그 사이 다시 눌렀다면 화면이 이미 더 최신이다 — 되돌리지 않는다
-      if (toggleSeq.current.get(item.chkId) !== seq) return;
+      if (!isLatest(item.chkId, revision)) return;
       patchItem(item.chkId, { isCompleted: item.isCompleted });
       setErrorMessage(messageOf(caught, '완료 여부를 바꾸지 못했습니다.'));
     });
@@ -144,14 +175,19 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
 
     if (!content || content === item.content || item.isPending) return;
 
+    const revision = bumpRevision(item.chkId);
+
     patchItem(item.chkId, { content });
     setErrorMessage('');
 
-    void updateChecklistItem(item.chkId, { content })
+    void enqueue(item.chkId, () => updateChecklistItem(item.chkId, { content }))
       .then((updated) => {
+        // 이미 다음 수정이 화면에 들어가 있으면 옛 응답으로 되돌리지 않는다
+        if (!isLatest(item.chkId, revision)) return;
         patchItem(item.chkId, { content: updated.content });
       })
       .catch((caught: unknown) => {
+        if (!isLatest(item.chkId, revision)) return;
         patchItem(item.chkId, { content: item.content });
         setErrorMessage(messageOf(caught, '항목을 수정하지 못했습니다.'));
       });
@@ -162,19 +198,24 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
 
     // 되돌릴 때 원래 자리로 넣으려고 위치를 같이 들고 있는다
     const index = items.findIndex((current) => current.chkId === item.chkId);
+    // 아직 나가 있는 수정의 응답이 지워진 항목을 되살리지 않게 번호를 올려둔다
+    bumpRevision(item.chkId);
     setItems((previous) =>
       previous.filter((current) => current.chkId !== item.chkId),
     );
     setErrorMessage('');
 
-    void deleteChecklistItem(item.chkId).catch((caught: unknown) => {
-      setItems((previous) => {
-        const restored = [...previous];
-        restored.splice(Math.min(index, restored.length), 0, item);
-        return restored;
-      });
-      setErrorMessage(messageOf(caught, '항목을 삭제하지 못했습니다.'));
-    });
+    // 앞선 수정이 끝난 뒤에 지운다 — 삭제가 먼저 닿으면 수정이 404 로 깨진다
+    void enqueue(item.chkId, () => deleteChecklistItem(item.chkId)).catch(
+      (caught: unknown) => {
+        setItems((previous) => {
+          const restored = [...previous];
+          restored.splice(Math.min(index, restored.length), 0, item);
+          return restored;
+        });
+        setErrorMessage(messageOf(caught, '항목을 삭제하지 못했습니다.'));
+      },
+    );
   }
 
   return (

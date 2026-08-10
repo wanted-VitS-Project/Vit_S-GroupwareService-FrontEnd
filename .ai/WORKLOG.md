@@ -12,25 +12,25 @@
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/lib/useModal.ts` | **생성** (`useModal` · `useModalRouter` · `useModalTarget`) |
-| `src/features/block/ChecklistBlock.tsx` | 수정 (읽기/편집 모드 분리 · 낙관적 갱신 · 삭제 확인) |
-| `src/features/block/ChecklistItemDeleteModal.tsx` | **생성** (항목 삭제 확인) |
-| `src/features/block/ArrangeBlocksButton.tsx` | **생성** (`배치 편집` / `배치 완료` 토글) |
-| `src/features/block/BlockArrangeExitModal.tsx` | **생성** (배치 저장 확인) |
-| `src/features/block/BlockArrangeBlockedModal.tsx` | **생성** (편집 중 블록 추가 경고) |
-| `src/features/block/BlockBoard.tsx` | 수정 (드래그를 편집 모드로 제한 · 드롭 시 자동 저장 제거 · `ArrangeHandle` 노출) |
-| `src/features/block/StepBlocks.tsx` | 수정 (편집 모드 소유 · 두 모달 배치) |
-| `src/features/block/AddBlockButton.tsx` | 수정 (`isBlocked` / `onBlocked` · `useModal`) |
-| `src/features/block/BlockCard.tsx` | 수정 (패널 · 메뉴 모달을 `useModalRouter` 로) |
-| `src/features/block/ImageBlock.tsx` | 수정 (`useModalRouter` + `useModal`) |
-| `src/features/block/FileBlock.tsx` | 수정 (`useModalTarget` ×3) |
-| `src/features/department/DepartmentList.tsx` | 수정 (`useModalTarget` ×2) |
-| `src/features/jobPosition/JobPositionList.tsx` | 수정 (`useModalTarget` ×2) |
-| `src/features/businessCategory/CategoryList.tsx` | 수정 (`useModalTarget` ×2) |
-| `src/features/employee/EmployeeDetail.tsx` | 수정 (`useModalRouter` — 모달 4개) |
-| `.ai/STRUCTURE.md` | 수정 (§6 `src/lib` 표에 훅 2개 추가 · lib/features 훅 분기 기준 명시) |
+| 파일                                              | 변경                                                                             |
+| ------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `src/lib/useModal.ts`                             | **생성** (`useModal` · `useModalRouter` · `useModalTarget`)                      |
+| `src/features/block/ChecklistBlock.tsx`           | 수정 (읽기/편집 모드 분리 · 낙관적 갱신 · 삭제 확인)                             |
+| `src/features/block/ChecklistItemDeleteModal.tsx` | **생성** (항목 삭제 확인)                                                        |
+| `src/features/block/ArrangeBlocksButton.tsx`      | **생성** (`배치 편집` / `배치 완료` 토글)                                        |
+| `src/features/block/BlockArrangeExitModal.tsx`    | **생성** (배치 저장 확인)                                                        |
+| `src/features/block/BlockArrangeBlockedModal.tsx` | **생성** (편집 중 블록 추가 경고)                                                |
+| `src/features/block/BlockBoard.tsx`               | 수정 (드래그를 편집 모드로 제한 · 드롭 시 자동 저장 제거 · `ArrangeHandle` 노출) |
+| `src/features/block/StepBlocks.tsx`               | 수정 (편집 모드 소유 · 두 모달 배치)                                             |
+| `src/features/block/AddBlockButton.tsx`           | 수정 (`isBlocked` / `onBlocked` · `useModal`)                                    |
+| `src/features/block/BlockCard.tsx`                | 수정 (패널 · 메뉴 모달을 `useModalRouter` 로)                                    |
+| `src/features/block/ImageBlock.tsx`               | 수정 (`useModalRouter` + `useModal`)                                             |
+| `src/features/block/FileBlock.tsx`                | 수정 (`useModalTarget` ×3)                                                       |
+| `src/features/department/DepartmentList.tsx`      | 수정 (`useModalTarget` ×2)                                                       |
+| `src/features/jobPosition/JobPositionList.tsx`    | 수정 (`useModalTarget` ×2)                                                       |
+| `src/features/businessCategory/CategoryList.tsx`  | 수정 (`useModalTarget` ×2)                                                       |
+| `src/features/employee/EmployeeDetail.tsx`        | 수정 (`useModalRouter` — 모달 4개)                                               |
+| `.ai/STRUCTURE.md`                                | 수정 (§6 `src/lib` 표에 훅 2개 추가 · lib/features 훅 분기 기준 명시)            |
 
 ### 주요 작업 내용
 
@@ -41,11 +41,11 @@
 
 ### 동일 배치 · 동일 값이면 요청하지 않는다 (3중 방어)
 
-| 층 | 위치 | 막는 것 |
-| ---- | ---- | ---- |
-| 1 | `ArrangeHandle.hasChanges()` | 편집만 켰다 끄기 / 옮겼다 제자리 복귀 → **확인 모달도 안 뜬다** |
-| 2 | `BlockBoard.finish()` | 잡았다 그대로 놓기 |
-| 3 | `useLayoutSaver.send()` 지문 비교 (기존) | 서버가 확인한 배치와 동일 |
+| 층  | 위치                                     | 막는 것                                                         |
+| --- | ---------------------------------------- | --------------------------------------------------------------- |
+| 1   | `ArrangeHandle.hasChanges()`             | 편집만 켰다 끄기 / 옮겼다 제자리 복귀 → **확인 모달도 안 뜬다** |
+| 2   | `BlockBoard.finish()`                    | 잡았다 그대로 놓기                                              |
+| 3   | `useLayoutSaver.send()` 지문 비교 (기존) | 서버가 확인한 배치와 동일                                       |
 
 체크리스트 내용 수정도 `content === item.content` 로 같은 값이면 보내지 않는다 (`trim()` 후 비교).
 
@@ -53,10 +53,19 @@
 
 **1. 체크박스를 연타하면 최종 상태가 뒤집혔다**
 
-| 항목 | 내용 |
-| ---- | ---- |
-| 원인 | 요청이 여러 개 나가고 **보낸 순서대로 돌아오지 않는다.** 늦게 도착한 옛 응답의 `.then` 이 화면을 덮어썼다 |
-| 해결 | 성공 시 `.then` 패치를 없앴다 (낙관값이 이미 정답이라 다시 그릴 이유가 없다) + 항목별 토글 순번(`toggleSeq`)을 두고 **자기 순번이 최신일 때만** 롤백한다 |
+| 항목 | 내용                                                                                                                                                     |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 원인 | 요청이 여러 개 나가고 **보낸 순서대로 돌아오지 않는다.** 늦게 도착한 옛 응답의 `.then` 이 화면을 덮어썼다                                                |
+| 해결 | 성공 시 `.then` 패치를 없앴다 (낙관값이 이미 정답이라 다시 그릴 이유가 없다) + 항목별 변경 번호(`revisions`)를 두고 **자기 번호가 최신일 때만** 롤백한다 |
+
+**1-2. 같은 문제가 내용 수정에도 있었다** (코드 리뷰 지적)
+
+| 항목    | 내용                                                                                                                                                                                |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 원인    | 번호 검사를 토글에만 걸었다. 한 항목을 A → B 로 연달아 고치면 A 의 늦은 응답이 B 를 덮어쓴다. 실패 롤백도 마찬가지                                                                  |
+| 해결    | 번호를 **모든 변경 경로**(토글 · 수정 · 삭제)로 올리고, 수정은 성공·실패 양쪽에 검사를 걸었다                                                                                       |
+| 추가    | 번호 검사는 화면만 지킨다 — 서버가 역순으로 처리하면 새로고침 후 옛 값이 남는다. **같은 항목의 요청을 직렬화**(`queues`)해 겹칠 여지를 없앴다. 다른 항목끼리는 그대로 동시에 나간다 |
+| 남은 것 | 다중 사용자 동시 수정은 API 에 버전 필드가 없어 마지막 요청이 이긴다 → BE 협의 대상으로 백로그 등록                                                                                 |
 
 **2. 편집 기준을 effect 로 잡으니 린트에 걸렸다**
 
@@ -64,10 +73,10 @@
 
 **3. `CategoryList.tsx` 가 develop 병합에서 binary 충돌로 잡혔다**
 
-| 항목 | 내용 |
-| ---- | ---- |
+| 항목 | 내용                                                                                                                                                    |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 원인 | 파일 안에 캐시 키 구분자로 쓰는 **NUL 바이트 2개**가 있어 git 이 binary 로 취급한다 (`Bin 15679 -> 15686 bytes`). 3-way 병합이 불가능해 통째로 충돌난다 |
-| 해결 | develop 버전을 바닥에 깔고 우리 변경 7곳만 다시 얹었다. develop 쪽 변경은 브레드크럼 `설정` → `전사 관리` 하나뿐이라 손실 없음 |
+| 해결 | develop 버전을 바닥에 깔고 우리 변경 7곳만 다시 얹었다. develop 쪽 변경은 브레드크럼 `설정` → `전사 관리` 하나뿐이라 손실 없음                          |
 
 ### 부수 결정
 
@@ -91,13 +100,13 @@
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/features/pagePermission/catalog.ts` | 수정 (`PAGE_ROUTES` 4개 → 7개 · `UNROUTED_PAGES` 신설 · 내부 정렬 제거) |
-| `src/features/pagePermission/useMyPages.ts` | 수정 (`MENU_ORDER` 정렬로 고정 · 동적 병합) |
-| `src/features/pagePermission/MyPagesProvider.tsx` | 수정 (`/my/pages` 응답 dev 로그) |
-| `src/features/pagePermission/PageAccessGate.tsx` | 수정 (`isPageGated()` 로 대상 축소 · 조회 실패 시 재시도) |
-| `src/constants/menu.ts` | 수정 (`MENU_ORDER` 신설 · `FIXED_HEAD`/`FIXED_TAIL` → `FIXED_BY_ROLE`) |
+| 파일                                              | 변경                                                                    |
+| ------------------------------------------------- | ----------------------------------------------------------------------- |
+| `src/features/pagePermission/catalog.ts`          | 수정 (`PAGE_ROUTES` 4개 → 7개 · `UNROUTED_PAGES` 신설 · 내부 정렬 제거) |
+| `src/features/pagePermission/useMyPages.ts`       | 수정 (`MENU_ORDER` 정렬로 고정 · 동적 병합)                             |
+| `src/features/pagePermission/MyPagesProvider.tsx` | 수정 (`/my/pages` 응답 dev 로그)                                        |
+| `src/features/pagePermission/PageAccessGate.tsx`  | 수정 (`isPageGated()` 로 대상 축소 · 조회 실패 시 재시도)               |
+| `src/constants/menu.ts`                           | 수정 (`MENU_ORDER` 신설 · `FIXED_HEAD`/`FIXED_TAIL` → `FIXED_BY_ROLE`)  |
 
 ### 주요 작업 내용
 
@@ -120,21 +129,21 @@
 
 `pageCode` 가 어느 화면인지 판단하려고 `/my/pages` 응답을 `console.info` 로 찍었는데 아무것도 보이지 않았다.
 
-| 항목 | 내용 |
-| ---- | ---- |
+| 항목 | 내용                                                                                                          |
+| ---- | ------------------------------------------------------------------------------------------------------------- |
 | 원인 | `[browser]` 로 터미널에 전달되는 로그는 **warn · error 뿐**이다. DevTools 도 Info 레벨을 접어두면 같이 묻힌다 |
-| 해결 | 개발 중 눈으로 확인할 로그는 `console.warn` 으로 남긴다 |
+| 해결 | 개발 중 눈으로 확인할 로그는 `console.warn` 으로 남긴다                                                       |
 
 **2. 매핑을 넓히자 모든 화면이 `/my/pages` 를 기다리게 됐다** (코드 리뷰 지적)
 
-| 항목 | 내용 |
-| ---- | ---- |
+| 항목 | 내용                                                                                                                                                                                            |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 원인 | `PageAccessGate` 가 `findPageCode(pathname) !== undefined` 로 대상을 판단했다. 매핑이 4개일 땐 사실상 `BIDDING` · `FINANCE` 뿐이었지만 7개로 넓히자 대시보드 · 결재 관리 · 전사 관리까지 걸렸다 |
-| 해결 | `PageRoute` 에 `requiresPermission` 을 두고 `isPageGated()` 로 갈랐다. **메뉴에 그리는 것과 접근을 막는 것은 다른 문제**다 |
+| 해결 | `PageRoute` 에 `requiresPermission` 을 두고 `isPageGated()` 로 갈랐다. **메뉴에 그리는 것과 접근을 막는 것은 다른 문제**다                                                                      |
 
 **3. 권한 조회에 실패하면 대상 화면 본문이 그려졌다** (코드 리뷰 지적)
 
-`status === 'failed'` 를 통과시키고 있었다. 실패는 *권한 없음* 이 아니라 *알 수 없음* 이라, 판단 근거 없이 본문을 그리는 대신 `ErrorStateTwoButton` 으로 재시도하게 바꿨다. 대상이 `/notices` · `/finance/*` 둘뿐이라 나머지 화면 UX 에는 영향이 없다.
+`status === 'failed'` 를 통과시키고 있었다. 실패는 _권한 없음_ 이 아니라 _알 수 없음_ 이라, 판단 근거 없이 본문을 그리는 대신 `ErrorStateTwoButton` 으로 재시도하게 바꿨다. 대상이 `/notices` · `/finance/*` 둘뿐이라 나머지 화면 UX 에는 영향이 없다.
 
 **4. 매핑만 옮기면 메뉴 순서가 뒤틀렸다**
 
@@ -154,31 +163,31 @@
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/features/pagePermission/types.ts` | 생성 (등급 3값 · 근거 4종 · 응답 타입) |
-| `src/features/pagePermission/errorCodes.ts` | 생성 (`PAGE_*` 4개) |
-| `src/features/pagePermission/api.ts` | 생성 (98~102 5개 함수) |
-| `src/features/pagePermission/catalog.ts` | 생성 (`pageCode` ↔ 라우트 매핑 · `toMenuItems()` · `isPageDenied()`) |
-| `src/features/pagePermission/display.ts` | 생성 (라벨 · 배지 · 회수 불가 사유) |
-| `src/features/pagePermission/MyPagesProvider.tsx` | 생성 (`/my/pages` 1회 조회 컨텍스트) |
-| `src/features/pagePermission/useMyPages.ts` | 생성 (`useMyPages()` · `useMenuItems()`) |
-| `src/features/pagePermission/PageAccessGate.tsx` | 생성 (`NONE` 진입 차단) |
-| `src/features/pagePermission/PagePermissionList.tsx` | 생성 (페이지 탭 + 접근 가능자 표) |
-| `src/features/pagePermission/GrantPermissionModal.tsx` | 생성 (부여 · 등급 변경 겸용) |
-| `src/features/pagePermission/RevokePermissionModal.tsx` | 생성 (회수 확인 + 계속 보임 안내) |
-| `src/app/settings/page-permissions/page.tsx` | 생성 (라우트) |
-| `src/constants/endpoints.ts` | 수정 (`pages` 블록 추가) |
-| `src/constants/menu.ts` | 수정 (`MENU_BY_ROLE` 제거 → 고정 앞/뒤 + `findActiveMenu(pathname, items)`) |
-| `src/components/Sidebar.tsx` | 수정 (동적 메뉴 · 로딩 · 실패 재시도) |
-| `src/components/Header.tsx` | 수정 (제목을 같은 목록에서 뽑음) |
-| `src/components/AppShell.tsx` | 수정 (`MyPagesProvider` + `PageAccessGate`) |
-| `src/components/settings/SettingsSkeletons.tsx` | 수정 (`PagePermissionTableSkeleton`) |
-| `src/app/settings/page.tsx` | 수정 (페이지 권한 항목 활성 · `전사 관리` 로 개칭) |
-| `src/components/AlertDialog.tsx` | 수정 (`warning` 아이콘 파랑 → 빨강) |
-| `src/constants/status.ts` | 수정 (`ROLE_LABELS` — MASTER `관리자` · ADMIN `시스템 관리자`) |
-| 브레드크럼 7개 화면 | 수정 (`설정` → `전사 관리`) |
-| `.ai/API.md` | 수정 (미연동 16건 명세 추가 · 98~102 연동 표시) |
+| 파일                                                    | 변경                                                                        |
+| ------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `src/features/pagePermission/types.ts`                  | 생성 (등급 3값 · 근거 4종 · 응답 타입)                                      |
+| `src/features/pagePermission/errorCodes.ts`             | 생성 (`PAGE_*` 4개)                                                         |
+| `src/features/pagePermission/api.ts`                    | 생성 (98~102 5개 함수)                                                      |
+| `src/features/pagePermission/catalog.ts`                | 생성 (`pageCode` ↔ 라우트 매핑 · `toMenuItems()` · `isPageDenied()`)        |
+| `src/features/pagePermission/display.ts`                | 생성 (라벨 · 배지 · 회수 불가 사유)                                         |
+| `src/features/pagePermission/MyPagesProvider.tsx`       | 생성 (`/my/pages` 1회 조회 컨텍스트)                                        |
+| `src/features/pagePermission/useMyPages.ts`             | 생성 (`useMyPages()` · `useMenuItems()`)                                    |
+| `src/features/pagePermission/PageAccessGate.tsx`        | 생성 (`NONE` 진입 차단)                                                     |
+| `src/features/pagePermission/PagePermissionList.tsx`    | 생성 (페이지 탭 + 접근 가능자 표)                                           |
+| `src/features/pagePermission/GrantPermissionModal.tsx`  | 생성 (부여 · 등급 변경 겸용)                                                |
+| `src/features/pagePermission/RevokePermissionModal.tsx` | 생성 (회수 확인 + 계속 보임 안내)                                           |
+| `src/app/settings/page-permissions/page.tsx`            | 생성 (라우트)                                                               |
+| `src/constants/endpoints.ts`                            | 수정 (`pages` 블록 추가)                                                    |
+| `src/constants/menu.ts`                                 | 수정 (`MENU_BY_ROLE` 제거 → 고정 앞/뒤 + `findActiveMenu(pathname, items)`) |
+| `src/components/Sidebar.tsx`                            | 수정 (동적 메뉴 · 로딩 · 실패 재시도)                                       |
+| `src/components/Header.tsx`                             | 수정 (제목을 같은 목록에서 뽑음)                                            |
+| `src/components/AppShell.tsx`                           | 수정 (`MyPagesProvider` + `PageAccessGate`)                                 |
+| `src/components/settings/SettingsSkeletons.tsx`         | 수정 (`PagePermissionTableSkeleton`)                                        |
+| `src/app/settings/page.tsx`                             | 수정 (페이지 권한 항목 활성 · `전사 관리` 로 개칭)                          |
+| `src/components/AlertDialog.tsx`                        | 수정 (`warning` 아이콘 파랑 → 빨강)                                         |
+| `src/constants/status.ts`                               | 수정 (`ROLE_LABELS` — MASTER `관리자` · ADMIN `시스템 관리자`)              |
+| 브레드크럼 7개 화면                                     | 수정 (`설정` → `전사 관리`)                                                 |
+| `.ai/API.md`                                            | 수정 (미연동 16건 명세 추가 · 98~102 연동 표시)                             |
 
 ### 주요 작업 내용
 
@@ -206,18 +215,18 @@
 
 이펙트 안에서 `setStatus('loading')` · `setAccessors(null)` 로 상태를 비우자 규칙 위반이 났다.
 
-| 항목 | 내용 |
-| ---- | ---- |
-| 원인 | 이펙트 본문의 동기 `setState` 는 렌더를 한 번 더 돌린다 |
+| 항목 | 내용                                                                                                                                                           |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 원인 | 이펙트 본문의 동기 `setState` 는 렌더를 한 번 더 돌린다                                                                                                        |
 | 해결 | 로딩 전환은 이벤트 핸들러(`refetch`)로 옮기고, 목록은 `key` 로 요청을 구분해 **키가 어긋나면 자동으로 로딩 상태**가 되게 했다 (`JobPositionList` 와 같은 방식) |
 
 **2. 표가 깨지고 등급 배지를 눌러도 반응이 없었다**
 
 `회수 불가` 를 `w-14`(56px) 열에 넣어 글자마다 줄바꿈됐고, 사용자는 등급 배지(`편집`)를 버튼으로 오해했다.
 
-| 항목 | 내용 |
-| ---- | ---- |
-| 원인 | ① 좁은 열에 텍스트 ② `revocable: false` 행은 케밥을 아예 안 그려 누를 것이 없었다 |
+| 항목 | 내용                                                                                                                           |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 원인 | ① 좁은 열에 텍스트 ② `revocable: false` 행은 케밥을 아예 안 그려 누를 것이 없었다                                              |
 | 해결 | `회수 불가` 를 `권한 출처` 열의 자물쇠 아이콘 + 툴팁으로 옮기고, 케밥은 `ADMIN_ONLY` 가 아니면 항상 그린다(회수 항목만 조건부) |
 
 **3. 스켈레톤이 출렁였다**
