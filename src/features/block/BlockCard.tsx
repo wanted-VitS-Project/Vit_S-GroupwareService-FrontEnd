@@ -1,19 +1,55 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { useRef, useState } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
+import ModalLoadingFallback from '@/components/ModalLoadingFallback';
 import ActivityIcon from '@/features/activityLog/ActivityIcon';
-import BlockActivityLogPanel from '@/features/activityLog/BlockActivityLogPanel';
 
 import { useBlockActions } from './BlockActionsContext';
 import { setPillDragImage, useBlockDrag } from './BlockDragContext';
-import BlockDeleteModal from './BlockDeleteModal';
-import BlockEditModal from './BlockEditModal';
-import BlockIssuesPanel from './BlockIssuesPanel';
 import BlockTypeIcon from './BlockTypeIcon';
 import { BLOCK_TYPES, type StepBlock } from './types';
+
+const loadBlockIssuesPanel = () => import('./BlockIssuesPanel');
+const loadBlockActivityLogPanel = () =>
+  import('@/features/activityLog/BlockActivityLogPanel');
+const loadBlockEditModal = () => import('./BlockEditModal');
+const loadBlockDeleteModal = () => import('./BlockDeleteModal');
+
+const BlockIssuesPanel = dynamic(loadBlockIssuesPanel, {
+  loading: () => (
+    <ModalLoadingFallback
+      title="연결된 이슈"
+      className="flex h-[80vh] w-full max-w-[760px] flex-col rounded-xl p-6 shadow-2xl"
+      bodyClassName="min-h-0 flex-1"
+    />
+  ),
+});
+const BlockActivityLogPanel = dynamic(loadBlockActivityLogPanel, {
+  loading: () => (
+    <ModalLoadingFallback
+      title="블록 활동 로그"
+      className="flex h-[80vh] w-full max-w-[760px] flex-col rounded-xl p-6 shadow-2xl"
+      bodyClassName="min-h-0 flex-1"
+    />
+  ),
+});
+const BlockEditModal = dynamic(loadBlockEditModal, {
+  loading: () => <ModalLoadingFallback title="블록 수정" />,
+});
+const BlockDeleteModal = dynamic(loadBlockDeleteModal, {
+  loading: () => <ModalLoadingFallback title="블록 삭제" />,
+});
+
+function preloadBlockMenuChunks() {
+  void loadBlockIssuesPanel();
+  void loadBlockActivityLogPanel();
+  void loadBlockEditModal();
+  void loadBlockDeleteModal();
+}
 
 interface BlockCardProps {
   block: StepBlock;
@@ -134,6 +170,8 @@ export default function BlockCard({
         {block.linkedIssueTotal > 0 && (
           <button
             type="button"
+            onPointerEnter={() => void loadBlockIssuesPanel()}
+            onFocus={() => void loadBlockIssuesPanel()}
             onClick={() => setIsViewingIssues(true)}
             aria-label={`연결된 이슈 ${block.linkedIssueDone} / ${block.linkedIssueTotal} 완료`}
             title={`연결된 이슈 ${block.linkedIssueDone} / ${block.linkedIssueTotal} 완료`}
@@ -217,6 +255,8 @@ function BlockMenu({
           aria-label={`${title} 메뉴`}
           aria-haspopup="menu"
           aria-expanded={isOpen}
+          onPointerEnter={preloadBlockMenuChunks}
+          onFocus={preloadBlockMenuChunks}
           onClick={() => setIsOpen((wasOpen) => !wasOpen)}
           className={`flex size-5 cursor-pointer items-center justify-center rounded text-text-secondary hover:bg-bg-hover ${
             isOpen ? 'bg-bg-hover' : ''

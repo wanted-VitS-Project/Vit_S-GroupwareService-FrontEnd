@@ -1,11 +1,32 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useState } from 'react';
 
+import ModalLoadingFallback from '@/components/ModalLoadingFallback';
+
 import BlockCard from './BlockCard';
-import MarkdownView from './MarkdownView';
-import TextBlockModal from './TextBlockModal';
 import { readTextBlockDetail, type StepBlock } from './types';
+
+const MarkdownView = dynamic(() => import('./MarkdownView'), {
+  loading: () => (
+    <div
+      role="status"
+      aria-label="텍스트 본문을 불러오는 중입니다"
+      className="h-20 animate-pulse rounded bg-bg-surface"
+    />
+  ),
+});
+const loadTextBlockModal = () => import('./TextBlockModal');
+const TextBlockModal = dynamic(loadTextBlockModal, {
+  loading: () => (
+    <ModalLoadingFallback
+      title="텍스트 블록 편집"
+      className="flex h-[85vh] w-full max-w-[680px] flex-col rounded-xl p-6 shadow-2xl"
+      bodyClassName="min-h-0 flex-1"
+    />
+  ),
+});
 
 /**
  * 텍스트 블록.
@@ -64,6 +85,8 @@ export default function TextBlock({
           {detail ? (
             <button
               type="button"
+              onPointerEnter={() => void loadTextBlockModal()}
+              onFocus={() => void loadTextBlockModal()}
               onClick={() => setIsEditing(true)}
               className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
             >

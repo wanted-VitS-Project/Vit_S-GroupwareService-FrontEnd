@@ -1,8 +1,10 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import ModalLoadingFallback from '@/components/ModalLoadingFallback';
 import { getProjectSteps } from '@/features/project/api';
 import { isAbortError, messageOf } from '@/lib/api';
 
@@ -10,8 +12,6 @@ import DeleteIssueModal from './DeleteIssueModal';
 import { getStepIssues, updateIssueStatus } from './api';
 import { notifyIssueChanged } from './events';
 import IssueCard from './IssueCard';
-import IssueDetailModal from './IssueDetailModal';
-import IssueFormModal from './IssueFormModal';
 import { IssueBoardSkeleton } from './IssueSkeletons';
 import { useIssueMoveAnimation } from './useIssueMoveAnimation';
 import {
@@ -23,6 +23,32 @@ import {
   type IssueStatus,
   type IssueSummary,
 } from './types';
+
+const loadIssueDetailModal = () => import('./IssueDetailModal');
+const loadIssueFormModal = () => import('./IssueFormModal');
+const IssueDetailModal = dynamic(loadIssueDetailModal, {
+  loading: () => (
+    <ModalLoadingFallback
+      title="이슈 상세"
+      className="flex max-h-[90vh] w-full max-w-[700px] flex-col overflow-hidden rounded-2xl border border-border-default p-6 shadow-2xl"
+      bodyClassName="h-[460px]"
+    />
+  ),
+});
+const IssueFormModal = dynamic(loadIssueFormModal, {
+  loading: () => (
+    <ModalLoadingFallback
+      title="이슈 작성"
+      className="flex max-h-[90vh] w-full max-w-[560px] flex-col overflow-hidden rounded-xl border border-border-default p-6 shadow-2xl"
+      bodyClassName="h-[460px]"
+    />
+  ),
+});
+
+function preloadIssueModals() {
+  void loadIssueDetailModal();
+  void loadIssueFormModal();
+}
 
 /** 지금 열려 있는 모달 — 한 번에 하나만 뜬다 */
 type OpenModal =
@@ -314,6 +340,8 @@ export default function IssueBoard() {
         {canEdit && (
           <button
             type="button"
+            onPointerEnter={() => void loadIssueFormModal()}
+            onFocus={() => void loadIssueFormModal()}
             onClick={() => setOpenModal({ kind: 'create' })}
             className="cursor-pointer rounded-lg bg-btn-primary px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover"
           >
@@ -408,6 +436,8 @@ export default function IssueBoard() {
                     <div
                       key={issue.issueId}
                       ref={moveAnimation.register(issue.issueId)}
+                      onPointerEnter={preloadIssueModals}
+                      onFocusCapture={preloadIssueModals}
                       className="min-w-0"
                     >
                       <IssueCard

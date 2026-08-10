@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import {
   memo,
   useCallback,
@@ -11,7 +12,6 @@ import {
 } from 'react';
 
 import ApprovalBlock from '@/features/approval/ApprovalBlock';
-import AiBlock from '@/features/vitamate/AiBlock';
 
 import BlockCard from './BlockCard';
 import {
@@ -24,10 +24,6 @@ import {
 } from './blockLayout';
 import { BlockActionsProvider, type BlockActions } from './BlockActionsContext';
 import { BlockDragProvider, type BlockDragValue } from './BlockDragContext';
-import ChecklistBlock from './ChecklistBlock';
-import FileBlock from './FileBlock';
-import ImageBlock from './ImageBlock';
-import TextBlock from './TextBlock';
 import {
   BLOCK_COLUMNS,
   type StepBlock,
@@ -36,6 +32,34 @@ import {
 import { useDragAutoScroll } from './useDragAutoScroll';
 import { useLayoutSaver } from './useLayoutSaver';
 import { SLIDE_DURATION_MS, useSlideOnReorder } from './useSlideOnReorder';
+
+/** 결재를 제외한 블록 본문은 유형별 청크로 나눈다. SSR은 유지해 첫 화면 모양이 바뀌지 않는다. */
+const ChecklistBlock = dynamic(() => import('./ChecklistBlock'), {
+  loading: BlockBodyFallback,
+});
+const TextBlock = dynamic(() => import('./TextBlock'), {
+  loading: BlockBodyFallback,
+});
+const FileBlock = dynamic(() => import('./FileBlock'), {
+  loading: BlockBodyFallback,
+});
+const ImageBlock = dynamic(() => import('./ImageBlock'), {
+  loading: BlockBodyFallback,
+});
+const AiBlock = dynamic(() => import('@/features/vitamate/AiBlock'), {
+  loading: BlockBodyFallback,
+});
+
+/** 클라이언트 이동에서 청크가 늦어도 grid 높이가 0으로 접히지 않게 자리를 유지한다. */
+function BlockBodyFallback() {
+  return (
+    <div
+      role="status"
+      aria-label="블록을 불러오는 중입니다"
+      className="min-h-32 animate-pulse rounded-lg border border-border-default bg-white"
+    />
+  );
+}
 
 /**
  * 대상 위에 이만큼 **머문 뒤에야** 자리를 옮긴다.

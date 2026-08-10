@@ -1,16 +1,17 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
 import Modal from '@/components/Modal';
+import ModalLoadingFallback from '@/components/ModalLoadingFallback';
 import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
 import { getStepIssues } from '@/features/issue/api';
 import {
   IssuePriorityBadge,
   IssueStatusBadge,
 } from '@/features/issue/IssueBadges';
-import IssueDetailModal from '@/features/issue/IssueDetailModal';
 import {
   byDueDate,
   ISSUE_STATUS_LABELS,
@@ -19,6 +20,17 @@ import {
 } from '@/features/issue/types';
 import { isAbortError, messageOf } from '@/lib/api';
 import { formatDate } from '@/lib/format';
+
+const loadIssueDetailModal = () => import('@/features/issue/IssueDetailModal');
+const IssueDetailModal = dynamic(loadIssueDetailModal, {
+  loading: () => (
+    <ModalLoadingFallback
+      title="이슈 상세"
+      className="flex max-h-[90vh] w-full max-w-[700px] flex-col overflow-hidden rounded-2xl border border-border-default p-6 shadow-2xl"
+      bodyClassName="h-[460px]"
+    />
+  ),
+});
 
 type StatusFilter = 'ALL' | IssueStatus;
 
@@ -232,6 +244,8 @@ export default function BlockIssuesPanel({
                 <li key={issue.issueId}>
                   <button
                     type="button"
+                    onPointerEnter={() => void loadIssueDetailModal()}
+                    onFocus={() => void loadIssueDetailModal()}
                     onClick={() => setSelectedIssueId(issue.issueId)}
                     aria-label={`${issue.title} 이슈 상세 보기`}
                     className="w-full cursor-pointer rounded-lg border border-border-default bg-white p-3 text-left transition-[border-color,box-shadow] hover:border-border-primary/30 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-primary"
