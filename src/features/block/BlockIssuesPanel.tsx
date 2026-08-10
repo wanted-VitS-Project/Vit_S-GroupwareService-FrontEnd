@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
-import Modal from '@/components/Modal';
+import Modal, { SIDE_PANEL } from '@/components/Modal';
 import ModalLoadingFallback from '@/components/ModalLoadingFallback';
 import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
 import { getStepIssues } from '@/features/issue/api';
@@ -27,7 +27,7 @@ const IssueDetailModal = dynamic(loadIssueDetailModal, {
     <ModalLoadingFallback
       title="이슈 상세"
       className="flex max-h-[90vh] w-full max-w-[700px] flex-col overflow-hidden rounded-2xl border border-border-default p-6 shadow-2xl"
-      bodyClassName="h-[460px]"
+      bodyClassName="mt-5 h-[460px]"
     />
   ),
 });
@@ -77,7 +77,7 @@ export default function BlockIssuesPanel({
       <Modal
         title="연결된 이슈"
         onClose={onClose}
-        className="mt-auto mr-4 mb-4 ml-auto flex h-[72vh] max-h-[560px] w-[380px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
+        className={SIDE_PANEL}
         header={
           <div className="flex shrink-0 items-center gap-2 border-b border-border-default px-4 py-3">
             <span className="flex size-5 shrink-0 items-center justify-center rounded border border-blue-border-soft bg-blue-bg text-[11px] font-semibold text-text-primary-blue">

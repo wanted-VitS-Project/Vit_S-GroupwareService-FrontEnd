@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import Modal from '@/components/Modal';
+import Modal, { SIDE_PANEL_WIDE } from '@/components/Modal';
 import { formatDateTime } from '@/lib/format';
 import { messageOf } from '@/lib/api';
 
@@ -72,7 +72,7 @@ export default function AnalysisHistoryPanel({
     <Modal
       title="비타메이트 분석 이력"
       onClose={onClose}
-      className="mt-auto mr-4 mb-4 ml-auto flex h-[72vh] max-h-[560px] w-[420px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
+      className={SIDE_PANEL_WIDE}
       header={
         <div className="flex shrink-0 items-center gap-2 border-b border-border-default px-4 py-3">
           <span className="flex size-5 shrink-0 items-center justify-center rounded border border-purple-border bg-blue-bg-soft text-[11px] text-[#4F39F6]">

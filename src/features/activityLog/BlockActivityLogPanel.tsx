@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import Modal from '@/components/Modal';
+import Modal, { SIDE_PANEL } from '@/components/Modal';
 import { Skeleton } from '@/components/Skeleton';
 
 import ActivityIcon from './ActivityIcon';
@@ -56,7 +56,7 @@ export default function BlockActivityLogPanel({
     <Modal
       title="블록 활동 로그"
       onClose={onClose}
-      className="mt-auto mr-4 mb-4 ml-auto flex h-[72vh] max-h-[560px] w-[380px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
+      className={SIDE_PANEL}
       header={
         <div className="flex shrink-0 items-center gap-2 border-b border-border-default px-4 py-3">
           <span className="flex size-5 shrink-0 items-center justify-center rounded border border-purple-border bg-purple-bg text-purple-text">

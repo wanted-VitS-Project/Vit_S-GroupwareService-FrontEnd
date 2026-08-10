@@ -5,7 +5,10 @@ import { useParams } from 'next/navigation';
 import { useRef, useState } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
-import ModalLoadingFallback from '@/components/ModalLoadingFallback';
+import { SIDE_PANEL } from '@/components/Modal';
+import ModalLoadingFallback, {
+  SidePanelFallbackHeader,
+} from '@/components/ModalLoadingFallback';
 import ActivityIcon from '@/features/activityLog/ActivityIcon';
 
 import { useBlockActions } from './BlockActionsContext';
@@ -23,8 +26,9 @@ const BlockIssuesPanel = dynamic(loadBlockIssuesPanel, {
   loading: () => (
     <ModalLoadingFallback
       title="연결된 이슈"
-      className="flex h-[80vh] w-full max-w-[760px] flex-col rounded-xl p-6 shadow-2xl"
-      bodyClassName="min-h-0 flex-1"
+      className={SIDE_PANEL}
+      header={<SidePanelFallbackHeader title="연결된 이슈" hasBadge />}
+      bodyClassName="m-3 min-h-0 flex-1"
     />
   ),
 });
@@ -32,8 +36,9 @@ const BlockActivityLogPanel = dynamic(loadBlockActivityLogPanel, {
   loading: () => (
     <ModalLoadingFallback
       title="블록 활동 로그"
-      className="flex h-[80vh] w-full max-w-[760px] flex-col rounded-xl p-6 shadow-2xl"
-      bodyClassName="min-h-0 flex-1"
+      className={SIDE_PANEL}
+      header={<SidePanelFallbackHeader title="블록 활동 로그" hasBadge />}
+      bodyClassName="m-3 min-h-0 flex-1"
     />
   ),
 });
