@@ -1,15 +1,12 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 
-import { findActiveMenu, isUnder } from '@/constants/menu';
-import { logout } from '@/features/auth/api';
+import ProfileMenu from '@/components/ProfileMenu';
+import { findActiveMenu, isProjectScope, isUnder } from '@/constants/menu';
 import type { Role } from '@/features/auth/types';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import NotificationBell from '@/features/notification/NotificationBell';
-import { ApiError } from '@/lib/api';
 
 /** 헤더 제목. 메뉴에 없는 화면은 별도로 적어둔다. */
 const EXTRA_TITLES: Record<string, string> = {
@@ -30,56 +27,50 @@ function titleOf(pathname: string, role: Role) {
 
 export default function Header() {
   const pathname = usePathname();
-  const router = useRouter();
   const user = useCurrentUser();
-  const [isPending, setIsPending] = useState(false);
-  const [error, setError] = useState('');
-
-  async function handleLogout() {
-    if (isPending) return;
-
-    setError('');
-    setIsPending(true);
-
-    try {
-      await logout();
-    } catch (caught) {
-      // 401 은 세션이 이미 없다는 뜻이라 성공과 같게 본다
-      const isGone = caught instanceof ApiError && caught.status === 401;
-
-      if (!isGone) {
-        // 쿠키가 살아 있으므로 이동하면 안 된다. 이동해도 프록시가 되돌려 보낸다
-        setError('로그아웃하지 못했습니다.');
-        setIsPending(false);
-        return;
-      }
-    }
-
-    // refresh 로 라우터 캐시를 비워야 프록시가 쿠키를 다시 판단한다
-    router.replace('/login');
-    router.refresh();
-  }
+  /**
+   * 프로젝트 상세는 왼쪽 `ProjectSidebar` 가 흰색이라 화면에서 어두운 면이 사라진다 —
+   * 그 자리를 헤더가 대신 든다. 색만 바뀌고 구조는 같다.
+   */
+  const isDark = isProjectScope(pathname);
 
   return (
-    <header className="flex h-18 shrink-0 items-center justify-between border-b border-border-default px-6">
-      <h1 className="font-bold">{titleOf(pathname, user.role)}</h1>
-
-      <div className="flex items-center gap-4 text-sm">
-        {error && (
-          <span role="alert" className="text-text-danger">
-            {error}
+    // 사이드바 로고 줄과 같은 60px — 두 영역의 밑줄이 한 선으로 이어진다
+    <header
+      className={`flex h-15 shrink-0 items-center justify-between border-b pr-8 ${
+        isDark
+          ? 'border-bg-sidebar-hover bg-bg-sidebar pl-0'
+          : 'border-border-default bg-bg-header pl-8'
+      }`}
+    >
+      <div className="flex h-full min-w-0 items-center">
+        {/*
+          프로젝트 화면에는 공통 사이드바가 없어 로고가 사라진다 —
+          홈과 같은 자리(왼쪽 위)에 로고 칸을 둔다.
+          폭 `w-70` 은 아래 `ProjectSidebar` 와 같은 값이라 오른쪽 선이 사이드바
+          경계선과 **한 줄로 이어진다** — 폭을 바꿀 때는 둘을 함께 고친다.
+        */}
+        {isDark && (
+          <span className="flex h-full w-70 shrink-0 items-center border-r border-bg-sidebar-hover px-6">
+            <span className="text-heading-l font-bold tracking-tight text-text-white">
+              Vita<span className="text-text-primary-blue">S</span>
+            </span>
           </span>
         )}
-        <NotificationBell />
-        <Link href="/mypage">내 정보</Link>
-        <button
-          type="button"
-          onClick={handleLogout}
-          disabled={isPending}
-          className="cursor-pointer text-text-secondary transition-colors hover:text-text-primary disabled:cursor-not-allowed disabled:text-slate-300"
+
+        <h1
+          className={`truncate text-heading-l font-semibold ${
+            isDark ? 'pl-8 text-text-white' : 'text-text-primary'
+          }`}
         >
-          {isPending ? '로그아웃 중…' : '로그아웃'}
-        </button>
+          {titleOf(pathname, user.role)}
+        </h1>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <NotificationBell isDark={isDark} />
+        {/* 로그아웃은 이 안 드롭다운에 있다 — 헤더에 버튼으로 내놓지 않는다 */}
+        <ProfileMenu isDark={isDark} />
       </div>
     </header>
   );

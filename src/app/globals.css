@@ -112,6 +112,8 @@
   /* ---------- Button Palette ---------- */
   --color-btn-primary: #2563eb;
   --color-btn-primary-hover: #1d4ed8;
+  /* 위험 버튼 — 배경은 `--color-red-text` 를 그대로 쓰고 hover 만 한 단계 어둡게 */
+  --color-btn-danger-hover: #c10007;
   --color-btn-gray-bg: #f3f4f6;
   --color-btn-gray-bg-hover: #d1d5db;
   --color-btn-gray-text: #6b7280;
@@ -253,6 +255,18 @@ body {
   .btn-gray:disabled {
     background-color: var(--color-btn-gray-disabled-bg);
     color: var(--color-btn-gray-disabled-text);
+  }
+
+  /* 위험 — 되돌릴 수 없는 동작(삭제 등)에만 쓴다 */
+  .btn-danger {
+    background-color: var(--color-red-text);
+    color: var(--color-text-white);
+  }
+  .btn-danger:hover:not(:disabled) {
+    background-color: var(--color-btn-danger-hover);
+  }
+  .btn-danger:disabled {
+    opacity: 0.5;
   }
 
   /* 그레이 — Outlined */
