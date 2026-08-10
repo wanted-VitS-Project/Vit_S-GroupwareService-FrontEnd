@@ -23,7 +23,7 @@ const TextBlockModal = dynamic(loadTextBlockModal, {
     <ModalLoadingFallback
       title="텍스트 블록 편집"
       className="flex h-[85vh] w-full max-w-[680px] flex-col rounded-xl p-6 shadow-2xl"
-      bodyClassName="min-h-0 flex-1"
+      bodyClassName="mt-5 min-h-0 flex-1"
     />
   ),
 });

@@ -26,6 +26,15 @@ const BASE_PANEL = 'm-auto bg-white backdrop:bg-text-primary/50';
 /** className 을 넘기지 않을 때의 크기 · 여백 */
 const DEFAULT_PANEL = 'w-full max-w-sm rounded-xl p-8 shadow-lg';
 
+/**
+ * 화면 오른쪽 아래에 붙는 곁패널 크기 (`연결된 이슈` · `블록 활동 로그`).
+ *
+ * 실물과 **동적 로딩 폴백**이 같은 값을 써야 한다 — 한쪽만 다르면 청크가 도착하는 순간
+ * 패널이 다른 자리로 튄다. 그래서 문자열을 여기 한 곳에만 둔다.
+ */
+export const SIDE_PANEL =
+  'mt-auto mr-4 mb-4 ml-auto flex h-[72vh] max-h-[560px] w-[380px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl';
+
 /** 확인 모달이 편집 모달 위에 겹쳐도 먼저 닫힌 모달이 스크롤 잠금을 풀지 않게 한다. */
 let openModalCount = 0;
 let originalBodyOverflow = '';

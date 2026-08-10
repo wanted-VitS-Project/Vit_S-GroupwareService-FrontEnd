@@ -31,7 +31,7 @@ const IssueDetailModal = dynamic(loadIssueDetailModal, {
     <ModalLoadingFallback
       title="이슈 상세"
       className="flex max-h-[90vh] w-full max-w-[700px] flex-col overflow-hidden rounded-2xl border border-border-default p-6 shadow-2xl"
-      bodyClassName="h-[460px]"
+      bodyClassName="mt-5 h-[460px]"
     />
   ),
 });
@@ -40,7 +40,7 @@ const IssueFormModal = dynamic(loadIssueFormModal, {
     <ModalLoadingFallback
       title="이슈 작성"
       className="flex max-h-[90vh] w-full max-w-[560px] flex-col overflow-hidden rounded-xl border border-border-default p-6 shadow-2xl"
-      bodyClassName="h-[460px]"
+      bodyClassName="mt-5 h-[460px]"
     />
   ),
 });

@@ -25,8 +25,9 @@ export default function StepTabs() {
   return (
     <nav
       aria-label="스텝 화면"
-      // 사이드바 '홈으로 돌아가기' 줄과 같은 높이(h-13)로 맞춘다
-      className="h-13 shrink-0 border-b border-border-default bg-white px-4"
+      // 사이드바 '홈으로 돌아가기' 줄과 같은 높이(h-13)로 맞춘다.
+      // 위 10px 을 비워 탭 자체는 42px 이 된다 (시안)
+      className="h-13 shrink-0 border-b border-border-default bg-white px-4 pt-2.5"
     >
       <ul className="flex h-full items-stretch">
         {TABS.map((tab) => {
@@ -58,19 +59,23 @@ export default function StepTabs() {
 
 /** 탭 아이콘. 아이콘 라이브러리 도입 전까지 인라인 SVG 로 둔다 */
 const PATHS: Record<TabIcon, React.ReactNode> = {
-  // 블록 — 쌓인 판 3개
+  // 블록 — 겹쳐 쌓은 판. 맨 위 한 장만 마름모로 그리고 아래 두 장은 모서리선만 남긴다
   block: (
     <>
-      <path d="M4 4h16v6H4z" />
-      <path d="M4 13h16" />
-      <path d="M4 18h16" />
+      <path d="M12 2.5 2.5 7 12 11.5 21.5 7z" />
+      <path d="M2.5 12 12 16.5 21.5 12" />
+      <path d="M2.5 17 12 21.5 21.5 17" />
     </>
   ),
-  // 일정 — 타임라인 격자
+  /*
+   * 일정 — 타임라인 격자(#).
+   * 세로선이 x=8·14 라 가운데(12)에서 왼쪽으로 밀려 있었다 — 오른쪽 팔만 길어져
+   * 획이 오른쪽으로 쏠려 보였다. 9·15 로 옮겨 네 팔 길이를 같게 맞춘다.
+   */
   schedule: (
     <>
-      <path d="M4 9h16M4 15h16" />
-      <path d="M8 3v18M14 3v18" />
+      <path d="M3.5 9h17M3.5 15h17" />
+      <path d="M9 3.5v17M15 3.5v17" />
     </>
   ),
   // 활동 기록 — 시계

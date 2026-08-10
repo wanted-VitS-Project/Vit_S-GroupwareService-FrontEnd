@@ -28,7 +28,7 @@ const AnalysisRunModal = dynamic(loadAnalysisRunModal, {
     <ModalLoadingFallback
       title="비타메이트 분석 실행"
       className="flex h-[85vh] w-full max-w-[720px] flex-col rounded-xl p-6 shadow-2xl"
-      bodyClassName="min-h-0 flex-1"
+      bodyClassName="mt-5 min-h-0 flex-1"
     />
   ),
 });
@@ -37,7 +37,7 @@ const AnalysisHistoryPanel = dynamic(loadAnalysisHistoryPanel, {
     <ModalLoadingFallback
       title="분석 이력"
       className="flex h-[80vh] w-full max-w-[720px] flex-col rounded-xl p-6 shadow-2xl"
-      bodyClassName="min-h-0 flex-1"
+      bodyClassName="mt-5 min-h-0 flex-1"
     />
   ),
 });
