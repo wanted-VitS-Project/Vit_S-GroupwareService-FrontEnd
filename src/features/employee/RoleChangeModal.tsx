@@ -138,7 +138,7 @@ export default function RoleChangeModal({
             <button
               type="submit"
               disabled={!canSubmit}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="btn btn-sm btn-primary"
             >
               {isSubmitting ? '변경 중…' : '변경'}
             </button>

@@ -17,7 +17,25 @@ export const EMPLOYEE_CODES = {
   adminRoleNotAllowed: 'EMP_ADMIN_ROLE_NOT_ALLOWED',
   /** 409 — 이미 등록된 사번 */
   userIdDuplicated: 'EMP_USER_ID_DUPLICATED',
+  /** 400 — 파일이 없다 */
+  fileRequired: 'EMP_FILE_REQUIRED',
+  /** 400 — `.xlsx` 가 아니다 */
+  fileTypeInvalid: 'EMP_FILE_TYPE_INVALID',
+  /** 400 — 5MB 초과 */
+  fileSizeExceeded: 'EMP_FILE_SIZE_EXCEEDED',
+  /** 400 — 오류 행이 있는데 `skipErrors=false`. 건너뛰기를 켜면 통과한다 */
+  hasErrors: 'EMP_HAS_ERRORS',
 } as const;
+
+/**
+ * 파일 자체 문제 3종 — **행 오류와 다르다.**
+ * 이건 검증 표를 그릴 게 아니라 파일을 다시 고르게 해야 한다.
+ */
+export const BULK_FILE_CODES: string[] = [
+  EMPLOYEE_CODES.fileRequired,
+  EMPLOYEE_CODES.fileTypeInvalid,
+  EMPLOYEE_CODES.fileSizeExceeded,
+];
 
 export const ACCOUNT_CODES = {
   /** 400 — userIds 가 비어 있음 */

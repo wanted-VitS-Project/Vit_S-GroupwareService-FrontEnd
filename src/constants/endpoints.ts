@@ -45,6 +45,12 @@ export const ENDPOINTS = {
     resignation: (userId: string) => `${V1}/employees/${userId}/resignation`,
     /** 결재선 지정용 이름 검색 — ADMIN 전용이 아니다 */
     search: `${V1}/employees/search`,
+    /** 엑셀 템플릿 — 응답이 `.xlsx` 바이너리다 (봉투가 아니다) */
+    bulkTemplate: `${V1}/employees/bulk-template`,
+    /** 일괄 등록 검증 — 등록하지 않고 행 오류만 준다 */
+    bulkValidate: `${V1}/employees/bulk/validate`,
+    /** 일괄 등록 */
+    bulk: `${V1}/employees/bulk`,
   },
   accounts: {
     role: (userId: string) => `${V1}/accounts/${userId}/role`,

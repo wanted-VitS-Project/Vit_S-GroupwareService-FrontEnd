@@ -254,10 +254,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
               ? '사원을 찾을 수 없습니다. 삭제되었거나 접근할 수 없는 계정입니다.'
               : '사원 정보를 불러오지 못했습니다.'}
           </p>
-          <Link
-            href={EMPLOYEE_ROUTES.list}
-            className="rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover"
-          >
+          <Link href={EMPLOYEE_ROUTES.list} className="btn btn-sm btn-primary">
             목록으로
           </Link>
         </Centered>
@@ -408,7 +405,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
                 type="submit"
                 disabled={!isDirty || isSubmitting}
                 title={isDirty ? undefined : '변경한 항목이 없습니다'}
-                className="cursor-pointer rounded-lg bg-btn-primary px-5 py-2 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+                className="btn btn-sm btn-primary"
               >
                 {isSubmitting ? '저장 중…' : '저장'}
               </button>

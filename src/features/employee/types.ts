@@ -176,3 +176,45 @@ export interface PasswordResetResult {
   failedCount: number;
   failures: PasswordResetFailure[];
 }
+
+/**
+ * 엑셀 일괄 등록의 행 오류 (.ai/API.md 88 · 89).
+ * 검증과 등록이 **같은 구조**를 쓴다 — 등록 후에도 실패한 행을 같은 표로 보여준다.
+ */
+export interface BulkRowError {
+  /** 엑셀 행 번호 — 사용자가 파일에서 찾아갈 좌표라 그대로 보여준다 */
+  row: number;
+  /** 그 행을 못 읽었으면 비어 있다 */
+  userId: string | null;
+  name: string | null;
+  validation: string;
+  /** 백엔드 문구를 그대로 표시한다 */
+  message: string;
+}
+
+/**
+ * 일괄 등록 검증 결과 (.ai/API.md 88).
+ *
+ * ⚠️ **오류 행이 있어도 200** 이다 — `errorCount` 로 분기한다.
+ * 400 은 파일 자체 문제 3종(없음 · 확장자 · 5MB 초과)뿐이다.
+ */
+export interface BulkValidateResult {
+  totalRows: number;
+  validCount: number;
+  errorCount: number;
+  errors: BulkRowError[];
+  /** 이메일이 없는 행 수 — 오류가 아니라 **등록은 되고 메일만 못 간다** */
+  emailNotRegisteredCount: number;
+}
+
+/** 일괄 등록 결과 (.ai/API.md 89) */
+export interface BulkRegisterResult {
+  totalRows: number;
+  registeredCount: number;
+  failedCount: number;
+  /** 행마다 독립 트랜잭션이라 일부만 실패할 수 있다 */
+  errors: BulkRowError[];
+  emailSentCount: number;
+  /** 이메일이 없어 초기 비밀번호를 못 보낸 사번 */
+  emailNotRegistered: string[];
+}

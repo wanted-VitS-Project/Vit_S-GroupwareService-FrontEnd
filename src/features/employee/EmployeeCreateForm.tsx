@@ -406,7 +406,7 @@ export default function EmployeeCreateForm() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="cursor-pointer rounded-lg bg-btn-primary px-5 py-2 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="btn btn-sm btn-primary"
             >
               {isSubmitting ? '등록 중…' : '등록'}
             </button>
@@ -467,7 +467,7 @@ function CreatedResult({
             <button
               type="button"
               onClick={() => setIsResendOpen(true)}
-              className="cursor-pointer rounded-lg bg-red-text px-4 py-2 text-[11px] font-semibold text-white hover:bg-[#c50009]"
+              className="btn btn-sm btn-danger"
             >
               메일 재발송
             </button>
@@ -475,13 +475,13 @@ function CreatedResult({
           <button
             type="button"
             onClick={onCreateAnother}
-            className="cursor-pointer rounded-lg bg-btn-primary px-4 py-2 text-[11px] font-semibold text-white hover:bg-btn-primary-hover"
+            className="btn btn-sm btn-primary"
           >
             계속 등록
           </button>
           <Link
             href={EMPLOYEE_ROUTES.detail(result.userId)}
-            className="rounded-lg border border-border-default px-4 py-2 text-[11px] font-semibold text-text-primary hover:bg-bg-hover"
+            className="btn btn-sm btn-gray-outlined"
           >
             상세 보기
           </Link>

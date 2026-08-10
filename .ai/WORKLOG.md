@@ -6,6 +6,72 @@
 
 ---
 
+## [2026-08-10] 사원 엑셀 일괄 등록 — 템플릿 · 검증 · 등록 3단 스텝퍼 ✅
+
+브랜치: `feat/employee-bulk-upload` · 이슈: #95
+
+### 변경 파일
+
+| 파일 | 변경 |
+| ---- | ---- |
+| `src/features/employee/BulkUploadModal.tsx` | 생성 (3단 스텝퍼 · 입력 형식표 · 행 오류 표 · 등록 확인) |
+| `src/lib/download.ts` | 생성 (`saveResponseAsFile()` — 응답을 파일로 저장. 도메인 무관) |
+| `src/features/employee/api.ts` | 수정 (`downloadBulkTemplate()` · `validateBulkEmployees()` · `registerBulkEmployees()`) |
+| `src/features/employee/types.ts` | 수정 (`BulkRowError` · `BulkValidateResult` · `BulkRegisterResult`) |
+| `src/features/employee/errorCodes.ts` | 수정 (파일 3종 + `EMP_HAS_ERRORS` · `BULK_FILE_CODES`) |
+| `src/constants/endpoints.ts` | 수정 (`bulkTemplate` · `bulkValidate` · `bulk`) |
+| `src/components/Modal.tsx` | 수정 (`dismissOnBackdrop` prop 신설) |
+| `src/features/employee/EmployeeList.tsx` | 수정 (`BulkUploadButton` 제거 · 모달 연결 · `.btn` 전환) |
+| `EmployeeDetail` · `EmployeeCreateForm` · `EmployeeEditForm` · `RoleChangeModal` · `PasswordResetModal` | 수정 (하드코딩 버튼 → `.btn` 계열 14곳) |
+
+### 주요 작업 내용
+
+- **3단 스텝퍼** — 템플릿 다운로드 → 검증 → 등록. 검증과 등록을 나눈 이유는 등록이 행마다 독립 트랜잭션이라 되돌릴 수 없어서다. 무엇이 들어갈지 먼저 보여준다
+- **입력 형식표** — 템플릿 파일에 헤더 줄만 있어 형식을 알 수 없다. 8개 열의 필수 여부 · 형식을 1단계에 표로 띄운다
+- **등록 확인 단계** — 되돌릴 수 없는 데다 초기 비밀번호 메일이 즉시 나가 `AlertDialogTwoButton` 으로 한 번 더 묻는다
+- **`BulkUploadButton` "준비 중" 제거** — 백엔드(#245) 머지 완료로 해제
+
+### 부수 결정
+
+- **`lib/api.ts` 를 건드리지 않았다** — 이슈엔 "blob 경로 필요" 로 적혀 있었지만 `requestRaw()`(Response 그대로 반환) · `postForm()`(multipart) 이 이미 그 용도였다
+- **파일 저장은 `lib/download.ts` 로 뺐다** — 앵커 클릭 · `Content-Disposition` 파싱을 `api.ts` 에 두면 데이터 계층이 DOM 을 만진다. 도메인을 모르는 코드라 `lib/` 이 맞다 (`.ai/STRUCTURE.md` §3)
+- **`skipErrors` 는 FormData 에 담는다** — 명세가 `multipart/form-data` 요청 필드로 규정한다(쿼리스트링이 아니다)
+- **등록 버튼을 미리 막는다** — `validCount === 0` 이거나 `errorCount > 0 && !skipErrors` 면 서버가 `EMP_HAS_ERRORS` 로 전체를 거부한다. 400 을 받고 나서야 아는 상황을 없앴다
+- **파일 크기는 프론트에서도 본다** — 5MB 는 서버 상한과 같은 값이라 왕복 전에 막는다
+- **일괄 등록 모달은 배경 클릭으로 닫지 않는다** — `Modal` 에 `dismissOnBackdrop` 을 추가했다(기본 `true`). 검증 표를 훑다 바깥을 잘못 눌러 처음부터 다시 하게 되면 곤란하다. 닫기 · Esc 는 살아 있다
+- **초기 비밀번호 즉시 발송은 백엔드 설계다** — 단건 등록(32)도 같다. 끄는 옵션이 명세에 없어 화면은 **등록 전에 알리는 것**까지만 한다
+- **ghost 버튼(`취소` · `닫기` · `선택 해제`)은 `.btn` 으로 바꾸지 않았다** — `globals.css` 에 대응 변형이 없고, 테두리가 생기면 주버튼과 무게가 같아진다
+
+### 트러블슈팅
+
+**1. 검증 오류를 고쳤는데 새 오류가 나왔다**
+
+입사일 형식 오류를 고치자 이번엔 권한 오류가 나왔다. **한 행에 문제가 여러 개여도 응답은 하나만 준다**(2026-08-10 실측). 모르면 "고쳤는데 또 걸린다"로 읽혀 파일이 잘못됐다고 오해한다 — 검증 화면에 안내 문구를 넣었다.
+
+**2. 엑셀이 입사일을 날짜 서식으로 바꾼다**
+
+`2026-04-05` 를 입력하면 엑셀이 `2026.04.05` 로 표시하고 그대로 저장돼 검증에 걸린다. 형식표에 "셀 서식을 `텍스트`로" 를 명시했다.
+
+**3. 권한 열은 한글이 아니라 영문이다**
+
+`사원` 을 넣어도 통과하는 것처럼 보였으나(입사일 오류에 가려짐) 실제로는 `MASTER` · `MEMBER` 만 받는다. 화면 라벨(`사원` · `관리자`)과 파일 값이 다르다는 뜻이라 형식표에 명시했다.
+
+**4. 단계를 오가면 선택한 파일 표시가 갈렸다**
+
+| 항목 | 내용 |
+| ---- | ---- |
+| 문제 | `파일 다시 선택` 후 네이티브 input 은 "선택된 파일 없음", 아래 문구는 파일명을 표시 |
+| 원인 | 단계 전환으로 input 이 새 DOM 요소로 다시 그려지는데 `input[type=file]` 의 값은 **보안상 JS 로 되돌릴 수 없다** |
+| 해결 | 네이티브 표시를 쓰지 않는다 — `sr-only` input + `label` 버튼으로 두고 파일명은 우리 state 한 줄로만 보여준다 |
+
+### 검증
+
+- `tsc --noEmit` · `eslint` · `next build` · `prettier` 통과
+- 실제 화면에서 템플릿 다운로드 · 검증(오류 2건) · 형식 오류 문구까지 확인
+- ⚠️ 실제 등록은 **초기 비밀번호 메일이 발송되므로** 테스트 계정으로만 확인 필요
+
+---
+
 ## [2026-08-10] 페이지 권한 후속 — 하이브리드 메뉴 해소 · 순서 기준 일원화 ✅
 
 브랜치: `feat/page-permission` · 이슈: #98 (같은 브랜치 후속 커밋)
