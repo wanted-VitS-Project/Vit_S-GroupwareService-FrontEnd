@@ -6,6 +6,93 @@
 
 ---
 
+## [2026-08-10] 페이지 권한 연동 — 사이드바 `/my/pages` 전환 · 권한 부여 화면 ✅
+
+브랜치: `feat/page-permission` · 이슈: 확인 필요
+
+### 변경 파일
+
+| 파일 | 변경 |
+| ---- | ---- |
+| `src/features/pagePermission/types.ts` | 생성 (등급 3값 · 근거 4종 · 응답 타입) |
+| `src/features/pagePermission/errorCodes.ts` | 생성 (`PAGE_*` 4개) |
+| `src/features/pagePermission/api.ts` | 생성 (98~102 5개 함수) |
+| `src/features/pagePermission/catalog.ts` | 생성 (`pageCode` ↔ 라우트 매핑 · `toMenuItems()` · `isPageDenied()`) |
+| `src/features/pagePermission/display.ts` | 생성 (라벨 · 배지 · 회수 불가 사유) |
+| `src/features/pagePermission/MyPagesProvider.tsx` | 생성 (`/my/pages` 1회 조회 컨텍스트) |
+| `src/features/pagePermission/useMyPages.ts` | 생성 (`useMyPages()` · `useMenuItems()`) |
+| `src/features/pagePermission/PageAccessGate.tsx` | 생성 (`NONE` 진입 차단) |
+| `src/features/pagePermission/PagePermissionList.tsx` | 생성 (페이지 탭 + 접근 가능자 표) |
+| `src/features/pagePermission/GrantPermissionModal.tsx` | 생성 (부여 · 등급 변경 겸용) |
+| `src/features/pagePermission/RevokePermissionModal.tsx` | 생성 (회수 확인 + 계속 보임 안내) |
+| `src/app/settings/page-permissions/page.tsx` | 생성 (라우트) |
+| `src/constants/endpoints.ts` | 수정 (`pages` 블록 추가) |
+| `src/constants/menu.ts` | 수정 (`MENU_BY_ROLE` 제거 → 고정 앞/뒤 + `findActiveMenu(pathname, items)`) |
+| `src/components/Sidebar.tsx` | 수정 (동적 메뉴 · 로딩 · 실패 재시도) |
+| `src/components/Header.tsx` | 수정 (제목을 같은 목록에서 뽑음) |
+| `src/components/AppShell.tsx` | 수정 (`MyPagesProvider` + `PageAccessGate`) |
+| `src/components/settings/SettingsSkeletons.tsx` | 수정 (`PagePermissionTableSkeleton`) |
+| `src/app/settings/page.tsx` | 수정 (페이지 권한 항목 활성 · `전사 관리` 로 개칭) |
+| `src/components/AlertDialog.tsx` | 수정 (`warning` 아이콘 파랑 → 빨강) |
+| `src/constants/status.ts` | 수정 (`ROLE_LABELS` — MASTER `관리자` · ADMIN `시스템 관리자`) |
+| 브레드크럼 7개 화면 | 수정 (`설정` → `전사 관리`) |
+| `.ai/API.md` | 수정 (미연동 16건 명세 추가 · 98~102 연동 표시) |
+
+### 주요 작업 내용
+
+- **사이드바가 `GET /my/pages` 응답을 그린다** — 메뉴 노출 규칙을 프론트가 갖지 않는다. `pageCode` → 경로 · 아이콘만 프론트 몫이고 라벨은 백엔드 `name` 을 쓴다
+- **`permission: NONE` 접근 차단** — `PageAccessGate` 가 본문만 감싸 `/forbidden` 으로 보낸다. 셸은 감싸지 않아 사이드바 · 헤더가 깜빡이지 않는다
+- **권한 부여 화면** — 부여 대상이 `BIDDING` · `FINANCE` 둘뿐이라 목록 화면 대신 탭으로 고른다. 표에는 명시 부여자 + 전역 권한 열람자가 함께 나오고, 회수 불가 행은 이유를 붙인다
+- **부여 · 회수 모달** — 부여/등급 변경은 `PanelModal`, 저장 직전 확인과 회수 확인은 공용 `AlertDialogTwoButton`. 버튼은 `globals.css` 의 `.btn` 계열을 쓴다
+- **저장 전 확인 단계** — 권한은 눌러서 바로 바뀌면 안 되는 값이라 `부여` · `변경` 을 누르면 대상 · 등급을 요약해 한 번 더 묻는다. 실패하면 확인 창을 닫고 폼으로 되돌린다(고칠 곳이 폼에 있다)
+
+### 부수 결정
+
+- **하이브리드 전환** — 카탈로그 11개 중 코드가 확인된 건 4개뿐이라, 대시보드 · 결재 관리 · 프로젝트 조회 · 전사 관리는 `constants/menu.ts` 고정 항목으로 남겼다. 전면 전환하면 코드를 모르는 메뉴가 통째로 사라진다
+- **매핑 없는 `pageCode` 는 메뉴에서 제외** — 갈 곳 없는 버튼을 그리는 것보다 낫다. 개발 모드에서 콘솔로 알린다
+- **목록 조회 실패는 통과** — 이 가드는 편의지 통제가 아니다. 실제 차단은 백엔드 403 이 한다
+- **`설정` → `전사 관리`** — 표시 문구만 바꾸고 라우트(`/settings`)는 유지했다. 경로까지 바꾸면 북마크 · 이력이 깨진다
+- **전역 권한 사용자도 케밥을 그린다** — 부여 API 가 막는 건 ADMIN 뿐이라 MASTER 에게도 등급은 줄 수 있다. 회수 항목만 빠지고, 그 이유는 `권한 출처` 열의 자물쇠 + 툴팁으로 알린다
+- **공용 `warning` 아이콘을 빨강으로** — 파랑이면 안내처럼 읽혀 경고가 지나쳐진다. `danger` 와 색은 같고 **모양(삼각형 vs 팔각형+X)으로 위험도를 가른다.** `warning` 을 쓰는 다른 8곳도 함께 바뀐다
+- **접근 가드는 권한이 걸린 경로에서만 기다린다** — 모든 화면이 `/my/pages` 응답을 기다리면 첫 렌더가 통째로 느려진다
+- **전역 권한 라벨을 `관리자` · `사원` 으로** — `MASTER` 가 화면에서 부르는 이름이 관리자다. 이름이 겹치는 `ADMIN` 은 `시스템 관리자` 로 밀었다 (`ROLE_LABELS` 한 곳)
+- **하이브리드 메뉴를 유지한다** — 백엔드 확인 결과 권한 부여 대상은 `BIDDING` · `FINANCE` 둘뿐이고 나머지 페이지는 전원 열람이다. 나머지 `pageCode` 를 받아 동적으로 옮길 이유가 없다
+
+### 트러블슈팅
+
+**1. `react-hooks/set-state-in-effect` 로 lint 실패**
+
+이펙트 안에서 `setStatus('loading')` · `setAccessors(null)` 로 상태를 비우자 규칙 위반이 났다.
+
+| 항목 | 내용 |
+| ---- | ---- |
+| 원인 | 이펙트 본문의 동기 `setState` 는 렌더를 한 번 더 돌린다 |
+| 해결 | 로딩 전환은 이벤트 핸들러(`refetch`)로 옮기고, 목록은 `key` 로 요청을 구분해 **키가 어긋나면 자동으로 로딩 상태**가 되게 했다 (`JobPositionList` 와 같은 방식) |
+
+**2. 표가 깨지고 등급 배지를 눌러도 반응이 없었다**
+
+`회수 불가` 를 `w-14`(56px) 열에 넣어 글자마다 줄바꿈됐고, 사용자는 등급 배지(`편집`)를 버튼으로 오해했다.
+
+| 항목 | 내용 |
+| ---- | ---- |
+| 원인 | ① 좁은 열에 텍스트 ② `revocable: false` 행은 케밥을 아예 안 그려 누를 것이 없었다 |
+| 해결 | `회수 불가` 를 `권한 출처` 열의 자물쇠 아이콘 + 툴팁으로 옮기고, 케밥은 `ADMIN_ONLY` 가 아니면 항상 그린다(회수 항목만 조건부) |
+
+**3. 스켈레톤이 출렁였다**
+
+재조회마다 표를 비워 8줄 스켈레톤 → 1줄 표로 높이가 크게 튀었다. 같은 페이지의 재조회면 **직전 목록을 유지**하고(탭 이동은 비운다), 스켈레톤 줄 수를 4로 줄였다. 표 컨테이너에는 `overflow-hidden` 이 없어 sticky 헤더의 각진 흰 배경이 둥근 모서리 위로 튀어나오던 것도 함께 고쳤다.
+
+**4. `.ai/API.md` 에 prettier 를 돌렸다가 687줄이 뒤집혔다**
+
+`--write` 로 명세 문서를 포맷하니 기존 표 정렬이 전부 바뀌어 diff 가 1,800줄이 됐다. 되돌리고 추가분만 손으로 정렬했다 (STATE.md 2026-08-07 기록과 같은 함정).
+
+### 검증
+
+- `tsc --noEmit` · `eslint` · `next build` 통과
+- ⚠️ 브라우저 확인은 못 했다 — ADMIN 로그인이 필요해 화면 동작은 미검증이다
+
+---
+
 ## [2026-08-10] 정산 블록 구현 — 정산 항목 조회 · 작성/수정 ✅
 
 브랜치: `feat/settlement` · 이슈: #89

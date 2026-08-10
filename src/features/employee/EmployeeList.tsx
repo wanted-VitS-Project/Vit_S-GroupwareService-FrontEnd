@@ -192,7 +192,7 @@ export default function EmployeeList() {
           href="/settings"
           className="hover:text-text-primary hover:underline"
         >
-          설정
+          전사 관리
         </Link>{' '}
         &gt; 사원 관리
       </p>

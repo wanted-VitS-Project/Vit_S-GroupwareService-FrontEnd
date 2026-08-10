@@ -157,7 +157,7 @@ export default function DepartmentFormModal({
               <p className="mt-1 text-[10px] break-keep text-text-secondary">
                 {isEditing
                   ? '이름을 바꿔도 소속 사원 배정은 그대로 유지됩니다.'
-                  : '부서명은 전체에서 중복될 수 없습니다.'}
+                  : '같은 상위 부서 안에서는 같은 이름을 쓸 수 없습니다. (최상위 부서끼리는 전체 기준)'}
               </p>
             )}
           </div>

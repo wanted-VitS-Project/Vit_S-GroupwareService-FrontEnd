@@ -228,7 +228,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
           href="/settings"
           className="hover:text-text-primary hover:underline"
         >
-          설정
+          전사 관리
         </Link>{' '}
         &gt;{' '}
         <Link

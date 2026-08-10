@@ -390,6 +390,7 @@ page.tsx (app)
 | 공용 컴포넌트               | ✅ `AppShell` · `Header` · `Sidebar` · `Modal` · `DataTable` · `PageTitle` · `ProjectSidebar` · `MenuIcon` · `PasswordVisibilityToggle` |
 | `features/auth`             | ✅ 로그인 · 게이트 · 비밀번호 변경                                                                                                      |
 | `features/businessCategory` | ✅ 사업 카테고리 CRUD 화면                                                                                                              |
+| `features/pagePermission`   | ✅ 사이드바 메뉴 근거(`/my/pages`) · 접근 가드 · 권한 부여/회수 화면                                                                    |
 | 그 외 `features/*`          | 🚧 빈 폴더 (`.gitkeep` 으로 구조만 선점)                                                                                                |
 | `constants` · `lib`         | ✅ `endpoints` · `menu` · `status` · `api` · `format`                                                                                   |
 

@@ -61,6 +61,7 @@ const SECTIONS: { title: string; items: SettingItem[] }[] = [
         icon: 'lock',
         label: '페이지 권한',
         description: '시스템 페이지별 접근 권한 설정',
+        href: '/settings/page-permissions',
       },
     ],
   },
@@ -69,8 +70,8 @@ const SECTIONS: { title: string; items: SettingItem[] }[] = [
 export default function Page() {
   return (
     <>
-      <p className="text-xs text-text-secondary">설정</p>
-      <PageTitle title="설정" />
+      <p className="text-xs text-text-secondary">전사 관리</p>
+      <PageTitle title="전사 관리" />
 
       <div className="space-y-8">
         {SECTIONS.map((section) => (

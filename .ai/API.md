@@ -100,9 +100,25 @@
 | [84](#84-프로젝트-목록-조회)              | 프로젝트 목록    | `GET /projects`                                | ✅ `features/project/api.ts`          |
 | [85](#85-정산-항목-수정-시-조회)          | 정산 수정 조회   | `GET /blocks/settlements/{id}/items`           | ✅ `features/settlement/api.ts`       |
 | [86](#86-정산-항목-작성--수정)            | 정산 작성·수정   | `PATCH /blocks/settlements/{id}/items`         | ✅ `features/settlement/api.ts`       |
+| [87](#87-사원-엑셀-템플릿-다운로드)       | 엑셀 템플릿      | `GET /employees/bulk-template`                 | ❌ 미연동                             |
+| [88](#88-사원-엑셀-일괄-등록-검증)        | 일괄 등록 검증   | `POST /employees/bulk/validate`                | ❌ 미연동                             |
+| [89](#89-사원-엑셀-일괄-등록)             | 일괄 등록        | `POST /employees/bulk`                         | ❌ 미연동                             |
+| [90](#90-직급별-사원-목록)                | 직급별 사원 목록 | `GET /job-positions/{id}/employees`            | ❌ 미연동                             |
+| [91](#91-사원-그룹-목록-조회)             | 그룹 목록        | `GET /employee-groups`                         | ❌ 미연동                             |
+| [92](#92-사원-그룹-생성)                  | 그룹 생성        | `POST /employee-groups`                        | ❌ 미연동                             |
+| [93](#93-사원-그룹-수정)                  | 그룹 수정        | `PATCH /employee-groups/{groupId}`             | ❌ 미연동                             |
+| [94](#94-사원-그룹-삭제)                  | 그룹 삭제        | `DELETE /employee-groups/{groupId}`            | ❌ 미연동                             |
+| [95](#95-그룹-구성원-목록-조회)           | 구성원 목록      | `GET /employee-groups/{groupId}/members`       | ❌ 미연동                             |
+| [96](#96-그룹-구성원-추가)                | 구성원 추가      | `POST /employee-groups/{groupId}/members`      | ❌ 미연동                             |
+| [97](#97-그룹-구성원-제거)                | 구성원 제거      | `DELETE /employee-groups/{id}/members/{userId}` | ❌ 미연동                            |
+| [98](#98-내-페이지-목록-조회)             | 내 페이지 목록   | `GET /my/pages`                                | ✅ `features/pagePermission/api.ts` |
+| [99](#99-페이지-목록-조회-권한-부여용)    | 페이지 목록      | `GET /pages`                                   | ✅ `features/pagePermission/api.ts` |
+| [100](#100-페이지-접근-가능자-목록)       | 접근 가능자 목록 | `GET /pages/{pageCode}/permissions`            | ✅ `features/pagePermission/api.ts` |
+| [101](#101-페이지-권한-부여--등급-변경)   | 권한 부여·변경   | `POST /pages/{pageCode}/permissions`           | ✅ `features/pagePermission/api.ts` |
+| [102](#102-페이지-권한-회수)              | 권한 회수        | `DELETE /pages/{pageCode}/permissions/{userId}` | ✅ `features/pagePermission/api.ts` |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
-> 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통) · [이미지 도메인 — 공통](#이미지-도메인--공통)
+> 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통) · [이미지 도메인 — 공통](#이미지-도메인--공통) · [사원 그룹 도메인 — 공통](#사원-그룹-도메인--공통) · [페이지 권한 도메인 — 공통](#페이지-권한-도메인--공통)
 
 ### ❗ 백엔드 확인 대기
 
@@ -114,11 +130,6 @@
 | `detail.txtId` · `detail.content`                 | 텍스트 본문 편집                 | 10    |
 | `detail` 의 첫 이미지 키 이름                     | 이미지 블록 (자세히는 이미지 절) | 10·66 |
 | 배치 동시 편집 보호 (버전 · 변경 알림 채널)       | 마지막 저장이 남의 변경을 덮음   | 44    |
-| 사원 엑셀 템플릿 다운로드 · 일괄 등록 (구현 중)   | 화면은 "준비 중" 안내만          | —     |
-| 사원 목록에 **직급 필터** 없음                    | 직급별 사원 조회                 | 30    |
-| `email` · `phone` 을 빈 문자열로 지울 수 있는지   | 수정 폼에서 연락처 · 이메일 삭제 | 33    |
-| `userId`(사번) 최대 길이 — 명세에 없음            | 등록 폼 입력 제한 (임시 20자)    | 32    |
-| 부서명 중복 검사 범위 (전체 → 형제) — 변경 요청함 | 본부마다 같은 팀 이름 사용       | 23    |
 | 파일 API `PR #190` 머지 대기                      | 문서 블록 실동작 확인            | 36~43 |
 | 휴지통 화면 목업                                  | 복구 · 영구 삭제 API 연동        | —     |
 
@@ -940,9 +951,8 @@ data: {
 | 409    | `DEPT_NAME_DUPLICATED`    | 이름 입력 아래 인라인 에러            |
 | 409    | `DEPT_MAX_DEPTH_EXCEEDED` | 2단 초과 — 하위 추가 메뉴를 미리 숨김 |
 
-> ⚠️ **부서명 중복 범위 변경 요청함 (2026-08-06).** 전체 유니크면 `기술본부 > 개발팀` 과 `SI본부 > 개발팀` 을 함께 만들 수 없다.
-> **같은 상위 부서(형제) 범위**로 완화해 달라고 백엔드에 요청한 상태다. 반영되면 폼 안내 문구 한 줄만 바꾸면 된다
-> (`DepartmentFormModal` — "부서명은 전체에서 중복될 수 없습니다."). 409 문구는 백엔드 `message` 를 그대로 쓰므로 코드 변경이 없다.
+> ✅ **부서명은 같은 상위 부서(형제) 안에서 유니크다** (최상위 부서끼리는 전체 기준) — 2026-08-10 최종 명세로 확정.
+> 그래서 `기술본부 > 개발팀` 과 `SI본부 > 개발팀` 을 함께 만들 수 있다. 409 문구는 백엔드 `message` 를 그대로 쓴다.
 
 ---
 
@@ -2902,6 +2912,443 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 > 화면은 **백분율(0~100)** 로 보고 그린다 — 비율이면 절반 정산이 `0.5%` 로 보인다.
 > ℹ️ **409 셋은 사후 처리다.** `SETL-007`(연결됨) · `SETL-008`(총액 불일치)은 화면이 미리 알 수 없어
 > 서버 `message` 를 그대로 띄운다.
+
+---
+
+## 87. 사원 엑셀 템플릿 다운로드
+
+| 항목          | 내용                                 |
+| ------------- | ------------------------------------ |
+| **Method**    | `GET`                                |
+| **Path**      | `/api/v1/employees/bulk-template`    |
+| **인증 필요** | ✅ (ADMIN)                           |
+| **사용 위치** | ❌ 미연동 — `EmployeeList` 일괄 등록 |
+
+**응답** — JSON 이 아니라 **`.xlsx` 바이너리**다. 헤더만 있는 8컬럼:
+사번 · 이름 · 부서명 · 직급명 · 입사일 · 이메일 · 연락처 · 권한
+
+| status | code                 | 화면 처리 |
+| ------ | -------------------- | --------- |
+| 403    | `ACC_ADMIN_REQUIRED` | 권한 없음 |
+
+> ⚠️ 응답 봉투(`{ httpStatus, message, data }`)가 아니라 파일이다 — `src/lib/api.ts` 래퍼를 그대로 쓸 수 없다 (`blob()` 처리 필요).
+> ℹ️ 권한 컬럼은 있지만 `ADMIN` 값은 검증에서 거부된다.
+
+---
+
+## 88. 사원 엑셀 일괄 등록 검증
+
+| 항목          | 내용                                |
+| ------------- | ----------------------------------- |
+| **Method**    | `POST` (`multipart/form-data`)      |
+| **Path**      | `/api/v1/employees/bulk/validate`   |
+| **인증 필요** | ✅ (ADMIN)                          |
+| **사용 위치** | ❌ 미연동 — 일괄 등록 스텝퍼 ②단계  |
+
+**요청** — `file` (엑셀 파일). 등록하지 않고 **행별 오류만** 반환한다.
+
+| 필드                        | 타입      | 설명                            |
+| --------------------------- | --------- | ------------------------------- |
+| `totalRows`                 | `int`     | 전체 행 수                      |
+| `validCount` / `errorCount` | `int`     | 정상 · 오류 행 수               |
+| `errors[].row`              | `int`     | 엑셀 행 번호                    |
+| `errors[].userId` / `.name` | `string?` | 해당 행의 사번 · 이름           |
+| `errors[].validation`       | `string`  | 오류 유형                       |
+| `errors[].message`          | `string`  | 안내 문구 — 그대로 표시         |
+| `emailNotRegisteredCount`   | `int`     | 이메일 없는 행 수 (등록은 가능) |
+
+| status | code                     | 화면 처리    |
+| ------ | ------------------------ | ------------ |
+| 400    | `EMP_FILE_REQUIRED`      | 파일 없음    |
+| 400    | `EMP_FILE_TYPE_INVALID`  | `.xlsx` 아님 |
+| 400    | `EMP_FILE_SIZE_EXCEEDED` | 5MB 초과     |
+| 403    | `ACC_ADMIN_REQUIRED`     | 권한 없음    |
+
+> ⚠️ **오류 행이 있어도 200** 이다 — `errorCount` 로 분기해야 한다. 400 은 파일 자체 문제 3가지뿐.
+
+---
+
+## 89. 사원 엑셀 일괄 등록
+
+| 항목          | 내용                               |
+| ------------- | ---------------------------------- |
+| **Method**    | `POST` (`multipart/form-data`)     |
+| **Path**      | `/api/v1/employees/bulk`           |
+| **인증 필요** | ✅ (ADMIN)                         |
+| **사용 위치** | ❌ 미연동 — 일괄 등록 스텝퍼 ③단계 |
+
+**요청** — `file` · `skipErrors` (기본 `false`)
+
+**응답 data**
+
+| 필드                              | 타입       | 설명                                                 |
+| --------------------------------- | ---------- | ---------------------------------------------------- |
+| `totalRows`                       | `int`      | 전체 행 수                                           |
+| `registeredCount` / `failedCount` | `int`      | 등록 · 실패 행 수                                    |
+| `errors[]`                        | `Object[]` | 검증([88](#88-사원-엑셀-일괄-등록-검증))과 같은 구조 |
+| `emailSentCount`                  | `int`      | 초기 비밀번호 발송 건수                              |
+| `emailNotRegistered[]`            | `string[]` | 이메일 없어 발송 못 한 사번                          |
+
+| status | code                 | 화면 처리                                 |
+| ------ | -------------------- | ----------------------------------------- |
+| 400    | `EMP_HAS_ERRORS`     | 오류 행이 있는데 `skipErrors=false`       |
+| 400    | 파일 3종             | [88](#88-사원-엑셀-일괄-등록-검증)과 동일 |
+| 403    | `ACC_ADMIN_REQUIRED` | 권한 없음                                 |
+
+> ℹ️ **행마다 독립 트랜잭션**이라 일부 실패해도 나머지는 등록된다.
+> ℹ️ 초기 비밀번호는 이메일이 있는 사원에게만 발송된다 — 나머지는 `emailNotRegistered[]` 로 안내한다.
+
+---
+
+## 90. 직급별 사원 목록
+
+| 항목          | 내용                                              |
+| ------------- | ------------------------------------------------- |
+| **Method**    | `GET`                                             |
+| **Path**      | `/api/v1/job-positions/{jobPositionId}/employees` |
+| **인증 필요** | ✅ (ADMIN)                                        |
+| **사용 위치** | ❌ 미연동 — `JobPositionList` 인원수 클릭         |
+
+**응답 data**
+
+| 필드                                           | 타입      | 설명          |
+| ---------------------------------------------- | --------- | ------------- |
+| `jobPositionId` / `jobPositionName`            | —         | 직급 정보     |
+| `content[].userId` / `.name`                   | `string`  | 사번 · 이름   |
+| `content[].departmentName` / `.departmentPath` | `string?` | 부서명 · 경로 |
+
+| status | code                 | 화면 처리 |
+| ------ | -------------------- | --------- |
+| 403    | `ACC_ADMIN_REQUIRED` | 권한 없음 |
+| 404    | `POS_NOT_FOUND`      | 직급 없음 |
+
+> ℹ️ 재직자만 — 시스템 계정 · 퇴사자 제외. 0명이면 빈 배열(404 아님).
+
+---
+
+## 사원 그룹 도메인 — 공통
+
+| 항목        | 내용                                                                     |
+| ----------- | ------------------------------------------------------------------------ |
+| 성격        | 권한이 **아니다** — 멤버 선택 · 페이지 권한 부여를 돕는 **선택용 인덱스** |
+| 권한        | 조회는 로그인 사용자 전체, 변경(생성·수정·삭제·구성원)은 **ADMIN**        |
+| 권한 불변성 | 그룹으로 권한을 줘도 **개인 단위 스냅샷**으로 저장된다                    |
+| 그래서      | 그룹을 지우거나 구성원을 빼도 **이미 부여된 권한은 그대로**               |
+| 구성원 집계 | `memberCount` 는 시스템 계정 · 퇴사자를 제외한 수                         |
+
+---
+
+## 91. 사원 그룹 목록 조회
+
+| 항목          | 내용                      |
+| ------------- | ------------------------- |
+| **Method**    | `GET`                     |
+| **Path**      | `/api/v1/employee-groups` |
+| **인증 필요** | ✅ (전체 사용자)          |
+| **사용 위치** | ❌ 미연동                 |
+
+**요청 Query** — `keyword` (`string`, 그룹명 부분검색)
+
+**응답 data** — 페이징 **없음**, 이름 오름차순
+
+| 필드                                     | 타입      | 설명            |
+| ---------------------------------------- | --------- | --------------- |
+| `content[].groupId`                      | `Long`    | 그룹 ID         |
+| `content[].name` / `.description`        | `string?` | 그룹명 · 설명   |
+| `content[].memberCount`                  | `int`     | 구성원 수       |
+| `content[].createdByName` / `.createdAt` | `string`  | 생성자 · 생성일 |
+
+> ℹ️ 구성원 목록은 오지 않는다 — [95](#95-그룹-구성원-목록-조회)로 따로 조회한다.
+
+---
+
+## 92. 사원 그룹 생성
+
+| 항목          | 내용                      |
+| ------------- | ------------------------- |
+| **Method**    | `POST`                    |
+| **Path**      | `/api/v1/employee-groups` |
+| **인증 필요** | ✅ (ADMIN)                |
+| **사용 위치** | ❌ 미연동                 |
+
+**요청 Body**
+
+| 필드          | 타입      | 필수 | 설명       |
+| ------------- | --------- | ---- | ---------- |
+| `name`        | `string`  | ✅   | 최대 50자  |
+| `description` | `string?` | —    | 최대 500자 |
+
+**응답 data** — `groupId` · `name` · `description` · `memberCount`(생성 직후 `0`)
+
+| status | code                  | 화면 처리         |
+| ------ | --------------------- | ----------------- |
+| 400    | `GRP_INVALID_REQUEST` | 길이 초과 · 빈 값 |
+| 403    | `ACC_ADMIN_REQUIRED`  | 권한 없음         |
+| 409    | `GRP_NAME_DUPLICATED` | 그룹명 중복(전역) |
+
+> ℹ️ **201**. 빈 그룹을 만든 뒤 구성원을 따로 추가하는 2단계다.
+
+---
+
+## 93. 사원 그룹 수정
+
+| 항목          | 내용                                |
+| ------------- | ----------------------------------- |
+| **Method**    | `PATCH`                             |
+| **Path**      | `/api/v1/employee-groups/{groupId}` |
+| **인증 필요** | ✅ (ADMIN)                          |
+| **사용 위치** | ❌ 미연동                           |
+
+**요청 Body** — `name` · `description` 중 **보낸 필드만** 바뀐다. 응답은 [91](#91-사원-그룹-목록-조회)과 같은 구조.
+
+| status | code                  | 화면 처리                    |
+| ------ | --------------------- | ---------------------------- |
+| 400    | `GRP_INVALID_REQUEST` | 수정할 필드 없음 · 길이 초과 |
+| 403    | `ACC_ADMIN_REQUIRED`  | 권한 없음                    |
+| 404    | `GRP_NOT_FOUND`       | 그룹 없음                    |
+| 409    | `GRP_NAME_DUPLICATED` | 그룹명 중복                  |
+
+> ℹ️ 그룹명을 바꿔도 이미 부여된 권한에는 영향이 없다.
+
+---
+
+## 94. 사원 그룹 삭제
+
+| 항목          | 내용                                |
+| ------------- | ----------------------------------- |
+| **Method**    | `DELETE`                            |
+| **Path**      | `/api/v1/employee-groups/{groupId}` |
+| **인증 필요** | ✅ (ADMIN)                          |
+| **사용 위치** | ❌ 미연동                           |
+
+**응답 data** — `null`
+
+| status | code                 | 화면 처리 |
+| ------ | -------------------- | --------- |
+| 403    | `ACC_ADMIN_REQUIRED` | 권한 없음 |
+| 404    | `GRP_NOT_FOUND`      | 그룹 없음 |
+
+> ⚠️ 부서 · 직급과 달리 **구성원이 있어도 삭제된다** (매핑 CASCADE). 확인 모달에서 인원수를 보여줘야 한다.
+
+---
+
+## 95. 그룹 구성원 목록 조회
+
+| 항목          | 내용                                        |
+| ------------- | ------------------------------------------- |
+| **Method**    | `GET`                                       |
+| **Path**      | `/api/v1/employee-groups/{groupId}/members` |
+| **인증 필요** | ✅ (전체 사용자)                            |
+| **사용 위치** | ❌ 미연동                                   |
+
+**응답 data** — 이름 오름차순
+
+| 필드                         | 타입      | 설명          |
+| ---------------------------- | --------- | ------------- |
+| `groupId` / `name`           | —         | 그룹 정보     |
+| `content[].userId` / `.name` | `string`  | 사번 · 이름   |
+| `content[].departmentPath`   | `string?` | 2단 부서 경로 |
+| `content[].jobPositionName`  | `string?` | 직급명        |
+| `content[].addedAt`          | `string`  | 그룹 추가일   |
+
+| status | code            | 화면 처리 |
+| ------ | --------------- | --------- |
+| 404    | `GRP_NOT_FOUND` | 그룹 없음 |
+
+---
+
+## 96. 그룹 구성원 추가
+
+| 항목          | 내용                                        |
+| ------------- | ------------------------------------------- |
+| **Method**    | `POST`                                      |
+| **Path**      | `/api/v1/employee-groups/{groupId}/members` |
+| **인증 필요** | ✅ (ADMIN)                                  |
+| **사용 위치** | ❌ 미연동                                   |
+
+**요청 Body** — `userIds` (`string[]`, 1개 이상)
+
+**응답 data** — `groupId` · `requestedCount` · `addedCount` · `alreadyMemberCount` · `memberCount`
+
+| status | code                              | 화면 처리                               |
+| ------ | --------------------------------- | --------------------------------------- |
+| 400    | `GRP_INVALID_REQUEST`             | `userIds` 비어 있음                     |
+| 403    | `ACC_ADMIN_REQUIRED`              | 권한 없음                               |
+| 403    | `ACC_SYSTEM_ACCOUNT_NOT_ALLOWED`  | 시스템 계정 포함                        |
+| 404    | `GRP_NOT_FOUND` · `EMP_NOT_FOUND` | 없는 사번 하나라도 있으면 **전체 거부** |
+
+> ℹ️ **멱등**이다 — 이미 소속인 사번은 조용히 skip 되고 `alreadyMemberCount` 로 집계된다.
+> ⚠️ 구성원을 추가해도 그 사람의 페이지 권한은 늘어나지 않는다 (권한은 스냅샷).
+
+---
+
+## 97. 그룹 구성원 제거
+
+| 항목          | 내용                                                 |
+| ------------- | ---------------------------------------------------- |
+| **Method**    | `DELETE`                                             |
+| **Path**      | `/api/v1/employee-groups/{groupId}/members/{userId}` |
+| **인증 필요** | ✅ (ADMIN)                                           |
+| **사용 위치** | ❌ 미연동                                            |
+
+**응답 data** — `groupId` · `memberCount`
+
+| status | code                   | 화면 처리     |
+| ------ | ---------------------- | ------------- |
+| 403    | `ACC_ADMIN_REQUIRED`   | 권한 없음     |
+| 404    | `GRP_NOT_FOUND`        | 그룹 없음     |
+| 404    | `GRP_MEMBER_NOT_FOUND` | 구성원이 아님 |
+
+> ℹ️ 다건 제거 API 는 없다 — **한 명씩** 호출한다. 제거해도 받은 권한은 유지된다.
+
+---
+
+## 페이지 권한 도메인 — 공통
+
+| 항목              | 내용                                                                                             |
+| ----------------- | ------------------------------------------------------------------------------------------------ |
+| 카탈로그          | 페이지 11개는 **개발자가 코드로 고정**한다 — ADMIN 도 생성 · 삭제할 수 없다                       |
+| 부여 대상         | 11개 중 **`BIDDING`(공고·입찰) · `FINANCE`(재무) 2개뿐**. 나머지는 전역 role 로 열린다            |
+| `permission`      | `NONE`(보이지만 접근 불가) · `VIEWER` · `EDITOR` — 부여 화면의 3지선다와 1:1                      |
+| `source`          | `GRANTED`(명시 부여 · 회수 가능) · `GLOBAL_ROLE`(전역권한 · 회수 불가) · `ADMIN_ONLY` · `DEFAULT` |
+| 노출 ≠ 접근       | 메뉴가 보여도 `permission: NONE` 이면 진입 시 차단해야 한다                                       |
+| ADMIN 제외 페이지 | `PROJECT_CREATE` · `MY_PROJECT` 만 미반환 (시스템 계정이라 `project_member` 등록 불가)            |
+| 프론트 정책      | 권한이 걸린 두 페이지만 `/my/pages` 로 그리고, **전원 열람인 나머지 메뉴는 `constants/menu.ts` 고정 항목**으로 둔다 (2026-08-10 백엔드 확인) |
+
+---
+
+## 98. 내 페이지 목록 조회
+
+| 항목          | 내용                                                        |
+| ------------- | ----------------------------------------------------------- |
+| **Method**    | `GET`                                                       |
+| **Path**      | `/api/v1/my/pages`                                          |
+| **인증 필요** | ✅ (전체 사용자)                                            |
+| **사용 위치** | `features/pagePermission/api.ts` → `getMyPages()` (사이드바 · 접근 가드) |
+
+**응답 data** — `content[]`
+
+| 필드                   | 타입     | 설명                         |
+| ---------------------- | -------- | ---------------------------- |
+| `content[].pageCode`   | `string` | 페이지 코드                  |
+| `content[].name`       | `string` | 메뉴 표시명                  |
+| `content[].permission` | `string` | `NONE` · `VIEWER` · `EDITOR` |
+| `content[].source`     | `string` | 접근 근거 4종                |
+
+> ⚠️ **사이드바 노출의 유일한 근거**다. 프론트는 메뉴 표시 규칙을 갖지 않고 이 응답만 그린다 — 여기 없는 페이지는 버튼이 뜨지 않는다.
+> ⚠️ `permission: NONE` 은 "버튼은 그리되 접근은 막아라" 는 뜻이다 (부여 전의 `BIDDING` · `FINANCE`).
+> ℹ️ role 마다 반환 집합이 다르다. 없으면 빈 배열.
+
+---
+
+## 99. 페이지 목록 조회 (권한 부여용)
+
+| 항목          | 내용            |
+| ------------- | --------------- |
+| **Method**    | `GET`           |
+| **Path**      | `/api/v1/pages` |
+| **인증 필요** | ✅ (ADMIN)      |
+| **사용 위치** | `features/pagePermission/api.ts` → `getPages()` |
+
+**응답 data** — `content[]`
+
+| 필드                                            | 타입      | 설명                   |
+| ----------------------------------------------- | --------- | ---------------------- |
+| `content[].pageCode` / `.name` / `.description` | `string`  | 페이지 정보            |
+| `content[].accessCount`                         | `int`     | 접근 가능 총 인원      |
+| `content[].grantedCount`                        | `int`     | 명시 부여 인원         |
+| `content[].globalRoleCount`                     | `int`     | 전역권한으로 보는 인원 |
+| `content[].lastModifiedAt`                      | `string?` | 마지막 권한 변경 시각  |
+
+> ⚠️ [98](#98-내-페이지-목록-조회)과 **반환 집합이 다르다** — 여기는 부여 가능한 `BIDDING` · `FINANCE` 2개만 온다.
+
+---
+
+## 100. 페이지 접근 가능자 목록
+
+| 항목          | 내용                                   |
+| ------------- | -------------------------------------- |
+| **Method**    | `GET`                                  |
+| **Path**      | `/api/v1/pages/{pageCode}/permissions` |
+| **인증 필요** | ✅ (ADMIN)                             |
+| **사용 위치** | `features/pagePermission/api.ts` → `getPageAccessors()` |
+
+**응답 data** — 정렬은 `GRANTED` 먼저, 그다음 이름순
+
+| 필드                                            | 타입      | 설명                          |
+| ----------------------------------------------- | --------- | ----------------------------- |
+| `pageCode` / `name`                             | `string`  | 페이지 정보                   |
+| `content[].userId` / `.name`                    | `string`  | 사번 · 이름                   |
+| `content[].departmentPath` / `.jobPositionName` | `string?` | 부서 경로 · 직급              |
+| `content[].role`                                | `string`  | 전역 권한                     |
+| `content[].permission` / `.source`              | `string`  | 등급 · 접근 근거              |
+| `content[].revocable`                           | `boolean` | **`false` 면 회수 대상 아님** |
+| `grantedCount` / `globalRoleCount`              | `int`     | 근거별 집계                   |
+
+| status | code                 | 화면 처리   |
+| ------ | -------------------- | ----------- |
+| 403    | `ACC_ADMIN_REQUIRED` | 권한 없음   |
+| 404    | `PAGE_NOT_FOUND`     | 페이지 없음 |
+
+> ℹ️ 부여 기록 + 전역권한 열람자를 **함께** 내려준다 — "3명 줬는데 왜 5명이 보나" 를 막기 위함이다.
+
+---
+
+## 101. 페이지 권한 부여 · 등급 변경
+
+| 항목          | 내용                                   |
+| ------------- | -------------------------------------- |
+| **Method**    | `POST`                                 |
+| **Path**      | `/api/v1/pages/{pageCode}/permissions` |
+| **인증 필요** | ✅ (ADMIN)                             |
+| **사용 위치** | `features/pagePermission/api.ts` → `grantPagePermissions()` |
+
+**요청 Body**
+
+| 필드                       | 타입       | 필수 | 설명                |
+| -------------------------- | ---------- | ---- | ------------------- |
+| `permissions`              | `Object[]` | ✅   | 1개 이상            |
+| `permissions[].userId`     | `string`   | ✅   | 사번                |
+| `permissions[].permission` | `string`   | ✅   | `VIEWER` · `EDITOR` |
+
+**응답 data** — `pageCode` · `requestedCount` · `grantedCount` · `updatedCount` · `unchangedCount`
+
+| status | code                                                    | 화면 처리                        |
+| ------ | ------------------------------------------------------- | -------------------------------- |
+| 400    | `PAGE_INVALID_REQUEST` · `PAGE_INVALID_PERMISSION`      | 빈 목록 · 허용되지 않는 등급     |
+| 403    | `ACC_ADMIN_REQUIRED` · `ACC_SYSTEM_ACCOUNT_NOT_ALLOWED` | 권한 없음 · ADMIN 대상           |
+| 404    | `PAGE_NOT_FOUND` · `EMP_NOT_FOUND`                      | 없는 사번 포함 → **전체 거부**   |
+
+> ⚠️ **전체 교체가 아니다** — 요청에 없는 사용자는 건드리지 않는다. 회수 불가한 MASTER 가 섞여 있어 `PUT` 이 아닌 `POST` 다.
+> ℹ️ 부여와 등급 변경이 같은 API 다 (이미 있으면 갱신 → `updatedCount`).
+> ℹ️ 그룹으로 부여해도 **개인 단위 스냅샷**으로 저장돼, 이후 그룹 구성원이 바뀌어도 권한은 불변이다.
+
+---
+
+## 102. 페이지 권한 회수
+
+| 항목          | 내용                                            |
+| ------------- | ----------------------------------------------- |
+| **Method**    | `DELETE`                                        |
+| **Path**      | `/api/v1/pages/{pageCode}/permissions/{userId}` |
+| **인증 필요** | ✅ (ADMIN)                                      |
+| **사용 위치** | `features/pagePermission/api.ts` → `revokePagePermission()` |
+
+**응답 data**
+
+| 필드                  | 타입      | 설명                               |
+| --------------------- | --------- | ---------------------------------- |
+| `pageCode` / `userId` | `string`  | 대상                               |
+| `stillAccessible`     | `boolean` | 회수 후에도 접근 가능한지          |
+| `accessSource`        | `string?` | 남은 접근 근거 (예: `GLOBAL_ROLE`) |
+
+| status | code                        | 화면 처리                       |
+| ------ | --------------------------- | ------------------------------- |
+| 403    | `ACC_ADMIN_REQUIRED`        | 권한 없음                       |
+| 404    | `PAGE_NOT_FOUND`            | 페이지 없음                     |
+| 404    | `PAGE_PERMISSION_NOT_FOUND` | 부여 기록이 없어 회수할 것 없음 |
+
+> ⚠️ MASTER 는 회수해도 전역 권한으로 페이지가 계속 보인다 (`stillAccessible: true`) — 화면에서 이 사실을 안내해야 오해가 없다.
 
 ---
 
