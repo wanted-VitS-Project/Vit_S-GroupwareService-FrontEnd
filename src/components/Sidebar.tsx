@@ -25,7 +25,7 @@ export default function Sidebar() {
         모양을 바꿀 때는 두 곳을 함께 고친다.
       */}
       <div className="flex h-15 items-center border-b border-bg-sidebar-hover px-6">
-        <span className="text-heading-l font-bold tracking-tight text-text-white">
+        <span className="text-logo font-bold tracking-tight text-text-white">
           Vita<span className="text-text-primary-blue">S</span>
         </span>
       </div>

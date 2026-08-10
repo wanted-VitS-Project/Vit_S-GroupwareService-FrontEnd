@@ -34,6 +34,8 @@
   --text-label--line-height: 1.5;
   --text-caption: 10px; /* 최소 보조 정보 */
   --text-caption--line-height: 1.5;
+  --text-logo: 22px; /* 워드마크 — 사이드바 · 프로젝트 헤더가 함께 쓴다 */
+  --text-logo--line-height: 1.5;
 
   /* ---------- Font Weight ---------- */
   --font-weight-regular: 400;
@@ -109,6 +111,16 @@
   --color-gray-text: #1f2937;
   --color-gray-text-soft: #374151;
 
+  /* ---------- Step Status ---------- */
+  /*
+   * `GET /projects/{projectId}/steps` 의 `status` 를 색으로 옮긴 값.
+   * 사이드바 스텝 점(접힘 · 펼침) · 스텝 진척 바 · 범례가 **이 셋만** 쓴다 —
+   * 한 군데서만 바꿔도 세 곳이 함께 움직여야 색 뜻이 어긋나지 않는다.
+   */
+  --color-step-not-started: #d1d5db;
+  --color-step-in-progress: #ffb900;
+  --color-step-done: #2563eb;
+
   /* ---------- Button Palette ---------- */
   --color-btn-primary: #2563eb;
   --color-btn-primary-hover: #1d4ed8;
@@ -120,6 +132,24 @@
   --color-btn-gray-text-hover: #4b5563;
   --color-btn-gray-disabled-bg: #e5e7eb;
   --color-btn-gray-disabled-text: #9ca3af;
+
+  /* ---------- Motion ---------- */
+  /*
+   * 프로젝트 사이드바를 접었다 펼 때, 폭이 바뀌는 동안 **내용만** 살짝 띄운다.
+   * 접힘/펼침은 서로 다른 트리라 그냥 갈아끼우면 딱 끊겨 보인다.
+   * 나가는 쪽은 애니메이션하지 않는다 — 그러려면 두 트리를 동시에 들고 있어야 해서
+   * 얻는 것보다 비용이 크다.
+   */
+  --animate-panel-in: panel-in 180ms ease-out;
+
+  @keyframes panel-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 }
 
 /* ============================================================
