@@ -154,6 +154,12 @@ export const ENDPOINTS = {
     /** 이미지 항목 삭제 — 이쪽은 **항목 ID(`imgId`)** 다. 위 경로와 모양만 같다 */
     imageItem: (imgId: number | string) => `${V1}/blocks/images/items/${imgId}`,
     /**
+     * 정산 항목 — 수정 시 조회(GET) · 작성/수정(PATCH).
+     * ⚠️ 둘 다 `?type=INCOME|OUTCOME` 이 **필수**다.
+     */
+    settlementItems: (settleId: number | string) =>
+      `${V1}/blocks/settlements/${settleId}/items`,
+    /**
      * 비타메이트 분석 요청(POST) · 블록별 분석 이력 조회(GET).
      *
      * ⚠️ POST 는 `Idempotency-Key` 헤더가 **필수**다.

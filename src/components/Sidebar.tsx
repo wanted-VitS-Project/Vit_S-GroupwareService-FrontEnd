@@ -40,16 +40,21 @@ export default function Sidebar() {
             헤더 프로필과 같은 크기다 — 이름 18/600 · 부가정보 14/400 (명세).
             소속이 없는 계정(ADMIN 등)은 이름 한 줄만 남아 혼자 커 보인다 — 16px 로 떨어뜨린다.
           */}
-          <p className="flex items-baseline gap-1.5 truncate">
+          {/* 줄이는 쪽(이름)에 `min-w-0` 이 없으면 flex 가 글자 폭 아래로 안 줄여 말줄임이 안 걸린다 */}
+          <p className="flex items-baseline gap-1.5">
             <span
-              className={`font-semibold text-text-white ${
+              className={`min-w-0 truncate font-semibold text-text-white ${
                 hasSubInfo ? 'text-heading-m' : 'text-body-l'
               }`}
             >
               {user.name}
             </span>
+            {/*
+              `shrink-0` 로 이름이 먼저 줄어들게 두되, 상한 없이 두면 긴 직급명이
+              `ChevronIcon` 까지 밀어낸다 — 45% 에서 잘리게 한다.
+            */}
             {user.jobPositionName && (
-              <span className="text-body-m text-text-muted">
+              <span className="max-w-[45%] shrink-0 truncate text-body-m text-text-muted">
                 {user.jobPositionName}
               </span>
             )}

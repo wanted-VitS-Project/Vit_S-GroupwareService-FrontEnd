@@ -49,6 +49,10 @@ const ImageBlock = dynamic(() => import('./ImageBlock'), {
 const AiBlock = dynamic(() => import('@/features/vitamate/AiBlock'), {
   loading: BlockBodyFallback,
 });
+const SettlementBlock = dynamic(
+  () => import('@/features/settlement/SettlementBlock'),
+  { loading: BlockBodyFallback },
+);
 
 /** 클라이언트 이동에서 청크가 늦어도 grid 높이가 0으로 접히지 않게 자리를 유지한다. */
 function BlockBodyFallback() {
@@ -631,6 +635,7 @@ const BlockBody = memo(function BlockBody({
     return <ImageBlock block={block} autoUpload={autoEdit} />;
   if (block.type === 'APPROVAL') return <ApprovalBlock block={block} />;
   if (block.type === 'AI') return <AiBlock block={block} />;
+  if (block.type === 'SETTLEMENT') return <SettlementBlock block={block} />;
 
   // TODO: 유형별 블록 구현 (PAYMENT_CONFIRM · TAX_INVOICE_VIEW · …)
   return (

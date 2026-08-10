@@ -90,7 +90,12 @@ export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
         ref={triggerRef}
         type="button"
         onClick={() => setIsOpen((open) => !open)}
-        aria-haspopup="menu"
+        /**
+         * `role="menu"` 도 `aria-haspopup` 도 쓰지 않는다 — 둘 다 **화살표 키 이동 ·
+         * 항목 포커스 관리**를 함께 구현해야 하는 메뉴 규약이다. 여기는 링크 · 버튼
+         * 하나씩 든 평범한 펼침(disclosure)이라 `aria-expanded` 만으로 충분하고,
+         * 기본 Tab 이동이 더 잘 맞는다.
+         */
         aria-expanded={isOpen}
         className={`flex max-w-60 cursor-pointer items-center gap-3 rounded-sidebar px-2 py-1 ${
           isDark ? 'hover:bg-bg-sidebar-hover' : 'hover:bg-bg-hover'
@@ -105,8 +110,9 @@ export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
 
         <span className="min-w-0 text-left">
           <span className="flex items-baseline gap-1.5">
+            {/* `min-w-0` 이 없으면 flex 가 글자 폭 아래로 안 줄여 말줄임이 안 걸린다 */}
             <span
-              className={`truncate font-semibold ${
+              className={`min-w-0 truncate font-semibold ${
                 hasSubInfo ? 'text-heading-m' : 'text-body-l'
               } ${isDark ? 'text-text-white' : 'text-text-primary'}`}
             >
@@ -139,13 +145,11 @@ export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
       {isOpen && (
         // 어두운 헤더 위에서도 떠 있는 판이라 흰 배경을 유지한다
         <div
-          role="menu"
           aria-label="내 계정"
           className="absolute top-full right-0 z-20 mt-2 min-w-45 overflow-hidden rounded-base border border-border-default bg-bg-card shadow-lg"
         >
           <Link
             href="/mypage"
-            role="menuitem"
             onClick={() => setIsOpen(false)}
             className="block px-4 py-2.5 text-body-m text-text-primary hover:bg-bg-hover"
           >
@@ -154,7 +158,6 @@ export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
 
           <button
             type="button"
-            role="menuitem"
             onClick={handleLogout}
             disabled={isPending}
             className="block w-full cursor-pointer border-t border-border-default px-4 py-2.5 text-left text-body-m text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
