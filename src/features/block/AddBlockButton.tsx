@@ -1,9 +1,16 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useState } from 'react';
 
-import AddBlockModal from './AddBlockModal';
+import ModalLoadingFallback from '@/components/ModalLoadingFallback';
+
 import type { StepBlock } from './types';
+
+const loadAddBlockModal = () => import('./AddBlockModal');
+const AddBlockModal = dynamic(loadAddBlockModal, {
+  loading: () => <ModalLoadingFallback title="Block 추가" />,
+});
 
 /** 스텝 화면 블록 목록 헤더의 `Block 추가` 버튼. */
 export default function AddBlockButton({
@@ -25,6 +32,8 @@ export default function AddBlockButton({
     <>
       <button
         type="button"
+        onPointerEnter={() => void loadAddBlockModal()}
+        onFocus={() => void loadAddBlockModal()}
         onClick={() => setIsOpen(true)}
         className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-btn-primary px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover"
       >

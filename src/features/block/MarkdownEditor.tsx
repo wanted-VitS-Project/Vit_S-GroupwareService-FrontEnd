@@ -46,9 +46,12 @@ function toMarkdown(editor: Editor) {
 export default function MarkdownEditor({
   value,
   onChange,
+  onReady,
 }: {
   value: string;
   onChange: (markdown: string) => void;
+  /** 파싱 후 최초 직렬화 값을 넘겨 dirty 비교 기준을 에디터와 맞춘다. */
+  onReady?: (normalizedMarkdown: string) => void;
 }) {
   const editor = useEditor({
     extensions: [StarterKit, Markdown],
@@ -61,6 +64,7 @@ export default function MarkdownEditor({
         'aria-label': '텍스트 블록 본문',
       },
     },
+    onCreate: ({ editor: current }) => onReady?.(toMarkdown(current)),
     onUpdate: ({ editor: current }) => onChange(toMarkdown(current)),
   });
 

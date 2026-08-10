@@ -5,12 +5,12 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import Modal from '@/components/Modal';
+import ModalLoadingFallback from '@/components/ModalLoadingFallback';
 import {
   downloadVersion,
   getBlockFiles,
   renameFile,
 } from '@/features/file/api';
-import DuplicateNameModal from '@/features/file/DuplicateNameModal';
 import { preloadPdfViewer } from '@/features/file/pdfViewer';
 import {
   cancelPreviewPrefetch,
@@ -21,7 +21,6 @@ import {
   extensionStyle,
   formatFileSize,
 } from '@/features/file/format';
-import TrashFileModal from '@/features/file/TrashFileModal';
 import type { BlockFile, BlockFilesResponse } from '@/features/file/types';
 import { FILE_NAME_MAX_LENGTH } from '@/features/file/types';
 import {
@@ -44,6 +43,20 @@ const FileViewerModal = dynamic(
   () => import('@/features/file/FileViewerModal'),
   { ssr: false, loading: () => <FileViewerFallback /> },
 );
+const loadDuplicateNameModal = () =>
+  import('@/features/file/DuplicateNameModal');
+const loadTrashFileModal = () => import('@/features/file/TrashFileModal');
+const DuplicateNameModal = dynamic(loadDuplicateNameModal, {
+  loading: () => <ModalLoadingFallback title="같은 이름의 문서 확인" />,
+});
+const TrashFileModal = dynamic(loadTrashFileModal, {
+  loading: () => <ModalLoadingFallback title="휴지통으로 이동" />,
+});
+
+function preloadFileModals() {
+  preloadViewer();
+  void loadTrashFileModal();
+}
 
 /**
  * 청크가 아직 도착하지 않았을 때의 자리.
@@ -162,6 +175,7 @@ export default function FileBlock({ block }: { block: StepBlock }) {
   }
 
   function pickFile(fileId?: number) {
+    void loadDuplicateNameModal();
     versionTargetId.current = fileId;
     setErrorMessage('');
     pickerRef.current?.click();
@@ -245,7 +259,10 @@ export default function FileBlock({ block }: { block: StepBlock }) {
             </p>
           ) : (
             // 열기 직전 신호 — 여기서 뷰어 청크·pdf.js 워커를 미리 받아 둔다
-            <ul onPointerEnter={preloadViewer} className="flex flex-col gap-1">
+            <ul
+              onPointerEnter={preloadFileModals}
+              className="flex flex-col gap-1"
+            >
               {files.map((file) => (
                 <FileRow
                   key={file.fileId}

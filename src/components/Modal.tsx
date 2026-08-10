@@ -26,6 +26,10 @@ const BASE_PANEL = 'm-auto bg-white backdrop:bg-text-primary/50';
 /** className 을 넘기지 않을 때의 크기 · 여백 */
 const DEFAULT_PANEL = 'w-full max-w-sm rounded-xl p-8 shadow-lg';
 
+/** 확인 모달이 편집 모달 위에 겹쳐도 먼저 닫힌 모달이 스크롤 잠금을 풀지 않게 한다. */
+let openModalCount = 0;
+let originalBodyOverflow = '';
+
 /**
  * 네이티브 <dialog> 기반 모달.
  * 포커스 트랩 · 초기 포커스 · 닫힐 때 트리거로 복귀 · 배경 비활성화를 브라우저가 처리한다.
@@ -45,11 +49,15 @@ export default function Modal({
     dialog?.showModal();
 
     // 열려 있는 동안 배경 스크롤을 막는다
-    const { overflow } = document.body.style;
+    if (openModalCount === 0)
+      originalBodyOverflow = document.body.style.overflow;
+    openModalCount += 1;
     document.body.style.overflow = 'hidden';
 
     return () => {
-      document.body.style.overflow = overflow;
+      openModalCount = Math.max(0, openModalCount - 1);
+      if (openModalCount === 0)
+        document.body.style.overflow = originalBodyOverflow;
       dialog?.close();
     };
   }, []);

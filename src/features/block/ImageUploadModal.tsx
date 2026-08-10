@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import Modal from '@/components/Modal';
 import { messageOf } from '@/lib/api';
 import { useFlipReorder } from '@/lib/useFlipReorder';
@@ -53,6 +54,7 @@ export default function ImageUploadModal({
   const [queued, setQueued] = useState<QueuedImage[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState(false);
   const pickerRef = useRef<HTMLInputElement>(null);
   const [isDropping, setIsDropping] = useState(false);
   /** 순서 변경용 — 끌고 있는 항목과 지금 올라가 있는 항목 */
@@ -65,6 +67,12 @@ export default function ImageUploadModal({
   useDragAutoScroll(draggingKey !== null, listRef, MODAL_AUTO_SCROLL);
   /** 다음 항목에 붙일 일련번호. 뺐다 다시 담아도 값이 겹치지 않는다 */
   const nextKeyRef = useRef(0);
+
+  function requestClose() {
+    if (isUploading) return;
+    if (queued.length > 0) setIsLeaveConfirmOpen(true);
+    else onClose();
+  }
 
   // 미리보기 object URL 은 모달이 닫힐 때 한 번에 정리한다
   const queuedRef = useRef<QueuedImage[]>([]);
@@ -165,189 +173,202 @@ export default function ImageUploadModal({
   }
 
   return (
-    <Modal
-      title="이미지 등록"
-      onClose={isUploading ? undefined : onClose}
-      className="flex max-h-[85vh] w-full max-w-[480px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
-      header={
-        <div className="flex shrink-0 items-center justify-between border-b border-border-default px-5 py-3.5">
-          <h2 className="text-sm font-semibold text-text-primary">
-            이미지 등록
-          </h2>
+    <>
+      <Modal
+        title="이미지 등록"
+        onClose={isUploading ? undefined : requestClose}
+        className="flex max-h-[85vh] w-full max-w-[480px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
+        header={
+          <div className="flex shrink-0 items-center justify-between border-b border-border-default px-5 py-3.5">
+            <h2 className="text-sm font-semibold text-text-primary">
+              이미지 등록
+            </h2>
+            <button
+              type="button"
+              aria-label="닫기"
+              disabled={isUploading}
+              onClick={requestClose}
+              className="cursor-pointer text-text-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              ✕
+            </button>
+          </div>
+        }
+      >
+        {/* 스크롤바는 감추고 스크롤은 그대로 둔다 — 목록이 길어져도 폭이 흔들리지 않는다 */}
+        <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto p-5">
           <button
             type="button"
-            aria-label="닫기"
-            disabled={isUploading}
-            onClick={onClose}
-            className="cursor-pointer text-text-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={() => pickerRef.current?.click()}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setIsDropping(true);
+            }}
+            onDragLeave={() => setIsDropping(false)}
+            onDrop={(event) => {
+              event.preventDefault();
+              setIsDropping(false);
+              addFiles(event.dataTransfer.files);
+            }}
+            className={`flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed px-4 py-6 ${
+              isDropping
+                ? 'border-border-primary bg-blue-bg-soft'
+                : 'border-border-default hover:border-border-primary/40 hover:bg-bg-surface'
+            }`}
           >
-            ✕
+            <span className="text-xs font-semibold text-text-primary">
+              파일을 드래그하거나 클릭하여 업로드
+            </span>
+            <span className="text-[10px] text-text-secondary">
+              JPG, PNG, GIF, WEBP · 최대 10MB
+            </span>
+          </button>
+
+          <input
+            ref={pickerRef}
+            type="file"
+            multiple
+            accept={IMAGE_ACCEPT}
+            aria-label="이미지 파일 선택"
+            className="hidden"
+            onChange={(event) => {
+              addFiles(event.target.files);
+              // 같은 파일을 다시 고를 수 있게 값을 비운다
+              event.target.value = '';
+            }}
+          />
+
+          {queued.length > 0 && (
+            <div ref={listRef} className="mt-4 flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[10px] font-semibold text-text-primary">
+                  {queued.length}개 파일 선택됨
+                </p>
+                {queued.length > 1 && (
+                  <p className="text-[10px] text-text-secondary">
+                    왼쪽 핸들을 드래그해 순서를 바꿀 수 있어요
+                  </p>
+                )}
+              </div>
+              {queued.map((item, index) => (
+                <div
+                  key={item.key}
+                  ref={slide.register(item.key)}
+                  draggable={!isUploading}
+                  onDragStart={(event) => {
+                    // 파일 드롭 존과 같은 모달이라 파일 드래그로 오해되지 않게 표시해 둔다
+                    event.dataTransfer.effectAllowed = 'move';
+                    setDraggingKey(item.key);
+                  }}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setHoverKey(item.key);
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    moveQueued(draggingKey, item.key);
+                  }}
+                  onDragEnd={() => {
+                    setDraggingKey(null);
+                    setHoverKey(null);
+                  }}
+                  className={`flex items-center gap-2 rounded-lg border p-2 ${
+                    hoverKey === item.key && draggingKey !== item.key
+                      ? 'border-border-primary/50 bg-blue-bg-soft'
+                      : 'border-border-default bg-bg-surface'
+                  } ${draggingKey === item.key ? 'opacity-40' : ''}`}
+                >
+                  <span
+                    aria-hidden
+                    className="flex shrink-0 cursor-grab flex-col gap-0.5 text-text-muted active:cursor-grabbing"
+                  >
+                    {[0, 1, 2].map((row) => (
+                      <span key={row} className="flex gap-0.5">
+                        <span className="size-1 rounded-full bg-current" />
+                        <span className="size-1 rounded-full bg-current" />
+                      </span>
+                    ))}
+                  </span>
+
+                  {/* eslint-disable-next-line @next/next/no-img-element -- 로컬 object URL 미리보기라 최적화 대상이 아니다 */}
+                  <img
+                    src={item.previewUrl}
+                    alt=""
+                    className="size-10 shrink-0 rounded-md bg-bg-hover object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[11px] font-medium text-text-primary">
+                      {index + 1}. {item.file.name}
+                    </p>
+                    <input
+                      value={item.caption}
+                      maxLength={IMAGE_CAPTION_MAX_LENGTH}
+                      aria-label={`${item.file.name} 캡션`}
+                      placeholder="캡션 입력 (선택)"
+                      onChange={(event) =>
+                        setQueued((previous) =>
+                          previous.map((current) =>
+                            current.key === item.key
+                              ? { ...current, caption: event.target.value }
+                              : current,
+                          ),
+                        )
+                      }
+                      className="mt-1 w-full rounded border border-border-default bg-white px-2 py-1 text-[10px] text-text-primary outline-none placeholder:text-text-muted focus:border-border-primary"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    aria-label={`${item.file.name} 목록에서 빼기`}
+                    disabled={isUploading}
+                    onClick={() => removeQueued(item.key)}
+                    className="shrink-0 cursor-pointer px-1 text-[11px] text-text-secondary hover:text-text-danger disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {errorMessage && (
+            <p role="alert" className="mt-3 text-[10px] text-text-danger">
+              {errorMessage}
+            </p>
+          )}
+        </div>
+
+        <div className="flex shrink-0 justify-end gap-2 border-t border-border-default bg-bg-surface px-5 py-3.5">
+          <button
+            type="button"
+            onClick={requestClose}
+            disabled={isUploading}
+            className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            취소
+          </button>
+          <button
+            type="button"
+            onClick={upload}
+            disabled={queued.length === 0 || isUploading}
+            className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+          >
+            {isUploading ? '올리는 중…' : `등록하기 (${queued.length})`}
           </button>
         </div>
-      }
-    >
-      {/* 스크롤바는 감추고 스크롤은 그대로 둔다 — 목록이 길어져도 폭이 흔들리지 않는다 */}
-      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto p-5">
-        <button
-          type="button"
-          onClick={() => pickerRef.current?.click()}
-          onDragOver={(event) => {
-            event.preventDefault();
-            setIsDropping(true);
-          }}
-          onDragLeave={() => setIsDropping(false)}
-          onDrop={(event) => {
-            event.preventDefault();
-            setIsDropping(false);
-            addFiles(event.dataTransfer.files);
-          }}
-          className={`flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed px-4 py-6 ${
-            isDropping
-              ? 'border-border-primary bg-blue-bg-soft'
-              : 'border-border-default hover:border-border-primary/40 hover:bg-bg-surface'
-          }`}
-        >
-          <span className="text-xs font-semibold text-text-primary">
-            파일을 드래그하거나 클릭하여 업로드
-          </span>
-          <span className="text-[10px] text-text-secondary">
-            JPG, PNG, GIF, WEBP · 최대 10MB
-          </span>
-        </button>
-
-        <input
-          ref={pickerRef}
-          type="file"
-          multiple
-          accept={IMAGE_ACCEPT}
-          aria-label="이미지 파일 선택"
-          className="hidden"
-          onChange={(event) => {
-            addFiles(event.target.files);
-            // 같은 파일을 다시 고를 수 있게 값을 비운다
-            event.target.value = '';
-          }}
+      </Modal>
+      {isLeaveConfirmOpen && (
+        <AlertDialogTwoButton
+          icon={DialogIcons.warning}
+          title="이미지 등록을 취소할까요?"
+          description={`선택한 이미지 ${queued.length}개와 입력한 캡션은 사라집니다.`}
+          confirmLabel="나가기"
+          isDanger
+          onConfirm={onClose}
+          onCancel={() => setIsLeaveConfirmOpen(false)}
         />
-
-        {queued.length > 0 && (
-          <div ref={listRef} className="mt-4 flex flex-col gap-2">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[10px] font-semibold text-text-primary">
-                {queued.length}개 파일 선택됨
-              </p>
-              {queued.length > 1 && (
-                <p className="text-[10px] text-text-secondary">
-                  왼쪽 핸들을 드래그해 순서를 바꿀 수 있어요
-                </p>
-              )}
-            </div>
-            {queued.map((item, index) => (
-              <div
-                key={item.key}
-                ref={slide.register(item.key)}
-                draggable={!isUploading}
-                onDragStart={(event) => {
-                  // 파일 드롭 존과 같은 모달이라 파일 드래그로 오해되지 않게 표시해 둔다
-                  event.dataTransfer.effectAllowed = 'move';
-                  setDraggingKey(item.key);
-                }}
-                onDragOver={(event) => {
-                  event.preventDefault();
-                  setHoverKey(item.key);
-                }}
-                onDrop={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  moveQueued(draggingKey, item.key);
-                }}
-                onDragEnd={() => {
-                  setDraggingKey(null);
-                  setHoverKey(null);
-                }}
-                className={`flex items-center gap-2 rounded-lg border p-2 ${
-                  hoverKey === item.key && draggingKey !== item.key
-                    ? 'border-border-primary/50 bg-blue-bg-soft'
-                    : 'border-border-default bg-bg-surface'
-                } ${draggingKey === item.key ? 'opacity-40' : ''}`}
-              >
-                <span
-                  aria-hidden
-                  className="flex shrink-0 cursor-grab flex-col gap-0.5 text-text-muted active:cursor-grabbing"
-                >
-                  {[0, 1, 2].map((row) => (
-                    <span key={row} className="flex gap-0.5">
-                      <span className="size-1 rounded-full bg-current" />
-                      <span className="size-1 rounded-full bg-current" />
-                    </span>
-                  ))}
-                </span>
-
-                {/* eslint-disable-next-line @next/next/no-img-element -- 로컬 object URL 미리보기라 최적화 대상이 아니다 */}
-                <img
-                  src={item.previewUrl}
-                  alt=""
-                  className="size-10 shrink-0 rounded-md bg-bg-hover object-cover"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[11px] font-medium text-text-primary">
-                    {index + 1}. {item.file.name}
-                  </p>
-                  <input
-                    value={item.caption}
-                    maxLength={IMAGE_CAPTION_MAX_LENGTH}
-                    aria-label={`${item.file.name} 캡션`}
-                    placeholder="캡션 입력 (선택)"
-                    onChange={(event) =>
-                      setQueued((previous) =>
-                        previous.map((current) =>
-                          current.key === item.key
-                            ? { ...current, caption: event.target.value }
-                            : current,
-                        ),
-                      )
-                    }
-                    className="mt-1 w-full rounded border border-border-default bg-white px-2 py-1 text-[10px] text-text-primary outline-none placeholder:text-text-muted focus:border-border-primary"
-                  />
-                </div>
-                <button
-                  type="button"
-                  aria-label={`${item.file.name} 목록에서 빼기`}
-                  disabled={isUploading}
-                  onClick={() => removeQueued(item.key)}
-                  className="shrink-0 cursor-pointer px-1 text-[11px] text-text-secondary hover:text-text-danger disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {errorMessage && (
-          <p role="alert" className="mt-3 text-[10px] text-text-danger">
-            {errorMessage}
-          </p>
-        )}
-      </div>
-
-      <div className="flex shrink-0 justify-end gap-2 border-t border-border-default bg-bg-surface px-5 py-3.5">
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={isUploading}
-          className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          취소
-        </button>
-        <button
-          type="button"
-          onClick={upload}
-          disabled={queued.length === 0 || isUploading}
-          className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
-        >
-          {isUploading ? '올리는 중…' : `등록하기 (${queued.length})`}
-        </button>
-      </div>
-    </Modal>
+      )}
+    </>
   );
 }

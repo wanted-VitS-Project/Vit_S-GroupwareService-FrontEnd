@@ -65,7 +65,90 @@
 
 ---
 
-## [2026-08-10] 공용 다이얼로그 · 오류 화면 · 헤더/사이드바 정리 🚧
+## [2026-08-10] 프로젝트·블록 공용 모달 적용 및 이탈 방지 ✅
+
+브랜치: `ref-ys` · 이슈: #92
+
+### 변경 파일
+
+| 파일                                       | 변경                                       |
+| ------------------------------------------ | ------------------------------------------ |
+| `src/components/AlertDialog.tsx`           | 수정 (비동기 상태·오류·복합 설명 지원)     |
+| `src/components/Modal.tsx`                 | 수정 (중첩 모달 스크롤 잠금 안전성 보강)   |
+| `src/app/projects/error.tsx`               | 생성 (프로젝트 라우트 오류 경계)           |
+| `src/features/project/MyProjectList.tsx`   | 수정 (목록 실패 → 공용 오류 화면)          |
+| `src/features/block/StepBlocks.tsx`        | 수정 (블록 조회 실패 → 공용 오류 화면)     |
+| `src/features/block/BlockDeleteModal.tsx`  | 수정 (공용 투버튼 다이얼로그 적용)         |
+| `src/features/issue/DeleteIssueModal.tsx`  | 수정 (공용 투버튼 다이얼로그 적용)         |
+| `src/features/file/TrashFileModal.tsx`     | 수정 (공용 투버튼 다이얼로그 적용)         |
+| `src/features/file/DuplicateNameModal.tsx` | 수정 (공용 투버튼 다이얼로그 적용)         |
+| `src/features/block/BlockEditModal.tsx`    | 수정 (저장 확인·변경사항 이탈 경고)        |
+| `src/features/block/TextBlockModal.tsx`    | 수정 (저장 확인·변경사항 이탈 경고)        |
+| `src/features/block/MarkdownEditor.tsx`    | 수정 (최초 Markdown 정규화 값 전달)        |
+| `src/features/block/ImageEditModal.tsx`    | 수정 (저장·삭제 확인·변경사항 이탈 경고)   |
+| `src/features/block/ImageUploadModal.tsx`  | 수정 (선택 이미지 이탈 경고)               |
+| `src/features/block/AddBlockModal.tsx`     | 수정 (입력 중 이탈 경고·요청 중 닫기 방지) |
+
+### 주요 작업 내용
+
+- 블록·이슈 삭제, 문서 휴지통 이동, 중복 문서 확인을 공용 `AlertDialogTwoButton`으로 통일
+- 블록 기본정보·텍스트·이미지 수정 저장 전에 공용 확인 모달을 표시하고 이미지 삭제 예정 수를 함께 안내
+- 닫기 버튼·취소·ESC·배경 클릭을 하나의 `requestClose` 경로로 통합하고 변경사항이 있으면 이탈 경고 표시
+- 프로젝트 라우트 오류 경계와 프로젝트 목록·블록 목록 조회 실패 화면을 공용 `ErrorStateTwoButton`에 연결
+- 편집 모달 위에 확인 모달이 겹쳐도 배경 스크롤 잠금이 먼저 해제되지 않도록 열린 모달 수를 추적
+- TipTap 최초 직렬화 결과를 본문 변경 기준으로 사용해 Markdown 표기 차이에 따른 이탈 경고 오탐 방지
+
+### 트러블슈팅
+
+- **문제**: 원문의 공백·줄바꿈·Markdown 표기가 TipTap 직렬화 결과와 다르면 수정하지 않아도 `isDirty`가 될 수 있음
+- **원인**: 서버 원문과 에디터가 정규화한 Markdown을 직접 비교함
+- **해결**: `MarkdownEditor`의 `onCreate`에서 최초 직렬화 값을 전달하고 본문과 dirty 기준을 함께 정규화
+
+### 부수 결정
+
+- 저장 요청 중에는 확인·이탈 모달을 열지 않고 기존 모달의 모든 닫기 경로를 차단한다
+- 변경하지 않은 편집 화면에서 저장 또는 닫기를 누르면 확인 없이 종료한다
+- 이미지 등록과 블록 추가는 저장 확인 대상이 아니라 생성 전 입력을 잃지 않도록 이탈 경고만 적용한다
+
+---
+
+## [2026-08-10] 프로젝트 블록 코드 스플리팅 ✅
+
+브랜치: `ref-ys` · 이슈: #90
+
+### 변경 파일
+
+| 파일                                      | 변경                                      |
+| ----------------------------------------- | ----------------------------------------- |
+| `src/components/ModalLoadingFallback.tsx` | 생성 (동적 모달 고정 크기 로딩 화면)      |
+| `src/features/block/BlockBoard.tsx`       | 수정 (결재 제외 블록 유형별 동적 로딩)    |
+| `src/features/block/AddBlockButton.tsx`   | 수정 (블록 추가 모달 동적·선행 로딩)      |
+| `src/features/block/BlockCard.tsx`        | 수정 (편집·삭제·이슈·활동 로그 동적 로딩) |
+| `src/features/block/TextBlock.tsx`        | 수정 (TipTap 읽기·편집 청크 분리)         |
+| `src/features/issue/IssueBoard.tsx`       | 수정 (이슈 생성·수정·상세 모달 동적 로딩) |
+| `src/features/block/BlockIssuesPanel.tsx` | 수정 (이슈 상세 모달 동적 로딩)           |
+| `src/features/block/ImageBlock.tsx`       | 수정 (등록·수정·라이트박스 동적 로딩)     |
+| `src/features/block/FileBlock.tsx`        | 수정 (중복 확인·휴지통 모달 동적 로딩)    |
+| `src/features/vitamate/AiBlock.tsx`       | 수정 (분석 실행·이력 패널 동적 로딩)      |
+
+### 주요 작업 내용
+
+- 결재 블록은 기존 정적 로딩을 유지하고 나머지 구현 블록을 유형별 청크로 분리
+- 사용자 동작 후 열리는 블록 추가·편집·삭제·이슈·로그·이미지·파일·AI 모달을 동적 로딩으로 전환
+- 이슈 보드의 생성·수정·상세 모달과 블록 이슈 패널 내부 상세 모달을 별도 청크로 분리
+- 버튼 hover/focus 또는 카드 pointer 진입 시 청크를 선행 로딩해 클릭 시 체감 지연 최소화
+- 블록과 모달 청크 로딩 중 기존 크기를 유지하는 fallback을 제공해 화면 접힘·흔들림 방지
+- 최대 JS 청크를 빌드 기준 약 648KB에서 505KB로 축소
+
+### 부수 결정
+
+- 즉시 노출되는 블록 본문은 SSR을 유지해 첫 렌더 결과와 접근성 구조를 보존
+- 작은 아이콘·상태 컴포넌트는 청크 요청 오버헤드가 더 커 동적 로딩 대상에서 제외
+- 결재 블록은 사용자 요청에 따라 이번 코드 스플리팅 범위에서 제외
+
+---
+
+## [2026-08-10] 공용 다이얼로그 · 오류 화면 · 헤더/사이드바 정리 ✅
 
 브랜치: `feat/common-dialog` · 이슈: #87
 

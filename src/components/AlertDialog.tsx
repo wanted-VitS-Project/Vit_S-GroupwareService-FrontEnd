@@ -36,7 +36,9 @@ import Modal from './Modal';
 interface AlertDialogProps {
   icon: React.ReactNode;
   title: string;
-  description?: string;
+  description?: React.ReactNode;
+  /** 요청 실패처럼 사용자가 바로 알아야 하는 부가 안내 */
+  errorMessage?: string;
 }
 
 /** 알림형. 고를 것이 없어 확인 하나만 두고 폭을 꽉 채운다 */
@@ -44,10 +46,13 @@ export function AlertDialogOneButton({
   icon,
   title,
   description,
+  errorMessage,
   confirmLabel = '확인',
+  isBusy = false,
   onConfirm,
 }: AlertDialogProps & {
   confirmLabel?: string;
+  isBusy?: boolean;
   onConfirm: () => void;
 }) {
   return (
@@ -56,11 +61,13 @@ export function AlertDialogOneButton({
       icon={icon}
       title={title}
       description={description}
+      errorMessage={errorMessage}
       onClose={onConfirm}
     >
       <button
         type="button"
         onClick={onConfirm}
+        disabled={isBusy}
         className="btn btn-primary w-full"
       >
         {confirmLabel}
@@ -74,6 +81,7 @@ export function AlertDialogTwoButton({
   icon,
   title,
   description,
+  errorMessage,
   confirmLabel = '확인',
   cancelLabel = '취소',
   isDanger = false,
@@ -99,6 +107,7 @@ export function AlertDialogTwoButton({
       icon={icon}
       title={title}
       description={description}
+      errorMessage={errorMessage}
       onClose={isBusy ? undefined : onCancel}
     >
       <button
@@ -126,6 +135,7 @@ function Shell({
   icon,
   title,
   description,
+  errorMessage,
   onClose,
   children,
 }: AlertDialogProps & {
@@ -146,8 +156,16 @@ function Shell({
           {title}
         </h2>
         {description && (
-          <p className="mt-3 text-heading-m text-text-secondary">
+          <div className="mt-3 text-heading-m text-text-secondary">
             {description}
+          </div>
+        )}
+        {errorMessage && (
+          <p
+            role="alert"
+            className="text-body-s mt-3 rounded-lg bg-red-bg-soft px-3 py-2 text-text-danger"
+          >
+            {errorMessage}
           </p>
         )}
       </div>
