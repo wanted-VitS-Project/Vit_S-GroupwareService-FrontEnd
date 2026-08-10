@@ -197,10 +197,10 @@ export default function AnalysisRunModal({
        * 패널이 커졌다 작아지면 버튼 위치가 흔들려 잘못 누르게 된다.
        * 남거나 모자란 만큼은 본문이 안에서 스크롤한다.
        */
-      className="flex h-[560px] max-h-[85vh] w-full max-w-[620px] flex-col overflow-hidden rounded-xl border border-[#1C1F2A]/10 shadow-2xl"
+      className="flex h-[560px] max-h-[85vh] w-full max-w-[620px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
       header={
-        <div className="flex items-center justify-between gap-2 border-b border-[#1C1F2A]/10 px-5 py-3.5">
-          <h2 className="text-sm font-semibold text-[#1C1F2A]">
+        <div className="flex items-center justify-between gap-2 border-b border-border-default px-5 py-3.5">
+          <h2 className="text-sm font-semibold text-text-primary">
             비타메이트 검토 실행
           </h2>
           <button
@@ -208,7 +208,7 @@ export default function AnalysisRunModal({
             onClick={requestClose}
             disabled={isSubmitting}
             aria-label="닫기"
-            className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-[#6C7389] hover:bg-[#ECEEF4] disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
           >
             ✕
           </button>
@@ -220,10 +220,10 @@ export default function AnalysisRunModal({
           {reviewTypes === null ? (
             <div
               aria-hidden
-              className="h-7 animate-pulse rounded bg-[#ECEEF4]"
+              className="h-7 animate-pulse rounded bg-bg-hover"
             />
           ) : reviewTypes.length === 0 ? (
-            <p className="text-[10px] text-[#6C7389]">
+            <p className="text-[10px] text-text-secondary">
               검토 유형을 불러오지 못했습니다.
             </p>
           ) : (
@@ -242,8 +242,8 @@ export default function AnalysisRunModal({
                   onClick={() => changeType(type.reviewType)}
                   className={`cursor-pointer rounded-md border px-2.5 py-1 text-[11px] font-medium ${
                     type.reviewType === effectiveType
-                      ? 'border-[#4F39F6] bg-[#EEF2FF] text-[#4F39F6]'
-                      : 'border-[#1C1F2A]/10 text-[#6C7389] hover:bg-[#ECEEF4]/50'
+                      ? 'border-[#4F39F6] bg-blue-bg-soft text-[#4F39F6]'
+                      : 'border-border-default text-text-secondary hover:bg-bg-surface'
                   }`}
                 >
                   {type.reviewTypeName}
@@ -262,8 +262,8 @@ export default function AnalysisRunModal({
                   title={category.guideText}
                   className={`flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] ${
                     selectedCategories.includes(category.categoryCode)
-                      ? 'border-[#4F39F6] bg-[#EEF2FF] text-[#4F39F6]'
-                      : 'border-[#1C1F2A]/10 text-[#6C7389] hover:bg-[#ECEEF4]/50'
+                      ? 'border-[#4F39F6] bg-blue-bg-soft text-[#4F39F6]'
+                      : 'border-border-default text-text-secondary hover:bg-bg-surface'
                   }`}
                 >
                   <input
@@ -304,7 +304,7 @@ export default function AnalysisRunModal({
           />
         </div>
         {versionsError && (
-          <p className="text-[10px] text-[#E7000B]">{versionsError}</p>
+          <p className="text-[10px] text-text-danger">{versionsError}</p>
         )}
 
         {/* 카운터는 `maxLength` 와 같은 기준(원문 길이)이어야 한다 — 공백을 뺀 수를
@@ -323,7 +323,7 @@ export default function AnalysisRunModal({
               setPrompt(event.target.value);
             }}
             placeholder="카테고리를 고르면 기본 문구가 채워져요. 필요한 만큼 고쳐서 쓰세요."
-            className="w-full resize-none rounded-md border border-[#1C1F2A]/10 bg-[#F8FAFC] px-2.5 py-2 text-[11px] leading-relaxed text-[#1C1F2A] focus:border-[#4F39F6] focus:outline-none"
+            className="w-full resize-none rounded-md border border-border-default bg-bg-surface px-2.5 py-2 text-[11px] leading-relaxed text-text-primary focus:border-[#4F39F6] focus:outline-none"
           />
           {currentType && selectedCategories.length > 0 && (
             <ul className="mt-1 flex flex-col gap-0.5">
@@ -335,7 +335,7 @@ export default function AnalysisRunModal({
                 .map((category) => (
                   <li
                     key={category.categoryCode}
-                    className="text-[9px] break-keep text-[#6C7389]"
+                    className="text-[9px] break-keep text-text-secondary"
                   >
                     · {category.guideText}
                   </li>
@@ -345,7 +345,7 @@ export default function AnalysisRunModal({
         </Field>
 
         {error && (
-          <p role="alert" className="text-[11px] text-[#E7000B]">
+          <p role="alert" className="text-[11px] text-text-danger">
             {error}
           </p>
         )}
@@ -354,7 +354,7 @@ export default function AnalysisRunModal({
       <ModalFooter>
         {/* 줄바꿈되면 푸터 높이가 늘어 버튼이 밀린다 — 한 줄로 묶는다 */}
         {blocker && (
-          <span className="mr-auto min-w-0 truncate text-[10px] text-[#6C7389]">
+          <span className="mr-auto min-w-0 truncate text-[10px] text-text-secondary">
             {blocker}
           </span>
         )}
@@ -362,7 +362,7 @@ export default function AnalysisRunModal({
           type="button"
           onClick={requestClose}
           disabled={isSubmitting}
-          className="cursor-pointer rounded-md border border-[#1C1F2A]/15 px-3 py-1.5 text-[11px] font-medium text-[#6C7389] hover:bg-[#ECEEF4] disabled:cursor-not-allowed disabled:opacity-40"
+          className="cursor-pointer rounded-md border border-border-default px-3 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
         >
           취소
         </button>
@@ -444,8 +444,8 @@ function Field({
   return (
     <section>
       <div className="mb-1.5 flex items-baseline justify-between gap-2">
-        <h3 className="text-[11px] font-semibold text-[#1C1F2A]">{label}</h3>
-        {hint && <span className="text-[9px] text-[#6C7389]">{hint}</span>}
+        <h3 className="text-[11px] font-semibold text-text-primary">{label}</h3>
+        {hint && <span className="text-[9px] text-text-secondary">{hint}</span>}
       </div>
       {children}
     </section>
@@ -471,7 +471,7 @@ function DocumentField({
       <button
         type="button"
         onClick={onPick}
-        className="w-full cursor-pointer rounded-md border border-dashed border-[#1C1F2A]/20 py-1.5 text-[10px] font-medium text-[#6C7389] hover:border-[#4F39F6] hover:text-[#4F39F6]"
+        className="w-full cursor-pointer rounded-md border border-dashed border-border-default py-1.5 text-[10px] font-medium text-text-secondary hover:border-[#4F39F6] hover:text-[#4F39F6]"
       >
         + 문서 선택 {ids.length > 0 && `(${ids.length})`}
       </button>
@@ -486,7 +486,7 @@ function DocumentField({
             return (
               <li
                 key={id}
-                className="flex max-w-full items-center gap-1 rounded border border-[#1C1F2A]/10 bg-[#F8FAFC] py-0.5 pr-1 pl-1.5"
+                className="flex max-w-full items-center gap-1 rounded border border-border-default bg-bg-surface py-0.5 pr-1 pl-1.5"
               >
                 <span
                   style={{ color: style.text }}
@@ -494,14 +494,14 @@ function DocumentField({
                 >
                   {extensionLabel(version?.extension ?? '')}
                 </span>
-                <span className="min-w-0 truncate text-[10px] text-[#1C1F2A]">
+                <span className="min-w-0 truncate text-[10px] text-text-primary">
                   {version ? `${version.name} v${version.versionNo}` : `#${id}`}
                 </span>
                 <button
                   type="button"
                   onClick={() => onRemove(id)}
                   aria-label={`${version?.name ?? id} 선택 해제`}
-                  className="shrink-0 cursor-pointer px-0.5 text-[10px] text-[#6C7389] hover:text-[#E7000B]"
+                  className="shrink-0 cursor-pointer px-0.5 text-[10px] text-text-secondary hover:text-text-danger"
                 >
                   ✕
                 </button>

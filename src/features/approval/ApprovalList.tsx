@@ -178,7 +178,7 @@ export default function ApprovalList() {
     <>
       <div className="mb-6">
         <h2 className="text-lg font-bold">결재 관리</h2>
-        <p className="mt-1.5 text-xs break-keep text-[#6C7389]">
+        <p className="mt-1.5 text-xs break-keep text-text-secondary">
           내가 올린 결재와 처리할 결재를 한곳에서 확인합니다.
         </p>
       </div>
@@ -186,7 +186,7 @@ export default function ApprovalList() {
       <div
         role="tablist"
         aria-label="결재 조회 범위"
-        className="mb-4 flex gap-1 border-b border-[#1C1F2A]/10"
+        className="mb-4 flex gap-1 border-b border-border-default"
       >
         {scopes.map((option) => {
           const isActive = option === scope;
@@ -201,7 +201,7 @@ export default function ApprovalList() {
               className={`-mb-px cursor-pointer border-b-2 px-4 py-2 text-xs ${
                 isActive
                   ? 'border-[#4F39F6] font-semibold text-[#4F39F6]'
-                  : 'border-transparent text-[#6C7389] hover:text-[#1C1F2A]'
+                  : 'border-transparent text-text-secondary hover:text-text-primary'
               }`}
             >
               {SCOPE_LABELS[option]}
@@ -245,12 +245,12 @@ export default function ApprovalList() {
             value={keywordInput}
             onChange={(event) => setKeywordInput(event.target.value)}
             placeholder="결재 제목 · 프로젝트명 검색"
-            className="w-full rounded-lg border border-[#1C1F2A]/10 py-2 pr-10 pl-3 text-xs text-[#1C1F2A] placeholder:text-[#6C7389] focus:outline-2 focus:outline-offset-2 focus:outline-[#3B5BDB]"
+            className="w-full rounded-lg border border-border-default py-2 pr-10 pl-3 text-xs text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
           />
           <button
             type="submit"
             aria-label="검색"
-            className="absolute top-1/2 right-1 flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-[#6C7389] hover:bg-[#ECEEF4] hover:text-[#1C1F2A]"
+            className="absolute top-1/2 right-1 flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-text-secondary hover:bg-bg-hover hover:text-text-primary"
           >
             <SearchIcon />
           </button>
@@ -259,13 +259,13 @@ export default function ApprovalList() {
 
       {hasFailed ? (
         <Centered>
-          <p className="text-xs text-[#6C7389]">
+          <p className="text-xs text-text-secondary">
             결재 목록을 불러오지 못했어요.
           </p>
           <button
             type="button"
             onClick={() => setReloadCount((count) => count + 1)}
-            className="mt-3 cursor-pointer rounded-lg border border-[#1C1F2A]/10 px-3 py-1.5 text-xs font-semibold text-[#1C1F2A] hover:bg-[#ECEEF4]"
+            className="mt-3 cursor-pointer rounded-lg border border-border-default px-3 py-1.5 text-xs font-semibold text-text-primary hover:bg-bg-hover"
           >
             다시 시도
           </button>
@@ -274,7 +274,7 @@ export default function ApprovalList() {
         <ApprovalListSkeleton rows={PAGE_SIZE} />
       ) : !rows || rows.length === 0 ? (
         <Centered>
-          <p className="text-xs text-[#6C7389]">
+          <p className="text-xs text-text-secondary">
             {scope === 'pending'
               ? '처리할 결재가 없어요.'
               : '조회된 결재가 없어요.'}
@@ -328,15 +328,15 @@ function ApprovalRow({
     <li>
       <Link
         href={APPROVAL_ROUTES.detail(row.approvalId)}
-        className="flex items-center gap-4 rounded-xl border border-[#1C1F2A]/10 px-4 py-3.5 hover:bg-[#ECEEF4]/40"
+        className="flex items-center gap-4 rounded-xl border border-border-default px-4 py-3.5 hover:bg-bg-surface"
       >
         <ApprovalStatusBadge status={row.status} />
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-semibold text-[#1C1F2A]">
+          <p className="truncate text-xs font-semibold text-text-primary">
             {row.title || '제목 없음'}
           </p>
-          <p className="mt-0.5 truncate text-[11px] text-[#6C7389]">
+          <p className="mt-0.5 truncate text-[11px] text-text-secondary">
             {row.projectName} &gt; {row.stepName} · {row.drafterName}
           </p>
         </div>
@@ -348,17 +348,17 @@ function ApprovalRow({
         <span className="w-12 shrink-0 text-center">
           {/* 재상신된 결재만 회차를 붙인다 — 1회차는 붙여봐야 정보가 없다 */}
           {row.currentRevisionNo > 1 && (
-            <span className="rounded bg-[#ECEEF4] px-1.5 py-0.5 text-[11px] text-[#6C7389]">
+            <span className="rounded bg-bg-hover px-1.5 py-0.5 text-[11px] text-text-secondary">
               {row.currentRevisionNo}회차
             </span>
           )}
         </span>
 
-        <span className="w-12 shrink-0 text-center text-[11px] text-[#6C7389]">
+        <span className="w-12 shrink-0 text-center text-[11px] text-text-secondary">
           {doneCount} / {row.lines.length}
         </span>
 
-        <span className="w-24 shrink-0 text-right text-[11px] text-[#6C7389]">
+        <span className="w-24 shrink-0 text-right text-[11px] text-text-secondary">
           {formatDate(row.submittedAt ?? row.createdAt)}
         </span>
 
@@ -381,7 +381,7 @@ function ApprovalRow({
             className={`w-14 shrink-0 rounded-lg py-1.5 text-center text-[11px] font-semibold ${
               isMyTurn
                 ? 'bg-[#4F39F6] text-white'
-                : 'border border-[#1C1F2A]/10 text-[#6C7389]'
+                : 'border border-border-default text-text-secondary'
             }`}
           >
             {isMyTurn ? '결재' : '상세'}
@@ -414,7 +414,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="cursor-pointer rounded-lg border border-[#1C1F2A]/10 px-3 py-2 text-xs text-[#1C1F2A] focus:outline-2 focus:outline-offset-2 focus:outline-[#3B5BDB]"
+        className="cursor-pointer rounded-lg border border-border-default px-3 py-2 text-xs text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
       >
         <option value="">{label}</option>
         {options.map((option) => (
@@ -447,7 +447,7 @@ function SearchIcon() {
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-[#1C1F2A]/10 py-16">
+    <div className="flex flex-col items-center justify-center rounded-xl border border-border-default py-16">
       {children}
     </div>
   );

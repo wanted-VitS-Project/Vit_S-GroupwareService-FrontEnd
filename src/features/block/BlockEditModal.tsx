@@ -116,16 +116,16 @@ export default function BlockEditModal({
     <Modal
       title="블록 수정"
       onClose={isSubmitting ? undefined : onClose}
-      className="w-full max-w-[480px] overflow-hidden rounded-xl border border-[#1C1F2A]/10 shadow-2xl"
+      className="w-full max-w-[480px] overflow-hidden rounded-xl border border-border-default shadow-2xl"
       header={
-        <div className="flex items-center gap-2.5 border-b border-[#1C1F2A]/10 px-5 py-3.5">
-          <span className="flex size-5 shrink-0 items-center justify-center rounded border border-[#3B5BDB]/20 bg-[#3B5BDB]/10 text-[#3B5BDB]">
+        <div className="flex items-center gap-2.5 border-b border-border-default px-5 py-3.5">
+          <span className="flex size-5 shrink-0 items-center justify-center rounded border border-border-primary/20 bg-blue-bg-soft text-text-primary-blue">
             <BlockTypeIcon code={block.type} />
           </span>
-          <h2 className="shrink-0 text-sm font-semibold text-[#1C1F2A]">
+          <h2 className="shrink-0 text-sm font-semibold text-text-primary">
             블록 수정
           </h2>
-          <span className="max-w-[50%] truncate rounded bg-[#ECEEF4] px-1.5 py-0.5 text-[10px] text-[#6C7389]">
+          <span className="max-w-[50%] truncate rounded bg-bg-hover px-1.5 py-0.5 text-[10px] text-text-secondary">
             {block.title || '제목 없음'}
           </span>
           <button
@@ -133,7 +133,7 @@ export default function BlockEditModal({
             onClick={onClose}
             disabled={isSubmitting}
             aria-label="닫기"
-            className="ml-auto flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-[#6C7389] hover:bg-[#ECEEF4] disabled:cursor-not-allowed disabled:opacity-40"
+            className="ml-auto flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
           >
             <CloseIcon />
           </button>
@@ -142,7 +142,7 @@ export default function BlockEditModal({
     >
       <div className="flex flex-col gap-5 p-5">
         <label className="block">
-          <span className="block pb-1.5 text-[11px] font-semibold text-[#1C1F2A]">
+          <span className="block pb-1.5 text-[11px] font-semibold text-text-primary">
             블록 제목
           </span>
           <input
@@ -150,24 +150,24 @@ export default function BlockEditModal({
             maxLength={BLOCK_TITLE_MAX_LENGTH}
             onChange={(event) => setTitle(event.target.value)}
             placeholder="블록 제목을 입력해주세요."
-            className="w-full rounded-lg border border-[#1C1F2A]/10 bg-[#ECEEF4]/50 px-3 py-2 text-[11px] font-normal text-[#1C1F2A] placeholder:text-[#6C7389] focus:outline-2 focus:outline-offset-2 focus:outline-[#3B5BDB]"
+            className="w-full rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-[11px] font-normal text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
           />
         </label>
         {/* 담당자 지정 — 이슈 담당자 지정과 같은 모양(칩 + 후보 버튼)을 쓴다 */}
         <div>
-          <span className="block pb-1.5 text-[11px] font-semibold text-[#1C1F2A]">
+          <span className="block pb-1.5 text-[11px] font-semibold text-text-primary">
             담당자
           </span>
-          <div className="flex min-h-[40px] flex-wrap items-center gap-1.5 rounded-lg border border-[#1C1F2A]/10 bg-[#ECEEF4]/50 p-2.5">
+          <div className="flex min-h-[40px] flex-wrap items-center gap-1.5 rounded-lg border border-border-default bg-bg-surface p-2.5">
             {selectedMember ? (
-              <span className="flex items-center gap-1 rounded-full border border-[#1C1F2A]/10 bg-white px-2 py-0.5">
+              <span className="flex items-center gap-1 rounded-full border border-border-default bg-white px-2 py-0.5">
                 <MemberAvatar
                   userId={selectedMember.userId}
                   name={selectedMember.name}
                   size="xs"
                   decorative
                 />
-                <span className="text-[10px] font-medium text-[#1C1F2A]">
+                <span className="text-[10px] font-medium text-text-primary">
                   {selectedMember.name}
                 </span>
                 <button
@@ -181,13 +181,13 @@ export default function BlockEditModal({
                     focusAfterRender.current = 'candidate';
                     setOwner('');
                   }}
-                  className="cursor-pointer text-[10px] text-[#6C7389] hover:text-[#1C1F2A] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="cursor-pointer text-[10px] text-text-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   ✕
                 </button>
               </span>
             ) : (
-              <span className="text-[10px] text-[#6C7389]">
+              <span className="text-[10px] text-text-secondary">
                 {isMembersLoading
                   ? '참여자 불러오는 중…'
                   : '아래에서 담당자를 선택하세요'}
@@ -198,10 +198,10 @@ export default function BlockEditModal({
           <div
             ref={candidateBoxRef}
             tabIndex={-1}
-            className="mt-1.5 flex flex-wrap gap-1.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3B5BDB]"
+            className="mt-1.5 flex flex-wrap gap-1.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-primary"
           >
             {membersFailed ? (
-              <span className="text-[10px] text-[#6C7389]">
+              <span className="text-[10px] text-text-secondary">
                 참여자를 불러오지 못했습니다.
               </span>
             ) : (
@@ -220,7 +220,7 @@ export default function BlockEditModal({
                     setOwner(member.userId);
                   }}
                   title={`${member.name}${member.department ? ` · ${member.department}` : ''}${member.resigned ? ' · 퇴사' : ''}`}
-                  className="flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-[#6C7389] hover:bg-[#ECEEF4] hover:text-[#1C1F2A] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-text-secondary hover:bg-bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <MemberAvatar
                     userId={member.userId}
@@ -235,10 +235,10 @@ export default function BlockEditModal({
           </div>
         </div>
       </div>
-      <div className="flex items-center justify-between gap-4 border-t border-[#1C1F2A]/10 bg-[#ECEEF4]/20 px-5 py-3.5">
+      <div className="flex items-center justify-between gap-4 border-t border-border-default bg-bg-surface px-5 py-3.5">
         <p
           role={errorMessage ? 'alert' : undefined}
-          className={`text-[10px] ${errorMessage ? 'text-[#E7000B]' : 'text-[#6C7389]'}`}
+          className={`text-[10px] ${errorMessage ? 'text-text-danger' : 'text-text-secondary'}`}
         >
           {errorMessage || '블록 제목과 담당자를 변경할 수 있습니다.'}
         </p>
@@ -247,7 +247,7 @@ export default function BlockEditModal({
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-[#6C7389] hover:bg-[#ECEEF4] disabled:cursor-not-allowed disabled:opacity-40"
+            className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
           >
             취소
           </button>
@@ -255,7 +255,7 @@ export default function BlockEditModal({
             type="button"
             onClick={submit}
             disabled={isSubmitting}
-            className="cursor-pointer rounded-lg bg-[#3B5BDB] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#3450c4] disabled:cursor-not-allowed disabled:bg-[#ECEEF4] disabled:text-[#6C7389]"
+            className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
           >
             {isSubmitting ? '저장 중…' : '저장'}
           </button>

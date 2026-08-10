@@ -1,11 +1,11 @@
-import Link from 'next/link';
+import { ErrorStateOneButton } from '@/components/ErrorState';
 
+/** 없는 주소로 들어왔을 때. 다시 시도할 여지가 없어 버튼은 홈으로 하나뿐이다 */
 export default function NotFound() {
   return (
-    <div>
-      <h1>페이지를 찾을 수 없습니다</h1>
-      <p>주소가 변경되었거나 삭제된 페이지입니다.</p>
-      <Link href="/">홈으로 이동</Link>
-    </div>
+    <ErrorStateOneButton
+      title="페이지를 찾을 수 없습니다."
+      description={'요청하신 페이지가 존재하지 않거나\n이동되었을 수 있습니다.'}
+    />
   );
 }

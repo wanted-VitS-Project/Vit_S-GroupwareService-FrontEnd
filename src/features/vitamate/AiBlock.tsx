@@ -132,7 +132,7 @@ export default function AiBlock({ block }: { block: StepBlock }) {
           isResolving ? (
             <div
               aria-hidden
-              className="h-16 animate-pulse rounded bg-[#ECEEF4]"
+              className="h-16 animate-pulse rounded bg-bg-hover"
             />
           ) : resolveError ? (
             // "분석 없음" 으로 보여주면 중복 실행을 부른다
@@ -164,7 +164,7 @@ export default function AiBlock({ block }: { block: StepBlock }) {
             {isRunning(analysis.analysisStatus) ? (
               <RunningState requestedAt={analysis.createdAt} isSlow={isSlow} />
             ) : analysis.analysisStatus === 'FAILED' ? (
-              <p className="rounded border border-[#FFC9C9] bg-[#FEF2F2] px-2.5 py-2 text-[10px] leading-relaxed break-keep text-[#E7000B]">
+              <p className="rounded border border-red-border bg-red-bg-soft px-2.5 py-2 text-[10px] leading-relaxed break-keep text-text-danger">
                 {analysis.errorMessage ?? '분석에 실패했습니다.'}
               </p>
             ) : analysis.result ? (
@@ -174,13 +174,13 @@ export default function AiBlock({ block }: { block: StepBlock }) {
                 citations={analysis.citations}
               />
             ) : (
-              <p className="text-[10px] text-[#6C7389]">
+              <p className="text-[10px] text-text-secondary">
                 결과가 비어 있습니다.
               </p>
             )}
 
             {analysis.completedAt && (
-              <p className="text-[9px] text-[#6C7389]">
+              <p className="text-[9px] text-text-secondary">
                 {formatDateTime(analysis.completedAt)} 완료
               </p>
             )}
@@ -189,10 +189,10 @@ export default function AiBlock({ block }: { block: StepBlock }) {
 
         {/* 결과를 이미 보여주는 중이라면 안내만 얹는다 (위에서 이미 그렸으면 생략) */}
         {loadError && analysis && (
-          <p className="text-[10px] text-[#BB4D00]">{loadError}</p>
+          <p className="text-[10px] text-yellow-text">{loadError}</p>
         )}
         {actionError && (
-          <p role="alert" className="text-[10px] text-[#E7000B]">
+          <p role="alert" className="text-[10px] text-text-danger">
             {actionError}
           </p>
         )}
@@ -216,14 +216,14 @@ export default function AiBlock({ block }: { block: StepBlock }) {
             <button
               type="button"
               onClick={() => setIsRunModalOpen(true)}
-              className="flex-1 cursor-pointer rounded-md border border-[#4F39F6]/30 py-1 text-[10px] font-medium text-[#4F39F6] hover:bg-[#EEF2FF]"
+              className="flex-1 cursor-pointer rounded-md border border-[#4F39F6]/30 py-1 text-[10px] font-medium text-[#4F39F6] hover:bg-blue-bg-soft"
             >
               수정하기
             </button>
             <button
               type="button"
               onClick={() => setIsHistoryOpen(true)}
-              className="cursor-pointer rounded-md border border-[#1C1F2A]/10 px-2.5 py-1 text-[10px] font-medium text-[#6C7389] hover:bg-[#ECEEF4]"
+              className="cursor-pointer rounded-md border border-border-default px-2.5 py-1 text-[10px] font-medium text-text-secondary hover:bg-bg-hover"
             >
               이력
             </button>
@@ -278,7 +278,7 @@ function RequestSummary({ analysis }: { analysis: Analysis }) {
           {analysis.reviewCategoryCodes.map((code) => (
             <li
               key={code}
-              className="rounded bg-[#EEF2FF] px-1.5 py-0.5 font-mono text-[9px] font-semibold text-[#4F39F6]"
+              className="rounded bg-blue-bg-soft px-1.5 py-0.5 font-mono text-[9px] font-semibold text-[#4F39F6]"
             >
               {code}
             </li>
@@ -294,7 +294,7 @@ function RequestSummary({ analysis }: { analysis: Analysis }) {
       )}
 
       {analysis.prompt && (
-        <blockquote className="rounded bg-[#F8FAFC] px-2.5 py-1.5 text-[10px] leading-relaxed break-keep text-[#6C7389]">
+        <blockquote className="rounded bg-bg-surface px-2.5 py-1.5 text-[10px] leading-relaxed break-keep text-text-secondary">
           {analysis.prompt}
         </blockquote>
       )}
@@ -315,14 +315,14 @@ function RoleRow({
 }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="shrink-0 text-[9px] font-semibold tracking-wider text-[#6C7389] uppercase">
+      <span className="shrink-0 text-[9px] font-semibold tracking-wider text-text-secondary uppercase">
         {label}
       </span>
       <ul className="flex min-w-0 flex-wrap gap-1">
         {documents.map((document) => (
           <li
             key={document.fileVersionId}
-            className="max-w-full truncate rounded border border-[#1C1F2A]/10 bg-white px-1.5 py-0.5 text-[10px] text-[#1C1F2A]"
+            className="max-w-full truncate rounded border border-border-default bg-white px-1.5 py-0.5 text-[10px] text-text-primary"
           >
             {document.fileName}
             {document.versionNo !== null && ` v${document.versionNo}`}
@@ -349,16 +349,16 @@ function FailureNotice({
   return (
     <div
       role="alert"
-      className="flex flex-col items-center gap-2 rounded border border-[#FFC9C9] bg-[#FEF2F2] px-2.5 py-3"
+      className="flex flex-col items-center gap-2 rounded border border-red-border bg-red-bg-soft px-2.5 py-3"
     >
-      <p className="text-center text-[10px] break-keep text-[#E7000B]">
+      <p className="text-center text-[10px] break-keep text-text-danger">
         {message}
       </p>
       {onRetry && (
         <button
           type="button"
           onClick={onRetry}
-          className="cursor-pointer rounded-md border border-[#FFC9C9] bg-white px-2.5 py-1 text-[10px] font-medium text-[#E7000B] hover:bg-[#FEF2F2]"
+          className="cursor-pointer rounded-md border border-red-border bg-white px-2.5 py-1 text-[10px] font-medium text-text-danger hover:bg-red-bg-soft"
         >
           다시 시도
         </button>
@@ -370,7 +370,7 @@ function FailureNotice({
 function EmptyState({ onRun }: { onRun: () => void }) {
   return (
     <div className="flex flex-col items-center gap-2 py-4">
-      <p className="text-center text-[10px] break-keep text-[#6C7389]">
+      <p className="text-center text-[10px] break-keep text-text-secondary">
         기준 문서와 검토 대상 문서를 골라 비타메이트 검토를 실행하세요.
       </p>
       <button
@@ -400,23 +400,23 @@ function RunningState({
   return (
     <div
       role="status"
-      className="flex flex-col items-center gap-1.5 rounded border border-[#C6D2FF] bg-[#EEF2FF] py-4"
+      className="flex flex-col items-center gap-1.5 rounded border border-purple-border bg-blue-bg-soft py-4"
     >
       <span
         aria-hidden
-        className="size-4 animate-spin rounded-full border-2 border-[#C6D2FF] border-t-[#4F39F6]"
+        className="size-4 animate-spin rounded-full border-2 border-purple-border border-t-[#4F39F6]"
       />
       <p className="text-[10px] font-medium text-[#4F39F6]">
         {isSlow ? '예상보다 지연되고 있습니다…' : '문서를 검토하고 있어요…'}
       </p>
       {/* 보통 20~30초 걸린다 — 대략의 눈금이 있어야 멈춘 게 아니라는 게 보인다 */}
-      <p className="text-[9px] text-[#6C7389]">
+      <p className="text-[9px] text-text-secondary">
         {isSlow
           ? '창을 닫아도 분석은 계속돼요'
           : '보통 20~30초 걸려요 · 창을 닫아도 계속돼요'}
       </p>
       {requestedAt && (
-        <p className="text-[9px] text-[#6C7389]">
+        <p className="text-[9px] text-text-secondary">
           {formatDateTime(requestedAt)} 요청
         </p>
       )}

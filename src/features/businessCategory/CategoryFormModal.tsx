@@ -144,15 +144,16 @@ export default function CategoryFormModal({
           />
 
           <label className="block">
-            <span className="block pb-1.5 text-[11px] font-semibold text-[#1C1F2A]">
-              설명 <span className="font-normal text-[#6C7389]">(선택)</span>
+            <span className="block pb-1.5 text-[11px] font-semibold text-text-primary">
+              설명{' '}
+              <span className="font-normal text-text-secondary">(선택)</span>
             </span>
             <textarea
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               rows={3}
               placeholder="카테고리에 대한 간략한 설명을 입력하세요."
-              className="w-full resize-none rounded-lg border border-[#1C1F2A]/10 bg-[#ECEEF4]/50 px-3 py-2 text-[11px] break-keep text-[#1C1F2A] placeholder:text-[#6C7389] focus:outline-2 focus:outline-offset-2 focus:outline-[#3B5BDB]"
+              className="w-full resize-none rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-[11px] break-keep text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
             />
           </label>
         </div>
@@ -160,7 +161,7 @@ export default function CategoryFormModal({
         <ModalFooter>
           <p
             role={error ? 'alert' : undefined}
-            className="mr-auto text-[10px] break-keep text-[#E7000B]"
+            className="mr-auto text-[10px] break-keep text-text-danger"
           >
             {error}
           </p>
@@ -169,14 +170,14 @@ export default function CategoryFormModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-[#6C7389] hover:bg-[#ECEEF4] disabled:cursor-not-allowed disabled:text-[#C7CCD9]"
+              className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
             >
               취소
             </button>
             <button
               type="submit"
               disabled={!canSubmit}
-              className="cursor-pointer rounded-lg bg-[#2B3A67] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#22305a] disabled:cursor-not-allowed disabled:bg-[#ECEEF4] disabled:text-[#6C7389]"
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
             >
               {isSubmitting ? '저장 중…' : isEditing ? '저장' : '추가'}
             </button>
@@ -217,16 +218,16 @@ function Field({
       <div className="flex items-end justify-between gap-2 pb-1.5">
         <label
           htmlFor={id}
-          className="text-[11px] font-semibold text-[#1C1F2A]"
+          className="text-[11px] font-semibold text-text-primary"
         >
           {label}{' '}
           {required ? (
-            <span className="text-[#E7000B]">*</span>
+            <span className="text-text-danger">*</span>
           ) : (
-            <span className="font-normal text-[#6C7389]">(선택)</span>
+            <span className="font-normal text-text-secondary">(선택)</span>
           )}
         </label>
-        <span className="text-[10px] text-[#6C7389]">
+        <span className="text-[10px] text-text-secondary">
           {value.length} / {maxLength}
         </span>
       </div>
@@ -239,23 +240,23 @@ function Field({
         placeholder={placeholder}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
-        className={`w-full rounded-lg border bg-[#ECEEF4]/50 px-3 py-2 text-[11px] text-[#1C1F2A] placeholder:text-[#6C7389] focus:outline-2 focus:outline-offset-2 ${
+        className={`w-full rounded-lg border bg-bg-surface px-3 py-2 text-[11px] text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 ${
           error
-            ? 'border-[#E7000B] focus:outline-[#E7000B]'
-            : 'border-[#1C1F2A]/10 focus:outline-[#3B5BDB]'
+            ? 'border-border-danger focus:outline-border-danger'
+            : 'border-border-default focus:outline-border-primary'
         }`}
       />
       {error ? (
         <p
           id={`${id}-error`}
           role="alert"
-          className="mt-1 text-[10px] break-keep text-[#E7000B]"
+          className="mt-1 text-[10px] break-keep text-text-danger"
         >
           {error}
         </p>
       ) : (
         help && (
-          <p id={`${id}-help`} className="mt-1 text-[10px] text-[#6C7389]">
+          <p id={`${id}-help`} className="mt-1 text-[10px] text-text-secondary">
             {help}
           </p>
         )

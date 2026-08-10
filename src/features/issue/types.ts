@@ -124,28 +124,27 @@ export interface IssueStatusStyle {
 
 export const ISSUE_STATUS_STYLES: Record<IssueStatus, IssueStatusStyle> = {
   TODO: {
-    badge: 'border-[#1C1F2A]/9 bg-[#ECEEF4] text-[#6C7389]',
-    dot: 'bg-[#9AA1B4]',
-    columnBg: 'bg-[#ECEEF4]/50',
-    columnRing: 'ring-[#C8CDD9]',
+    badge: 'border-border-default bg-bg-hover text-text-secondary',
+    dot: 'bg-text-muted',
+    columnBg: 'bg-bg-surface',
+    columnRing: 'ring-border-default',
   },
   IN_PROGRESS: {
-    badge: 'border-[#8EC5FF] bg-[#DBEAFE] text-[#1447E6]',
-    dot: 'bg-[#2B7FFF]',
-    columnBg: 'bg-[#DBEAFE]/50',
-    columnRing: 'ring-[#8EC5FF]',
+    badge: 'border-blue-border bg-blue-bg text-btn-primary-hover',
+    dot: 'bg-btn-primary',
+    columnBg: 'bg-blue-bg/50',
+    columnRing: 'ring-blue-border',
   },
   DONE: {
-    badge: 'border-[#7BF1A8] bg-[#DCFCE7] text-[#008236]',
+    badge: 'border-green-border bg-green-bg text-green-text',
     dot: 'bg-[#00C951]',
-    columnBg: 'bg-[#DCFCE7]/50',
-    columnRing: 'ring-[#7BF1A8]',
+    columnBg: 'bg-green-bg/50',
+    columnRing: 'ring-green-border',
   },
 };
 
 /** 마감일이 지난 이슈를 강조하는 색 — 우선순위 '높음' 과 같은 계열이다 */
-export const ISSUE_OVERDUE_STYLE =
-  'border-[#FFA2A2] bg-[#FFE2E2] text-[#C10007]';
+export const ISSUE_OVERDUE_STYLE = 'border-red-border bg-red-bg text-[#C10007]';
 
 export const ISSUE_PRIORITY_ORDER: IssuePriority[] = ['HIGH', 'MEDIUM', 'LOW'];
 
@@ -160,16 +159,16 @@ export const ISSUE_PRIORITY_STYLES: Record<
   { badge: string; dot: string }
 > = {
   HIGH: {
-    badge: 'border-[#FFA2A2] bg-[#FFE2E2] text-[#C10007]',
+    badge: 'border-red-border bg-red-bg text-[#C10007]',
     dot: 'bg-[#FB2C36]',
   },
   MEDIUM: {
-    badge: 'border-[#FEE685] bg-[#FEF9C2] text-[#A65F00]',
-    dot: 'bg-[#FE9A00]',
+    badge: 'border-yellow-border bg-yellow-bg text-yellow-text',
+    dot: 'bg-yellow-border',
   },
   LOW: {
-    badge: 'border-[#E2E8F0] bg-[#F8FAFC] text-[#45556C]',
-    dot: 'bg-[#90A1B9]',
+    badge: 'border-border-default bg-bg-surface text-gray-text-soft',
+    dot: 'bg-text-muted',
   },
 };
 

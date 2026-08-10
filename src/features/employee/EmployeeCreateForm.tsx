@@ -228,14 +228,17 @@ export default function EmployeeCreateForm() {
 
   return (
     <>
-      <p className="text-xs text-slate-500">
-        <Link href="/settings" className="hover:text-[#1C1F2A] hover:underline">
+      <p className="text-xs text-text-secondary">
+        <Link
+          href="/settings"
+          className="hover:text-text-primary hover:underline"
+        >
           설정
         </Link>{' '}
         &gt;{' '}
         <Link
           href={EMPLOYEE_ROUTES.list}
-          className="hover:text-[#1C1F2A] hover:underline"
+          className="hover:text-text-primary hover:underline"
         >
           사원 관리
         </Link>{' '}
@@ -244,7 +247,7 @@ export default function EmployeeCreateForm() {
 
       <div className="mt-2 mb-6">
         <h2 className="text-lg font-bold">사원 등록</h2>
-        <p className="mt-1.5 text-xs break-keep text-[#6C7389]">
+        <p className="mt-1.5 text-xs break-keep text-text-secondary">
           로그인 계정이 함께 발급됩니다. 초기 비밀번호는 입력한 이메일로
           발송됩니다.
         </p>
@@ -261,8 +264,8 @@ export default function EmployeeCreateForm() {
         />
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
-          <section className="rounded-xl border border-[#1C1F2A]/10 bg-white p-5">
-            <h3 className="text-xs font-semibold text-[#1C1F2A]">계정</h3>
+          <section className="rounded-xl border border-border-default bg-white p-5">
+            <h3 className="text-xs font-semibold text-text-primary">계정</h3>
 
             <div className="mt-4 space-y-4">
               <TextField
@@ -293,8 +296,10 @@ export default function EmployeeCreateForm() {
             </div>
           </section>
 
-          <section className="rounded-xl border border-[#1C1F2A]/10 bg-white p-5">
-            <h3 className="text-xs font-semibold text-[#1C1F2A]">인사 정보</h3>
+          <section className="rounded-xl border border-border-default bg-white p-5">
+            <h3 className="text-xs font-semibold text-text-primary">
+              인사 정보
+            </h3>
 
             <div className="mt-4 space-y-4">
               <TextField
@@ -334,7 +339,7 @@ export default function EmployeeCreateForm() {
               />
 
               {hasOptionsFailed && (
-                <p role="alert" className="text-[10px] text-[#E7000B]">
+                <p role="alert" className="text-[10px] text-text-danger">
                   부서 · 직급 목록을 불러오지 못했습니다. 부서는 필수라 등록할
                   수 없습니다.{' '}
                   <button
@@ -386,7 +391,7 @@ export default function EmployeeCreateForm() {
             {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}
             <p
               role="alert"
-              className="mr-auto text-[10px] break-keep text-[#E7000B]"
+              className="mr-auto text-[10px] break-keep text-text-danger"
             >
               {error}
             </p>
@@ -394,14 +399,14 @@ export default function EmployeeCreateForm() {
               type="button"
               onClick={leave}
               disabled={isSubmitting}
-              className="cursor-pointer rounded-lg px-4 py-2 text-[11px] font-medium text-[#6C7389] hover:bg-[#ECEEF4] disabled:cursor-not-allowed disabled:text-[#C7CCD9]"
+              className="cursor-pointer rounded-lg px-4 py-2 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
             >
               취소
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="cursor-pointer rounded-lg bg-[#2B3A67] px-5 py-2 text-[11px] font-semibold text-white hover:bg-[#22305a] disabled:cursor-not-allowed disabled:bg-[#ECEEF4] disabled:text-[#6C7389]"
+              className="cursor-pointer rounded-lg bg-btn-primary px-5 py-2 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
             >
               {isSubmitting ? '등록 중…' : '등록'}
             </button>
@@ -433,25 +438,25 @@ function CreatedResult({
 
   return (
     <>
-      <section className="rounded-xl border border-[#1C1F2A]/10 bg-white p-6">
-        <p className="text-sm font-bold text-[#087443]">✅ 등록되었습니다</p>
-        <p className="mt-2 text-xs text-[#1C1F2A]">
+      <section className="rounded-xl border border-border-default bg-white p-6">
+        <p className="text-sm font-bold text-green-text">✅ 등록되었습니다</p>
+        <p className="mt-2 text-xs text-text-primary">
           <b>{result.name}</b>{' '}
-          <span className="text-[#6C7389]">({result.userId})</span>
+          <span className="text-text-secondary">({result.userId})</span>
         </p>
 
         {!result.emailRegistered ? (
-          <p className="mt-4 rounded-lg bg-[#F59E0B]/10 px-3 py-2.5 text-[11px] leading-relaxed break-keep text-[#92400E]">
+          <p className="mt-4 rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-[11px] leading-relaxed break-keep text-yellow-text">
             이메일을 입력하지 않아 <b>로그인할 수 없는 계정</b>입니다. 정보
             수정에서 이메일을 등록한 뒤 비밀번호를 초기화해주세요.
           </p>
         ) : hasMailFailed ? (
-          <p className="mt-4 rounded-lg bg-[#E7000B]/5 px-3 py-2.5 text-[11px] leading-relaxed break-keep text-[#E7000B]">
+          <p className="mt-4 rounded-lg bg-red-bg-soft px-3 py-2.5 text-[11px] leading-relaxed break-keep text-text-danger">
             계정은 만들어졌지만 <b>초기 비밀번호 메일이 발송되지 않았습니다.</b>{' '}
             재발송하지 않으면 이 사원은 로그인할 수 없습니다.
           </p>
         ) : (
-          <p className="mt-4 rounded-lg bg-[#ECEEF4]/50 px-3 py-2.5 text-[11px] leading-relaxed break-keep text-[#6C7389]">
+          <p className="mt-4 rounded-lg bg-bg-surface px-3 py-2.5 text-[11px] leading-relaxed break-keep text-text-secondary">
             초기 비밀번호를 등록한 이메일로 보냈습니다. 첫 로그인 때 비밀번호를
             변경하게 됩니다.
           </p>
@@ -462,7 +467,7 @@ function CreatedResult({
             <button
               type="button"
               onClick={() => setIsResendOpen(true)}
-              className="cursor-pointer rounded-lg bg-[#E7000B] px-4 py-2 text-[11px] font-semibold text-white hover:bg-[#c50009]"
+              className="cursor-pointer rounded-lg bg-red-text px-4 py-2 text-[11px] font-semibold text-white hover:bg-[#c50009]"
             >
               메일 재발송
             </button>
@@ -470,19 +475,19 @@ function CreatedResult({
           <button
             type="button"
             onClick={onCreateAnother}
-            className="cursor-pointer rounded-lg bg-[#2B3A67] px-4 py-2 text-[11px] font-semibold text-white hover:bg-[#22305a]"
+            className="cursor-pointer rounded-lg bg-btn-primary px-4 py-2 text-[11px] font-semibold text-white hover:bg-btn-primary-hover"
           >
             계속 등록
           </button>
           <Link
             href={EMPLOYEE_ROUTES.detail(result.userId)}
-            className="rounded-lg border border-[#1C1F2A]/10 px-4 py-2 text-[11px] font-semibold text-[#1C1F2A] hover:bg-[#ECEEF4]"
+            className="rounded-lg border border-border-default px-4 py-2 text-[11px] font-semibold text-text-primary hover:bg-bg-hover"
           >
             상세 보기
           </Link>
           <Link
             href={EMPLOYEE_ROUTES.list}
-            className="rounded-lg px-4 py-2 text-[11px] font-medium text-[#6C7389] hover:bg-[#ECEEF4]"
+            className="rounded-lg px-4 py-2 text-[11px] font-medium text-text-secondary hover:bg-bg-hover"
           >
             목록으로
           </Link>

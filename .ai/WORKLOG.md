@@ -6,6 +6,126 @@
 
 ---
 
+## [2026-08-10] 공용 다이얼로그 · 오류 화면 · 헤더/사이드바 정리 🚧
+
+브랜치: `feat/common-dialog` · 이슈: #87
+
+### 변경 파일
+
+| 파일                                            | 변경                                             |
+| ----------------------------------------------- | ------------------------------------------------ |
+| `src/components/AlertDialog.tsx`                | 생성 (공용 다이얼로그 2종 + 아이콘 4종)          |
+| `src/components/ErrorState.tsx`                 | 생성 (전체 화면 오류 안내 2종)                   |
+| `src/components/ProfileMenu.tsx`                | 생성 (헤더 프로필 드롭다운)                      |
+| `src/app/globals.css`                           | 수정 (`.btn-danger` 추가 — 삭제 확인 버튼)       |
+| `src/components/Header.tsx`                     | 수정 (로그아웃 분리 · 프로젝트 헤더 · 로고 칸)   |
+| `src/components/Sidebar.tsx`                    | 수정 (프로필 크기 · 메뉴 대비 · 소속 없는 계정)  |
+| `src/features/notification/NotificationBell.tsx` | 수정 (`isDark` prop)                            |
+| `.ai/STRUCTURE.md`                              | 수정 (공용 컴포넌트 표 + 모달 사용법 3-1 신설)   |
+| `src/app/error.tsx`                             | 수정 (`ErrorStateTwoButton` 적용)                |
+| `src/app/not-found.tsx`                         | 수정 (`ErrorStateOneButton` 적용)                |
+| `src/app/forbidden/page.tsx`                    | 수정 (stub → `ErrorStateOneButton`)              |
+
+### 주요 작업 내용
+
+- **공용 다이얼로그** — `AlertDialogOneButton`(알리기) · `AlertDialogTwoButton`(고르기). 아이콘은 `DialogIcons` 4종(info · success · warning · danger)을 쓰는 쪽에서 골라 넘긴다
+- **공용 오류 화면** — `ErrorStateOneButton` · `ErrorStateTwoButton`. `error.tsx` · `not-found.tsx` · `/forbidden` 세 화면을 여기에 얹었다
+- **로그아웃을 프로필 드롭다운으로** — `ProfileMenu` 신설(마이페이지 · 로그아웃). 바깥 클릭 · Esc 닫기는 `NotificationBell` 과 같은 규칙
+- **프로젝트 상세 헤더를 어둡게 + 로고 칸(`w-70`)** — 색 분기는 `isDark` prop 하나로, 값은 기존 토큰 유틸리티만 쓴다
+- **사이드바 · 헤더 프로필 통일** — 명세대로 이름 18/600 · 부가정보 14/400, 헤더 제목 20/600. 메뉴 보조색은 `text-muted`
+- **소속 없는 계정 대응** — 직급 · 부서가 `null` 인 계정(ADMIN 등)은 빈 줄을 그리지 않고 이름을 16px 한 줄로 떨어뜨린다
+
+### 부수 결정
+
+- **다이얼로그와 오류 화면을 나눴다** — 하나는 화면 위에 **덮어서** 확인을 받고(`AlertDialog`), 하나는 보여줄 것이 없어 그 자리에 **대신 놓인다**(`ErrorState`). 껍데기가 비슷해 보여도 쓰임이 달라 합치지 않았다
+- **아이콘은 색만이 아니라 모양도 다르게** — 색을 구별하지 못하는 사용자에게 색만 다른 아이콘은 전부 같아 보인다 (원+느낌표 · 체크 · 삼각형)
+- **프로젝트 상세 헤더를 어둡게** — `ProjectSidebar` 가 흰색이라 화면에서 어두운 면이 사라진다. 헤더가 그 자리를 대신 든다
+- **⚠️ 색 분기를 CSS 클래스가 아니라 `isDark` prop 으로 되돌렸다.** 처음엔 `globals.css` 에 `.app-header` · `.header-profile*` 등 컴포넌트 클래스 9개(171줄)를 만들었는데, **한 곳에서만 쓰는 스타일이 전역 파일만 불린다.** 기존 토큰 유틸리티로 되돌리니 globals.css 추가분은 `.btn-danger` 14줄뿐이다
+- **로고 칸 폭 `w-70` 은 `ProjectSidebar` 와 묶여 있다** — 오른쪽 선이 사이드바 경계선과 한 줄로 이어져야 해서, 폭을 바꿀 때는 둘을 함께 고친다
+- **사이드바 메뉴 보조색을 시안 값에서 올렸다** — `#6B7280` 은 `#111827` 위에서 대비 4.1:1 로 WCAG AA(4.5:1) 미달. `#9CA3AF` 로 올려 7:1
+- **타이포는 디자인 명세를 기준으로 맞췄다** — 헤더 제목 20/600, 프로필 이름 18/600, 부가정보 14/400 (한때 16/12 로 줄였다가 명세 확인 후 되돌림)
+- **모달 · 다이얼로그 · 오류 화면 선택 기준을 `.ai/STRUCTURE.md` §3-1 에 정리** — 셋의 껍데기가 닮아 쓰는 쪽이 헷갈린다
+- **검증은 `tsc` · `eslint` · `prettier` 까지** — 로그인 게이트 때문에 AI 쪽 브라우저 확인이 막혀 있다
+
+---
+
+## [2026-08-09] 글로벌 디자인 토큰 도입 · 하드코딩 색상 일괄 교체 ✅
+
+브랜치: `style` · 이슈: #85
+
+### 변경 파일
+
+| 파일                             | 변경                                                   |
+| -------------------------------- | ------------------------------------------------------ |
+| `src/app/globals.css`            | 수정 (디자인 토큰 · 컴포넌트 클래스 전면 작성)         |
+| `src/app/layout.tsx`             | 수정 (Geist 제거 → Pretendard)                         |
+| `src/**/*.tsx` · `*.ts` (102 개) | 수정 (하드코딩 색상 1,864 곳 → 토큰 클래스, 순수 치환) |
+
+### 주요 작업 내용
+
+- 폰트를 **Pretendard Variable** 로 교체 (jsDelivr 동적 서브셋). `next/font` 의 Geist 제거
+- `@theme` 에 디자인 토큰 정의 — Typography Scale 8 단계 · Weight 4 종 · Text/BG/Border 색 · Radius 7 종 · Badge/Tag/IconBox 팔레트 · Button 팔레트
+- `@layer components` 로 반복 UI 고정 — `.btn`(4 종 × 크기 3), `.badge`(6 색), `.tag`(6 색), `.icon-box`(6 색), `.input` / `.textarea`
+- 하드코딩 hex 1,700여 곳 + Tailwind 기본 팔레트 클래스 160 곳을 토큰 클래스로 일괄 교체
+
+### 트러블슈팅
+
+| 문제                                                   | 원인                                                                                                | 해결                                          |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `@import rules must precede all rules` 빌드 에러       | `@import 'tailwindcss'` 가 실제 CSS 규칙으로 펼쳐져, 그 아래 Pretendard `@import` 가 규칙 뒤로 밀림 | Pretendard `@import` 를 **파일 첫 줄**로 이동 |
+| `border-[#1C1F2A]/[0.05]` 형태가 알파 없는 것으로 잡힘 | 임의 알파 표기(`/[0.05]`)를 정규식이 인식 못 함                                                     | 알파 패턴에 `\[[0-9.]+\]` 추가                |
+
+### 부수 결정
+
+- **알파 합성색은 불투명 토큰으로 흡수.** `border-[#1C1F2A]/10` (흰 배경 위 ≈ `#E8E9EB`) → `border-border-default`(`#E5E7EB`). `bg-[#ECEEF4]/50` → `bg-bg-surface` 등. 눈에 보이는 색은 사실상 같고 토큰 수는 줄어든다
+- **`#2B3A67` / hover `#22305a` (설정 영역 남색 버튼) → Primary 버튼으로 통합.** 앱 전체 주요 버튼 색을 `#2563EB` 하나로 맞춤
+- **`#4F39F6` (결재 · 비타메이트 인디고, 44 곳) 는 하드코딩 유지.** 명세에 없는 결이라 토큰화하지 않음
+- `bg-white` · `text-white` 는 값이 토큰과 같아(`#FFFFFF`) 그대로 둠 — diff만 늘고 얻는 게 없음
+- 밝은 초록(`#12B76A` 등 17 곳) · danger hover(`#C10007` 등 15 곳) · `text-slate-300`(사이드바 위 텍스트 2 곳) 도 대응 토큰이 없어 유지
+
+---
+
+## [2026-08-09] 내 프로젝트 목록 화면 ✅
+
+브랜치: `user/project` · 이슈: #83
+
+### 변경 파일
+
+| 파일                                             | 변경 |
+| ------------------------------------------------ | ---- |
+| `src/features/project/MyProjectList.tsx`         | 생성 |
+| `src/features/project/ProjectCard.tsx`           | 생성 |
+| `src/features/project/projectStatus.ts`          | 생성 |
+| `src/features/project/routes.ts`                 | 생성 |
+| `src/components/project/ProjectListSkeleton.tsx` | 생성 |
+| `src/app/projects/page.tsx`                      | 수정 |
+| `src/features/project/api.ts`                    | 수정 |
+| `src/features/project/types.ts`                  | 수정 |
+| `src/constants/endpoints.ts`                     | 수정 |
+| `src/constants/status.ts`                        | 수정 |
+| `.ai/API.md`                                     | 수정 |
+
+### 주요 작업 내용
+
+- `GET /api/v1/projects` 연동 — `getProjects()` · 상태별 건수용 `getProjectCount()`
+- `/projects` 화면 구현 — 상태 요약 카드 5개 · 검색 · 상태 탭 · 카테고리/기간 필터 · 카드 목록 · 페이지네이션
+- 필터 상태를 URL 쿼리에 두어 뒤로가기 · 링크 공유가 되게 함 (결재 목록과 같은 방식)
+- 프로젝트 상태 라벨·색을 `constants/status.ts` + `features/project/projectStatus.ts` 로 단일화
+- 카드 접기/펼치기 — 펼치면 설명 · 내 이슈 · 내 결재 건수 · `프로젝트 전체 보기` · **스테이지 박스(그 안에 스텝 타임라인)** 노출
+- 스테이지 박스도 개별 접기/펼치기. 기간(시작일 범위) · 사업분류 칩 필터바 추가
+
+### 부수 결정
+
+- 시안의 `현재 단계` · `완료/전체` 는 목록 응답에 없다 → 발주처, `myIssueInProgressCount`·`myApprovalOpenCount` 뱃지로 대체
+- 시안 상태 탭(`검토중` 등)을 API enum 5종으로 교체. 통계 카드는 시안대로 5장 유지하고 `CLOSED` 는 탭으로만 조회
+- 집계 API 가 없어 통계 카드는 상태마다 `size=1` 요청 — 목록 필터와 무관하게 **마운트 시 1회만** 호출
+- 스테이지 API(7번)에 상태 필드가 없어 **스텝 상태에서 스테이지 상태를 파생** (전부 DONE → 완료 / 하나라도 진행 → 진행중 / 그 외 대기)
+- 상세·스테이지·스텝 조회는 카드를 **펼칠 때 최초 1회만** — 목록 로드 시 전부 부르면 10건 페이지에서 31콜이 된다
+- 시안의 카드 `description` 은 목록 응답에 없어 **상세(6번)를 펼칠 때 함께** 호출
+- `stageId === null` 인 스텝은 감추지 않고 `스테이지 미지정` 박스로 모아 표시
+
+---
+
 ## [2026-08-09] 비타메이트 AI 블록 구현 ✅
 
 브랜치: `user/project` · 이슈: #80
@@ -487,23 +607,23 @@
 
 ### 변경 파일
 
-| 파일                                                | 변경                                             |
-| --------------------------------------------------- | ------------------------------------------------ |
-| `src/features/notification/types.ts`                | 생성 — 알림 타입 · `isUnread()`                  |
+| 파일                                                | 변경                                              |
+| --------------------------------------------------- | ------------------------------------------------- |
+| `src/features/notification/types.ts`                | 생성 — 알림 타입 · `isUnread()`                   |
 | `src/features/notification/api.ts`                  | 생성 — 목록 · 이동 대상 · 읽음 · 전체 읽음 · 삭제 |
-| `src/features/notification/display.ts`              | 생성 — 종류별 아이콘 · 이동 경로 조립            |
-| `src/features/notification/time.ts`                 | 생성 — `10분 전` · `어제` · `3일 전`             |
-| `src/features/notification/events.ts`               | 생성 — `notification:changed` 창 이벤트          |
-| `src/features/notification/routes.ts`               | 생성 — 화면 경로 단일 소스                       |
-| `src/features/notification/NotificationBell.tsx`    | 생성 — 헤더 종 · 배지 · 드롭다운                 |
-| `src/features/notification/NotificationRow.tsx`     | 생성 — 알림 한 줄 (드롭다운 · 페이지 공용)       |
-| `src/features/notification/NotificationMenu.tsx`    | 생성 — 케밥 메뉴(삭제 · 읽음 · 취소)             |
-| `src/features/notification/NotificationSection.tsx` | 생성 — `미확인` · `확인` 구역                    |
-| `src/features/notification/NotificationList.tsx`    | 생성 — 알림 페이지 껍데기                        |
-| `src/app/notifications/page.tsx`                    | 수정 — stub → 실제 화면                          |
-| `src/components/Header.tsx`                         | 수정 — `알림` 텍스트 링크 → 종 아이콘            |
-| `src/constants/endpoints.ts`                        | 수정 — `notifications` 5개 경로                  |
-| `.ai/API.md`                                        | 수정 — 74~78번 절 · 알림 도메인 공통 신설        |
+| `src/features/notification/display.ts`              | 생성 — 종류별 아이콘 · 이동 경로 조립             |
+| `src/features/notification/time.ts`                 | 생성 — `10분 전` · `어제` · `3일 전`              |
+| `src/features/notification/events.ts`               | 생성 — `notification:changed` 창 이벤트           |
+| `src/features/notification/routes.ts`               | 생성 — 화면 경로 단일 소스                        |
+| `src/features/notification/NotificationBell.tsx`    | 생성 — 헤더 종 · 배지 · 드롭다운                  |
+| `src/features/notification/NotificationRow.tsx`     | 생성 — 알림 한 줄 (드롭다운 · 페이지 공용)        |
+| `src/features/notification/NotificationMenu.tsx`    | 생성 — 케밥 메뉴(삭제 · 읽음 · 취소)              |
+| `src/features/notification/NotificationSection.tsx` | 생성 — `미확인` · `확인` 구역                     |
+| `src/features/notification/NotificationList.tsx`    | 생성 — 알림 페이지 껍데기                         |
+| `src/app/notifications/page.tsx`                    | 수정 — stub → 실제 화면                           |
+| `src/components/Header.tsx`                         | 수정 — `알림` 텍스트 링크 → 종 아이콘             |
+| `src/constants/endpoints.ts`                        | 수정 — `notifications` 5개 경로                   |
+| `.ai/API.md`                                        | 수정 — 74~78번 절 · 알림 도메인 공통 신설         |
 
 ### 주요 작업 내용
 

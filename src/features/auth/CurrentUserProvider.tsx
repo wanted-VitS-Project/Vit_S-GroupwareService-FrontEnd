@@ -149,13 +149,13 @@ export default function CurrentUserProvider({
   if (hasFailed) {
     return (
       <Centered>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-text-secondary">
           내 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
         </p>
         <button
           type="button"
           onClick={refetch}
-          className="cursor-pointer rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800"
+          className="cursor-pointer rounded-lg bg-text-primary px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-bg-sidebar-hover"
         >
           다시 시도
         </button>
@@ -173,7 +173,7 @@ export default function CurrentUserProvider({
   if (!user) {
     return (
       <Centered>
-        <p className="text-sm text-slate-500">불러오는 중…</p>
+        <p className="text-sm text-text-secondary">불러오는 중…</p>
       </Centered>
     );
   }

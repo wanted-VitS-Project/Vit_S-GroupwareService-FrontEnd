@@ -38,16 +38,16 @@ function FieldShell({
     <div>
       <label
         htmlFor={id}
-        className="block pb-1.5 text-[11px] font-semibold text-[#1C1F2A]"
+        className="block pb-1.5 text-[11px] font-semibold text-text-primary"
       >
-        {label} {required && <span className="text-[#E7000B]">*</span>}
+        {label} {required && <span className="text-text-danger">*</span>}
       </label>
       {children}
       {error ? (
         <p
           id={`${id}-error`}
           role="alert"
-          className="mt-1 text-[10px] break-keep text-[#E7000B]"
+          className="mt-1 text-[10px] break-keep text-text-danger"
         >
           {error}
         </p>
@@ -55,7 +55,7 @@ function FieldShell({
         hint && (
           <p
             id={`${id}-hint`}
-            className="mt-1 text-[10px] break-keep text-[#6C7389]"
+            className="mt-1 text-[10px] break-keep text-text-secondary"
           >
             {hint}
           </p>
@@ -67,10 +67,10 @@ function FieldShell({
 
 /** 에러가 있을 때만 테두리를 빨갛게 — 입력 · 셀렉트가 같은 규칙을 쓴다 */
 function controlClass(hasError: boolean) {
-  return `w-full rounded-lg border bg-[#ECEEF4]/50 px-3 py-2 text-[11px] text-[#1C1F2A] placeholder:text-[#6C7389] focus:outline-2 focus:outline-offset-2 ${
+  return `w-full rounded-lg border bg-bg-surface px-3 py-2 text-[11px] text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 ${
     hasError
-      ? 'border-[#E7000B] focus:outline-[#E7000B]'
-      : 'border-[#1C1F2A]/10 focus:outline-[#3B5BDB]'
+      ? 'border-border-danger focus:outline-border-danger'
+      : 'border-border-default focus:outline-border-primary'
   }`;
 }
 

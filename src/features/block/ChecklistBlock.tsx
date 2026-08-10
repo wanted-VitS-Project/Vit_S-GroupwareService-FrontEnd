@@ -148,7 +148,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
 
   return (
     <BlockCard block={block}>
-      <p className="text-[9px] text-[#6C7389]">
+      <p className="text-[9px] text-text-secondary">
         {completedCount} / {items.length} 완료
       </p>
 
@@ -172,7 +172,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
                 className={`flex size-3.5 shrink-0 cursor-pointer items-center justify-center rounded border disabled:cursor-progress ${
                   item.isCompleted
                     ? 'border-[#00BC7D] bg-[#00BC7D] text-white'
-                    : 'border-[#6C7389] bg-white'
+                    : 'border-text-secondary bg-white'
                 }`}
               >
                 {item.isCompleted && <CheckIcon />}
@@ -189,7 +189,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
                     if (event.key === 'Enter') saveContent(item);
                     if (event.key === 'Escape') setEditingId(null);
                   }}
-                  className="min-w-0 flex-1 rounded border border-[#3B5BDB] px-1 py-0 text-[11px] text-[#1C1F2A] outline-none"
+                  className="min-w-0 flex-1 rounded border border-border-primary px-1 py-0 text-[11px] text-text-primary outline-none"
                 />
               ) : (
                 <button
@@ -200,8 +200,8 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
                   }}
                   className={`min-w-0 flex-1 cursor-text truncate text-left text-[11px] ${
                     item.isCompleted
-                      ? 'text-[#6C7389] line-through'
-                      : 'text-[#1C1F2A]'
+                      ? 'text-text-secondary line-through'
+                      : 'text-text-primary'
                   }`}
                 >
                   {item.content}
@@ -213,7 +213,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
                 aria-label={`${item.content} 삭제`}
                 disabled={isBusy}
                 onClick={() => removeItem(item)}
-                className="flex size-4 shrink-0 cursor-pointer items-center justify-center rounded text-[#6C7389] opacity-0 group-hover/item:opacity-100 hover:bg-[#ECEEF4] focus-visible:opacity-100"
+                className="flex size-4 shrink-0 cursor-pointer items-center justify-center rounded text-text-secondary opacity-0 group-hover/item:opacity-100 hover:bg-bg-hover focus-visible:opacity-100"
               >
                 <CloseIcon />
               </button>
@@ -224,7 +224,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
 
       {chkBlockId === null ? (
         // detail.chkBlockId 없이 추가하면 어느 체크리스트에 붙을지 알 수 없다
-        <p className="mt-2 text-[10px] text-[#6C7389]/60">
+        <p className="mt-2 text-[10px] text-text-muted">
           항목을 추가할 수 없습니다.
         </p>
       ) : (
@@ -238,12 +238,12 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
           onBlur={addItem}
           disabled={isAdding}
           placeholder="+ 항목 추가"
-          className="mt-2 w-full bg-transparent text-[10px] text-[#1C1F2A] outline-none placeholder:text-[#6C7389]/60"
+          className="mt-2 w-full bg-transparent text-[10px] text-text-primary outline-none placeholder:text-text-muted"
         />
       )}
 
       {errorMessage && (
-        <p role="alert" className="mt-1.5 text-[9px] text-[#E7000B]">
+        <p role="alert" className="mt-1.5 text-[9px] text-text-danger">
           {errorMessage}
         </p>
       )}

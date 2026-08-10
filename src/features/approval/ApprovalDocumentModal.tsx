@@ -26,7 +26,7 @@ const PdfPages = dynamic(() => import('@/features/file/PdfPages'), {
     <div role="status" aria-label="미리보기 뷰어를 불러오는 중입니다">
       <div
         aria-hidden
-        className="h-[600px] w-full animate-pulse rounded-lg border border-[#E2E8F0] bg-white shadow-sm"
+        className="h-[600px] w-full animate-pulse rounded-lg border border-border-default bg-white shadow-sm"
       />
     </div>
   ),
@@ -135,17 +135,17 @@ export default function ApprovalDocumentModal({
     <Modal
       title={`${fileName} 문서 보기`}
       onClose={onClose}
-      className="m-auto flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-[#1C1F2A]/10 shadow-2xl"
+      className="m-auto flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
       // 기본 제목 줄을 대신한다 — 넘기지 않으면 파일명이 두 번 나온다
       header={
-        <div className="flex shrink-0 items-center gap-3 border-b border-[#1C1F2A]/10 px-5 py-3">
+        <div className="flex shrink-0 items-center gap-3 border-b border-border-default px-5 py-3">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-[#1C1F2A]">
+            <p className="truncate text-sm font-semibold text-text-primary">
               {fileName}
             </p>
-            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-[#6C7389]">
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-text-secondary">
               {version && (
-                <span className="font-mono text-[#3B5BDB]">
+                <span className="font-mono text-text-primary-blue">
                   v{version.versionNo}
                 </span>
               )}
@@ -163,7 +163,7 @@ export default function ApprovalDocumentModal({
           <button
             type="button"
             onClick={download}
-            className="shrink-0 cursor-pointer rounded-lg border border-[#1C1F2A]/10 px-3 py-1.5 text-xs font-semibold text-[#1C1F2A] hover:bg-[#ECEEF4]"
+            className="shrink-0 cursor-pointer rounded-lg border border-border-default px-3 py-1.5 text-xs font-semibold text-text-primary hover:bg-bg-hover"
           >
             다운로드
           </button>
@@ -171,7 +171,7 @@ export default function ApprovalDocumentModal({
             type="button"
             onClick={onClose}
             aria-label="닫기"
-            className="shrink-0 cursor-pointer rounded-md px-2 py-1 text-[#6C7389] hover:bg-[#ECEEF4]"
+            className="shrink-0 cursor-pointer rounded-md px-2 py-1 text-text-secondary hover:bg-bg-hover"
           >
             ✕
           </button>
@@ -180,22 +180,22 @@ export default function ApprovalDocumentModal({
     >
       {/* 고정된 버전을 그대로 보여주되, 최신이 아니라는 사실은 알려야 한다 (AP-013) */}
       {version && !version.latest && (
-        <p className="shrink-0 bg-[#FFFBEB] px-5 py-2 text-[11px] break-keep text-[#BB4D00]">
+        <p className="shrink-0 bg-yellow-bg-soft px-5 py-2 text-[11px] break-keep text-yellow-text">
           결재 이후 새 버전(v{version.latestVersionNo})이 올라왔습니다. 결재
           대상은 v{version.versionNo} 입니다.
         </p>
       )}
       {version?.fileDeleted && (
-        <p className="shrink-0 bg-[#ECEEF4] px-5 py-2 text-[11px] break-keep text-[#6C7389]">
+        <p className="shrink-0 bg-bg-hover px-5 py-2 text-[11px] break-keep text-text-secondary">
           원본 문서는 휴지통에 있습니다. 결재 이력 보존을 위해 이 버전은 계속
           조회됩니다.
         </p>
       )}
 
       {/* 스크롤은 이 영역이 갖는다 — PdfPages 는 페이지를 쌓기만 한다 */}
-      <div className="min-h-0 flex-1 overflow-y-auto bg-[#ECEEF4]/40 p-5">
+      <div className="min-h-0 flex-1 overflow-y-auto bg-bg-surface p-5">
         {preview.kind === 'loading' && (
-          <p className="text-center text-xs text-[#6C7389]">
+          <p className="text-center text-xs text-text-secondary">
             미리보기를 불러오는 중…
           </p>
         )}
@@ -207,7 +207,7 @@ export default function ApprovalDocumentModal({
               onFailed={(message) => setPreview({ kind: 'failed', message })}
             />
             {preview.total !== null && preview.shown !== null && (
-              <p className="mt-4 rounded-lg bg-white px-3 py-2 text-center text-[11px] break-keep text-[#6C7389]">
+              <p className="mt-4 rounded-lg bg-white px-3 py-2 text-center text-[11px] break-keep text-text-secondary">
                 미리보기는 {preview.shown}페이지까지만 보여줍니다. 전체 문서는
                 다운로드 후 확인하세요. (총 {preview.total}페이지)
               </p>
@@ -217,10 +217,10 @@ export default function ApprovalDocumentModal({
 
         {preview.kind === 'denied' && (
           <div className="text-center">
-            <p className="text-xs font-semibold text-[#1C1F2A]">
+            <p className="text-xs font-semibold text-text-primary">
               이 문서를 열람할 권한이 없습니다
             </p>
-            <p className="mt-1.5 text-xs break-keep text-[#6C7389]">
+            <p className="mt-1.5 text-xs break-keep text-text-secondary">
               결재 문서는 원본 프로젝트의 스텝 열람 권한을 따릅니다. 해당
               프로젝트 참여자로 초대되어야 볼 수 있어요.
             </p>
@@ -228,7 +228,7 @@ export default function ApprovalDocumentModal({
         )}
 
         {preview.kind === 'unsupported' && (
-          <p className="text-center text-xs break-keep text-[#6C7389]">
+          <p className="text-center text-xs break-keep text-text-secondary">
             이 형식은 미리보기를 지원하지 않습니다. 다운로드해서 확인해주세요.
           </p>
         )}
@@ -236,7 +236,7 @@ export default function ApprovalDocumentModal({
         {preview.kind === 'failed' && (
           <p
             role="alert"
-            className="text-center text-xs break-keep text-[#E7000B]"
+            className="text-center text-xs break-keep text-text-danger"
           >
             {preview.message}
           </p>
@@ -245,7 +245,7 @@ export default function ApprovalDocumentModal({
 
       <p
         role="alert"
-        className="shrink-0 px-5 pb-3 text-xs break-keep text-[#E7000B] empty:hidden"
+        className="shrink-0 px-5 pb-3 text-xs break-keep text-text-danger empty:hidden"
       >
         {downloadError}
       </p>

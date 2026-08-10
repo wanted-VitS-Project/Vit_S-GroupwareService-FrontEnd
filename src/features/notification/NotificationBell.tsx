@@ -35,7 +35,12 @@ const POLL_MS = 60_000;
  * 배지 숫자는 `?isRead=false` 의 **`totalElements`** 다 — 목록 길이는 `size` 에 잘려 실제와 다르다.
  * 목록은 **열 때마다** 다시 받는다. 알림은 밖에서 늘어나는 값이라 캐시해두면 금방 낡는다.
  */
-export default function NotificationBell() {
+export default function NotificationBell({
+  /** 프로젝트 화면의 어두운 헤더 위에 놓일 때 (색만 달라진다) */
+  isDark = false,
+}: {
+  isDark?: boolean;
+}) {
   const router = useRouter();
   const boxRef = useRef<HTMLDivElement>(null);
   /** Esc 로 닫았을 때 포커스를 돌려놓을 곳 — 안 그러면 키보드 사용자가 위치를 잃는다 */
@@ -196,12 +201,16 @@ export default function NotificationBell() {
         aria-label={
           unreadCount > 0 ? `알림 ${unreadCount}건 읽지 않음` : '알림'
         }
-        className="relative flex cursor-pointer items-center rounded-lg p-1.5 text-slate-500 hover:bg-[#ECEEF4] hover:text-slate-900"
+        className={`relative flex cursor-pointer items-center rounded-sidebar p-1.5 ${
+          isDark
+            ? 'text-text-muted hover:bg-bg-sidebar-hover hover:text-text-white'
+            : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
+        }`}
       >
         <BellIcon />
 
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex min-w-4 items-center justify-center rounded-full bg-[#E7000B] px-1 text-[9px] font-bold text-white">
+          <span className="absolute -top-0.5 -right-0.5 flex min-w-4 items-center justify-center rounded-full bg-red-text px-1 text-[9px] font-bold text-white">
             {unreadCount > BADGE_MAX ? `${BADGE_MAX}+` : unreadCount}
           </span>
         )}
@@ -211,15 +220,15 @@ export default function NotificationBell() {
         <div
           role="dialog"
           aria-label="알림"
-          className="absolute top-full right-0 z-20 mt-2 w-95 overflow-hidden rounded-xl border border-[#1C1F2A]/10 bg-white shadow-lg"
+          className="absolute top-full right-0 z-20 mt-2 w-95 overflow-hidden rounded-xl border border-border-default bg-white shadow-lg"
         >
           <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-sm font-bold text-[#1C1F2A]">알림</span>
+            <span className="text-sm font-bold text-text-primary">알림</span>
             <button
               type="button"
               onClick={readAll}
               disabled={isBusy || unreadCount === 0}
-              className="cursor-pointer text-xs text-[#6C7389] hover:text-[#1C1F2A] disabled:cursor-not-allowed disabled:text-[#C7CCD9]"
+              className="cursor-pointer text-xs text-text-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:text-text-muted"
             >
               모두 읽음
             </button>
@@ -228,22 +237,26 @@ export default function NotificationBell() {
           {error !== '' && (
             <p
               role="alert"
-              className="px-4 pb-3 text-xs break-keep text-[#E7000B]"
+              className="px-4 pb-3 text-xs break-keep text-text-danger"
             >
               {error}
             </p>
           )}
 
           {items === null && (
-            <p className="px-4 pb-4 text-xs text-[#6C7389]">불러오는 중…</p>
+            <p className="px-4 pb-4 text-xs text-text-secondary">
+              불러오는 중…
+            </p>
           )}
 
           {items?.length === 0 && error === '' && (
-            <p className="px-4 pb-4 text-xs text-[#6C7389]">알림이 없습니다.</p>
+            <p className="px-4 pb-4 text-xs text-text-secondary">
+              알림이 없습니다.
+            </p>
           )}
 
           {items && items.length > 0 && (
-            <ul className="border-t border-[#1C1F2A]/10">
+            <ul className="border-t border-border-default">
               {items.map((item) => (
                 <li key={item.notificationId}>
                   <NotificationRow
@@ -259,7 +272,7 @@ export default function NotificationBell() {
           <Link
             href={NOTIFICATION_ROUTES.list}
             onClick={() => setIsOpen(false)}
-            className="block border-t border-[#1C1F2A]/10 py-3 text-center text-xs font-semibold text-[#3B5BDB] hover:bg-[#ECEEF4]/40"
+            className="block border-t border-border-default py-3 text-center text-xs font-semibold text-text-primary-blue hover:bg-bg-surface"
           >
             알림 전체 보기
           </Link>

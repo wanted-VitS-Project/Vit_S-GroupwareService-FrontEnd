@@ -152,7 +152,7 @@ export default function EmployeeSearchInput({
         // 항목 클릭이 블러보다 먼저 처리되도록 목록 쪽에서 mousedown 을 막는다
         onBlur={() => setIsOpen(false)}
         onKeyDown={handleKeyDown}
-        className="w-full min-w-0 rounded-lg border border-[#1C1F2A]/10 bg-[#ECEEF4]/40 px-2.5 py-1.5 text-[10px] text-[#1C1F2A] placeholder:text-[#6C7389] focus:outline-2 focus:outline-offset-2 focus:outline-[#3B5BDB] disabled:cursor-not-allowed disabled:text-[#C7CCD9]"
+        className="w-full min-w-0 rounded-lg border border-border-default bg-bg-surface px-2.5 py-1.5 text-[10px] text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary disabled:cursor-not-allowed disabled:text-text-muted"
       />
 
       {isListVisible && (
@@ -160,10 +160,10 @@ export default function EmployeeSearchInput({
           id={listId}
           role="listbox"
           onMouseDown={(event) => event.preventDefault()}
-          className="absolute top-full right-0 left-0 z-10 mt-1 max-h-40 overflow-y-auto rounded-lg border border-[#1C1F2A]/10 bg-white py-1 shadow-lg"
+          className="absolute top-full right-0 left-0 z-10 mt-1 max-h-40 overflow-y-auto rounded-lg border border-border-default bg-white py-1 shadow-lg"
         >
           {isLoading && (
-            <li className="px-2.5 py-1.5 text-[10px] text-[#6C7389]">
+            <li className="px-2.5 py-1.5 text-[10px] text-text-secondary">
               검색 중…
             </li>
           )}
@@ -171,20 +171,20 @@ export default function EmployeeSearchInput({
           {!isLoading && error !== '' && (
             <li
               role="alert"
-              className="px-2.5 py-1.5 text-[10px] break-keep text-[#E7000B]"
+              className="px-2.5 py-1.5 text-[10px] break-keep text-text-danger"
             >
               {error}
             </li>
           )}
 
           {!isLoading && error === '' && options.length === 0 && (
-            <li className="px-2.5 py-1.5 text-[10px] break-keep text-[#6C7389]">
+            <li className="px-2.5 py-1.5 text-[10px] break-keep text-text-secondary">
               검색 결과가 없습니다. 성만 입력해도 돼요 (예: 김)
             </li>
           )}
 
           {!isLoading && error === '' && options.length > 0 && (
-            <li className="px-2.5 py-1 text-[9px] text-[#6C7389]">
+            <li className="px-2.5 py-1 text-[9px] text-text-secondary">
               {options.length}명
             </li>
           )}
@@ -205,11 +205,11 @@ export default function EmployeeSearchInput({
                   }}
                   className={`flex w-full items-baseline gap-1.5 px-2.5 py-1.5 text-left text-[10px] ${
                     employee.isAdded ? 'cursor-not-allowed' : 'cursor-pointer'
-                  } ${index === activeIndex ? 'bg-[#ECEEF4]' : ''}`}
+                  } ${index === activeIndex ? 'bg-bg-hover' : ''}`}
                 >
                   <span
                     className={`shrink-0 font-semibold ${
-                      employee.isAdded ? 'text-[#C7CCD9]' : 'text-[#1C1F2A]'
+                      employee.isAdded ? 'text-text-muted' : 'text-text-primary'
                     }`}
                   >
                     {employee.name}
@@ -217,7 +217,9 @@ export default function EmployeeSearchInput({
                   {/* 동명이인이 있을 수 있어 부서 · 직급을 함께 보여준다 */}
                   <span
                     className={`min-w-0 truncate ${
-                      employee.isAdded ? 'text-[#C7CCD9]' : 'text-[#6C7389]'
+                      employee.isAdded
+                        ? 'text-text-muted'
+                        : 'text-text-secondary'
                     }`}
                   >
                     {[employee.position, employee.department]
@@ -225,7 +227,7 @@ export default function EmployeeSearchInput({
                       .join(' · ')}
                   </span>
                   {employee.isAdded && (
-                    <span className="ml-auto shrink-0 text-[9px] text-[#6C7389]">
+                    <span className="ml-auto shrink-0 text-[9px] text-text-secondary">
                       이미 추가됨
                     </span>
                   )}

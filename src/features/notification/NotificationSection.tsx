@@ -147,16 +147,16 @@ export default function NotificationSection({
 
   return (
     <section>
-      <h2 className="text-sm font-bold text-[#1C1F2A]">
+      <h2 className="text-sm font-bold text-text-primary">
         {title}
         {/* 건수는 목록 길이가 아니라 전체 건수다 — 목록은 페이지 크기에 잘린다 */}
-        <span className="ml-1.5 text-xs font-normal text-[#6C7389]">
+        <span className="ml-1.5 text-xs font-normal text-text-secondary">
           {data?.totalElements ?? 0}
         </span>
       </h2>
 
       {error !== '' && (
-        <p role="alert" className="mt-2 text-xs break-keep text-[#E7000B]">
+        <p role="alert" className="mt-2 text-xs break-keep text-text-danger">
           {error}
         </p>
       )}
@@ -166,21 +166,21 @@ export default function NotificationSection({
        * 어느 쪽을 굴려야 할지 알 수 없다. 한 쪽에 담는 수를 줄여(`PAGE_SIZE`)
        * **스크롤 없이** 두 구역이 화면에 들어오게 한다.
        */}
-      <div className="mt-2 overflow-hidden rounded-xl border border-[#1C1F2A]/10">
+      <div className="mt-2 overflow-hidden rounded-xl border border-border-default">
         {hasFailed && (
-          <p className="flex-1 px-4 py-10 text-center text-xs text-[#6C7389]">
+          <p className="flex-1 px-4 py-10 text-center text-xs text-text-secondary">
             알림을 불러오지 못했습니다.
           </p>
         )}
 
         {!hasFailed && data === null && (
-          <p className="flex-1 px-4 py-10 text-center text-xs text-[#6C7389]">
+          <p className="flex-1 px-4 py-10 text-center text-xs text-text-secondary">
             불러오는 중…
           </p>
         )}
 
         {data?.content.length === 0 && (
-          <p className="flex-1 px-4 py-10 text-center text-xs text-[#6C7389]">
+          <p className="flex-1 px-4 py-10 text-center text-xs text-text-secondary">
             {emptyText}
           </p>
         )}
@@ -193,11 +193,11 @@ export default function NotificationSection({
              */}
             {groupByDate(data.content).map((group) => (
               <div key={group.dateKey}>
-                <p className="border-b border-[#1C1F2A]/10 bg-[#ECEEF4]/40 px-4 py-1.5 text-[11px] font-semibold text-[#6C7389]">
+                <p className="border-b border-border-default bg-bg-surface px-4 py-1.5 text-[11px] font-semibold text-text-secondary">
                   {group.dateLabel}
                 </p>
 
-                <ul className="divide-y divide-[#1C1F2A]/10">
+                <ul className="divide-y divide-border-default">
                   {group.logs.map((item) => (
                     <li key={item.notificationId}>
                       <NotificationRow

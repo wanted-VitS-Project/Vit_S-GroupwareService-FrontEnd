@@ -21,10 +21,10 @@ export function employeeStatusOf({
 }
 
 const BADGE_STYLES: Record<EmployeeStatus, string> = {
-  ACTIVE: 'bg-[#12B76A]/10 text-[#087443]',
-  RESET_REQUIRED: 'bg-[#F59E0B]/10 text-[#92400E]',
-  INACTIVE: 'bg-[#E7000B]/10 text-[#E7000B]',
-  RESIGNED: 'bg-[#ECEEF4] text-[#6C7389]',
+  ACTIVE: 'bg-[#12B76A]/10 text-green-text',
+  RESET_REQUIRED: 'bg-yellow-bg-soft text-yellow-text',
+  INACTIVE: 'bg-red-bg-soft text-text-danger',
+  RESIGNED: 'bg-bg-hover text-text-secondary',
 };
 
 export default function EmployeeStatusBadge({

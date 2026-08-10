@@ -17,7 +17,7 @@ import type {
 
 /** 제목 · 내용 입력 공통 스타일 */
 const FIELD_CLASS =
-  'w-full rounded-lg border border-[#1C1F2A]/10 bg-[#ECEEF4]/40 px-2.5 py-1.5 text-[10px] text-[#1C1F2A] placeholder:text-[#6C7389] focus:outline-2 focus:outline-offset-2 focus:outline-[#3B5BDB]';
+  'w-full rounded-lg border border-border-default bg-bg-surface px-2.5 py-1.5 text-[10px] text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary';
 
 interface ApprovalDraftFormProps {
   approvalId: number;
@@ -159,7 +159,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[10px] font-semibold text-[#1C1F2A]">
+      <span className="mb-1 block text-[10px] font-semibold text-text-primary">
         {label}
       </span>
       {children}
@@ -227,7 +227,7 @@ function DocumentSection({
 
   return (
     <section>
-      <h4 className="mb-1 text-[10px] font-semibold text-[#1C1F2A]">
+      <h4 className="mb-1 text-[10px] font-semibold text-text-primary">
         결재 문서
       </h4>
 
@@ -236,9 +236,9 @@ function DocumentSection({
           {documents.map((document) => (
             <li
               key={document.documentId}
-              className="flex items-center gap-2 rounded border border-[#1C1F2A]/10 px-2 py-1.5"
+              className="flex items-center gap-2 rounded border border-border-default px-2 py-1.5"
             >
-              <span className="min-w-0 flex-1 truncate text-[10px] text-[#1C1F2A]">
+              <span className="min-w-0 flex-1 truncate text-[10px] text-text-primary">
                 {/* 회차 상세에는 파일명이 없다 — 그때는 버전 번호로 구분한다 */}
                 {document.fileName ?? `파일 버전 #${document.fileVersionId}`}
               </span>
@@ -246,7 +246,7 @@ function DocumentSection({
                 type="button"
                 onClick={() => detach(document.documentId)}
                 disabled={isBusy}
-                className="shrink-0 cursor-pointer text-[10px] text-[#6C7389] hover:text-[#E7000B] disabled:cursor-not-allowed disabled:text-[#C7CCD9]"
+                className="shrink-0 cursor-pointer text-[10px] text-text-secondary hover:text-text-danger disabled:cursor-not-allowed disabled:text-text-muted"
               >
                 제거
               </button>
@@ -270,7 +270,7 @@ function DocumentSection({
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={isBusy}
-        className="w-full cursor-pointer rounded-lg border border-dashed border-[#1C1F2A]/15 py-3 text-[10px] text-[#6C7389] hover:bg-[#ECEEF4]/40 disabled:cursor-not-allowed"
+        className="w-full cursor-pointer rounded-lg border border-dashed border-border-default py-3 text-[10px] text-text-secondary hover:bg-bg-surface disabled:cursor-not-allowed"
       >
         {isBusy ? '처리 중…' : '클릭하여 업로드'}
       </button>
@@ -351,7 +351,7 @@ function LineSection({
 
   return (
     <section>
-      <h4 className="mb-1 text-[10px] font-semibold text-[#1C1F2A]">
+      <h4 className="mb-1 text-[10px] font-semibold text-text-primary">
         결재자 지정
       </h4>
 
@@ -360,15 +360,15 @@ function LineSection({
           {ordered.map((line, index) => (
             <li
               key={line.lineId}
-              className="flex items-center gap-1.5 rounded border border-[#1C1F2A]/10 px-2 py-1.5"
+              className="flex items-center gap-1.5 rounded border border-border-default px-2 py-1.5"
             >
-              <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-[#FFFBEB] text-[9px] font-semibold text-[#BB4D00]">
+              <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-yellow-bg-soft text-[9px] font-semibold text-yellow-text">
                 {index + 1}
               </span>
-              <span className="min-w-0 flex-1 truncate text-[10px] text-[#1C1F2A]">
+              <span className="min-w-0 flex-1 truncate text-[10px] text-text-primary">
                 {line.approverName}
                 {line.approverPosition && (
-                  <span className="ml-1 text-[#6C7389]">
+                  <span className="ml-1 text-text-secondary">
                     {line.approverPosition}
                   </span>
                 )}
@@ -397,7 +397,7 @@ function LineSection({
                   )
                 }
                 disabled={isBusy}
-                className="shrink-0 cursor-pointer text-[10px] text-[#6C7389] hover:text-[#E7000B] disabled:cursor-not-allowed disabled:text-[#C7CCD9]"
+                className="shrink-0 cursor-pointer text-[10px] text-text-secondary hover:text-text-danger disabled:cursor-not-allowed disabled:text-text-muted"
               >
                 제거
               </button>
@@ -424,7 +424,7 @@ function LineSection({
        * 지킬 수 없는 조건을 적어두면 사용자가 무엇을 고쳐야 할지 알 수 없다.
        */}
       {ordered.length > 1 && (
-        <p className="mt-1 text-[10px] break-keep text-[#6C7389]">
+        <p className="mt-1 text-[10px] break-keep text-text-secondary">
           순서는 ↑↓ 로 바꿀 수 있습니다.
         </p>
       )}
@@ -453,7 +453,7 @@ function MoveButton({
       disabled={disabled}
       aria-label={label}
       title={label}
-      className="flex size-4 shrink-0 cursor-pointer items-center justify-center rounded text-[10px] leading-none text-[#6C7389] hover:bg-[#ECEEF4] hover:text-[#1C1F2A] disabled:cursor-not-allowed disabled:text-[#C7CCD9] disabled:hover:bg-transparent"
+      className="flex size-4 shrink-0 cursor-pointer items-center justify-center rounded text-[10px] leading-none text-text-secondary hover:bg-bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:text-text-muted disabled:hover:bg-transparent"
     >
       {children}
     </button>

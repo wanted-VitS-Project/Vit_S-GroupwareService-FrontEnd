@@ -59,12 +59,12 @@ export default function FileVersionPickerModal({
       title={title}
       onClose={onClose}
       /* 실행 모달과 같은 이유로 높이 고정 — 문서가 1개든 30개든 패널은 그대로다 */
-      className="flex h-[520px] max-h-[80vh] w-full max-w-[560px] flex-col overflow-hidden rounded-xl border border-[#1C1F2A]/10 shadow-2xl"
+      className="flex h-[520px] max-h-[80vh] w-full max-w-[560px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
       header={
-        <div className="flex items-center justify-between gap-2 border-b border-[#1C1F2A]/10 px-5 py-3.5">
+        <div className="flex items-center justify-between gap-2 border-b border-border-default px-5 py-3.5">
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold text-[#1C1F2A]">{title}</h2>
-            <p className="mt-0.5 text-[10px] text-[#6C7389]">
+            <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
+            <p className="mt-0.5 text-[10px] text-text-secondary">
               {role === 'REFERENCE'
                 ? '비교 기준이 되는 문서를 고르세요.'
                 : '검토받을 문서를 고르세요.'}
@@ -74,7 +74,7 @@ export default function FileVersionPickerModal({
             type="button"
             onClick={onClose}
             aria-label="닫기"
-            className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-[#6C7389] hover:bg-[#ECEEF4]"
+            className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-text-secondary hover:bg-bg-hover"
           >
             ✕
           </button>
@@ -88,11 +88,11 @@ export default function FileVersionPickerModal({
       {isIndexing && (
         <p
           role="status"
-          className="flex shrink-0 items-center gap-1.5 border-b border-[#FEE685] bg-[#FFFBEB] px-5 py-2 text-[10px] text-[#BB4D00]"
+          className="flex shrink-0 items-center gap-1.5 border-b border-yellow-border bg-yellow-bg-soft px-5 py-2 text-[10px] text-yellow-text"
         >
           <span
             aria-hidden
-            className="size-2.5 animate-spin rounded-full border border-[#FEE685] border-t-[#BB4D00]"
+            className="size-2.5 animate-spin rounded-full border border-yellow-border border-t-yellow-text"
           />
           AI가 아직 읽는 중인 문서가 있어요. 끝나면 자동으로 선택할 수 있어요.
         </p>
@@ -105,7 +105,7 @@ export default function FileVersionPickerModal({
               <li
                 key={row}
                 aria-hidden
-                className="h-11 animate-pulse rounded-lg bg-[#ECEEF4]"
+                className="h-11 animate-pulse rounded-lg bg-bg-hover"
               />
             ))}
             <li className="sr-only" role="status">
@@ -113,11 +113,11 @@ export default function FileVersionPickerModal({
             </li>
           </ul>
         ) : loadError ? (
-          <p className="py-10 text-center text-xs text-[#6C7389]">
+          <p className="py-10 text-center text-xs text-text-secondary">
             {loadError}
           </p>
         ) : versions.length === 0 ? (
-          <p className="py-10 text-center text-xs text-[#6C7389]">
+          <p className="py-10 text-center text-xs text-text-secondary">
             프로젝트에 등록된 문서가 없습니다.
           </p>
         ) : (
@@ -136,13 +136,13 @@ export default function FileVersionPickerModal({
       </div>
 
       <ModalFooter>
-        <span className="mr-auto text-[10px] text-[#6C7389]">
+        <span className="mr-auto text-[10px] text-text-secondary">
           {draft.length}개 선택됨
         </span>
         <button
           type="button"
           onClick={onClose}
-          className="cursor-pointer rounded-md border border-[#1C1F2A]/15 px-3 py-1.5 text-[11px] font-medium text-[#6C7389] hover:bg-[#ECEEF4]"
+          className="cursor-pointer rounded-md border border-border-default px-3 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover"
         >
           취소
         </button>
@@ -199,11 +199,11 @@ function VersionRow({
       <label
         className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 ${
           isDisabled
-            ? 'cursor-not-allowed border-[#1C1F2A]/10 opacity-50'
+            ? 'cursor-not-allowed border-border-default opacity-50'
             : isChecked
               ? // 고를 수 없게 된 뒤에도 고른 상태면 흐리게 표시해 해제를 유도한다
-                `cursor-pointer border-[#4F39F6] bg-[#EEF2FF] ${isBlocked ? 'opacity-60' : ''}`
-              : 'cursor-pointer border-[#1C1F2A]/10 hover:bg-[#ECEEF4]/50'
+                `cursor-pointer border-[#4F39F6] bg-blue-bg-soft ${isBlocked ? 'opacity-60' : ''}`
+              : 'cursor-pointer border-border-default hover:bg-bg-surface'
         }`}
       >
         <input
@@ -221,18 +221,18 @@ function VersionRow({
         </span>
 
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[11px] font-medium text-[#1C1F2A]">
+          <span className="block truncate text-[11px] font-medium text-text-primary">
             {version.name}
           </span>
-          <span className="mt-0.5 flex items-center gap-1.5 text-[9px] text-[#6C7389]">
+          <span className="mt-0.5 flex items-center gap-1.5 text-[9px] text-text-secondary">
             <span>v{version.versionNo}</span>
             {version.latest && (
-              <span className="rounded bg-[#ECFDF5] px-1 py-px font-semibold text-[#009966]">
+              <span className="rounded bg-green-bg px-1 py-px font-semibold text-green-text">
                 최신
               </span>
             )}
             {version.pageCount !== null && <span>{version.pageCount}p</span>}
-            {hint && <span className="text-[#BB4D00]">{hint}</span>}
+            {hint && <span className="text-yellow-text">{hint}</span>}
           </span>
         </span>
       </label>

@@ -446,7 +446,7 @@ export default function BlockBoard({
 
   if (order.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-[#1C1F2A]/10 px-4 py-10 text-center text-xs text-[#6C7389]">
+      <p className="rounded-lg border border-dashed border-border-default px-4 py-10 text-center text-xs text-text-secondary">
         아직 블록이 없습니다. `Block 추가` 로 시작해보세요.
       </p>
     );
@@ -459,7 +459,7 @@ export default function BlockBoard({
           {saveError && (
             <p
               role="alert"
-              className="rounded border border-[#E7000B]/20 bg-[#E7000B]/5 px-2.5 py-1.5 text-[10px] text-[#E7000B]"
+              className="rounded border border-border-danger/20 bg-red-bg-soft px-2.5 py-1.5 text-[10px] text-text-danger"
             >
               {saveError}
             </p>
@@ -508,7 +508,7 @@ export default function BlockBoard({
                     COL_SPAN_CLASS[toSpan(block.colSpan)]
                   } ${
                     aimingId === block.blockId
-                      ? 'ring-2 ring-[#3B5BDB]/40 ring-offset-2'
+                      ? 'ring-2 ring-border-primary/40 ring-offset-2'
                       : ''
                   }`}
                 >
@@ -577,8 +577,8 @@ function DropSlot({
         COL_SPAN_CLASS[span]
       } ${
         isActive
-          ? 'border-[#3B5BDB] bg-[#3B5BDB]/5 text-[#3B5BDB]'
-          : 'border-[#1C1F2A]/15 text-[#6C7389]'
+          ? 'border-border-primary bg-blue-bg-soft text-text-primary-blue'
+          : 'border-border-default text-text-secondary'
       }`}
     >
       {label}
@@ -613,7 +613,7 @@ const BlockBody = memo(function BlockBody({
   // TODO: 유형별 블록 구현 (PAYMENT_CONFIRM · TAX_INVOICE_VIEW · …)
   return (
     <BlockCard block={block}>
-      <p className="text-[10px] text-[#6C7389]">준비 중인 블록입니다.</p>
+      <p className="text-[10px] text-text-secondary">준비 중인 블록입니다.</p>
     </BlockCard>
   );
 });

@@ -56,20 +56,22 @@ export default function BlockActivityLogPanel({
     <Modal
       title="블록 활동 로그"
       onClose={onClose}
-      className="mt-auto mr-4 mb-4 ml-auto flex h-[72vh] max-h-[560px] w-[380px] flex-col overflow-hidden rounded-xl border border-[#1C1F2A]/10 shadow-2xl"
+      className="mt-auto mr-4 mb-4 ml-auto flex h-[72vh] max-h-[560px] w-[380px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
       header={
-        <div className="flex shrink-0 items-center gap-2 border-b border-[#1C1F2A]/10 px-4 py-3">
-          <span className="flex size-5 shrink-0 items-center justify-center rounded border border-violet-200 bg-violet-100 text-violet-600">
+        <div className="flex shrink-0 items-center gap-2 border-b border-border-default px-4 py-3">
+          <span className="flex size-5 shrink-0 items-center justify-center rounded border border-purple-border bg-purple-bg text-purple-text">
             <ActivityIcon />
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="text-xs font-semibold text-[#1C1F2A]">
+            <h2 className="text-xs font-semibold text-text-primary">
               블록 활동 로그
             </h2>
-            <p className="truncate text-[10px] text-[#6C7389]">{blockTitle}</p>
+            <p className="truncate text-[10px] text-text-secondary">
+              {blockTitle}
+            </p>
           </div>
           {visible && (
-            <span className="shrink-0 rounded-full bg-violet-600/10 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
+            <span className="shrink-0 rounded-full bg-purple-text/10 px-2 py-0.5 text-[10px] font-semibold text-purple-text">
               {visible.logs.length}건{visible.hasNext && ' +'}
             </span>
           )}
@@ -80,7 +82,7 @@ export default function BlockActivityLogPanel({
             type="button"
             onClick={onClose}
             aria-label="닫기"
-            className="flex size-6 cursor-pointer items-center justify-center rounded text-[#6C7389] hover:bg-[#ECEEF4]"
+            className="flex size-6 cursor-pointer items-center justify-center rounded text-text-secondary hover:bg-bg-hover"
           >
             ✕
           </button>
@@ -95,13 +97,13 @@ export default function BlockActivityLogPanel({
       >
         {hasFailed ? (
           <div className="flex h-full min-h-28 flex-col items-center justify-center gap-2 text-center">
-            <p role="alert" className="text-[11px] text-[#E7000B]">
+            <p role="alert" className="text-[11px] text-text-danger">
               활동 기록을 불러오지 못했습니다.
             </p>
             <button
               type="button"
               onClick={retry}
-              className="cursor-pointer text-[10px] font-semibold text-[#3B5BDB] hover:underline"
+              className="cursor-pointer text-[10px] font-semibold text-text-primary-blue hover:underline"
             >
               다시 시도
             </button>
@@ -110,11 +112,13 @@ export default function BlockActivityLogPanel({
           <ActivityLogSkeleton />
         ) : visible.logs.length === 0 ? (
           <div className="flex h-full min-h-28 flex-col items-center justify-center gap-1 text-center">
-            <span className="flex size-10 items-center justify-center rounded-full bg-[#ECEEF4] text-[#9AA1B4]">
+            <span className="flex size-10 items-center justify-center rounded-full bg-bg-hover text-text-muted">
               <ActivityIcon className="size-4" />
             </span>
-            <p className="text-[11px] text-[#6C7389]">활동 기록이 없습니다.</p>
-            <p className="text-[10px] text-[#9AA1B4]">
+            <p className="text-[11px] text-text-secondary">
+              활동 기록이 없습니다.
+            </p>
+            <p className="text-[10px] text-text-muted">
               이 블록에서 무언가 바뀌면 여기에 쌓입니다.
             </p>
           </div>
@@ -123,10 +127,10 @@ export default function BlockActivityLogPanel({
             {groups.map((group) => (
               <section key={group.dateKey}>
                 <div className="mb-2.5 flex items-center gap-2">
-                  <h3 className="text-[10px] font-semibold tracking-wider text-[#6C7389]">
+                  <h3 className="text-[10px] font-semibold tracking-wider text-text-secondary">
                     {group.dateLabel}
                   </h3>
-                  <span aria-hidden className="h-px flex-1 bg-[#1C1F2A]/10" />
+                  <span aria-hidden className="h-px flex-1 bg-bg-sidebar/10" />
                 </div>
                 <ul>
                   {group.logs.map((log, index) => (
@@ -144,13 +148,13 @@ export default function BlockActivityLogPanel({
 
             {errorMessage && (
               <div className="flex flex-col items-center gap-2">
-                <p role="alert" className="text-[10px] text-[#E7000B]">
+                <p role="alert" className="text-[10px] text-text-danger">
                   {errorMessage}
                 </p>
                 <button
                   type="button"
                   onClick={loadMore}
-                  className="cursor-pointer text-[10px] font-semibold text-[#3B5BDB] hover:underline"
+                  className="cursor-pointer text-[10px] font-semibold text-text-primary-blue hover:underline"
                 >
                   다시 시도
                 </button>
@@ -164,7 +168,7 @@ export default function BlockActivityLogPanel({
             )}
 
             {!visible.hasNext && !isLoadingMore && (
-              <p className="text-center text-[10px] text-[#9AA1B4]">
+              <p className="text-center text-[10px] text-text-muted">
                 마지막 기록입니다.
               </p>
             )}

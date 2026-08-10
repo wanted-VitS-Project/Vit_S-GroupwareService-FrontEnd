@@ -56,16 +56,16 @@ function FileViewerFallback() {
   return (
     <Modal
       title="문서 보기"
-      className="flex h-[85vh] w-full max-w-[820px] flex-col overflow-hidden rounded-xl border border-[#1C1F2A]/10 shadow-2xl"
+      className="flex h-[85vh] w-full max-w-[820px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
     >
       <div
         role="status"
         aria-label="문서 뷰어를 불러오는 중입니다"
-        className="flex min-h-0 flex-1 justify-center bg-[#F1F5F9] p-6"
+        className="flex min-h-0 flex-1 justify-center bg-bg-surface p-6"
       >
         <div
           aria-hidden
-          className="h-[600px] w-full max-w-[576px] animate-pulse rounded border border-[#E2E8F0] bg-white shadow-sm"
+          className="h-[600px] w-full max-w-[576px] animate-pulse rounded border border-border-default bg-white shadow-sm"
         />
       </div>
     </Modal>
@@ -226,13 +226,13 @@ export default function FileBlock({ block }: { block: StepBlock }) {
         <div className="min-h-0 flex-1 overflow-y-auto">
           {hasFailed ? (
             <div className="flex flex-col items-center gap-2 py-6">
-              <p className="text-[10px] text-[#6C7389]">
+              <p className="text-[10px] text-text-secondary">
                 문서를 불러오지 못했습니다.
               </p>
               <button
                 type="button"
                 onClick={reload}
-                className="cursor-pointer rounded-md border border-[#1C1F2A]/10 px-2.5 py-1 text-[10px] font-medium text-[#3B5BDB] hover:bg-[#3B5BDB]/10"
+                className="cursor-pointer rounded-md border border-border-default px-2.5 py-1 text-[10px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
               >
                 다시 시도
               </button>
@@ -240,15 +240,12 @@ export default function FileBlock({ block }: { block: StepBlock }) {
           ) : !files ? (
             <FileListSkeleton />
           ) : files.length === 0 ? (
-            <p className="py-6 text-center text-[10px] text-[#6C7389]/60">
+            <p className="py-6 text-center text-[10px] text-text-muted">
               등록된 문서가 없습니다.
             </p>
           ) : (
             // 열기 직전 신호 — 여기서 뷰어 청크·pdf.js 워커를 미리 받아 둔다
-            <ul
-              onPointerEnter={preloadViewer}
-              className="flex flex-col gap-1"
-            >
+            <ul onPointerEnter={preloadViewer} className="flex flex-col gap-1">
               {files.map((file) => (
                 <FileRow
                   key={file.fileId}
@@ -280,13 +277,13 @@ export default function FileBlock({ block }: { block: StepBlock }) {
         </div>
 
         {errorMessage && (
-          <p role="alert" className="text-[9px] break-keep text-[#E7000B]">
+          <p role="alert" className="text-[9px] break-keep text-text-danger">
             {errorMessage}
           </p>
         )}
 
-        <div className="flex items-center justify-between gap-2 border-t border-[#1C1F2A]/[0.045] pt-1">
-          <span className="min-w-0 truncate text-[9px] text-[#6C7389]">
+        <div className="flex items-center justify-between gap-2 border-t border-border-default pt-1">
+          <span className="min-w-0 truncate text-[9px] text-text-secondary">
             {files ? `${files.length}개 문서` : '—'}
           </span>
 
@@ -295,7 +292,7 @@ export default function FileBlock({ block }: { block: StepBlock }) {
               type="button"
               onClick={() => pickFile()}
               disabled={isUploading}
-              className="flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium text-[#3B5BDB] hover:bg-[#3B5BDB]/10 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium text-text-primary-blue hover:bg-blue-bg-soft disabled:cursor-not-allowed disabled:opacity-40"
             >
               <PlusIcon />
               {isUploading ? '올리는 중…' : '새 문서 추가'}
@@ -374,7 +371,7 @@ function FileRow({
       */
       onPointerEnter={() => schedulePreviewPrefetch(file.latestVersionId)}
       onPointerLeave={cancelPreviewPrefetch}
-      className="group/file relative flex items-start gap-2 rounded-lg p-1.5 hover:bg-[#ECEEF4]/60"
+      className="group/file relative flex items-start gap-2 rounded-lg p-1.5 hover:bg-bg-surface"
     >
       {/* 셀 전체가 뷰어 진입점. 버튼만 위로 올려 클릭을 가로챈다 */}
       {!isEditing && (
@@ -408,10 +405,10 @@ function FileRow({
                 if (event.key === 'Enter') onSaveName();
                 if (event.key === 'Escape') onCancelRename();
               }}
-              className="pointer-events-auto min-w-0 flex-1 rounded border border-[#3B5BDB] px-1 text-[11px] text-[#1C1F2A] outline-none"
+              className="pointer-events-auto min-w-0 flex-1 rounded border border-border-primary px-1 text-[11px] text-text-primary outline-none"
             />
           ) : (
-            <span className="min-w-0 truncate text-[11px] font-semibold text-[#1C1F2A]">
+            <span className="min-w-0 truncate text-[11px] font-semibold text-text-primary">
               {file.name}
             </span>
           )}
@@ -426,17 +423,17 @@ function FileRow({
           {/* v1 도 표기한다 — 버전이 하나뿐인 문서도 차수가 보여야 한다 */}
           <span
             title={`버전 ${file.versionCount}개`}
-            className="shrink-0 rounded bg-[#3B5BDB]/10 px-1 py-0.5 font-mono text-[8px] font-semibold text-[#3B5BDB]"
+            className="shrink-0 rounded bg-blue-bg-soft px-1 py-0.5 font-mono text-[8px] font-semibold text-text-primary-blue"
           >
             v{file.latestVersionNo}
           </span>
         </div>
 
-        <p className="mt-0.5 truncate text-[9px] text-[#6C7389]">
+        <p className="mt-0.5 truncate text-[9px] text-text-secondary">
           {file.uploaderDepartment} · {file.uploaderPosition}{' '}
           {file.uploaderName}
         </p>
-        <p className="font-mono text-[9px] text-[#6C7389]">
+        <p className="font-mono text-[9px] text-text-secondary">
           {file.updatedAt.slice(0, 10).replaceAll('-', '.')} ·{' '}
           {formatFileSize(file.sizeBytes)}
         </p>
@@ -472,7 +469,7 @@ function FileRow({
  * 기본색은 모두 같고, 자기 위에 마우스를 올렸을 때만 강조색이 된다.
  */
 const ICON_BUTTON_CLASS =
-  'flex size-6 cursor-pointer items-center justify-center rounded-md text-[#6C7389] hover:bg-white hover:text-[#155DFC]';
+  'flex size-6 cursor-pointer items-center justify-center rounded-md text-text-secondary hover:bg-white hover:text-text-primary-blue';
 
 function IconButton({
   label,
@@ -617,7 +614,7 @@ function FileRowMenu({
               ref={menuRef}
               role="menu"
               style={{ top: position.top, left: position.left }}
-              className="fixed z-50 flex w-32 flex-col overflow-hidden rounded-lg border border-[#1C1F2A]/10 bg-white shadow-lg"
+              className="fixed z-50 flex w-32 flex-col overflow-hidden rounded-lg border border-border-default bg-white shadow-lg"
             >
               <MenuItem onClick={() => run(onStartRename)}>이름 수정</MenuItem>
               <MenuItem danger onClick={() => run(onTrash)}>
@@ -647,8 +644,8 @@ function MenuItem({
       onClick={onClick}
       className={`cursor-pointer px-2.5 py-1.5 text-left text-[10px] font-medium ${
         danger
-          ? 'text-[#E7000B] hover:bg-red-50'
-          : 'text-[#1C1F2A] hover:bg-gray-50'
+          ? 'text-text-danger hover:bg-red-bg-soft'
+          : 'text-text-primary hover:bg-bg-surface'
       }`}
     >
       {children}
