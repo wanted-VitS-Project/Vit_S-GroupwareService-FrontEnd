@@ -6,25 +6,61 @@
 
 ---
 
+## [2026-08-10] 프로젝트 블록 코드 스플리팅 ✅
+
+브랜치: `ref-ys` · 이슈: #90
+
+### 변경 파일
+
+| 파일                                      | 변경                                      |
+| ----------------------------------------- | ----------------------------------------- |
+| `src/components/ModalLoadingFallback.tsx` | 생성 (동적 모달 고정 크기 로딩 화면)      |
+| `src/features/block/BlockBoard.tsx`       | 수정 (결재 제외 블록 유형별 동적 로딩)    |
+| `src/features/block/AddBlockButton.tsx`   | 수정 (블록 추가 모달 동적·선행 로딩)      |
+| `src/features/block/BlockCard.tsx`        | 수정 (편집·삭제·이슈·활동 로그 동적 로딩) |
+| `src/features/block/TextBlock.tsx`        | 수정 (TipTap 읽기·편집 청크 분리)         |
+| `src/features/issue/IssueBoard.tsx`       | 수정 (이슈 생성·수정·상세 모달 동적 로딩) |
+| `src/features/block/BlockIssuesPanel.tsx` | 수정 (이슈 상세 모달 동적 로딩)           |
+| `src/features/block/ImageBlock.tsx`       | 수정 (등록·수정·라이트박스 동적 로딩)     |
+| `src/features/block/FileBlock.tsx`        | 수정 (중복 확인·휴지통 모달 동적 로딩)    |
+| `src/features/vitamate/AiBlock.tsx`       | 수정 (분석 실행·이력 패널 동적 로딩)      |
+
+### 주요 작업 내용
+
+- 결재 블록은 기존 정적 로딩을 유지하고 나머지 구현 블록을 유형별 청크로 분리
+- 사용자 동작 후 열리는 블록 추가·편집·삭제·이슈·로그·이미지·파일·AI 모달을 동적 로딩으로 전환
+- 이슈 보드의 생성·수정·상세 모달과 블록 이슈 패널 내부 상세 모달을 별도 청크로 분리
+- 버튼 hover/focus 또는 카드 pointer 진입 시 청크를 선행 로딩해 클릭 시 체감 지연 최소화
+- 블록과 모달 청크 로딩 중 기존 크기를 유지하는 fallback을 제공해 화면 접힘·흔들림 방지
+- 최대 JS 청크를 빌드 기준 약 648KB에서 505KB로 축소
+
+### 부수 결정
+
+- 즉시 노출되는 블록 본문은 SSR을 유지해 첫 렌더 결과와 접근성 구조를 보존
+- 작은 아이콘·상태 컴포넌트는 청크 요청 오버헤드가 더 커 동적 로딩 대상에서 제외
+- 결재 블록은 사용자 요청에 따라 이번 코드 스플리팅 범위에서 제외
+
+---
+
 ## [2026-08-10] 공용 다이얼로그 · 오류 화면 · 헤더/사이드바 정리 🚧
 
 브랜치: `feat/common-dialog` · 이슈: #87
 
 ### 변경 파일
 
-| 파일                                            | 변경                                             |
-| ----------------------------------------------- | ------------------------------------------------ |
-| `src/components/AlertDialog.tsx`                | 생성 (공용 다이얼로그 2종 + 아이콘 4종)          |
-| `src/components/ErrorState.tsx`                 | 생성 (전체 화면 오류 안내 2종)                   |
-| `src/components/ProfileMenu.tsx`                | 생성 (헤더 프로필 드롭다운)                      |
-| `src/app/globals.css`                           | 수정 (`.btn-danger` 추가 — 삭제 확인 버튼)       |
-| `src/components/Header.tsx`                     | 수정 (로그아웃 분리 · 프로젝트 헤더 · 로고 칸)   |
-| `src/components/Sidebar.tsx`                    | 수정 (프로필 크기 · 메뉴 대비 · 소속 없는 계정)  |
+| 파일                                             | 변경                                            |
+| ------------------------------------------------ | ----------------------------------------------- |
+| `src/components/AlertDialog.tsx`                 | 생성 (공용 다이얼로그 2종 + 아이콘 4종)         |
+| `src/components/ErrorState.tsx`                  | 생성 (전체 화면 오류 안내 2종)                  |
+| `src/components/ProfileMenu.tsx`                 | 생성 (헤더 프로필 드롭다운)                     |
+| `src/app/globals.css`                            | 수정 (`.btn-danger` 추가 — 삭제 확인 버튼)      |
+| `src/components/Header.tsx`                      | 수정 (로그아웃 분리 · 프로젝트 헤더 · 로고 칸)  |
+| `src/components/Sidebar.tsx`                     | 수정 (프로필 크기 · 메뉴 대비 · 소속 없는 계정) |
 | `src/features/notification/NotificationBell.tsx` | 수정 (`isDark` prop)                            |
-| `.ai/STRUCTURE.md`                              | 수정 (공용 컴포넌트 표 + 모달 사용법 3-1 신설)   |
-| `src/app/error.tsx`                             | 수정 (`ErrorStateTwoButton` 적용)                |
-| `src/app/not-found.tsx`                         | 수정 (`ErrorStateOneButton` 적용)                |
-| `src/app/forbidden/page.tsx`                    | 수정 (stub → `ErrorStateOneButton`)              |
+| `.ai/STRUCTURE.md`                               | 수정 (공용 컴포넌트 표 + 모달 사용법 3-1 신설)  |
+| `src/app/error.tsx`                              | 수정 (`ErrorStateTwoButton` 적용)               |
+| `src/app/not-found.tsx`                          | 수정 (`ErrorStateOneButton` 적용)               |
+| `src/app/forbidden/page.tsx`                     | 수정 (stub → `ErrorStateOneButton`)             |
 
 ### 주요 작업 내용
 

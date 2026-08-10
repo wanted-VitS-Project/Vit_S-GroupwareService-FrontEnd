@@ -1,14 +1,13 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import ModalLoadingFallback from '@/components/ModalLoadingFallback';
 import { messageOf } from '@/lib/api';
 
 import { deleteImageItem, downloadBlockImages, getImageItem } from './api';
 import BlockCard from './BlockCard';
-import ImageEditModal from './ImageEditModal';
-import ImageLightbox from './ImageLightbox';
-import ImageUploadModal from './ImageUploadModal';
 import {
   imageAltText,
   isCount,
@@ -17,6 +16,31 @@ import {
   type BlockImage,
   type StepBlock,
 } from './types';
+
+const loadImageUploadModal = () => import('./ImageUploadModal');
+const loadImageEditModal = () => import('./ImageEditModal');
+const loadImageLightbox = () => import('./ImageLightbox');
+const ImageUploadModal = dynamic(loadImageUploadModal, {
+  loading: () => <ModalLoadingFallback title="이미지 등록" />,
+});
+const ImageEditModal = dynamic(loadImageEditModal, {
+  loading: () => <ModalLoadingFallback title="이미지 수정" />,
+});
+const ImageLightbox = dynamic(loadImageLightbox, {
+  loading: () => (
+    <ModalLoadingFallback
+      title="이미지 크게 보기"
+      className="flex h-[85vh] w-full max-w-[920px] flex-col rounded-xl p-6 shadow-2xl"
+      bodyClassName="min-h-0 flex-1"
+    />
+  ),
+});
+
+function preloadImageModals() {
+  void loadImageUploadModal();
+  void loadImageEditModal();
+  void loadImageLightbox();
+}
 
 /** 어느 이미지를 받아 올지 — 현재 정렬 번호와 방향으로 지정한다 */
 interface ImageRequest {
@@ -280,7 +304,11 @@ export default function ImageBlock({
         ) : undefined
       }
     >
-      <div className="flex h-full flex-col gap-1.5">
+      <div
+        onPointerEnter={preloadImageModals}
+        onFocusCapture={preloadImageModals}
+        className="flex h-full flex-col gap-1.5"
+      >
         {showRetry ? (
           // 못 불러온 것뿐이다 — 이미지가 없다고 단정하지 않는다
           <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-md border border-border-default bg-bg-surface">

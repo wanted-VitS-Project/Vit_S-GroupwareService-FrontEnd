@@ -1,17 +1,17 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import ModalLoadingFallback from '@/components/ModalLoadingFallback';
 import BlockCard from '@/features/block/BlockCard';
 import type { StepBlock } from '@/features/block/types';
 import { messageOf } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 
 import { createAnalysis, getBlockAnalyses, newIdempotencyKey } from './api';
-import AnalysisHistoryPanel from './AnalysisHistoryPanel';
 import AnalysisResultView from './AnalysisResultView';
-import AnalysisRunModal from './AnalysisRunModal';
 import StatusBadge from './StatusBadge';
 import {
   type Analysis,
@@ -20,6 +20,32 @@ import {
   ROLE_LABEL,
 } from './types';
 import { useAnalysisPolling } from './useAnalysisPolling';
+
+const loadAnalysisRunModal = () => import('./AnalysisRunModal');
+const loadAnalysisHistoryPanel = () => import('./AnalysisHistoryPanel');
+const AnalysisRunModal = dynamic(loadAnalysisRunModal, {
+  loading: () => (
+    <ModalLoadingFallback
+      title="비타메이트 분석 실행"
+      className="flex h-[85vh] w-full max-w-[720px] flex-col rounded-xl p-6 shadow-2xl"
+      bodyClassName="min-h-0 flex-1"
+    />
+  ),
+});
+const AnalysisHistoryPanel = dynamic(loadAnalysisHistoryPanel, {
+  loading: () => (
+    <ModalLoadingFallback
+      title="분석 이력"
+      className="flex h-[80vh] w-full max-w-[720px] flex-col rounded-xl p-6 shadow-2xl"
+      bodyClassName="min-h-0 flex-1"
+    />
+  ),
+});
+
+function preloadAnalysisPanels() {
+  void loadAnalysisRunModal();
+  void loadAnalysisHistoryPanel();
+}
 
 /**
  * 비타메이트 AI 블록. (검토 유형 · 기준/대상 문서 · 프롬프트 → 분석 결과)
@@ -127,7 +153,11 @@ export default function AiBlock({ block }: { block: StepBlock }) {
         analysis ? <StatusBadge status={analysis.analysisStatus} /> : undefined
       }
     >
-      <div className="flex flex-col gap-2.5">
+      <div
+        onPointerEnter={preloadAnalysisPanels}
+        onFocusCapture={preloadAnalysisPanels}
+        className="flex flex-col gap-2.5"
+      >
         {analysisId === null ? (
           isResolving ? (
             <div
