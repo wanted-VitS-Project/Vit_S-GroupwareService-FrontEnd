@@ -25,6 +25,7 @@
 | `src/features/file/DuplicateNameModal.tsx` | 수정 (공용 투버튼 다이얼로그 적용)         |
 | `src/features/block/BlockEditModal.tsx`    | 수정 (저장 확인·변경사항 이탈 경고)        |
 | `src/features/block/TextBlockModal.tsx`    | 수정 (저장 확인·변경사항 이탈 경고)        |
+| `src/features/block/MarkdownEditor.tsx`    | 수정 (최초 Markdown 정규화 값 전달)        |
 | `src/features/block/ImageEditModal.tsx`    | 수정 (저장·삭제 확인·변경사항 이탈 경고)   |
 | `src/features/block/ImageUploadModal.tsx`  | 수정 (선택 이미지 이탈 경고)               |
 | `src/features/block/AddBlockModal.tsx`     | 수정 (입력 중 이탈 경고·요청 중 닫기 방지) |
@@ -36,6 +37,13 @@
 - 닫기 버튼·취소·ESC·배경 클릭을 하나의 `requestClose` 경로로 통합하고 변경사항이 있으면 이탈 경고 표시
 - 프로젝트 라우트 오류 경계와 프로젝트 목록·블록 목록 조회 실패 화면을 공용 `ErrorStateTwoButton`에 연결
 - 편집 모달 위에 확인 모달이 겹쳐도 배경 스크롤 잠금이 먼저 해제되지 않도록 열린 모달 수를 추적
+- TipTap 최초 직렬화 결과를 본문 변경 기준으로 사용해 Markdown 표기 차이에 따른 이탈 경고 오탐 방지
+
+### 트러블슈팅
+
+- **문제**: 원문의 공백·줄바꿈·Markdown 표기가 TipTap 직렬화 결과와 다르면 수정하지 않아도 `isDirty`가 될 수 있음
+- **원인**: 서버 원문과 에디터가 정규화한 Markdown을 직접 비교함
+- **해결**: `MarkdownEditor`의 `onCreate`에서 최초 직렬화 값을 전달하고 본문과 dirty 기준을 함께 정규화
 
 ### 부수 결정
 

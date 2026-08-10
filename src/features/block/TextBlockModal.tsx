@@ -38,7 +38,12 @@ export default function TextBlockModal({
   const [confirmation, setConfirmation] = useState<'save' | 'leave' | null>(
     null,
   );
-  const isDirty = content !== initialContent;
+  /** TipTap이 최초로 파싱·직렬화한 값 — 원문 표기 차이를 수정으로 오인하지 않는다. */
+  const [normalizedInitialContent, setNormalizedInitialContent] = useState<
+    string | null
+  >(null);
+  const isDirty =
+    normalizedInitialContent !== null && content !== normalizedInitialContent;
 
   function requestClose() {
     if (isSaving) return;
@@ -103,7 +108,14 @@ export default function TextBlockModal({
           </div>
         }
       >
-        <MarkdownEditor value={content} onChange={setContent} />
+        <MarkdownEditor
+          value={content}
+          onChange={setContent}
+          onReady={(normalized) => {
+            setContent(normalized);
+            setNormalizedInitialContent(normalized);
+          }}
+        />
 
         <div className="flex shrink-0 items-center justify-between gap-4 border-t border-border-default bg-bg-surface px-5 py-3">
           <p
