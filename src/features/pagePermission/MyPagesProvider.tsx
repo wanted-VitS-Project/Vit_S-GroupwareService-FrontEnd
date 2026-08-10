@@ -40,6 +40,25 @@ export default function MyPagesProvider({
       .then((next) => {
         setPages(next);
         setStatus('ready');
+
+        /**
+         * 내려온 페이지를 코드 · 이름 · 등급까지 한 줄로 남긴다 (개발 모드, 조회당 1회).
+         * `pageCode` 만으로는 어느 화면인지 알 수 없어 — 이름을 봐야 매핑을 정할 수 있다.
+         *
+         * ⚠️ `console.info` 는 터미널로 전달되지 않고 DevTools 기본 필터에도 걸린다 —
+         *    개발 중 눈으로 확인하려는 로그라 `warn` 으로 남긴다.
+         */
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(
+            '[pagePermission] /my/pages →',
+            next
+              .map(
+                (page) =>
+                  `${page.pageCode}(${page.name}) ${page.permission}/${page.source}`,
+              )
+              .join(' · '),
+          );
+        }
       })
       .catch((caught) => {
         // 401 · 403 은 `CurrentUserProvider` 가 전역으로 받아 화면을 옮긴다

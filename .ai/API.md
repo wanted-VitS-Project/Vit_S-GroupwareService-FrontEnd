@@ -3213,7 +3213,8 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | `source`          | `GRANTED`(명시 부여 · 회수 가능) · `GLOBAL_ROLE`(전역권한 · 회수 불가) · `ADMIN_ONLY` · `DEFAULT` |
 | 노출 ≠ 접근       | 메뉴가 보여도 `permission: NONE` 이면 진입 시 차단해야 한다                                       |
 | ADMIN 제외 페이지 | `PROJECT_CREATE` · `MY_PROJECT` 만 미반환 (시스템 계정이라 `project_member` 등록 불가)            |
-| 프론트 정책      | 권한이 걸린 두 페이지만 `/my/pages` 로 그리고, **전원 열람인 나머지 메뉴는 `constants/menu.ts` 고정 항목**으로 둔다 (2026-08-10 백엔드 확인) |
+| 카탈로그 코드    | `HOME` · `NOTIFICATION` · `APPROVAL` · `BIDDING` · `PROJECT_CREATE` · `MY_PROJECT` · `FINANCE` · `COMPANY_STATUS` · `TEMPLATE` · `ADMIN_CONSOLE` · `SETTINGS` (2026-08-10 응답 확인) |
+| 프론트 정책      | 사이드바는 `/my/pages` 응답만 그린다. 화면이 없는 코드(`COMPANY_STATUS` · `TEMPLATE`)와 대응이 미확정인 코드(`ADMIN_CONSOLE` · `SETTINGS`)만 `constants/menu.ts` 고정 항목으로 남는다 |
 
 ---
 

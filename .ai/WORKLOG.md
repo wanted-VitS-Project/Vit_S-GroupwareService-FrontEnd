@@ -6,6 +6,57 @@
 
 ---
 
+## [2026-08-10] 페이지 권한 후속 — 하이브리드 메뉴 해소 · 순서 기준 일원화 ✅
+
+브랜치: `feat/page-permission` · 이슈: #98 (같은 브랜치 후속 커밋)
+
+### 변경 파일
+
+| 파일 | 변경 |
+| ---- | ---- |
+| `src/features/pagePermission/catalog.ts` | 수정 (`PAGE_ROUTES` 4개 → 7개 · `UNROUTED_PAGES` 신설 · 내부 정렬 제거) |
+| `src/features/pagePermission/useMyPages.ts` | 수정 (`MENU_ORDER` 정렬로 고정 · 동적 병합) |
+| `src/features/pagePermission/MyPagesProvider.tsx` | 수정 (`/my/pages` 응답 dev 로그) |
+| `src/constants/menu.ts` | 수정 (`MENU_ORDER` 신설 · `FIXED_HEAD`/`FIXED_TAIL` → `FIXED_BY_ROLE`) |
+
+### 주요 작업 내용
+
+- **하이브리드 메뉴를 걷어냈다** — 실제 응답으로 `pageCode` 11개를 확인해 화면이 있는 7개를 `PAGE_ROUTES` 로 옮겼다. 대시보드 · 결재 관리 · 전사 관리까지 전부 `/my/pages` 가 그린다
+- **고정으로 남은 건 `프로젝트 조회` 하나** — ADMIN 은 시스템 계정이라 `MY_PROJECT` 를 받지 못한다. 전사 프로젝트 조회는 그와 별개 화면이라 `FIXED_BY_ROLE` 에 남겼다
+- **`UNROUTED_PAGES` 신설** — 화면이 없어 일부러 빼는 코드에 이유를 적어 콘솔 경고를 막는다. **처음 보는 코드만** 경고가 뜬다
+- **순서 기준을 `MENU_ORDER` 한 곳으로** — 합친 뒤 `href` 배열 순서로 정렬한다. 배열에 없는 항목은 뒤로 밀릴 뿐 사라지지 않는다
+
+### 부수 결정
+
+- **`ADMIN_CONSOLE(관리자)` 이 `/settings` 전사 관리 허브다** — 이름만으로는 `SETTINGS(설정)` 과 구분이 안 됐다. `source` 가 갈랐다: `ADMIN_CONSOLE` 은 `ADMIN_ONLY`, `SETTINGS` 는 전원(`DEFAULT`)이다. `/settings` 하위가 사원 · 부서 · 카테고리 · 페이지 권한이라 관리자 전용이 맞다
+- **`SETTINGS(설정)` 은 개인 설정으로 본다** — 전원에게 내려오고 대응 화면이 없어 `UNROUTED_PAGES` 에 남겼다
+- **사이드바 라벨이 `전사 관리` → `관리자` 로 바뀐다** — 라벨은 백엔드 `name` 을 쓴다는 원칙의 결과다. 이름을 프론트가 덮으면 백엔드가 바꿔도 배포 전까지 반영되지 않는다
+- **고정 앞/뒤(head · tail) 구분을 없앴다** — 정렬을 `MENU_ORDER` 가 하니 붙이는 위치가 의미를 잃는다. `FIXED_HEAD` 는 이미 전 역할 빈 배열이었다
+- **정렬 위치를 `toMenuItems()` 에서 `useMenuItems()` 로 옮겼다** — 고정 항목까지 섞인 뒤에 세워야 `프로젝트 조회` 를 `관리자` 앞에 둘 수 있다
+
+### 트러블슈팅
+
+**1. dev 로그가 콘솔에 안 떴다**
+
+`pageCode` 가 어느 화면인지 판단하려고 `/my/pages` 응답을 `console.info` 로 찍었는데 아무것도 보이지 않았다.
+
+| 항목 | 내용 |
+| ---- | ---- |
+| 원인 | `[browser]` 로 터미널에 전달되는 로그는 **warn · error 뿐**이다. DevTools 도 Info 레벨을 접어두면 같이 묻힌다 |
+| 해결 | 개발 중 눈으로 확인할 로그는 `console.warn` 으로 남긴다 |
+
+**2. 매핑만 옮기면 메뉴 순서가 뒤틀렸다**
+
+`ADMIN_CONSOLE` 을 `PAGE_ROUTES` 로 옮기자 `관리자` 가 `프로젝트 조회` 위로 올라갔다. 동적 항목이 고정 tail 보다 먼저 붙기 때문인데, 순서 기준이 `PAGE_ORDER`(동적) · head/tail(고정) 두 군데로 갈려 있어 그 구조로는 해결할 수 없었다. `MENU_ORDER` 하나로 합치고 병합 후 정렬로 바꿨다.
+
+### 검증
+
+- `tsc --noEmit` · `eslint` · `next build` 통과
+- dev 콘솔로 `/my/pages` 응답 11개 코드 · 이름 · 등급 확인. 경로 미매핑 경고가 사라진 것으로 매핑 누락 없음 확인
+- ⚠️ 사이드바 렌더 결과(순서 · 라벨)는 사용자 화면에서 확인 필요
+
+---
+
 ## [2026-08-10] 페이지 권한 연동 — 사이드바 `/my/pages` 전환 · 권한 부여 화면 ✅
 
 브랜치: `feat/page-permission` · 이슈: 확인 필요

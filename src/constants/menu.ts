@@ -1,11 +1,10 @@
 /**
  * 사이드바 **고정** 메뉴 정의.
  *
- * 페이지 권한이 붙는 항목은 여기 없다 — `GET /my/pages` 응답이 그린다
- * (`features/pagePermission/catalog.ts`). 여기 남은 것은
- * **카탈로그 `pageCode` 가 아직 확인되지 않은** 항목들이다.
+ * 메뉴는 `GET /my/pages` 응답이 그린다 (`features/pagePermission/catalog.ts`).
+ * 여기 남은 것은 **카탈로그에 대응하는 코드가 없는** 항목뿐이다.
  *
- * ⚠️ 코드 값이 확인되는 대로 하나씩 `PAGE_ROUTES` 로 옮기고 여기서 지운다.
+ * ⚠️ 대응 코드가 생기면 `PAGE_ROUTES` 로 옮기고 여기서 지운다.
  * ⚠️ 메뉴 노출은 화면 편의일 뿐 권한 통제가 아니다. 실제 차단은 백엔드가 한다.
  */
 
@@ -22,39 +21,33 @@ export interface MenuItem {
   exact?: boolean;
 }
 
-const DASHBOARD: MenuItem = {
-  label: '대시보드',
-  href: '/',
-  icon: 'dashboard',
-  exact: true,
-};
-
-/** 동적 메뉴(`/my/pages`) **앞**에 붙는 고정 항목 */
-export const FIXED_HEAD_BY_ROLE: Record<Role, MenuItem[]> = {
-  // ADMIN 은 결재 대상이 아니라 결재 관리를 쓰지 않는다
-  ADMIN: [DASHBOARD],
-  MASTER: [
-    DASHBOARD,
-    { label: '결재 관리', href: '/approvals', icon: 'approval' },
-  ],
-  MEMBER: [
-    DASHBOARD,
-    { label: '결재 관리', href: '/approvals', icon: 'approval' },
-  ],
-};
+/**
+ * 사이드바 노출 **순서**의 유일한 기준 (`href` 기준).
+ *
+ * 동적 · 고정을 한 줄에 세워야 하는데 백엔드 응답 순서는 화면 흐름과 무관하고,
+ * 고정 항목을 앞뒤로 붙이는 방식으로는 `프로젝트 조회` 를 `관리자` 앞에 둘 수 없다.
+ * 그래서 합친 뒤 **이 배열 순서로 정렬한다** (여기 없는 항목은 뒤로 밀린다).
+ */
+export const MENU_ORDER = [
+  '/',
+  '/approvals',
+  '/notices',
+  '/projects/new',
+  '/projects',
+  '/finance/invoices',
+  '/settings',
+];
 
 /**
- * 동적 메뉴 **뒤**에 붙는 고정 항목 (ADMIN 전용).
+ * `/my/pages` 로 대체되지 않는 고정 항목 (ADMIN 전용).
  *
- * `MY_PROJECT` 는 ADMIN 에게 내려오지 않는다(시스템 계정이라 참여자가 될 수 없다) —
- * 전사 프로젝트 조회는 그와 별개 화면이라 고정으로 둔다.
+ * `MY_PROJECT` 는 ADMIN 에게 내려오지 않는다 — 시스템 계정이라 프로젝트 참여자가
+ * 될 수 없다. 전사 프로젝트 조회는 그와 별개 화면이라 고정으로 둔다.
+ *
+ * ⚠️ 같은 `href` 가 동적 메뉴에도 오면 `useMenuItems()` 가 이쪽을 걷어낸다 (중복 방지).
  */
-export const FIXED_TAIL_BY_ROLE: Record<Role, MenuItem[]> = {
-  ADMIN: [
-    { label: '프로젝트 조회', href: '/projects', icon: 'folder' },
-    // 하위 관리 화면(사원 · 부서 · 카테고리 …)은 전사 관리 허브에서 타고 들어간다
-    { label: '전사 관리', href: '/settings', icon: 'settings' },
-  ],
+export const FIXED_BY_ROLE: Record<Role, MenuItem[]> = {
+  ADMIN: [{ label: '프로젝트 조회', href: '/projects', icon: 'folder' }],
   MASTER: [],
   MEMBER: [],
 };

@@ -5,10 +5,12 @@
  * 반대로 노출 여부 · 등급은 전적으로 백엔드(`GET /my/pages`) 몫이다.
  * 즉 이 파일은 "무엇을 보여줄지" 가 아니라 **"어디로 보낼지"** 만 정한다.
  *
- * ℹ️ 카탈로그는 11개지만 **권한이 걸린 페이지는 `BIDDING` · `FINANCE` 둘뿐**이고
- *    나머지는 전원 열람이라 `constants/menu.ts` 고정 항목으로 둔다 (2026-08-10 백엔드 확인).
- *    그래서 여기 매핑은 4개면 충분하다 — 모르는 코드가 오면 경로를 몰라 메뉴에서 빠지고,
- *    개발 모드에서 콘솔로 알린다.
+ * ℹ️ 권한이 걸린 페이지는 `BIDDING` · `FINANCE` 둘뿐이고 나머지는 전원 열람이다
+ *    (2026-08-10 백엔드 확인). 그래도 **노출 근거는 전부 `/my/pages` 로 통일**한다 —
+ *    화면이 있는 코드는 여기 매핑해 두고, 고정 메뉴는 화면이 없는 것만 남긴다.
+ *
+ * ⚠️ 카탈로그 11개 중 아직 **화면이 없는 코드**는 `UNROUTED_PAGES` 에 이유와 함께 적어
+ *    콘솔 경고를 막는다. 화면이 생기면 `PAGE_ROUTES` 로 옮긴다.
  */
 
 import { isUnder, type MenuIcon, type MenuItem } from '@/constants/menu';
@@ -24,16 +26,30 @@ interface PageRoute {
 
 /**
  * 확인된 `pageCode` → 라우트.
- * 키 순서가 곧 사이드바 노출 순서다 (백엔드 응답 순서를 따르지 않는다).
+ * 노출 **순서**는 여기가 아니라 `MENU_ORDER` 가 정한다 (고정 항목까지 함께 세워야 해서).
  */
 export const PAGE_ROUTES: Record<string, PageRoute> = {
+  HOME: { href: '/', icon: 'dashboard', exact: true },
+  APPROVAL: { href: '/approvals', icon: 'approval' },
   BIDDING: { href: '/notices', icon: 'search' },
   PROJECT_CREATE: { href: '/projects/new', icon: 'plus', exact: true },
   MY_PROJECT: { href: '/projects', icon: 'folder' },
   FINANCE: { href: '/finance/invoices', icon: 'card' },
+  // 하위 관리 화면(사원 · 부서 · 카테고리 …)은 이 허브에서 타고 들어간다
+  ADMIN_CONSOLE: { href: '/settings', icon: 'settings' },
 };
 
-const PAGE_ORDER = Object.keys(PAGE_ROUTES);
+/**
+ * 화면이 없거나 사이드바에 두지 않기로 한 코드 — **경고를 내지 않는다.**
+ * 값은 "왜 빠졌는지" 다. 화면이 생기면 여기서 지우고 `PAGE_ROUTES` 로 옮긴다.
+ */
+const UNROUTED_PAGES: Record<string, string> = {
+  NOTIFICATION: '헤더 알림 벨로 들어간다 — 사이드바 항목이 아니다',
+  COMPANY_STATUS: '전사 현황 화면 미구현',
+  TEMPLATE: '템플릿 관리 화면 미구현',
+  // 전원에게 내려오는 개인 설정이다. 관리자 허브(/settings)는 `ADMIN_CONSOLE` 쪽
+  SETTINGS: '개인 설정 화면 미구현',
+};
 
 /** 메뉴 항목 + 접근 등급 — 사이드바는 노출에, 가드는 등급에 쓴다 */
 export interface PageMenuItem extends MenuItem {
@@ -54,7 +70,8 @@ export function toMenuItems(pages: MyPage[]): PageMenuItem[] {
     const route = PAGE_ROUTES[page.pageCode];
 
     if (!route) {
-      unmapped.push(page.pageCode);
+      // 이유를 적어 둔 코드는 이미 아는 것이라 경고하지 않는다
+      if (!(page.pageCode in UNROUTED_PAGES)) unmapped.push(page.pageCode);
       return [];
     }
 
@@ -71,14 +88,13 @@ export function toMenuItems(pages: MyPage[]): PageMenuItem[] {
 
   if (unmapped.length > 0 && process.env.NODE_ENV === 'development') {
     console.warn(
-      `[pagePermission] 경로를 모르는 pageCode 라 메뉴에서 빠졌습니다: ${unmapped.join(', ')}\n` +
-        'src/features/pagePermission/catalog.ts 의 PAGE_ROUTES 에 추가하세요.',
+      `[pagePermission] 처음 보는 pageCode 라 메뉴에서 빠졌습니다: ${unmapped.join(', ')}\n` +
+        'src/features/pagePermission/catalog.ts 의 PAGE_ROUTES(화면 있음) 또는 UNROUTED_PAGES(화면 없음) 에 추가하세요.',
     );
   }
 
-  return items.sort(
-    (a, b) => PAGE_ORDER.indexOf(a.pageCode) - PAGE_ORDER.indexOf(b.pageCode),
-  );
+  // 정렬은 고정 항목까지 섞인 뒤에 해야 한다 — `useMenuItems()` 가 `MENU_ORDER` 로 한다
+  return items;
 }
 
 /**
