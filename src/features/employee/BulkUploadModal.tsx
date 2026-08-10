@@ -461,28 +461,42 @@ function ValidatedStep({
             한 행에 문제가 여러 개여도 사유는 하나씩만 표시됩니다. 고친 뒤 다시
             검증하면 남은 문제가 나타납니다.
           </p>
-          <label className="flex cursor-pointer items-start gap-2 text-xs text-text-primary">
-            <input
-              type="checkbox"
-              checked={skipErrors}
-              disabled={isBusy}
-              onChange={(event) => onToggleSkip(event.target.checked)}
-              className="mt-0.5 cursor-pointer"
-            />
-            <span className="break-keep">
-              오류 행을 건너뛰고 정상 {validation.validCount}건만 등록합니다.
-              <span className="block text-text-secondary">
-                끄면 오류가 하나라도 있을 때 전체가 거부됩니다.
+          {/* 정상 행이 없으면 켜든 끄든 등록될 게 없다 — 고를 이유가 없어 감춘다 */}
+          {validation.validCount > 0 && (
+            <label className="flex cursor-pointer items-start gap-2 text-xs text-text-primary">
+              <input
+                type="checkbox"
+                checked={skipErrors}
+                disabled={isBusy}
+                onChange={(event) => onToggleSkip(event.target.checked)}
+                className="mt-0.5 cursor-pointer"
+              />
+              <span className="break-keep">
+                오류 행을 건너뛰고 정상 {validation.validCount}건만 등록합니다.
+                <span className="block text-text-secondary">
+                  끄면 오류가 하나라도 있을 때 전체가 거부됩니다.
+                </span>
               </span>
-            </span>
-          </label>
+            </label>
+          )}
         </>
       )}
 
-      {validation.errorCount === 0 && (
-        <p className="text-xs text-text-secondary">
-          오류가 없습니다. 그대로 등록할 수 있습니다.
+      {/*
+        `validCount === 0` 을 먼저 본다 — 빈 파일은 오류도 0 이라 아래 문구로 떨어지면
+        "등록할 수 있다" 고 해놓고 버튼은 비활성인 화면이 된다.
+      */}
+      {validation.validCount === 0 ? (
+        <p className="text-xs break-keep text-text-secondary">
+          등록할 수 있는 행이 없습니다. 파일을 채우거나 오류를 고친 뒤 다시
+          검증해주세요.
         </p>
+      ) : (
+        validation.errorCount === 0 && (
+          <p className="text-xs text-text-secondary">
+            오류가 없습니다. 그대로 등록할 수 있습니다.
+          </p>
+        )
       )}
     </div>
   );
