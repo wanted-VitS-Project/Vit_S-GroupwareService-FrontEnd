@@ -59,21 +59,35 @@ export default function Header() {
         */}
         {isDark && (
           <span
-            /* 사이드바와 **같은 시간 · 같은 곡선**이어야 두 경계선이 나란히 움직인다 */
-            className={`flex h-full shrink-0 items-center overflow-hidden border-r border-bg-sidebar-hover transition-[width] duration-200 ease-out motion-reduce:transition-none ${
+            /*
+             * 사이드바와 **같은 시간 · 같은 곡선**이어야 두 경계선이 나란히 움직인다.
+             * `padding` 도 함께 전환한다 — 폭만 전환하면 좌우 여백이 첫 프레임에 툭 바뀌어
+             * 로고 글자가 한 번 튄다.
+             */
+            className={`flex h-full shrink-0 items-center overflow-hidden border-r border-bg-sidebar-hover transition-[width,padding] duration-200 ease-out motion-reduce:transition-none ${
               isCollapsed
                 ? `${SIDEBAR_COLLAPSED_WIDTH} justify-center px-0`
                 : `${SIDEBAR_WIDTH} px-6`
             }`}
           >
-            <span className="text-logo font-bold tracking-tight text-text-white">
-              {isCollapsed ? (
-                <span className="text-text-primary-blue">S</span>
-              ) : (
-                <>
-                  Vita<span className="text-text-primary-blue">S</span>
-                </>
-              )}
+            {/*
+              접으면 보이는 글자가 `S` 한 글자로 줄지만 **서비스 이름은 그대로**여야 한다 —
+              읽히는 이름은 `aria-label` 로 고정하고, 안쪽 글자는 장식으로 숨긴다.
+            */}
+            <span
+              role="img"
+              aria-label="VitaS"
+              className="text-logo font-bold tracking-tight text-text-white"
+            >
+              <span aria-hidden>
+                {isCollapsed ? (
+                  <span className="text-text-primary-blue">S</span>
+                ) : (
+                  <>
+                    Vita<span className="text-text-primary-blue">S</span>
+                  </>
+                )}
+              </span>
             </span>
           </span>
         )}

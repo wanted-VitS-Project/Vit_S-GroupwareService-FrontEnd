@@ -1,6 +1,33 @@
 'use client';
 
 import Modal from './Modal';
+import { Skeleton } from './Skeleton';
+
+/**
+ * 곁패널(`SIDE_PANEL`)들의 공통 헤더 모양 — 아이콘 · 제목 · 부제 · (배지) · 닫기.
+ * 실물과 **높이가 같아야** 청크가 도착할 때 본문이 위아래로 튀지 않는다:
+ * 제목 줄 16px + 부제 줄 12px = 28px.
+ */
+export function SidePanelFallbackHeader({
+  title,
+  /** 실물 헤더에 건수 배지가 있는 패널만 켠다 */
+  hasBadge = false,
+}: {
+  title: string;
+  hasBadge?: boolean;
+}) {
+  return (
+    <div className="flex shrink-0 items-center gap-2 border-b border-border-default px-4 py-3">
+      <Skeleton className="size-5 shrink-0 rounded" />
+      <div className="min-w-0 flex-1">
+        <h2 className="text-xs font-semibold text-text-primary">{title}</h2>
+        <Skeleton className="h-3 w-24" />
+      </div>
+      {hasBadge && <Skeleton className="h-5 w-10 shrink-0 rounded-full" />}
+      <span aria-hidden className="size-6 shrink-0" />
+    </div>
+  );
+}
 
 /** 동적 모달 청크를 받는 짧은 동안 기존 모달과 같은 top-layer와 크기를 유지한다. */
 export default function ModalLoadingFallback({

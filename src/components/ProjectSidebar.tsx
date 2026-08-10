@@ -248,13 +248,14 @@ export default function ProjectSidebar() {
         <CollapsedSidebar
           groups={groups}
           steps={steps}
+          hasFailed={hasFailed}
           activeStageId={activeStageId}
           projectId={projectId}
           onExpandStage={(stageId) => {
             setOpenStageId(stageId);
             expand();
           }}
-          onExpand={toggle}
+          onExpand={expand}
         />
       ) : (
         <div
@@ -552,6 +553,7 @@ export default function ProjectSidebar() {
 function CollapsedSidebar({
   groups,
   steps,
+  hasFailed,
   activeStageId,
   projectId,
   onExpandStage,
@@ -559,6 +561,7 @@ function CollapsedSidebar({
 }: {
   groups: ProjectStage[];
   steps: ProjectStep[] | null;
+  hasFailed: boolean;
   activeStageId: number | null;
   projectId: string;
   onExpandStage: (stageId: number) => void;
@@ -595,53 +598,87 @@ function CollapsedSidebar({
 
       {/* 스테이지 목록 */}
       <div className="no-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto">
-        {groups.map((stage) => {
-          const stageSteps =
-            steps?.filter((step) =>
+        {/*
+          펼친 쪽과 같은 세 갈래를 유지한다 — 실패와 로딩을 구분하지 않으면
+          둘 다 "스테이지 0개" 로 보여 사용자가 없는 것으로 오해한다.
+        */}
+        {hasFailed ? (
+          <p
+            role="alert"
+            className="px-1 py-3 text-center text-caption break-keep text-text-danger"
+          >
+            불러오지 못했습니다
+          </p>
+        ) : !steps ? (
+          <div aria-busy className="flex flex-col gap-2 px-2 py-3">
+            {[0, 1, 2].map((row) => (
+              <span
+                key={row}
+                aria-hidden
+                className="h-10 animate-pulse rounded bg-bg-hover"
+              />
+            ))}
+          </div>
+        ) : (
+          groups.map((stage) => {
+            const stageSteps = steps.filter((step) =>
               stage.stageId === UNASSIGNED_STAGE_ID
                 ? step.stageId === null
                 : step.stageId === stage.stageId,
-            ) ?? [];
-          const hiddenStepCount = stageSteps.length - MAX_COLLAPSED_DOTS;
+            );
+            const hiddenStepCount = stageSteps.length - MAX_COLLAPSED_DOTS;
 
-          return (
-            <button
-              key={stage.stageId}
-              type="button"
-              onClick={() => onExpandStage(stage.stageId)}
-              title={`${stage.name} · 스텝 ${stageSteps.length}개`}
-              className="flex min-h-19.5 shrink-0 cursor-pointer flex-col items-center justify-center gap-2 px-1 py-3 hover:bg-bg-hover"
-            >
-              <span
-                className={`w-full truncate text-center text-caption font-medium ${
-                  stage.stageId === activeStageId
-                    ? 'text-text-primary-blue'
-                    : 'text-text-primary'
-                }`}
+            return (
+              <button
+                key={stage.stageId}
+                type="button"
+                onClick={() => onExpandStage(stage.stageId)}
+                /*
+                  점은 색으로만 말하므로 `aria-hidden` 이다 — 대신 상태별 개수를 글로 실어
+                  스크린리더 사용자도 "어디까지 왔는지" 를 알 수 있게 한다.
+                  (색 대비가 낮은 '진행 전' 회색에 기대지 않는 효과도 있다)
+                */
+                aria-label={`${stage.name} · ${describeSteps(stageSteps)}`}
+                title={`${stage.name} · ${describeSteps(stageSteps)}`}
+                className="flex min-h-19.5 shrink-0 cursor-pointer flex-col items-center justify-center gap-2 px-1 py-3 hover:bg-bg-hover"
               >
-                {stage.name}
-              </span>
-              {/*
-                한 줄에 3개씩 접힌다 (`max-w-8` = 8px 점 3개 + 4px 간격 2개).
-                세로로만 쌓으면 스텝이 늘수록 스테이지 한 칸이 그만큼 길어진다.
-              */}
-              <span className="flex max-w-8 flex-wrap justify-center gap-1">
-                {stageSteps.slice(0, MAX_COLLAPSED_DOTS).map((step) => (
-                  <span
-                    key={step.stepId}
-                    aria-hidden
-                    className={`size-2 rounded-full ${STEP_STATUS_BG[step.status]}`}
-                  />
-                ))}
-              </span>
-              {hiddenStepCount > 0 && (
-                <span className="text-caption leading-none text-text-secondary">
-                  +{hiddenStepCount}
+                <span
+                  aria-hidden
+                  className={`w-full truncate text-center text-caption font-medium ${
+                    stage.stageId === activeStageId
+                      ? 'text-text-primary-blue'
+                      : 'text-text-primary'
+                  }`}
+                >
+                  {stage.name}
                 </span>
-              )}
-            </button>
-          );
-        })}
+                {/*
+                  한 줄에 3개씩 접힌다 (`max-w-8` = 8px 점 3개 + 4px 간격 2개).
+                  세로로만 쌓으면 스텝이 늘수록 스테이지 한 칸이 그만큼 길어진다.
+                */}
+                <span
+                  aria-hidden
+                  className="flex max-w-8 flex-wrap justify-center gap-1"
+                >
+                  {stageSteps.slice(0, MAX_COLLAPSED_DOTS).map((step) => (
+                    <span
+                      key={step.stepId}
+                      className={`size-2 rounded-full ${STEP_STATUS_BG[step.status]}`}
+                    />
+                  ))}
+                </span>
+                {hiddenStepCount > 0 && (
+                  <span
+                    aria-hidden
+                    className="text-caption leading-none text-text-secondary"
+                  >
+                    +{hiddenStepCount}
+                  </span>
+                )}
+              </button>
+            );
+          })
+        )}
       </div>
 
       <Link
@@ -654,6 +691,27 @@ function CollapsedSidebar({
       </Link>
     </div>
   );
+}
+
+/**
+ * 접힌 사이드바의 스텝 점을 **글로 옮긴다**.
+ * 점은 색으로만 상태를 말해 스크린리더에도, 색 대비가 약한 회색에도 기댈 수 없다.
+ */
+function describeSteps(stageSteps: ProjectStep[]) {
+  if (stageSteps.length === 0) return '스텝 없음';
+
+  const counts = stageSteps.reduce(
+    (total, step) => ({ ...total, [step.status]: total[step.status] + 1 }),
+    { NOT_STARTED: 0, IN_PROGRESS: 0, DONE: 0 } as Record<StepStatus, number>,
+  );
+
+  const parts = [
+    counts.DONE > 0 && `완료 ${counts.DONE}`,
+    counts.IN_PROGRESS > 0 && `진행 중 ${counts.IN_PROGRESS}`,
+    counts.NOT_STARTED > 0 && `진행 전 ${counts.NOT_STARTED}`,
+  ].filter(Boolean);
+
+  return `스텝 ${stageSteps.length}개 · ${parts.join(' · ')}`;
 }
 
 /** 스텝 하나 — 이슈 개수로 진척률 바를 그린다 */
@@ -946,7 +1004,7 @@ function ChevronIcon({ isOpen }: { isOpen: boolean }) {
  */
 function PanelIcon({ direction }: { direction: 'left' | 'right' }) {
   return (
-    <Svg strokeWidth={1} className="size-4 text-text-secondary">
+    <Svg strokeWidth={1.6} className="size-4 text-text-secondary">
       <rect x="3" y="3" width="18" height="18" rx="2" />
       <path d="M9 3v18" />
       <path d={direction === 'left' ? 'm16 9-3 3 3 3' : 'm13 9 3 3-3 3'} />
@@ -956,7 +1014,7 @@ function PanelIcon({ direction }: { direction: 'left' | 'right' }) {
 
 function CalendarIcon() {
   return (
-    <Svg strokeWidth={1}>
+    <Svg strokeWidth={1.6}>
       <rect x="2" y="5" width="20" height="17" rx="2" />
       <path d="M2 10h20M7 2v4M17 2v4" />
     </Svg>
@@ -1001,7 +1059,7 @@ function TrashIcon() {
 
 function UsersIcon() {
   return (
-    <Svg strokeWidth={1} className="size-4 shrink-0 text-text-secondary">
+    <Svg strokeWidth={1.6} className="size-4 shrink-0 text-text-secondary">
       <circle cx="12" cy="7" r="4" />
       <path d="M3 21a9 9 0 0 1 18 0" />
     </Svg>
@@ -1011,7 +1069,7 @@ function UsersIcon() {
 /** 공통 사이드바(`MenuIcon` 의 `settings`)와 같은 톱니바퀴다 — 두 곳이 달라 보이면 안 된다 */
 function SettingsIcon() {
   return (
-    <Svg strokeWidth={1} className="size-4 shrink-0 text-text-secondary">
+    <Svg strokeWidth={1.6} className="size-4 shrink-0 text-text-secondary">
       <circle cx="12" cy="12" r="3" />
       <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.1a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-3-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.2-3l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 2.9-1.2V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 3 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.5 1z" />
     </Svg>

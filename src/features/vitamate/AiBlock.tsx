@@ -4,7 +4,10 @@ import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-import ModalLoadingFallback from '@/components/ModalLoadingFallback';
+import { SIDE_PANEL_WIDE } from '@/components/Modal';
+import ModalLoadingFallback, {
+  SidePanelFallbackHeader,
+} from '@/components/ModalLoadingFallback';
 import BlockCard from '@/features/block/BlockCard';
 import type { StepBlock } from '@/features/block/types';
 import { messageOf } from '@/lib/api';
@@ -34,10 +37,12 @@ const AnalysisRunModal = dynamic(loadAnalysisRunModal, {
 });
 const AnalysisHistoryPanel = dynamic(loadAnalysisHistoryPanel, {
   loading: () => (
+    // 실물은 화면 오른쪽 아래 곁패널이다 — 폴백이 가운데 큰 모달이면 청크 도착 때 자리가 튄다
     <ModalLoadingFallback
-      title="분석 이력"
-      className="flex h-[80vh] w-full max-w-[720px] flex-col rounded-xl p-6 shadow-2xl"
-      bodyClassName="mt-5 min-h-0 flex-1"
+      title="비타메이트 분석 이력"
+      className={SIDE_PANEL_WIDE}
+      header={<SidePanelFallbackHeader title="비타메이트 분석 이력" />}
+      bodyClassName="m-3 min-h-0 flex-1"
     />
   ),
 });

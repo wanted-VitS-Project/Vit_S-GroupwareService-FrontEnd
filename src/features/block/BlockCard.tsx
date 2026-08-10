@@ -6,8 +6,9 @@ import { useRef, useState } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
 import { SIDE_PANEL } from '@/components/Modal';
-import ModalLoadingFallback from '@/components/ModalLoadingFallback';
-import { Skeleton } from '@/components/Skeleton';
+import ModalLoadingFallback, {
+  SidePanelFallbackHeader,
+} from '@/components/ModalLoadingFallback';
 import ActivityIcon from '@/features/activityLog/ActivityIcon';
 
 import { useBlockActions } from './BlockActionsContext';
@@ -21,31 +22,12 @@ const loadBlockActivityLogPanel = () =>
 const loadBlockEditModal = () => import('./BlockEditModal');
 const loadBlockDeleteModal = () => import('./BlockDeleteModal');
 
-/** 두 패널의 헤더는 아이콘 · 제목 · 블록명 · 건수 배지 · 닫기로 구조가 같다 */
-function PanelFallbackHeader({ title }: { title: string }) {
-  return (
-    <div className="flex shrink-0 items-center gap-2 border-b border-border-default px-4 py-3">
-      <Skeleton className="size-5 shrink-0 rounded" />
-      <div className="min-w-0 flex-1">
-        <h2 className="text-xs font-semibold text-text-primary">{title}</h2>
-        {/*
-          실물의 블록명 줄(`text-[10px]`)이 만드는 줄상자와 **같은 12px** 을 잡는다 —
-          여기가 어긋나면 헤더 높이가 달라져 청크 도착 때 본문이 위아래로 튄다
-        */}
-        <Skeleton className="h-3 w-24" />
-      </div>
-      <Skeleton className="h-5 w-10 shrink-0 rounded-full" />
-      <span aria-hidden className="size-6 shrink-0" />
-    </div>
-  );
-}
-
 const BlockIssuesPanel = dynamic(loadBlockIssuesPanel, {
   loading: () => (
     <ModalLoadingFallback
       title="연결된 이슈"
       className={SIDE_PANEL}
-      header={<PanelFallbackHeader title="연결된 이슈" />}
+      header={<SidePanelFallbackHeader title="연결된 이슈" hasBadge />}
       bodyClassName="m-3 min-h-0 flex-1"
     />
   ),
@@ -55,7 +37,7 @@ const BlockActivityLogPanel = dynamic(loadBlockActivityLogPanel, {
     <ModalLoadingFallback
       title="블록 활동 로그"
       className={SIDE_PANEL}
-      header={<PanelFallbackHeader title="블록 활동 로그" />}
+      header={<SidePanelFallbackHeader title="블록 활동 로그" hasBadge />}
       bodyClassName="m-3 min-h-0 flex-1"
     />
   ),
