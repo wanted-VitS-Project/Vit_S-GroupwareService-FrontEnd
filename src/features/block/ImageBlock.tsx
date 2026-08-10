@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import ModalLoadingFallback from '@/components/ModalLoadingFallback';
 import { messageOf } from '@/lib/api';
+import { useModal, useModalRouter } from '@/lib/useModal';
 
 import { deleteImageItem, downloadBlockImages, getImageItem } from './api';
 import BlockCard from './BlockCard';
@@ -95,8 +96,10 @@ export default function ImageBlock({
   const [hasFailed, setHasFailed] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [modal, setModal] = useState<'upload' | 'edit' | 'lightbox' | null>(
+  /** ⫰ 드롭다운. 모달은 아니지만 여닫이가 같아 같은 훅을 쓴다 */
+  const menu = useModal();
+  /** 카드가 여는 세 가지 — 하나만 열린다 */
+  const modal = useModalRouter<'upload' | 'edit' | 'lightbox'>(
     autoUpload ? 'upload' : null,
   );
 
@@ -326,7 +329,7 @@ export default function ImageBlock({
         ) : isEmpty ? (
           <button
             type="button"
-            onClick={() => setModal('upload')}
+            onClick={() => modal.open('upload')}
             className="flex aspect-video w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-md border-2 border-dashed border-border-default bg-bg-surface hover:border-border-primary/40 hover:bg-blue-bg-soft"
           >
             <ImageIcon />
@@ -354,7 +357,7 @@ export default function ImageBlock({
                 <button
                   type="button"
                   aria-label="크게 보기"
-                  onClick={() => setModal('lightbox')}
+                  onClick={() => modal.open('lightbox')}
                   className="absolute inset-0 cursor-zoom-in bg-black/0 transition-colors group-hover/image:bg-black/15"
                 />
 
@@ -380,19 +383,19 @@ export default function ImageBlock({
                 )}
 
                 <ImageMenu
-                  isOpen={isMenuOpen}
+                  isOpen={menu.isOpen}
                   isDeleting={isDeleting}
-                  onToggle={() => setIsMenuOpen((wasOpen) => !wasOpen)}
+                  onToggle={() => (menu.isOpen ? menu.close() : menu.open())}
                   onEdit={() => {
-                    setIsMenuOpen(false);
-                    setModal('edit');
+                    menu.close();
+                    modal.open('edit');
                   }}
                   onDownload={() => {
-                    setIsMenuOpen(false);
+                    menu.close();
                     download(current.imgId);
                   }}
                   onDelete={() => {
-                    setIsMenuOpen(false);
+                    menu.close();
                     removeCurrent();
                   }}
                 />
@@ -426,7 +429,7 @@ export default function ImageBlock({
           </span>
 
           <div className="flex shrink-0 items-center gap-1.5">
-            <TextButton onClick={() => setModal('upload')}>
+            <TextButton onClick={() => modal.open('upload')}>
               <PlusIcon /> 추가
             </TextButton>
             {current && (
@@ -441,25 +444,25 @@ export default function ImageBlock({
         </div>
       </div>
 
-      {modal === 'upload' && (
+      {modal.isOpen('upload') && (
         <ImageUploadModal
           imgBlockId={imgBlockId}
-          onClose={() => setModal(null)}
+          onClose={modal.close}
           onUploaded={(created) => {
-            setModal(null);
+            modal.close();
             // 새로 올린 첫 장으로 옮기고 전체 장수를 다시 받는다
             reloadFrom(created[0]?.orderIndex ?? 1);
           }}
         />
       )}
 
-      {modal === 'edit' && (
+      {modal.isOpen('edit') && (
         <ImageEditModal
           imgBlockId={imgBlockId}
           seed={current}
-          onClose={() => setModal(null)}
+          onClose={modal.close}
           onSaved={(images) => {
-            setModal(null);
+            modal.close();
             applyImages(images);
           }}
           // 부분 실패 뒤 서버에서 다시 읽어 온 목록 — 모달은 열어 둔 채 카드만 맞춘다
@@ -467,7 +470,7 @@ export default function ImageBlock({
         />
       )}
 
-      {modal === 'lightbox' && current && (
+      {modal.isOpen('lightbox') && current && (
         <ImageLightbox
           image={current}
           orderIndex={orderIndex}
@@ -480,7 +483,7 @@ export default function ImageBlock({
           onPrev={() => go(-1, true)}
           onNext={() => go(1, true)}
           onDownload={() => download(current.imgId)}
-          onClose={() => setModal(null)}
+          onClose={modal.close}
         />
       )}
     </BlockCard>

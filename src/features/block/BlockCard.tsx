@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
 import { SIDE_PANEL } from '@/components/Modal';
@@ -10,6 +10,7 @@ import ModalLoadingFallback, {
   SidePanelFallbackHeader,
 } from '@/components/ModalLoadingFallback';
 import ActivityIcon from '@/features/activityLog/ActivityIcon';
+import { useModal, useModalRouter } from '@/lib/useModal';
 
 import { useBlockActions } from './BlockActionsContext';
 import { setPillDragImage, useBlockDrag } from './BlockDragContext';
@@ -75,8 +76,8 @@ export default function BlockCard({
   children,
 }: BlockCardProps) {
   const { stepId } = useParams<{ stepId: string }>();
-  const [isViewingIssues, setIsViewingIssues] = useState(false);
-  const [isViewingLogs, setIsViewingLogs] = useState(false);
+  /** 카드가 띄우는 사이드 패널 둘 — 하나만 열린다 */
+  const panel = useModalRouter<'issues' | 'logs'>();
   const type = BLOCK_TYPES.find((option) => option.code === block.type);
   const drag = useBlockDrag();
   const label = block.title || type?.label || '블록';
@@ -144,8 +145,8 @@ export default function BlockCard({
         <BlockMenu
           block={block}
           title={label}
-          onViewIssues={() => setIsViewingIssues(true)}
-          onViewLogs={() => setIsViewingLogs(true)}
+          onViewIssues={() => panel.open('issues')}
+          onViewLogs={() => panel.open('logs')}
         />
       </header>
 
@@ -177,7 +178,7 @@ export default function BlockCard({
             type="button"
             onPointerEnter={() => void loadBlockIssuesPanel()}
             onFocus={() => void loadBlockIssuesPanel()}
-            onClick={() => setIsViewingIssues(true)}
+            onClick={() => panel.open('issues')}
             aria-label={`연결된 이슈 ${block.linkedIssueDone} / ${block.linkedIssueTotal} 완료`}
             title={`연결된 이슈 ${block.linkedIssueDone} / ${block.linkedIssueTotal} 완료`}
             className="shrink-0 cursor-pointer rounded px-1 py-0.5 text-[9px] text-text-primary-blue hover:bg-blue-bg-soft hover:text-btn-primary-hover"
@@ -186,20 +187,20 @@ export default function BlockCard({
           </button>
         )}
       </footer>
-      {isViewingIssues && (
+      {panel.isOpen('issues') && (
         <BlockIssuesPanel
           stepId={stepId}
           blockId={block.blockId}
           blockTitle={label}
-          onClose={() => setIsViewingIssues(false)}
+          onClose={panel.close}
         />
       )}
-      {isViewingLogs && (
+      {panel.isOpen('logs') && (
         <BlockActivityLogPanel
           stepId={stepId}
           blockId={block.blockId}
           blockTitle={label}
-          onClose={() => setIsViewingLogs(false)}
+          onClose={panel.close}
         />
       )}
     </article>
@@ -229,19 +230,21 @@ function BlockMenu({
   onViewLogs: () => void;
 }) {
   const actions = useBlockActions();
-  const [isOpen, setIsOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  /** ⋯ 드롭다운. 모달은 아니지만 여닫이가 같아 같은 훅을 쓴다 */
+  const menu = useModal();
+  /** 메뉴에서 여는 모달 둘 — 하나만 열린다 */
+  const modal = useModalRouter<'edit' | 'delete'>();
   const triggerRef = useRef<HTMLButtonElement>(null);
 
-  function close() {
-    setIsOpen(false);
+  function closeMenuAndFocus() {
+    menu.close();
     triggerRef.current?.focus();
   }
 
-  function openDeleteModal() {
-    setIsOpen(false);
-    setIsDeleting(true);
+  /** 메뉴에서 모달로 넘어간다 — 드롭다운이 뒤에 남으면 모달 밖 클릭을 가로챈다 */
+  function openFromMenu(name: 'edit' | 'delete') {
+    menu.close();
+    modal.open(name);
   }
 
   return (
@@ -249,9 +252,9 @@ function BlockMenu({
       <span
         className="relative shrink-0"
         onKeyDown={(event) => {
-          if (event.key !== 'Escape' || !isOpen) return;
+          if (event.key !== 'Escape' || !menu.isOpen) return;
           event.stopPropagation();
-          close();
+          closeMenuAndFocus();
         }}
       >
         <button
@@ -259,24 +262,24 @@ function BlockMenu({
           type="button"
           aria-label={`${title} 메뉴`}
           aria-haspopup="menu"
-          aria-expanded={isOpen}
+          aria-expanded={menu.isOpen}
           onPointerEnter={preloadBlockMenuChunks}
           onFocus={preloadBlockMenuChunks}
-          onClick={() => setIsOpen((wasOpen) => !wasOpen)}
+          onClick={() => (menu.isOpen ? menu.close() : menu.open())}
           className={`flex size-5 cursor-pointer items-center justify-center rounded text-text-secondary hover:bg-bg-hover ${
-            isOpen ? 'bg-bg-hover' : ''
+            menu.isOpen ? 'bg-bg-hover' : ''
           }`}
         >
           <MoreIcon />
         </button>
 
-        {isOpen && (
+        {menu.isOpen && (
           <>
             <button
               type="button"
               tabIndex={-1}
               aria-label="메뉴 닫기"
-              onClick={() => setIsOpen(false)}
+              onClick={menu.close}
               className="fixed inset-0 z-10 cursor-default"
             />
             <span
@@ -287,7 +290,7 @@ function BlockMenu({
                 type="button"
                 role="menuitem"
                 onClick={() => {
-                  setIsOpen(false);
+                  menu.close();
                   onViewIssues();
                 }}
                 className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-text-primary hover:bg-bg-surface"
@@ -304,7 +307,7 @@ function BlockMenu({
                 type="button"
                 role="menuitem"
                 onClick={() => {
-                  setIsOpen(false);
+                  menu.close();
                   onViewLogs();
                 }}
                 className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-text-primary hover:bg-bg-surface"
@@ -315,10 +318,7 @@ function BlockMenu({
               <button
                 type="button"
                 role="menuitem"
-                onClick={() => {
-                  setIsOpen(false);
-                  setIsEditing(true);
-                }}
+                onClick={() => openFromMenu('edit')}
                 className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-text-primary hover:bg-bg-surface"
               >
                 <PencilIcon />
@@ -327,7 +327,7 @@ function BlockMenu({
               <button
                 type="button"
                 role="menuitem"
-                onClick={openDeleteModal}
+                onClick={() => openFromMenu('delete')}
                 className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-text-danger hover:bg-red-bg-soft"
               >
                 <TrashIcon />
@@ -337,21 +337,21 @@ function BlockMenu({
           </>
         )}
       </span>
-      {isEditing && (
+      {modal.isOpen('edit') && (
         <BlockEditModal
           block={block}
-          onClose={() => setIsEditing(false)}
+          onClose={modal.close}
           // 보드 밖에서 쓰인 카드(컨텍스트 없음)는 재조회로 되돌아간다
           onUpdated={(updated) =>
             actions ? actions.patch(updated) : notifyBlockChanged()
           }
         />
       )}
-      {isDeleting && (
+      {modal.isOpen('delete') && (
         <BlockDeleteModal
           blockId={block.blockId}
           blockTitle={title}
-          onClose={() => setIsDeleting(false)}
+          onClose={modal.close}
           onDeleted={(deletedId) =>
             actions ? actions.remove(deletedId) : notifyBlockChanged()
           }

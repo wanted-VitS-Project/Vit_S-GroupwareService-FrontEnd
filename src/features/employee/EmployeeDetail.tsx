@@ -8,6 +8,7 @@ import { EmployeeDetailSkeleton } from '@/components/settings/SettingsSkeletons'
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { ApiError } from '@/lib/api';
 import { formatDate, formatDateTime } from '@/lib/format';
+import { useModalRouter } from '@/lib/useModal';
 
 import AccountStatusModal from './AccountStatusModal';
 import { getEmployee } from './api';
@@ -146,14 +147,10 @@ interface LoadedProps {
 }
 
 function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
-  const [openModal, setOpenModal] = useState<OpenModal | null>(null);
+  const modal = useModalRouter<OpenModal>();
 
   const isResigned = employee.resignedAt !== null;
   const isSuspended = employee.accountStatus === 'INACTIVE';
-
-  function close() {
-    setOpenModal(null);
-  }
 
   return (
     <>
@@ -221,7 +218,7 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
               value={ROLE_LABELS[employee.role]}
               action={
                 <CardButton
-                  onClick={() => setOpenModal('role')}
+                  onClick={() => modal.open('role')}
                   disabled={isSelf || isResigned}
                   title={
                     isSelf
@@ -240,7 +237,7 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
               value={isSuspended ? '정지' : '활성'}
               action={
                 <CardButton
-                  onClick={() => setOpenModal('status')}
+                  onClick={() => modal.open('status')}
                   disabled={isSelf || isResigned}
                   danger={!isSuspended}
                   title={
@@ -264,7 +261,7 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
               }
               action={
                 <CardButton
-                  onClick={() => setOpenModal('passwordReset')}
+                  onClick={() => modal.open('passwordReset')}
                   // 메일로 임시 비밀번호를 보내는 기능이라 주소가 없으면 반드시 실패한다
                   disabled={!employee.emailRegistered}
                   title={
@@ -318,7 +315,7 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
               </p>
               <button
                 type="button"
-                onClick={() => setOpenModal('resignation')}
+                onClick={() => modal.open('resignation')}
                 className="shrink-0 cursor-pointer rounded-lg bg-red-text px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#c50009]"
               >
                 퇴사 처리
@@ -328,31 +325,31 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
         </section>
       </div>
 
-      {openModal === 'role' && (
+      {modal.isOpen('role') && (
         <RoleChangeModal
           employee={employee}
-          onClose={close}
+          onClose={modal.close}
           onSaved={onSaved}
         />
       )}
-      {openModal === 'status' && (
+      {modal.isOpen('status') && (
         <AccountStatusModal
           employee={employee}
-          onClose={close}
+          onClose={modal.close}
           onSaved={onSaved}
         />
       )}
-      {openModal === 'passwordReset' && (
+      {modal.isOpen('passwordReset') && (
         <PasswordResetModal
           targets={[employee]}
-          onClose={close}
+          onClose={modal.close}
           onDone={onSaved}
         />
       )}
-      {openModal === 'resignation' && (
+      {modal.isOpen('resignation') && (
         <ResignationModal
           employee={employee}
-          onClose={close}
+          onClose={modal.close}
           onSaved={onSaved}
         />
       )}

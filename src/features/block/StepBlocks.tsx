@@ -1,16 +1,28 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 import { ErrorStateTwoButton } from '@/components/ErrorState';
+import ModalLoadingFallback from '@/components/ModalLoadingFallback';
 import { getProjectSteps } from '@/features/project/api';
+import { useModalRouter } from '@/lib/useModal';
 
 import AddBlockButton from './AddBlockButton';
 import { getStepBlocks } from './api';
-import BlockBoard from './BlockBoard';
+import ArrangeBlocksButton from './ArrangeBlocksButton';
+import BlockBoard, { type ArrangeHandle } from './BlockBoard';
 import { BlockBoardSkeleton } from './BlockSkeletons';
 import type { StepBlock } from './types';
+
+const BlockArrangeExitModal = dynamic(() => import('./BlockArrangeExitModal'), {
+  loading: () => <ModalLoadingFallback title="배치 저장" />,
+});
+const BlockArrangeBlockedModal = dynamic(
+  () => import('./BlockArrangeBlockedModal'),
+  { loading: () => <ModalLoadingFallback title="배치 편집 중" /> },
+);
 
 /**
  * 스텝 화면의 블록 영역 — 목록 조회 · 재조회 · 헤더를 함께 관리한다.
@@ -52,6 +64,32 @@ export default function StepBlocks() {
    * 새 블록이 빠진 목록을 스텝 전체 배치로 보내게 된다.
    */
   const flushLayout = useRef<(() => void) | null>(null);
+  /** 배치 편집 모드 — 이때만 블록을 끌어 옮길 수 있다 */
+  const [isArranging, setIsArranging] = useState(false);
+  /**
+   * 배치 편집이 띄우는 두 모달. 둘은 **동시에 뜰 수 없다** —
+   * `저장할까요?` 는 편집을 끝낼 때, `추가할 수 없습니다` 는 편집 중에만 나온다.
+   */
+  const arrangeModal = useModalRouter<'exit' | 'blocked'>();
+  /** 보드가 넘겨준 배치 편집 손잡이 */
+  const arrange = useRef<ArrangeHandle | null>(null);
+
+  /**
+   * 편집 모드를 끄려는 순간.
+   * **바뀐 게 없으면 묻지도, 보내지도 않는다** — 편집만 켰다 껐거나 제자리로 돌려놓은 경우다.
+   */
+  function toggleArrange() {
+    if (!isArranging) {
+      setIsArranging(true);
+      return;
+    }
+
+    if (arrange.current?.hasChanges()) {
+      arrangeModal.open('exit');
+      return;
+    }
+    setIsArranging(false);
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -140,20 +178,29 @@ export default function StepBlocks() {
         <h2 className="min-w-0 truncate text-sm font-semibold text-text-primary">
           {stepName || '스텝'}
         </h2>
-        <AddBlockButton
-          stepName={stepName || '스텝'}
-          blocks={blocks}
-          onBeforeCreate={() => flushLayout.current?.()}
-          onCreated={() => {
-            // blocks 가 null 이면 기준이 빈 배열이 되어 기존 블록까지 신규로 잡힌다.
-            // 그럴 때는 스냅샷을 남기지 않고 자동 편집을 건너뛴다
-            snapshotBeforeCreate.current = blocks
-              ? { stepId, ids: blocks.map((block) => block.blockId) }
-              : null;
-            setAutoEditBlockId(null);
-            setReloadCount((count) => count + 1);
-          }}
-        />
+        <div className="flex shrink-0 items-center gap-2">
+          <ArrangeBlocksButton
+            isArranging={isArranging}
+            isDisabled={!blocks || blocks.length === 0}
+            onToggle={toggleArrange}
+          />
+          <AddBlockButton
+            stepName={stepName || '스텝'}
+            blocks={blocks}
+            isBlocked={isArranging}
+            onBlocked={() => arrangeModal.open('blocked')}
+            onBeforeCreate={() => flushLayout.current?.()}
+            onCreated={() => {
+              // blocks 가 null 이면 기준이 빈 배열이 되어 기존 블록까지 신규로 잡힌다.
+              // 그럴 때는 스냅샷을 남기지 않고 자동 편집을 건너뛴다
+              snapshotBeforeCreate.current = blocks
+                ? { stepId, ids: blocks.map((block) => block.blockId) }
+                : null;
+              setAutoEditBlockId(null);
+              setReloadCount((count) => count + 1);
+            }}
+          />
+        </div>
       </div>
 
       {hasFailed ? (
@@ -172,10 +219,28 @@ export default function StepBlocks() {
           stepId={stepId}
           blocks={blocks}
           autoEditBlockId={autoEditBlockId}
+          isArranging={isArranging}
+          arrangeRef={arrange}
           flushLayoutRef={flushLayout}
           // 바뀐 순서를 목록에도 반영한다 — 다음 `Block 추가` 가 옛 좌표로 자리를 잡지 않게
           onOrderChanged={(next) => setLoaded({ stepId, blocks: next })}
         />
+      )}
+
+      {arrangeModal.isOpen('exit') && (
+        <BlockArrangeExitModal
+          onSave={() => {
+            arrange.current?.save();
+            arrangeModal.close();
+            setIsArranging(false);
+          }}
+          // 계속 편집 — 편집 모드에 그대로 남는다
+          onClose={arrangeModal.close}
+        />
+      )}
+
+      {arrangeModal.isOpen('blocked') && (
+        <BlockArrangeBlockedModal onClose={arrangeModal.close} />
       )}
     </div>
   );
