@@ -11,6 +11,7 @@ import { EMPLOYEE_STATUS_LABELS, ROLE_LABELS } from '@/constants/status';
 import { getDepartments } from '@/features/department/api';
 import { toDepartmentOptions } from '@/features/department/options';
 import type { Department } from '@/features/department/types';
+import { useModal, useModalTarget } from '@/lib/useModal';
 
 import { getEmployees } from './api';
 import BulkUploadModal from './BulkUploadModal';
@@ -93,10 +94,9 @@ export default function EmployeeList() {
   } | null>(null);
   /** 체크한 사번. 페이지를 옮기면 비운다 — 안 보이는 대상까지 처리하면 위험하다 */
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [resetTargets, setResetTargets] = useState<EmployeeSummary[] | null>(
-    null,
-  );
-  const [isBulkOpen, setIsBulkOpen] = useState(false);
+  /** 여러 명을 한 번에 초기화할 수 있어 대상이 배열이다 */
+  const resetModal = useModalTarget<EmployeeSummary[]>();
+  const bulkModal = useModal();
 
   const requestKey = `${reloadCount} ${searchParams.toString()}`;
   const current = result?.key === requestKey ? result : null;
@@ -210,7 +210,7 @@ export default function EmployeeList() {
         <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
-            onClick={() => setIsBulkOpen(true)}
+            onClick={bulkModal.open}
             className="btn btn-md btn-gray-outlined shrink-0"
           >
             일괄 등록
@@ -323,7 +323,7 @@ export default function EmployeeList() {
             </button>
             <button
               type="button"
-              onClick={() => setResetTargets(selected)}
+              onClick={() => resetModal.open(selected)}
               className="btn btn-sm btn-primary"
             >
               비밀번호 초기화
@@ -467,7 +467,7 @@ export default function EmployeeList() {
                             },
                             {
                               label: '비밀번호 초기화',
-                              onSelect: () => setResetTargets([employee]),
+                              onSelect: () => resetModal.open([employee]),
                             },
                           ]}
                         />
@@ -488,18 +488,18 @@ export default function EmployeeList() {
         )}
       </div>
 
-      {isBulkOpen && (
+      {bulkModal.isOpen && (
         <BulkUploadModal
-          onClose={() => setIsBulkOpen(false)}
+          onClose={bulkModal.close}
           // 일부만 등록돼도 목록은 달라진다 — 모달을 닫기 전에 갱신해 둔다
           onRegistered={reload}
         />
       )}
 
-      {resetTargets && (
+      {resetModal.target && (
         <PasswordResetModal
-          targets={resetTargets}
-          onClose={() => setResetTargets(null)}
+          targets={resetModal.target}
+          onClose={resetModal.close}
           onDone={() => {
             setSelectedIds([]);
             reload();

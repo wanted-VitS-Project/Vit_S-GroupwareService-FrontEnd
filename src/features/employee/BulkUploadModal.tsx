@@ -5,6 +5,7 @@ import { useId, useRef, useState } from 'react';
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import Modal from '@/components/Modal';
 import { ApiError, messageOf } from '@/lib/api';
+import { useModal } from '@/lib/useModal';
 
 import {
   downloadBulkTemplate,
@@ -97,7 +98,7 @@ export default function BulkUploadModal({
   const [skipErrors, setSkipErrors] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   /** 등록은 되돌릴 수 없고 초기 비밀번호 메일까지 나간다 — 한 번 더 묻는다 */
-  const [isConfirming, setIsConfirming] = useState(false);
+  const confirmModal = useModal();
   const [busy, setBusy] = useState<Busy>(null);
 
   const isBusy = busy !== null;
@@ -156,13 +157,13 @@ export default function BulkUploadModal({
     try {
       const next = await registerBulkEmployees(file, skipErrors);
       setResult(next);
-      setIsConfirming(false);
+      confirmModal.close();
       setStep('done');
       if (next.registeredCount > 0) onRegistered();
     } catch (caught) {
       setErrorMessage(messageOf(caught, '등록하지 못했습니다.'));
       // 확인 창을 닫고 검증 화면으로 되돌린다 — 고칠 곳(건너뛰기 · 파일)이 거기 있다
-      setIsConfirming(false);
+      confirmModal.close();
     } finally {
       setBusy(null);
     }
@@ -243,7 +244,7 @@ export default function BulkUploadModal({
             </button>
             <button
               type="button"
-              onClick={() => setIsConfirming(true)}
+              onClick={confirmModal.open}
               // 건너뛰기를 꺼둔 채로 오류가 있으면 서버가 전체를 거부한다
               disabled={
                 isBusy ||
@@ -274,7 +275,7 @@ export default function BulkUploadModal({
         되돌릴 수 없는 데다 **초기 비밀번호 메일이 즉시 나간다** —
         발송을 끄는 옵션이 명세에 없어(.ai/API.md 89) 더더욱 한 번 더 물어야 한다.
       */}
-      {isConfirming && validation && (
+      {confirmModal.isOpen && validation && (
         <AlertDialogTwoButton
           icon={DialogIcons.warning}
           title={`${validation.validCount}명을 등록할까요?`}
@@ -294,7 +295,7 @@ export default function BulkUploadModal({
           confirmLabel="등록"
           isBusy={busy === 'register'}
           onConfirm={handleRegister}
-          onCancel={() => setIsConfirming(false)}
+          onCancel={confirmModal.close}
         />
       )}
     </Modal>

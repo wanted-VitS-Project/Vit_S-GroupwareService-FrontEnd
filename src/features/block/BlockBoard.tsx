@@ -84,6 +84,19 @@ const COL_SPAN_CLASS: Record<number, string> = {
   3: 'col-span-3',
 };
 
+/**
+ * 배치 편집 모드에서 헤더 쪽 버튼이 잡는 손잡이.
+ * 보드 밖(스텝 헤더)에 버튼이 있어 컨텍스트 대신 ref 로 넘긴다 — `flushLayoutRef` 와 같은 방식이다.
+ */
+export interface ArrangeHandle {
+  /** 편집을 시작한 시점과 순서가 달라졌는지 — 같으면 저장 요청을 아예 만들지 않는다 */
+  hasChanges: () => boolean;
+  /** 지금 보이는 배치를 서버로 보낸다 */
+  save: () => void;
+  /** 편집을 시작한 시점의 배치로 되돌린다 (요청 없음) */
+  revert: () => void;
+}
+
 /** 지금 겨누고 있는 자리 */
 interface DropTarget {
   blockId: number;
@@ -133,6 +146,8 @@ export default function BlockBoard({
   stepId,
   blocks,
   autoEditBlockId,
+  isArranging = false,
+  arrangeRef,
   onOrderChanged,
   flushLayoutRef,
 }: {
@@ -140,6 +155,10 @@ export default function BlockBoard({
   blocks: StepBlock[];
   /** 방금 만든 블록 — 편집 입력창을 곧바로 띄운다 */
   autoEditBlockId?: number | null;
+  /** 배치 편집 모드 — 이때만 블록을 끌어 옮길 수 있다 */
+  isArranging?: boolean;
+  /** 배치 편집 손잡이를 헤더 버튼에 넘겨준다 */
+  arrangeRef?: RefObject<ArrangeHandle | null>;
   /**
    * 바뀐 순서를 목록 주인에게 돌려준다 — 놓는 즉시 한 번, 저장 응답이 오면 또 한 번.
    * 새 블록 자리 계산(`nextPosition`)이 옛 좌표를 보지 않게 하려면 즉시 알려야 한다.
@@ -155,6 +174,13 @@ export default function BlockBoard({
   /** 머무름을 기다리는 중인 대상 — "지금 여기를 겨누고 있다" 를 보여준다 */
   const [aimingId, setAimingId] = useState<number | null>(null);
   const [saveError, setSaveError] = useState('');
+  /**
+   * **배치 편집을 시작한 시점**의 순서 — 저장할지 물을 기준이자 되돌릴 자리다.
+   * 편집 중 여러 번 옮겼다가 제자리로 돌아왔으면 여기와 같아져 요청이 나가지 않는다.
+   *
+   * ref 가 아니라 state 다 — 안내줄의 `되돌리기` 노출이 이 값에 따라 달라진다.
+   */
+  const [arrangeBase, setArrangeBase] = useState<StepBlock[] | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
 
   /** 드래그를 시작할 때의 순서 — 끝나고 정말 달라졌는지 비교한다 */
@@ -277,8 +303,14 @@ export default function BlockBoard({
   if (synced !== blocks) {
     setSynced(blocks);
     if (!isEcho) {
-      setOrder(toFlatOrder(blocks));
+      const fresh = toFlatOrder(blocks);
+      setOrder(fresh);
       setResetTarget(blocks);
+      /*
+       * 서버 목록을 새로 받았으면 편집 기준도 갈아끼운다 —
+       * 옛 기준과 비교하면 남이 바꾼 배치를 "내가 옮긴 것" 으로 오인해 저장을 묻게 된다.
+       */
+      if (arrangeBase) setArrangeBase(fresh);
     }
   }
 
@@ -395,11 +427,63 @@ export default function BlockBoard({
 
     if (!before || hasSameOrder(final, before)) return;
 
-    // 화면은 이미 확정돼 있다 — 전송만 더 움직이지 않을 때까지 미룬다
-    saver.schedule(final);
-    // 저장을 기다리지 않고 바로 알린다 — 새 블록 자리 계산이 옛 좌표를 보면 안 된다
+    /*
+     * 여기서는 저장하지 않는다 — 배치 편집을 끝낼 때 한 번만 보낸다.
+     * 다만 화면 순서는 바로 알린다 (새 블록 자리 계산이 옛 좌표를 보면 안 된다).
+     */
     publish(final);
-  }, [cancelDwell, publish, saver, updateActiveSlot, updateAiming]);
+  }, [cancelDwell, publish, updateActiveSlot, updateAiming]);
+
+  /**
+   * 편집 모드에 들어간 순간의 순서를 기준으로 잡고, 나오면 놓아준다.
+   *
+   * effect 가 아니라 **렌더 중 상태 조정**이다 (`TextBlock` 의 `autoEdit` 처리와 같은 방식) —
+   * effect 로 하면 기준이 한 박자 늦게 잡혀 그 사이 이동이 "변경 없음" 으로 새어나간다.
+   */
+  const [lastArranging, setLastArranging] = useState(isArranging);
+  if (lastArranging !== isArranging) {
+    setLastArranging(isArranging);
+    setArrangeBase(isArranging ? order : null);
+  }
+
+  /** 편집을 시작한 뒤 실제로 자리가 바뀌었는지 — `되돌리기` 를 보여줄지 정한다 */
+  const hasArrangeChanges =
+    arrangeBase !== null && !hasSameOrder(order, arrangeBase);
+
+  const arrangeApi: ArrangeHandle = useMemo(
+    () => ({
+      // 물어볼지 정하는 값이라 state(`order`) 가 아니라 최신값을 본다
+      hasChanges: () =>
+        arrangeBase !== null && !hasSameOrder(liveOrder.current, arrangeBase),
+      save: () => {
+        const final = liveOrder.current;
+        // 저장한 배치가 새 기준이다 — 이어서 또 물어보지 않게
+        setArrangeBase(final);
+        saver.schedule(final);
+        saver.flushNow();
+      },
+      revert: () => {
+        if (!arrangeBase || hasSameOrder(liveOrder.current, arrangeBase))
+          return;
+
+        slide.capture();
+        liveOrder.current = arrangeBase;
+        setOrder(arrangeBase);
+        setSaveError('');
+        publish(arrangeBase);
+      },
+    }),
+    [arrangeBase, publish, saver, slide],
+  );
+
+  useEffect(() => {
+    if (!arrangeRef) return;
+
+    arrangeRef.current = arrangeApi;
+    return () => {
+      arrangeRef.current = null;
+    };
+  }, [arrangeRef, arrangeApi]);
 
   /**
    * 컨텍스트 값은 `draggingId` 가 바뀔 때만 새로 만든다.
@@ -481,8 +565,27 @@ export default function BlockBoard({
 
   return (
     <BlockActionsProvider value={actions}>
-      <BlockDragProvider value={drag}>
+      {/* 편집 모드가 아니면 배선을 아예 내려주지 않는다 — 카드가 드래그 핸들 없이 그려진다 */}
+      <BlockDragProvider value={isArranging ? drag : null}>
         <div className="flex flex-col gap-4">
+          {isArranging && (
+            <div className="flex items-center gap-2 rounded border border-border-primary/30 bg-blue-bg-soft px-2.5 py-1.5 text-[10px] text-text-primary-blue">
+              <p className="min-w-0 flex-1">
+                블록을 끌어 자리를 바꾼 뒤 <strong>배치 완료</strong> 를
+                눌러주세요. 저장은 그때 한 번만 이뤄집니다.
+              </p>
+              {hasArrangeChanges && (
+                <button
+                  type="button"
+                  onClick={() => arrangeApi.revert()}
+                  className="shrink-0 cursor-pointer rounded px-1.5 py-0.5 font-medium underline-offset-2 hover:bg-white hover:underline"
+                >
+                  되돌리기
+                </button>
+              )}
+            </div>
+          )}
+
           {saveError && (
             <p
               role="alert"

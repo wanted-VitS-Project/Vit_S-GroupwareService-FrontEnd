@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import RowMenu, { type RowMenuItem } from '@/components/RowMenu';
 import { DepartmentTableSkeleton } from '@/components/settings/SettingsSkeletons';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
+import { useModalTarget } from '@/lib/useModal';
 
 import { getDepartments } from './api';
 import DeleteDepartmentModal from './DeleteDepartmentModal';
@@ -43,8 +44,8 @@ export default function DepartmentList() {
     list?: Department[];
     hasFailed?: boolean;
   } | null>(null);
-  const [formTarget, setFormTarget] = useState<FormTarget | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Department | null>(null);
+  const formModal = useModalTarget<FormTarget>();
+  const deleteModal = useModalTarget<Department>();
 
   const requestKey = String(reloadCount);
   const current = result?.key === requestKey ? result : null;
@@ -74,21 +75,21 @@ export default function DepartmentList() {
     return [
       {
         label: '부서명 수정',
-        onSelect: () => setFormTarget({ department }),
+        onSelect: () => formModal.open({ department }),
       },
       // 2단이 끝이라 하위 부서에는 또 하위를 붙일 수 없다 (DEPT_MAX_DEPTH_EXCEEDED)
       ...(depth === 0
         ? [
             {
               label: '하위 부서 추가',
-              onSelect: () => setFormTarget({ parent: department }),
+              onSelect: () => formModal.open({ parent: department }),
             },
           ]
         : []),
       {
         label: '삭제',
         danger: true,
-        onSelect: () => setDeleteTarget(department),
+        onSelect: () => deleteModal.open(department),
       },
     ];
   }
@@ -115,7 +116,7 @@ export default function DepartmentList() {
             부서는 삭제할 수 없습니다.
           </p>
         </div>
-        {canManage && <AddButton onClick={() => setFormTarget({})} />}
+        {canManage && <AddButton onClick={() => formModal.open({})} />}
       </div>
 
       <div className="rounded-xl border border-border-default bg-white">
@@ -144,7 +145,7 @@ export default function DepartmentList() {
               부서를 추가하면 사원 등록 시 선택할 수 있어요
             </p>
             {canManage && (
-              <AddButton subtle onClick={() => setFormTarget({})} />
+              <AddButton subtle onClick={() => formModal.open({})} />
             )}
           </Centered>
         ) : (
@@ -222,18 +223,18 @@ export default function DepartmentList() {
         )}
       </div>
 
-      {formTarget && (
+      {formModal.target && (
         <DepartmentFormModal
-          {...formTarget}
-          onClose={() => setFormTarget(null)}
+          {...formModal.target}
+          onClose={formModal.close}
           onSaved={reload}
         />
       )}
 
-      {deleteTarget && (
+      {deleteModal.target && (
         <DeleteDepartmentModal
-          department={deleteTarget}
-          onClose={() => setDeleteTarget(null)}
+          department={deleteModal.target}
+          onClose={deleteModal.close}
           onDeleted={reload}
         />
       )}
