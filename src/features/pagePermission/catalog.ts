@@ -22,6 +22,14 @@ interface PageRoute {
   icon: MenuIcon;
   /** 하위 경로까지 활성으로 보지 않고 정확히 일치할 때만 활성 */
   exact?: boolean;
+  /**
+   * 권한이 걸린 페이지 — **접근 가드가 검사하는 유일한 표시**다.
+   *
+   * 메뉴에 그리는 것과 접근을 막는 것은 다른 문제라 여기서 갈라둔다.
+   * 이 표시가 없으면 가드가 `/my/pages` 응답을 기다리지 않는다 —
+   * 전원 열람 화면까지 기다리게 하면 **모든 화면의 첫 렌더가 응답 속도에 묶인다.**
+   */
+  requiresPermission?: boolean;
 }
 
 /**
@@ -31,10 +39,14 @@ interface PageRoute {
 export const PAGE_ROUTES: Record<string, PageRoute> = {
   HOME: { href: '/', icon: 'dashboard', exact: true },
   APPROVAL: { href: '/approvals', icon: 'approval' },
-  BIDDING: { href: '/notices', icon: 'search' },
+  BIDDING: { href: '/notices', icon: 'search', requiresPermission: true },
   PROJECT_CREATE: { href: '/projects/new', icon: 'plus', exact: true },
   MY_PROJECT: { href: '/projects', icon: 'folder' },
-  FINANCE: { href: '/finance/invoices', icon: 'card' },
+  FINANCE: {
+    href: '/finance/invoices',
+    icon: 'card',
+    requiresPermission: true,
+  },
   // 하위 관리 화면(사원 · 부서 · 카테고리 …)은 이 허브에서 타고 들어간다
   ADMIN_CONSOLE: { href: '/settings', icon: 'settings' },
 };
@@ -107,6 +119,18 @@ export function findPageCode(pathname: string) {
       route.exact ? pathname === route.href : isUnder(pathname, route.href),
     )
     .sort(([, a], [, b]) => b.href.length - a.href.length)[0]?.[0];
+}
+
+/**
+ * 이 경로가 **권한 판단 대상**인지.
+ *
+ * 매핑이 있다고 전부 대상은 아니다 — 대시보드 · 결재 관리처럼 전원 열람인 화면도
+ * 메뉴를 그리려고 매핑돼 있다. 가드는 `requiresPermission` 이 붙은 경로만 본다.
+ */
+export function isPageGated(pathname: string) {
+  const pageCode = findPageCode(pathname);
+
+  return pageCode ? PAGE_ROUTES[pageCode].requiresPermission === true : false;
 }
 
 /**

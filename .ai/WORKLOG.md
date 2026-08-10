@@ -17,6 +17,7 @@
 | `src/features/pagePermission/catalog.ts` | 수정 (`PAGE_ROUTES` 4개 → 7개 · `UNROUTED_PAGES` 신설 · 내부 정렬 제거) |
 | `src/features/pagePermission/useMyPages.ts` | 수정 (`MENU_ORDER` 정렬로 고정 · 동적 병합) |
 | `src/features/pagePermission/MyPagesProvider.tsx` | 수정 (`/my/pages` 응답 dev 로그) |
+| `src/features/pagePermission/PageAccessGate.tsx` | 수정 (`isPageGated()` 로 대상 축소 · 조회 실패 시 재시도) |
 | `src/constants/menu.ts` | 수정 (`MENU_ORDER` 신설 · `FIXED_HEAD`/`FIXED_TAIL` → `FIXED_BY_ROLE`) |
 
 ### 주요 작업 내용
@@ -45,7 +46,18 @@
 | 원인 | `[browser]` 로 터미널에 전달되는 로그는 **warn · error 뿐**이다. DevTools 도 Info 레벨을 접어두면 같이 묻힌다 |
 | 해결 | 개발 중 눈으로 확인할 로그는 `console.warn` 으로 남긴다 |
 
-**2. 매핑만 옮기면 메뉴 순서가 뒤틀렸다**
+**2. 매핑을 넓히자 모든 화면이 `/my/pages` 를 기다리게 됐다** (코드 리뷰 지적)
+
+| 항목 | 내용 |
+| ---- | ---- |
+| 원인 | `PageAccessGate` 가 `findPageCode(pathname) !== undefined` 로 대상을 판단했다. 매핑이 4개일 땐 사실상 `BIDDING` · `FINANCE` 뿐이었지만 7개로 넓히자 대시보드 · 결재 관리 · 전사 관리까지 걸렸다 |
+| 해결 | `PageRoute` 에 `requiresPermission` 을 두고 `isPageGated()` 로 갈랐다. **메뉴에 그리는 것과 접근을 막는 것은 다른 문제**다 |
+
+**3. 권한 조회에 실패하면 대상 화면 본문이 그려졌다** (코드 리뷰 지적)
+
+`status === 'failed'` 를 통과시키고 있었다. 실패는 *권한 없음* 이 아니라 *알 수 없음* 이라, 판단 근거 없이 본문을 그리는 대신 `ErrorStateTwoButton` 으로 재시도하게 바꿨다. 대상이 `/notices` · `/finance/*` 둘뿐이라 나머지 화면 UX 에는 영향이 없다.
+
+**4. 매핑만 옮기면 메뉴 순서가 뒤틀렸다**
 
 `ADMIN_CONSOLE` 을 `PAGE_ROUTES` 로 옮기자 `관리자` 가 `프로젝트 조회` 위로 올라갔다. 동적 항목이 고정 tail 보다 먼저 붙기 때문인데, 순서 기준이 `PAGE_ORDER`(동적) · head/tail(고정) 두 군데로 갈려 있어 그 구조로는 해결할 수 없었다. `MENU_ORDER` 하나로 합치고 병합 후 정렬로 바꿨다.
 
