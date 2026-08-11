@@ -1,0 +1,126 @@
+name: Deploy Frontend (① EC2)
+
+# 백엔드와 같은 OIDC 키리스 패턴. FE 는 런타임 시크릿이 없어 .env 조립 단계가 없다.
+# NEXT_PUBLIC_API_BASE_URL 은 빌드 시점에 --build-arg 로 이미지에 박는다.
+# ⚠️ PUBLIC 레포다. 계정ID·ARN·버킷명을 여기 박지 않는다 — vars/secrets 로 뺐다.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'next.config.ts'
+      - 'Dockerfile'
+      - 'deploy/**'
+      - '.github/workflows/deploy.yml'
+
+concurrency:
+  group: deploy-frontend-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'ap-northeast-2' }}
+  ECR_REPO: team05/frontend                   # 기존 team05 ECR repo 재사용
+  S3_PREFIX: ${{ vars.S3_DEPLOY_PREFIX }}      # 예: s3://<bucket>/vitamins/frontend/
+  EC2_NAME_TAG: ${{ vars.EC2_NAME_TAG }}       # 예: team05-01-frontend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: AWS 자격증명 (OIDC)
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: ECR 로그인
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@d539f0932e70871a027e9d5a9d8fc38589180a64 # v2.1.6
+
+      - name: 이미지 빌드 & ECR 푸시 (NEXT_PUBLIC 은 빌드 시점 주입)
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          TAG: ${{ github.sha }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NEXT_PUBLIC_API_BASE_URL:-}" ]; then
+            echo "❌ 필수 Variable 누락: NEXT_PUBLIC_API_BASE_URL (빌드 시점 필요)"
+            exit 1
+          fi
+          docker build \
+            --build-arg NEXT_PUBLIC_API_BASE_URL="$NEXT_PUBLIC_API_BASE_URL" \
+            -t "$REGISTRY/$ECR_REPO:$TAG" -t "$REGISTRY/$ECR_REPO:latest" .
+          docker push "$REGISTRY/$ECR_REPO:$TAG"
+          docker push "$REGISTRY/$ECR_REPO:latest"
+
+      - name: 배포자산 S3 업로드
+        run: |
+          set -euo pipefail
+          aws s3 sync deploy/ "$S3_PREFIX" --exclude '.env.example'
+
+      - name: ① EC2에서 받아 기동 (SSM send-command)
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          set -euo pipefail
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=$EC2_NAME_TAG" "Name=instance-state-name,Values=running" \
+            --query "Reservations[].Instances[].InstanceId" --output text)
+          echo "대상 인스턴스: $INSTANCE_ID"
+          if [ -z "$INSTANCE_ID" ]; then echo "running 인스턴스 없음"; exit 1; fi
+
+          cat > params.json <<EOF
+          {"commands":[
+            "set -e",
+            "ts() { TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S KST'; }",
+            "export ECR_REGISTRY=$REGISTRY",
+            "echo \"[\$(ts)] === 배포 시작 (FE) ===\"",
+            "mkdir -p /opt/frontend",
+            "aws s3 sync $S3_PREFIX /opt/frontend --delete",
+            "cd /opt/frontend",
+            "aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $REGISTRY",
+            "docker compose pull",
+            "docker compose up -d --remove-orphans",
+            "echo \"[\$(ts)] 기동 확인: localhost:3000 응답 대기...\"",
+            "for i in \$(seq 1 40); do code=\$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/ || true); if [ -n \"\$code\" ] && [ \"\$code\" != \"000\" ]; then echo \"[\$(ts)] OK: FE 응답(HTTP \$code)\"; break; fi; [ \$i -eq 40 ] && { echo \"[\$(ts)] FAIL: 200초 후에도 무응답\"; docker compose logs --tail 80 frontend; exit 1; }; sleep 5; done",
+            "docker image prune -f",
+            "echo \"[\$(ts)] === 배포 완료 (FE) ===\""
+          ]}
+          EOF
+
+          CMD_ID=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Deploy vitamins-frontend ${{ github.sha }}" \
+            --timeout-seconds 600 \
+            --parameters file://params.json \
+            --query "Command.CommandId" --output text)
+          echo "CommandId: $CMD_ID"
+
+          aws ssm wait command-executed --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" || true
+
+          echo "===== EC2 표준 출력 ====="
+          aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
+            --query "StandardOutputContent" --output text
+          STATUS=$(aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
+            --query "Status" --output text)
+          echo "최종 상태: $STATUS"
+          if [ "$STATUS" != "Success" ]; then
+            echo "===== EC2 표준 에러 ====="
+            aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
+              --query "StandardErrorContent" --output text
+            exit 1
+          fi

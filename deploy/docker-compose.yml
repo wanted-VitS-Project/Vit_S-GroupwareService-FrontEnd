@@ -1,0 +1,16 @@
+# ① VitaminS Frontend (Next.js SSR) — EC2 /opt/frontend 에서 기동
+# 런타임 비밀값 없음: NEXT_PUBLIC_API_BASE_URL 은 빌드 시점에 이미 이미지에 박혀 있다.
+services:
+  frontend:
+    image: ${ECR_REGISTRY}/team05/frontend:latest
+    container_name: vitamins-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
