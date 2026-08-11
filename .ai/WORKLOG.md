@@ -6,28 +6,137 @@
 
 ---
 
+## [2026-08-11] 프로젝트 전체 화면 — 전체 일정 · 문서함 · 이미지 · 휴지통 ✅
+
+브랜치: `user/project` · 이슈: #107
+
+### 변경 파일
+
+| 파일                                                           | 변경                                                                                                                                                |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.ai/API.md`                                                   | 수정 (103~111 추가 · 파일/이미지 삭제·복구 공통 절 2개 신설 · 목차 9줄)                                                                             |
+| `src/constants/endpoints.ts`                                   | 수정 (`projects.files/filesTrash/images/imagesTrash/issues` · `files.restore/permanentDeletion` · `blocks.imageItemsRestore/imageItemsHardDelete`)  |
+| `src/lib/api.ts`                                               | 수정 (`api.deleteWithBody()` 신설 — 본문 있는 DELETE)                                                                                               |
+| `src/components/ProjectTabs.tsx`                               | 생성 (전체 이슈 · 문서함 · 이미지 · 휴지통 탭)                                                                                                      |
+| `src/app/projects/[id]/(overview)/layout.tsx`                  | 생성 (라우트 그룹 + 탭바)                                                                                                                           |
+| `src/app/projects/[id]/(overview)/page.tsx`                    | 생성 (기존 `[id]/page.tsx` 대체)                                                                                                                    |
+| `src/app/projects/[id]/(overview)/files·images·trash/page.tsx` | 생성                                                                                                                                                |
+| `src/features/project/overview/ProjectIssues.tsx`              | 생성 (스텝 아코디언 + 상태 3열)                                                                                                                     |
+| `src/features/project/overview/IssueProgressBar.tsx`           | 생성 (3색 진척 바 · 개수 범례)                                                                                                                      |
+| `src/features/project/overview/ProjectFiles.tsx`               | 생성 (스텝 → 블록 트리 문서함)                                                                                                                      |
+| `src/features/project/overview/groupFiles.ts`                  | 생성 (평면 목록 → 트리 조합)                                                                                                                        |
+| `src/features/project/overview/ProjectImages.tsx`              | 생성 (타일 그리드 · 라이트박스)                                                                                                                     |
+| `src/features/project/overview/ProjectTrash.tsx`               | 생성 (문서 · 이미지 갈래)                                                                                                                           |
+| `src/features/project/overview/TrashFiles.tsx`                 | 생성 (건별 복구 · 영구 삭제)                                                                                                                        |
+| `src/features/project/overview/TrashImages.tsx`                | 생성 (다중 선택 일괄 처리)                                                                                                                          |
+| `src/features/project/overview/ProjectOverviewSkeletons.tsx`   | 생성 (이슈 · 문서 · 이미지)                                                                                                                         |
+| `src/features/project/overview/useProjectStages.ts`            | 생성 (`stepId → stageId` 색인 · `groupByStage()`)                                                                                                   |
+| `src/features/project/overview/StageSection.tsx`               | 생성 (스테이지 묶음 머리)                                                                                                                           |
+| `src/features/project/overview/useImageBlockNames.ts`          | 생성 (`imgBlockId → 블록 이름`)                                                                                                                     |
+| `src/components/Toast.tsx`                                     | 생성 (`ToastHost` · `notifyToast()`)                                                                                                                |
+| `src/components/AppShell.tsx`                                  | 수정 (`ToastHost` 마운트)                                                                                                                           |
+| `src/features/file/PermanentDeleteFileModal.tsx`               | 생성 (확인 문자 입력)                                                                                                                               |
+| `src/features/block/PermanentDeleteImagesModal.tsx`            | 생성 (다건 확인)                                                                                                                                    |
+| `src/features/file/api.ts` · `types.ts`                        | 수정 (`getProjectFiles` · `getProjectTrashFiles` · `restoreFile` · `permanentlyDeleteFile` · `ViewerFile` · `FileLocation`)                         |
+| `src/features/file/FileViewerModal.tsx`                        | 수정 (`BlockFile` → `ViewerFile`, 업로더 줄 조립)                                                                                                   |
+| `src/features/issue/api.ts` · `types.ts`                       | 수정 (`getProjectIssues` · `IssueProgress` · `todoIssueCount()`)                                                                                    |
+| `src/features/block/api.ts` · `types.ts`                       | 수정 (`getProjectImages` · `getProjectTrashImages` · `restoreImages` · `permanentlyDeleteImages` · `ProjectImage` · `TrashImage` · `RestoredImage`) |
+
+### 주요 작업 내용
+
+- **`(overview)` 라우트 그룹** — `/projects/{id}` URL 을 유지하면서 형제인 `steps` · `settings` · `settlement` 에는 탭바가 붙지 않게 격리
+- **전체 일정** — 프로젝트 진척도 바 + **스테이지 > 스텝** 아코디언. 펼치면 **스텝 이슈 보드와 같은 3열 칸반**(시작 전 · 진행 중 · 완료)
+- **문서함** — 평면 응답을 스텝 → 블록 트리로 조합하고 **스테이지로 한 겹 더 묶는다**. 고아 파일은 스텝당 `블록 삭제됨` 한 묶음
+- **이미지 모아보기** — 타일 그리드 + 라이트박스, `블록별로 보기` 토글. 블록 이름은 스텝 블록 목록(10번)에서 모아 온다
+- **휴지통** — 문서(건별 · 확인 문자 `영구 삭제`) · 이미지(다중 선택 일괄) 두 갈래. **복구 · 영구 삭제는 낙관적 처리 + 토스트**
+- **공용 토스트** — `AppShell` 에 `ToastHost` 하나, 어디서나 `notifyToast()`
+
+### 부수 결정
+
+- **네 화면 모두 조회 전용** — 업로드 · 이름 수정 · 캡션 수정 · 상태 변경은 원래 블록/스텝 화면이 정본이다. 프로젝트를 가로질러 훑는 화면에서 고치면 어느 블록을 건드렸는지 보이지 않는다. 대신 스텝 · 일정으로 가는 링크를 각 머리에 둔다
+- **문서 · 파일 화면을 합쳤다** — 사용자는 둘로 요청했지만 백엔드 API 가 `GET /projects/{id}/files` 하나뿐이고, 이 프로젝트에서 "문서 = 파일" 은 같은 도메인이다
+- **휴지통을 문서 · 이미지로 나눴다** — 계약이 다르다. 문서는 건별(경로 ID) + 확인 문자, 이미지는 다건(`imgIds[]`) + 확인 문자 없음. 한 목록으로 합치면 어떤 항목이 무슨 규칙으로 지워지는지 설명할 수 없다
+- **휴지통은 트리로 묶지 않는다** — 찾는 기준이 위치가 아니라 "언제 지웠나" 다 (서버도 `deletedAt` 내림차순). 위치는 행에 한 줄로 붙인다
+- **이미지 복구는 응답 기준으로 목록에서 뺀다** — 권한을 이미지가 속한 **스텝별로** 보므로 보낸 것이 다 돌아오지 않는다. 보낸 목록 기준으로 지우면 복구 안 된 것이 사라진다
+- **이미지 영구 삭제 후에는 재조회** — 응답이 `null` 이라 몇 장이 지워졌는지 알 수 없다
+- **`ViewerFile` 신설** — 문서함 응답에 업로더 부서 · 직급이 없어 뷰어 prop 을 `BlockFile` 에서 넓혔다. 비는 것은 버전 이력이 도착하기 전 잠깐뿐
+- **`api.deleteWithBody()` 를 기본형으로 두지 않았다** — 이미지 영구 삭제만 본문 있는 `DELETE` 다. 같은 성격의 파일 영구 삭제는 프록시가 본문을 버리는 문제로 `POST` 로 설계돼 있다
+- **확인 문자는 입력값을 그대로 보낸다** — 상수로 덮어쓰면 아무 값이나 넣어도 통과하는 것처럼 보인다. 화면 검사는 버튼 잠금용 편의일 뿐이고 검증 주체는 서버다
+- **이슈 필터 · 제목 검색은 넣지 않았다** — 스텝 보드용으로 이미 백로그에 있어 두 화면을 함께 손보는 편이 맞다
+- **탭 이름을 `전체 일정` 으로** — 스텝 화면의 같은 것이 `일정` 탭이다. 한쪽만 `이슈` 라고 부르면 같은 데이터가 두 이름으로 불린다
+- **스테이지 묶기는 부가 조회로** — 105 · 108 응답에 `stageId` 가 없어 7 · 8번을 따로 읽는다. **실패해도 목록을 막지 않고** 묶지 않은 채 그린다. 사이드바가 같은 두 API 를 이미 쓰지만 컴포넌트가 달라 값을 넘겨받을 길이 없다
+- **스테이지는 아코디언으로 만들지 않았다** — 접히는 층이 둘이면 문서 하나 보는 데 클릭이 세 번이다. 머리로 경계만 긋는다
+- **비어 있는 스테이지는 그리지 않는다** — 이슈도 문서도 없는 칸이 늘어서면 훑기가 어렵다
+- **이미지 블록 이름은 켤 때만 읽는다** — 스텝 수만큼 요청이 늘어(N+1) `블록별로 보기` · `크게 보기` 에서만 조회한다. 못 읽으면 `블록 #3` 으로 되돌아간다. ❗ 107번에 `blockTitle` 이 실리면 `useImageBlockNames` 는 통째로 지운다
+- **복구 · 영구 삭제를 낙관적으로 바꿨다** — 되돌릴 수 없는 동작이지만 확인 모달(영구 삭제) · 명시적 버튼(복구)에서 뜻을 이미 물었고, 여러 건을 잇달아 정리하는 화면이라 매번 응답을 기다리면 손이 멎는다. 실패하면 **원래 자리로** 되돌리고 오류 토스트를 띄운다
+- **확인 모달은 요청을 보내지 않는다** — 뜻만 확인하고 닫히며 요청은 부르는 쪽이 뒤에서 돌린다. 그래서 실패 안내가 모달이 아니라 토스트로 간다
+- **이미지 복구는 돌아오지 않은 것만 되살린다** — 권한을 스텝별로 봐서 일부만 복구될 수 있다
+- **토스트를 컨텍스트가 아니라 전역 이벤트로** — 화면마다 프로바이더를 끼우지 않는다 (`issue:changed` 와 같은 방식). ⚠️ 네이티브 `<dialog>` 가 최상위 레이어라 토스트를 가린다 — 모달을 닫은 뒤 띄운다 (낙관적 처리라 자연히 그렇게 된다)
+
+### 코드 스플리팅 · 최적화
+
+**나눈 청크**
+
+| 대상                                                               | 청크             | 신호                                 |
+| ------------------------------------------------------------------ | ---------------- | ------------------------------------ |
+| `TrashFiles`                                                       | 12KB             | 휴지통 진입 시                       |
+| `TrashImages`                                                      | 16KB             | `이미지` 갈래 hover · focus 프리로드 |
+| `ProjectImageLightbox`                                             | 4KB              | 타일 그리드 hover 프리로드           |
+| `FileViewerModal`(+pdfjs) · `IssueDetailModal` · 영구삭제 모달 2종 | 기존 방식 그대로 | hover · focus                        |
+
+한 번에 하나만 그리는 휴지통 두 갈래를 함께 싣지 않는다 — 문서만 보고 나가는 사용자가 다중 선택 · 이미지 영구삭제 로더까지 받을 이유가 없다. 이미지 라이트박스도 목록만 훑는 사용자에게는 `Modal` 이 짐이다.
+
+**요청 줄이기 — `sharedRequest`**
+
+`전체 일정` 과 `문서함` 이 둘 다 스테이지 · 스텝을 읽고, 탭을 오갈 때마다 컴포넌트가 새로 마운트돼 같은 요청이 반복됐다. 이미지 블록 이름은 더 비싸다(N+1). 키 기준으로 **도는 요청은 합치고 결과는 TTL 동안 캐시**한다 (스테이지 60초 · 블록 이름 5분). `projectFileVersionsStore` 같은 구독 스토어를 또 만들지 않은 이유는 여기 필요한 것이 폴링이 아니라 중복 제거뿐이어서다.
+
+⚠️ `AbortSignal` 을 받지 않는다 — 요청을 여럿이 나눠 쓰므로 한 화면이 떠났다고 끊으면 기다리는 다른 화면까지 실패한다. 대신 부르는 쪽이 `isStale` 플래그로 **결과를 버린다.**
+⚠️ 실패는 캐시하지 않는다 — 한 번 끊겼다고 TTL 동안 재시도가 막히면 안 된다.
+
+**렌더 줄이기**
+
+- `memo` — `StepAccordion` · `IssueRow` · `BlockGroup` · `FileRow` · `ImageGrid`. 스텝 하나를 접었다고 나머지 스텝의 카드까지 다시 그리지 않는다
+- 콜백은 **대상을 인자로 받는 고정 함수**(`useCallback`) — 행마다 새 화살표 함수를 넘기면 `memo` 가 무력해진다 (`IssueCard` 와 같은 규칙)
+- `useMemo` — `groupFilesByStep` · `groupByStage` · `groupImagesByBlock` · 스텝별 `byDueDate` 정렬. 접혀 있는 스텝은 정렬 자체를 하지 않는다(`isOpen` 조건)
+
+### 트러블슈팅
+
+**1. 삭제한 `[id]/page.tsx` 참조가 남아 타입 체크가 깨졌다**
+
+`(overview)` 로 옮긴 뒤 `next build` 가 `.next/dev/types/validator.ts` 에서 `Cannot find module '.../[id]/page.js'` 로 실패했다. dev 서버가 만들어 둔 **stale 라우트 타입**이라 `.next` 를 지우고 다시 빌드하면 해결된다 (dev 서버는 재시작).
+
+### ❗ 백엔드 확인 필요
+
+- **110번 요청 필드명** — 표에는 `imagIds`, 예시와 111번은 `imgIds`. 예시 쪽으로 연동했다
+- **111번이 본문 있는 `DELETE`** — 104번이 `POST` 인 이유("일부 프록시가 DELETE 본문을 버림")가 이미지엔 적용되지 않았다. 배포 환경에서 본문이 사라지면 400
+- **111번에 확인 문자가 없다** — 오조작이 곧 영구 삭제다. 프론트 모달이 유일한 방어선
+- **109번에 `imgBlockId` 가 없다** — 107번엔 있다. 없어서 이미지 휴지통을 블록으로 묶지 못한다
+- **107번에 `orderIndex` · 블록 제목이 없다** — 블록 머리를 `블록 #3` 처럼 ID 로만 적는다
+
+---
+
 ## [2026-08-11] 사원 그룹 관리 · 직급별 사원 목록 ✅
 
 브랜치: `feat/employee-group` · 이슈: #96 · #97
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/features/employeeGroup/types.ts` | 생성 (그룹 · 구성원 · 결과 타입 · 길이 상수) |
-| `src/features/employeeGroup/errorCodes.ts` | 생성 (`GRP_*` 4개 · `ADD_MEMBER_REJECTED_CODES`) |
-| `src/features/employeeGroup/api.ts` | 생성 (91~97 7개 함수) |
-| `src/features/employeeGroup/EmployeeGroupList.tsx` | 생성 (목록 · 검색 · 케밥) |
-| `src/features/employeeGroup/EmployeeGroupFormModal.tsx` | 생성 (추가 · 수정 겸용) |
-| `src/features/employeeGroup/DeleteEmployeeGroupModal.tsx` | 생성 (공용 `AlertDialogTwoButton`) |
-| `src/features/employeeGroup/GroupMembersModal.tsx` | 생성 (구성원 목록 · 추가 · 제거) |
-| `src/app/settings/employee-groups/page.tsx` | 생성 (라우트) |
-| `src/features/jobPosition/JobPositionEmployeesModal.tsx` | 생성 (직급별 사원 패널) |
-| `src/features/jobPosition/types.ts` · `api.ts` | 수정 (`JobPositionEmployee` · `getJobPositionEmployees()`) |
-| `src/features/jobPosition/JobPositionList.tsx` | 수정 (인원수를 링크 버튼으로) |
-| `src/constants/endpoints.ts` | 수정 (`employeeGroups` 4개 · `jobPositions.employees`) |
-| `src/features/pagePermission/catalog.ts` | 수정 (`PageRoute.label` 신설 — `ADMIN_CONSOLE` 라벨 덮기) |
-| `src/app/settings/page.tsx` | 수정 (`그룹 관리` 준비 중 해제) |
+| 파일                                                      | 변경                                                       |
+| --------------------------------------------------------- | ---------------------------------------------------------- |
+| `src/features/employeeGroup/types.ts`                     | 생성 (그룹 · 구성원 · 결과 타입 · 길이 상수)               |
+| `src/features/employeeGroup/errorCodes.ts`                | 생성 (`GRP_*` 4개 · `ADD_MEMBER_REJECTED_CODES`)           |
+| `src/features/employeeGroup/api.ts`                       | 생성 (91~97 7개 함수)                                      |
+| `src/features/employeeGroup/EmployeeGroupList.tsx`        | 생성 (목록 · 검색 · 케밥)                                  |
+| `src/features/employeeGroup/EmployeeGroupFormModal.tsx`   | 생성 (추가 · 수정 겸용)                                    |
+| `src/features/employeeGroup/DeleteEmployeeGroupModal.tsx` | 생성 (공용 `AlertDialogTwoButton`)                         |
+| `src/features/employeeGroup/GroupMembersModal.tsx`        | 생성 (구성원 목록 · 추가 · 제거)                           |
+| `src/app/settings/employee-groups/page.tsx`               | 생성 (라우트)                                              |
+| `src/features/jobPosition/JobPositionEmployeesModal.tsx`  | 생성 (직급별 사원 패널)                                    |
+| `src/features/jobPosition/types.ts` · `api.ts`            | 수정 (`JobPositionEmployee` · `getJobPositionEmployees()`) |
+| `src/features/jobPosition/JobPositionList.tsx`            | 수정 (인원수를 링크 버튼으로)                              |
+| `src/constants/endpoints.ts`                              | 수정 (`employeeGroups` 4개 · `jobPositions.employees`)     |
+| `src/features/pagePermission/catalog.ts`                  | 수정 (`PageRoute.label` 신설 — `ADMIN_CONSOLE` 라벨 덮기)  |
+| `src/app/settings/page.tsx`                               | 수정 (`그룹 관리` 준비 중 해제)                            |
 
 ### 주요 작업 내용
 
@@ -68,17 +177,17 @@
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/features/employee/BulkUploadModal.tsx` | 생성 (3단 스텝퍼 · 입력 형식표 · 행 오류 표 · 등록 확인) |
-| `src/lib/download.ts` | 생성 (`saveResponseAsFile()` — 응답을 파일로 저장. 도메인 무관) |
-| `src/features/employee/api.ts` | 수정 (`downloadBulkTemplate()` · `validateBulkEmployees()` · `registerBulkEmployees()`) |
-| `src/features/employee/types.ts` | 수정 (`BulkRowError` · `BulkValidateResult` · `BulkRegisterResult`) |
-| `src/features/employee/errorCodes.ts` | 수정 (파일 3종 + `EMP_HAS_ERRORS` · `BULK_FILE_CODES`) |
-| `src/constants/endpoints.ts` | 수정 (`bulkTemplate` · `bulkValidate` · `bulk`) |
-| `src/components/Modal.tsx` | 수정 (`dismissOnBackdrop` prop 신설) |
-| `src/features/employee/EmployeeList.tsx` | 수정 (`BulkUploadButton` 제거 · 모달 연결 · `.btn` 전환 · `useModal`/`useModalTarget` 전환) |
-| `EmployeeDetail` · `EmployeeCreateForm` · `EmployeeEditForm` · `RoleChangeModal` · `PasswordResetModal` | 수정 (하드코딩 버튼 → `.btn` 계열 14곳) |
+| 파일                                                                                                    | 변경                                                                                        |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `src/features/employee/BulkUploadModal.tsx`                                                             | 생성 (3단 스텝퍼 · 입력 형식표 · 행 오류 표 · 등록 확인)                                    |
+| `src/lib/download.ts`                                                                                   | 생성 (`saveResponseAsFile()` — 응답을 파일로 저장. 도메인 무관)                             |
+| `src/features/employee/api.ts`                                                                          | 수정 (`downloadBulkTemplate()` · `validateBulkEmployees()` · `registerBulkEmployees()`)     |
+| `src/features/employee/types.ts`                                                                        | 수정 (`BulkRowError` · `BulkValidateResult` · `BulkRegisterResult`)                         |
+| `src/features/employee/errorCodes.ts`                                                                   | 수정 (파일 3종 + `EMP_HAS_ERRORS` · `BULK_FILE_CODES`)                                      |
+| `src/constants/endpoints.ts`                                                                            | 수정 (`bulkTemplate` · `bulkValidate` · `bulk`)                                             |
+| `src/components/Modal.tsx`                                                                              | 수정 (`dismissOnBackdrop` prop 신설)                                                        |
+| `src/features/employee/EmployeeList.tsx`                                                                | 수정 (`BulkUploadButton` 제거 · 모달 연결 · `.btn` 전환 · `useModal`/`useModalTarget` 전환) |
+| `EmployeeDetail` · `EmployeeCreateForm` · `EmployeeEditForm` · `RoleChangeModal` · `PasswordResetModal` | 수정 (하드코딩 버튼 → `.btn` 계열 14곳)                                                     |
 
 ### 주요 작업 내용
 
@@ -115,11 +224,11 @@
 
 **4. 단계를 오가면 선택한 파일 표시가 갈렸다**
 
-| 항목 | 내용 |
-| ---- | ---- |
-| 문제 | `파일 다시 선택` 후 네이티브 input 은 "선택된 파일 없음", 아래 문구는 파일명을 표시 |
+| 항목 | 내용                                                                                                            |
+| ---- | --------------------------------------------------------------------------------------------------------------- |
+| 문제 | `파일 다시 선택` 후 네이티브 input 은 "선택된 파일 없음", 아래 문구는 파일명을 표시                             |
 | 원인 | 단계 전환으로 input 이 새 DOM 요소로 다시 그려지는데 `input[type=file]` 의 값은 **보안상 JS 로 되돌릴 수 없다** |
-| 해결 | 네이티브 표시를 쓰지 않는다 — `sr-only` input + `label` 버튼으로 두고 파일명은 우리 state 한 줄로만 보여준다 |
+| 해결 | 네이티브 표시를 쓰지 않는다 — `sr-only` input + `label` 버튼으로 두고 파일명은 우리 state 한 줄로만 보여준다    |
 
 ### 검증
 

@@ -196,4 +196,13 @@ export const api = {
     request<T>(path, 'PUT', body, signal),
   delete: <T>(path: string, signal?: AbortSignal) =>
     request<T>(path, 'DELETE', undefined, signal),
+  /**
+   * 본문이 있는 `DELETE` — 대상이 여럿이라 경로에 담을 수 없을 때만 쓴다
+   * (이미지 영구 삭제 `imgIds[]`).
+   *
+   * ⚠️ 프록시 · 게이트웨이가 `DELETE` 본문을 버리는 경우가 있어 기본형이 아니다.
+   *    같은 성격의 파일 영구 삭제는 그래서 `POST` 로 설계돼 있다 (.ai/API.md 104번).
+   */
+  deleteWithBody: <T>(path: string, body: unknown, signal?: AbortSignal) =>
+    request<T>(path, 'DELETE', body, signal),
 };

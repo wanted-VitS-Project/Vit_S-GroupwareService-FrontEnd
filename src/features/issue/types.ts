@@ -37,6 +37,43 @@ export interface IssueSummary {
   relatedBlocks: IssueRelatedBlock[];
 }
 
+/**
+ * 이슈 진척도 — 프로젝트 전체 · 스텝별이 같은 모양이다. (108번)
+ *
+ * `progressRate` 는 이슈가 0개일 때 `null` 이다 — 0% 와 구분해야
+ * "아직 이슈가 없음" 과 "하나도 못 끝냄" 이 섞이지 않는다.
+ */
+export interface IssueProgress {
+  totalIssueCount: number;
+  doneIssueCount: number;
+  inProgressIssueCount: number;
+  progressRate: number | null;
+}
+
+/** GET /projects/{projectId}/issues 의 스텝 하나. 이슈가 없어도 빈 배열로 온다 */
+export interface ProjectIssueStep extends IssueProgress {
+  stepId: number;
+  stepName: string;
+  issues: IssueSummary[];
+}
+
+/** GET /projects/{projectId}/issues — 페이징이 없다 */
+export interface ProjectIssuesResponse {
+  progress: IssueProgress;
+  /** 이미 `sortOrder` 로 정렬돼 있다. 삭제된 스텝은 빠진다 */
+  steps: ProjectIssueStep[];
+}
+
+/** 시작 전(TODO) 이슈 수 — 서버가 주지 않아 화면에서 뺀다 */
+export function todoIssueCount(progress: IssueProgress) {
+  return Math.max(
+    progress.totalIssueCount -
+      progress.doneIssueCount -
+      progress.inProgressIssueCount,
+    0,
+  );
+}
+
 /** GET /issues/{issueId} — 목록 필드 + 설명 · 완료 시각 */
 export interface IssueDetail extends IssueSummary {
   stepId: number;
