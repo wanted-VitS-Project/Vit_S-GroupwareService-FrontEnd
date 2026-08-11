@@ -1,8 +1,8 @@
 # 연동 API 명세서
 
+**최종 업데이트**: 2026-08-11 (프로젝트 전체 화면 — 103~111 추가, 파일·이미지 삭제·복구 공통 절 신설)
 **최종 업데이트**: 2026-08-09 (내 프로젝트 목록 — 84 추가)
 **최종 업데이트**: 2026-08-09 (비타메이트 AI 블록 연동 — 74~78 추가, 비타메이트 공통 절 신설)
-**최종 업데이트**: 2026-08-07 (이미지 항목 전체 조회 — 71 추가, 수정 모달이 이걸로 교체)
 
 > 📌 이 파일은 **프론트가 연동하는 백엔드 API**를 정리하는 곳이에요. (내가 만드는 게 아니라 **호출하는** 입장)
 > AI는 API 연동 코드를 작성하기 전에 이 파일을 먼저 읽어요. (잘못된 경로/필드/타입으로 fetch 짜는 실수 방지)
@@ -116,6 +116,15 @@
 | [100](#100-페이지-접근-가능자-목록)       | 접근 가능자 목록 | `GET /pages/{pageCode}/permissions`            | ✅ `features/pagePermission/api.ts` |
 | [101](#101-페이지-권한-부여--등급-변경)   | 권한 부여·변경   | `POST /pages/{pageCode}/permissions`           | ✅ `features/pagePermission/api.ts` |
 | [102](#102-페이지-권한-회수)              | 권한 회수        | `DELETE /pages/{pageCode}/permissions/{userId}` | ✅ `features/pagePermission/api.ts` |
+| [103](#103-휴지통에서-복구)               | 파일 복구        | `POST /files/{fileId}/restore`                 | ✅ `features/file/api.ts`             |
+| [104](#104-파일-영구-삭제)                | 파일 영구 삭제   | `POST /files/{fileId}/permanent-deletion`      | ✅ `features/file/api.ts`             |
+| [105](#105-프로젝트-문서함-전체-파일)     | 프로젝트 문서함  | `GET /projects/{projectId}/files`              | ✅ `features/file/api.ts`             |
+| [106](#106-프로젝트-휴지통-모아보기)      | 프로젝트 휴지통  | `GET /projects/{projectId}/files/trash`        | ✅ `features/file/api.ts`             |
+| [107](#107-프로젝트-이미지-모아보기)      | 이미지 모아보기  | `GET /projects/{projectId}/images`             | ✅ `features/block/api.ts`            |
+| [108](#108-프로젝트-단위-이슈-목록-조회)  | 프로젝트 이슈    | `GET /projects/{projectId}/issues`             | ✅ `features/issue/api.ts`            |
+| [109](#109-이미지-휴지통-조회)            | 이미지 휴지통    | `GET /projects/{projectId}/images/trash`       | ✅ `features/block/api.ts`            |
+| [110](#110-이미지-복구-다건)              | 이미지 복구      | `PATCH /blocks/images/items/restore`           | ✅ `features/block/api.ts`            |
+| [111](#111-이미지-영구-삭제-다건)         | 이미지 영구 삭제 | `DELETE /blocks/images/items/hard`             | ✅ `features/block/api.ts`            |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
 > 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통) · [이미지 도메인 — 공통](#이미지-도메인--공통) · [사원 그룹 도메인 — 공통](#사원-그룹-도메인--공통) · [페이지 권한 도메인 — 공통](#페이지-권한-도메인--공통)
@@ -3350,6 +3359,314 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | 404    | `PAGE_PERMISSION_NOT_FOUND` | 부여 기록이 없어 회수할 것 없음 |
 
 > ⚠️ MASTER 는 회수해도 전역 권한으로 페이지가 계속 보인다 (`stillAccessible: true`) — 화면에서 이 사실을 안내해야 오해가 없다.
+
+---
+
+## 파일 삭제 · 복구 — 공통
+
+삭제는 **전면 soft delete** 다. 휴지통은 보관 기간 제한이 없고, **영구 삭제만** 저장소(S3) 객체를 지운다.
+권한은 파일 단위가 아니라 **스텝 EDITOR** 를 그대로 따른다 (업로더 본인 제한 없음).
+
+| 단계          | 엔드포인트                                | 되돌리기 |
+| ------------- | ----------------------------------------- | -------- |
+| 휴지통 이동   | `DELETE /files/{fileId}` (40번)           | 가능     |
+| 복구          | `POST /files/{fileId}/restore` (103번)    | —        |
+| 영구 삭제     | `POST /files/{fileId}/permanent-deletion` (104번) | ❌ 불가 |
+
+> ⚠️ **결재가 잠근다.** 진행 중 결재의 대상이면 휴지통 이동이 409 로 막히고, **완료 포함** 결재 참조가 있으면 영구 삭제가 409 로 막힌다.
+
+---
+
+## 103. 휴지통에서 복구
+
+| 항목          | 내용                                        |
+| ------------- | ------------------------------------------- |
+| **Method**    | `POST`                                      |
+| **Path**      | `/api/v1/files/{fileId}/restore`            |
+| **인증 필요** | ✅ (스텝 `EDITOR`)                          |
+| **사용 위치** | `features/file/api.ts` → `restoreFile()`    |
+
+원래 블록으로 복구된다 (연결은 휴지통에 있는 동안에도 유지). **블록이 삭제됐어도 복구되며**, 이 경우 파일은 블록에 붙지 않은 채 살아나 `blockId: null` · `blockDeleted: true` 로 응답한다.
+
+**응답 data**
+
+| 필드           | 타입              | 설명                                      |
+| -------------- | ----------------- | ----------------------------------------- |
+| `fileId`       | `number`          | 복구한 문서                               |
+| `name`         | `string`          | 표시명                                    |
+| `blockId`      | `number \| null`  | 붙은 블록. 블록이 삭제됐으면 `null`       |
+| `blockDeleted` | `boolean`         | `true` 면 "블록이 삭제되어 문서함으로 복구" 안내 |
+
+| status | code                            | 화면 처리                    |
+| ------ | ------------------------------- | ---------------------------- |
+| 200    | —                               | 목록에서 제거 · 문서함에 반영 |
+| 400    | `FILE_NOT_DELETED`              | 휴지통에 없음                |
+| 403    | `FILE_EDIT_PERMISSION_REQUIRED` | 편집 권한 없음               |
+| 404    | `FILE_NOT_FOUND`                | 문서 없음                    |
+
+> ℹ️ 폐기된 `FILE_BLOCK_DELETED` 규칙은 없다 — 블록이 지워졌다고 복구가 막히지 않는다.
+
+---
+
+## 104. 파일 영구 삭제
+
+| 항목          | 내용                                                |
+| ------------- | --------------------------------------------------- |
+| **Method**    | `POST` (⚠️ `DELETE` 가 아니다)                      |
+| **Path**      | `/api/v1/files/{fileId}/permanent-deletion`         |
+| **인증 필요** | ✅ (스텝 `EDITOR`)                                  |
+| **사용 위치** | `features/file/api.ts` → `permanentlyDeleteFile()`  |
+
+**휴지통 문서만** 대상이다. 확인 문자가 정확히 `영구 삭제` 여야 하고 **서버가 검증**한다 — 본문이 필요해서 `DELETE` 가 아니라 `POST` 다 (일부 프록시가 `DELETE` 본문을 버린다).
+
+**요청 body**
+
+| 필드          | 타입     | 필수 | 설명                        |
+| ------------- | -------- | ---- | --------------------------- |
+| `confirmText` | `string` | ✅   | `영구 삭제` 와 정확히 일치 |
+
+**응답 data**
+
+| 필드                  | 타입     | 설명                                          |
+| --------------------- | -------- | --------------------------------------------- |
+| `fileId`              | `number` | 지운 문서                                     |
+| `deletedVersionCount` | `number` | 지운 버전 수                                  |
+| `storageDeletedCount` | `number` | 저장소 **삭제 요청 수** (S3 삭제는 커밋 후 best-effort) |
+
+| status | code                            | 화면 처리                            |
+| ------ | ------------------------------- | ------------------------------------ |
+| 200    | —                               | 휴지통에서 제거                      |
+| 400    | `FILE_CONFIRM_TEXT_MISMATCH`    | 확인 문자 불일치                     |
+| 400    | `FILE_NOT_DELETED`              | 휴지통에 없는 문서                   |
+| 403    | `FILE_EDIT_PERMISSION_REQUIRED` | 편집 권한 없음                       |
+| 404    | `FILE_NOT_FOUND`                | 문서 없음                            |
+| 409    | `FILE_APPROVAL_REFERENCED`      | **완료 포함** 모든 결재 참조가 차단  |
+
+> ⚠️ 모든 버전의 S3 객체를 제거한다 — **되돌릴 수 없다.** DB 삭제 전 파생데이터 정리 포트를 먼저 부른다 (비타메이트 `file_index` · `document_chunk` 등).
+
+---
+
+## 105. 프로젝트 문서함 (전체 파일)
+
+| 항목          | 내용                                        |
+| ------------- | ------------------------------------------- |
+| **Method**    | `GET`                                       |
+| **Path**      | `/api/v1/projects/{projectId}/files`        |
+| **인증 필요** | ✅ (접근 권한 보유자)                       |
+| **사용 위치** | `features/file/api.ts` → `getProjectFiles()` |
+
+스텝 · 블록 위치와 함께 **평면 목록**(`files[]`)을 주고 **프론트가 스텝 → 블록 트리로 조합**한다 (이미지 모아보기와 구조 통일). 활성 문서만 · 문서 단위 최신 1행. 고아 파일도 포함(`blockId: null` · `blockDeleted: true`).
+
+**응답 data — `files[]`**
+
+| 필드                                          | 타입             | 설명                                    |
+| --------------------------------------------- | ---------------- | --------------------------------------- |
+| `stepId` / `stepName`                         | `number`/`string` | 속한 스텝                              |
+| `blockId` / `blockTitle`                      | `number \| null`/`string \| null` | 속한 블록      |
+| `blockDeleted`                                | `boolean`        | 블록이 지워진 고아 파일                 |
+| `fileId` / `name`                             | `number`/`string` | 문서 · 표시명                          |
+| `latestVersionId` / `latestVersionNo`         | `number`         | 최신 버전                               |
+| `versionCount`                                | `number`         | 버전 수                                 |
+| `originalFileName` / `extension` / `sizeBytes` | `string`/`string`/`number` | 원본 정보              |
+| `previewable`                                 | `boolean`        | PDF 만 `true`                           |
+| `uploaderName`                                | `string`         | 업로더 (부서 · 직급은 없다)             |
+| `updatedAt`                                   | `string`         | `YYYY-MM-DDTHH:mm:ss`                   |
+
+| status | code                              | 화면 처리                |
+| ------ | --------------------------------- | ------------------------ |
+| 200    | —                                 | 없으면 빈 배열           |
+| 403    | `FILE_ACCESS_PERMISSION_REQUIRED` | 접근 권한 없음           |
+| 404    | `PROJECT_NOT_FOUND`               | 프로젝트 없음            |
+
+> ⚠️ **presigned 미임베드** — 다운로드는 클릭 시 42번(5분 URL)을 호출한다. 정렬은 `stepId` → `blockId` → 연결일.
+
+---
+
+## 106. 프로젝트 휴지통 모아보기
+
+| 항목          | 내용                                             |
+| ------------- | ------------------------------------------------ |
+| **Method**    | `GET`                                            |
+| **Path**      | `/api/v1/projects/{projectId}/files/trash`       |
+| **인증 필요** | ✅ (접근 권한 보유자)                            |
+| **사용 위치** | `features/file/api.ts` → `getProjectTrashFiles()` |
+
+블록 파일 목록(36번 `?deleted=true`)이 **블록 단위**인 것과 달리 **프로젝트 범위**다. 블록 삭제로 블록 목록에서 사라진 고아 파일도 여기서 보이고 복구 · 영구삭제 대상이 된다.
+
+**응답 data — `files[]`**
+
+| 필드                                          | 타입             | 설명                          |
+| --------------------------------------------- | ---------------- | ----------------------------- |
+| `stepId` / `stepName`                         | `number`/`string` | 속한 스텝                    |
+| `blockId` / `blockTitle` / `blockDeleted`     | —                | 105번과 동일                  |
+| `fileId` / `name` / `versionCount`            | —                | 문서 정보                     |
+| `originalFileName` / `extension` / `sizeBytes` | —               | 원본 정보                     |
+| `deletedAt`                                   | `string`         | 휴지통에 들어간 시각          |
+
+| status | code                              | 화면 처리      |
+| ------ | --------------------------------- | -------------- |
+| 200    | —                                 | 없으면 빈 배열 |
+| 403    | `FILE_ACCESS_PERMISSION_REQUIRED` | 접근 권한 없음 |
+| 404    | `PROJECT_NOT_FOUND`               | 프로젝트 없음  |
+
+> ℹ️ 휴지통 문서만 · presigned 미임베드(복구 · 영구삭제만 가능하다). 정렬은 `deletedAt` 내림차순.
+
+---
+
+## 107. 프로젝트 이미지 모아보기
+
+| 항목          | 내용                                          |
+| ------------- | --------------------------------------------- |
+| **Method**    | `GET`                                         |
+| **Path**      | `/api/v1/projects/{projectId}/images`         |
+| **인증 필요** | ✅ (접근 권한 보유자)                         |
+| **사용 위치** | `features/block/api.ts` → `getProjectImages()` |
+
+**응답 data — `images[]`**
+
+| 필드           | 타입     | 설명                          |
+| -------------- | -------- | ----------------------------- |
+| `imgId`        | `number` | 이미지 ID                     |
+| `imgBlockId`   | `number` | 속한 블록 ID                  |
+| `originalName` | `string` | 원본 파일명                   |
+| `imageUrl`     | `string` | 저장소 이미지 URL             |
+| `caption`      | `string` | 캡션 (없으면 빈 문자열)       |
+| `createdAt`    | `string` | `YYYY-MM-DDTHH:mm:ss`         |
+
+> ⚠️ 66 · 71번과 달리 `orderIndex` 가 **없다** — 순서 표기는 화면이 하지 않는다. 스텝 이름도 없어 블록 단위로만 묶인다.
+
+---
+
+## 108. 프로젝트 단위 이슈 목록 조회
+
+| 항목          | 내용                                        |
+| ------------- | ------------------------------------------- |
+| **Method**    | `GET`                                       |
+| **Path**      | `/api/v1/projects/{projectId}/issues`       |
+| **인증 필요** | ✅ (프로젝트 참여자 · `VIEWER` 이상)        |
+| **사용 위치** | `features/issue/api.ts` → `getProjectIssues()` |
+
+삭제되지 않은 모든 Step 의 이슈를 **Step 별로 묶어** 반환한다. 이슈가 없는 Step 도 `issues: []` 로 포함되고, 삭제된 Step 은 응답에서 완전히 빠진다. **페이징이 없다.**
+
+**응답 data**
+
+| 필드            | 타입     | 설명                       |
+| --------------- | -------- | -------------------------- |
+| `progress`      | `object` | 프로젝트 전체 진척도       |
+| `steps`         | `array`  | Step 별 이슈 묶음 (sortOrder 정렬) |
+
+**`progress` · `steps[]` 공통 진척도 필드**
+
+| 필드                   | 타입              | 설명                                       |
+| ---------------------- | ----------------- | ------------------------------------------ |
+| `totalIssueCount`      | `number`          | 전체 이슈 수                               |
+| `doneIssueCount`       | `number`          | 완료(`DONE`) 수                            |
+| `inProgressIssueCount` | `number`          | 진행 중(`IN_PROGRESS`) 수                  |
+| `progressRate`         | `number \| null`  | 완료율(%). 이슈가 0개면 `null`             |
+
+**`steps[]` 추가 필드** — `stepId` · `stepName` · `issues[]`
+**`issues[]`** — 55번 목록 응답과 같은 모양 (`issueId` · `title` · `status` · `priority` · `dueDate` · `assignees[]` · `relatedBlocks[]`). `content` 는 없다.
+
+| 화면 기능             | FE 처리 기준                                          |
+| --------------------- | ----------------------------------------------------- |
+| 아코디언 순서         | `steps` 배열 순서 (이미 `sortOrder` 정렬됨)           |
+| Step 진척도 뱃지      | `steps[].doneIssueCount` / `steps[].totalIssueCount`  |
+| Step 완료율           | `steps[].progressRate` (`null` 이면 이슈 없음)        |
+| 전체 진척도 바        | `progress.progressRate`                               |
+| 시작 전(TODO) 수      | `total - done - inProgress` 로 **FE 가 계산**         |
+
+> ℹ️ Step 자체가 하나도 없으면 `steps: []` 이고 `progress` 는 전부 0 (`progressRate` 는 `null`).
+
+---
+
+## 이미지 삭제 · 복구 — 공통
+
+이미지도 문서와 같은 3단계(soft → 복구 → 영구)지만 **계약이 다르다.** 같은 화면(휴지통)에 붙이므로 차이를 여기 모아 둔다.
+
+| 항목        | 문서 (103 · 104)                   | 이미지 (110 · 111)                          |
+| ----------- | ---------------------------------- | ------------------------------------------- |
+| 대상        | 한 건 (`{fileId}` 경로)            | **다건** (`imgIds[]` 본문)                  |
+| 복구        | `POST /files/{id}/restore`         | `PATCH /blocks/images/items/restore`        |
+| 영구 삭제   | `POST .../permanent-deletion`      | `DELETE /blocks/images/items/hard`          |
+| 확인 문자   | ✅ `영구 삭제` 서버 검증           | ❌ **없다** — 화면이 확인 모달로 막아야 한다 |
+| 휴지통 조회 | `GET /projects/{id}/files/trash`   | `GET /projects/{id}/images/trash`           |
+
+> ⚠️ 이미지 영구 삭제는 **본문 있는 `DELETE`** 다. 문서 쪽(104번)은 "일부 프록시가 `DELETE` 본문을 버린다" 는 이유로 `POST` 를 쓰는데 이미지는 그러지 않는다 — **배포 환경에서 본문이 사라지면 400 이 난다.** 실동작 확인 필요.
+> ⚠️ 이미지에는 확인 문자가 없어 오조작이 곧 영구 삭제다. 화면은 문서와 **같은 무게의 확인 모달**을 띄운다.
+> ❗ 110번 명세 본문 표의 필드명이 `imagIds` 로 적혀 있으나 요청 예시 · 111번과 대조해 **`imgIds`** 로 연동했다. 백엔드 확인 필요.
+
+---
+
+## 109. 이미지 휴지통 조회
+
+| 항목          | 내용                                             |
+| ------------- | ------------------------------------------------ |
+| **Method**    | `GET`                                            |
+| **Path**      | `/api/v1/projects/{projectId}/images/trash`      |
+| **인증 필요** | ✅ (접근 권한 보유자)                            |
+| **사용 위치** | `features/block/api.ts` → `getProjectTrashImages()` |
+
+**응답 data — `images[]`**
+
+| 필드           | 타입     | 설명                    |
+| -------------- | -------- | ----------------------- |
+| `imgId`        | `number` | 이미지 ID               |
+| `originalName` | `string` | 원본 파일명             |
+| `imageUrl`     | `string` | 저장소 이미지 URL       |
+| `caption`      | `string` | 캡션 (없으면 빈 문자열) |
+| `deletedAt`    | `string` | 삭제 일시               |
+
+> ⚠️ 107번(활성 목록)과 달리 **`imgBlockId` 가 없다** — 어느 블록에서 지워졌는지 알 수 없어, 휴지통 화면은 이미지를 블록으로 묶지 못하고 삭제 시각순 평면 목록으로만 보여준다.
+
+---
+
+## 110. 이미지 복구 (다건)
+
+| 항목          | 내용                                        |
+| ------------- | ------------------------------------------- |
+| **Method**    | `PATCH`                                     |
+| **Path**      | `/api/v1/blocks/images/items/restore`       |
+| **인증 필요** | ✅ (편집 권한 — **각 이미지가 속한 스텝별로** 확인) |
+| **사용 위치** | `features/block/api.ts` → `restoreImages()` |
+
+**요청 body**
+
+| 필드     | 타입       | 필수 | 설명             |
+| -------- | ---------- | ---- | ---------------- |
+| `imgIds` | `number[]` | ✅   | 복구할 이미지 ID |
+
+**응답 data — `images[]`**
+
+| 필드           | 타입     | 설명                          |
+| -------------- | -------- | ----------------------------- |
+| `imgBlockId`   | `number` | 복구된 블록                   |
+| `imgId`        | `number` | 복구된 이미지                 |
+| `originalName` | `string` | 원본 파일명                   |
+| `orderIndex`   | `number` | **복구 후** 순서 (뒤에 붙는다) |
+
+> ℹ️ 권한을 스텝별로 보므로, 여러 스텝의 이미지를 한 번에 보내면 일부만 복구될 수 있다 — 화면은 **응답의 `images[]` 를 기준으로** 목록에서 지운다 (보낸 목록 기준으로 지우면 안 된다).
+
+---
+
+## 111. 이미지 영구 삭제 (다건)
+
+| 항목          | 내용                                                    |
+| ------------- | ------------------------------------------------------- |
+| **Method**    | `DELETE` (⚠️ **본문 있음**)                             |
+| **Path**      | `/api/v1/blocks/images/items/hard`                      |
+| **인증 필요** | ✅ (편집 권한)                                          |
+| **사용 위치** | `features/block/api.ts` → `permanentlyDeleteImages()`   |
+
+**요청 body**
+
+| 필드     | 타입       | 필수 | 설명                                |
+| -------- | ---------- | ---- | ----------------------------------- |
+| `imgIds` | `number[]` | ✅   | 영구 삭제할 이미지 (휴지통에 있는 것만) |
+
+**응답 data** — `null`
+
+> ⚠️ **되돌릴 수 없다.** 확인 문자가 없어(문서 104번과 다름) 화면 확인 모달이 유일한 방어선이다.
+> ⚠️ 응답이 `null` 이라 **몇 건이 지워졌는지 알 수 없다** — 화면은 보낸 목록을 지우고 곧바로 휴지통을 재조회한다.
 
 ---
 

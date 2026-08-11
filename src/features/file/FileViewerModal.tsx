@@ -10,7 +10,7 @@ import { FILE_CODES } from './errorCodes';
 import { extensionLabel, extensionStyle, formatFileSize } from './format';
 import PdfPages from './PdfPages';
 import { loadPreview } from './previewCache';
-import type { BlockFile, FileVersion, FileVersionsResponse } from './types';
+import type { FileVersion, FileVersionsResponse, ViewerFile } from './types';
 
 /** 미리보기 상태 — 로딩 · 지원 안 함 · 실패를 화면에서 구분해야 한다 */
 type Preview =
@@ -32,7 +32,11 @@ export default function FileViewerModal({
   file,
   onClose,
 }: {
-  file: BlockFile;
+  /**
+   * 블록 문서 목록 · 프로젝트 문서함이 함께 넘긴다.
+   * 문서함 응답에는 업로더 부서 · 직급이 없어 `ViewerFile` 에서 선택 필드다.
+   */
+  file: ViewerFile;
   onClose: () => void;
 }) {
   const [versionId, setVersionId] = useState(file.latestVersionId);
@@ -77,10 +81,24 @@ export default function FileViewerModal({
     extension: file.extension,
     sizeBytes: file.sizeBytes,
     uploaderName: file.uploaderName,
-    uploaderDepartment: file.uploaderDepartment,
-    uploaderPosition: file.uploaderPosition,
+    // 문서함에서 열면 비어 있다 — 버전 이력이 도착하면 채워진다
+    uploaderDepartment: file.uploaderDepartment ?? '',
+    uploaderPosition: file.uploaderPosition ?? '',
     completedAt: file.updatedAt,
   };
+
+  /**
+   * 업로더 한 줄 — `부서 / 직급 이름`.
+   * 부서 · 직급이 비어 있을 때 구분자만 남으면 (` / 김용준`) 값이 깨진 것처럼 보인다.
+   */
+  const uploaderLine = [
+    [current.uploaderDepartment, current.uploaderPosition]
+      .filter(Boolean)
+      .join(' / '),
+    current.uploaderName,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   const style = extensionStyle(current.extension);
 
@@ -180,10 +198,7 @@ export default function FileViewerModal({
                 {current.latest && ' (최신)'}
               </span>
               <span aria-hidden>·</span>
-              <span>
-                {current.uploaderDepartment} / {current.uploaderPosition}{' '}
-                {current.uploaderName}
-              </span>
+              <span>{uploaderLine}</span>
               <span aria-hidden>·</span>
               <span>
                 {current.completedAt.slice(0, 10).replaceAll('-', '.')}

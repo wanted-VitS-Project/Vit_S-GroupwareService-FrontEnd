@@ -28,6 +28,23 @@ export const ENDPOINTS = {
      */
     fileVersions: (projectId: number | string) =>
       `${V1}/projects/${projectId}/file-versions`,
+    /**
+     * 프로젝트 문서함 — 스텝 · 블록 위치가 붙은 **평면 목록**이다.
+     * 트리로 묶는 것은 화면 몫이다 (`ProjectFileTree`).
+     */
+    files: (projectId: number | string) => `${V1}/projects/${projectId}/files`,
+    /** 프로젝트 휴지통 — 블록 목록(`?deleted=true`)과 달리 프로젝트 범위다 */
+    filesTrash: (projectId: number | string) =>
+      `${V1}/projects/${projectId}/files/trash`,
+    /** 프로젝트 이미지 모아보기 — 블록 ID 만 오고 스텝 정보는 없다 */
+    images: (projectId: number | string) =>
+      `${V1}/projects/${projectId}/images`,
+    /** 이미지 휴지통 — ⚠️ 위와 달리 `imgBlockId` 조차 오지 않는다 */
+    imagesTrash: (projectId: number | string) =>
+      `${V1}/projects/${projectId}/images/trash`,
+    /** 프로젝트 전체 이슈 — 스텝별로 묶여 오고 페이징이 없다 */
+    issues: (projectId: number | string) =>
+      `${V1}/projects/${projectId}/issues`,
   },
   businessCategories: {
     /** 목록 조회 · 생성 */
@@ -188,6 +205,13 @@ export const ENDPOINTS = {
     /** 이미지 항목 삭제 — 이쪽은 **항목 ID(`imgId`)** 다. 위 경로와 모양만 같다 */
     imageItem: (imgId: number | string) => `${V1}/blocks/images/items/${imgId}`,
     /**
+     * 이미지 복구 · 영구 삭제 — **다건**이라 ID 를 경로가 아니라 본문에 싣는다.
+     * 위 `imageItem(imgId)` 과 경로 모양이 겹치므로(`.../items/{...}`) 고정 문자열로 둔다.
+     */
+    imageItemsRestore: `${V1}/blocks/images/items/restore`,
+    /** ⚠️ **본문 있는 DELETE** 다 — 파일 영구 삭제(POST)와 방식이 다르다 */
+    imageItemsHardDelete: `${V1}/blocks/images/items/hard`,
+    /**
      * 정산 항목 — 수정 시 조회(GET) · 작성/수정(PATCH).
      * ⚠️ 둘 다 `?type=INCOME|OUTCOME` 이 **필수**다.
      */
@@ -220,6 +244,14 @@ export const ENDPOINTS = {
     detail: (fileId: number | string) => `${V1}/files/${fileId}`,
     /** 버전 이력 */
     versions: (fileId: number | string) => `${V1}/files/${fileId}/versions`,
+    /** 휴지통에서 복구 — 블록이 지워졌어도 살아난다 */
+    restore: (fileId: number | string) => `${V1}/files/${fileId}/restore`,
+    /**
+     * 영구 삭제 — 확인 문자를 본문에 실어야 해서 `DELETE` 가 아니라 `POST` 다
+     * (일부 프록시가 `DELETE` 본문을 버린다).
+     */
+    permanentDeletion: (fileId: number | string) =>
+      `${V1}/files/${fileId}/permanent-deletion`,
   },
   fileVersions: {
     /** 버전 단건 조회 (결재용) — 문서가 휴지통이어도 반환된다 */

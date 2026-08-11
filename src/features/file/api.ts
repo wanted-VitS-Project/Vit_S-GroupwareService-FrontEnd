@@ -7,12 +7,17 @@ import type {
   DownloadUrlResponse,
   FileVersionDetail,
   FileVersionsResponse,
+  PermanentDeleteResponse,
+  ProjectFile,
   ProjectFileVersion,
+  ProjectTrashFile,
   RenameFileResponse,
+  RestoreFileResponse,
   StartUploadRequest,
   StartUploadResponse,
   TrashFileResponse,
 } from './types';
+import { FILE_PERMANENT_DELETE_CONFIRM_TEXT } from './types';
 
 /**
  * 블록에 붙은 문서 목록.
@@ -77,9 +82,72 @@ export function renameFile(
   );
 }
 
+/**
+ * 프로젝트 문서함 — 스텝 · 블록 위치가 붙은 평면 목록.
+ * 응답이 `{ files: [...] }` 로 한 겹 감싸져 있어 여기서 벗겨 반환한다.
+ */
+export function getProjectFiles(
+  projectId: number | string,
+  signal?: AbortSignal,
+) {
+  return api
+    .get<{ files: ProjectFile[] }>(ENDPOINTS.projects.files(projectId), signal)
+    .then((data) => data.files);
+}
+
+/** 프로젝트 휴지통 — 블록이 지워진 고아 파일도 여기서만 보인다 */
+export function getProjectTrashFiles(
+  projectId: number | string,
+  signal?: AbortSignal,
+) {
+  return api
+    .get<{ files: ProjectTrashFile[] }>(
+      ENDPOINTS.projects.filesTrash(projectId),
+      signal,
+    )
+    .then((data) => data.files);
+}
+
 /** 휴지통으로 이동 (soft delete). 저장소 객체는 남는다 */
 export function trashFile(fileId: number | string, signal?: AbortSignal) {
   return api.delete<TrashFileResponse>(ENDPOINTS.files.detail(fileId), signal);
+}
+
+/**
+ * 휴지통에서 복구. 원래 블록으로 돌아간다.
+ *
+ * 블록이 이미 지워졌어도 복구되며, 그때는 `blockId: null` · `blockDeleted: true` 로 온다 —
+ * 화면은 "블록이 삭제되어 문서함으로 복구" 를 알려야 한다.
+ */
+export function restoreFile(fileId: number | string, signal?: AbortSignal) {
+  return api.post<RestoreFileResponse>(
+    ENDPOINTS.files.restore(fileId),
+    {},
+    signal,
+  );
+}
+
+/**
+ * 영구 삭제 — **되돌릴 수 없다.**
+ *
+ * 확인 문자는 서버가 검증하므로 화면이 받은 값을 그대로 보낸다
+ * (여기서 상수로 덮어쓰면 사용자가 아무 값이나 넣어도 통과하는 것처럼 보인다).
+ */
+export function permanentlyDeleteFile(
+  fileId: number | string,
+  confirmText: string,
+  signal?: AbortSignal,
+) {
+  return api.post<PermanentDeleteResponse>(
+    ENDPOINTS.files.permanentDeletion(fileId),
+    { confirmText },
+    signal,
+  );
+}
+
+/** 사용자가 입력한 확인 문자가 서버 기준과 맞는지 — 버튼 활성 판단에만 쓴다 */
+export function isPermanentDeleteConfirmed(input: string) {
+  return input.trim() === FILE_PERMANENT_DELETE_CONFIRM_TEXT;
 }
 
 /** 버전 이력 — append-only 조회 전용. 차수 내림차순 */

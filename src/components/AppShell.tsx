@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
+import ToastHost from '@/components/Toast';
 import { BARE_LAYOUT_PATHS, isProjectScope, isUnder } from '@/constants/menu';
 import CurrentUserProvider from '@/features/auth/CurrentUserProvider';
 import MyPagesProvider from '@/features/pagePermission/MyPagesProvider';
@@ -76,6 +77,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </main>
             </div>
           </div>
+          {/*
+            뒤에서 끝난 일을 알리는 자리. 셸 전체에 하나만 두고 어디서나
+            `notifyToast()` 로 띄운다 — 화면마다 자리를 잡으면 위치가 어긋난다
+          */}
+          <ToastHost />
         </ProjectSidebarCollapseProvider>
       </MyPagesProvider>
     </CurrentUserProvider>

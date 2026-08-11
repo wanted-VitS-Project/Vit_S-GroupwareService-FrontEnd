@@ -325,6 +325,64 @@ export function imageAltText(image: BlockImage) {
   );
 }
 
+/**
+ * GET /projects/{projectId}/images 의 한 장. (명세 107번)
+ *
+ * `BlockImage` 와 달리 `orderIndex` 가 없고 `imgBlockId` 가 붙는다 —
+ * 프로젝트 전체를 훑는 목록이라 "어느 블록의 몇 번째" 가 아니라 "어느 블록의 것" 만 안다.
+ */
+export interface ProjectImage {
+  imgId: number;
+  imgBlockId: number;
+  originalName: string;
+  imageUrl: string;
+  /** 없으면 빈 문자열 */
+  caption: string;
+  createdAt: string;
+}
+
+/**
+ * GET /projects/{projectId}/images/trash 의 한 장. (명세 109번)
+ *
+ * ⚠️ 활성 목록(107번)에 있던 **`imgBlockId` 가 없다** — 어느 블록에서 지워졌는지 모른다.
+ *    그래서 휴지통은 블록으로 묶지 못하고 삭제 시각순 평면 목록으로만 그린다.
+ */
+export interface TrashImage {
+  imgId: number;
+  originalName: string;
+  imageUrl: string;
+  caption: string;
+  deletedAt: string;
+}
+
+/**
+ * PATCH /blocks/images/items/restore 의 복구 결과 한 건. (명세 110번)
+ *
+ * 권한을 **이미지가 속한 스텝별로** 보므로 보낸 것이 다 돌아오지 않을 수 있다 —
+ * 화면은 보낸 목록이 아니라 **이 응답 기준으로** 휴지통에서 지운다.
+ */
+export interface RestoredImage {
+  imgBlockId: number;
+  imgId: number;
+  originalName: string;
+  /** 복구 후 순서 — 원래 자리가 아니라 블록 뒤에 붙는다 */
+  orderIndex: number;
+}
+
+/**
+ * 프로젝트 이미지 · 휴지통 이미지의 대체 텍스트.
+ *
+ * `BlockImage.altText` 처럼 뜻을 담은 필드가 이 응답들에는 없다 —
+ * 캡션 → 파일명 순으로 떨어지고, 그마저 없으면 `'이미지'` 로 둔다
+ * (빈 `alt` 는 장식용이라는 뜻이 되어 더 나쁘다).
+ */
+export function projectImageAltText(image: {
+  caption: string;
+  originalName: string;
+}) {
+  return image.caption.trim() || image.originalName.trim() || '이미지';
+}
+
 /** 캡션 최대 길이 — ❗ 백엔드 확인 필요. 우선 블록 제목과 같은 200자로 막는다 */
 export const IMAGE_CAPTION_MAX_LENGTH = 200;
 
