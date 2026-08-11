@@ -12,13 +12,17 @@ export const GROUP_CODES = {
 } as const;
 
 /**
- * 구성원 추가에서 **요청 전체가 거부되는** 코드.
+ * **고른 사원이 잘못돼** 요청 전체가 거부된 코드.
  *
- * 없는 사번이 하나라도 섞이면 나머지도 추가되지 않는다 — 부분 성공이 아니라서
- * "몇 명은 됐다" 로 안내하면 안 된다. 고른 목록을 그대로 두고 다시 고르게 한다.
+ * 하나라도 섞이면 나머지도 추가되지 않는다 — 부분 성공이 아니라서 "몇 명은 됐다" 로
+ * 안내하면 안 된다. 이때는 **서버가 아무것도 바꾸지 않았으므로** 고른 목록을 그대로 두고
+ * 문제 있는 사람만 빼게 한다. 비우면 처음부터 다시 골라야 한다.
+ *
+ * ⚠️ `GRP_NOT_FOUND` 는 여기 넣지 않는다 — 그룹 자체가 사라진 것이라
+ *    고른 목록을 살려둘 이유가 없다 (호출 측이 따로 처리한다).
  */
-export const ADD_MEMBER_REJECTED_CODES: string[] = [
-  GROUP_CODES.notFound,
+export const MEMBER_PICK_REJECTED_CODES: string[] = [
+  GROUP_CODES.invalidRequest,
   'EMP_NOT_FOUND',
   'ACC_SYSTEM_ACCOUNT_NOT_ALLOWED',
 ];

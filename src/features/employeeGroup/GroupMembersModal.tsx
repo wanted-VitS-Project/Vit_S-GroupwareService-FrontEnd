@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 
 import PanelModal, { ModalFooter } from '@/components/PanelModal';
 import EmployeeSearchInput from '@/features/employee/EmployeeSearchInput';
-import { isAbortError, messageOf } from '@/lib/api';
+import { ApiError, isAbortError, messageOf } from '@/lib/api';
 
 import { addGroupMembers, getGroupMembers, removeGroupMember } from './api';
+import { GROUP_CODES, MEMBER_PICK_REJECTED_CODES } from './errorCodes';
 import type { EmployeeGroup, GroupMember } from './types';
 
 interface GroupMembersModalProps {
@@ -95,14 +96,30 @@ export default function GroupMembersModal({
       onChanged();
       onClose();
     } catch (caught) {
-      /**
-       * 추가는 없는 사번 · 시스템 계정이 섞이면 **요청 전체가 거부**되고,
-       * 제거는 한 명씩이라 일부만 끝났을 수 있다 — 어느 쪽이든 지금 화면은 못 믿는다.
-       * 서버에서 다시 받아 실제 상태를 보여준다.
-       */
+      const code = caught instanceof ApiError ? caught.code : undefined;
+
       setError(messageOf(caught, '변경을 저장하지 못했습니다.'));
-      reload();
       setIsSaving(false);
+
+      /**
+       * 고른 사원이 잘못돼 거부된 경우다 — **서버는 아무것도 바꾸지 않았다.**
+       * 고른 목록을 비우면 처음부터 다시 골라야 하므로 그대로 두고 문제만 빼게 한다.
+       */
+      if (MEMBER_PICK_REJECTED_CODES.includes(code ?? '')) return;
+
+      /** 그룹 자체가 사라졌다 — 여기서 할 수 있는 게 없어 목록만 갱신하고 닫는다 */
+      if (code === GROUP_CODES.notFound) {
+        onChanged();
+        onClose();
+        return;
+      }
+
+      /**
+       * 제거는 한 명씩이라 **일부만 끝났을 수 있다.**
+       * 이 화면도, 부모 목록의 `memberCount` 도 실제와 어긋나므로 둘 다 맞춘다.
+       */
+      onChanged();
+      reload();
     }
   }
 
