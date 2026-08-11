@@ -100,17 +100,17 @@
 | [84](#84-프로젝트-목록-조회)              | 프로젝트 목록    | `GET /projects`                                | ✅ `features/project/api.ts`          |
 | [85](#85-정산-항목-수정-시-조회)          | 정산 수정 조회   | `GET /blocks/settlements/{id}/items`           | ✅ `features/settlement/api.ts`       |
 | [86](#86-정산-항목-작성--수정)            | 정산 작성·수정   | `PATCH /blocks/settlements/{id}/items`         | ✅ `features/settlement/api.ts`       |
-| [87](#87-사원-엑셀-템플릿-다운로드)       | 엑셀 템플릿      | `GET /employees/bulk-template`                 | ❌ 미연동                             |
-| [88](#88-사원-엑셀-일괄-등록-검증)        | 일괄 등록 검증   | `POST /employees/bulk/validate`                | ❌ 미연동                             |
-| [89](#89-사원-엑셀-일괄-등록)             | 일괄 등록        | `POST /employees/bulk`                         | ❌ 미연동                             |
-| [90](#90-직급별-사원-목록)                | 직급별 사원 목록 | `GET /job-positions/{id}/employees`            | ❌ 미연동                             |
-| [91](#91-사원-그룹-목록-조회)             | 그룹 목록        | `GET /employee-groups`                         | ❌ 미연동                             |
-| [92](#92-사원-그룹-생성)                  | 그룹 생성        | `POST /employee-groups`                        | ❌ 미연동                             |
-| [93](#93-사원-그룹-수정)                  | 그룹 수정        | `PATCH /employee-groups/{groupId}`             | ❌ 미연동                             |
-| [94](#94-사원-그룹-삭제)                  | 그룹 삭제        | `DELETE /employee-groups/{groupId}`            | ❌ 미연동                             |
-| [95](#95-그룹-구성원-목록-조회)           | 구성원 목록      | `GET /employee-groups/{groupId}/members`       | ❌ 미연동                             |
-| [96](#96-그룹-구성원-추가)                | 구성원 추가      | `POST /employee-groups/{groupId}/members`      | ❌ 미연동                             |
-| [97](#97-그룹-구성원-제거)                | 구성원 제거      | `DELETE /employee-groups/{id}/members/{userId}` | ❌ 미연동                            |
+| [87](#87-사원-엑셀-템플릿-다운로드)       | 엑셀 템플릿      | `GET /employees/bulk-template`                 | ✅ `features/employee/api.ts`         |
+| [88](#88-사원-엑셀-일괄-등록-검증)        | 일괄 등록 검증   | `POST /employees/bulk/validate`                | ✅ `features/employee/api.ts`         |
+| [89](#89-사원-엑셀-일괄-등록)             | 일괄 등록        | `POST /employees/bulk`                         | ✅ `features/employee/api.ts`         |
+| [90](#90-직급별-사원-목록)                | 직급별 사원 목록 | `GET /job-positions/{id}/employees`            | ✅ `features/jobPosition/api.ts`      |
+| [91](#91-사원-그룹-목록-조회)             | 그룹 목록        | `GET /employee-groups`                         | ✅ `features/employeeGroup/api.ts`    |
+| [92](#92-사원-그룹-생성)                  | 그룹 생성        | `POST /employee-groups`                        | ✅ `features/employeeGroup/api.ts`    |
+| [93](#93-사원-그룹-수정)                  | 그룹 수정        | `PATCH /employee-groups/{groupId}`             | ✅ `features/employeeGroup/api.ts`    |
+| [94](#94-사원-그룹-삭제)                  | 그룹 삭제        | `DELETE /employee-groups/{groupId}`            | ✅ `features/employeeGroup/api.ts`    |
+| [95](#95-그룹-구성원-목록-조회)           | 구성원 목록      | `GET /employee-groups/{groupId}/members`       | ✅ `features/employeeGroup/api.ts`    |
+| [96](#96-그룹-구성원-추가)                | 구성원 추가      | `POST /employee-groups/{groupId}/members`      | ✅ `features/employeeGroup/api.ts`    |
+| [97](#97-그룹-구성원-제거)                | 구성원 제거      | `DELETE /employee-groups/{id}/members/{userId}` | ✅ `features/employeeGroup/api.ts`    |
 | [98](#98-내-페이지-목록-조회)             | 내 페이지 목록   | `GET /my/pages`                                | ✅ `features/pagePermission/api.ts` |
 | [99](#99-페이지-목록-조회-권한-부여용)    | 페이지 목록      | `GET /pages`                                   | ✅ `features/pagePermission/api.ts` |
 | [100](#100-페이지-접근-가능자-목록)       | 접근 가능자 목록 | `GET /pages/{pageCode}/permissions`            | ✅ `features/pagePermission/api.ts` |
@@ -2922,7 +2922,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | **Method**    | `GET`                                |
 | **Path**      | `/api/v1/employees/bulk-template`    |
 | **인증 필요** | ✅ (ADMIN)                           |
-| **사용 위치** | ❌ 미연동 — `EmployeeList` 일괄 등록 |
+| **사용 위치** | `employee/api.ts` → `downloadBulkTemplate()` |
 
 **응답** — JSON 이 아니라 **`.xlsx` 바이너리**다. 헤더만 있는 8컬럼:
 사번 · 이름 · 부서명 · 직급명 · 입사일 · 이메일 · 연락처 · 권한
@@ -2943,7 +2943,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | **Method**    | `POST` (`multipart/form-data`)      |
 | **Path**      | `/api/v1/employees/bulk/validate`   |
 | **인증 필요** | ✅ (ADMIN)                          |
-| **사용 위치** | ❌ 미연동 — 일괄 등록 스텝퍼 ②단계  |
+| **사용 위치** | `employee/api.ts` → `validateBulkEmployees()` |
 
 **요청** — `file` (엑셀 파일). 등록하지 않고 **행별 오류만** 반환한다.
 
@@ -2975,7 +2975,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | **Method**    | `POST` (`multipart/form-data`)     |
 | **Path**      | `/api/v1/employees/bulk`           |
 | **인증 필요** | ✅ (ADMIN)                         |
-| **사용 위치** | ❌ 미연동 — 일괄 등록 스텝퍼 ③단계 |
+| **사용 위치** | `employee/api.ts` → `registerBulkEmployees()` |
 
 **요청** — `file` · `skipErrors` (기본 `false`)
 
@@ -3007,7 +3007,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | **Method**    | `GET`                                             |
 | **Path**      | `/api/v1/job-positions/{jobPositionId}/employees` |
 | **인증 필요** | ✅ (ADMIN)                                        |
-| **사용 위치** | ❌ 미연동 — `JobPositionList` 인원수 클릭         |
+| **사용 위치** | `jobPosition/api.ts` → `getJobPositionEmployees()` |
 
 **응답 data**
 
@@ -3045,7 +3045,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | **Method**    | `GET`                     |
 | **Path**      | `/api/v1/employee-groups` |
 | **인증 필요** | ✅ (전체 사용자)          |
-| **사용 위치** | ❌ 미연동                 |
+| **사용 위치** | `employeeGroup/api.ts` → `getEmployeeGroups()` |
 
 **요청 Query** — `keyword` (`string`, 그룹명 부분검색)
 
@@ -3069,7 +3069,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | **Method**    | `POST`                    |
 | **Path**      | `/api/v1/employee-groups` |
 | **인증 필요** | ✅ (ADMIN)                |
-| **사용 위치** | ❌ 미연동                 |
+| **사용 위치** | `employeeGroup/api.ts` → `createEmployeeGroup()` |
 
 **요청 Body**
 
@@ -3097,7 +3097,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | **Method**    | `PATCH`                             |
 | **Path**      | `/api/v1/employee-groups/{groupId}` |
 | **인증 필요** | ✅ (ADMIN)                          |
-| **사용 위치** | ❌ 미연동                           |
+| **사용 위치** | `employeeGroup/api.ts` → `updateEmployeeGroup()` |
 
 **요청 Body** — `name` · `description` 중 **보낸 필드만** 바뀐다. 응답은 [91](#91-사원-그룹-목록-조회)과 같은 구조.
 
@@ -3119,7 +3119,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | **Method**    | `DELETE`                            |
 | **Path**      | `/api/v1/employee-groups/{groupId}` |
 | **인증 필요** | ✅ (ADMIN)                          |
-| **사용 위치** | ❌ 미연동                           |
+| **사용 위치** | `employeeGroup/api.ts` → `deleteEmployeeGroup()` |
 
 **응답 data** — `null`
 
@@ -3139,7 +3139,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | **Method**    | `GET`                                       |
 | **Path**      | `/api/v1/employee-groups/{groupId}/members` |
 | **인증 필요** | ✅ (전체 사용자)                            |
-| **사용 위치** | ❌ 미연동                                   |
+| **사용 위치** | `employeeGroup/api.ts` → `getGroupMembers()` |
 
 **응답 data** — 이름 오름차순
 
@@ -3164,7 +3164,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | **Method**    | `POST`                                      |
 | **Path**      | `/api/v1/employee-groups/{groupId}/members` |
 | **인증 필요** | ✅ (ADMIN)                                  |
-| **사용 위치** | ❌ 미연동                                   |
+| **사용 위치** | `employeeGroup/api.ts` → `addGroupMembers()` |
 
 **요청 Body** — `userIds` (`string[]`, 1개 이상)
 
@@ -3189,7 +3189,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | **Method**    | `DELETE`                                             |
 | **Path**      | `/api/v1/employee-groups/{groupId}/members/{userId}` |
 | **인증 필요** | ✅ (ADMIN)                                           |
-| **사용 위치** | ❌ 미연동                                            |
+| **사용 위치** | `employeeGroup/api.ts` → `removeGroupMember()` |
 
 **응답 data** — `groupId` · `memberCount`
 

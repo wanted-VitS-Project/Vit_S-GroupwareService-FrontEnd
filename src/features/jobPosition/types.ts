@@ -21,3 +21,22 @@ export interface UpdateJobPositionRequest {
   name?: string;
   sortOrder?: number;
 }
+
+/** 직급별 사원 한 줄 (.ai/API.md 90) */
+export interface JobPositionEmployee {
+  userId: string;
+  name: string;
+  departmentName: string | null;
+  /** 2단 경로 (예: `기술본부 / 개발팀`) */
+  departmentPath: string | null;
+}
+
+/**
+ * 직급별 사원 목록 응답.
+ * `employeeCount` 와 같은 기준이다 — **재직자만** (시스템 계정 · 퇴사자 제외).
+ */
+export interface JobPositionEmployeePage {
+  jobPositionId: number;
+  jobPositionName: string;
+  content: JobPositionEmployee[];
+}

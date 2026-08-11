@@ -6,6 +6,62 @@
 
 ---
 
+## [2026-08-11] 사원 그룹 관리 · 직급별 사원 목록 ✅
+
+브랜치: `feat/employee-group` · 이슈: #96 · #97
+
+### 변경 파일
+
+| 파일 | 변경 |
+| ---- | ---- |
+| `src/features/employeeGroup/types.ts` | 생성 (그룹 · 구성원 · 결과 타입 · 길이 상수) |
+| `src/features/employeeGroup/errorCodes.ts` | 생성 (`GRP_*` 4개 · `ADD_MEMBER_REJECTED_CODES`) |
+| `src/features/employeeGroup/api.ts` | 생성 (91~97 7개 함수) |
+| `src/features/employeeGroup/EmployeeGroupList.tsx` | 생성 (목록 · 검색 · 케밥) |
+| `src/features/employeeGroup/EmployeeGroupFormModal.tsx` | 생성 (추가 · 수정 겸용) |
+| `src/features/employeeGroup/DeleteEmployeeGroupModal.tsx` | 생성 (공용 `AlertDialogTwoButton`) |
+| `src/features/employeeGroup/GroupMembersModal.tsx` | 생성 (구성원 목록 · 추가 · 제거) |
+| `src/app/settings/employee-groups/page.tsx` | 생성 (라우트) |
+| `src/features/jobPosition/JobPositionEmployeesModal.tsx` | 생성 (직급별 사원 패널) |
+| `src/features/jobPosition/types.ts` · `api.ts` | 수정 (`JobPositionEmployee` · `getJobPositionEmployees()`) |
+| `src/features/jobPosition/JobPositionList.tsx` | 수정 (인원수를 링크 버튼으로) |
+| `src/constants/endpoints.ts` | 수정 (`employeeGroups` 4개 · `jobPositions.employees`) |
+| `src/features/pagePermission/catalog.ts` | 수정 (`PageRoute.label` 신설 — `ADMIN_CONSOLE` 라벨 덮기) |
+| `src/app/settings/page.tsx` | 수정 (`그룹 관리` 준비 중 해제) |
+
+### 주요 작업 내용
+
+- **사원 그룹 관리 화면 신설** — 목록(그룹명 검색) · 생성 · 수정 · 삭제. 조회는 전체 사용자지만 변경은 ADMIN 이라 전사 관리 아래에 둔다
+- **구성원 관리** — 검색해 고르면 목록에 `추가 예정` 으로 얹히고 `확인` 을 눌러야 전송된다. 제거는 `제거 예정` 으로 흐려지고 되돌릴 수 있다
+- **직급별 사원 목록** — `JobPositionList` 의 인원수를 링크 버튼으로 바꿔 누르면 패널이 뜬다
+- **사이드바 `관리자` → `전사 관리`** — `ADMIN_CONSOLE` 의 백엔드 이름이 사이드바에서 권한 등급으로 읽혀 이 코드만 라벨을 덮었다
+
+### 부수 결정
+
+- **추가 · 제거를 함께 미룬다** — 처음엔 추가만 즉시 반영했는데, 그러면 `취소` 를 눌러도 제거는 이미 끝나 있어 버튼이 거짓말을 한다. 둘 다 `확인` 시점에 보낸다
+- **고른 사람을 칩이 아니라 목록에 얹는다** — 목록 밖에 따로 쌓이면 최종 결과를 한눈에 볼 수 없다
+- **삭제는 공용 `AlertDialogTwoButton` 을 쓴다** — 확인을 받는 용도라 `PanelModal` 로 직접 짤 이유가 없다. 손으로 짰던 마크업 60줄이 사라졌다
+- **삭제 문구가 "권한에 영향 없음" 을 명시한다** — 그룹은 권한이 아니라 선택용 인덱스인데, 안 적으면 "권한이 사라질까 봐" 못 지운다
+- **0명 직급은 누를 것을 만들지 않는다** — 열어봐야 빈 목록이다. `미사용` 텍스트 그대로 둔다
+- **`PageRoute.label` 은 꼭 필요한 코드에만** — 덮으면 백엔드가 이름을 바꿔도 배포 전까지 반영되지 않는다. 지금 덮은 건 `ADMIN_CONSOLE` 하나뿐
+
+### 트러블슈팅
+
+**1. 구성원 모달에 저장 버튼이 없어 미완성처럼 보였다**
+
+추가 · 제거가 누르는 즉시 반영되는 구조라 하단 버튼이 아예 없었다. 고른 사람은 칩으로 따로 쌓여 목록과 따로 놀았다. **선택 즉시 목록에 얹고 `취소` · `확인` 을 두는 방식**으로 바꿨다.
+
+**2. 저장 실패 시 화면을 믿을 수 없다**
+
+추가는 없는 사번이 섞이면 전체 거부되고, 제거는 한 명씩이라 일부만 끝났을 수 있다. 어느 쪽이든 화면 상태와 서버가 어긋나므로 **실패하면 서버에서 다시 받는다.**
+
+### 검증
+
+- `tsc --noEmit` · `eslint` · `next build` · `prettier` 통과
+- ⚠️ 화면 동작 확인 필요 — 그룹 CRUD · 구성원 추가/제거 확인 흐름 · 직급 인원수 패널
+
+---
+
 ## [2026-08-10] 사원 엑셀 일괄 등록 — 템플릿 · 검증 · 등록 3단 스텝퍼 ✅
 
 브랜치: `feat/employee-bulk-upload` · 이슈: #95

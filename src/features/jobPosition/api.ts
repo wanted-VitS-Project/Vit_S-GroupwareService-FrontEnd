@@ -4,6 +4,7 @@ import { api } from '@/lib/api';
 import type {
   CreateJobPositionRequest,
   JobPosition,
+  JobPositionEmployeePage,
   UpdateJobPositionRequest,
 } from './types';
 
@@ -26,6 +27,20 @@ export function updateJobPosition(
   return api.patch<JobPosition>(
     ENDPOINTS.jobPositions.detail(jobPositionId),
     body,
+  );
+}
+
+/**
+ * 그 직급인 사원 목록 (ADMIN, .ai/API.md 90).
+ * **0명이어도 404 가 아니라 빈 배열**이라 목록 유무로 분기하면 된다.
+ */
+export function getJobPositionEmployees(
+  jobPositionId: number,
+  signal?: AbortSignal,
+) {
+  return api.get<JobPositionEmployeePage>(
+    ENDPOINTS.jobPositions.employees(jobPositionId),
+    signal,
   );
 }
 
