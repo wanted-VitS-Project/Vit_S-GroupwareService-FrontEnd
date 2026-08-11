@@ -50,8 +50,16 @@ export default function ProjectTrash() {
           </span>
         </div>
 
+        {/*
+          `role="tablist"` 를 쓰지 않는다.
+          WAI-ARIA 탭 패턴은 `aria-controls` → `role="tabpanel"` 연결과 좌우 화살표 이동까지
+          갖춰야 성립한다. 여기는 내용이 통째로 갈리는 두 컴포넌트라 패널 id 를 잇기 어렵고
+          화살표 이동도 없다. **절반만 구현된 탭**은 스크린리더에 "탭" 이라고 알리고도
+          어느 영역이 그 내용인지 말해 주지 못해 오히려 헷갈린다.
+          지금 상태를 그대로 말해 주는 **누름 버튼 두 개**로 둔다.
+        */}
         <div
-          role="tablist"
+          role="group"
           aria-label="휴지통 종류"
           className="flex items-center gap-1 rounded-lg bg-bg-hover p-0.5"
         >
@@ -59,8 +67,8 @@ export default function ProjectTrash() {
             <button
               key={option.kind}
               type="button"
-              role="tab"
-              aria-selected={kind === option.kind}
+              // 라벨이 **지금 상태**(문서 · 이미지)라 눌림 여부를 그대로 실을 수 있다
+              aria-pressed={kind === option.kind}
               // 누르기 직전 신호 — 이미지 청크를 미리 받아 두면 전환이 끊기지 않는다
               onPointerEnter={
                 option.kind === 'images'

@@ -128,9 +128,12 @@ export default function ProjectFiles() {
 
   /** 행마다 새 화살표 함수를 넘기면 `memo(FileRow)` 가 무력해진다 */
   const download = useCallback((file: ProjectFile) => {
-    downloadVersion(file.latestVersionId).catch((caught) =>
-      setErrorMessage(messageOf(caught, '다운로드에 실패했습니다.')),
-    );
+    downloadVersion(file.latestVersionId)
+      // 성공하면 지난 실패 문구를 지운다 — 남겨 두면 방금 성공한 동작을 실패로 오해한다
+      .then(() => setErrorMessage(''))
+      .catch((caught) =>
+        setErrorMessage(messageOf(caught, '다운로드에 실패했습니다.')),
+      );
   }, []);
 
   const toggleStep = useCallback((stepId: number) => {

@@ -80,12 +80,17 @@ export default function TrashImages() {
     });
   }
 
-  /** 고른 것을 화면에서 뺀다 — 되돌릴 수 있게 뺀 항목을 그대로 돌려준다 */
-  function takeSelected() {
+  /**
+   * 고른 것을 화면에서 뺀다 — 되돌릴 수 있게 뺀 항목을 그대로 돌려준다.
+   *
+   * `of` 는 **요청을 시작한 시점**의 `projectId` 다. 낙관적 처리라 응답이 늦게 오는데,
+   * 그 사이 다른 프로젝트로 옮겨 갔으면 지금 목록은 남의 휴지통이다.
+   */
+  function takeSelected(of: string) {
     const taken = images?.filter((image) => selectedIds.has(image.imgId)) ?? [];
 
     setLoaded((prev) =>
-      prev === null
+      prev === null || prev.projectId !== of
         ? prev
         : {
             ...prev,
@@ -102,12 +107,15 @@ export default function TrashImages() {
   /**
    * 되돌리기 — 삭제 시각 내림차순 자리를 지킨다.
    * 순번으로 끼워 넣으면 그 사이 다른 요청이 목록을 바꿨을 때 자리가 어긋난다.
+   *
+   * ⚠️ 프로젝트를 확인하지 않으면 **남의 이미지가 이 휴지통에 꽂힌다** — 그 상태로
+   *    복구 · 영구 삭제까지 누를 수 있어 되돌리기가 조회보다 위험하다.
    */
-  function putBack(taken: TrashImage[]) {
+  function putBack(of: string, taken: TrashImage[]) {
     if (taken.length === 0) return;
 
     setLoaded((prev) => {
-      if (prev === null) return prev;
+      if (prev === null || prev.projectId !== of) return prev;
 
       const known = new Set(prev.images.map((image) => image.imgId));
       const restored = [
@@ -130,7 +138,9 @@ export default function TrashImages() {
   function restore() {
     if (selectedIds.size === 0) return;
 
-    const taken = takeSelected();
+    // 응답이 늦게 와도 이 요청이 어느 프로젝트의 것인지 잃지 않게 지금 값을 잡아 둔다
+    const of = projectId;
+    const taken = takeSelected(of);
 
     void restoreImages(taken.map((image) => image.imgId))
       .then((restored) => {
@@ -138,7 +148,7 @@ export default function TrashImages() {
 
         // 권한을 스텝별로 보므로 **돌아오지 않은 것**은 아직 휴지통에 있다
         const rejected = taken.filter((image) => !restoredIds.has(image.imgId));
-        putBack(rejected);
+        putBack(of, rejected);
 
         notifyToast(
           rejected.length === 0
@@ -148,7 +158,7 @@ export default function TrashImages() {
         );
       })
       .catch((caught) => {
-        putBack(taken);
+        putBack(of, taken);
         notifyToast(
           messageOf(caught, '이미지를 복구하지 못했습니다.'),
           'error',
@@ -160,12 +170,21 @@ export default function TrashImages() {
   function permanentlyDelete() {
     if (selectedIds.size === 0) return;
 
-    const taken = takeSelected();
+    const of = projectId;
+    const taken = takeSelected(of);
 
     void permanentlyDeleteImages(taken.map((image) => image.imgId))
-      .then(() => notifyToast(`이미지 ${taken.length}장을 영구 삭제했습니다.`))
+      .then(() => {
+        notifyToast(`이미지 ${taken.length}장을 영구 삭제했습니다.`);
+        /*
+         * 응답이 `null` 이라 **몇 장이 실제로 지워졌는지 알 수 없다.**
+         * 화면에서 뺀 것은 예상일 뿐이라, 성공하면 서버 상태로 맞춘다.
+         * (복구는 응답 `images[]` 가 결과를 알려 줘서 다시 읽지 않는다)
+         */
+        if (of === projectId) setReloadCount((count) => count + 1);
+      })
       .catch((caught) => {
-        putBack(taken);
+        putBack(of, taken);
         notifyToast(
           messageOf(caught, '이미지를 영구 삭제하지 못했습니다.'),
           'error',

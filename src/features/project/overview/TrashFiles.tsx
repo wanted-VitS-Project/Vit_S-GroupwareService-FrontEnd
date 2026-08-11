@@ -80,10 +80,16 @@ export default function TrashFiles() {
   const files = loaded?.projectId === projectId ? loaded.files : null;
   const hasFailed = failedProjectId === projectId;
 
-  /** 목록을 통째로 다시 읽지 않고 한 건만 뺀다 — 스크롤 자리를 지킨다 */
-  function remove(fileId: number) {
+  /**
+   * 목록을 통째로 다시 읽지 않고 한 건만 뺀다 — 스크롤 자리를 지킨다.
+   *
+   * ⚠️ **어느 프로젝트의 목록인지 확인한다.** 낙관적 처리라 요청이 응답보다 먼저 끝나는데,
+   *    그 사이 다른 프로젝트로 옮겨 갔으면 지금 화면은 남의 휴지통이다.
+   *    `of` 는 **요청을 시작한 시점**의 `projectId` 다 (호출부가 클로저로 잡아 넘긴다).
+   */
+  function remove(of: string, fileId: number) {
     setLoaded((prev) =>
-      prev === null
+      prev === null || prev.projectId !== of
         ? prev
         : {
             ...prev,
@@ -92,10 +98,13 @@ export default function TrashFiles() {
     );
   }
 
-  /** 실패했을 때 **원래 자리**로 되돌린다 — 맨 위로 올라오면 어디 있던 것인지 잃는다 */
-  function restoreAt(file: ProjectTrashFile, index: number) {
+  /**
+   * 실패했을 때 **원래 자리**로 되돌린다 — 맨 위로 올라오면 어디 있던 것인지 잃는다.
+   * 되돌리기는 더 위험하다 — 프로젝트를 확인하지 않으면 **남의 문서가 이 휴지통에 꽂힌다.**
+   */
+  function restoreAt(of: string, file: ProjectTrashFile, index: number) {
     setLoaded((prev) => {
-      if (prev === null) return prev;
+      if (prev === null || prev.projectId !== of) return prev;
       // 그 사이 목록을 다시 읽었으면 이미 들어 있다
       if (prev.files.some((current) => current.fileId === file.fileId)) {
         return prev;
@@ -112,7 +121,9 @@ export default function TrashFiles() {
    * `void` 로 띄워 두므로 사용자는 곧바로 다음 문서를 정리할 수 있다.
    */
   function restore(file: ProjectTrashFile, index: number) {
-    remove(file.fileId);
+    // 응답이 늦게 와도 이 요청이 어느 프로젝트의 것인지 잃지 않게 지금 값을 잡아 둔다
+    const of = projectId;
+    remove(of, file.fileId);
 
     void restoreFile(file.fileId)
       .then((restored) => {
@@ -123,7 +134,7 @@ export default function TrashFiles() {
         );
       })
       .catch((caught) => {
-        restoreAt(file, index);
+        restoreAt(of, file, index);
         notifyToast(
           `${file.name} — ${messageOf(caught, '복구하지 못했습니다.')}`,
           'error',
@@ -137,12 +148,13 @@ export default function TrashFiles() {
     index: number,
     request: Promise<unknown>,
   ) {
-    remove(file.fileId);
+    const of = projectId;
+    remove(of, file.fileId);
 
     void request
       .then(() => notifyToast(`${file.name} 을(를) 영구 삭제했습니다.`))
       .catch((caught) => {
-        restoreAt(file, index);
+        restoreAt(of, file, index);
         notifyToast(
           `${file.name} — ${messageOf(caught, '영구 삭제하지 못했습니다.')}`,
           'error',
@@ -172,6 +184,13 @@ export default function TrashFiles() {
 
   if (!files) return <ProjectFilesSkeleton />;
 
+  /*
+   * 렌더 시점의 대상을 지역 상수로 고정한다.
+   * JSX 안에서 `deleteModal.target!` 로 단언하면, 콜백이 도는 시점에 이미 닫혔을
+   * 가능성을 타입이 감춘다 — 조건부 렌더에 기대는 보장을 코드로 드러낸다.
+   */
+  const deleteTarget = deleteModal.target;
+
   return (
     <div className="flex flex-col gap-3">
       {files.length === 0 ? (
@@ -191,19 +210,18 @@ export default function TrashFiles() {
         </ul>
       )}
 
-      {deleteModal.target && (
+      {deleteTarget && (
         <PermanentDeleteFileModal
-          fileName={deleteModal.target.file.name}
+          fileName={deleteTarget.file.name}
           onClose={deleteModal.close}
           // 확인만 받고 요청은 여기서 뒤에 돌린다 — 모달은 곧바로 닫힌다
-          onConfirm={(confirmText) => {
-            const { file, index } = deleteModal.target!;
+          onConfirm={(confirmText) =>
             permanentlyDelete(
-              file,
-              index,
-              permanentlyDeleteFile(file.fileId, confirmText),
-            );
-          }}
+              deleteTarget.file,
+              deleteTarget.index,
+              permanentlyDeleteFile(deleteTarget.file.fileId, confirmText),
+            )
+          }
         />
       )}
     </div>
@@ -243,11 +261,12 @@ function TrashFileRow({
           >
             {extensionLabel(file.extension)}
           </span>
-          <span
-            title={`버전 ${file.versionCount}개`}
-            className="shrink-0 rounded bg-bg-hover px-1 py-0.5 font-mono text-[8px] font-semibold text-text-secondary"
-          >
-            v{file.versionCount}
+          {/*
+            `v{n}` 으로 쓰지 않는다 — 휴지통 응답(106번)에는 `latestVersionNo` 가 없어
+            `versionCount` 뿐이라, `v3` 이라고 적으면 **3차 버전**으로 읽힌다.
+          */}
+          <span className="shrink-0 rounded bg-bg-hover px-1 py-0.5 text-[8px] font-semibold text-text-secondary">
+            버전 {file.versionCount}개
           </span>
         </div>
 

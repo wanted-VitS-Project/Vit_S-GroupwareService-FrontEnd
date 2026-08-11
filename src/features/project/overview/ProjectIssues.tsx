@@ -96,6 +96,11 @@ export default function ProjectIssues() {
   const [syncedProjectId, setSyncedProjectId] = useState<string | null>(null);
   if (data && syncedProjectId !== projectId) {
     setSyncedProjectId(projectId);
+    /*
+     * 열려 있던 상세를 닫는다. `IssueDetailModal` 은 `issueId` 만 받으므로,
+     * 그대로 두면 **이전 프로젝트의 이슈**가 새 프로젝트 화면 위에 다시 뜬다.
+     */
+    setSelectedIssueId(null);
     setOpenStepIds(
       new Set(
         data.steps

@@ -112,10 +112,14 @@ export default function ProjectImages() {
             블록 {blocks.length}개
           </span>
         </div>
+        {/*
+          이 버튼에는 `aria-pressed` 를 걸지 않는다 — 라벨이 **지금 상태가 아니라 다음 동작**이라
+          (`블록별로 보기` 를 누르면 묶인다) 눌림 여부를 실으면 "전체 보기, 눌림" 처럼
+          뜻이 뒤집혀 읽힌다. 상태를 말하려면 라벨부터 상태로 바꿔야 한다.
+        */}
         {images.length > 0 && (
           <button
             type="button"
-            aria-pressed={groupByBlock}
             onClick={() => setGroupByBlock((grouped) => !grouped)}
             className="cursor-pointer rounded px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
           >
