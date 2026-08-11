@@ -56,6 +56,7 @@ const SECTIONS: { title: string; items: SettingItem[] }[] = [
         icon: 'group',
         label: '그룹 관리',
         description: '사용자 그룹 생성 및 구성원 관리',
+        href: '/settings/employee-groups',
       },
       {
         icon: 'lock',

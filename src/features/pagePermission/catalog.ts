@@ -30,6 +30,14 @@ interface PageRoute {
    * 전원 열람 화면까지 기다리게 하면 **모든 화면의 첫 렌더가 응답 속도에 묶인다.**
    */
   requiresPermission?: boolean;
+  /**
+   * 백엔드 표시명 대신 쓸 라벨. **꼭 필요한 코드에만** 둔다.
+   *
+   * 라벨은 원칙적으로 `/my/pages` 의 `name` 을 쓴다 — 이름이 바뀌어도 배포가 필요 없다.
+   * 다만 `ADMIN_CONSOLE` 은 백엔드 이름이 `관리자` 라 사이드바에서 **역할(권한 등급)로
+   * 읽힌다.** 이 화면은 전사 관리 허브라 브레드크럼 · 설정 화면과도 문구가 어긋난다.
+   */
+  label?: string;
 }
 
 /**
@@ -48,7 +56,7 @@ export const PAGE_ROUTES: Record<string, PageRoute> = {
     requiresPermission: true,
   },
   // 하위 관리 화면(사원 · 부서 · 카테고리 …)은 이 허브에서 타고 들어간다
-  ADMIN_CONSOLE: { href: '/settings', icon: 'settings' },
+  ADMIN_CONSOLE: { href: '/settings', icon: 'settings', label: '전사 관리' },
 };
 
 /**
@@ -90,8 +98,9 @@ export function toMenuItems(pages: MyPage[]): PageMenuItem[] {
     return [
       {
         ...route,
-        // 라벨은 백엔드 표시명을 그대로 쓴다 — 이름이 바뀌어도 배포가 필요 없다
-        label: page.name,
+        // 라벨은 백엔드 표시명을 쓴다 — 이름이 바뀌어도 배포가 필요 없다.
+        // 덮어쓴 코드만 예외다 (`PageRoute.label` 주석 참고)
+        label: route.label ?? page.name,
         pageCode: page.pageCode,
         permission: page.permission,
       },

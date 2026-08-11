@@ -9,6 +9,7 @@ import { useModalTarget } from '@/lib/useModal';
 
 import { getJobPositions, updateJobPosition } from './api';
 import DeleteJobPositionModal from './DeleteJobPositionModal';
+import JobPositionEmployeesModal from './JobPositionEmployeesModal';
 import JobPositionFormModal from './JobPositionFormModal';
 import type { JobPosition } from './types';
 
@@ -33,6 +34,7 @@ export default function JobPositionList() {
   const [moveError, setMoveError] = useState('');
   const formModal = useModalTarget<FormTarget>();
   const deleteModal = useModalTarget<JobPosition>();
+  const employeesModal = useModalTarget<JobPosition>();
 
   const requestKey = String(reloadCount);
   const current = result?.key === requestKey ? result : null;
@@ -182,10 +184,16 @@ export default function JobPositionList() {
                     </td>
                     <td className="px-5 py-3.5">
                       {position.employeeCount > 0 ? (
-                        <span className="text-xs text-text-secondary">
+                        // 누가 그 직급인지 여기서 바로 확인한다 (.ai/API.md 90)
+                        <button
+                          type="button"
+                          onClick={() => employeesModal.open(position)}
+                          className="cursor-pointer text-xs font-medium text-text-primary-blue underline underline-offset-2"
+                        >
                           {position.employeeCount}명
-                        </span>
+                        </button>
                       ) : (
+                        // 0명은 열어봐야 빈 목록이라 누를 것을 만들지 않는다
                         <span className="text-xs text-text-muted">미사용</span>
                       )}
                     </td>
@@ -244,6 +252,13 @@ export default function JobPositionList() {
           position={deleteModal.target}
           onClose={deleteModal.close}
           onDeleted={reload}
+        />
+      )}
+
+      {employeesModal.target && (
+        <JobPositionEmployeesModal
+          position={employeesModal.target}
+          onClose={employeesModal.close}
         />
       )}
     </>
