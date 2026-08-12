@@ -1,0 +1,254 @@
+'use client';
+
+import dynamic from 'next/dynamic';
+import { useEffect, useState } from 'react';
+
+import Modal from '@/components/Modal';
+import { downloadVersion, getFileVersion } from '@/features/file/api';
+import { FILE_CODES } from '@/features/file/errorCodes';
+import { formatFileSize } from '@/features/file/format';
+import { preloadPdfViewer } from '@/features/file/pdfViewer';
+import { loadPreview } from '@/features/file/previewCache';
+import type { FileVersionDetail } from '@/features/file/types';
+import { ApiError, messageOf } from '@/lib/api';
+
+import type { ApprovalDocument } from './types';
+
+/**
+ * pdfjs 는 초기 번들에서 분리한다 — 아래 effect 가 미리보기 fetch 와 나란히 받아 온다.
+ *
+ * 둘 중 **미리보기 응답이 먼저 끝날 수 있다.** `loading` 이 없으면 그 사이 본문이
+ * 빈 영역으로 남으므로 자리를 지키는 표시를 넘긴다.
+ */
+const PdfPages = dynamic(() => import('@/features/file/PdfPages'), {
+  ssr: false,
+  loading: () => (
+    <div role="status" aria-label="미리보기 뷰어를 불러오는 중입니다">
+      <div
+        aria-hidden
+        className="h-[600px] w-full animate-pulse rounded-lg border border-border-default bg-white shadow-sm"
+      />
+    </div>
+  ),
+});
+
+/** 미리보기 상태 — 로딩 · 지원 안 함 · 실패를 화면에서 구분해야 한다 */
+type Preview =
+  | { kind: 'loading' }
+  | { kind: 'ready'; blob: Blob; shown: number | null; total: number | null }
+  | { kind: 'unsupported' }
+  | { kind: 'denied' }
+  | { kind: 'failed'; message: string };
+
+/**
+ * 결재 문서 뷰어. 문서 블록의 `FileViewerModal` 과 같은 방식으로 그리되
+ * **버전 전환 패널이 없다** — 결재 대상은 상신 시점에 확정된 **한 버전**이라
+ * 다른 버전을 열 수 있으면 무엇을 결재하는지 흐려진다 (AP-013·014).
+ *
+ * 미리보기는 PDF 만 되고(서버가 앞 5페이지를 잘라 준다) 그 외는 다운로드로 안내한다.
+ */
+export default function ApprovalDocumentModal({
+  document,
+  onClose,
+}: {
+  document: ApprovalDocument;
+  onClose: () => void;
+}) {
+  const [preview, setPreview] = useState<Preview>({ kind: 'loading' });
+  const [version, setVersion] = useState<FileVersionDetail | null>(null);
+  const [downloadError, setDownloadError] = useState('');
+  /** 목록과 같은 값을 먼저 쓴다 — 헤더만 다른 이름이면 다른 문서로 오해한다 */
+  const fileName =
+    document.fileName ??
+    version?.originalFileName ??
+    `파일 버전 #${document.fileVersionId}`;
+
+  // 결재가 고정한 버전의 정보. 휴지통에 있어도 오므로 미리보기와 따로 받는다
+  useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    getFileVersion(document.fileVersionId, signal)
+      .then(setVersion)
+      // 버전 정보는 보조 표기라 실패해도 미리보기까지 막지 않는다
+      .catch(() => undefined);
+
+    return () => controller.abort();
+  }, [document.fileVersionId]);
+
+  useEffect(() => {
+    // 요청을 중단하지 않고 결과만 무시한다 — 캐시를 살려 두기 위해서다
+    let isStale = false;
+
+    // 미리보기 바이너리를 기다리는 동안 뷰어 청크·워커를 같이 받아 둔다
+    preloadPdfViewer();
+
+    loadPreview(document.fileVersionId)
+      .then(({ blob, previewPageCount, totalPageCount }) => {
+        if (isStale) return;
+        setPreview({
+          kind: 'ready',
+          blob,
+          shown: previewPageCount,
+          total: totalPageCount,
+        });
+      })
+      .catch((caught: unknown) => {
+        if (isStale) return;
+
+        const code = caught instanceof ApiError ? caught.code : undefined;
+
+        if (code === FILE_CODES.previewNotSupported) {
+          setPreview({ kind: 'unsupported' });
+          return;
+        }
+        /**
+         * ❗ 파일 API 는 **스텝 권한**을 본다. 결재자가 그 프로젝트 참여자가 아니면
+         * 자기가 결재할 문서를 못 연다 — MASTER 는 참여자가 아니어도 최종 결재자가
+         * 될 수 있어(AP-019) 정상 흐름에서도 걸린다. 백엔드 확인 대기 항목이다.
+         */
+        if (code === FILE_CODES.accessPermissionRequired) {
+          setPreview({ kind: 'denied' });
+          return;
+        }
+        setPreview({
+          kind: 'failed',
+          message: messageOf(caught, '미리보기를 불러오지 못했습니다.'),
+        });
+      });
+
+    return () => {
+      isStale = true;
+    };
+  }, [document.fileVersionId]);
+
+  async function download() {
+    setDownloadError('');
+    try {
+      await downloadVersion(document.fileVersionId);
+    } catch (caught) {
+      setDownloadError(messageOf(caught, '다운로드하지 못했습니다.'));
+    }
+  }
+
+  return (
+    <Modal
+      title={`${fileName} 문서 보기`}
+      onClose={onClose}
+      className="m-auto flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
+      // 기본 제목 줄을 대신한다 — 넘기지 않으면 파일명이 두 번 나온다
+      header={
+        <div className="flex shrink-0 items-center gap-3 border-b border-border-default px-5 py-3">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-text-primary">
+              {fileName}
+            </p>
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-text-secondary">
+              {version && (
+                <span className="font-mono text-text-primary-blue">
+                  v{version.versionNo}
+                </span>
+              )}
+              <span>
+                {document.fileSize !== undefined &&
+                  formatFileSize(document.fileSize)}
+              </span>
+              {document.uploadedAt && (
+                <span>{document.uploadedAt.slice(0, 10)}</span>
+              )}
+              {version?.uploaderName && <span>{version.uploaderName}</span>}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={download}
+            className="shrink-0 cursor-pointer rounded-lg border border-border-default px-3 py-1.5 text-xs font-semibold text-text-primary hover:bg-bg-hover"
+          >
+            다운로드
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="닫기"
+            className="shrink-0 cursor-pointer rounded-md px-2 py-1 text-text-secondary hover:bg-bg-hover"
+          >
+            ✕
+          </button>
+        </div>
+      }
+    >
+      {/* 고정된 버전을 그대로 보여주되, 최신이 아니라는 사실은 알려야 한다 (AP-013) */}
+      {version && !version.latest && (
+        <p className="shrink-0 bg-yellow-bg-soft px-5 py-2 text-[11px] break-keep text-yellow-text">
+          결재 이후 새 버전(v{version.latestVersionNo})이 올라왔습니다. 결재
+          대상은 v{version.versionNo} 입니다.
+        </p>
+      )}
+      {version?.fileDeleted && (
+        <p className="shrink-0 bg-bg-hover px-5 py-2 text-[11px] break-keep text-text-secondary">
+          원본 문서는 휴지통에 있습니다. 결재 이력 보존을 위해 이 버전은 계속
+          조회됩니다.
+        </p>
+      )}
+
+      {/* 스크롤은 이 영역이 갖는다 — PdfPages 는 페이지를 쌓기만 한다 */}
+      <div className="min-h-0 flex-1 overflow-y-auto bg-bg-surface p-5">
+        {preview.kind === 'loading' && (
+          <p className="text-center text-xs text-text-secondary">
+            미리보기를 불러오는 중…
+          </p>
+        )}
+
+        {preview.kind === 'ready' && (
+          <>
+            <PdfPages
+              file={preview.blob}
+              onFailed={(message) => setPreview({ kind: 'failed', message })}
+            />
+            {preview.total !== null && preview.shown !== null && (
+              <p className="mt-4 rounded-lg bg-white px-3 py-2 text-center text-[11px] break-keep text-text-secondary">
+                미리보기는 {preview.shown}페이지까지만 보여줍니다. 전체 문서는
+                다운로드 후 확인하세요. (총 {preview.total}페이지)
+              </p>
+            )}
+          </>
+        )}
+
+        {preview.kind === 'denied' && (
+          <div className="text-center">
+            <p className="text-xs font-semibold text-text-primary">
+              이 문서를 열람할 권한이 없습니다
+            </p>
+            <p className="mt-1.5 text-xs break-keep text-text-secondary">
+              결재 문서는 원본 프로젝트의 스텝 열람 권한을 따릅니다. 해당
+              프로젝트 참여자로 초대되어야 볼 수 있어요.
+            </p>
+          </div>
+        )}
+
+        {preview.kind === 'unsupported' && (
+          <p className="text-center text-xs break-keep text-text-secondary">
+            이 형식은 미리보기를 지원하지 않습니다. 다운로드해서 확인해주세요.
+          </p>
+        )}
+
+        {preview.kind === 'failed' && (
+          <p
+            role="alert"
+            className="text-center text-xs break-keep text-text-danger"
+          >
+            {preview.message}
+          </p>
+        )}
+      </div>
+
+      <p
+        role="alert"
+        className="shrink-0 px-5 pb-3 text-xs break-keep text-text-danger empty:hidden"
+      >
+        {downloadError}
+      </p>
+    </Modal>
+  );
+}

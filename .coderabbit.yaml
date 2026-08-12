@@ -1,0 +1,162 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "ko-KR"
+
+tone_instructions: >
+  한국어로 간결하고 친절하게 리뷰한다. LGTM, nit, FYI 같은 표현보다
+  "문제 없음", "참고", "수정 권장"처럼 명확한 표현을 사용한다.
+  사용자 경험, 접근성, 타입 안정성, 보안, 런타임 오류 가능성을 우선해서
+  지적하고, 수정 이유와 기대 효과를 함께 설명한다.
+
+reviews:
+  profile: "assertive"
+  request_changes_workflow: false
+  high_level_summary: true
+  review_status: true
+  review_details: false
+  poem: false
+
+  pre_merge_checks:
+    docstrings:
+      mode: off
+
+  auto_review:
+    enabled: true
+    drafts: false
+    ignore_title_keywords:
+      - "WIP"
+      - "draft"
+
+  path_filters:
+    - "!node_modules/**"
+    - "!.next/**"
+    - "!out/**"
+    - "!coverage/**"
+    - "!dist/**"
+    - "!build/**"
+    - "!tsconfig.tsbuildinfo"
+    - "!package-lock.json"
+    - "!public/assets/font/**"
+    - "src/**"
+    - "public/**"
+    - ".github/**"
+    - ".coderabbit.yaml"
+    - "package.json"
+    - "next.config.ts"
+    - "eslint.config.mjs"
+    - "postcss.config.mjs"
+    - "tsconfig.json"
+
+  path_instructions:
+    - path: "src/app/**/*.{ts,tsx}"
+      instructions: |
+        - Next.js App Router의 route segment, layout, page 구조가 의도한 URL과 일치하는지 확인한다.
+        - Server Component와 Client Component 경계가 적절한지 확인한다. 브라우저 API, hook, event handler를 사용하는 파일에는 "use client"가 필요하다.
+        - 불필요하게 최상위 layout이나 page를 Client Component로 만들지 않았는지 확인한다.
+        - metadata, not-found, error boundary, loading 상태가 사용자 경험을 해치지 않는지 확인한다.
+        - redirect, router.push, router.replace 사용 시 권한과 히스토리 동작이 의도와 맞는지 확인한다.
+        - 경로가 중복되는 라우트 그룹과 일반 경로가 충돌하지 않는지 확인한다.
+
+    - path: "src/features/**/*.{ts,tsx}"
+      instructions: |
+        - feature 단위의 책임이 분리되어 있는지 확인한다. 다른 feature의 내부 구현을 직접 참조하지 않도록 권장한다.
+        - API 응답 타입, 화면 상태 타입, 폼 입력 타입이 명확하게 정의되어 있는지 확인한다.
+        - any, 과도한 type assertion, null 단언 연산자가 런타임 오류를 숨기지 않는지 확인한다.
+        - 로딩, 빈 목록, 실패, 권한 없음 상태가 모두 처리되는지 확인한다.
+        - 관리자 화면과 사용자 화면의 권한 분기가 프론트엔드에서 최소한의 방어선을 제공하는지 확인한다.
+
+    - path: "src/features/**/components/**/*.{ts,tsx}"
+      instructions: |
+        - props 이름과 컴포넌트 책임이 명확한지 확인한다.
+        - useEffect 의존성 배열, cleanup, 비동기 요청 race condition, unmounted 상태 업데이트 가능성을 확인한다.
+        - 목록 렌더링의 key가 안정적인지 확인한다.
+        - 사용자 입력값이 trim, 길이 제한, 필수값 검증 등 기본 검증을 거치는지 확인한다.
+        - 버튼에는 type이 명시되어 있는지 확인한다.
+        - 모달, 드롭다운, 사이드바 같은 상호작용 UI가 닫힘 동작과 포커스 흐름을 적절히 제공하는지 확인한다.
+        - 한국어 문구가 깨지거나 의미가 불분명하지 않은지 확인한다.
+
+    - path: "src/components/**/*.{ts,tsx}"
+      instructions: |
+        - 공통 컴포넌트가 특정 feature의 데이터 구조나 비즈니스 규칙에 강하게 결합되지 않는지 확인한다.
+        - 재사용 컴포넌트의 props 타입이 과도하게 넓거나 애매하지 않은지 확인한다.
+        - 접근성을 위해 alt, aria-label, label 연결, 키보드 조작 가능성이 필요한 곳에 제공되는지 확인한다.
+        - next/image와 next/link를 사용할 수 있는 곳에서 일반 img 또는 anchor만 사용하지 않는지 확인한다.
+        - 공통 컴포넌트 변경이 관리자, 사용자, 인증 화면 전체에 미치는 영향을 확인한다.
+
+    - path: "src/**/*.{ts,tsx}"
+      instructions: |
+        - import alias(@/)와 상대 경로 사용이 프로젝트 관례와 일관적인지 확인한다.
+        - React state가 불필요하게 중복되거나 derived state를 따로 저장하지 않는지 확인한다.
+        - localStorage, sessionStorage, window, document 접근은 클라이언트 환경에서만 수행되는지 확인한다.
+        - 에러를 console에만 남기고 사용자에게 피드백하지 않는 흐름을 지적한다.
+        - 민감 정보, 토큰, 쿠키, 개인정보가 화면, URL query, 로그에 노출되지 않는지 확인한다.
+        - 날짜, 숫자, 퍼센트 표시가 빈 값과 잘못된 값에도 안전한지 확인한다.
+
+    - path: "src/**/*.{module.css,css}"
+      instructions: |
+        - 모바일, 태블릿, 데스크톱에서 레이아웃이 깨지지 않는지 확인한다.
+        - 텍스트가 버튼, 카드, 테이블 셀, 모달 안에서 넘치거나 겹치지 않는지 확인한다.
+        - 클릭 가능한 요소의 hover, focus-visible, disabled 상태가 충분한지 확인한다.
+        - CSS Module 클래스명이 컴포넌트 의미와 맞고 전역 스타일 오염을 만들지 않는지 확인한다.
+        - 고정 width, height, z-index, position 사용이 반응형과 오버레이 동작을 망치지 않는지 확인한다.
+        - 색상 대비가 낮아 읽기 어려운 UI를 지적한다.
+
+    - path: "src/services/**/*.{ts,tsx}"
+      instructions: |
+        - API base URL, endpoint, method, credentials, headers가 백엔드 계약과 일치하는지 확인한다.
+        - NEXT_PUBLIC_ 환경변수만 클라이언트 번들에 노출된다는 점을 고려해 민감 정보를 넣지 않았는지 확인한다.
+        - fetch 실패, HTTP 오류, 빈 응답, JSON 파싱 실패가 안전하게 처리되는지 확인한다.
+        - 같은 API 호출 로직이 중복될 때 공통화가 필요한지 확인한다.
+        - 쿠키 기반 인증 요청에서 credentials 설정 누락 여부를 확인한다.
+
+    - path: "src/features/**/{api,actions}.ts"
+      instructions: |
+        - 서버와 클라이언트에서 호출 가능한 함수의 실행 환경이 명확한지 확인한다.
+        - API 응답 wrapper의 data, error, status 처리 방식이 일관적인지 확인한다.
+        - mutate 계열 요청에서 body 직렬화, Content-Type, 성공 후 화면 갱신이 적절한지 확인한다.
+        - 에러 메시지가 공통 에러 처리 유틸과 일관적으로 전달되는지 확인한다.
+        - AbortSignal이 필요한 목록/검색/채팅 요청에서 취소 가능성이 고려되었는지 확인한다.
+
+    - path: "src/lib/**/*.{ts,tsx}"
+      instructions: |
+        - 공통 유틸은 브라우저 전용 API에 의존하지 않거나, 의존한다면 호출 환경을 명확히 제한하는지 확인한다.
+        - 에러 처리 유틸은 401, 403, 404, 500 등 페이지 전환 대상 오류와 모달 표시 대상 오류를 일관적으로 구분하는지 확인한다.
+        - URLSearchParams에 사용자 입력이나 서버 메시지를 넣을 때 길이, 인코딩, 민감 정보 노출 가능성을 확인한다.
+
+    - path: "public/**/*"
+      instructions: |
+        - 이미지와 아이콘 파일명이 의미 있고 중복되지 않는지 확인한다.
+        - 큰 이미지나 폰트 추가 시 번들/로딩 성능에 미치는 영향을 확인한다.
+        - SVG에 불필요한 script, foreignObject, 외부 참조가 포함되지 않았는지 확인한다.
+
+    - path: "src/**/*.tsx"
+      instructions: |
+        - 이미지 alt 텍스트가 실제 의미를 전달하는지 확인한다. 장식용 이미지는 빈 alt를 허용한다.
+        - onClick만 있는 비대화형 요소 대신 button, Link 같은 적절한 시맨틱 요소 사용을 권장한다.
+        - 테이블, 리스트, 폼, 모달이 스크린리더와 키보드 사용자에게도 사용 가능한지 확인한다.
+
+    - path: "src/**/*.ts"
+      instructions: |
+        - 타입 정의가 백엔드 API 계약과 일치하는지 확인한다.
+        - 문자열 리터럴 상태값은 union type 또는 const map으로 관리하는지 확인한다.
+        - 재사용되는 포맷터, 매퍼, 에러 변환 로직이 중복되지 않는지 확인한다.
+
+    - path: "**/*.{config.ts,config.mjs,json}"
+      instructions: |
+        - Next.js, ESLint, TypeScript 설정 변경이 현재 Next 16, React 19, TypeScript 5 조합과 호환되는지 확인한다.
+        - strict 타입 검사나 lint 규칙을 약화시키는 변경은 명확한 이유가 있는지 확인한다.
+        - path alias, module resolution, build output 설정이 기존 import 구조와 충돌하지 않는지 확인한다.
+
+    - path: "package.json"
+      instructions: |
+        - 새 의존성 추가 시 실제 필요성, 번들 크기, 보안 취약점, 라이선스, Next.js 호환성을 확인한다.
+        - scripts 변경이 로컬 개발 포트, 빌드, lint 실행 방식과 맞는지 확인한다.
+        - dependencies와 devDependencies 분류가 적절한지 확인한다.
+
+    - path: ".github/**"
+      instructions: |
+        - CI에서 npm ci, lint, build 등 프론트엔드 검증이 빠지지 않았는지 확인한다.
+        - 캐시 키가 package-lock.json 변경을 반영하는지 확인한다.
+        - 배포 관련 secret이 로그나 PR 출력에 노출되지 않는지 확인한다.
+
+chat:
+  auto_reply: true
