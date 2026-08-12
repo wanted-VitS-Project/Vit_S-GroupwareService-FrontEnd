@@ -188,6 +188,40 @@ export interface StepBlock {
   detail: unknown;
   linkedIssueTotal: number;
   linkedIssueDone: number;
+  /**
+   * 낙관적 락 버전 (2026-08-11 신설).
+   *
+   * ⚠️ **선택 필드로 둔다** — 조회 응답에 실린다는 계약은 나왔지만 실서버 확인 전이다.
+   * 값이 없으면 화면이 **이동 저장을 막고 재조회를 안내한다** (스테이지 · 스텝과 같은 방침).
+   *
+   * ❗ 배치 저장(`layout`) · 제목/담당자 수정도 `version` 을 요구한다 — 그쪽은 미배관이다.
+   */
+  version?: number;
+}
+
+/**
+ * PATCH /api/v1/blocks/{blockId}/step — 블록을 다른 스텝으로 옮긴다.
+ *
+ * ⚠️ 출발 · 도착 **양쪽 스텝의 EDITOR** 여야 한다.
+ */
+export interface MoveBlockRequest {
+  /** 같은 프로젝트의 **다른** 스텝 */
+  stepId: number;
+  version: number;
+  /** `true` 면 충돌을 무시하고 덮어쓴다 */
+  overwrite?: boolean;
+}
+
+export interface MoveBlockResponse {
+  blockId: number;
+  stepId: number;
+  /**
+   * 끊긴 이슈-블록 연결 수.
+   * ⚠️ **0 이 아니면 사용자에게 알려야 한다** — 블록과 이슈는 같은 스텝이어야 해서 끊긴다.
+   */
+  unlinkedIssueCount: number;
+  /** 저장 후의 새 값 */
+  version: number;
 }
 
 export interface ChecklistItem {
@@ -558,18 +592,34 @@ export interface BlockLayout {
   sortOrder: number;
   /** 열 병합 수 (1~3) */
   colSpan: number;
+  /**
+   * 낙관적 락 버전.
+   *
+   * 요청에는 **필수**(`BlockLayoutOrder`), 응답에는 **저장 후의 새 값**이 온다.
+   * 조회에 실리는지 확인 전이라 선택으로 둔다 (`StepBlock.version` 참고).
+   */
+  version?: number;
 }
+
+/**
+ * 서버로 보내는 배치 한 줄 — `version` 이 **반드시** 있어야 한다.
+ * 화면 좌표 계산용 `BlockLayout` 과 나눠 두어야, 버전 없는 값이 요청에 섞이지 않는다.
+ */
+export type BlockLayoutOrder = BlockLayout & { version: number };
 
 /**
  * PATCH /api/v1/steps/{stepId}/blocks/layout
  *
  * ⚠️ 스텝의 배치 **전체**를 보낸다 — 옮긴 블록만 보내면 나머지가 지워진다.
+ * ⚠️ 낙관적 락을 **항목마다** 검사한다. 하나라도 어긋나면 요청 전체가 409 로 롤백된다.
+ * ⛔ `overwrite` 가 **없다** — 409 면 재조회 말고는 출구가 없다.
  */
 export interface UpdateBlockLayoutRequest {
-  layouts: BlockLayout[];
+  layouts: BlockLayoutOrder[];
 }
 
 export interface UpdateBlockLayoutResponse {
+  /** `version` 은 저장 후의 새 값이다 — 화면 블록에 덮어써야 다음 저장이 통과한다 */
   blocks: BlockLayout[];
 }
 
@@ -589,9 +639,20 @@ export interface CreateBlockRequest {
 }
 
 /** PATCH /api/v1/blocks/{blockId} — 생략은 유지, null 은 해제 */
+/**
+ * PATCH /api/v1/blocks/{blockId}
+ *
+ * ⚠️ 이쪽은 **진짜 부분 수정**이다 (스테이지 · 스텝 수정과 다르다) —
+ *    키를 생략하면 유지, `null` 을 명시하면 해제.
+ *    ⛔ `title` · `owner` 를 **둘 다 생략하면** 400 `BLOCK_UPDATE_FIELD_REQUIRED`.
+ */
 export interface UpdateBlockRequest {
   title?: string | null;
   owner?: string | null;
+  /** ⚠️ **필수.** `title` · `owner` 는 생략할 수 있어도 이건 항상 보낸다 */
+  version: number;
+  /** `true` 면 충돌을 무시하고 덮어쓴다 */
+  overwrite?: boolean;
 }
 
 export interface UpdateBlockResponse {
@@ -599,4 +660,6 @@ export interface UpdateBlockResponse {
   title: string | null;
   owner: BlockOwner | null;
   updatedAt: string;
+  /** ⚠️ 저장 후의 새 값. 화면 상태를 이 값으로 교체하지 않으면 다음 저장이 또 409 다 */
+  version: number;
 }

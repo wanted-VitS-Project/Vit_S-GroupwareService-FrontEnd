@@ -5,8 +5,14 @@ import { useEffect, useRef, useState } from 'react';
 import { ApiError, messageOf } from '@/lib/api';
 
 import { updateBlockLayout } from './api';
-import { applyLayouts, computeRows, toLayouts } from './blockLayout';
-import { layoutErrorMessage } from './errorCodes';
+import {
+  applyLayouts,
+  computeRows,
+  toLayoutOrders,
+  toLayouts,
+} from './blockLayout';
+import { LAYOUT_CONFLICT_MESSAGE, layoutErrorMessage } from './errorCodes';
+import { notifyBlockChanged } from './events';
 import type { BlockLayout, StepBlock } from './types';
 
 /**
@@ -88,15 +94,28 @@ export function useLayoutSaver({
   });
 
   function send(next: StepBlock[]) {
-    const layouts = toLayouts(computeRows(next));
-    const mark = fingerprint(layouts);
+    const rows = computeRows(next);
+    const mark = fingerprint(toLayouts(rows));
     // 옮겼다가 되돌린 경우 — 결과가 저장된 배치와 같으면 보낼 이유가 없다
     if (mark === confirmedMark.current) return;
+
+    /*
+     * `version` 이 하나라도 없으면 보내지 않는다 — 항목별 락이라 전부 실패한다.
+     * 저장이 불가능하므로 화면도 마지막으로 저장된 배치로 되돌린다.
+     */
+    const orders = toLayoutOrders(rows);
+    if (!orders) {
+      handlers.current.onFailed(
+        '버전 정보가 없어 배치를 저장하지 못했습니다. 새로고침해주세요.',
+        confirmed.current,
+      );
+      return;
+    }
 
     const sentAt = generation.current;
     isSending.current = true;
 
-    updateBlockLayout(handlers.current.stepId, layouts)
+    updateBlockLayout(handlers.current.stepId, orders)
       .then((saved) => {
         // 보내는 사이에 서버 목록이 새로 왔다 — 그 결과를 덮지 않는다
         if (generation.current !== sentAt) return;
@@ -109,6 +128,17 @@ export function useLayoutSaver({
       })
       .catch((caught: unknown) => {
         if (generation.current !== sentAt || !isMounted.current) return;
+
+        /*
+         * 409 — 항목 하나라도 버전이 어긋나면 요청 전체가 롤백된다.
+         * `overwrite` 가 없어 재전송으로는 절대 통과하지 못하므로,
+         * 되돌리는 것으로 끝내지 않고 **목록을 다시 읽게 한다** (그래야 새 `version` 이 온다).
+         */
+        if (caught instanceof ApiError && caught.status === 409) {
+          handlers.current.onFailed(LAYOUT_CONFLICT_MESSAGE, confirmed.current);
+          notifyBlockChanged();
+          return;
+        }
 
         handlers.current.onFailed(
           layoutErrorMessage(

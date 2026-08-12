@@ -8,10 +8,11 @@ import MemberAvatar from '@/components/MemberAvatar';
 import Modal from '@/components/Modal';
 import { getProjectMembers } from '@/features/project/api';
 import type { ProjectMember } from '@/features/project/types';
-import { messageOf } from '@/lib/api';
+import { ApiError, messageOf } from '@/lib/api';
 
 import { updateBlock } from './api';
 import BlockTypeIcon from './BlockTypeIcon';
+import { notifyBlockChanged } from './events';
 import {
   BLOCK_TITLE_MAX_LENGTH,
   type StepBlock,
@@ -36,13 +37,16 @@ export default function BlockEditModal({
   const [membersFailed, setMembersFailed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [confirmation, setConfirmation] = useState<'save' | 'leave' | null>(
-    null,
-  );
+  const [confirmation, setConfirmation] = useState<
+    'save' | 'leave' | 'conflict' | null
+  >(null);
 
   const isDirty =
     title.trim() !== (block.title ?? '') ||
     owner !== (block.owner?.userId ?? '');
+
+  /** 수정에 필요한 `version` 이 조회 응답에 없는 경우 (`types.ts` 참고) */
+  const hasNoVersion = block.version === undefined;
 
   function requestClose() {
     if (isSubmitting) return;
@@ -76,24 +80,41 @@ export default function BlockEditModal({
     return () => controller.abort();
   }, [projectId]);
 
-  async function submit() {
+  async function submit(overwrite = false) {
     if (isSubmitting) return;
     const nextTitle = title.trim();
     const titleChanged = nextTitle !== (block.title ?? '');
     const ownerChanged = owner !== (block.owner?.userId ?? '');
+    // 둘 다 안 바뀌면 보내지 않는다 — 서버도 400(`BLOCK_UPDATE_FIELD_REQUIRED`)이다
     if (!titleChanged && !ownerChanged) return;
+
+    if (block.version === undefined) {
+      setErrorMessage('버전 정보가 없어 저장할 수 없습니다. 새로고침해주세요.');
+      setConfirmation(null);
+      return;
+    }
 
     setConfirmation(null);
     setIsSubmitting(true);
     setErrorMessage('');
     try {
       const updated = await updateBlock(block.blockId, {
+        // 키를 생략하면 유지, `null` 이면 해제 — 이 API 는 진짜 부분 수정이다
         ...(titleChanged ? { title: nextTitle || null } : {}),
         ...(ownerChanged ? { owner: owner || null } : {}),
+        version: block.version,
+        ...(overwrite ? { overwrite: true } : {}),
       });
       onUpdated(updated);
       onClose();
     } catch (caught) {
+      // 남이 먼저 저장했다 — 조용히 삼키지 않고 덮어쓸지 다시 불러올지 묻는다
+      if (caught instanceof ApiError && caught.status === 409) {
+        setConfirmation('conflict');
+        setIsSubmitting(false);
+        return;
+      }
+
       setErrorMessage(messageOf(caught, '블록을 수정하지 못했습니다.'));
       setIsSubmitting(false);
     }
@@ -138,16 +159,16 @@ export default function BlockEditModal({
       <Modal
         title="블록 수정"
         onClose={isSubmitting ? undefined : requestClose}
-        className="w-full max-w-[480px] overflow-hidden rounded-xl border border-border-default shadow-2xl"
+        className="w-full max-w-[480px] overflow-hidden rounded-base border border-border-default shadow-2xl"
         header={
           <div className="flex items-center gap-2.5 border-b border-border-default px-5 py-3.5">
-            <span className="flex size-5 shrink-0 items-center justify-center rounded border border-border-primary/20 bg-blue-bg-soft text-text-primary-blue">
+            <span className="flex size-5 shrink-0 items-center justify-center rounded-button-sm border border-border-primary/20 bg-blue-bg-soft text-text-primary-blue">
               <BlockTypeIcon code={block.type} />
             </span>
-            <h2 className="shrink-0 text-sm font-semibold text-text-primary">
+            <h2 className="shrink-0 text-body-m font-semibold text-text-primary">
               블록 수정
             </h2>
-            <span className="max-w-[50%] truncate rounded bg-bg-hover px-1.5 py-0.5 text-[10px] text-text-secondary">
+            <span className="max-w-[50%] truncate rounded-button-sm bg-bg-hover px-1.5 py-0.5 text-caption text-text-secondary">
               {block.title || '제목 없음'}
             </span>
             <button
@@ -155,7 +176,7 @@ export default function BlockEditModal({
               onClick={requestClose}
               disabled={isSubmitting}
               aria-label="닫기"
-              className="ml-auto flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="ml-auto flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               <CloseIcon />
             </button>
@@ -182,14 +203,14 @@ export default function BlockEditModal({
             </span>
             <div className="flex min-h-[40px] flex-wrap items-center gap-1.5 rounded-lg border border-border-default bg-bg-surface p-2.5">
               {selectedMember ? (
-                <span className="flex items-center gap-1 rounded-full border border-border-default bg-white px-2 py-0.5">
+                <span className="flex items-center gap-1 rounded-pill border border-border-default bg-bg-card px-2 py-0.5">
                   <MemberAvatar
                     userId={selectedMember.userId}
                     name={selectedMember.name}
                     size="xs"
                     decorative
                   />
-                  <span className="text-[10px] font-medium text-text-primary">
+                  <span className="text-caption font-medium text-text-primary">
                     {selectedMember.name}
                   </span>
                   <button
@@ -203,13 +224,13 @@ export default function BlockEditModal({
                       focusAfterRender.current = 'candidate';
                       setOwner('');
                     }}
-                    className="cursor-pointer text-[10px] text-text-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                    className="cursor-pointer text-caption text-text-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     ✕
                   </button>
                 </span>
               ) : (
-                <span className="text-[10px] text-text-secondary">
+                <span className="text-caption text-text-secondary">
                   {isMembersLoading
                     ? '참여자 불러오는 중…'
                     : '아래에서 담당자를 선택하세요'}
@@ -223,7 +244,7 @@ export default function BlockEditModal({
               className="mt-1.5 flex flex-wrap gap-1.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-primary"
             >
               {membersFailed ? (
-                <span className="text-[10px] text-text-secondary">
+                <span className="text-caption text-text-secondary">
                   참여자를 불러오지 못했습니다.
                 </span>
               ) : (
@@ -243,7 +264,7 @@ export default function BlockEditModal({
                       setOwner(member.userId);
                     }}
                     title={`${member.name}${member.department ? ` · ${member.department}` : ''}${member.resigned ? ' · 퇴사' : ''}`}
-                    className="flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-text-secondary hover:bg-bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex cursor-pointer items-center gap-1 rounded-button-md px-1.5 py-0.5 text-caption text-text-secondary hover:bg-bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <MemberAvatar
                       userId={member.userId}
@@ -261,9 +282,12 @@ export default function BlockEditModal({
         <div className="flex items-center justify-between gap-4 border-t border-border-default bg-bg-surface px-5 py-3.5">
           <p
             role={errorMessage ? 'alert' : undefined}
-            className={`text-[10px] ${errorMessage ? 'text-text-danger' : 'text-text-secondary'}`}
+            className={`text-caption ${errorMessage ? 'text-text-danger' : 'text-text-secondary'}`}
           >
-            {errorMessage || '블록 제목과 담당자를 변경할 수 있습니다.'}
+            {errorMessage ||
+              (hasNoVersion
+                ? '버전 정보를 받지 못해 저장할 수 없습니다. 새로고침해주세요.'
+                : '블록 제목과 담당자를 변경할 수 있습니다.')}
           </p>
           <div className="flex shrink-0 items-center gap-2">
             <button
@@ -277,8 +301,8 @@ export default function BlockEditModal({
             <button
               type="button"
               onClick={requestSave}
-              disabled={isSubmitting}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              disabled={isSubmitting || hasNoVersion}
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
             >
               {isSubmitting ? '저장 중…' : '저장'}
             </button>
@@ -291,8 +315,24 @@ export default function BlockEditModal({
           title="변경사항을 저장할까요?"
           description="블록 제목과 담당자 변경사항을 저장합니다."
           confirmLabel="저장"
-          onConfirm={submit}
+          onConfirm={() => void submit()}
           onCancel={() => setConfirmation(null)}
+        />
+      )}
+      {confirmation === 'conflict' && (
+        // 취소(= Esc · 배경 클릭)를 다시 불러오기에 둔다 — 잘못 눌러도 남의 값이 지워지지 않는다
+        <AlertDialogTwoButton
+          icon={DialogIcons.warning}
+          title="다른 사람이 먼저 저장했어요"
+          description="그 사이 이 블록이 수정됐습니다. 지금 입력한 내용으로 덮어쓰거나, 최신 내용을 다시 불러올 수 있습니다."
+          confirmLabel="덮어쓰기"
+          cancelLabel="다시 불러오기"
+          isDanger
+          onConfirm={() => void submit(true)}
+          onCancel={() => {
+            notifyBlockChanged();
+            onClose();
+          }}
         />
       )}
       {confirmation === 'leave' && (

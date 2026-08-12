@@ -11,6 +11,10 @@ export const BLOCK_CODES = {
   notFound: 'BLOCK_NOT_FOUND',
   /** 스텝 편집 권한 없음 — 전역 403 이 아니라 이 화면에서 안내한다 */
   stepEditDenied: 'STEP_EDIT_DENIED',
+  /** `version` 을 빠뜨림 (2026-08-11 낙관적 락 신설) */
+  versionRequired: 'BLOCK_VERSION_REQUIRED',
+  /** 수정 요청에 `title` · `owner` 가 **둘 다** 없음 */
+  updateFieldRequired: 'BLOCK_UPDATE_FIELD_REQUIRED',
 } as const;
 
 /**
@@ -26,13 +30,23 @@ export function layoutErrorMessage(code: string | undefined) {
   if (code === BLOCK_CODES.notFound) {
     return '삭제된 블록이 있어 배치를 저장하지 못했습니다. 새로고침해주세요.';
   }
-  // 아래 둘은 사용자가 고칠 수 있는 게 아니라 우리 요청이 잘못된 경우다.
+  // 아래 셋은 사용자가 고칠 수 있는 게 아니라 우리 요청이 잘못된 경우다.
   // 백엔드 문구("다른 스텝의 블록이 섞임" 등)를 그대로 보여주면 내부 사정이 새어 나간다
   if (
     code === BLOCK_CODES.layoutInvalid ||
-    code === BLOCK_CODES.colSpanInvalid
+    code === BLOCK_CODES.colSpanInvalid ||
+    code === BLOCK_CODES.versionRequired
   ) {
     return '배치를 저장하지 못했습니다. 새로고침 후 다시 시도해주세요.';
   }
   return null;
 }
+
+/**
+ * 배치 저장이 409 로 막혔을 때의 문구.
+ *
+ * ⛔ 이 API 에는 `overwrite` 가 없다 — **덮어쓸 방법이 없어 재조회가 유일한 출구다.**
+ *    그래서 "다시 시도" 가 아니라 "최신 배치를 불러온다" 로 안내한다.
+ */
+export const LAYOUT_CONFLICT_MESSAGE =
+  '다른 사람이 먼저 배치를 바꿨습니다. 최신 배치를 불러옵니다.';
