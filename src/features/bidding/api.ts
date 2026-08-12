@@ -72,7 +72,8 @@ export function getNotices(query: NoticeListQuery = {}, signal?: AbortSignal) {
 /**
  * 입찰 공고 상세 (입찰 `VIEWER` · `EDITOR`).
  *
- * ⚠️ 첨부 **목록**은 응답에 없다 — `hasAttachment` 와 `sourceUrl` 만 온다.
+ * ℹ️ 첨부 **목록(`attachments`)이 함께 온다** — 초안 명세에는 `hasAttachment` 뿐이었다.
+ *    `hasAttachment` 가 `true` 여도 배열이 비어 있을 수 있어 **길이로 판단**한다.
  */
 export function getNoticeDetail(
   noticeId: number | string,

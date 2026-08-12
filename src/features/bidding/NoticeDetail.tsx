@@ -230,9 +230,11 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
                 href={notice.sourceUrl}
                 target="_blank"
                 rel="noreferrer noopener"
+                // 새 탭으로 열리는 것을 스크린리더에도 알린다 (↗ 는 눈으로만 보인다)
+                aria-label="원문 공고 보기 (새 창)"
                 className="btn btn-sm btn-gray-outlined w-full"
               >
-                원문 공고 보기 ↗
+                원문 공고 보기 <span aria-hidden>↗</span>
               </a>
             ) : (
               <p className="text-xs text-text-secondary">원문 링크가 없어요.</p>
@@ -302,6 +304,8 @@ function AttachmentList({ attachments }: { attachments: NoticeAttachment[] }) {
               target="_blank"
               rel="noreferrer noopener"
               title={attachment.fileName}
+              // `title` 은 접근 이름에 들어가지 않는다 — 새 탭 안내를 라벨로 준다
+              aria-label={`${attachment.fileName} (새 창)`}
               className="block truncate text-text-primary hover:underline"
             >
               {attachment.fileName}

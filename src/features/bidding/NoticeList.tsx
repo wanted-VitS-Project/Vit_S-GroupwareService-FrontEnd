@@ -216,8 +216,8 @@ export default function NoticeList() {
                    *    비율을 다시 나눠 헤더와 본문 열이 어긋나 보인다.
                    */}
                   {/* 공고명이 제일 중요한 정보라 폭을 몰아준다 (두 줄까지 보여준다) */}
-                  <Th className="w-[38%]">공고명</Th>
-                  <Th className="w-[15%]">발주처</Th>
+                  <Th className="w-[37%]">공고명</Th>
+                  <Th className="w-[14%]">발주처</Th>
                   {/**
                    * ⚠️ 사업 카테고리 열은 두지 않는다 (2026-08-11 결정).
                    *    우리 카테고리는 **회사 내부 분류**고 나라장터는 **업종코드(수천 개)** 라
@@ -228,7 +228,7 @@ export default function NoticeList() {
                   <Th className="w-[8%] text-right">추정가격</Th>
                   <Th className="w-[6%]">공고일</Th>
                   {/* 날짜 · 시각 · D-day 배지가 한 줄에 들어가야 해 넉넉히 준다 */}
-                  <Th className="w-[13%]">투찰 마감</Th>
+                  <Th className="w-[12%]">투찰 마감</Th>
                   <Th className="w-[5%]">상태</Th>
                   {/* 전환 여부와 버튼을 한 열에 둔다 — 버튼이 그 열의 다음 행동이라서 */}
                   <Th className="w-[10%]">전환</Th>

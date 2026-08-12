@@ -170,12 +170,18 @@ export default function CollectionConditionFormModal({
     if (form.conditionName.trim() === '') return '조건명을 입력해주세요.';
     if (form.noticeTypes.length === 0)
       return '공고 유형을 하나 이상 선택해주세요.';
-    if (form.keywords.length === 0)
-      return '검색 키워드를 하나 이상 넣어주세요. (없으면 나라장터 전체를 가져옵니다)';
+    if (form.keywords.length === 0) return '검색 키워드를 하나 이상 넣어주세요.';
 
     const min = Number(form.minimumEstimatedPrice);
     const max = Number(form.maximumEstimatedPrice);
 
+    // 자릿수가 지나치면 `Number()` 가 `Infinity` 가 되고 JSON 에서 `null` 로 바뀐다
+    if (form.minimumEstimatedPrice && !Number.isFinite(min)) {
+      return '추정가격 최소가 너무 큽니다.';
+    }
+    if (form.maximumEstimatedPrice && !Number.isFinite(max)) {
+      return '추정가격 최대가 너무 큽니다.';
+    }
     if (form.minimumEstimatedPrice && form.maximumEstimatedPrice && min > max) {
       return '추정가격 최소가 최대보다 클 수 없어요.';
     }
@@ -325,7 +331,11 @@ export default function CollectionConditionFormModal({
               </button>
             </div>
 
-            {form.keywords.length > 0 && (
+            <p className="mt-1 text-[10px] break-keep text-text-secondary">
+            키워드가 없으면 조회 조합이 커져 수집 상한을 넘길 수 있어요.
+          </p>
+
+          {form.keywords.length > 0 && (
               <ul className="mt-2 flex flex-wrap gap-1.5">
                 {form.keywords.map((keyword) => (
                   <li key={keyword}>

@@ -104,6 +104,11 @@ const REQUIRED_MESSAGES: Partial<Record<FieldName, string>> = {
   sourceUrl: '공고 원문 URL 을 입력해주세요.',
 };
 
+/** `http(s)://` 로 시작하는 주소인지. 원문 URL · 첨부 URL 이 같은 규칙을 쓴다 */
+function isHttpUrl(value: string) {
+  return /^https?:\/\/.+/.test(value.trim());
+}
+
 /** 빈 문자열은 보내지 않는다 — 백엔드가 빈 값을 값으로 저장한다 */
 function orNull(value: string) {
   const trimmed = value.trim();
@@ -138,6 +143,10 @@ export default function NoticeCreateForm() {
   const [attachments, setAttachments] = useState<NoticeAttachmentInput[]>([]);
   const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
   const [formError, setFormError] = useState<string | null>(null);
+  /** 첨부 행별 오류 — 어느 줄이 잘못됐는지 그 줄에 붙여 보여준다 */
+  const [attachmentErrors, setAttachmentErrors] = useState<
+    Record<number, string>
+  >({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   function change(name: FieldName) {
@@ -160,6 +169,7 @@ export default function NoticeCreateForm() {
     setAttachments((prev) =>
       prev.map((item, at) => (at === index ? { ...item, [key]: value } : item)),
     );
+    setAttachmentErrors((prev) => ({ ...prev, [index]: '' }));
   }
 
   function removeAttachment(index: number) {
@@ -179,10 +189,7 @@ export default function NoticeCreateForm() {
     const { announcedAt, bidDeadlineAt, openingAt, sourceUrl } = values;
 
     // 필수로 잡았으니 형식도 본다 — `example.org` 만 적으면 링크가 열리지 않는다
-    if (
-      next.sourceUrl === undefined &&
-      !/^https?:\/\/.+/.test(sourceUrl.trim())
-    ) {
+    if (next.sourceUrl === undefined && !isHttpUrl(sourceUrl)) {
       next.sourceUrl = 'http:// 또는 https:// 로 시작하는 주소를 넣어주세요.';
     }
 
@@ -194,17 +201,59 @@ export default function NoticeCreateForm() {
     }
 
     setErrors(next);
-    return Object.keys(next).length === 0;
+
+    /**
+     * 첨부는 **파일명과 URL 이 짝**이어야 한다.
+     * 한쪽만 채우면 링크 없는 첨부(열 수 없음) · 이름 없는 첨부(구분 불가) 가 저장된다.
+     */
+    const attachmentIssues: Record<number, string> = {};
+
+    attachments.forEach((item, index) => {
+      const fileName = item.fileName.trim();
+      const url = item.sourceUrl.trim();
+
+      // 둘 다 비어 있으면 전송 전에 걸러내므로 오류가 아니다
+      if (fileName === '' && url === '') return;
+
+      if (fileName === '') attachmentIssues[index] = '파일명을 넣어주세요.';
+      else if (url === '') attachmentIssues[index] = '파일 URL 을 넣어주세요.';
+      else if (!isHttpUrl(url))
+        attachmentIssues[index] =
+          'http:// 또는 https:// 로 시작하는 주소를 넣어주세요.';
+    });
+
+    setAttachmentErrors(attachmentIssues);
+
+    const firstInvalid = Object.keys(next)[0];
+    if (firstInvalid) focusField(firstInvalid);
+
+    return (
+      Object.keys(next).length === 0 &&
+      Object.keys(attachmentIssues).length === 0
+    );
   }
 
-  /** 이름 · URL 둘 다 빈 행은 실어 보내지 않는다 (추가만 하고 안 채운 행) */
+  /**
+   * 9) 첫 오류 항목으로 포커스를 옮긴다.
+   *
+   * 구획 5개에 항목이 20개 가까워 제출 버튼에서 첫 오류가 보이지 않는다.
+   * 포커스를 옮기면 스크롤과 스크린리더 안내가 함께 처리된다.
+   */
+  function focusField(name: string) {
+    document.getElementById(name)?.focus();
+  }
+
+  /**
+   * 이름 · URL 이 **둘 다 채워진 행만** 보낸다.
+   * 빈 행(추가만 하고 안 채운 것)은 조용히 버리고, 한쪽만 채운 행은 검증에서 이미 막힌다.
+   */
   function toAttachmentPayload() {
     return attachments
       .map((item) => ({
         fileName: item.fileName.trim(),
         sourceUrl: item.sourceUrl.trim(),
       }))
-      .filter((item) => item.fileName !== '' || item.sourceUrl !== '');
+      .filter((item) => item.fileName !== '' && item.sourceUrl !== '');
   }
 
   function toPayload(): CreateNoticeRequest {
@@ -501,6 +550,7 @@ export default function NoticeCreateForm() {
                     type="url"
                     placeholder="https://"
                     value={attachment.sourceUrl}
+                    error={attachmentErrors[index] || undefined}
                     onChange={(value) =>
                       changeAttachment(index, 'sourceUrl', value)
                     }

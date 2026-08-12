@@ -122,6 +122,21 @@ export function TextField({
   );
 }
 
+/** 금액 입력의 최대 자릿수 — 15자리(약 999조)면 계약금액에 충분하다 */
+export const AMOUNT_MAX_DIGITS = 15;
+
+/**
+ * 문자열 그대로 천 단위 구분을 넣는다.
+ *
+ * ⚠️ `Number(value).toLocaleString()` 을 쓰지 않는다 —
+ *    숫자가 아닌 초기값이 오면 화면에 `NaN` 이 뜨고,
+ *    `Number.MAX_SAFE_INTEGER` 를 넘으면 정밀도가 조용히 깎인다.
+ */
+function groupDigits(value: string) {
+  const digits = value.replace(/\D/g, '');
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 /**
  * 금액 입력. 값은 문자열로 다루고 화면에만 콤마를 넣는다 —
  * `<input type="number">` 는 자릿수가 큰 금액에서 읽기 어렵다.
@@ -131,7 +146,7 @@ export function AmountField({
   ...props
 }: BaseProps & { placeholder?: string }) {
   const { id, label, required, value, error, hint, disabled, onChange } = props;
-  const display = value === '' ? '' : Number(value).toLocaleString('ko-KR');
+  const display = groupDigits(value);
 
   return (
     <FieldShell
@@ -149,8 +164,13 @@ export function AmountField({
           value={display}
           placeholder={placeholder}
           disabled={disabled}
-          // 숫자만 남긴다 — 콤마를 지우고 다시 넣는 편이 커서 튐이 적다
-          onChange={(event) => onChange(event.target.value.replace(/\D/g, ''))}
+          // 숫자만 남긴다 — 콤마를 지우고 다시 넣는 편이 커서 튐이 적다.
+          // 자릿수를 막지 않으면 `Number()` 가 `Infinity` 가 되어 `null` 로 전송된다
+          onChange={(event) =>
+            onChange(
+              event.target.value.replace(/\D/g, '').slice(0, AMOUNT_MAX_DIGITS),
+            )
+          }
           aria-required={required || undefined}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy(id, error, hint)}

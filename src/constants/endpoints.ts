@@ -315,7 +315,7 @@ export const ENDPOINTS = {
   bidding: {
     /** 공고 목록 — 기간 · 발주처 · 카테고리 · 지역 · 마감임박 · 공고명으로 거른다 */
     notices: `${V1}/bidding/notices`,
-    /** 공고 상세 — 첨부 목록은 없다 (`hasAttachment` · `sourceUrl` 뿐) */
+    /** 공고 상세 — 첨부 목록(`attachments`)까지 함께 온다 */
     notice: (noticeId: number | string) => `${V1}/bidding/notices/${noticeId}`,
     /**
      * 수집 조건 목록(GET) · 등록(POST).

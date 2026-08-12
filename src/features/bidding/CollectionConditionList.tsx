@@ -84,8 +84,12 @@ export default function CollectionConditionList() {
   const [reloadCount, setReloadCount] = useState(0);
   /** 조건 ID → 실행 상태 */
   const [runs, setRuns] = useState<Record<number, RunState>>({});
-  /** 폴링 타이머를 언마운트 때 전부 끊는다 */
-  const timers = useRef<number[]>([]);
+  /**
+   * 폴링 뒷정리 — 대기 중인 타이머와 **이미 나간 요청**을 함께 끊는다.
+   * 타이머만 끊으면 응답이 돌아와 언마운트된 컴포넌트에 `setState` 를 한다.
+   */
+  const timers = useRef<Set<number>>(new Set());
+  const pollAbort = useRef<AbortController | null>(null);
   const formModal = useModalTarget<ConditionFormTarget>();
   /** 비활성화 확인 — 자동 수집까지 함께 꺼지므로 되돌리기 전에 한 번 묻는다 */
   const deactivateDialog = useModalTarget<CollectionCondition>();
@@ -113,12 +117,17 @@ export default function CollectionConditionList() {
     return () => controller.abort();
   }, [reloadCount]);
 
-  useEffect(
-    () => () => {
-      for (const id of timers.current) window.clearTimeout(id);
-    },
-    [],
-  );
+  useEffect(() => {
+    const controller = new AbortController();
+    pollAbort.current = controller;
+    const pending = timers.current;
+
+    return () => {
+      for (const id of pending) window.clearTimeout(id);
+      pending.clear();
+      controller.abort();
+    };
+  }, []);
 
   function patchRun(conditionId: number, patch: Partial<RunState>) {
     setRuns((prev) => ({
@@ -130,8 +139,14 @@ export default function CollectionConditionList() {
   /** `COMPLETED` · `FAILED` 가 될 때까지 물어본다. 상한을 넘기면 안내만 남기고 멈춘다 */
   function poll(conditionId: number, runId: number, attempt: number) {
     const timer = window.setTimeout(async () => {
+      // 끝난 타이머는 목록에서 뺀다 — 안 그러면 실행할수록 배열만 길어진다
+      timers.current.delete(timer);
+
       try {
-        const run = await getCollectionRun(runId);
+        const run = await getCollectionRun(
+          runId,
+          pollAbort.current?.signal,
+        );
         patchRun(conditionId, { run });
 
         if (!isRunning(run.runStatus)) {
@@ -152,6 +167,9 @@ export default function CollectionConditionList() {
 
         poll(conditionId, runId, attempt + 1);
       } catch (error) {
+        // 언마운트로 인한 취소는 실패가 아니다 (알릴 화면도 이미 없다)
+        if (pollAbort.current?.signal.aborted) return;
+
         patchRun(conditionId, {
           isBusy: false,
           notice: messageOf(error, '수집 결과를 가져오지 못했어요.'),
@@ -159,7 +177,7 @@ export default function CollectionConditionList() {
       }
     }, POLL_MS);
 
-    timers.current.push(timer);
+    timers.current.add(timer);
   }
 
   async function startRun(condition: CollectionCondition) {
@@ -357,7 +375,8 @@ export default function CollectionConditionList() {
           }
           confirmLabel="비활성화"
           isDanger
-          isBusy={togglingId === deactivateDialog.target.conditionId}
+          // 확인 즉시 닫고 카드 버튼이 `변경 중…` 을 맡는다 —
+          // 닫아 버리므로 다이얼로그의 `isBusy` 는 참이 될 틈이 없다
           onConfirm={() => {
             const target = deactivateDialog.target;
             deactivateDialog.close();
