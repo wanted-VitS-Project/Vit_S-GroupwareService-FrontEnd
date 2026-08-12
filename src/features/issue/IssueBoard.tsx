@@ -248,14 +248,6 @@ export default function IssueBoard() {
     if (!before || before.status === status) return;
     if (sendingStatusRef.current.has(issueId)) return;
 
-    // 버전 없이 보내면 400 이다 — 옮기지 않고 재조회를 안내한다 (`types.ts` 참고)
-    if (before.version === undefined) {
-      setErrorMessage(
-        '이슈 버전 정보를 받지 못해 상태를 변경할 수 없습니다. 새로고침해주세요.',
-      );
-      return;
-    }
-
     sendingStatusRef.current.add(issueId);
     setErrorMessage('');
     moveToFront(before, status);
@@ -263,9 +255,8 @@ export default function IssueBoard() {
     try {
       const changed = await updateIssueStatus(issueId, status, before.version);
       /*
-       * 상태 변경도 issue 버전을 올린다. 옛 값을 들고 있으면 다음 수정이 409 라
-       * 새 값으로 갈아끼운다. 응답에 없으면 **비워** 다음 저장이 재조회를 타게 한다
-       * (옛 값을 그대로 두는 것보다 낫다).
+       * 상태 변경도 issue 버전을 올린다 — 옛 값을 들고 있으면 다음 수정이 409 라
+       * 새 값으로 갈아끼운다.
        */
       replaceIssue({ ...before, status, version: changed.version });
       // 스텝 · 프로젝트 진척률이 바뀐다 — 사이드바가 다시 읽게 알린다

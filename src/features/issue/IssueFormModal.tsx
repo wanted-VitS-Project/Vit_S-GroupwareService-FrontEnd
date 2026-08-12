@@ -14,11 +14,7 @@ import type { ProjectMember } from '@/features/project/types';
 import { isAbortError, messageOf } from '@/lib/api';
 
 import { createIssue, getIssue, toCreateDueDate, updateIssue } from './api';
-import {
-  ISSUE_MERGED_MESSAGE,
-  ISSUE_NO_VERSION_MESSAGE,
-  isIssueVersionConflict,
-} from './errorCodes';
+import { ISSUE_MERGED_MESSAGE, isIssueVersionConflict } from './errorCodes';
 import { IssueBlockIcon } from './IssueBadges';
 import IssueConflictModal, {
   type IssueConflictChoice,
@@ -174,12 +170,6 @@ export default function IssueFormModal({
   const errorMessage = saveError?.key === formKey ? saveError.message : '';
   const asking = conflict?.key === formKey ? conflict : null;
 
-  /**
-   * 수정에 필요한 `version` 을 못 받은 경우. 그대로 보내면 400 이라 저장 자체를 막는다.
-   * (스테이지 · 스텝 · 블록과 같은 방침 — `types.ts` 참고)
-   */
-  const hasNoVersion = base !== null && base.version === undefined;
-
   /** 저장 오류 문구를 지금 대상에 붙여 둔다 */
   function showError(message: string) {
     setSaveError({ key: formKey, message });
@@ -299,11 +289,6 @@ export default function IssueFormModal({
     // 바뀐 게 없으면 요청을 보내지 않는다
     if (mine.length === 0) {
       onSaved(from);
-      return;
-    }
-    if (from.version === undefined) {
-      showError(ISSUE_NO_VERSION_MESSAGE);
-      setIsSaving(false);
       return;
     }
 
@@ -788,13 +773,6 @@ export default function IssueFormModal({
               )}
             </div>
 
-            {hasNoVersion && (
-              <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-detail leading-relaxed break-keep text-yellow-text">
-                이 이슈의 버전 정보를 받지 못해 수정할 수 없습니다. 새로고침 후
-                다시 시도해주세요.
-              </p>
-            )}
-
             {errorMessage && (
               <p role="alert" className="text-caption text-text-danger">
                 {errorMessage}
@@ -819,12 +797,7 @@ export default function IssueFormModal({
             <button
               type="button"
               onClick={submit}
-              disabled={
-                isSaving ||
-                values === null ||
-                loadFailure !== null ||
-                hasNoVersion
-              }
+              disabled={isSaving || values === null || loadFailure !== null}
               className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
             >
               {isSaving ? '저장 중…' : isEdit ? '수정 완료' : '이슈 생성'}

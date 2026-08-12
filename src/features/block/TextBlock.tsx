@@ -6,6 +6,7 @@ import { useState } from 'react';
 import ModalLoadingFallback from '@/components/ModalLoadingFallback';
 
 import BlockCard from './BlockCard';
+import { notifyBlockChanged } from './events';
 import { readTextBlockDetail, type StepBlock } from './types';
 
 const MarkdownView = dynamic(() => import('./MarkdownView'), {
@@ -42,11 +43,19 @@ export default function TextBlock({
 }) {
   const detail = readTextBlockDetail(block.detail);
   const serverContent = detail?.content ?? '';
+  const serverVersion = detail?.version;
 
   const [content, setContent] = useState(serverContent);
+  /**
+   * 저장에 실을 낙관적 락 버전.
+   *
+   * ⚠️ 응답의 새 값을 여기에 꽂아야 **연달아 두 번 저장**할 수 있다 —
+   *    블록 목록을 다시 읽지 않으므로 `detail.version` 은 옛 값에 머문다.
+   */
+  const [version, setVersion] = useState(serverVersion);
   const [isEditing, setIsEditing] = useState(autoEdit);
 
-  // 아래 두 블록은 effect 가 아니라 렌더 중 상태 조정이다.
+  // 아래 세 블록은 effect 가 아니라 렌더 중 상태 조정이다.
   // (https://react.dev/reference/react/useState — effect 로 하면 린트 규칙에 걸린다)
 
   // 재조회로 서버 본문이 바뀌면 화면도 따라간다
@@ -54,6 +63,13 @@ export default function TextBlock({
   if (lastServerContent !== serverContent) {
     setLastServerContent(serverContent);
     setContent(serverContent);
+  }
+
+  // 버전도 같이 따라간다 — 본문이 그대로여도 남이 고쳐 버전만 올라갈 수 있다
+  const [lastServerVersion, setLastServerVersion] = useState(serverVersion);
+  if (lastServerVersion !== serverVersion) {
+    setLastServerVersion(serverVersion);
+    setVersion(serverVersion);
   }
 
   // 마운트 이후에 autoEdit 이 켜져도 입력창이 열려야 한다
@@ -105,8 +121,15 @@ export default function TextBlock({
           blockTitle={block.title || '텍스트'}
           txtId={detail.txtId}
           initialContent={content}
+          version={version}
           onClose={() => setIsEditing(false)}
-          onSaved={setContent}
+          onSaved={(saved, savedVersion) => {
+            setContent(saved);
+            // 응답에 버전이 없으면 비운다 — 옛 값을 들고 있으면 다음 저장이 무조건 409 다
+            setVersion(savedVersion);
+          }}
+          // 409 에서 `다시 불러오기` — 목록을 다시 읽어 새 본문 · 새 버전을 받는다
+          onRefetch={notifyBlockChanged}
         />
       )}
     </BlockCard>
