@@ -1,11 +1,17 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
-import { ISSUE_CHANGED_EVENT } from '@/features/issue/events';
+import ModalLoadingFallback from '@/components/ModalLoadingFallback';
+import { notifyToast } from '@/components/Toast';
+import {
+  ISSUE_CHANGED_EVENT,
+  notifyIssueChanged,
+} from '@/features/issue/events';
 import {
   getProject,
   getProjectMembers,
@@ -18,6 +24,7 @@ import {
   useProjectSidebarCollapse,
 } from '@/features/project/SidebarCollapse';
 import type {
+  CompletedStep,
   ProjectDetail,
   ProjectMember,
   ProjectStage,
@@ -25,6 +32,7 @@ import type {
   StepStatus,
 } from '@/features/project/types';
 import { formatDateRange } from '@/lib/format';
+import { useModalTarget } from '@/lib/useModal';
 
 import {
   ProjectMembersSkeleton,
@@ -37,6 +45,85 @@ import {
  * 프로젝트 개요 · 진행 단계 · 참여자를 보여주고 하위 화면 전환의 기준이 된다.
  *
  */
+
+/*
+ * 단계 · 스텝 편집 모달은 **누를 때 받아온다**.
+ * 사이드바는 프로젝트 하위 모든 화면에 항상 떠 있어, 여기서 정적으로 물면
+ * 편집 권한이 없는 사용자까지 모달 6개를 매번 내려받게 된다.
+ */
+const loadStageManageModal = () =>
+  import('@/features/project/stage/StageManageModal');
+const loadStageFormModal = () =>
+  import('@/features/project/stage/StageFormModal');
+const loadStageDeleteModal = () =>
+  import('@/features/project/stage/StageDeleteModal');
+const loadStepFormModal = () => import('@/features/project/step/StepFormModal');
+const loadStepDeleteModal = () =>
+  import('@/features/project/step/StepDeleteModal');
+const loadStepCompleteModal = () =>
+  import('@/features/project/step/StepCompleteModal');
+
+/** `PanelModal` 과 같은 폭 — 청크가 도착할 때 패널이 흔들리지 않게 한다 */
+const PANEL_FALLBACK = 'w-full max-w-[420px] rounded-base p-6 shadow-2xl';
+
+const StageManageModal = dynamic(loadStageManageModal, {
+  loading: () => (
+    <ModalLoadingFallback title="단계 관리" className={PANEL_FALLBACK} />
+  ),
+});
+const StageFormModal = dynamic(loadStageFormModal, {
+  loading: () => (
+    <ModalLoadingFallback title="단계" className={PANEL_FALLBACK} />
+  ),
+});
+const StageDeleteModal = dynamic(loadStageDeleteModal, {
+  loading: () => (
+    <ModalLoadingFallback title="단계 삭제" className={PANEL_FALLBACK} />
+  ),
+});
+const StepFormModal = dynamic(loadStepFormModal, {
+  loading: () => (
+    <ModalLoadingFallback title="스텝" className={PANEL_FALLBACK} />
+  ),
+});
+const StepDeleteModal = dynamic(loadStepDeleteModal, {
+  loading: () => (
+    <ModalLoadingFallback title="스텝 삭제" className={PANEL_FALLBACK} />
+  ),
+});
+const StepCompleteModal = dynamic(loadStepCompleteModal, {
+  loading: () => (
+    <ModalLoadingFallback title="스텝 완료 처리" className={PANEL_FALLBACK} />
+  ),
+});
+
+/** 메뉴를 여는 순간 받아 둔다 — 항목을 고를 때는 이미 도착해 있다 */
+function preloadStageChunks() {
+  void loadStageManageModal();
+  void loadStageFormModal();
+  void loadStageDeleteModal();
+}
+function preloadStepChunks() {
+  void loadStepFormModal();
+  void loadStepDeleteModal();
+  void loadStepCompleteModal();
+}
+
+/**
+ * 지금 열려 있는 편집 모달.
+ *
+ * 불리언 6개를 따로 두면 두 개가 동시에 참인 상태를 타입이 막지 못한다 —
+ * 대상까지 함께 든 값 **하나**로 들면 그 상태가 아예 만들어지지 않는다. (`lib/useModal`)
+ */
+type SidebarModal =
+  | { kind: 'stageManage' }
+  | { kind: 'stageCreate' }
+  | { kind: 'stageRename'; stage: ProjectStage }
+  | { kind: 'stageDelete'; stage: ProjectStage }
+  | { kind: 'stepCreate'; stageId?: number; stageName?: string }
+  | { kind: 'stepEdit'; step: ProjectStep }
+  | { kind: 'stepDelete'; step: ProjectStep }
+  | { kind: 'stepComplete'; step: ProjectStep };
 
 /** `stageId: null` 인 스텝을 모아 보여줄 가상 스테이지 */
 const UNASSIGNED_STAGE_ID = -1;
@@ -71,7 +158,16 @@ export default function ProjectSidebar() {
   // 스텝 화면(`/projects/{id}/steps/{stepId}`)이면 stepId 도 함께 들어온다
   const params = useParams<{ id: string; stepId?: string }>();
   const projectId = params.id;
+  const router = useRouter();
   const { isCollapsed, toggle, expand } = useProjectSidebarCollapse();
+
+  /** 단계 · 스텝을 고친 뒤 목록을 다시 읽는 신호 */
+  const [reloadCount, setReloadCount] = useState(0);
+  const modal = useModalTarget<SidebarModal>();
+
+  function reload() {
+    setReloadCount((count) => count + 1);
+  }
 
   /** 어느 프로젝트의 응답인지 함께 담는다 — 경로가 바뀌면 즉시 무효가 된다 */
   const [loaded, setLoaded] = useState<{
@@ -109,7 +205,8 @@ export default function ProjectSidebar() {
       });
 
     return () => controller.abort();
-  }, [projectId]);
+    // 단계 · 스텝을 고치면 `reloadCount` 가 올라 같은 조회를 다시 태운다
+  }, [projectId, reloadCount]);
 
   /**
    * 이슈가 바뀌면 스텝 진척률 · 전체 진척률을 다시 읽는다.
@@ -213,6 +310,35 @@ export default function ProjectSidebar() {
   const category = project?.businessCategories.map((c) => c.name).join(' · ');
   const canEdit = project?.myPermission === 'EDITOR';
 
+  /**
+   * 스텝을 지우면 하위 이슈도 함께 사라진다 —
+   * 이슈 보드가 열려 있을 수 있으므로 전역 이벤트로도 알린다. (`features/issue/events`)
+   */
+  function handleStepDeleted(step: ProjectStep, movedBlockCount: number) {
+    notifyToast(
+      movedBlockCount > 0
+        ? `스텝을 삭제하고 블록 ${movedBlockCount}개를 옮겼습니다.`
+        : '스텝을 삭제했습니다.',
+    );
+    reload();
+    if (step.totalIssueCount > 0) notifyIssueChanged();
+
+    // 보고 있던 스텝이 사라졌다 — 빈 화면에 남겨두지 않는다
+    if (params.stepId === String(step.stepId)) {
+      router.replace(`/projects/${projectId}`);
+    }
+  }
+
+  function handleStepCompleted(result: CompletedStep) {
+    notifyToast(
+      result.closedIssueCount > 0
+        ? `스텝을 완료하고 이슈 ${result.closedIssueCount}개를 함께 종료했습니다.`
+        : '스텝을 완료 처리했습니다.',
+    );
+    reload();
+    if (result.closedIssueCount > 0) notifyIssueChanged();
+  }
+
   /** 스테이지 목록 + 스테이지 없는 스텝을 담을 '미분류' 묶음 */
   const unassignedSteps = steps?.filter((step) => step.stageId === null) ?? [];
   const groups: ProjectStage[] = [
@@ -229,317 +355,426 @@ export default function ProjectSidebar() {
       : []),
   ];
 
+  /** 좁히기 전에 한 번 꺼내 둔다 — 조건마다 `modal.target?` 을 다시 좁히지 않아도 된다 */
+  const openModal = modal.target;
+
+  /*
+   * 폭만 전환한다 (`transition-all` 은 색 · 그림자까지 매 프레임 계산한다).
+   *
+   * 안쪽 트리는 **고정 폭**을 그대로 들고 `overflow-hidden` 으로 잘린다 —
+   * 이러면 전환 중에 사이드바 내용이 매 프레임 다시 배치되지 않는다.
+   * (안쪽까지 폭을 따라가게 두면 줄바꿈 · 말줄임이 프레임마다 다시 계산돼 끊긴다)
+   *
+   * `will-change` 는 걸지 않는다 — 항상 켜 두면 레이어가 계속 떠 있어 손해다.
+   */
   return (
-    /*
-     * 폭만 전환한다 (`transition-all` 은 색 · 그림자까지 매 프레임 계산한다).
-     *
-     * 안쪽 트리는 **고정 폭**을 그대로 들고 `overflow-hidden` 으로 잘린다 —
-     * 이러면 전환 중에 사이드바 내용이 매 프레임 다시 배치되지 않는다.
-     * (안쪽까지 폭을 따라가게 두면 줄바꿈 · 말줄임이 프레임마다 다시 계산돼 끊긴다)
-     *
-     * `will-change` 는 걸지 않는다 — 항상 켜 두면 레이어가 계속 떠 있어 손해다.
-     */
-    <aside
-      className={`h-full shrink-0 overflow-hidden border-r border-border-default bg-white transition-[width] duration-200 ease-out motion-reduce:transition-none ${
-        isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH
-      }`}
-    >
-      {isCollapsed ? (
-        <CollapsedSidebar
-          groups={groups}
-          steps={steps}
-          hasFailed={hasFailed}
-          activeStageId={activeStageId}
-          projectId={projectId}
-          onExpandStage={(stageId) => {
-            setOpenStageId(stageId);
-            expand();
-          }}
-          onExpand={expand}
-        />
-      ) : (
-        <div
-          className={`flex h-full ${SIDEBAR_WIDTH} animate-panel-in flex-col motion-reduce:animate-none`}
-        >
-          {/* 이탈 경로는 항상 같은 자리에 있어야 한다 — 스크롤 영역 밖에 둔다 */}
-          <Link
-            href="/"
-            className="flex h-13 shrink-0 items-center gap-2 border-b border-border-default px-4 text-[15px] font-medium text-text-secondary hover:bg-bg-surface"
+    <>
+      <aside
+        className={`h-full shrink-0 overflow-hidden border-r border-border-default bg-bg-card transition-[width] duration-200 ease-out motion-reduce:transition-none ${
+          isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH
+        }`}
+      >
+        {isCollapsed ? (
+          <CollapsedSidebar
+            groups={groups}
+            steps={steps}
+            hasFailed={hasFailed}
+            activeStageId={activeStageId}
+            projectId={projectId}
+            onExpandStage={(stageId) => {
+              setOpenStageId(stageId);
+              expand();
+            }}
+            onExpand={expand}
+          />
+        ) : (
+          <div
+            className={`flex h-full ${SIDEBAR_WIDTH} animate-panel-in flex-col motion-reduce:animate-none`}
           >
-            <ArrowLeftIcon />
-            홈으로 돌아가기
-          </Link>
+            {/* 이탈 경로는 항상 같은 자리에 있어야 한다 — 스크롤 영역 밖에 둔다 */}
+            <Link
+              href="/"
+              className="flex h-13 shrink-0 items-center gap-2 border-b border-border-default px-4 text-[15px] font-medium text-text-secondary hover:bg-bg-surface"
+            >
+              <ArrowLeftIcon />
+              홈으로 돌아가기
+            </Link>
 
-          {/* 스크롤 영역 — 홈 · 참여자 · 설정은 위아래에 고정한다. 폭이 좁아 스크롤바는 숨긴다 */}
-          <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto">
-            <div className="flex flex-col gap-2 border-b border-border-default px-4 py-3">
-              <div className="flex items-center gap-2">
-                <p className="min-w-0 flex-1 truncate text-xs font-semibold tracking-[0.9px] text-text-secondary uppercase">
-                  {category || (project ? '카테고리 없음' : '')}
-                </p>
-                <button
-                  type="button"
-                  onClick={toggle}
-                  aria-label="사이드바 접기"
-                  aria-expanded
-                  className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded hover:bg-bg-hover"
-                >
-                  <PanelIcon direction="left" />
-                </button>
-              </div>
-
-              {hasFailed ? (
-                <p className="text-xs text-text-secondary">
-                  프로젝트 정보를 불러오지 못했습니다.
-                </p>
-              ) : !project ? (
-                <ProjectOverviewSkeleton />
-              ) : (
-                <div className="flex flex-col gap-3">
-                  <div className="flex flex-col gap-0.5">
-                    <p className="text-xl font-bold break-keep text-text-primary">
-                      {project.name}
-                    </p>
-                    <p className="text-base font-semibold text-text-secondary">
-                      {project.clientName}
-                    </p>
-                  </div>
-                  {project.description && (
-                    <p className="text-xs leading-5 text-text-secondary">
-                      {project.description}
-                    </p>
-                  )}
-
-                  <div>
-                    <p className="pb-1 text-caption text-text-secondary">
-                      전체 진행률
-                    </p>
-                    <div className="flex items-center gap-2.5">
-                      <div className="h-1.25 flex-1 rounded-full bg-bg-hover">
-                        {/* 갱신될 때 값이 튀지 않고 채워지도록 폭만 전환한다 */}
-                        <div
-                          className="h-full rounded-full bg-btn-primary transition-[width] duration-300"
-                          style={{ width: `${progressRate}%` }}
-                        />
-                      </div>
-                      <span className="text-xs font-medium text-text-primary-blue">
-                        {progressRate}%
-                      </span>
-                    </div>
-                  </div>
-
-                  <p className="flex items-center gap-1.5 text-sm font-medium text-text-secondary">
-                    <CalendarIcon />
-                    {formatDateRange(project.startedOn, project.endedOn)}
+            {/* 스크롤 영역 — 홈 · 참여자 · 설정은 위아래에 고정한다. 폭이 좁아 스크롤바는 숨긴다 */}
+            <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto">
+              <div className="flex flex-col gap-2 border-b border-border-default px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <p className="min-w-0 flex-1 truncate text-label font-semibold tracking-[0.9px] text-text-secondary uppercase">
+                    {category || (project ? '카테고리 없음' : '')}
                   </p>
-                </div>
-              )}
-            </div>
-
-            <div className="flex h-13 items-center justify-between border-b border-border-default px-4">
-              <h2 className="text-base font-semibold text-text-secondary uppercase">
-                진행 단계
-              </h2>
-              {canEdit && (
-                <div className="flex items-center gap-1.5">
-                  {/* TODO: 단계 수정 · 추가 모달 연결 */}
                   <button
                     type="button"
-                    className="cursor-pointer rounded border border-border-primary px-1.5 py-0.5 text-xs font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+                    onClick={toggle}
+                    aria-label="사이드바 접기"
+                    aria-expanded
+                    className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-button-sm hover:bg-bg-hover"
                   >
-                    단계수정
-                  </button>
-                  <button
-                    type="button"
-                    className="flex cursor-pointer items-center gap-0.5 rounded border border-border-primary px-1.5 py-0.5 text-xs font-medium text-text-primary-blue hover:bg-blue-bg-soft"
-                  >
-                    <PlusIcon />
-                    추가
+                    <PanelIcon direction="left" />
                   </button>
                 </div>
-              )}
-            </div>
 
-            {!stages || !steps ? (
-              hasFailed ? (
-                <p className="px-4 py-3 text-xs text-text-secondary">
-                  진행 단계를 불러오지 못했습니다.
-                </p>
-              ) : (
-                <ProjectStagesSkeleton />
-              )
-            ) : groups.length === 0 ? (
-              <p className="px-4 py-3 text-xs text-text-secondary">
-                등록된 스테이지가 없습니다.
-              </p>
-            ) : (
-              groups.map((stage) => {
-                const isOpen = stage.stageId === openStageId;
-                const stageSteps = steps.filter((step) =>
-                  stage.stageId === UNASSIGNED_STAGE_ID
-                    ? step.stageId === null
-                    : step.stageId === stage.stageId,
-                );
-
-                // 미분류는 실제 스테이지가 아니라 이름 수정 · 삭제 · 스텝 추가 대상이 아니다
-                const isEditable =
-                  canEdit && stage.stageId !== UNASSIGNED_STAGE_ID;
-
-                return (
-                  <div key={stage.stageId}>
-                    <div className="group flex h-13 items-center border-b border-border-default px-2">
-                      <div className="flex flex-1 items-center gap-1 rounded-md p-1.5 group-hover:bg-bg-hover">
-                        <button
-                          type="button"
-                          aria-expanded={isOpen}
-                          onClick={() =>
-                            setOpenStageId(isOpen ? null : stage.stageId)
-                          }
-                          className="flex min-w-0 flex-1 cursor-pointer items-center gap-2"
-                        >
-                          <ChevronIcon isOpen={isOpen} />
-                          <span
-                            className={`truncate text-left text-base uppercase ${
-                              isOpen
-                                ? 'font-semibold text-text-primary-blue'
-                                : 'font-medium text-text-primary'
-                            }`}
-                          >
-                            {stage.name}
-                          </span>
-                        </button>
-
-                        {!isEditable ? (
-                          // 미분류처럼 편집 버튼이 없어도 스텝 수 위치가 흔들리지 않게 자리만 남긴다
-                          <span aria-hidden className="size-5 shrink-0" />
-                        ) : (
-                          // TODO: 스텝 추가 모달 연결
-                          <button
-                            type="button"
-                            aria-label={`${stage.name} 스텝 추가`}
-                            // 노출 · 호버 · 아이콘 색을 RowMenu 의 ⋯ 버튼과 동일하게 맞춘다.
-                            // group-focus-within 은 쓰지 않는다 — 스테이지를 클릭한 뒤
-                            // 포커스가 남아 버튼이 계속 보인다
-                            className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded text-text-secondary opacity-0 group-hover:opacity-100 hover:bg-black/5 focus-visible:opacity-100"
-                          >
-                            <PlusIcon />
-                          </button>
-                        )}
-
-                        <span
-                          className={`shrink-0 text-base uppercase ${
-                            isOpen
-                              ? 'font-semibold text-text-primary-blue'
-                              : 'font-medium text-text-secondary'
-                          }`}
-                        >
-                          {stage.stepCount}
-                        </span>
-
-                        {isEditable ? (
-                          <RowMenu label={stage.name} />
-                        ) : (
-                          <span aria-hidden className="size-5 shrink-0" />
-                        )}
-                      </div>
+                {hasFailed ? (
+                  <p className="text-label text-text-secondary">
+                    프로젝트 정보를 불러오지 못했습니다.
+                  </p>
+                ) : !project ? (
+                  <ProjectOverviewSkeleton />
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-0.5">
+                      <p className="text-heading-l font-bold break-keep text-text-primary">
+                        {project.name}
+                      </p>
+                      <p className="text-body-l font-semibold text-text-secondary">
+                        {project.clientName}
+                      </p>
                     </div>
-
-                    {isOpen && stageSteps.length === 0 && (
-                      // 새로 만든 스테이지는 스텝이 0개다. 펼쳤을 때 아무 변화도 없으면
-                      // 동작이 실패한 것으로 오해한다
-                      <p className="border-b border-border-default px-6 py-3 text-xs text-text-secondary">
-                        등록된 스텝이 없습니다.
+                    {project.description && (
+                      <p className="text-label leading-5 text-text-secondary">
+                        {project.description}
                       </p>
                     )}
 
-                    {isOpen && stageSteps.length > 0 && (
-                      <div className="flex flex-col gap-1.5 border-b border-border-default py-2">
-                        {stageSteps.map((step) => (
-                          <StepCard
-                            key={step.stepId}
-                            projectId={projectId}
-                            step={step}
-                            isActive={step.stepId === activeStepId}
+                    <div>
+                      <p className="pb-1 text-caption text-text-secondary">
+                        전체 진행률
+                      </p>
+                      <div className="flex items-center gap-2.5">
+                        <div className="h-1.25 flex-1 rounded-pill bg-bg-hover">
+                          {/* 갱신될 때 값이 튀지 않고 채워지도록 폭만 전환한다 */}
+                          <div
+                            className="h-full rounded-pill bg-btn-primary transition-[width] duration-300"
+                            style={{ width: `${progressRate}%` }}
                           />
-                        ))}
-                        <Legend />
+                        </div>
+                        <span className="text-label font-medium text-text-primary-blue">
+                          {progressRate}%
+                        </span>
                       </div>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
+                    </div>
 
-          <div className="border-t border-border-default px-4 py-3">
-            <p className="flex items-center gap-1.5 text-xs text-text-secondary">
-              <UsersIcon />
-              {members ? `참여자 (${members.length})` : '참여자'}
-            </p>
-            {haveMembersFailed ? (
-              <div className="flex items-center justify-between gap-2 pt-2">
-                <p role="alert" className="text-caption text-text-danger">
-                  참여자를 불러오지 못했습니다.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFailedMembersProjectId(null);
-                    setMembersReloadCount((count) => count + 1);
-                  }}
-                  className="shrink-0 cursor-pointer rounded px-1.5 py-0.5 text-caption font-medium text-text-primary-blue hover:bg-blue-bg-soft"
-                >
-                  다시 시도
-                </button>
+                    <p className="flex items-center gap-1.5 text-body-m font-medium text-text-secondary">
+                      <CalendarIcon />
+                      {formatDateRange(project.startedOn, project.endedOn)}
+                    </p>
+                  </div>
+                )}
               </div>
-            ) : !members ? (
-              <ProjectMembersSkeleton />
-            ) : members.length === 0 ? (
-              <p className="pt-2 text-caption text-text-secondary">
-                등록된 참여자가 없습니다.
+
+              <div className="flex h-13 items-center justify-between border-b border-border-default px-4">
+                <h2 className="text-body-l font-semibold text-text-secondary uppercase">
+                  진행 단계
+                </h2>
+                {canEdit && (
+                  <div className="flex items-center gap-1.5">
+                    {/*
+                    `⋯` 메뉴는 행에 호버해야 나타나 처음 쓰는 사람이 찾지 못한다 —
+                    이름 수정 · 삭제로 가는 **눈에 보이는 길**을 여기에 둔다.
+                  */}
+                    <button
+                      type="button"
+                      onClick={() => modal.open({ kind: 'stageManage' })}
+                      onPointerEnter={preloadStageChunks}
+                      disabled={!stages}
+                      className="cursor-pointer rounded-button-sm border border-border-primary px-1.5 py-0.5 text-label font-medium text-text-primary-blue hover:bg-blue-bg-soft disabled:cursor-not-allowed disabled:border-border-default disabled:text-text-muted"
+                    >
+                      단계수정
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => modal.open({ kind: 'stageCreate' })}
+                      onPointerEnter={preloadStageChunks}
+                      className="flex cursor-pointer items-center gap-0.5 rounded-button-sm border border-border-primary px-1.5 py-0.5 text-label font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+                    >
+                      <PlusIcon />
+                      추가
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {!stages || !steps ? (
+                hasFailed ? (
+                  <p className="px-4 py-3 text-label text-text-secondary">
+                    진행 단계를 불러오지 못했습니다.
+                  </p>
+                ) : (
+                  <ProjectStagesSkeleton />
+                )
+              ) : groups.length === 0 ? (
+                <p className="px-4 py-3 text-label text-text-secondary">
+                  등록된 스테이지가 없습니다.
+                </p>
+              ) : (
+                groups.map((stage) => {
+                  const isOpen = stage.stageId === openStageId;
+                  const stageSteps = steps.filter((step) =>
+                    stage.stageId === UNASSIGNED_STAGE_ID
+                      ? step.stageId === null
+                      : step.stageId === stage.stageId,
+                  );
+
+                  // 미분류는 실제 스테이지가 아니라 이름 수정 · 삭제 · 스텝 추가 대상이 아니다
+                  const isEditable =
+                    canEdit && stage.stageId !== UNASSIGNED_STAGE_ID;
+
+                  return (
+                    <div key={stage.stageId}>
+                      <div className="group flex h-13 items-center border-b border-border-default px-2">
+                        <div className="flex flex-1 items-center gap-1 rounded-button-md p-1.5 group-hover:bg-bg-hover">
+                          <button
+                            type="button"
+                            aria-expanded={isOpen}
+                            onClick={() =>
+                              setOpenStageId(isOpen ? null : stage.stageId)
+                            }
+                            className="flex min-w-0 flex-1 cursor-pointer items-center gap-2"
+                          >
+                            <ChevronIcon isOpen={isOpen} />
+                            <span
+                              className={`truncate text-left text-body-l uppercase ${
+                                isOpen
+                                  ? 'font-semibold text-text-primary-blue'
+                                  : 'font-medium text-text-primary'
+                              }`}
+                            >
+                              {stage.name}
+                            </span>
+                          </button>
+
+                          {!isEditable ? (
+                            // 미분류처럼 편집 버튼이 없어도 스텝 수 위치가 흔들리지 않게 자리만 남긴다
+                            <span aria-hidden className="size-5 shrink-0" />
+                          ) : (
+                            <button
+                              type="button"
+                              aria-label={`${stage.name} 스텝 추가`}
+                              onClick={() =>
+                                modal.open({
+                                  kind: 'stepCreate',
+                                  stageId: stage.stageId,
+                                  stageName: stage.name,
+                                })
+                              }
+                              onPointerEnter={preloadStepChunks}
+                              // 노출 · 호버 · 아이콘 색을 RowMenu 의 ⋯ 버튼과 동일하게 맞춘다.
+                              // group-focus-within 은 쓰지 않는다 — 스테이지를 클릭한 뒤
+                              // 포커스가 남아 버튼이 계속 보인다
+                              className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-button-sm text-text-secondary opacity-0 group-hover:opacity-100 hover:bg-black/5 focus-visible:opacity-100"
+                            >
+                              <PlusIcon />
+                            </button>
+                          )}
+
+                          <span
+                            className={`shrink-0 text-body-l uppercase ${
+                              isOpen
+                                ? 'font-semibold text-text-primary-blue'
+                                : 'font-medium text-text-secondary'
+                            }`}
+                          >
+                            {stage.stepCount}
+                          </span>
+
+                          {isEditable ? (
+                            <RowMenu
+                              label={stage.name}
+                              onOpen={preloadStageChunks}
+                              items={[
+                                {
+                                  label: '이름 수정',
+                                  icon: <PencilIcon />,
+                                  onSelect: () =>
+                                    modal.open({ kind: 'stageRename', stage }),
+                                },
+                                {
+                                  label: '삭제',
+                                  icon: <TrashIcon />,
+                                  danger: true,
+                                  onSelect: () =>
+                                    modal.open({ kind: 'stageDelete', stage }),
+                                },
+                              ]}
+                            />
+                          ) : (
+                            <span aria-hidden className="size-5 shrink-0" />
+                          )}
+                        </div>
+                      </div>
+
+                      {isOpen && stageSteps.length === 0 && (
+                        // 새로 만든 스테이지는 스텝이 0개다. 펼쳤을 때 아무 변화도 없으면
+                        // 동작이 실패한 것으로 오해한다
+                        <p className="border-b border-border-default px-6 py-3 text-label text-text-secondary">
+                          등록된 스텝이 없습니다.
+                        </p>
+                      )}
+
+                      {isOpen && stageSteps.length > 0 && (
+                        <div className="flex flex-col gap-1.5 border-b border-border-default py-2">
+                          {stageSteps.map((step) => (
+                            <StepCard
+                              key={step.stepId}
+                              projectId={projectId}
+                              step={step}
+                              isActive={step.stepId === activeStepId}
+                              onEdit={() =>
+                                modal.open({ kind: 'stepEdit', step })
+                              }
+                              onComplete={() =>
+                                modal.open({ kind: 'stepComplete', step })
+                              }
+                              onDelete={() =>
+                                modal.open({ kind: 'stepDelete', step })
+                              }
+                            />
+                          ))}
+                          <Legend />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="border-t border-border-default px-4 py-3">
+              <p className="flex items-center gap-1.5 text-label text-text-secondary">
+                <UsersIcon />
+                {members ? `참여자 (${members.length})` : '참여자'}
               </p>
-            ) : (
-              <div className="flex items-center pt-2">
-                {/*
+              {haveMembersFailed ? (
+                <div className="flex items-center justify-between gap-2 pt-2">
+                  <p role="alert" className="text-caption text-text-danger">
+                    참여자를 불러오지 못했습니다.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFailedMembersProjectId(null);
+                      setMembersReloadCount((count) => count + 1);
+                    }}
+                    className="shrink-0 cursor-pointer rounded-button-sm px-1.5 py-0.5 text-caption font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+                  >
+                    다시 시도
+                  </button>
+                </div>
+              ) : !members ? (
+                <ProjectMembersSkeleton />
+              ) : members.length === 0 ? (
+                <p className="pt-2 text-caption text-text-secondary">
+                  등록된 참여자가 없습니다.
+                </p>
+              ) : (
+                <div className="flex items-center pt-2">
+                  {/*
                   담당자 아바타는 `MemberAvatar` 하나로 모은다 — 사번 기준으로 색이 정해져
                   이슈 · 블록 담당자와 **같은 사람이 같은 색**으로 나온다
                 */}
-                {members.map((member, index) => (
-                  <span
-                    key={member.memberId}
-                    title={`${member.name}${member.department ? ` · ${member.department}` : ''}${member.resigned ? ' · 퇴사' : ''}`}
-                    style={{
-                      marginLeft: index === 0 ? 0 : -8,
-                      zIndex: index,
-                    }}
-                    className="flex"
+                  {members.map((member, index) => (
+                    <span
+                      key={member.memberId}
+                      title={`${member.name}${member.department ? ` · ${member.department}` : ''}${member.resigned ? ' · 퇴사' : ''}`}
+                      style={{
+                        marginLeft: index === 0 ? 0 : -8,
+                        zIndex: index,
+                      }}
+                      className="flex"
+                    >
+                      <MemberAvatar userId={member.userId} name={member.name} />
+                    </span>
+                  ))}
+                  {/* TODO: 참여자 추가 모달 연결 */}
+                  <button
+                    type="button"
+                    aria-label="참여자 추가"
+                    style={{ marginLeft: -8, zIndex: members?.length ?? 0 }}
+                    className="flex size-6 cursor-pointer items-center justify-center rounded-pill border border-white bg-bg-hover hover:bg-bg-hover-secondary"
                   >
-                    <MemberAvatar userId={member.userId} name={member.name} />
-                  </span>
-                ))}
-                {/* TODO: 참여자 추가 모달 연결 */}
-                <button
-                  type="button"
-                  aria-label="참여자 추가"
-                  style={{ marginLeft: -8, zIndex: members?.length ?? 0 }}
-                  className="flex size-6 cursor-pointer items-center justify-center rounded-full border border-white bg-bg-hover hover:bg-bg-hover-secondary"
-                >
-                  <PlusIcon />
-                </button>
-              </div>
-            )}
-          </div>
+                    <PlusIcon />
+                  </button>
+                </div>
+              )}
+            </div>
 
-          <Link
-            href={`/projects/${projectId}/settings`}
-            className="flex h-13 shrink-0 items-center gap-2 border-t border-border-default px-4 text-base font-medium text-text-secondary hover:bg-bg-surface"
-          >
-            <SettingsIcon />
-            프로젝트 설정
-          </Link>
-        </div>
+            <Link
+              href={`/projects/${projectId}/settings`}
+              className="flex h-13 shrink-0 items-center gap-2 border-t border-border-default px-4 text-body-l font-medium text-text-secondary hover:bg-bg-surface"
+            >
+              <SettingsIcon />
+              프로젝트 설정
+            </Link>
+          </div>
+        )}
+      </aside>
+
+      {/*
+        모달은 `<aside>` 밖에 둔다 — 사이드바가 `overflow-hidden` 이라
+        안에 두면 접힘 전환 중에 잘린다. `<dialog>` 는 어차피 top-layer 에 뜬다.
+      */}
+      {openModal?.kind === 'stageManage' && stages && steps && (
+        <StageManageModal
+          projectId={projectId}
+          stages={stages}
+          steps={steps}
+          onClose={modal.close}
+          onChanged={reload}
+        />
       )}
-    </aside>
+      {(openModal?.kind === 'stageCreate' ||
+        openModal?.kind === 'stageRename') && (
+        <StageFormModal
+          projectId={projectId}
+          stage={openModal.kind === 'stageRename' ? openModal.stage : undefined}
+          onClose={modal.close}
+          onSaved={reload}
+        />
+      )}
+      {openModal?.kind === 'stageDelete' && (
+        <StageDeleteModal
+          stage={openModal.stage}
+          stages={stages ?? []}
+          onClose={modal.close}
+          onDeleted={reload}
+        />
+      )}
+      {(openModal?.kind === 'stepCreate' || openModal?.kind === 'stepEdit') && (
+        <StepFormModal
+          projectId={projectId}
+          step={openModal.kind === 'stepEdit' ? openModal.step : undefined}
+          stageId={
+            openModal.kind === 'stepCreate' ? openModal.stageId : undefined
+          }
+          stageName={
+            openModal.kind === 'stepCreate' ? openModal.stageName : undefined
+          }
+          onClose={modal.close}
+          onSaved={reload}
+        />
+      )}
+      {openModal?.kind === 'stepDelete' && (
+        <StepDeleteModal
+          step={openModal.step}
+          steps={steps ?? []}
+          onClose={modal.close}
+          onDeleted={({ movedBlockCount }) =>
+            handleStepDeleted(openModal.step, movedBlockCount)
+          }
+        />
+      )}
+      {openModal?.kind === 'stepComplete' && (
+        <StepCompleteModal
+          step={openModal.step}
+          onClose={modal.close}
+          onCompleted={handleStepCompleted}
+        />
+      )}
+    </>
   );
 }
 
@@ -578,7 +813,7 @@ function CollapsedSidebar({
         className="flex h-13 shrink-0 items-center justify-center"
       >
         {/* 평소에는 흰 바탕이라 아이콘만 떠 보인다 — 호버할 때만 판이 드러난다 */}
-        <span className="flex size-7 items-center justify-center rounded-lg bg-white text-text-secondary hover:bg-bg-hover">
+        <span className="flex size-7 items-center justify-center rounded-lg bg-bg-card text-text-secondary hover:bg-bg-hover">
           <ArrowLeftIcon />
         </span>
       </Link>
@@ -591,7 +826,7 @@ function CollapsedSidebar({
         title="사이드바 펼치기"
         className="flex h-13 shrink-0 cursor-pointer items-center justify-center"
       >
-        <span className="flex size-7 items-center justify-center rounded-lg bg-white hover:bg-bg-hover">
+        <span className="flex size-7 items-center justify-center rounded-lg bg-bg-card hover:bg-bg-hover">
           <PanelIcon direction="right" />
         </span>
       </button>
@@ -615,7 +850,7 @@ function CollapsedSidebar({
               <span
                 key={row}
                 aria-hidden
-                className="h-10 animate-pulse rounded bg-bg-hover"
+                className="h-10 animate-pulse rounded-button-sm bg-bg-hover"
               />
             ))}
           </div>
@@ -663,7 +898,7 @@ function CollapsedSidebar({
                   {stageSteps.slice(0, MAX_COLLAPSED_DOTS).map((step) => (
                     <span
                       key={step.stepId}
-                      className={`size-2 rounded-full ${STEP_STATUS_BG[step.status]}`}
+                      className={`size-2 rounded-pill ${STEP_STATUS_BG[step.status]}`}
                     />
                   ))}
                 </span>
@@ -719,10 +954,16 @@ function StepCard({
   projectId,
   step,
   isActive,
+  onEdit,
+  onComplete,
+  onDelete,
 }: {
   projectId: string;
   step: ProjectStep;
   isActive: boolean;
+  onEdit: () => void;
+  onComplete: () => void;
+  onDelete: () => void;
 }) {
   return (
     <div className="px-4">
@@ -746,17 +987,17 @@ function StepCard({
           */}
           <span
             aria-hidden
-            className={`size-2 shrink-0 rounded-full ${STEP_STATUS_BG[step.status]}`}
+            className={`size-2 shrink-0 rounded-pill ${STEP_STATUS_BG[step.status]}`}
           />
           <span
-            className={`flex-1 truncate text-sm font-semibold ${
+            className={`flex-1 truncate text-body-m font-semibold ${
               isActive ? 'text-text-primary-blue' : 'text-text-secondary'
             }`}
           >
             {step.name}
           </span>
           <span
-            className={`text-xs ${isActive ? 'text-text-primary-blue' : 'text-text-secondary'}`}
+            className={`text-label ${isActive ? 'text-text-primary-blue' : 'text-text-secondary'}`}
           >
             {step.progressRate ?? 0}%
           </span>
@@ -765,6 +1006,30 @@ function StepCard({
               <RowMenu
                 label={step.name}
                 revealClass="group-hover/step:opacity-100"
+                onOpen={preloadStepChunks}
+                items={[
+                  {
+                    label: '스텝 수정',
+                    icon: <PencilIcon />,
+                    onSelect: onEdit,
+                  },
+                  // 이미 끝난 스텝에 다시 걸어도 기록이 바뀌지 않지만, 할 일이 없는 항목은 숨긴다
+                  ...(step.status === 'DONE'
+                    ? []
+                    : [
+                        {
+                          label: '완료 처리',
+                          icon: <CheckIcon />,
+                          onSelect: onComplete,
+                        },
+                      ]),
+                  {
+                    label: '삭제',
+                    icon: <TrashIcon />,
+                    danger: true,
+                    onSelect: onDelete,
+                  },
+                ]}
               />
             </span>
           ) : (
@@ -781,17 +1046,30 @@ function StepCard({
   );
 }
 
+interface RowMenuItem {
+  label: string;
+  icon: React.ReactNode;
+  /** 삭제처럼 되돌릴 수 없는 항목은 빨갛게 */
+  danger?: boolean;
+  onSelect: () => void;
+}
+
 /**
- * 스테이지 · 스텝 공통 `⋯` 메뉴. 이름 수정 · 삭제를 담는다.
+ * 스테이지 · 스텝 공통 `⋯` 메뉴. 항목은 쓰는 쪽이 정한다.
  * 평소에는 투명하게 자리만 차지하고, 행에 호버하거나 포커스가 들어오면 보인다.
  */
 function RowMenu({
   label,
+  items,
   // ⚠️ Tailwind 는 조합된 클래스명을 못 읽는다. 완성된 문자열로 넘겨야 한다
   revealClass = 'group-hover:opacity-100',
+  onOpen,
 }: {
   label: string;
+  items: RowMenuItem[];
   revealClass?: string;
+  /** 열자마자 모달 청크를 받아 둔다 — 항목을 고를 때는 이미 도착해 있다 */
+  onOpen?: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -818,8 +1096,12 @@ function RowMenu({
         aria-label={`${label} 메뉴`}
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        onClick={() => setIsOpen((wasOpen) => !wasOpen)}
-        className={`flex size-5 cursor-pointer items-center justify-center rounded hover:bg-black/5 focus-visible:opacity-100 ${
+        onPointerEnter={onOpen}
+        onClick={() => {
+          if (!isOpen) onOpen?.();
+          setIsOpen((wasOpen) => !wasOpen);
+        }}
+        className={`flex size-5 cursor-pointer items-center justify-center rounded-button-sm hover:bg-black/5 focus-visible:opacity-100 ${
           isOpen ? 'opacity-100' : `opacity-0 ${revealClass}`
         }`}
       >
@@ -838,27 +1120,27 @@ function RowMenu({
           />
           <span
             role="menu"
-            className="absolute top-full right-0 z-20 mt-1 flex w-32 flex-col overflow-hidden rounded-lg border border-border-default bg-white shadow-lg"
+            className="absolute top-full right-0 z-20 mt-1 flex w-32 flex-col overflow-hidden rounded-lg border border-border-default bg-bg-card shadow-lg"
           >
-            {/* TODO: 이름 수정 · 삭제 API 연동 */}
-            <button
-              type="button"
-              role="menuitem"
-              onClick={close}
-              className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-[11px] font-medium text-text-primary hover:bg-bg-surface"
-            >
-              <PencilIcon />
-              이름 수정
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              onClick={close}
-              className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-[11px] font-medium text-text-danger hover:bg-red-bg-soft"
-            >
-              <TrashIcon />
-              삭제
-            </button>
+            {items.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  close();
+                  item.onSelect();
+                }}
+                className={`flex cursor-pointer items-center gap-2 px-3 py-1.5 text-[11px] font-medium ${
+                  item.danger
+                    ? 'text-text-danger hover:bg-red-bg-soft'
+                    : 'text-text-primary hover:bg-bg-surface'
+                }`}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            ))}
           </span>
         </>
       )}
@@ -888,11 +1170,11 @@ function StepProgressBar({ step }: { step: ProjectStep }) {
 
   // 이슈가 하나도 없으면 빈 바로 둔다
   if (step.totalIssueCount === 0) {
-    return <div className="h-1.5 rounded-full bg-btn-gray-bg-hover" />;
+    return <div className="h-1.5 rounded-pill bg-btn-gray-bg-hover" />;
   }
 
   return (
-    <div className="flex h-1.5 overflow-hidden rounded-full">
+    <div className="flex h-1.5 overflow-hidden rounded-pill">
       {/*
         0인 구간도 지우지 않고 폭 0으로 둔다 — DOM 에서 빼면 이슈 상태가 바뀔 때
         막대가 끊겼다 나타나 깜빡인다. 대신 비율만 부드럽게 전환한다.
@@ -944,7 +1226,7 @@ function LegendItem({
 }) {
   return (
     <span className="flex items-center gap-1">
-      <span aria-hidden className={`size-2 rounded-full ${dotClass}`} />
+      <span aria-hidden className={`size-2 rounded-pill ${dotClass}`} />
       <span className={textClass}>{label}</span>
     </span>
   );
@@ -1044,6 +1326,14 @@ function PencilIcon() {
     <Svg className="size-3 shrink-0">
       <path d="M4 20h4L20 8l-4-4L4 16z" />
       <path d="m15 5 4 4" />
+    </Svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <Svg strokeWidth={2} className="size-3 shrink-0">
+      <path d="m5 12.5 4.5 4.5L19 7" />
     </Svg>
   );
 }

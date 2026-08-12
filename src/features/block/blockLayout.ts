@@ -1,4 +1,9 @@
-import { BLOCK_COLUMNS, type BlockLayout, type StepBlock } from './types';
+import {
+  BLOCK_COLUMNS,
+  type BlockLayout,
+  type BlockLayoutOrder,
+  type StepBlock,
+} from './types';
 
 /** 범위를 벗어난 값이 와도 레이아웃이 깨지지 않게 1~3 으로 자른다 */
 export function toSpan(colSpan: number) {
@@ -125,6 +130,34 @@ export function toLayouts(rows: StepBlock[][]): BlockLayout[] {
       colSpan: toSpan(block.colSpan),
     })),
   );
+}
+
+/**
+ * 저장 요청용 배치 — 위치에 각 블록의 `version` 을 얹는다.
+ *
+ * ⚠️ `version` 이 **하나라도 없으면 `null` 을 준다.** 서버가 항목마다 락을 검사하고
+ *    하나만 어긋나도 요청 전체가 409 로 롤백되므로, 반쪽짜리 요청은 보내 봐야 전부 실패한다.
+ *    (스테이지 · 스텝 순서 변경과 같은 방침 — `StageManageModal.toStepOrders`)
+ *
+ * ⚠️ **공통 값 하나로 채우면 안 된다.** 컴파일도 되고 요청도 나가지만 전부 409 다.
+ */
+export function toLayoutOrders(rows: StepBlock[][]): BlockLayoutOrder[] | null {
+  const orders: BlockLayoutOrder[] = [];
+
+  for (const [rowIndex, row] of rows.entries()) {
+    for (const [sortOrder, block] of row.entries()) {
+      if (block.version === undefined) return null;
+      orders.push({
+        blockId: block.blockId,
+        rowIndex,
+        sortOrder,
+        colSpan: toSpan(block.colSpan),
+        version: block.version,
+      });
+    }
+  }
+
+  return orders;
 }
 
 /**

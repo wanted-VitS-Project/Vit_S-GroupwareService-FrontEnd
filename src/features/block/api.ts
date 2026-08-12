@@ -2,13 +2,15 @@ import { ENDPOINTS } from '@/constants/endpoints';
 import { api, postForm, requestRaw } from '@/lib/api';
 
 import type {
-  BlockLayout,
+  BlockLayoutOrder,
   CreateBlockRequest,
   CreateChecklistItemResponse,
   CreateImageItemsResponse,
   DeleteChecklistItemResponse,
   ImageItemResponse,
   ImageItemsResponse,
+  MoveBlockRequest,
+  MoveBlockResponse,
   ProjectImage,
   RestoredImage,
   StepBlock,
@@ -62,14 +64,35 @@ export function deleteBlock(blockId: number | string, signal?: AbortSignal) {
 }
 
 /**
+ * 블록을 다른 스텝으로 옮긴다 (2026-08-11 신설).
+ *
+ * ⚠️ 낙관적 락 — 409 면 재조회 · 덮어쓰기(`overwrite: true`)를 사용자에게 묻는다.
+ * ⚠️ 출발 · 도착 **양쪽 EDITOR** 여야 한다 (`STEP_EDIT_DENIED`).
+ * ⚠️ 옮기면 **이슈 연결이 끊긴다** — 응답 `unlinkedIssueCount` 를 화면이 알려야 한다.
+ */
+export function moveBlockToStep(
+  blockId: number | string,
+  body: MoveBlockRequest,
+  signal?: AbortSignal,
+) {
+  return api.patch<MoveBlockResponse>(
+    ENDPOINTS.blocks.step(blockId),
+    body,
+    signal,
+  );
+}
+
+/**
  * 블록 배치 변경 — 스텝 EDITOR 권한이 필요하다.
  *
  * ⚠️ 옮긴 블록만이 아니라 **스텝의 배치 전체**를 보낸다.
  * 중간 상태의 중복 좌표를 서버가 허용하므로(BLK-004) 드래그 한 번에 한 번만 부른다.
+ * ⚠️ 낙관적 락을 **항목마다** 검사한다 — 하나라도 어긋나면 요청 전체가 409 로 롤백된다.
+ * ⛔ `overwrite` 가 없다 — 409 면 재조회뿐이다.
  */
 export function updateBlockLayout(
   stepId: number | string,
-  layouts: BlockLayout[],
+  layouts: BlockLayoutOrder[],
   signal?: AbortSignal,
 ) {
   return api

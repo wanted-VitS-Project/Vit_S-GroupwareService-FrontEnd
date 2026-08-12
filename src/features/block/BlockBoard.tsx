@@ -60,7 +60,7 @@ function BlockBodyFallback() {
     <div
       role="status"
       aria-label="블록을 불러오는 중입니다"
-      className="min-h-32 animate-pulse rounded-lg border border-border-default bg-white"
+      className="min-h-32 animate-pulse rounded-lg border border-border-default bg-bg-card"
     />
   );
 }
@@ -512,6 +512,12 @@ export default function BlockBoard({
         ...current[index],
         title: updated.title,
         owner: updated.owner,
+        /*
+         * ⚠️ `version` 을 빠뜨리면 안 된다 — 서버는 이미 올려 놓았다.
+         * 옛 값을 든 채로 두면 **다음 수정도, 배치 저장도 전부 409** 다
+         * (배치는 이 블록의 `version` 을 그대로 실어 보낸다).
+         */
+        version: updated.version,
       };
 
       liveOrder.current = next;
@@ -557,7 +563,7 @@ export default function BlockBoard({
 
   if (order.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-border-default px-4 py-10 text-center text-xs text-text-secondary">
+      <p className="rounded-lg border border-dashed border-border-default px-4 py-10 text-center text-label text-text-secondary">
         아직 블록이 없습니다. `Block 추가` 로 시작해보세요.
       </p>
     );
@@ -569,7 +575,7 @@ export default function BlockBoard({
       <BlockDragProvider value={isArranging ? drag : null}>
         <div className="flex flex-col gap-4">
           {isArranging && (
-            <div className="flex items-center gap-2 rounded border border-border-primary/30 bg-blue-bg-soft px-2.5 py-1.5 text-[10px] text-text-primary-blue">
+            <div className="flex items-center gap-2 rounded-button-sm border border-border-primary/30 bg-blue-bg-soft px-2.5 py-1.5 text-caption text-text-primary-blue">
               <p className="min-w-0 flex-1">
                 블록을 끌어 자리를 바꾼 뒤 <strong>배치 완료</strong> 를
                 눌러주세요. 저장은 그때 한 번만 이뤄집니다.
@@ -578,7 +584,7 @@ export default function BlockBoard({
                 <button
                   type="button"
                   onClick={() => arrangeApi.revert()}
-                  className="shrink-0 cursor-pointer rounded px-1.5 py-0.5 font-medium underline-offset-2 hover:bg-white hover:underline"
+                  className="shrink-0 cursor-pointer rounded-button-sm px-1.5 py-0.5 font-medium underline-offset-2 hover:bg-bg-card hover:underline"
                 >
                   되돌리기
                 </button>
@@ -589,7 +595,7 @@ export default function BlockBoard({
           {saveError && (
             <p
               role="alert"
-              className="rounded border border-border-danger/20 bg-red-bg-soft px-2.5 py-1.5 text-[10px] text-text-danger"
+              className="rounded-button-sm border border-border-danger/20 bg-red-bg-soft px-2.5 py-1.5 text-caption text-text-danger"
             >
               {saveError}
             </p>
@@ -703,7 +709,7 @@ function DropSlot({
     <div
       aria-hidden
       data-drop-after={afterBlockId}
-      className={`flex min-h-16 items-center justify-center rounded-lg border border-dashed text-[10px] transition-colors ${
+      className={`flex min-h-16 items-center justify-center rounded-lg border border-dashed text-caption transition-colors ${
         COL_SPAN_CLASS[span]
       } ${
         isActive
@@ -743,7 +749,7 @@ const BlockBody = memo(function BlockBody({
   // TODO: 유형별 블록 구현 (PAYMENT_CONFIRM · TAX_INVOICE_VIEW · …)
   return (
     <BlockCard block={block}>
-      <p className="text-[10px] text-text-secondary">준비 중인 블록입니다.</p>
+      <p className="text-caption text-text-secondary">준비 중인 블록입니다.</p>
     </BlockCard>
   );
 });
