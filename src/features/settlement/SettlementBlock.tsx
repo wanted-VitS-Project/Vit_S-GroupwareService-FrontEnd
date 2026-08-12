@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import BlockCard from '@/features/block/BlockCard';
+import { notifyBlockChanged } from '@/features/block/events';
 import type { StepBlock } from '@/features/block/types';
 import { formatDate, formatDateTime } from '@/lib/format';
 
@@ -63,10 +64,22 @@ function Loaded({
     item: SettlementItem;
     type: SettlementType;
   } | null>(null);
+  /**
+   * 저장이 막혀 목록을 다시 읽었다는 안내.
+   * 폼이 닫히면서 폼 안의 오류 문구가 함께 사라지므로 요약 화면에서 이어 말해 준다.
+   */
+  const [staleNotice, setStaleNotice] = useState('');
 
   const item = saved?.item ?? detail.item;
   const type = saved?.type ?? detail.type;
   const { status } = detail;
+  /**
+   * 저장에 실을 낙관적 락 버전.
+   *
+   * ⚠️ 저장 응답의 새 값이 있으면 **그쪽이 최신**이다 — 블록 목록을 다시 읽지 않으므로
+   *    `detail.version` 은 옛 값에 머문다. 연달아 두 번 저장할 때 두 번째가 409 가 되지 않게.
+   */
+  const version = saved?.item.version ?? detail.version;
 
   if (isEditing) {
     return (
@@ -76,10 +89,21 @@ function Loaded({
           // 블록이 이미 타입을 알고 있으면 그걸 먼저 고른 상태로 연다
           initialType={type}
           item={item}
+          version={version}
           onClose={() => setIsEditing(false)}
           onSaved={(next, savedType) => {
             setSaved({ item: next, type: savedType });
             setIsEditing(false);
+          }}
+          onStale={(reason) => {
+            /*
+             * 화면이 든 값이 더 이상 맞지 않다 — 폼을 닫고 **블록 목록을 다시 읽는다.**
+             * 저장 응답으로 갈아끼운 값(`saved`)도 버려야 새 목록이 화면에 드러난다.
+             */
+            setSaved(null);
+            setIsEditing(false);
+            setStaleNotice(reason);
+            notifyBlockChanged();
           }}
         />
       </BlockCard>
@@ -125,9 +149,22 @@ function Loaded({
 
       <Progress ratio={item?.paidAmountRatio ?? 0} />
 
+      {staleNotice !== '' && (
+        <p
+          role="status"
+          className="mt-2 rounded-lg bg-yellow-bg-soft px-2.5 py-2 text-caption break-keep text-yellow-text"
+        >
+          {staleNotice}
+        </p>
+      )}
+
       <button
         type="button"
-        onClick={() => setIsEditing(true)}
+        onClick={() => {
+          // 다시 열 때 지난 안내는 역할을 다했다
+          setStaleNotice('');
+          setIsEditing(true);
+        }}
         className="mt-3 w-full cursor-pointer rounded-lg border border-border-primary py-2 text-detail font-semibold text-text-primary-blue hover:bg-bg-hover"
       >
         수정하기
