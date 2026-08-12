@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import Modal from '@/components/Modal';
 import ModalLoadingFallback from '@/components/ModalLoadingFallback';
 import {
@@ -11,6 +12,7 @@ import {
   getBlockFiles,
   renameFile,
 } from '@/features/file/api';
+import { isFileVersionConflict } from '@/features/file/errorCodes';
 import { preloadPdfViewer } from '@/features/file/pdfViewer';
 import {
   cancelPreviewPrefetch,
@@ -144,6 +146,11 @@ export default function FileBlock({ block }: { block: StepBlock }) {
   const trashModal = useModalTarget<BlockFile>();
   /** 동명 문서 확인 대기 — 확인하면 같은 파일을 다시 올린다 */
   const duplicateModal = useModalTarget<{ file: File; message: string }>();
+  /** 이름 저장이 409 로 막힘 — 덮어쓸지 다시 불러올지 묻는다 */
+  const renameConflictModal = useModalTarget<{
+    file: BlockFile;
+    name: string;
+  }>();
 
   const pickerRef = useRef<HTMLInputElement>(null);
   /** 새 버전을 올릴 대상. 비어 있으면 새 문서 */
@@ -169,6 +176,7 @@ export default function FileBlock({ block }: { block: StepBlock }) {
   const canEdit = loaded?.canEdit ?? false;
   // 지역 상수로 받아야 JSX 안에서 `null` 이 아님이 좁혀진다
   const duplicatePending = duplicateModal.target;
+  const renamePending = renameConflictModal.target;
 
   function reload() {
     setReloadCount((count) => count + 1);
@@ -209,18 +217,48 @@ export default function FileBlock({ block }: { block: StepBlock }) {
     }
   }
 
-  async function saveName(file: BlockFile) {
+  /**
+   * 문서명 저장. **낙관적 락**이라 `version` 을 실어 보낸다 (2026-08-11).
+   *
+   * 409 면 조용히 삼키지 않고 **재조회 / 덮어쓰기**를 묻는다 — 이름은 짧아도
+   * 남이 방금 고친 이름을 되돌려 놓으면 원인을 찾기 어렵다.
+   */
+  async function saveName(
+    file: BlockFile,
+    name: string,
+    overwrite = false,
+  ): Promise<void> {
+    // 버전 없이 보내면 400 이다 — 요청하지 않고 재조회를 안내한다
+    if (file.version === undefined) {
+      setErrorMessage(
+        '문서의 버전 정보를 받지 못해 이름을 바꿀 수 없습니다. 새로고침해주세요.',
+      );
+      return;
+    }
+
+    try {
+      await renameFile(file.fileId, {
+        name,
+        version: file.version,
+        ...(overwrite ? { overwrite: true } : {}),
+      });
+      reload();
+    } catch (caught) {
+      if (isFileVersionConflict(caught)) {
+        renameConflictModal.open({ file, name });
+        return;
+      }
+      setErrorMessage(messageOf(caught, '문서명을 바꾸지 못했습니다.'));
+    }
+  }
+
+  function requestSaveName(file: BlockFile) {
     const name = editingName.trim();
     setEditingFileId(null);
 
     if (!name || name === file.name) return;
 
-    try {
-      await renameFile(file.fileId, name);
-      reload();
-    } catch (caught) {
-      setErrorMessage(messageOf(caught, '문서명을 바꾸지 못했습니다.'));
-    }
+    void saveName(file, name);
   }
 
   return (
@@ -276,7 +314,7 @@ export default function FileBlock({ block }: { block: StepBlock }) {
                     setEditingName(file.name);
                   }}
                   onCancelRename={() => setEditingFileId(null)}
-                  onSaveName={() => saveName(file)}
+                  onSaveName={() => requestSaveName(file)}
                   onOpen={() => viewerModal.open(file)}
                   onDownload={() =>
                     downloadVersion(file.latestVersionId).catch((caught) =>
@@ -342,6 +380,26 @@ export default function FileBlock({ block }: { block: StepBlock }) {
           onConfirm={() => {
             duplicateModal.close();
             upload(duplicatePending.file, true);
+          }}
+        />
+      )}
+
+      {renamePending && (
+        /* 취소(= Esc · 배경 클릭)를 **다시 불러오기**에 둔다 — 잘못 눌러도 남의 이름이 안 지워진다 */
+        <AlertDialogTwoButton
+          icon={DialogIcons.warning}
+          title="다른 사람이 먼저 저장했어요"
+          description={`그 사이 이 문서가 수정됐습니다. '${renamePending.name}' 로 덮어쓰거나, 최신 내용을 다시 불러올 수 있습니다.`}
+          confirmLabel="덮어쓰기"
+          cancelLabel="다시 불러오기"
+          isDanger
+          onConfirm={() => {
+            renameConflictModal.close();
+            void saveName(renamePending.file, renamePending.name, true);
+          }}
+          onCancel={() => {
+            renameConflictModal.close();
+            reload();
           }}
         />
       )}

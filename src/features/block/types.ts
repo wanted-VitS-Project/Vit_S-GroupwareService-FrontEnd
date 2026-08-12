@@ -269,6 +269,14 @@ export interface TextBlockDetail {
   txtId: number;
   /** 마크다운 원문 */
   content: string;
+  /**
+   * 낙관적 락 버전 (2026-08-11 신설).
+   *
+   * ⚠️ **`block.version` 과 다른 값이다** — `text` 테이블의 자기 버전이다.
+   *    블록 목록 조회의 `TEXT` 상세에 함께 실려 온다.
+   * ⚠️ 선택으로 둔다 — 없으면 화면이 저장을 막고 새로고침을 안내한다.
+   */
+  version?: number;
 }
 
 /**
@@ -278,17 +286,44 @@ export interface TextBlockDetail {
 export function readTextBlockDetail(detail: unknown): TextBlockDetail | null {
   if (typeof detail !== 'object' || detail === null) return null;
 
-  const { txtId, content } = detail as { txtId?: unknown; content?: unknown };
+  const { txtId, content, version } = detail as {
+    txtId?: unknown;
+    content?: unknown;
+    version?: unknown;
+  };
   if (typeof txtId !== 'number') return null;
 
-  return { txtId, content: typeof content === 'string' ? content : '' };
+  return {
+    txtId,
+    content: typeof content === 'string' ? content : '',
+    version: typeof version === 'number' ? version : undefined,
+  };
 }
 
-/** PATCH /api/v1/blocks/texts/{txtId} */
+/**
+ * PATCH /api/v1/blocks/texts/{txtId}
+ *
+ * ⚠️ **낙관적 락** — `version` 필수(없으면 400 `TEXT_VERSION_REQUIRED`),
+ *    늦으면 409 `TEXT_VERSION_CONFLICT`. 409 면 재조회 / 덮어쓰기를 묻는다.
+ */
+export interface UpdateTextBlockRequest {
+  /** 부분 수정이 아니라 전체 내용 */
+  content: string;
+  /** 블록 목록에서 받은 `detail.version` 그대로 */
+  version: number;
+  /** `true` 면 충돌을 무시하고 덮어쓴다 */
+  overwrite?: boolean;
+}
+
 export interface UpdateTextBlockResponse {
   txtId: number;
   content: string;
   updatedAt: string;
+  /**
+   * 저장 후의 새 값. 화면에 꽂지 않으면 **다음 저장이 또 409** 다.
+   * 응답에 없으면 화면은 버전을 비워 다음 저장 전에 새로고침을 안내한다.
+   */
+  version?: number;
 }
 
 /** POST /api/v1/blocks/checklists/{chkBlockId}/items */
@@ -342,6 +377,13 @@ export interface BlockImage {
    * 값이 오면 그대로 쓰고, 없으면 `imageAltText()` 가 차선책으로 떨어진다.
    */
   altText?: string;
+  /**
+   * 낙관적 락 버전 (2026-08-11 신설) — **이미지 한 장마다** 따로 있다 (`image` 테이블).
+   *
+   * 수정 요청의 `images[]` 각 항목에 그대로 실어 보낸다. 하나라도 어긋나면
+   * **배열 전체가 409** 이고 부분 저장은 없다. 선택으로 둬 없으면 저장을 막는다.
+   */
+  version?: number;
 }
 
 /**
@@ -575,11 +617,23 @@ export interface CreateImageItemsResponse {
 
 /** PATCH /api/v1/blocks/images/items/{imgBlockId} — 정렬된 전체 목록을 보낸다 */
 export interface UpdateImageItemsRequest {
-  images: { imgId: number; caption: string | null }[];
+  /**
+   * 정렬된 **전체** 목록. 빠진 이미지는 삭제로 간주된다.
+   *
+   * ⚠️ 항목마다 `version` 이 **필수**다 (없으면 400 `IMAGE_VERSION_REQUIRED`).
+   *    하나라도 늦으면 **배열 전체가 409** 다 — 부분 저장이 없다.
+   */
+  images: { imgId: number; caption: string | null; version: number }[];
 }
 
 export interface UpdateImageItemsResponse {
-  images: { imgId: number; orderIndex: number; caption: string }[];
+  /** `version` 은 저장 후의 새 값 — 다음 수정 요청에 그대로 실어 보낸다 */
+  images: {
+    imgId: number;
+    orderIndex: number;
+    caption: string;
+    version?: number;
+  }[];
 }
 
 /**
