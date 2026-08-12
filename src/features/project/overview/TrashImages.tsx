@@ -204,7 +204,7 @@ export default function TrashImages() {
             setFailedProjectId(null);
             setReloadCount((count) => count + 1);
           }}
-          className="cursor-pointer rounded-button-sm px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+          className="cursor-pointer rounded-button-sm px-2 py-1 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
         >
           다시 시도
         </button>
@@ -231,7 +231,7 @@ export default function TrashImages() {
                     : new Set(images.map((image) => image.imgId)),
                 )
               }
-              className="cursor-pointer rounded-button-sm px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+              className="cursor-pointer rounded-button-sm px-2 py-1 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
             >
               {areAllSelected ? '전체 해제' : '전체 선택'}
             </button>
@@ -312,7 +312,7 @@ export default function TrashImages() {
                     <span className="truncate text-caption font-medium text-text-primary">
                       {image.caption || image.originalName}
                     </span>
-                    <span className="font-mono text-[9px] text-text-secondary">
+                    <span className="font-mono text-micro text-text-secondary">
                       {formatDateTime(image.deletedAt)} 삭제
                     </span>
                   </span>

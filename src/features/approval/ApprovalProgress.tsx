@@ -54,7 +54,7 @@ export default function ApprovalProgress({
                 }`}
               />
             </div>
-            <span className="mt-1 w-full truncate px-0.5 text-center text-[9px] text-text-secondary">
+            <span className="mt-1 w-full truncate px-0.5 text-center text-micro text-text-secondary">
               {line.approverName}
             </span>
           </li>
@@ -87,7 +87,7 @@ function Marker({ line, step }: { line: ApprovalDetailLine; step: number }) {
     <span
       role="img"
       aria-label={`${line.approverName} ${LINE_STATUS_LABELS[line.status]}`}
-      className={`flex size-5 shrink-0 items-center justify-center rounded-pill border text-[9px] font-semibold ${MARKER_CLASS[line.status]}`}
+      className={`flex size-5 shrink-0 items-center justify-center rounded-pill border text-micro font-semibold ${MARKER_CLASS[line.status]}`}
     >
       {symbol}
     </span>

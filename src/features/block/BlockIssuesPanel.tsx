@@ -80,7 +80,7 @@ export default function BlockIssuesPanel({
         className={SIDE_PANEL}
         header={
           <div className="flex shrink-0 items-center gap-2 border-b border-border-default px-4 py-3">
-            <span className="flex size-5 shrink-0 items-center justify-center rounded-button-sm border border-blue-border-soft bg-blue-bg text-[11px] font-semibold text-text-primary-blue">
+            <span className="flex size-5 shrink-0 items-center justify-center rounded-button-sm border border-blue-border-soft bg-blue-bg text-detail font-semibold text-text-primary-blue">
               #
             </span>
             <div className="min-w-0 flex-1">
@@ -152,7 +152,7 @@ export default function BlockIssuesPanel({
                 </button>
               );
             })}
-            <span className="ml-auto text-[9px] font-medium text-text-secondary">
+            <span className="ml-auto text-micro font-medium text-text-secondary">
               {statusFilter === 'ALL'
                 ? '전체'
                 : ISSUE_STATUS_LABELS[statusFilter]}
@@ -182,7 +182,7 @@ export default function BlockIssuesPanel({
         <div className="min-h-0 flex-1 overflow-y-auto p-3">
           {error ? (
             <div className="flex h-full min-h-28 flex-col items-center justify-center gap-2 text-center">
-              <p role="alert" className="text-[11px] text-text-danger">
+              <p role="alert" className="text-detail text-text-danger">
                 {error}
               </p>
               <button
@@ -213,7 +213,7 @@ export default function BlockIssuesPanel({
               <span className="flex size-10 items-center justify-center rounded-pill bg-bg-hover text-text-secondary">
                 #
               </span>
-              <p className="text-[11px] text-text-secondary">
+              <p className="text-detail text-text-secondary">
                 연결된 이슈가 없습니다.
               </p>
               <p className="text-caption text-text-muted">
@@ -226,7 +226,7 @@ export default function BlockIssuesPanel({
                 filter={statusFilter}
                 className="size-6 text-text-muted"
               />
-              <p className="text-[11px] text-text-secondary">
+              <p className="text-detail text-text-secondary">
                 {ISSUE_STATUS_LABELS[statusFilter as IssueStatus]} 이슈가
                 없습니다.
               </p>
@@ -251,7 +251,7 @@ export default function BlockIssuesPanel({
                     className="w-full cursor-pointer rounded-lg border border-border-default bg-bg-card p-3 text-left transition-[border-color,box-shadow] hover:border-border-primary/30 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-primary"
                   >
                     <div className="mb-1.5 flex items-center gap-1.5">
-                      <span className="text-[9px] text-text-secondary">
+                      <span className="text-micro text-text-secondary">
                         #{issue.issueId}
                       </span>
                       <IssuePriorityBadge priority={issue.priority} />
@@ -259,10 +259,10 @@ export default function BlockIssuesPanel({
                         <IssueStatusBadge status={issue.status} />
                       </span>
                     </div>
-                    <p className="mb-2 text-[11px] leading-snug font-semibold text-text-primary">
+                    <p className="mb-2 text-detail leading-snug font-semibold text-text-primary">
                       {issue.title}
                     </p>
-                    <div className="flex items-center justify-between gap-2 text-[9px] text-text-secondary">
+                    <div className="flex items-center justify-between gap-2 text-micro text-text-secondary">
                       <div className="flex min-w-0 items-center">
                         {issue.assignees.slice(0, 3).map((assignee, index) => (
                           <span

@@ -142,7 +142,7 @@ export default function ApprovalDraftForm({
       <button
         type="button"
         onClick={closeAfterSave}
-        className="w-full cursor-pointer rounded-lg bg-[#4F39F6] py-2 text-[11px] font-semibold text-text-white hover:bg-[#4430d6]"
+        className="w-full cursor-pointer rounded-lg bg-[#4F39F6] py-2 text-detail font-semibold text-text-white hover:bg-[#4430d6]"
       >
         저장
       </button>
@@ -362,7 +362,7 @@ function LineSection({
               key={line.lineId}
               className="flex items-center gap-1.5 rounded-button-sm border border-border-default px-2 py-1.5"
             >
-              <span className="flex size-4 shrink-0 items-center justify-center rounded-pill bg-yellow-bg-soft text-[9px] font-semibold text-yellow-text">
+              <span className="flex size-4 shrink-0 items-center justify-center rounded-pill bg-yellow-bg-soft text-micro font-semibold text-yellow-text">
                 {index + 1}
               </span>
               <span className="min-w-0 flex-1 truncate text-caption text-text-primary">

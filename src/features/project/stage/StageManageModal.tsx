@@ -386,7 +386,7 @@ export default function StageManageModal({
       <PanelModal title="단계 관리" onClose={requestClose}>
         <div className="max-h-[60vh] overflow-y-auto p-5">
           {realStages.length === 0 && buckets[0].steps.length === 0 ? (
-            <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-[11px] break-keep text-text-secondary">
+            <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-detail break-keep text-text-secondary">
               등록된 단계가 없습니다. 아래에서 첫 단계를 추가해주세요.
             </p>
           ) : (
@@ -441,7 +441,7 @@ export default function StageManageModal({
                       ) : (
                         <span aria-hidden className="size-3 shrink-0" />
                       )}
-                      <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-text-primary">
+                      <span className="min-w-0 flex-1 truncate text-detail font-semibold text-text-primary">
                         {stage?.name ?? '미분류 (단계 없음)'}
                       </span>
                       <span className="shrink-0 text-caption text-text-secondary">
@@ -595,7 +595,7 @@ export default function StageManageModal({
             type="button"
             disabled={isDirty || isSaving}
             onClick={() => action.open({ kind: 'create' })}
-            className="mr-auto cursor-pointer rounded-lg border border-border-primary px-3 py-1.5 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft disabled:cursor-not-allowed disabled:border-border-default disabled:text-text-muted"
+            className="mr-auto cursor-pointer rounded-lg border border-border-primary px-3 py-1.5 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft disabled:cursor-not-allowed disabled:border-border-default disabled:text-text-muted"
           >
             + 단계 추가
           </button>
@@ -609,7 +609,7 @@ export default function StageManageModal({
                 setBuckets(baseline);
                 setError('');
               }}
-              className="cursor-pointer rounded-lg px-3 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+              className="cursor-pointer rounded-lg px-3 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
             >
               되돌리기
             </button>
@@ -622,7 +622,7 @@ export default function StageManageModal({
             type="button"
             onClick={isStale ? onChanged : isDirty ? saveOrder : onClose}
             disabled={isSaving}
-            className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+            className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
           >
             {isSaving
               ? '저장 중…'

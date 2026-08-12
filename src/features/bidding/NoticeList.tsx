@@ -210,7 +210,7 @@ export default function NoticeList() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[840px] border-collapse text-left">
               <thead className="bg-bg-surface">
-                <tr className="border-b border-border-default text-[11px] text-text-secondary">
+                <tr className="border-b border-border-default text-detail text-text-secondary">
                   {/**
                    * ⚠️ 폭의 **합이 정확히 100% 여야 한다.** 넘치면 브라우저가 알아서
                    *    비율을 다시 나눠 헤더와 본문 열이 어긋나 보인다.

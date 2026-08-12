@@ -36,7 +36,7 @@ function FieldShell({
     <div>
       <label
         htmlFor={id}
-        className="block pb-1.5 text-[11px] font-semibold text-text-primary"
+        className="block pb-1.5 text-detail font-semibold text-text-primary"
       >
         {label} {required && <span className="text-text-danger">*</span>}
       </label>
@@ -276,7 +276,7 @@ export function CheckboxField({
     <div>
       <label
         htmlFor={id}
-        className="flex cursor-pointer items-center gap-2 text-[11px] font-semibold text-text-primary"
+        className="flex cursor-pointer items-center gap-2 text-detail font-semibold text-text-primary"
       >
         <input
           id={id}
@@ -320,7 +320,7 @@ export function AlertBanner({
   return (
     <p
       role={tone === 'danger' ? 'alert' : 'status'}
-      className={`rounded-lg border px-4 py-3 text-[11px] break-keep ${toneClass} ${className}`}
+      className={`rounded-lg border px-4 py-3 text-detail break-keep ${toneClass} ${className}`}
     >
       {children}
     </p>

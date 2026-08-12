@@ -109,7 +109,6 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
 
           {/* 발주처는 이름이 길 수 있어 줄어들 수 있게 둔다 — 넘치면 말줄임 */}
           <span className="w-32 min-w-0 shrink truncate text-[13px] text-gray-text-soft">
-            <span className="text-text-secondary">발주처 </span>
             {row.clientName}
           </span>
 
@@ -240,7 +239,7 @@ type StageState = 'DONE' | 'IN_PROGRESS' | 'NOT_STARTED';
 const STAGE_BADGE: Record<StageState, { className: string; label: string }> = {
   DONE: { className: 'bg-green-bg text-green-text', label: '완료' },
   IN_PROGRESS: {
-    className: 'bg-blue-bg text-text-primary-blue',
+    className: 'bg-yellow-bg-soft text-yellow-text',
     label: '진행중',
   },
   NOT_STARTED: {
@@ -254,15 +253,15 @@ const STEP_STYLE: Record<
   { node: string; label: string; line: string; sub: string }
 > = {
   DONE: {
-    node: 'border-[#22C55E] bg-green-bg',
-    label: 'text-[#16A34A]',
-    line: 'bg-[#22C55E]',
+    node: 'border-step-done bg-green-bg',
+    label: 'text-green-text',
+    line: 'bg-step-done',
     sub: '완료',
   },
   IN_PROGRESS: {
-    node: 'border-border-primary bg-blue-bg-soft',
-    label: 'text-text-primary-blue',
-    line: 'bg-blue-border-soft',
+    node: 'border-step-in-progress bg-yellow-bg-soft',
+    label: 'text-yellow-text',
+    line: 'bg-step-in-progress',
     sub: '진행중',
   },
   NOT_STARTED: {
@@ -407,7 +406,7 @@ function StageBox({ name, steps }: { name: string; steps: ProjectStep[] }) {
           {name}
         </span>
         <span
-          className={`shrink-0 rounded-pill px-2.5 py-0.5 text-[11px] font-medium ${badge.className}`}
+          className={`shrink-0 rounded-pill px-2.5 py-0.5 text-detail font-medium ${badge.className}`}
         >
           {badge.label}
         </span>
@@ -457,7 +456,7 @@ function StageBox({ name, steps }: { name: string; steps: ProjectStep[] }) {
                       >
                         {step.status === 'DONE' && <CheckIcon />}
                         {step.status === 'IN_PROGRESS' && (
-                          <span className="size-2.5 rounded-pill bg-btn-primary" />
+                          <span className="size-2.5 rounded-pill bg-step-in-progress" />
                         )}
                       </span>
                       <span
@@ -466,12 +465,12 @@ function StageBox({ name, steps }: { name: string; steps: ProjectStep[] }) {
                       >
                         {step.name}
                       </span>
-                      <span className="mt-0.5 text-[11px] text-text-muted">
+                      <span className="mt-0.5 text-detail text-text-muted">
                         {style.sub}
                       </span>
                     </div>
 
-                    {/* 연결선 색은 **앞 스텝** 기준이다 — 지나온 구간만 초록으로 채워진다 */}
+                    {/* 연결선 색은 **앞 스텝** 기준이다 — 상태 색으로 지나온 구간을 표시한다 */}
                     {!isLast && (
                       <span
                         aria-hidden
@@ -536,12 +535,12 @@ function CheckIcon() {
     <svg
       viewBox="0 0 24 24"
       fill="none"
-      stroke="#22C55E"
+      stroke="currentColor"
       strokeWidth={2.6}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className="size-4"
+      className="size-4 text-green-text"
     >
       <path d="m5 12.5 4.5 4.5L19 7" />
     </svg>

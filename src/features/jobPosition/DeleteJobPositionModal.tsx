@@ -87,11 +87,11 @@ export default function DeleteJobPositionModal({
         </div>
 
         {isBlocked ? (
-          <p className="rounded-lg bg-red-bg-soft px-3 py-2.5 text-[11px] leading-relaxed break-keep text-text-danger">
+          <p className="rounded-lg bg-red-bg-soft px-3 py-2.5 text-detail leading-relaxed break-keep text-text-danger">
             {blockedMessage}
           </p>
         ) : (
-          <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-[11px] leading-relaxed break-keep text-yellow-text">
+          <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-detail leading-relaxed break-keep text-yellow-text">
             삭제하면 사원 등록 · 수정 시 더 이상 선택할 수 없습니다.
             <br />
             되돌릴 수 없으니 직급명을 확인해주세요.
@@ -113,7 +113,7 @@ export default function DeleteJobPositionModal({
             <button
               type="button"
               onClick={onClose}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover"
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover"
             >
               확인
             </button>
@@ -123,7 +123,7 @@ export default function DeleteJobPositionModal({
                 type="button"
                 onClick={onClose}
                 disabled={isSubmitting}
-                className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+                className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
               >
                 취소
               </button>
@@ -131,7 +131,7 @@ export default function DeleteJobPositionModal({
                 type="button"
                 onClick={handleDelete}
                 disabled={isSubmitting}
-                className="cursor-pointer rounded-lg bg-red-text px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-danger-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+                className="cursor-pointer rounded-lg bg-red-text px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-danger-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
               >
                 {isSubmitting ? '삭제 중…' : '삭제'}
               </button>

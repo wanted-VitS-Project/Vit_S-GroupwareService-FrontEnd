@@ -469,7 +469,7 @@ function ConditionCard({
             )}
           </div>
 
-          <p className="mt-1 text-[11px] text-text-secondary">
+          <p className="mt-1 text-detail text-text-secondary">
             {orDash(sourceName ?? sourceCode)}
             {noticeTypes.length > 0 && ` · ${noticeTypes.join(' · ')}`}
           </p>
@@ -508,7 +508,7 @@ function ConditionCard({
         </div>
       </div>
 
-      <dl className="mt-4 grid gap-x-6 gap-y-2 text-[11px] sm:grid-cols-2">
+      <dl className="mt-4 grid gap-x-6 gap-y-2 text-detail sm:grid-cols-2">
         <Row label="키워드" value={joinOrDash(filters.keywords)} />
         {/* 코드(`11`)가 아니라 이름(`서울`)으로 보여준다 */}
         <Row
@@ -584,16 +584,16 @@ function RunResult({ state }: { state: RunState }) {
       </div>
 
       {isRunning(run.runStatus) ? (
-        <p className="mt-2 text-[11px] text-text-secondary">
+        <p className="mt-2 text-detail text-text-secondary">
           수집이 끝나면 결과가 여기에 표시돼요.
         </p>
       ) : failed ? (
-        <p className="mt-2 text-[11px] break-keep text-text-danger">
+        <p className="mt-2 text-detail break-keep text-text-danger">
           {orDash(run.errorMessage)}
         </p>
       ) : (
         <>
-          <p className="mt-2 text-[11px] text-text-primary">
+          <p className="mt-2 text-detail text-text-primary">
             {summarizeRun(run.collectedCount, run.insertedCount)}
           </p>
           <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-text-secondary">

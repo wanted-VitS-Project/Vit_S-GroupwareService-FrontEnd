@@ -210,7 +210,7 @@ export default function NotificationBell({
         <BellIcon />
 
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex min-w-4 items-center justify-center rounded-pill bg-red-text px-1 text-[9px] font-bold text-text-white">
+          <span className="absolute -top-0.5 -right-0.5 flex min-w-4 items-center justify-center rounded-pill bg-red-text px-1 text-micro font-bold text-text-white">
             {unreadCount > BADGE_MAX ? `${BADGE_MAX}+` : unreadCount}
           </span>
         )}

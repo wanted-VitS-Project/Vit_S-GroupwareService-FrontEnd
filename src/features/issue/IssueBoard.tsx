@@ -265,7 +265,7 @@ export default function IssueBoard() {
       const ghost = document.createElement('div');
       ghost.textContent = issue.title;
       ghost.style.cssText =
-        'position:fixed;top:-999px;background:#3B5BDB;color:#fff;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:600;white-space:nowrap';
+        'position:fixed;top:-999px;background:#3B5BDB;color:#fff;padding:6px 12px;border-radius:8px;font-size:var(--text-detail);font-weight:600;white-space:nowrap';
       document.body.appendChild(ghost);
       event.dataTransfer.setDragImage(ghost, 60, 16);
       event.dataTransfer.effectAllowed = 'move';
@@ -313,7 +313,7 @@ export default function IssueBoard() {
             setFailedStepId(null);
             setReloadCount((count) => count + 1);
           }}
-          className="cursor-pointer rounded-button-sm px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+          className="cursor-pointer rounded-button-sm px-2 py-1 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
         >
           다시 시도
         </button>
@@ -345,7 +345,7 @@ export default function IssueBoard() {
             onPointerEnter={() => void loadIssueFormModal()}
             onFocus={() => void loadIssueFormModal()}
             onClick={() => setOpenModal({ kind: 'create' })}
-            className="cursor-pointer rounded-lg bg-btn-primary px-3 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover"
+            className="cursor-pointer rounded-lg bg-btn-primary px-3 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover"
           >
             + 이슈 생성
           </button>

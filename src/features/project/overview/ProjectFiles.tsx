@@ -156,7 +156,7 @@ export default function ProjectFiles() {
             setFailedProjectId(null);
             setReloadCount((count) => count + 1);
           }}
-          className="cursor-pointer rounded-button-sm px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+          className="cursor-pointer rounded-button-sm px-2 py-1 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
         >
           다시 시도
         </button>
@@ -196,7 +196,7 @@ export default function ProjectFiles() {
                   : new Set(steps.map((step) => step.stepId)),
               )
             }
-            className="cursor-pointer rounded-button-sm px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+            className="cursor-pointer rounded-button-sm px-2 py-1 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
           >
             {areAllClosed ? '모두 펼치기' : '모두 접기'}
           </button>
@@ -259,7 +259,7 @@ export default function ProjectFiles() {
 
                     <Link
                       href={`/projects/${projectId}/steps/${step.stepId}`}
-                      className="shrink-0 rounded-button-sm px-2 py-1 text-[11px] font-medium text-text-secondary hover:bg-bg-surface hover:text-text-primary-blue"
+                      className="shrink-0 rounded-button-sm px-2 py-1 text-detail font-medium text-text-secondary hover:bg-bg-surface hover:text-text-primary-blue"
                     >
                       스텝 열기
                     </Link>
@@ -313,7 +313,7 @@ const BlockGroup = memo(function BlockGroup({
         {block.blockDeleted ? (
           <>
             <span
-              className="rounded-button-sm border border-border-default bg-bg-hover px-1.5 py-0.5 text-[9px] font-medium text-text-secondary"
+              className="rounded-button-sm border border-border-default bg-bg-hover px-1.5 py-0.5 text-micro font-medium text-text-secondary"
               title="블록이 삭제돼 문서만 남아 있습니다"
             >
               블록 삭제됨
@@ -323,11 +323,11 @@ const BlockGroup = memo(function BlockGroup({
             </span>
           </>
         ) : (
-          <span className="min-w-0 truncate text-[11px] font-semibold text-text-primary">
+          <span className="min-w-0 truncate text-detail font-semibold text-text-primary">
             {block.blockTitle || '제목 없는 블록'}
           </span>
         )}
-        <span className="ml-auto shrink-0 text-[9px] text-text-secondary">
+        <span className="ml-auto shrink-0 text-micro text-text-secondary">
           {block.files.length}개
         </span>
       </div>
@@ -389,7 +389,7 @@ const FileRow = memo(function FileRow({
 
       <div className="pointer-events-none relative min-w-0 flex-1">
         <div className="flex items-center gap-1">
-          <span className="min-w-0 truncate text-[11px] font-semibold text-text-primary">
+          <span className="min-w-0 truncate text-detail font-semibold text-text-primary">
             {file.name}
           </span>
           <span
@@ -406,7 +406,7 @@ const FileRow = memo(function FileRow({
             v{file.latestVersionNo}
           </span>
         </div>
-        <p className="mt-0.5 truncate text-[9px] text-text-secondary">
+        <p className="mt-0.5 truncate text-micro text-text-secondary">
           {file.uploaderName} · {formatDate(file.updatedAt)} ·{' '}
           {formatFileSize(file.sizeBytes)}
         </p>

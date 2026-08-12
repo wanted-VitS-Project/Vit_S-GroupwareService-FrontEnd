@@ -191,7 +191,7 @@ function Loaded({
       headerExtra={
         // 재상신된 결재만 회차를 붙인다. 판단은 블록 `detail` 이 아니라 방금 받은 회차로 한다
         revision.revisionNo > 1 ? (
-          <span className="shrink-0 rounded-button-sm bg-bg-hover px-1.5 py-0.5 text-[9px] text-text-secondary">
+          <span className="shrink-0 rounded-button-sm bg-bg-hover px-1.5 py-0.5 text-micro text-text-secondary">
             {revision.revisionNo}회차
           </span>
         ) : undefined
@@ -269,7 +269,7 @@ function Loaded({
               <button
                 type="button"
                 aria-disabled
-                className="w-full cursor-pointer rounded-lg bg-[#4F39F6] py-2 text-[11px] font-semibold text-text-white hover:bg-[#4430d6]"
+                className="w-full cursor-pointer rounded-lg bg-[#4F39F6] py-2 text-detail font-semibold text-text-white hover:bg-[#4430d6]"
               >
                 결재 승인 확인
               </button>
@@ -284,7 +284,7 @@ function Loaded({
               type="button"
               onClick={submit}
               disabled={isBusy || blocker !== null}
-              className="w-full cursor-pointer rounded-lg bg-[#4F39F6] py-2 text-[11px] font-semibold text-text-white hover:bg-[#4430d6] disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="w-full cursor-pointer rounded-lg bg-[#4F39F6] py-2 text-detail font-semibold text-text-white hover:bg-[#4430d6] disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
             >
               {isBusy ? '상신 중…' : '상신'}
             </button>
@@ -352,7 +352,7 @@ function RejectionBanner({
       </p>
 
       {/* 형식이 어긋나면 빈 값이라 `empty:hidden` 으로 줄이 접힌다 */}
-      <p className="mt-1 text-[9px] text-text-danger/70 empty:hidden">
+      <p className="mt-1 text-micro text-text-danger/70 empty:hidden">
         {note?.processedAt ? formatDateTime(note.processedAt, '') : ''}
       </p>
 

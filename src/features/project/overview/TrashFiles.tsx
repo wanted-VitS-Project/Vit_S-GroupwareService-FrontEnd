@@ -174,7 +174,7 @@ export default function TrashFiles() {
             setFailedProjectId(null);
             setReloadCount((count) => count + 1);
           }}
-          className="cursor-pointer rounded-button-sm px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+          className="cursor-pointer rounded-button-sm px-2 py-1 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
         >
           다시 시도
         </button>
@@ -252,7 +252,7 @@ function TrashFileRow({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1">
-          <span className="min-w-0 truncate text-[11px] font-semibold text-text-primary">
+          <span className="min-w-0 truncate text-detail font-semibold text-text-primary">
             {file.name}
           </span>
           <span
@@ -270,7 +270,7 @@ function TrashFileRow({
           </span>
         </div>
 
-        <p className="mt-0.5 truncate text-[9px] text-text-secondary">
+        <p className="mt-0.5 truncate text-micro text-text-secondary">
           {file.stepName}
           {file.blockDeleted ? (
             <span className="ml-1 rounded-button-sm bg-bg-hover px-1 py-0.5 text-text-secondary">
@@ -280,7 +280,7 @@ function TrashFileRow({
             ` · ${file.blockTitle || '제목 없는 블록'}`
           )}
         </p>
-        <p className="font-mono text-[9px] text-text-secondary">
+        <p className="font-mono text-micro text-text-secondary">
           {formatDateTime(file.deletedAt)} 삭제 ·{' '}
           {formatFileSize(file.sizeBytes)}
         </p>

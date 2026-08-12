@@ -305,7 +305,7 @@ export default function CollectionConditionFormModal({
           />
 
           <div>
-            <p className="pb-1.5 text-[11px] font-semibold text-text-primary">
+            <p className="pb-1.5 text-detail font-semibold text-text-primary">
               검색 키워드
             </p>
             <div className="flex gap-2">
@@ -471,7 +471,7 @@ function CheckGroup({
 }) {
   return (
     <div>
-      <p className="pb-1.5 text-[11px] font-semibold text-text-primary">
+      <p className="pb-1.5 text-detail font-semibold text-text-primary">
         {label} {required && <span className="text-text-danger">*</span>}
       </p>
 

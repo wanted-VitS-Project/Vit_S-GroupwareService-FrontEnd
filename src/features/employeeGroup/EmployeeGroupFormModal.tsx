@@ -125,7 +125,7 @@ export default function EmployeeGroupFormModal({
             <div className="flex items-end justify-between gap-2 pb-1.5">
               <label
                 htmlFor={nameId}
-                className="text-[11px] font-semibold text-text-primary"
+                className="text-detail font-semibold text-text-primary"
               >
                 그룹명 <span className="text-text-danger">*</span>
               </label>
@@ -142,7 +142,7 @@ export default function EmployeeGroupFormModal({
               placeholder="입찰 검토팀"
               aria-invalid={nameError ? true : undefined}
               aria-describedby={nameError ? `${nameId}-error` : undefined}
-              className={`w-full rounded-lg border bg-bg-surface px-3 py-2 text-[11px] text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 ${
+              className={`w-full rounded-lg border bg-bg-surface px-3 py-2 text-detail text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 ${
                 nameError
                   ? 'border-border-danger focus:outline-border-danger'
                   : 'border-border-default focus:outline-border-primary'
@@ -167,7 +167,7 @@ export default function EmployeeGroupFormModal({
             <div className="flex items-end justify-between gap-2 pb-1.5">
               <label
                 htmlFor={descriptionId}
-                className="text-[11px] font-semibold text-text-primary"
+                className="text-detail font-semibold text-text-primary"
               >
                 설명
               </label>
@@ -182,7 +182,7 @@ export default function EmployeeGroupFormModal({
               maxLength={GROUP_DESCRIPTION_MAX_LENGTH}
               onChange={(event) => change(setDescription, event.target.value)}
               placeholder="어떤 일을 함께 하는 그룹인지 적어두면 고를 때 헷갈리지 않습니다."
-              className="w-full resize-none rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-[11px] text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+              className="w-full resize-none rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-detail text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
             />
           </div>
 

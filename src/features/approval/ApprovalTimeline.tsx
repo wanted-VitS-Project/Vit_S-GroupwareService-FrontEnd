@@ -24,7 +24,7 @@ export default function ApprovalTimeline({
           <div className="flex flex-col items-center">
             <span
               aria-hidden
-              className={`flex size-7 shrink-0 items-center justify-center rounded-pill text-[11px] font-semibold ${LINE_STATUS_CLASS[line.status]}`}
+              className={`flex size-7 shrink-0 items-center justify-center rounded-pill text-detail font-semibold ${LINE_STATUS_CLASS[line.status]}`}
             >
               {line.status === 'APPROVED'
                 ? '✓'
@@ -43,7 +43,7 @@ export default function ApprovalTimeline({
                 {line.approverName}
               </span>
               {line.approverPosition && (
-                <span className="text-[11px] text-text-secondary">
+                <span className="text-detail text-text-secondary">
                   {line.approverPosition}
                 </span>
               )}
@@ -60,13 +60,13 @@ export default function ApprovalTimeline({
             </p>
 
             {line.approverDepartment && (
-              <p className="mt-0.5 text-[11px] text-text-secondary">
+              <p className="mt-0.5 text-detail text-text-secondary">
                 {line.approverDepartment}
               </p>
             )}
 
             {line.opinion && (
-              <p className="mt-1.5 rounded-lg bg-bg-surface px-2.5 py-2 text-[11px] break-keep text-text-primary">
+              <p className="mt-1.5 rounded-lg bg-bg-surface px-2.5 py-2 text-detail break-keep text-text-primary">
                 {line.opinion}
               </p>
             )}

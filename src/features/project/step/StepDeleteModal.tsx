@@ -145,18 +145,18 @@ export default function StepDeleteModal({
             ))}
           </SkeletonGroup>
         ) : haveBlocksFailed ? (
-          <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-[11px] leading-relaxed break-keep text-yellow-text">
+          <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-detail leading-relaxed break-keep text-yellow-text">
             블록 목록을 불러오지 못했습니다. 이대로 삭제하면 하위 블록을 골라
             남길 수 없고 <strong>모두 함께 삭제</strong>됩니다.
           </p>
         ) : blocks.length === 0 ? (
-          <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-[11px] break-keep text-text-secondary">
+          <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-detail break-keep text-text-secondary">
             이 스텝에는 블록이 없습니다.
           </p>
         ) : (
           <div>
             <div className="flex items-end justify-between gap-2 pb-1.5">
-              <span className="text-[11px] font-semibold text-text-primary">
+              <span className="text-detail font-semibold text-text-primary">
                 남길 블록 선택
               </span>
               <span className="text-caption text-text-secondary">
@@ -177,7 +177,7 @@ export default function StepDeleteModal({
                         onChange={() => toggleBlock(block.blockId)}
                         className="size-3.5 shrink-0 cursor-pointer accent-btn-primary"
                       />
-                      <span className="min-w-0 flex-1 truncate text-[11px] text-text-primary">
+                      <span className="min-w-0 flex-1 truncate text-detail text-text-primary">
                         {block.title || '제목 없음'}
                       </span>
                       <span
@@ -204,7 +204,7 @@ export default function StepDeleteModal({
           <div>
             <label
               htmlFor="blockMoveTarget"
-              className="block pb-1.5 text-[11px] font-semibold text-text-primary"
+              className="block pb-1.5 text-detail font-semibold text-text-primary"
             >
               블록을 옮길 스텝 <span className="text-text-danger">*</span>
             </label>
@@ -216,7 +216,7 @@ export default function StepDeleteModal({
                 setError('');
               }}
               disabled={isSubmitting}
-              className="w-full cursor-pointer rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-[11px] text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary disabled:cursor-not-allowed"
+              className="w-full cursor-pointer rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-detail text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary disabled:cursor-not-allowed"
             >
               <option value="" disabled>
                 옮길 스텝을 선택해주세요
@@ -254,7 +254,7 @@ export default function StepDeleteModal({
           </div>
         )}
 
-        <p className="rounded-lg bg-red-bg-soft px-3 py-2.5 text-[11px] leading-relaxed break-keep text-text-danger">
+        <p className="rounded-lg bg-red-bg-soft px-3 py-2.5 text-detail leading-relaxed break-keep text-text-danger">
           이 스텝의 이슈 {step.totalIssueCount}개는{' '}
           <strong>선택 없이 함께 삭제</strong>됩니다. 되돌릴 수 없습니다.
         </p>
@@ -274,7 +274,7 @@ export default function StepDeleteModal({
             type="button"
             onClick={requestClose}
             disabled={isSubmitting}
-            className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+            className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
           >
             취소
           </button>
@@ -282,7 +282,7 @@ export default function StepDeleteModal({
             type="button"
             onClick={handleDelete}
             disabled={!canSubmit}
-            className="cursor-pointer rounded-lg bg-red-text px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-danger-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+            className="cursor-pointer rounded-lg bg-red-text px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-danger-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
           >
             {isSubmitting ? '삭제 중…' : '삭제'}
           </button>

@@ -58,7 +58,7 @@ export default function NotificationRow({
           {notification.message}
         </p>
         {/* 형식이 어긋나면 빈 값이라 `empty:hidden` 으로 줄이 접힌다 */}
-        <p className="mt-1 text-[11px] text-text-secondary empty:hidden">
+        <p className="mt-1 text-detail text-text-secondary empty:hidden">
           {showFullTime
             ? formatFullTime(notification.createdAt)
             : notificationTimeLabel(notification.createdAt)}

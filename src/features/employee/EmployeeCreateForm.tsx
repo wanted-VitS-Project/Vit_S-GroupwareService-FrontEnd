@@ -399,7 +399,7 @@ export default function EmployeeCreateForm() {
               type="button"
               onClick={leave}
               disabled={isSubmitting}
-              className="cursor-pointer rounded-lg px-4 py-2 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+              className="cursor-pointer rounded-lg px-4 py-2 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
             >
               취소
             </button>
@@ -448,17 +448,17 @@ function CreatedResult({
         </p>
 
         {!result.emailRegistered ? (
-          <p className="mt-4 rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-[11px] leading-relaxed break-keep text-yellow-text">
+          <p className="mt-4 rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-detail leading-relaxed break-keep text-yellow-text">
             이메일을 입력하지 않아 <b>로그인할 수 없는 계정</b>입니다. 정보
             수정에서 이메일을 등록한 뒤 비밀번호를 초기화해주세요.
           </p>
         ) : hasMailFailed ? (
-          <p className="mt-4 rounded-lg bg-red-bg-soft px-3 py-2.5 text-[11px] leading-relaxed break-keep text-text-danger">
+          <p className="mt-4 rounded-lg bg-red-bg-soft px-3 py-2.5 text-detail leading-relaxed break-keep text-text-danger">
             계정은 만들어졌지만 <b>초기 비밀번호 메일이 발송되지 않았습니다.</b>{' '}
             재발송하지 않으면 이 사원은 로그인할 수 없습니다.
           </p>
         ) : (
-          <p className="mt-4 rounded-lg bg-bg-surface px-3 py-2.5 text-[11px] leading-relaxed break-keep text-text-secondary">
+          <p className="mt-4 rounded-lg bg-bg-surface px-3 py-2.5 text-detail leading-relaxed break-keep text-text-secondary">
             초기 비밀번호를 등록한 이메일로 보냈습니다. 첫 로그인 때 비밀번호를
             변경하게 됩니다.
           </p>
@@ -489,7 +489,7 @@ function CreatedResult({
           </Link>
           <Link
             href={EMPLOYEE_ROUTES.list}
-            className="rounded-lg px-4 py-2 text-[11px] font-medium text-text-secondary hover:bg-bg-hover"
+            className="rounded-lg px-4 py-2 text-detail font-medium text-text-secondary hover:bg-bg-hover"
           >
             목록으로
           </Link>

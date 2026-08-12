@@ -24,7 +24,7 @@ export function IssueStatusBadge({ status }: { status: IssueStatus }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-button-sm border px-1.5 py-0.5 text-[9px] font-medium ${badge}`}
+      className={`inline-flex items-center gap-1 rounded-button-sm border px-1.5 py-0.5 text-micro font-medium ${badge}`}
     >
       <span className={`size-1.5 rounded-pill ${dot}`} />
       {ISSUE_STATUS_LABELS[status]}
@@ -49,7 +49,7 @@ export function IssuePriorityBadge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-button-sm border px-1.5 py-0.5 text-[9px] font-medium ${badge}`}
+      className={`inline-flex items-center gap-1 rounded-button-sm border px-1.5 py-0.5 text-micro font-medium ${badge}`}
     >
       {withDot && <span className={`size-1.5 rounded-pill ${dot}`} />}
       {withPrefix && '우선순위 '}
@@ -65,7 +65,7 @@ export function OverdueBadge({ days }: { days: number }) {
   return (
     <span
       title={`마감일에서 ${days}일 지났습니다`}
-      className={`inline-flex items-center rounded-button-sm border px-1.5 py-0.5 text-[9px] font-medium ${ISSUE_OVERDUE_STYLE}`}
+      className={`inline-flex items-center rounded-button-sm border px-1.5 py-0.5 text-micro font-medium ${ISSUE_OVERDUE_STYLE}`}
     >
       D+{days}
     </span>
@@ -78,7 +78,7 @@ export function OverduePill({ days }: { days: number }) {
 
   return (
     <span
-      className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-[11px] font-medium ${ISSUE_OVERDUE_STYLE}`}
+      className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-detail font-medium ${ISSUE_OVERDUE_STYLE}`}
     >
       {days}일 지남
     </span>

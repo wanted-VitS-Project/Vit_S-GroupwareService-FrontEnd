@@ -87,7 +87,7 @@ export default function ResignationModal({
           <div>
             <label
               htmlFor="resignedAt"
-              className="block pb-1.5 text-[11px] font-semibold text-text-primary"
+              className="block pb-1.5 text-detail font-semibold text-text-primary"
             >
               퇴사일 <span className="text-text-danger">*</span>
             </label>
@@ -102,11 +102,11 @@ export default function ResignationModal({
                 setResignedAt(event.target.value);
                 setError('');
               }}
-              className="w-full cursor-pointer rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-[11px] text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+              className="w-full cursor-pointer rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-detail text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
             />
           </div>
 
-          <p className="rounded-lg bg-red-bg-soft px-3 py-2.5 text-[11px] leading-relaxed break-keep text-text-danger">
+          <p className="rounded-lg bg-red-bg-soft px-3 py-2.5 text-detail leading-relaxed break-keep text-text-danger">
             퇴사 처리하면 계정이 즉시 정지되어 로그인할 수 없습니다.
             <br />
             사원 정보는 삭제되지 않고 과거 프로젝트 · 파일 이력에 그대로
@@ -128,14 +128,14 @@ export default function ResignationModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+              className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
             >
               취소
             </button>
             <button
               type="submit"
               disabled={!canSubmit}
-              className="cursor-pointer rounded-lg bg-red-text px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-danger-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="cursor-pointer rounded-lg bg-red-text px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-danger-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
             >
               {isSubmitting ? '처리 중…' : '퇴사 처리'}
             </button>

@@ -27,7 +27,7 @@ interface StepFormModalProps {
 }
 
 const FIELD_CLASS =
-  'w-full rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-[11px] text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary disabled:cursor-not-allowed';
+  'w-full rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-detail text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary disabled:cursor-not-allowed';
 
 /**
  * 스텝 추가 · 수정 모달. (.ai/API.md 115 · 116)
@@ -187,7 +187,7 @@ export default function StepFormModal({
               <div className="flex items-end justify-between gap-2 pb-1.5">
                 <label
                   htmlFor="stepName"
-                  className="text-[11px] font-semibold text-text-primary"
+                  className="text-detail font-semibold text-text-primary"
                 >
                   스텝명 <span className="text-text-danger">*</span>
                 </label>
@@ -229,7 +229,7 @@ export default function StepFormModal({
               <div>
                 <label
                   htmlFor="stepStartedOn"
-                  className="block pb-1.5 text-[11px] font-semibold text-text-primary"
+                  className="block pb-1.5 text-detail font-semibold text-text-primary"
                 >
                   시작일
                 </label>
@@ -247,7 +247,7 @@ export default function StepFormModal({
               <div>
                 <label
                   htmlFor="stepEndedOn"
-                  className="block pb-1.5 text-[11px] font-semibold text-text-primary"
+                  className="block pb-1.5 text-detail font-semibold text-text-primary"
                 >
                   종료일
                 </label>
@@ -285,7 +285,7 @@ export default function StepFormModal({
             <div>
               <label
                 htmlFor="stepOwner"
-                className="block pb-1.5 text-[11px] font-semibold text-text-primary"
+                className="block pb-1.5 text-detail font-semibold text-text-primary"
               >
                 책임자
               </label>
@@ -336,7 +336,7 @@ export default function StepFormModal({
             )}
 
             {hasNoVersion && (
-              <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-[11px] leading-relaxed break-keep text-yellow-text">
+              <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-detail leading-relaxed break-keep text-yellow-text">
                 이 스텝의 버전 정보를 받지 못해 수정할 수 없습니다. 새로고침 후
                 다시 시도해주세요.
               </p>
@@ -356,14 +356,14 @@ export default function StepFormModal({
                 type="button"
                 onClick={requestClose}
                 disabled={isSubmitting}
-                className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+                className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
               >
                 취소
               </button>
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+                className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
               >
                 {isSubmitting ? '저장 중…' : isEditing ? '저장' : '추가'}
               </button>

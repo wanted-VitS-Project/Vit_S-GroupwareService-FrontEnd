@@ -184,7 +184,7 @@ export default function EmployeeSearchInput({
           )}
 
           {!isLoading && error === '' && options.length > 0 && (
-            <li className="px-2.5 py-1 text-[9px] text-text-secondary">
+            <li className="px-2.5 py-1 text-micro text-text-secondary">
               {options.length}명
             </li>
           )}
@@ -227,7 +227,7 @@ export default function EmployeeSearchInput({
                       .join(' · ')}
                   </span>
                   {employee.isAdded && (
-                    <span className="ml-auto shrink-0 text-[9px] text-text-secondary">
+                    <span className="ml-auto shrink-0 text-micro text-text-secondary">
                       이미 추가됨
                     </span>
                   )}

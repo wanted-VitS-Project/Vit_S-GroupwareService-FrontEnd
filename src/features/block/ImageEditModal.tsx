@@ -239,7 +239,7 @@ export default function ImageEditModal({
         <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto p-4">
           {loadFailed ? (
             <div className="flex flex-col items-center gap-2 py-8">
-              <p className="text-[11px] text-text-secondary">
+              <p className="text-detail text-text-secondary">
                 이미지 목록을 불러오지 못했습니다.
               </p>
               <button
@@ -316,7 +316,7 @@ export default function ImageEditModal({
                     />
 
                     <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
-                      <p className="truncate font-mono text-[9px] text-text-secondary">
+                      <p className="truncate font-mono text-micro text-text-secondary">
                         {isRemoved ? '삭제 예정' : `이미지 ${index + 1}`} ·{' '}
                         {image.originalName}
                       </p>
@@ -329,7 +329,7 @@ export default function ImageEditModal({
                         onChange={(event) =>
                           updateCaption(image.imgId, event.target.value)
                         }
-                        className="w-full rounded-lg border border-border-default bg-bg-surface px-2.5 py-1.5 text-[11px] text-text-primary outline-none placeholder:text-text-muted focus:border-border-primary disabled:cursor-not-allowed"
+                        className="w-full rounded-lg border border-border-default bg-bg-surface px-2.5 py-1.5 text-detail text-text-primary outline-none placeholder:text-text-muted focus:border-border-primary disabled:cursor-not-allowed"
                       />
                     </div>
 
@@ -378,7 +378,7 @@ export default function ImageEditModal({
               type="button"
               onClick={requestClose}
               disabled={isSaving}
-              className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               취소
             </button>
@@ -386,7 +386,7 @@ export default function ImageEditModal({
               type="button"
               onClick={requestSave}
               disabled={isSaving || !images}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
             >
               {isSaving ? '저장 중…' : '저장'}
             </button>

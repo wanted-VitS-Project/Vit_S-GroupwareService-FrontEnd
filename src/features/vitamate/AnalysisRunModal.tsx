@@ -240,7 +240,7 @@ export default function AnalysisRunModal({
                   aria-pressed={type.reviewType === effectiveType}
                   title={type.description}
                   onClick={() => changeType(type.reviewType)}
-                  className={`cursor-pointer rounded-button-md border px-2.5 py-1 text-[11px] font-medium ${
+                  className={`cursor-pointer rounded-button-md border px-2.5 py-1 text-detail font-medium ${
                     type.reviewType === effectiveType
                       ? 'border-[#4F39F6] bg-blue-bg-soft text-[#4F39F6]'
                       : 'border-border-default text-text-secondary hover:bg-bg-surface'
@@ -260,7 +260,7 @@ export default function AnalysisRunModal({
                 <label
                   key={category.categoryCode}
                   title={category.guideText}
-                  className={`flex cursor-pointer items-center gap-1.5 rounded-button-md border px-2.5 py-1 text-[11px] ${
+                  className={`flex cursor-pointer items-center gap-1.5 rounded-button-md border px-2.5 py-1 text-detail ${
                     selectedCategories.includes(category.categoryCode)
                       ? 'border-[#4F39F6] bg-blue-bg-soft text-[#4F39F6]'
                       : 'border-border-default text-text-secondary hover:bg-bg-surface'
@@ -323,7 +323,7 @@ export default function AnalysisRunModal({
               setPrompt(event.target.value);
             }}
             placeholder="카테고리를 고르면 기본 문구가 채워져요. 필요한 만큼 고쳐서 쓰세요."
-            className="w-full resize-none rounded-button-md border border-border-default bg-bg-surface px-2.5 py-2 text-[11px] leading-relaxed text-text-primary focus:border-[#4F39F6] focus:outline-none"
+            className="w-full resize-none rounded-button-md border border-border-default bg-bg-surface px-2.5 py-2 text-detail leading-relaxed text-text-primary focus:border-[#4F39F6] focus:outline-none"
           />
           {currentType && selectedCategories.length > 0 && (
             <ul className="mt-1 flex flex-col gap-0.5">
@@ -335,7 +335,7 @@ export default function AnalysisRunModal({
                 .map((category) => (
                   <li
                     key={category.categoryCode}
-                    className="text-[9px] break-keep text-text-secondary"
+                    className="text-micro break-keep text-text-secondary"
                   >
                     · {category.guideText}
                   </li>
@@ -345,7 +345,7 @@ export default function AnalysisRunModal({
         </Field>
 
         {error && (
-          <p role="alert" className="text-[11px] text-text-danger">
+          <p role="alert" className="text-detail text-text-danger">
             {error}
           </p>
         )}
@@ -362,7 +362,7 @@ export default function AnalysisRunModal({
           type="button"
           onClick={requestClose}
           disabled={isSubmitting}
-          className="cursor-pointer rounded-button-md border border-border-default px-3 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
+          className="cursor-pointer rounded-button-md border border-border-default px-3 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
         >
           취소
         </button>
@@ -370,7 +370,7 @@ export default function AnalysisRunModal({
           type="button"
           onClick={submit}
           disabled={Boolean(blocker) || isSubmitting}
-          className="cursor-pointer rounded-button-md bg-[#4F39F6] px-3 py-1.5 text-[11px] font-semibold text-text-white hover:bg-[#4429E0] disabled:cursor-not-allowed disabled:opacity-50"
+          className="cursor-pointer rounded-button-md bg-[#4F39F6] px-3 py-1.5 text-detail font-semibold text-text-white hover:bg-[#4429E0] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSubmitting ? '요청 중…' : '실행하기'}
         </button>
@@ -444,8 +444,8 @@ function Field({
   return (
     <section>
       <div className="mb-1.5 flex items-baseline justify-between gap-2">
-        <h3 className="text-[11px] font-semibold text-text-primary">{label}</h3>
-        {hint && <span className="text-[9px] text-text-secondary">{hint}</span>}
+        <h3 className="text-detail font-semibold text-text-primary">{label}</h3>
+        {hint && <span className="text-micro text-text-secondary">{hint}</span>}
       </div>
       {children}
     </section>

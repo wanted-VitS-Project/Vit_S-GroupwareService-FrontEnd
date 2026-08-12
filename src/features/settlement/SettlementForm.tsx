@@ -290,7 +290,7 @@ export default function SettlementForm({
           type="button"
           onClick={submit}
           disabled={isBusy}
-          className="flex-1 cursor-pointer rounded-lg bg-btn-primary py-2 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-btn-gray-disabled-bg disabled:text-btn-gray-disabled-text"
+          className="flex-1 cursor-pointer rounded-lg bg-btn-primary py-2 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-btn-gray-disabled-bg disabled:text-btn-gray-disabled-text"
         >
           {isBusy ? '저장 중…' : '저장하기'}
         </button>
@@ -298,7 +298,7 @@ export default function SettlementForm({
           type="button"
           onClick={onClose}
           disabled={isBusy}
-          className="shrink-0 cursor-pointer rounded-lg border border-border-default px-3 py-2 text-[11px] font-semibold text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed"
+          className="shrink-0 cursor-pointer rounded-lg border border-border-default px-3 py-2 text-detail font-semibold text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed"
         >
           취소
         </button>
@@ -349,7 +349,7 @@ function Field({
           className={FIELD_CLASS}
         />
         {/* 값이 없을 때만 접힌다 */}
-        <span className="mt-0.5 block text-[9px] text-purple-text empty:hidden">
+        <span className="mt-0.5 block text-micro text-purple-text empty:hidden">
           {hint ?? ''}
         </span>
       </span>

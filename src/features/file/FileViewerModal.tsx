@@ -213,7 +213,7 @@ export default function FileViewerModal({
               type="button"
               aria-pressed={showVersions}
               onClick={() => setShowVersions((wasOpen) => !wasOpen)}
-              className={`flex cursor-pointer items-center gap-1.5 rounded-button-md px-2.5 py-1.5 text-[11px] font-medium ${
+              className={`flex cursor-pointer items-center gap-1.5 rounded-button-md px-2.5 py-1.5 text-detail font-medium ${
                 showVersions
                   ? 'bg-blue-bg-soft text-text-primary-blue'
                   : 'text-text-secondary hover:bg-bg-hover'
@@ -231,7 +231,7 @@ export default function FileViewerModal({
                   ),
                 )
               }
-              className="flex cursor-pointer items-center gap-1.5 rounded-button-md px-2.5 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover"
+              className="flex cursor-pointer items-center gap-1.5 rounded-button-md px-2.5 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover"
             >
               <DownloadIcon />
               다운로드
@@ -331,7 +331,7 @@ export default function FileViewerModal({
 
           {preview.kind === 'ready' && (
             <div className="w-full max-w-[576px] rounded-button-sm border border-border-default bg-bg-surface p-3">
-              <p className="font-mono text-[9px] text-text-secondary">
+              <p className="font-mono text-micro text-text-secondary">
                 미리보기 제한 안내
               </p>
               <p className="mt-1 text-caption text-text-secondary">
@@ -401,7 +401,7 @@ function PreviewPane({
       <button
         type="button"
         onClick={onDownload}
-        className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover"
+        className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover"
       >
         다운로드
       </button>
@@ -445,24 +445,24 @@ function VersionCard({
             v{version.versionNo}
           </span>
           {version.latest && (
-            <span className="font-mono text-[9px] font-bold text-text-primary-blue">
+            <span className="font-mono text-micro font-bold text-text-primary-blue">
               최신
             </span>
           )}
         </span>
 
-        <span className="mt-1.5 block text-[9px] text-text-secondary">
+        <span className="mt-1.5 block text-micro text-text-secondary">
           {version.uploaderDepartment}
         </span>
         <span className="mt-1 block text-caption font-semibold text-text-primary">
           {version.uploaderPosition} {version.uploaderName}
         </span>
         {version.comment && (
-          <span className="mt-1 block text-[9px] text-text-secondary italic">
+          <span className="mt-1 block text-micro text-text-secondary italic">
             “{version.comment}”
           </span>
         )}
-        <span className="mt-2 flex justify-between font-mono text-[9px] text-text-secondary">
+        <span className="mt-2 flex justify-between font-mono text-micro text-text-secondary">
           <span>{version.completedAt.slice(0, 10).replaceAll('-', '.')}</span>
           <span>{formatFileSize(version.sizeBytes)}</span>
         </span>
@@ -471,7 +471,7 @@ function VersionCard({
       <button
         type="button"
         onClick={onDownload}
-        className="mt-2 flex w-full cursor-pointer items-center justify-center gap-1 rounded-button-sm border border-dashed border-border-default px-2 py-1 text-[9px] font-medium text-text-secondary hover:bg-bg-hover"
+        className="mt-2 flex w-full cursor-pointer items-center justify-center gap-1 rounded-button-sm border border-dashed border-border-default px-2 py-1 text-micro font-medium text-text-secondary hover:bg-bg-hover"
       >
         <DownloadIcon />이 버전 다운로드
       </button>

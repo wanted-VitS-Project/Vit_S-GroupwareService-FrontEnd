@@ -47,7 +47,7 @@ export default function MemberAvatar({
         : { role: 'img', 'aria-label': name, title: name })}
       style={{ backgroundColor: avatarColor(userId) }}
       className={`flex shrink-0 items-center justify-center rounded-pill font-semibold text-text-white ${
-        size === 'xs' ? 'size-5 text-[9px]' : 'size-6 text-caption'
+        size === 'xs' ? 'size-5 text-micro' : 'size-6 text-caption'
       } ${withRing ? 'border border-white' : ''}`}
     >
       {name.slice(0, 1)}

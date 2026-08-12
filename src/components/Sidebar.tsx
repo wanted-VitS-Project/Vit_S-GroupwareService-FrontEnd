@@ -20,11 +20,11 @@ export default function Sidebar() {
     // 셸이 화면 높이에 고정돼 있어, 메뉴가 길면 사이드바 안에서 굴러야 한다
     <aside className="no-scrollbar w-70 shrink-0 overflow-y-auto bg-bg-sidebar">
       {/*
-        로고 줄 — 헤더와 같은 60px(`h-15`) 라 두 영역의 밑줄이 한 선으로 이어진다.
+        로고 줄 — 헤더와 같은 52px(`h-13`) 라 두 영역의 밑줄이 한 선으로 이어진다.
         프로젝트 화면에는 이 사이드바가 없어 `Header` 가 같은 로고를 대신 그린다 —
         모양을 바꿀 때는 두 곳을 함께 고친다.
       */}
-      <div className="flex h-15 items-center border-b border-bg-sidebar-hover px-6">
+      <div className="flex h-13 items-center border-b border-bg-sidebar-hover px-6">
         <span className="text-logo font-bold tracking-tight text-text-white">
           Vita<span className="text-text-primary-blue">S</span>
         </span>

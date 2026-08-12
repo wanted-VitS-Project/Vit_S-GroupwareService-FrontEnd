@@ -215,7 +215,7 @@ export default function AiBlock({ block }: { block: StepBlock }) {
             )}
 
             {analysis.completedAt && (
-              <p className="text-[9px] text-text-secondary">
+              <p className="text-micro text-text-secondary">
                 {formatDateTime(analysis.completedAt)} 완료
               </p>
             )}
@@ -313,7 +313,7 @@ function RequestSummary({ analysis }: { analysis: Analysis }) {
           {analysis.reviewCategoryCodes.map((code) => (
             <li
               key={code}
-              className="rounded-button-sm bg-blue-bg-soft px-1.5 py-0.5 font-mono text-[9px] font-semibold text-[#4F39F6]"
+              className="rounded-button-sm bg-blue-bg-soft px-1.5 py-0.5 font-mono text-micro font-semibold text-[#4F39F6]"
             >
               {code}
             </li>
@@ -350,7 +350,7 @@ function RoleRow({
 }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="shrink-0 text-[9px] font-semibold tracking-wider text-text-secondary uppercase">
+      <span className="shrink-0 text-micro font-semibold tracking-wider text-text-secondary uppercase">
         {label}
       </span>
       <ul className="flex min-w-0 flex-wrap gap-1">
@@ -445,13 +445,13 @@ function RunningState({
         {isSlow ? '예상보다 지연되고 있습니다…' : '문서를 검토하고 있어요…'}
       </p>
       {/* 보통 20~30초 걸린다 — 대략의 눈금이 있어야 멈춘 게 아니라는 게 보인다 */}
-      <p className="text-[9px] text-text-secondary">
+      <p className="text-micro text-text-secondary">
         {isSlow
           ? '창을 닫아도 분석은 계속돼요'
           : '보통 20~30초 걸려요 · 창을 닫아도 계속돼요'}
       </p>
       {requestedAt && (
-        <p className="text-[9px] text-text-secondary">
+        <p className="text-micro text-text-secondary">
           {formatDateTime(requestedAt)} 요청
         </p>
       )}

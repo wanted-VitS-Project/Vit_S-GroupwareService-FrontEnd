@@ -14,7 +14,7 @@ import { Markdown } from 'tiptap-markdown';
  * `@tailwindcss/typography` 를 도입하지 않고 필요한 요소만 직접 지정한다.
  */
 export const MARKDOWN_CLASS = [
-  'text-[11px] leading-[18px] text-text-primary',
+  'text-detail leading-[18px] text-text-primary',
   '[&_p]:my-0 [&_p+p]:mt-2',
   '[&_strong]:font-semibold',
   '[&_em]:italic',

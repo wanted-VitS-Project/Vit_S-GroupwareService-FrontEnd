@@ -160,7 +160,7 @@ export default function GroupMembersModal({
       <div className="space-y-4 p-5">
         <section>
           {/* `EmployeeSearchInput` 이 id 를 받지 않아 label 로 묶을 수 없다 */}
-          <h3 className="pb-1.5 text-[11px] font-semibold text-text-primary">
+          <h3 className="pb-1.5 text-detail font-semibold text-text-primary">
             사원 검색
           </h3>
           <EmployeeSearchInput
@@ -194,7 +194,7 @@ export default function GroupMembersModal({
         </p>
 
         <section>
-          <h3 className="pb-1.5 text-[11px] font-semibold text-text-primary">
+          <h3 className="pb-1.5 text-detail font-semibold text-text-primary">
             구성원 {members === null ? '' : `${nextCount}명`}
             {hasChanges && (
               <span className="ml-1.5 font-normal text-text-secondary">
@@ -206,7 +206,7 @@ export default function GroupMembersModal({
           <div className="max-h-64 overflow-auto rounded-lg border border-border-default">
             {hasFailed ? (
               <Centered>
-                <p className="text-[11px] text-text-secondary">
+                <p className="text-detail text-text-secondary">
                   구성원을 불러오지 못했습니다.
                 </p>
                 <button
@@ -219,11 +219,11 @@ export default function GroupMembersModal({
               </Centered>
             ) : members === null ? (
               <Centered>
-                <p className="text-[11px] text-text-secondary">불러오는 중…</p>
+                <p className="text-detail text-text-secondary">불러오는 중…</p>
               </Centered>
             ) : rows.length === 0 ? (
               <Centered>
-                <p className="text-[11px] break-keep text-text-secondary">
+                <p className="text-detail break-keep text-text-secondary">
                   아직 구성원이 없습니다. 위에서 사원을 검색해 추가해주세요.
                 </p>
               </Centered>
@@ -237,7 +237,7 @@ export default function GroupMembersModal({
                     }`}
                   >
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[11px] font-semibold text-text-primary">
+                      <span className="block truncate text-detail font-semibold text-text-primary">
                         {row.member.name}
                         <span className="ml-1.5 font-normal text-text-secondary">
                           {row.member.userId}

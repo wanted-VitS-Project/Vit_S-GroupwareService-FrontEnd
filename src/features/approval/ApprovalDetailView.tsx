@@ -244,7 +244,7 @@ export default function ApprovalDetailView({
           <div className="flex items-center gap-2">
             <ApprovalStatusBadge status={headerStatus} />
             {headerRevisionNo > 1 && (
-              <span className="rounded-button-sm bg-bg-hover px-1.5 py-0.5 text-[11px] text-text-secondary">
+              <span className="rounded-button-sm bg-bg-hover px-1.5 py-0.5 text-detail text-text-secondary">
                 {headerRevisionNo}회차
               </span>
             )}
@@ -346,7 +346,7 @@ function RevisionTabs({
             onClick={() =>
               onSelect(revision.isCurrent ? null : revision.revisionId)
             }
-            className={`cursor-pointer rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold ${
+            className={`cursor-pointer rounded-lg border px-2.5 py-1.5 text-detail font-semibold ${
               isSelected
                 ? 'border-[#4F39F6] bg-[#4F39F6]/5 text-[#4F39F6]'
                 : 'border-border-default text-text-secondary hover:bg-bg-hover'
@@ -412,12 +412,12 @@ function RevisionBody({
                         {document.fileName ??
                           `파일 버전 #${document.fileVersionId}`}
                       </p>
-                      <p className="mt-0.5 text-[11px] text-text-secondary">
+                      <p className="mt-0.5 text-detail text-text-secondary">
                         {document.fileSize !== undefined &&
                           formatFileSize(document.fileSize)}
                       </p>
                     </div>
-                    <span className="shrink-0 text-[11px] font-semibold text-text-primary-blue">
+                    <span className="shrink-0 text-detail font-semibold text-text-primary-blue">
                       보기
                     </span>
                   </button>

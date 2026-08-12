@@ -336,7 +336,7 @@ function ApprovalRow({
           <p className="truncate text-label font-semibold text-text-primary">
             {row.title || '제목 없음'}
           </p>
-          <p className="mt-0.5 truncate text-[11px] text-text-secondary">
+          <p className="mt-0.5 truncate text-detail text-text-secondary">
             {row.projectName} &gt; {row.stepName} · {row.drafterName}
           </p>
         </div>
@@ -348,17 +348,17 @@ function ApprovalRow({
         <span className="w-12 shrink-0 text-center">
           {/* 재상신된 결재만 회차를 붙인다 — 1회차는 붙여봐야 정보가 없다 */}
           {row.currentRevisionNo > 1 && (
-            <span className="rounded-button-sm bg-bg-hover px-1.5 py-0.5 text-[11px] text-text-secondary">
+            <span className="rounded-button-sm bg-bg-hover px-1.5 py-0.5 text-detail text-text-secondary">
               {row.currentRevisionNo}회차
             </span>
           )}
         </span>
 
-        <span className="w-12 shrink-0 text-center text-[11px] text-text-secondary">
+        <span className="w-12 shrink-0 text-center text-detail text-text-secondary">
           {doneCount} / {row.lines.length}
         </span>
 
-        <span className="w-24 shrink-0 text-right text-[11px] text-text-secondary">
+        <span className="w-24 shrink-0 text-right text-detail text-text-secondary">
           {formatDate(row.submittedAt ?? row.createdAt)}
         </span>
 
@@ -378,7 +378,7 @@ function ApprovalRow({
 
         {showAction && (
           <span
-            className={`w-14 shrink-0 rounded-lg py-1.5 text-center text-[11px] font-semibold ${
+            className={`w-14 shrink-0 rounded-lg py-1.5 text-center text-detail font-semibold ${
               isMyTurn
                 ? 'bg-[#4F39F6] text-text-white'
                 : 'border border-border-default text-text-secondary'

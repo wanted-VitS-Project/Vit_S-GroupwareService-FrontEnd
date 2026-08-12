@@ -127,7 +127,7 @@ export default function StepActivityLog() {
             </span>
           )}
 
-          <label className="flex items-center gap-2 text-[11px] text-text-secondary">
+          <label className="flex items-center gap-2 text-detail text-text-secondary">
             블록
             <select
               value={blockFilter}
@@ -136,7 +136,7 @@ export default function StepActivityLog() {
                 // 목록이 통째로 갈리는데 스크롤이 중간에 남아 있으면 아무 데나 떨어진다
                 topRef.current?.scrollIntoView({ block: 'start' });
               }}
-              className="cursor-pointer rounded-button-md border border-border-default bg-bg-card px-2 py-1.5 text-[11px] text-text-primary focus:border-border-primary focus:outline-none"
+              className="cursor-pointer rounded-button-md border border-border-default bg-bg-card px-2 py-1.5 text-detail text-text-primary focus:border-border-primary focus:outline-none"
             >
               <option value={ALL_BLOCKS}>전체</option>
               {blocks?.map((block) => (
@@ -157,7 +157,7 @@ export default function StepActivityLog() {
           <button
             type="button"
             onClick={retry}
-            className="cursor-pointer rounded-button-sm px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+            className="cursor-pointer rounded-button-sm px-2 py-1 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
           >
             다시 시도
           </button>
@@ -165,7 +165,7 @@ export default function StepActivityLog() {
       ) : !visible ? (
         <ActivityLogSkeleton />
       ) : visible.logs.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border-default px-4 py-12 text-center text-[11px] text-text-secondary">
+        <p className="rounded-lg border border-dashed border-border-default px-4 py-12 text-center text-detail text-text-secondary">
           아직 활동 기록이 없습니다.
         </p>
       ) : (
@@ -209,7 +209,7 @@ export default function StepActivityLog() {
               <button
                 type="button"
                 onClick={loadMore}
-                className="cursor-pointer rounded-button-sm px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+                className="cursor-pointer rounded-button-sm px-2 py-1 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
               >
                 다시 시도
               </button>
