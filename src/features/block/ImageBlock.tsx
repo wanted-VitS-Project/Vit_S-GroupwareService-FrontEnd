@@ -301,7 +301,7 @@ export default function ImageBlock({
       block={block}
       headerExtra={
         totalCount !== null && totalCount > 0 ? (
-          <span className="shrink-0 font-mono text-[9px] text-text-secondary">
+          <span className="shrink-0 font-mono text-micro text-text-secondary">
             {totalCount}장
           </span>
         ) : undefined
@@ -420,13 +420,13 @@ export default function ImageBlock({
 
         {/* 조회 실패는 위 재시도 판이 맡는다. 여기는 다운로드 · 삭제처럼 동작 실패만 */}
         {errorMessage && (
-          <p role="alert" className="text-[9px] break-keep text-text-danger">
+          <p role="alert" className="text-micro break-keep text-text-danger">
             {errorMessage}
           </p>
         )}
 
         <div className="mt-auto flex items-center justify-between gap-2 pt-0.5">
-          <span className="shrink-0 font-mono text-[9px] text-text-secondary">
+          <span className="shrink-0 font-mono text-micro text-text-secondary">
             {current && totalCount ? `${orderIndex} / ${totalCount}` : '—'}
           </span>
 

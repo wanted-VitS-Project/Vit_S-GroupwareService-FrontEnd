@@ -155,7 +155,7 @@ export default function GrantPermissionModal({
         <div className="space-y-4 p-5">
           {!isEditing && (
             <div>
-              <label className="block pb-1.5 text-[11px] font-semibold text-text-primary">
+              <label className="block pb-1.5 text-detail font-semibold text-text-primary">
                 사원 검색
               </label>
               <EmployeeSearchInput
@@ -186,7 +186,7 @@ export default function GrantPermissionModal({
           )}
 
           {picked.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-border-default px-3 py-6 text-center text-[11px] text-text-secondary">
+            <p className="rounded-lg border border-dashed border-border-default px-3 py-6 text-center text-detail text-text-secondary">
               권한을 줄 사원을 검색해 추가해주세요.
             </p>
           ) : (

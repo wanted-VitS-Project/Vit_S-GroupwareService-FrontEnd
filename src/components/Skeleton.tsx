@@ -63,7 +63,7 @@ export function SkeletonTable({
     <SkeletonGroup label={label} className={wrapperClassName}>
       <table className={tableClassName}>
         <thead className="sticky top-0 bg-bg-card">
-          <tr className="border-b border-border-default text-[11px] text-text-secondary">
+          <tr className="border-b border-border-default text-detail text-text-secondary">
             {columns.map((column) => (
               <th
                 key={column.label}

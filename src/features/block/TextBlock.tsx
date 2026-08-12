@@ -78,7 +78,7 @@ export default function TextBlock({
         </div>
 
         <div className="flex items-center justify-between border-t border-border-default pt-1">
-          <span className="font-mono text-[9px] text-text-secondary">
+          <span className="font-mono text-micro text-text-secondary">
             {content.length}자
           </span>
 
@@ -95,7 +95,7 @@ export default function TextBlock({
             </button>
           ) : (
             // detail.txtId 없이는 어느 본문을 고칠지 알 수 없다
-            <span className="text-[9px] text-text-secondary">편집 불가</span>
+            <span className="text-micro text-text-secondary">편집 불가</span>
           )}
         </div>
       </div>

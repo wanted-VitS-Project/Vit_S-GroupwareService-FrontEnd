@@ -146,7 +146,7 @@ export default function ProjectIssues() {
             setFailedProjectId(null);
             setReloadCount((count) => count + 1);
           }}
-          className="cursor-pointer rounded-button-sm px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+          className="cursor-pointer rounded-button-sm px-2 py-1 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
         >
           다시 시도
         </button>
@@ -205,7 +205,7 @@ export default function ProjectIssues() {
                     : new Set(steps.map((step) => step.stepId)),
                 )
               }
-              className="cursor-pointer rounded-button-sm px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+              className="cursor-pointer rounded-button-sm px-2 py-1 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
             >
               {areAllOpen ? '모두 접기' : '모두 펼치기'}
             </button>
@@ -310,7 +310,7 @@ const StepAccordion = memo(function StepAccordion({
         <div className="hidden w-40 shrink-0 items-center gap-2 sm:flex">
           <IssueProgressBar progress={step} className="h-1.5 flex-1" />
           <span
-            className={`w-8 shrink-0 text-right text-[11px] font-medium ${
+            className={`w-8 shrink-0 text-right text-detail font-medium ${
               step.progressRate === null
                 ? 'text-text-muted'
                 : 'text-text-primary-blue'
@@ -323,7 +323,7 @@ const StepAccordion = memo(function StepAccordion({
         {/* 이 화면은 조회 전용이다 — 고치려면 스텝 일정 화면으로 넘어간다 */}
         <Link
           href={`/projects/${projectId}/steps/${step.stepId}/issue`}
-          className="shrink-0 rounded-button-sm px-2 py-1 text-[11px] font-medium text-text-secondary hover:bg-bg-surface hover:text-text-primary-blue"
+          className="shrink-0 rounded-button-sm px-2 py-1 text-detail font-medium text-text-secondary hover:bg-bg-surface hover:text-text-primary-blue"
         >
           일정 열기
         </Link>
@@ -331,7 +331,7 @@ const StepAccordion = memo(function StepAccordion({
 
       {isOpen &&
         (issues.length === 0 ? (
-          <p className="border-t border-border-default px-4 py-6 text-center text-[11px] text-text-secondary">
+          <p className="border-t border-border-default px-4 py-6 text-center text-detail text-text-secondary">
             등록된 이슈가 없습니다.
           </p>
         ) : (
@@ -409,16 +409,16 @@ const IssueRow = memo(function IssueRow({
       <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
         <IssuePriorityBadge priority={issue.priority} />
         <OverdueBadge days={overdueDays(issue)} />
-        <span className="ml-auto text-[9px] text-text-secondary">
+        <span className="ml-auto text-micro text-text-secondary">
           #{issue.issueId}
         </span>
       </div>
 
-      <p className="mb-2 line-clamp-2 text-[11px] leading-snug font-semibold text-text-primary">
+      <p className="mb-2 line-clamp-2 text-detail leading-snug font-semibold text-text-primary">
         {issue.title}
       </p>
 
-      <div className="flex items-center justify-between gap-2 text-[9px] text-text-secondary">
+      <div className="flex items-center justify-between gap-2 text-micro text-text-secondary">
         <span className="flex min-w-0 items-center">
           {issue.assignees.slice(0, 3).map((assignee, index) => (
             <span key={assignee.userId} className={index > 0 ? '-ml-1' : ''}>

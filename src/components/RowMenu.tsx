@@ -141,7 +141,7 @@ export default function RowMenu({
                   close();
                   item.onSelect();
                 }}
-                className={`block w-full cursor-pointer px-3 py-1.5 text-left text-[11px] hover:bg-bg-hover ${
+                className={`block w-full cursor-pointer px-3 py-1.5 text-left text-detail hover:bg-bg-hover ${
                   item.danger ? 'text-text-danger' : 'text-text-primary'
                 }`}
               >

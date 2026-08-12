@@ -103,7 +103,7 @@ function IssueCard({
           event.stopPropagation();
           onOpen(issue.issueId);
         }}
-        className="mb-2 block cursor-pointer text-left text-[11px] leading-snug font-semibold text-text-primary hover:text-text-primary-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-primary"
+        className="mb-2 block cursor-pointer text-left text-detail leading-snug font-semibold text-text-primary hover:text-text-primary-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-primary"
       >
         {issue.title}
       </button>

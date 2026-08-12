@@ -223,7 +223,7 @@ export default function PagePermissionList() {
 
           <p
             role="status"
-            className="mb-2 text-[11px] break-keep text-text-primary-blue empty:hidden"
+            className="mb-2 text-detail break-keep text-text-primary-blue empty:hidden"
           >
             {notice}
           </p>
@@ -262,7 +262,7 @@ export default function PagePermissionList() {
               <div className="max-h-[60vh] overflow-y-auto">
                 <table className="w-full table-fixed border-collapse text-left">
                   <thead className="sticky top-0 bg-bg-card">
-                    <tr className="border-b border-border-default text-[11px] text-text-secondary">
+                    <tr className="border-b border-border-default text-detail text-text-secondary">
                       <th className="w-44 px-5 py-3 font-medium">
                         이름 · 사번
                       </th>

@@ -90,7 +90,7 @@ export default function ProjectImages() {
             setFailedProjectId(null);
             setReloadCount((count) => count + 1);
           }}
-          className="cursor-pointer rounded-button-sm px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+          className="cursor-pointer rounded-button-sm px-2 py-1 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
         >
           다시 시도
         </button>
@@ -123,7 +123,7 @@ export default function ProjectImages() {
           <button
             type="button"
             onClick={() => setGroupByBlock((grouped) => !grouped)}
-            className="cursor-pointer rounded-button-sm px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+            className="cursor-pointer rounded-button-sm px-2 py-1 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
           >
             {groupByBlock ? '전체 보기' : '블록별로 보기'}
           </button>
@@ -142,11 +142,11 @@ export default function ProjectImages() {
           >
             <div className="flex flex-wrap items-center gap-2">
               {/* 제목이 107번 응답에 없어 스텝 블록 목록에서 모아 온 이름이다 */}
-              <h3 className="text-[11px] font-semibold text-text-primary">
+              <h3 className="text-detail font-semibold text-text-primary">
                 {imageBlockLabel(block.imgBlockId, blockNames)}
               </h3>
               {blockNames?.get(block.imgBlockId)?.stepName && (
-                <span className="rounded-pill bg-bg-hover px-2 py-0.5 text-[9px] text-text-secondary">
+                <span className="rounded-pill bg-bg-hover px-2 py-0.5 text-micro text-text-secondary">
                   {blockNames.get(block.imgBlockId)?.stepName}
                 </span>
               )}
@@ -214,7 +214,7 @@ const ImageGrid = memo(function ImageGrid({
               <span className="truncate text-caption font-medium text-text-primary">
                 {image.caption || image.originalName}
               </span>
-              <span className="font-mono text-[9px] text-text-secondary">
+              <span className="font-mono text-micro text-text-secondary">
                 {formatDate(image.createdAt)}
               </span>
             </span>

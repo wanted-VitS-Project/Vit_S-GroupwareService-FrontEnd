@@ -43,7 +43,7 @@ export default function ImageLightbox({
       className="flex max-h-[90vh] w-full max-w-[880px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
       header={
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border-default px-5 py-3">
-          <p className="min-w-0 truncate text-[11px] font-semibold text-text-primary">
+          <p className="min-w-0 truncate text-detail font-semibold text-text-primary">
             {image.originalName || '이미지'}
           </p>
           <div className="flex shrink-0 items-center gap-2">
@@ -91,7 +91,7 @@ export default function ImageLightbox({
             />
           </div>
           {/* 캡션도 있든 없든 한 줄 자리를 잡아 둔다 */}
-          <p className="line-clamp-2 h-8 max-w-lg text-center text-[11px] leading-4 text-text-primary">
+          <p className="line-clamp-2 h-8 max-w-lg text-center text-detail leading-4 text-text-primary">
             {image.caption}
           </p>
         </div>

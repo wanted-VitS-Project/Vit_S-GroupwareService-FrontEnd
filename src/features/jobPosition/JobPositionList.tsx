@@ -121,7 +121,7 @@ export default function JobPositionList() {
 
       <p
         role="alert"
-        className="mb-2 text-[11px] break-keep text-text-danger empty:hidden"
+        className="mb-2 text-detail break-keep text-text-danger empty:hidden"
       >
         {moveError}
       </p>
@@ -135,7 +135,7 @@ export default function JobPositionList() {
             <button
               type="button"
               onClick={reload}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover"
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover"
             >
               다시 시도
             </button>
@@ -158,7 +158,7 @@ export default function JobPositionList() {
           <div className="max-h-[60vh] overflow-y-auto">
             <table className="w-full table-fixed border-collapse text-left">
               <thead className="sticky top-0 bg-bg-card">
-                <tr className="border-b border-border-default text-[11px] text-text-secondary">
+                <tr className="border-b border-border-default text-detail text-text-secondary">
                   <th className="w-16 px-5 py-3 font-medium">순서</th>
                   <th className="px-5 py-3 font-medium">직급명</th>
                   <th className="w-28 px-5 py-3 font-medium">사용 인원</th>

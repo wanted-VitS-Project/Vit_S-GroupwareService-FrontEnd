@@ -193,7 +193,7 @@ export default function NotificationSection({
              */}
             {groupByDate(data.content).map((group) => (
               <div key={group.dateKey}>
-                <p className="border-b border-border-default bg-bg-surface px-4 py-1.5 text-[11px] font-semibold text-text-secondary">
+                <p className="border-b border-border-default bg-bg-surface px-4 py-1.5 text-detail font-semibold text-text-secondary">
                   {group.dateLabel}
                 </p>
 

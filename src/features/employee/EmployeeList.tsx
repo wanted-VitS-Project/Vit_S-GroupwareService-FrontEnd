@@ -280,7 +280,7 @@ export default function EmployeeList() {
           }))}
         />
 
-        <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-text-secondary">
+        <label className="flex cursor-pointer items-center gap-1.5 text-detail text-text-secondary">
           <input
             type="checkbox"
             checked={query.resigned ?? false}
@@ -310,14 +310,14 @@ export default function EmployeeList() {
 
       {selected.length > 0 && (
         <div className="mb-2 flex items-center justify-between gap-4 rounded-lg border border-border-primary/20 bg-blue-bg-soft px-4 py-2.5">
-          <p className="text-[11px] font-medium text-text-primary">
+          <p className="text-detail font-medium text-text-primary">
             {selected.length}명 선택됨
           </p>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setSelectedIds([])}
-              className="cursor-pointer rounded-lg px-3 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-card"
+              className="cursor-pointer rounded-lg px-3 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-card"
             >
               선택 해제
             </button>
@@ -363,7 +363,7 @@ export default function EmployeeList() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[880px] border-collapse text-left">
                 <thead>
-                  <tr className="border-b border-border-default text-[11px] text-text-secondary">
+                  <tr className="border-b border-border-default text-detail text-text-secondary">
                     <th className="w-10 px-3 py-3">
                       <input
                         type="checkbox"

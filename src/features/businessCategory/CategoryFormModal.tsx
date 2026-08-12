@@ -144,7 +144,7 @@ export default function CategoryFormModal({
           />
 
           <label className="block">
-            <span className="block pb-1.5 text-[11px] font-semibold text-text-primary">
+            <span className="block pb-1.5 text-detail font-semibold text-text-primary">
               설명{' '}
               <span className="font-normal text-text-secondary">(선택)</span>
             </span>
@@ -153,7 +153,7 @@ export default function CategoryFormModal({
               onChange={(event) => setDescription(event.target.value)}
               rows={3}
               placeholder="카테고리에 대한 간략한 설명을 입력하세요."
-              className="w-full resize-none rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-[11px] break-keep text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+              className="w-full resize-none rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-detail break-keep text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
             />
           </label>
         </div>
@@ -170,14 +170,14 @@ export default function CategoryFormModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+              className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
             >
               취소
             </button>
             <button
               type="submit"
               disabled={!canSubmit}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
             >
               {isSubmitting ? '저장 중…' : isEditing ? '저장' : '추가'}
             </button>
@@ -218,7 +218,7 @@ function Field({
       <div className="flex items-end justify-between gap-2 pb-1.5">
         <label
           htmlFor={id}
-          className="text-[11px] font-semibold text-text-primary"
+          className="text-detail font-semibold text-text-primary"
         >
           {label}{' '}
           {required ? (
@@ -240,7 +240,7 @@ function Field({
         placeholder={placeholder}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
-        className={`w-full rounded-lg border bg-bg-surface px-3 py-2 text-[11px] text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 ${
+        className={`w-full rounded-lg border bg-bg-surface px-3 py-2 text-detail text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 ${
           error
             ? 'border-border-danger focus:outline-border-danger'
             : 'border-border-default focus:outline-border-primary'

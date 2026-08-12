@@ -185,7 +185,7 @@ export default function BlockEditModal({
       >
         <div className="flex flex-col gap-5 p-5">
           <label className="block">
-            <span className="block pb-1.5 text-[11px] font-semibold text-text-primary">
+            <span className="block pb-1.5 text-detail font-semibold text-text-primary">
               블록 제목
             </span>
             <input
@@ -193,12 +193,12 @@ export default function BlockEditModal({
               maxLength={BLOCK_TITLE_MAX_LENGTH}
               onChange={(event) => setTitle(event.target.value)}
               placeholder="블록 제목을 입력해주세요."
-              className="w-full rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-[11px] font-normal text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+              className="w-full rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-detail font-normal text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
             />
           </label>
           {/* 담당자 지정 — 이슈 담당자 지정과 같은 모양(칩 + 후보 버튼)을 쓴다 */}
           <div>
-            <span className="block pb-1.5 text-[11px] font-semibold text-text-primary">
+            <span className="block pb-1.5 text-detail font-semibold text-text-primary">
               담당자
             </span>
             <div className="flex min-h-[40px] flex-wrap items-center gap-1.5 rounded-lg border border-border-default bg-bg-surface p-2.5">
@@ -294,7 +294,7 @@ export default function BlockEditModal({
               type="button"
               onClick={requestClose}
               disabled={isSubmitting}
-              className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               취소
             </button>
@@ -302,7 +302,7 @@ export default function BlockEditModal({
               type="button"
               onClick={requestSave}
               disabled={isSubmitting || hasNoVersion}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
             >
               {isSubmitting ? '저장 중…' : '저장'}
             </button>

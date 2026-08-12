@@ -128,7 +128,7 @@ export default function DepartmentList() {
             <button
               type="button"
               onClick={reload}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover"
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover"
             >
               다시 시도
             </button>
@@ -153,7 +153,7 @@ export default function DepartmentList() {
           <div className="max-h-[60vh] overflow-y-auto">
             <table className="w-full table-fixed border-collapse text-left">
               <thead className="sticky top-0 bg-bg-card">
-                <tr className="border-b border-border-default text-[11px] text-text-secondary">
+                <tr className="border-b border-border-default text-detail text-text-secondary">
                   <th className="px-5 py-3 font-medium">부서명</th>
                   <th className="w-28 px-5 py-3 font-medium">인원</th>
                   <th className="w-32 px-5 py-3 font-medium">소속 사원</th>
@@ -201,7 +201,7 @@ export default function DepartmentList() {
                     <td className="px-5 py-3.5">
                       <Link
                         href={`/settings/employees?departmentId=${department.departmentId}`}
-                        className="text-[11px] font-medium text-text-primary-blue hover:underline"
+                        className="text-detail font-medium text-text-primary-blue hover:underline"
                       >
                         사원 보기
                       </Link>

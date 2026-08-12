@@ -22,7 +22,7 @@ export default function ArrangeBlocksButton({
       aria-pressed={isArranging}
       disabled={isDisabled}
       onClick={onToggle}
-      className={`flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
+      className={`flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-detail font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
         isArranging
           ? 'border-border-primary bg-blue-bg-soft text-text-primary-blue'
           : 'border-border-default bg-bg-card text-text-primary hover:bg-bg-hover'

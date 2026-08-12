@@ -294,13 +294,13 @@ export default function FileBlock({ block }: { block: StepBlock }) {
         </div>
 
         {errorMessage && (
-          <p role="alert" className="text-[9px] break-keep text-text-danger">
+          <p role="alert" className="text-micro break-keep text-text-danger">
             {errorMessage}
           </p>
         )}
 
         <div className="flex items-center justify-between gap-2 border-t border-border-default pt-1">
-          <span className="min-w-0 truncate text-[9px] text-text-secondary">
+          <span className="min-w-0 truncate text-micro text-text-secondary">
             {files ? `${files.length}개 문서` : '—'}
           </span>
 
@@ -424,10 +424,10 @@ function FileRow({
                 if (event.key === 'Enter') onSaveName();
                 if (event.key === 'Escape') onCancelRename();
               }}
-              className="pointer-events-auto min-w-0 flex-1 rounded-button-sm border border-border-primary px-1 text-[11px] text-text-primary outline-none"
+              className="pointer-events-auto min-w-0 flex-1 rounded-button-sm border border-border-primary px-1 text-detail text-text-primary outline-none"
             />
           ) : (
-            <span className="min-w-0 truncate text-[11px] font-semibold text-text-primary">
+            <span className="min-w-0 truncate text-detail font-semibold text-text-primary">
               {file.name}
             </span>
           )}
@@ -448,11 +448,11 @@ function FileRow({
           </span>
         </div>
 
-        <p className="mt-0.5 truncate text-[9px] text-text-secondary">
+        <p className="mt-0.5 truncate text-micro text-text-secondary">
           {file.uploaderDepartment} · {file.uploaderPosition}{' '}
           {file.uploaderName}
         </p>
-        <p className="font-mono text-[9px] text-text-secondary">
+        <p className="font-mono text-micro text-text-secondary">
           {file.updatedAt.slice(0, 10).replaceAll('-', '.')} ·{' '}
           {formatFileSize(file.sizeBytes)}
         </p>

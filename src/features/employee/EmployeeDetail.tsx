@@ -176,7 +176,7 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
 
       {/* 이메일이 없으면 로그인도 비밀번호 재설정도 못 한다 — 조치가 필요해 위로 올린다 */}
       {!employee.emailRegistered && (
-        <p className="mb-4 rounded-lg border border-yellow-border/30 bg-yellow-bg-soft px-4 py-3 text-[11px] leading-relaxed break-keep text-yellow-text">
+        <p className="mb-4 rounded-lg border border-yellow-border/30 bg-yellow-bg-soft px-4 py-3 text-detail leading-relaxed break-keep text-yellow-text">
           ⚠ 이메일이 등록되지 않아 이 사원은 <b>로그인할 수 없습니다.</b>{' '}
           비밀번호 초기화도 실패합니다 — 먼저{' '}
           <Link
@@ -293,7 +293,7 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
               {employee.groups.map((group) => (
                 <li
                   key={group.groupId}
-                  className="rounded-pill border border-border-default bg-bg-surface px-2.5 py-1 text-[11px] text-text-primary"
+                  className="rounded-pill border border-border-default bg-bg-surface px-2.5 py-1 text-detail text-text-primary"
                 >
                   {group.name}
                 </li>
@@ -307,20 +307,20 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
             퇴사 처리
           </h3>
           {isResigned ? (
-            <p className="mt-2 text-[11px] break-keep text-text-secondary">
+            <p className="mt-2 text-detail break-keep text-text-secondary">
               {formatDate(employee.resignedAt)} 에 퇴사 처리되었습니다. 사원
               정보는 과거 이력에 그대로 남습니다.
             </p>
           ) : (
             <div className="mt-2 flex items-end justify-between gap-4">
-              <p className="text-[11px] break-keep text-text-secondary">
+              <p className="text-detail break-keep text-text-secondary">
                 퇴사일을 기록하고 계정을 즉시 정지합니다. 사원 정보는 삭제되지
                 않습니다.
               </p>
               <button
                 type="button"
                 onClick={() => modal.open('resignation')}
-                className="shrink-0 cursor-pointer rounded-lg bg-red-text px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-danger-hover"
+                className="shrink-0 cursor-pointer rounded-lg bg-red-text px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-danger-hover"
               >
                 퇴사 처리
               </button>
@@ -447,7 +447,7 @@ function CardButton({
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={`cursor-pointer rounded-lg border px-3 py-1 text-[11px] font-semibold disabled:cursor-not-allowed disabled:border-border-default disabled:text-text-muted ${
+      className={`cursor-pointer rounded-lg border px-3 py-1 text-detail font-semibold disabled:cursor-not-allowed disabled:border-border-default disabled:text-text-muted ${
         danger
           ? 'border-border-danger/30 text-text-danger hover:bg-red-bg-soft'
           : 'border-border-default text-text-primary hover:bg-bg-hover'

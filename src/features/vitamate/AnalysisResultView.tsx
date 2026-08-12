@@ -61,7 +61,7 @@ export default function AnalysisResultView({
           {parsed.summary && (
             <section>
               <SectionLabel>검토 요약</SectionLabel>
-              <p className="text-[11px] leading-relaxed break-keep text-text-primary">
+              <p className="text-detail leading-relaxed break-keep text-text-primary">
                 {parsed.summary}
               </p>
             </section>
@@ -74,7 +74,7 @@ export default function AnalysisResultView({
           {parsed.warning && <WarningBanner text={parsed.warning} />}
         </>
       ) : (
-        <div className="text-[11px] leading-relaxed text-text-primary">
+        <div className="text-detail leading-relaxed text-text-primary">
           <MarkdownView content={result} />
         </div>
       )}
@@ -88,7 +88,7 @@ export default function AnalysisResultView({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h4 className="mb-1 text-[9px] font-semibold tracking-wider text-text-secondary uppercase">
+    <h4 className="mb-1 text-micro font-semibold tracking-wider text-text-secondary uppercase">
       {children}
     </h4>
   );
@@ -110,7 +110,7 @@ function FindingList({ findings }: { findings: ResultFinding[] }) {
             key={`${index}-${finding.title}`}
             className={`rounded-button-sm border-l-2 bg-bg-surface px-2.5 py-1.5 ${SEVERITY_BAR[finding.severity]}`}
           >
-            <p className="flex items-center gap-1.5 text-[11px] font-semibold break-keep text-text-primary">
+            <p className="flex items-center gap-1.5 text-detail font-semibold break-keep text-text-primary">
               <span className="min-w-0 flex-1">{finding.title}</span>
               <span className="sr-only">
                 — {SEVERITY_LABEL[finding.severity]}
@@ -179,7 +179,7 @@ function CitationList({
         type="button"
         onClick={() => setIsOpen((wasOpen) => !wasOpen)}
         aria-expanded={isOpen}
-        className="flex w-full cursor-pointer items-center gap-1 text-[9px] font-semibold tracking-wider text-text-secondary uppercase hover:text-text-primary"
+        className="flex w-full cursor-pointer items-center gap-1 text-micro font-semibold tracking-wider text-text-secondary uppercase hover:text-text-primary"
       >
         <span>근거 · {citations.length}건</span>
         <span aria-hidden className={isOpen ? 'rotate-180' : ''}>
@@ -196,7 +196,7 @@ function CitationList({
                 key={citation.documentChunkId}
                 className="rounded-button-sm bg-bg-surface px-2.5 py-1.5"
               >
-                <p className="text-[9px] text-text-secondary">
+                <p className="text-micro text-text-secondary">
                   {nameOf(citation.fileVersionId)}
                   {citation.pageNumber !== null && ` · ${citation.pageNumber}p`}
                 </p>

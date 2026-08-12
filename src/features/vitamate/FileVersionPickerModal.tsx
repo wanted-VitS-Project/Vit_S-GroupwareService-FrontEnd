@@ -144,14 +144,14 @@ export default function FileVersionPickerModal({
         <button
           type="button"
           onClick={onClose}
-          className="cursor-pointer rounded-button-md border border-border-default px-3 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover"
+          className="cursor-pointer rounded-button-md border border-border-default px-3 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover"
         >
           취소
         </button>
         <button
           type="button"
           onClick={() => onConfirm(draft)}
-          className="cursor-pointer rounded-button-md bg-[#4F39F6] px-3 py-1.5 text-[11px] font-semibold text-text-white hover:bg-[#4429E0]"
+          className="cursor-pointer rounded-button-md bg-[#4F39F6] px-3 py-1.5 text-detail font-semibold text-text-white hover:bg-[#4429E0]"
         >
           확인
         </button>
@@ -217,16 +217,16 @@ function VersionRow({
         />
         <span
           style={{ color: style.text, backgroundColor: style.background }}
-          className="shrink-0 rounded-button-sm px-1.5 py-0.5 text-[9px] font-bold"
+          className="shrink-0 rounded-button-sm px-1.5 py-0.5 text-micro font-bold"
         >
           {extensionLabel(version.extension)}
         </span>
 
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[11px] font-medium text-text-primary">
+          <span className="block truncate text-detail font-medium text-text-primary">
             {version.name}
           </span>
-          <span className="mt-0.5 flex items-center gap-1.5 text-[9px] text-text-secondary">
+          <span className="mt-0.5 flex items-center gap-1.5 text-micro text-text-secondary">
             <span>v{version.versionNo}</span>
             {version.latest && (
               <span className="rounded-button-sm bg-green-bg px-1 py-px font-semibold text-green-text">

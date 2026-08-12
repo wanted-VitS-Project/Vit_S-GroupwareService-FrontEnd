@@ -78,14 +78,14 @@ export default function AccountStatusModal({
         </div>
 
         {isSuspending ? (
-          <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-[11px] leading-relaxed break-keep text-yellow-text">
+          <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-detail leading-relaxed break-keep text-yellow-text">
             정지하면 이 사원은 로그인할 수 없습니다.
             <br />
             사원 정보와 과거 이력은 그대로 남고, 언제든 다시 활성화할 수
             있습니다.
           </p>
         ) : (
-          <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-[11px] leading-relaxed break-keep text-text-secondary">
+          <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-detail leading-relaxed break-keep text-text-secondary">
             다시 로그인할 수 있게 됩니다. 비밀번호는 정지 이전 그대로입니다.
           </p>
         )}
@@ -112,7 +112,7 @@ export default function AccountStatusModal({
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+            className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
           >
             취소
           </button>
@@ -120,7 +120,7 @@ export default function AccountStatusModal({
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className={`cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-semibold text-text-white disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary ${
+            className={`cursor-pointer rounded-lg px-4 py-1.5 text-detail font-semibold text-text-white disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary ${
               isSuspending
                 ? 'bg-red-text hover:bg-btn-danger-hover'
                 : 'bg-btn-primary hover:bg-btn-primary-hover'

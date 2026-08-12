@@ -298,7 +298,7 @@ export default function ImageUploadModal({
                     className="size-10 shrink-0 rounded-button-md bg-bg-hover object-cover"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[11px] font-medium text-text-primary">
+                    <p className="truncate text-detail font-medium text-text-primary">
                       {index + 1}. {item.file.name}
                     </p>
                     <input
@@ -323,7 +323,7 @@ export default function ImageUploadModal({
                     aria-label={`${item.file.name} 목록에서 빼기`}
                     disabled={isUploading}
                     onClick={() => removeQueued(item.key)}
-                    className="shrink-0 cursor-pointer px-1 text-[11px] text-text-secondary hover:text-text-danger disabled:cursor-not-allowed disabled:opacity-40"
+                    className="shrink-0 cursor-pointer px-1 text-detail text-text-secondary hover:text-text-danger disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     ✕
                   </button>
@@ -344,7 +344,7 @@ export default function ImageUploadModal({
             type="button"
             onClick={requestClose}
             disabled={isUploading}
-            className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
+            className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
           >
             취소
           </button>
@@ -352,7 +352,7 @@ export default function ImageUploadModal({
             type="button"
             onClick={upload}
             disabled={queued.length === 0 || isUploading}
-            className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+            className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
           >
             {isUploading ? '올리는 중…' : `등록하기 (${queued.length})`}
           </button>

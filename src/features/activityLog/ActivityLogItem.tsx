@@ -69,7 +69,7 @@ function ActivityLogItem({
             size="xs"
             decorative
           />
-          <span className="text-[11px] font-semibold text-text-primary">
+          <span className="text-detail font-semibold text-text-primary">
             {log.actor.name}
           </span>
 
@@ -99,7 +99,7 @@ function ActivityLogItem({
           </span>
         </div>
 
-        <div className="mt-1 rounded-button-md bg-bg-surface px-2.5 py-1.5 text-[11px] leading-relaxed text-gray-text-soft">
+        <div className="mt-1 rounded-button-md bg-bg-surface px-2.5 py-1.5 text-detail leading-relaxed text-gray-text-soft">
           <span className="font-medium text-text-primary">‘{targetName}’</span>{' '}
           {log.action === 'MODIFY' && log.fieldName ? (
             <>

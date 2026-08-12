@@ -59,7 +59,7 @@ export default function JobPositionEmployeesModal({
         <div className="max-h-72 overflow-auto rounded-lg border border-border-default">
           {hasFailed ? (
             <Centered>
-              <p className="text-[11px] text-text-secondary">
+              <p className="text-detail text-text-secondary">
                 사원을 불러오지 못했습니다.
               </p>
               <button
@@ -72,11 +72,11 @@ export default function JobPositionEmployeesModal({
             </Centered>
           ) : employees === null ? (
             <Centered>
-              <p className="text-[11px] text-text-secondary">불러오는 중…</p>
+              <p className="text-detail text-text-secondary">불러오는 중…</p>
             </Centered>
           ) : employees.length === 0 ? (
             <Centered>
-              <p className="text-[11px] break-keep text-text-secondary">
+              <p className="text-detail break-keep text-text-secondary">
                 이 직급인 사원이 없습니다.
               </p>
             </Centered>
@@ -84,7 +84,7 @@ export default function JobPositionEmployeesModal({
             <ul className="divide-y divide-border-default">
               {employees.map((employee) => (
                 <li key={employee.userId} className="px-3 py-2.5">
-                  <span className="block truncate text-[11px] font-semibold text-text-primary">
+                  <span className="block truncate text-detail font-semibold text-text-primary">
                     {employee.name}
                     <span className="ml-1.5 font-normal text-text-secondary">
                       {employee.userId}

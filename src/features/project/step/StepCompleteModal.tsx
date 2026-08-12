@@ -104,7 +104,7 @@ export default function StepCompleteModal({
 
         {hasOpenIssues ? (
           <fieldset>
-            <legend className="pb-1.5 text-[11px] font-semibold text-text-primary">
+            <legend className="pb-1.5 text-detail font-semibold text-text-primary">
               미완료 이슈 {openIssueCount}개를 어떻게 할까요?{' '}
               <span className="text-text-danger">*</span>
             </legend>
@@ -131,7 +131,7 @@ export default function StepCompleteModal({
                     className="mt-0.5 size-3.5 shrink-0 cursor-pointer accent-btn-primary"
                   />
                   <span className="min-w-0">
-                    <span className="block text-[11px] font-semibold text-text-primary">
+                    <span className="block text-detail font-semibold text-text-primary">
                       {option.label}
                     </span>
                     <span className="mt-0.5 block text-caption break-keep text-text-secondary">
@@ -143,7 +143,7 @@ export default function StepCompleteModal({
             </div>
           </fieldset>
         ) : (
-          <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-[11px] break-keep text-text-secondary">
+          <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-detail break-keep text-text-secondary">
             미완료 이슈가 없습니다. 바로 완료 처리할 수 있습니다.
           </p>
         )}
@@ -168,7 +168,7 @@ export default function StepCompleteModal({
             type="button"
             onClick={requestClose}
             disabled={isSubmitting}
-            className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+            className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
           >
             취소
           </button>
@@ -176,7 +176,7 @@ export default function StepCompleteModal({
             type="button"
             onClick={handleComplete}
             disabled={isSubmitting}
-            className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+            className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
           >
             {isSubmitting ? '처리 중…' : '완료 처리'}
           </button>

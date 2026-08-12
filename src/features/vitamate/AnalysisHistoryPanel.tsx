@@ -75,7 +75,7 @@ export default function AnalysisHistoryPanel({
       className={SIDE_PANEL_WIDE}
       header={
         <div className="flex shrink-0 items-center gap-2 border-b border-border-default px-4 py-3">
-          <span className="flex size-5 shrink-0 items-center justify-center rounded-button-sm border border-purple-border bg-blue-bg-soft text-[11px] text-[#4F39F6]">
+          <span className="flex size-5 shrink-0 items-center justify-center rounded-button-sm border border-purple-border bg-blue-bg-soft text-detail text-[#4F39F6]">
             ✦
           </span>
           <div className="min-w-0 flex-1">
@@ -118,7 +118,7 @@ export default function AnalysisHistoryPanel({
           // 빈 목록과 같은 모양이면 실패를 "아직 없음" 으로 오해한다
           <p
             role="alert"
-            className="rounded-button-sm border border-red-border bg-red-bg-soft px-2.5 py-3 text-center text-[11px] break-keep text-text-danger"
+            className="rounded-button-sm border border-red-border bg-red-bg-soft px-2.5 py-3 text-center text-detail break-keep text-text-danger"
           >
             {listError}
           </p>
@@ -141,7 +141,7 @@ export default function AnalysisHistoryPanel({
                       <span className="min-w-0 flex-1 truncate text-caption text-text-secondary">
                         {analysis.reviewType ?? '검토 유형 지정 안 됨'}
                       </span>
-                      <span className="shrink-0 text-[9px] text-text-secondary">
+                      <span className="shrink-0 text-micro text-text-secondary">
                         {formatDateTime(analysis.createdAt)}
                       </span>
                     </span>
@@ -153,7 +153,7 @@ export default function AnalysisHistoryPanel({
               ))}
             </ul>
             {analyses.length >= 20 && (
-              <p className="mt-2 text-center text-[9px] text-text-secondary">
+              <p className="mt-2 text-center text-micro text-text-secondary">
                 최근 20건까지만 보여집니다.
               </p>
             )}
@@ -233,7 +233,7 @@ function AnalysisDetail({
         <>
           <div className="flex items-center gap-1.5">
             <StatusBadge status={analysis.analysisStatus} />
-            <span className="text-[9px] text-text-secondary">
+            <span className="text-micro text-text-secondary">
               {formatDateTime(analysis.completedAt ?? analysis.createdAt)}
             </span>
           </div>

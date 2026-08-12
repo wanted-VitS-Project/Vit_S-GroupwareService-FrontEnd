@@ -66,7 +66,7 @@ export function IssueProgressCounts({ progress }: { progress: IssueProgress }) {
       />
       <CountItem
         dotClass="bg-step-done"
-        textClass="text-text-primary-blue"
+        textClass="text-green-text"
         label="완료"
         count={progress.doneIssueCount}
       />

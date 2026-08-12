@@ -397,7 +397,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
                 type="button"
                 onClick={leave}
                 disabled={isSubmitting}
-                className="cursor-pointer rounded-lg px-4 py-2 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+                className="cursor-pointer rounded-lg px-4 py-2 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
               >
                 취소
               </button>

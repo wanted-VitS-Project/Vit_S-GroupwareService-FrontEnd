@@ -94,7 +94,7 @@ export default function PasswordResetModal({
                     key={failure.userId}
                     className="rounded-lg border border-border-default px-3 py-2"
                   >
-                    <p className="text-[11px] font-semibold text-text-primary">
+                    <p className="text-detail font-semibold text-text-primary">
                       {failure.name}{' '}
                       <span className="font-normal text-text-secondary">
                         {failure.userId}
@@ -109,7 +109,7 @@ export default function PasswordResetModal({
             )}
 
             {resendTargets.length > 0 && (
-              <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-[11px] leading-relaxed break-keep text-yellow-text">
+              <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-detail leading-relaxed break-keep text-yellow-text">
                 {resendTargets.length}명은 비밀번호가 이미 바뀌었지만 메일이
                 가지 않았습니다. 재발송하지 않으면 로그인할 수 없습니다.
               </p>
@@ -128,7 +128,7 @@ export default function PasswordResetModal({
               </span>
             </div>
 
-            <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-[11px] leading-relaxed break-keep text-yellow-text">
+            <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-detail leading-relaxed break-keep text-yellow-text">
               임시 비밀번호를 발급해 각자의 이메일로 보냅니다.
               <br />
               대상 사원은 다음 로그인 때 비밀번호를 반드시 변경해야 합니다.
@@ -183,7 +183,7 @@ export default function PasswordResetModal({
                 type="button"
                 onClick={onClose}
                 disabled={isSubmitting}
-                className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+                className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
               >
                 취소
               </button>

@@ -164,7 +164,7 @@ export default function BlockCard({
           <BlockTypeIcon code={block.type} />
         </span>
 
-        <h3 className="min-w-0 flex-1 truncate text-[11px] font-semibold text-text-primary">
+        <h3 className="min-w-0 flex-1 truncate text-detail font-semibold text-text-primary">
           {block.title || type?.label}
         </h3>
 
@@ -190,12 +190,12 @@ export default function BlockCard({
               // 바로 옆에 이름 글자가 있다
               decorative
             />
-            <span className="min-w-0 flex-1 truncate text-[9px] text-text-secondary">
+            <span className="min-w-0 flex-1 truncate text-micro text-text-secondary">
               {block.owner.name}
             </span>
           </>
         ) : (
-          <span className="flex-1 text-[9px] text-text-secondary">
+          <span className="flex-1 text-micro text-text-secondary">
             담당자 없음
           </span>
         )}
@@ -208,7 +208,7 @@ export default function BlockCard({
             onClick={() => panel.open('issues')}
             aria-label={`연결된 이슈 ${block.linkedIssueDone} / ${block.linkedIssueTotal} 완료`}
             title={`연결된 이슈 ${block.linkedIssueDone} / ${block.linkedIssueTotal} 완료`}
-            className="shrink-0 cursor-pointer rounded-button-sm px-1 py-0.5 text-[9px] text-text-primary-blue hover:bg-blue-bg-soft hover:text-btn-primary-hover"
+            className="shrink-0 cursor-pointer rounded-button-sm px-1 py-0.5 text-micro text-text-primary-blue hover:bg-blue-bg-soft hover:text-btn-primary-hover"
           >
             # {block.linkedIssueDone} / {block.linkedIssueTotal}
           </button>
@@ -315,7 +315,7 @@ function BlockMenu({
                 <HashIcon />
                 <span className="flex-1 text-left">연결된 이슈</span>
                 {block.linkedIssueTotal > 0 && (
-                  <span className="rounded-pill bg-blue-bg px-1.5 py-0.5 text-[9px] font-bold text-btn-primary-hover">
+                  <span className="rounded-pill bg-blue-bg px-1.5 py-0.5 text-micro font-bold text-btn-primary-hover">
                     {block.linkedIssueTotal}
                   </span>
                 )}
@@ -414,7 +414,7 @@ function BlockMenu({
 
 function HashIcon() {
   return (
-    <span className="text-[11px] font-semibold text-text-primary-blue">#</span>
+    <span className="text-detail font-semibold text-text-primary-blue">#</span>
   );
 }
 

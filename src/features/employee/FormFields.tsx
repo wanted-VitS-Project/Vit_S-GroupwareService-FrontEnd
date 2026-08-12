@@ -38,7 +38,7 @@ function FieldShell({
     <div>
       <label
         htmlFor={id}
-        className="block pb-1.5 text-[11px] font-semibold text-text-primary"
+        className="block pb-1.5 text-detail font-semibold text-text-primary"
       >
         {label} {required && <span className="text-text-danger">*</span>}
       </label>
@@ -67,7 +67,7 @@ function FieldShell({
 
 /** 에러가 있을 때만 테두리를 빨갛게 — 입력 · 셀렉트가 같은 규칙을 쓴다 */
 function controlClass(hasError: boolean) {
-  return `w-full rounded-lg border bg-bg-surface px-3 py-2 text-[11px] text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 ${
+  return `w-full rounded-lg border bg-bg-surface px-3 py-2 text-detail text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 ${
     hasError
       ? 'border-border-danger focus:outline-border-danger'
       : 'border-border-default focus:outline-border-primary'

@@ -153,15 +153,15 @@ export default function BlockMoveStepModal({
               <Skeleton className="h-9" />
             </SkeletonGroup>
           ) : haveStepsFailed ? (
-            <p className="rounded-lg bg-red-bg-soft px-3 py-2.5 text-[11px] break-keep text-text-danger">
+            <p className="rounded-lg bg-red-bg-soft px-3 py-2.5 text-detail break-keep text-text-danger">
               스텝 목록을 불러오지 못했습니다. 닫고 다시 시도해주세요.
             </p>
           ) : candidates.length === 0 ? (
-            <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-[11px] break-keep text-text-secondary">
+            <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-detail break-keep text-text-secondary">
               옮길 수 있는 다른 스텝이 없습니다.
             </p>
           ) : !hasSelectableCandidate ? (
-            <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-[11px] break-keep text-text-secondary">
+            <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-detail break-keep text-text-secondary">
               편집 권한이 있는 스텝이 없어 옮길 수 없습니다. 스텝 편집 권한을
               요청해주세요.
             </p>
@@ -169,7 +169,7 @@ export default function BlockMoveStepModal({
             <div>
               <label
                 htmlFor="blockMoveStep"
-                className="block pb-1.5 text-[11px] font-semibold text-text-primary"
+                className="block pb-1.5 text-detail font-semibold text-text-primary"
               >
                 옮길 스텝 <span className="text-text-danger">*</span>
               </label>
@@ -181,7 +181,7 @@ export default function BlockMoveStepModal({
                   setError('');
                 }}
                 disabled={isSubmitting}
-                className="w-full cursor-pointer rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-[11px] text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary disabled:cursor-not-allowed"
+                className="w-full cursor-pointer rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-detail text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary disabled:cursor-not-allowed"
               >
                 <option value="" disabled>
                   옮길 스텝을 선택해주세요
@@ -208,7 +208,7 @@ export default function BlockMoveStepModal({
             다음에 진짜 위험할 때 읽지 않는다.
           */}
           {block.linkedIssueTotal > 0 ? (
-            <p className="rounded-lg bg-red-bg-soft px-3 py-2.5 text-[11px] leading-relaxed break-keep text-text-danger">
+            <p className="rounded-lg bg-red-bg-soft px-3 py-2.5 text-detail leading-relaxed break-keep text-text-danger">
               이 블록에 연결된 이슈 {block.linkedIssueTotal}건의{' '}
               <strong>연결이 끊깁니다.</strong> 블록과 이슈는 같은 스텝에 있어야
               합니다. 이슈 자체는 지워지지 않습니다.
@@ -221,7 +221,7 @@ export default function BlockMoveStepModal({
           )}
 
           {hasNoVersion && (
-            <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-[11px] leading-relaxed break-keep text-yellow-text">
+            <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-detail leading-relaxed break-keep text-yellow-text">
               이 블록의 버전 정보를 받지 못해 옮길 수 없습니다. 새로고침 후 다시
               시도해주세요.
             </p>
@@ -242,7 +242,7 @@ export default function BlockMoveStepModal({
               type="button"
               onClick={requestClose}
               disabled={isSubmitting}
-              className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+              className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
             >
               취소
             </button>
@@ -250,7 +250,7 @@ export default function BlockMoveStepModal({
               type="button"
               onClick={() => void move(false)}
               disabled={!canSubmit}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
             >
               {isSubmitting ? '옮기는 중…' : '이동'}
             </button>

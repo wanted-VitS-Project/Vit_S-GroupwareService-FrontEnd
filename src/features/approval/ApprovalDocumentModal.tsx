@@ -143,7 +143,7 @@ export default function ApprovalDocumentModal({
             <p className="truncate text-body-m font-semibold text-text-primary">
               {fileName}
             </p>
-            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-text-secondary">
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-detail text-text-secondary">
               {version && (
                 <span className="font-mono text-text-primary-blue">
                   v{version.versionNo}
@@ -180,13 +180,13 @@ export default function ApprovalDocumentModal({
     >
       {/* 고정된 버전을 그대로 보여주되, 최신이 아니라는 사실은 알려야 한다 (AP-013) */}
       {version && !version.latest && (
-        <p className="shrink-0 bg-yellow-bg-soft px-5 py-2 text-[11px] break-keep text-yellow-text">
+        <p className="shrink-0 bg-yellow-bg-soft px-5 py-2 text-detail break-keep text-yellow-text">
           결재 이후 새 버전(v{version.latestVersionNo})이 올라왔습니다. 결재
           대상은 v{version.versionNo} 입니다.
         </p>
       )}
       {version?.fileDeleted && (
-        <p className="shrink-0 bg-bg-hover px-5 py-2 text-[11px] break-keep text-text-secondary">
+        <p className="shrink-0 bg-bg-hover px-5 py-2 text-detail break-keep text-text-secondary">
           원본 문서는 휴지통에 있습니다. 결재 이력 보존을 위해 이 버전은 계속
           조회됩니다.
         </p>
@@ -207,7 +207,7 @@ export default function ApprovalDocumentModal({
               onFailed={(message) => setPreview({ kind: 'failed', message })}
             />
             {preview.total !== null && preview.shown !== null && (
-              <p className="mt-4 rounded-lg bg-bg-card px-3 py-2 text-center text-[11px] break-keep text-text-secondary">
+              <p className="mt-4 rounded-lg bg-bg-card px-3 py-2 text-center text-detail break-keep text-text-secondary">
                 미리보기는 {preview.shown}페이지까지만 보여줍니다. 전체 문서는
                 다운로드 후 확인하세요. (총 {preview.total}페이지)
               </p>

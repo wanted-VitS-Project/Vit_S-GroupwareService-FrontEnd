@@ -83,7 +83,7 @@ export default function ProjectTrash() {
                   : undefined
               }
               onClick={() => setKind(option.kind)}
-              className={`cursor-pointer rounded-button-md px-3 py-1 text-[11px] font-medium ${
+              className={`cursor-pointer rounded-button-md px-3 py-1 text-detail font-medium ${
                 kind === option.kind
                   ? 'bg-bg-card text-text-primary-blue shadow-sm'
                   : 'text-text-secondary hover:text-text-primary'

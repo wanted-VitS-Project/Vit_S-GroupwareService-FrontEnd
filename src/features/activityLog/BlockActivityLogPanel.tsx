@@ -97,7 +97,7 @@ export default function BlockActivityLogPanel({
       >
         {hasFailed ? (
           <div className="flex h-full min-h-28 flex-col items-center justify-center gap-2 text-center">
-            <p role="alert" className="text-[11px] text-text-danger">
+            <p role="alert" className="text-detail text-text-danger">
               활동 기록을 불러오지 못했습니다.
             </p>
             <button
@@ -115,7 +115,7 @@ export default function BlockActivityLogPanel({
             <span className="flex size-10 items-center justify-center rounded-pill bg-bg-hover text-text-muted">
               <ActivityIcon className="size-4" />
             </span>
-            <p className="text-[11px] text-text-secondary">
+            <p className="text-detail text-text-secondary">
               활동 기록이 없습니다.
             </p>
             <p className="text-caption text-text-muted">

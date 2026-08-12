@@ -28,7 +28,7 @@ export default function Pagination({
   return (
     <div className="flex items-center justify-between gap-4 border-t border-border-default px-5 py-3">
       {/* 감춰도 자리는 남겨야 페이지 이동이 오른쪽에 그대로 붙는다 */}
-      <p className="text-[11px] text-text-secondary">
+      <p className="text-detail text-text-secondary">
         {showTotal && `전체 ${totalElements.toLocaleString('ko-KR')}${unit}`}
       </p>
 
@@ -44,7 +44,7 @@ export default function Pagination({
         <span
           aria-live="polite"
           aria-label={`${lastPage}페이지 중 ${currentPage}페이지`}
-          className="text-[11px] text-text-secondary"
+          className="text-detail text-text-secondary"
         >
           {currentPage} / {lastPage}
         </span>

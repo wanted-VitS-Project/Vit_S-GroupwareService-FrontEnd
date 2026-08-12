@@ -241,7 +241,7 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
             )}
 
             <div className="mt-4">
-              <p className="text-[11px] font-semibold text-text-secondary">
+              <p className="text-detail font-semibold text-text-secondary">
                 첨부파일
               </p>
               <AttachmentList attachments={notice.attachments} />
@@ -348,7 +348,7 @@ function Fields({ children }: { children: React.ReactNode }) {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <p className="text-[11px] text-text-secondary">{label}</p>
+      <p className="text-detail text-text-secondary">{label}</p>
       <p className="mt-0.5 text-xs break-keep text-text-primary">
         {value || '-'}
       </p>
@@ -360,7 +360,7 @@ function Field({ label, value }: { label: string; value: string }) {
 function LongField({ label, value }: { label: string; value: string | null }) {
   return (
     <div>
-      <p className="text-[11px] text-text-secondary">{label}</p>
+      <p className="text-detail text-text-secondary">{label}</p>
       <p className="mt-0.5 text-xs break-keep whitespace-pre-line text-text-primary">
         {orDash(value)}
       </p>

@@ -221,7 +221,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
   return (
     <BlockCard block={block}>
       <div className="flex h-full flex-col gap-2">
-        <p className="text-[9px] text-text-secondary">
+        <p className="text-micro text-text-secondary">
           {completedCount} / {items.length} 완료
         </p>
 
@@ -234,7 +234,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
         <ul className="flex-1">
           {items.map((item) => {
             const isItemEditing = isEditing && editingId === item.chkId;
-            const labelClass = `min-w-0 flex-1 truncate text-left text-[11px] ${
+            const labelClass = `min-w-0 flex-1 truncate text-left text-detail ${
               item.isCompleted
                 ? 'text-text-secondary line-through'
                 : 'text-text-primary'
@@ -289,7 +289,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
                       if (event.key === 'Enter') saveContent(item);
                       if (event.key === 'Escape') setEditingId(null);
                     }}
-                    className="min-w-0 flex-1 rounded-button-sm border border-border-primary px-1 py-0 text-[11px] text-text-primary outline-none"
+                    className="min-w-0 flex-1 rounded-button-sm border border-border-primary px-1 py-0 text-detail text-text-primary outline-none"
                   />
                 ) : isEditing ? (
                   <button
@@ -346,7 +346,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
           ))}
 
         {errorMessage && (
-          <p role="alert" className="text-[9px] text-text-danger">
+          <p role="alert" className="text-micro text-text-danger">
             {errorMessage}
           </p>
         )}

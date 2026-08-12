@@ -54,7 +54,7 @@ export function setPillDragImage(event: React.DragEvent, label: string) {
   pill.textContent = label;
   pill.style.cssText =
     'position:fixed;top:-999px;left:0;background:#3B5BDB;color:#fff;' +
-    'padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;' +
+    'padding:5px 10px;border-radius:6px;font-size:var(--text-detail);font-weight:600;' +
     'white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis';
 
   document.body.appendChild(pill);

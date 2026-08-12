@@ -153,14 +153,14 @@ export default function IssueDetailModal({
                 <button
                   type="button"
                   onClick={onEdit}
-                  className="cursor-pointer rounded-lg border border-border-default px-3 py-1.5 text-[11px] font-medium text-text-primary hover:bg-bg-hover"
+                  className="cursor-pointer rounded-lg border border-border-default px-3 py-1.5 text-detail font-medium text-text-primary hover:bg-bg-hover"
                 >
                   수정
                 </button>
                 <button
                   type="button"
                   onClick={onDelete}
-                  className="cursor-pointer rounded-lg border border-red-border px-3 py-1.5 text-[11px] font-medium text-text-danger hover:bg-red-bg-soft"
+                  className="cursor-pointer rounded-lg border border-red-border px-3 py-1.5 text-detail font-medium text-text-danger hover:bg-red-bg-soft"
                 >
                   삭제
                 </button>
@@ -188,14 +188,14 @@ export default function IssueDetailModal({
               <button
                 type="button"
                 onClick={() => setRetryCount((count) => count + 1)}
-                className="cursor-pointer rounded-lg border border-border-default px-3 py-1.5 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+                className="cursor-pointer rounded-lg border border-border-default px-3 py-1.5 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
               >
                 다시 시도
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="cursor-pointer rounded-lg px-3 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover"
+                className="cursor-pointer rounded-lg px-3 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover"
               >
                 닫기
               </button>
@@ -259,7 +259,7 @@ export default function IssueDetailModal({
                       <span
                         key={status}
                         aria-current={isCurrent ? 'true' : undefined}
-                        className={`flex-1 rounded-lg border py-1.5 text-center text-[11px] font-medium ${
+                        className={`flex-1 rounded-lg border py-1.5 text-center text-detail font-medium ${
                           isCurrent
                             ? ISSUE_STATUS_STYLES[status].badge
                             : 'border-border-default text-text-secondary'
@@ -289,10 +289,10 @@ export default function IssueDetailModal({
                         className="flex items-center gap-2 rounded-lg border border-border-default bg-bg-surface p-2"
                       >
                         <IssueBlockIcon type={block.type} />
-                        <span className="flex-1 truncate text-[11px] font-medium text-text-primary">
+                        <span className="flex-1 truncate text-detail font-medium text-text-primary">
                           {block.title || '제목 없음'}
                         </span>
-                        <span className="text-[9px] text-text-secondary">
+                        <span className="text-micro text-text-secondary">
                           {block.type}
                         </span>
                       </div>
@@ -306,7 +306,7 @@ export default function IssueDetailModal({
               <div>
                 <SectionLabel>담당자</SectionLabel>
                 {issue.assignees.length === 0 ? (
-                  <p className="pt-2 text-[11px] text-text-secondary">
+                  <p className="pt-2 text-detail text-text-secondary">
                     지정 전
                   </p>
                 ) : (

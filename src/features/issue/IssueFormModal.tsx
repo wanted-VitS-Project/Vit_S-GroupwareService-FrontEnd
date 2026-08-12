@@ -34,7 +34,7 @@ function FieldLabel({
   required?: boolean;
 }) {
   return (
-    <span className="mb-1.5 block text-[11px] font-semibold text-text-primary">
+    <span className="mb-1.5 block text-detail font-semibold text-text-primary">
       {children}
       {required && <span className="text-text-danger"> *</span>}
     </span>
@@ -372,14 +372,14 @@ export default function IssueFormModal({
             <button
               type="button"
               onClick={() => setRetryCount((count) => count + 1)}
-              className="cursor-pointer rounded-lg border border-border-default px-3 py-1.5 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+              className="cursor-pointer rounded-lg border border-border-default px-3 py-1.5 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
             >
               다시 시도
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="cursor-pointer rounded-lg px-3 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover"
+              className="cursor-pointer rounded-lg px-3 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover"
             >
               닫기
             </button>
@@ -588,10 +588,10 @@ export default function IssueFormModal({
                         }
                       />
                       <IssueBlockIcon type={block.type} size={16} />
-                      <span className="flex-1 truncate text-[11px] font-medium text-text-primary">
+                      <span className="flex-1 truncate text-detail font-medium text-text-primary">
                         {block.title || '제목 없음'}
                       </span>
-                      <span className="text-[9px] text-text-secondary">
+                      <span className="text-micro text-text-secondary">
                         {block.type}
                       </span>
                     </label>
@@ -618,7 +618,7 @@ export default function IssueFormModal({
             type="button"
             onClick={onClose}
             disabled={isSaving}
-            className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
+            className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
           >
             취소
           </button>
@@ -626,7 +626,7 @@ export default function IssueFormModal({
             type="button"
             onClick={submit}
             disabled={isSaving || values === null || loadFailure !== null}
-            className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+            className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
           >
             {isSaving ? '저장 중…' : isEdit ? '수정 완료' : '이슈 생성'}
           </button>

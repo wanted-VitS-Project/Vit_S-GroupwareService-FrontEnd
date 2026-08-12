@@ -128,7 +128,7 @@ function Loaded({
       <button
         type="button"
         onClick={() => setIsEditing(true)}
-        className="mt-3 w-full cursor-pointer rounded-lg border border-border-primary py-2 text-[11px] font-semibold text-text-primary-blue hover:bg-bg-hover"
+        className="mt-3 w-full cursor-pointer rounded-lg border border-border-primary py-2 text-detail font-semibold text-text-primary-blue hover:bg-bg-hover"
       >
         수정하기
       </button>

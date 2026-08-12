@@ -78,7 +78,7 @@ export default function RoleChangeModal({
           </div>
 
           <fieldset className="space-y-2">
-            <legend className="pb-1.5 text-[11px] font-semibold text-text-primary">
+            <legend className="pb-1.5 text-detail font-semibold text-text-primary">
               변경할 권한
             </legend>
             {ROLE_OPTIONS.map((option) => (
@@ -101,7 +101,7 @@ export default function RoleChangeModal({
                   }}
                   className="size-3.5 shrink-0 cursor-pointer accent-btn-primary"
                 />
-                <span className="min-w-0 text-[11px] font-semibold text-text-primary">
+                <span className="min-w-0 text-detail font-semibold text-text-primary">
                   {ROLE_LABELS[option]}
                   {option === employee.role && (
                     <span className="ml-1.5 font-normal text-text-secondary">
@@ -131,7 +131,7 @@ export default function RoleChangeModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+              className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
             >
               취소
             </button>
