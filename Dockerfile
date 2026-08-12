@@ -10,19 +10,19 @@ ARG NEXT_PUBLIC_API_BASE_URL
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 RUN npm run build
 
-# ===== run: next start =====
+# ===== run: standalone (최소 런타임) =====
 FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 ENV TZ=Asia/Seoul
-# next start 는 .next + node_modules + package.json + next.config 를 필요로 한다 (이 레포엔 public 없음)
-COPY --from=build /app/package.json /app/package-lock.json ./
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/.next ./.next
-COPY --from=build /app/next.config.ts ./next.config.ts
+# standalone 서버(server.js)는 HOSTNAME/PORT 환경변수를 읽는다 — 전 인터페이스 바인딩
+ENV HOSTNAME=0.0.0.0
+ENV PORT=3000
+# output:'standalone' 산출물 = server.js + 최소 node_modules. static 은 별도 복사 (이 레포엔 public 없음)
+COPY --from=build /app/.next/standalone ./
+COPY --from=build /app/.next/static ./.next/static
 # 비루트 실행
 RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app
 USER app
 EXPOSE 3000
-# -H 0.0.0.0: 컨테이너 밖(ALB·호스트)에서 접근 가능하게 전 인터페이스 바인딩
-CMD ["npm", "run", "start", "--", "-H", "0.0.0.0", "-p", "3000"]
+CMD ["node", "server.js"]
