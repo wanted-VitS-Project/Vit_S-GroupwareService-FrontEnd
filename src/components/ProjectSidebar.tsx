@@ -1173,7 +1173,7 @@ function RowMenu({
                   close();
                   item.onSelect();
                 }}
-                className={`flex cursor-pointer items-center gap-2 px-3 py-1.5 text-[11px] font-medium ${
+                className={`flex cursor-pointer items-center gap-2 px-3 py-1.5 text-detail font-medium ${
                   item.danger
                     ? 'text-text-danger hover:bg-red-bg-soft'
                     : 'text-text-primary hover:bg-bg-surface'
@@ -1244,7 +1244,7 @@ function Legend() {
         />
         <LegendItem
           dotClass={STEP_STATUS_BG.DONE}
-          textClass="text-text-primary-blue"
+          textClass="text-green-text"
           label="완료"
         />
         <LegendItem

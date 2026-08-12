@@ -8,9 +8,9 @@ import type { ProjectStatus } from './types';
  */
 export const PROJECT_STATUS_STYLE: Record<ProjectStatus, { badge: string }> = {
   NOT_STARTED: { badge: 'bg-bg-hover text-text-secondary' },
-  IN_PROGRESS: { badge: 'bg-blue-bg-soft text-text-primary-blue' },
-  SETTLEMENT: { badge: 'bg-yellow-bg-soft text-yellow-text' },
-  COMPLETED: { badge: 'bg-green-bg text-[#16A34A]' },
+  IN_PROGRESS: { badge: 'bg-yellow-bg-soft text-yellow-text' },
+  SETTLEMENT: { badge: 'bg-blue-bg-soft text-text-primary-blue' },
+  COMPLETED: { badge: 'bg-green-bg text-green-text' },
   CLOSED: { badge: 'bg-purple-bg-soft text-purple-text' },
 };
 

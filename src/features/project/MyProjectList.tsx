@@ -20,6 +20,15 @@ import type { ProjectListItem, ProjectListQuery, ProjectPage } from './types';
 
 const PAGE_SIZE = 10;
 
+const PROJECT_SUMMARY_ICON_STYLE = {
+  ALL: 'bg-purple-bg-soft text-purple-text',
+  NOT_STARTED: 'bg-gray-bg-soft text-text-secondary',
+  IN_PROGRESS: 'bg-yellow-bg-soft text-yellow-text',
+  SETTLEMENT: 'bg-blue-bg-soft text-blue-text',
+  COMPLETED: 'bg-green-bg text-green-text',
+  CLOSED: 'bg-purple-bg-soft text-purple-text-deep',
+} as const;
+
 /** URL 은 사용자가 손댈 수 있다 — 허용된 값이 아니면 필터가 없는 것으로 본다 */
 function pickStatus(value: string | null) {
   return PROJECT_STATUS_OPTIONS.find((status) => status === value);
@@ -301,10 +310,14 @@ function ProjectSummary({ reloadCount }: { reloadCount: number }) {
   const total = counts?.reduce((sum, count) => sum + count, 0) ?? null;
 
   const cards = [
-    { label: '전체 프로젝트', tint: '#6B7280', icon: <FolderIcon /> },
+    {
+      label: '전체 프로젝트',
+      iconStyle: PROJECT_SUMMARY_ICON_STYLE.ALL,
+      icon: <FolderIcon />,
+    },
     ...PROJECT_SUMMARY_STATUSES.map((status, index) => ({
       label: `${PROJECT_STATUS_LABELS[status]} 프로젝트`,
-      tint: ['#6B7280', '#3B6FF6', '#F59E0B', '#22C55E'][index],
+      iconStyle: PROJECT_SUMMARY_ICON_STYLE[status],
       icon: [
         <ClockIcon key="c" />,
         <PlayIcon key="p" />,
@@ -350,8 +363,7 @@ function ProjectSummary({ reloadCount }: { reloadCount: number }) {
         >
           <span
             aria-hidden
-            style={{ backgroundColor: `${card.tint}15`, color: card.tint }}
-            className="flex size-10 shrink-0 items-center justify-center rounded-lg"
+            className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${card.iconStyle}`}
           >
             {card.icon}
           </span>
