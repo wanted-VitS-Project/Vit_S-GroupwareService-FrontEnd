@@ -98,7 +98,7 @@ export default function DepartmentList() {
 
   return (
     <>
-      <p className="text-xs text-text-secondary">
+      <p className="text-label text-text-secondary">
         <Link
           href="/settings"
           className="hover:text-text-primary hover:underline"
@@ -110,8 +110,8 @@ export default function DepartmentList() {
 
       <div className="mt-2 mb-6 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-lg font-bold">부서 관리</h2>
-          <p className="mt-1.5 text-xs break-keep text-text-secondary">
+          <h2 className="text-heading-m font-bold">부서 관리</h2>
+          <p className="mt-1.5 text-label break-keep text-text-secondary">
             조직 구조를 2단까지 관리합니다. 사원이 있거나 하위 부서가 있는
             부서는 삭제할 수 없습니다.
           </p>
@@ -119,16 +119,16 @@ export default function DepartmentList() {
         {canManage && <AddButton onClick={() => formModal.open({})} />}
       </div>
 
-      <div className="rounded-xl border border-border-default bg-white">
+      <div className="rounded-base border border-border-default bg-bg-card">
         {hasFailed ? (
           <Centered>
-            <p className="text-xs text-text-secondary">
+            <p className="text-label text-text-secondary">
               부서를 불러오지 못했습니다.
             </p>
             <button
               type="button"
               onClick={reload}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover"
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover"
             >
               다시 시도
             </button>
@@ -138,10 +138,10 @@ export default function DepartmentList() {
         ) : rows.length === 0 ? (
           <Centered>
             <TreeIcon />
-            <p className="text-sm font-bold text-text-primary">
+            <p className="text-body-m font-bold text-text-primary">
               등록된 부서가 없습니다
             </p>
-            <p className="text-xs break-keep text-text-secondary">
+            <p className="text-label break-keep text-text-secondary">
               부서를 추가하면 사원 등록 시 선택할 수 있어요
             </p>
             {canManage && (
@@ -152,7 +152,7 @@ export default function DepartmentList() {
           // 목록이 길어지면 이 영역만 스크롤된다
           <div className="max-h-[60vh] overflow-y-auto">
             <table className="w-full table-fixed border-collapse text-left">
-              <thead className="sticky top-0 bg-white">
+              <thead className="sticky top-0 bg-bg-card">
                 <tr className="border-b border-border-default text-[11px] text-text-secondary">
                   <th className="px-5 py-3 font-medium">부서명</th>
                   <th className="w-28 px-5 py-3 font-medium">인원</th>
@@ -178,7 +178,7 @@ export default function DepartmentList() {
                           </span>
                         )}
                         <span
-                          className={`truncate text-xs ${
+                          className={`truncate text-label ${
                             depth === 0
                               ? 'font-bold text-text-primary'
                               : 'text-text-secondary'
@@ -191,11 +191,11 @@ export default function DepartmentList() {
                     <td className="px-5 py-3.5">
                       {/* 하위 포함 인원. 삭제 가능 여부는 직속 인원으로 따로 판단한다 */}
                       {department.totalEmployeeCount > 0 ? (
-                        <span className="text-xs text-text-secondary">
+                        <span className="text-label text-text-secondary">
                           {department.totalEmployeeCount}명
                         </span>
                       ) : (
-                        <span className="text-xs text-text-muted">없음</span>
+                        <span className="text-label text-text-muted">없음</span>
                       )}
                     </td>
                     <td className="px-5 py-3.5">
@@ -253,10 +253,10 @@ function AddButton({
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 cursor-pointer rounded-lg px-4 py-2 text-xs font-semibold ${
+      className={`shrink-0 cursor-pointer rounded-lg px-4 py-2 text-label font-semibold ${
         subtle
           ? 'border border-border-default text-text-primary hover:bg-bg-hover'
-          : 'bg-btn-primary text-white hover:bg-btn-primary-hover'
+          : 'bg-btn-primary text-text-white hover:bg-btn-primary-hover'
       }`}
     >
       + 부서 추가

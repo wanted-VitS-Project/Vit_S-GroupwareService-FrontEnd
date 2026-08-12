@@ -13,7 +13,7 @@ const MarkdownView = dynamic(() => import('./MarkdownView'), {
     <div
       role="status"
       aria-label="텍스트 본문을 불러오는 중입니다"
-      className="h-20 animate-pulse rounded bg-bg-surface"
+      className="h-20 animate-pulse rounded-button-sm bg-bg-surface"
     />
   ),
 });
@@ -22,7 +22,7 @@ const TextBlockModal = dynamic(loadTextBlockModal, {
   loading: () => (
     <ModalLoadingFallback
       title="텍스트 블록 편집"
-      className="flex h-[85vh] w-full max-w-[680px] flex-col rounded-xl p-6 shadow-2xl"
+      className="flex h-[85vh] w-full max-w-[680px] flex-col rounded-base p-6 shadow-2xl"
       bodyClassName="mt-5 min-h-0 flex-1"
     />
   ),
@@ -71,7 +71,7 @@ export default function TextBlock({
             // 저장 직후 새 내용으로 다시 마운트한다
             <MarkdownView key={content} content={content} />
           ) : (
-            <p className="text-[10px] text-text-muted">
+            <p className="text-caption text-text-muted">
               내용이 없습니다. 편집으로 작성해보세요.
             </p>
           )}
@@ -88,7 +88,7 @@ export default function TextBlock({
               onPointerEnter={() => void loadTextBlockModal()}
               onFocus={() => void loadTextBlockModal()}
               onClick={() => setIsEditing(true)}
-              className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+              className="flex cursor-pointer items-center gap-1 rounded-button-md px-2 py-0.5 text-caption font-medium text-text-primary-blue hover:bg-blue-bg-soft"
             >
               <PencilIcon />
               편집

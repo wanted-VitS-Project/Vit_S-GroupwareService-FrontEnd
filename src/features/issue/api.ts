@@ -7,6 +7,7 @@ import type {
   IssueStatus,
   IssueStatusChanged,
   IssueSummary,
+  ProjectIssuesResponse,
   UpdateIssueRequest,
 } from './types';
 
@@ -27,6 +28,21 @@ export function getStepIssues(
   return api
     .get<{ issues: IssueSummary[] }>(`${path}${query}`, options?.signal)
     .then((data) => data.issues);
+}
+
+/**
+ * 프로젝트 전체 이슈 — 스텝별로 묶여 오고 진척도까지 함께 온다. (명세 108번)
+ *
+ * ⚠️ 스텝 목록(55번)과 달리 **페이징 · 필터가 아예 없다** — 프로젝트의 모든 이슈가 한 번에 온다.
+ */
+export function getProjectIssues(
+  projectId: number | string,
+  signal?: AbortSignal,
+) {
+  return api.get<ProjectIssuesResponse>(
+    ENDPOINTS.projects.issues(projectId),
+    signal,
+  );
 }
 
 export function getIssue(issueId: number | string, signal?: AbortSignal) {

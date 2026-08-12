@@ -226,7 +226,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
         </p>
 
         {items.length === 0 && !isEditing && (
-          <p className="text-[10px] text-text-muted">
+          <p className="text-caption text-text-muted">
             항목이 없습니다. 편집으로 추가해보세요.
           </p>
         )}
@@ -253,10 +253,10 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
                     aria-label={item.content}
                     disabled={item.isPending}
                     onClick={() => toggleItem(item)}
-                    className={`flex size-3.5 shrink-0 cursor-pointer items-center justify-center rounded border disabled:cursor-progress ${
+                    className={`flex size-3.5 shrink-0 cursor-pointer items-center justify-center rounded-button-sm border disabled:cursor-progress ${
                       item.isCompleted
-                        ? 'border-[#00BC7D] bg-[#00BC7D] text-white'
-                        : 'border-text-secondary bg-white'
+                        ? 'border-[#00BC7D] bg-[#00BC7D] text-text-white'
+                        : 'border-text-secondary bg-bg-card'
                     }`}
                   >
                     {item.isCompleted && <CheckIcon />}
@@ -268,10 +268,10 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
                     aria-checked={item.isCompleted}
                     aria-label={item.content}
                     aria-disabled
-                    className={`flex size-3.5 shrink-0 items-center justify-center rounded border ${
+                    className={`flex size-3.5 shrink-0 items-center justify-center rounded-button-sm border ${
                       item.isCompleted
-                        ? 'border-[#00BC7D] bg-[#00BC7D] text-white'
-                        : 'border-text-secondary bg-white'
+                        ? 'border-[#00BC7D] bg-[#00BC7D] text-text-white'
+                        : 'border-text-secondary bg-bg-card'
                     }`}
                   >
                     {item.isCompleted && <CheckIcon />}
@@ -289,7 +289,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
                       if (event.key === 'Enter') saveContent(item);
                       if (event.key === 'Escape') setEditingId(null);
                     }}
-                    className="min-w-0 flex-1 rounded border border-border-primary px-1 py-0 text-[11px] text-text-primary outline-none"
+                    className="min-w-0 flex-1 rounded-button-sm border border-border-primary px-1 py-0 text-[11px] text-text-primary outline-none"
                   />
                 ) : isEditing ? (
                   <button
@@ -315,7 +315,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
                     onPointerEnter={() => void loadItemDeleteModal()}
                     onFocus={() => void loadItemDeleteModal()}
                     onClick={() => deleteModal.open(item)}
-                    className="flex size-4 shrink-0 cursor-pointer items-center justify-center rounded text-text-secondary opacity-0 group-hover/item:opacity-100 hover:bg-bg-hover focus-visible:opacity-100 disabled:cursor-progress"
+                    className="flex size-4 shrink-0 cursor-pointer items-center justify-center rounded-button-sm text-text-secondary opacity-0 group-hover/item:opacity-100 hover:bg-bg-hover focus-visible:opacity-100 disabled:cursor-progress"
                   >
                     <CloseIcon />
                   </button>
@@ -328,7 +328,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
         {isEditing &&
           (chkBlockId === null ? (
             // detail.chkBlockId 없이 추가하면 어느 체크리스트에 붙을지 알 수 없다
-            <p className="text-[10px] text-text-muted">
+            <p className="text-caption text-text-muted">
               항목을 추가할 수 없습니다.
             </p>
           ) : (
@@ -341,7 +341,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
               }}
               onBlur={addItem}
               placeholder="+ 항목 추가"
-              className="w-full bg-transparent text-[10px] text-text-primary outline-none placeholder:text-text-muted"
+              className="w-full bg-transparent text-caption text-text-primary outline-none placeholder:text-text-muted"
             />
           ))}
 
@@ -359,7 +359,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
               setErrorMessage('');
               setIsEditing((wasEditing) => !wasEditing);
             }}
-            className={`flex cursor-pointer items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium ${
+            className={`flex cursor-pointer items-center gap-1 rounded-button-md px-2 py-0.5 text-caption font-medium ${
               isEditing
                 ? 'text-text-secondary hover:bg-bg-hover'
                 : 'text-text-primary-blue hover:bg-blue-bg-soft'

@@ -24,7 +24,7 @@ import {
 } from './types';
 
 const FIELD_CLASS =
-  'w-full rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-xs text-text-primary placeholder:text-text-secondary focus:border-border-primary focus:outline-none';
+  'w-full rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-label text-text-primary placeholder:text-text-secondary focus:border-border-primary focus:outline-none';
 
 function FieldLabel({
   children,
@@ -44,7 +44,7 @@ function FieldLabel({
 /** 모달 머리의 이슈 아이콘 (#) */
 function IssueMarkIcon() {
   return (
-    <span className="flex size-5 shrink-0 items-center justify-center rounded border border-purple-bg bg-purple-bg">
+    <span className="flex size-5 shrink-0 items-center justify-center rounded-button-sm border border-purple-bg bg-purple-bg">
       <svg
         viewBox="0 0 24 24"
         fill="none"
@@ -332,21 +332,21 @@ export default function IssueFormModal({
     <Modal
       title={modalTitle}
       onClose={isSaving ? undefined : onClose}
-      className="flex max-h-[90vh] w-full max-w-[560px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
+      className="flex max-h-[90vh] w-full max-w-[560px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
       header={
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border-default px-5 py-3.5">
           <div className="flex min-w-0 items-center gap-2">
             <IssueMarkIcon />
-            <h2 className="text-sm font-semibold text-text-primary">
+            <h2 className="text-body-m font-semibold text-text-primary">
               {modalTitle}
             </h2>
             {stepName && (
-              <span className="truncate rounded bg-bg-hover px-1.5 py-0.5 text-[10px] text-text-secondary">
+              <span className="truncate rounded-button-sm bg-bg-hover px-1.5 py-0.5 text-caption text-text-secondary">
                 {stepName}
               </span>
             )}
             {isEdit && (
-              <span className="text-[10px] text-text-secondary">
+              <span className="text-caption text-text-secondary">
                 #{issueId}
               </span>
             )}
@@ -356,7 +356,7 @@ export default function IssueFormModal({
             onClick={onClose}
             disabled={isSaving}
             aria-label="닫기"
-            className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
           >
             ✕
           </button>
@@ -365,7 +365,7 @@ export default function IssueFormModal({
     >
       {loadFailure ? (
         <div className="flex flex-col items-center gap-3 px-5 py-12">
-          <p role="alert" className="text-xs text-text-danger">
+          <p role="alert" className="text-label text-text-danger">
             {loadFailure}
           </p>
           <div className="flex items-center gap-2">
@@ -432,7 +432,7 @@ export default function IssueFormModal({
                       type="button"
                       aria-pressed={isPicked}
                       onClick={() => patch({ priority: code })}
-                      className={`flex-1 cursor-pointer rounded-md border py-1.5 text-[10px] font-medium ${
+                      className={`flex-1 cursor-pointer rounded-button-md border py-1.5 text-caption font-medium ${
                         isPicked
                           ? ISSUE_PRIORITY_STYLES[code].badge
                           : 'border-border-default text-text-secondary hover:bg-bg-hover'
@@ -459,7 +459,7 @@ export default function IssueFormModal({
             <FieldLabel>담당자 (다중 지정)</FieldLabel>
             <div className="flex min-h-[40px] flex-wrap gap-1.5 rounded-lg border border-border-default bg-bg-surface p-2.5">
               {values.assigneeIds.length === 0 ? (
-                <span className="text-[10px] text-text-secondary">
+                <span className="text-caption text-text-secondary">
                   아래에서 담당자를 선택하세요
                 </span>
               ) : (
@@ -474,7 +474,7 @@ export default function IssueFormModal({
                   return (
                     <span
                       key={userId}
-                      className="flex items-center gap-1 rounded-full border border-border-default bg-white px-2 py-0.5"
+                      className="flex items-center gap-1 rounded-pill border border-border-default bg-bg-card px-2 py-0.5"
                     >
                       <MemberAvatar
                         userId={userId}
@@ -482,7 +482,7 @@ export default function IssueFormModal({
                         size="xs"
                         decorative
                       />
-                      <span className="text-[10px] font-medium text-text-primary">
+                      <span className="text-caption font-medium text-text-primary">
                         {name}
                       </span>
                       <button
@@ -504,7 +504,7 @@ export default function IssueFormModal({
                             ),
                           });
                         }}
-                        className="cursor-pointer text-[10px] text-text-secondary hover:text-text-primary"
+                        className="cursor-pointer text-caption text-text-secondary hover:text-text-primary"
                       >
                         ✕
                       </button>
@@ -520,7 +520,7 @@ export default function IssueFormModal({
               className="mt-1.5 flex flex-wrap gap-1.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-primary"
             >
               {members.length === 0 ? (
-                <span className="text-[10px] text-text-secondary">
+                <span className="text-caption text-text-secondary">
                   참여자를 불러오지 못했습니다.
                 </span>
               ) : (
@@ -543,7 +543,7 @@ export default function IssueFormModal({
                         assigneeIds: [...values.assigneeIds, member.userId],
                       });
                     }}
-                    className="flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-text-secondary hover:bg-bg-hover hover:text-text-primary"
+                    className="flex cursor-pointer items-center gap-1 rounded-button-md px-1.5 py-0.5 text-caption text-text-secondary hover:bg-bg-hover hover:text-text-primary"
                   >
                     <MemberAvatar
                       userId={member.userId}
@@ -561,7 +561,7 @@ export default function IssueFormModal({
           <div>
             <FieldLabel>관련 블록 연결</FieldLabel>
             {blocks.length === 0 ? (
-              <p className="text-[10px] text-text-secondary">
+              <p className="text-caption text-text-secondary">
                 연결할 블록이 없습니다.
               </p>
             ) : (
@@ -602,7 +602,7 @@ export default function IssueFormModal({
           </div>
 
           {errorMessage && (
-            <p role="alert" className="text-[10px] text-text-danger">
+            <p role="alert" className="text-caption text-text-danger">
               {errorMessage}
             </p>
           )}
@@ -610,7 +610,7 @@ export default function IssueFormModal({
       )}
 
       <div className="flex shrink-0 items-center justify-between gap-2 border-t border-border-default bg-bg-surface px-5 py-3.5">
-        <span className="text-[10px] text-text-secondary">
+        <span className="text-caption text-text-secondary">
           * 필수 입력 항목
         </span>
         <div className="flex items-center gap-2">
@@ -626,7 +626,7 @@ export default function IssueFormModal({
             type="button"
             onClick={submit}
             disabled={isSaving || values === null || loadFailure !== null}
-            className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+            className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
           >
             {isSaving ? '저장 중…' : isEdit ? '수정 완료' : '이슈 생성'}
           </button>

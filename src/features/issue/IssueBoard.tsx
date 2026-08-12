@@ -39,7 +39,7 @@ const IssueFormModal = dynamic(loadIssueFormModal, {
   loading: () => (
     <ModalLoadingFallback
       title="이슈 작성"
-      className="flex max-h-[90vh] w-full max-w-[560px] flex-col overflow-hidden rounded-xl border border-border-default p-6 shadow-2xl"
+      className="flex max-h-[90vh] w-full max-w-[560px] flex-col overflow-hidden rounded-base border border-border-default p-6 shadow-2xl"
       bodyClassName="mt-5 h-[460px]"
     />
   ),
@@ -304,7 +304,7 @@ export default function IssueBoard() {
   if (hasFailed) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border-default px-4 py-12">
-        <p className="text-xs text-text-secondary">
+        <p className="text-label text-text-secondary">
           이슈를 불러오지 못했습니다.
         </p>
         <button
@@ -313,7 +313,7 @@ export default function IssueBoard() {
             setFailedStepId(null);
             setReloadCount((count) => count + 1);
           }}
-          className="cursor-pointer rounded px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+          className="cursor-pointer rounded-button-sm px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
         >
           다시 시도
         </button>
@@ -325,14 +325,16 @@ export default function IssueBoard() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-text-primary">이슈 보드</h2>
+          <h2 className="text-body-m font-semibold text-text-primary">
+            이슈 보드
+          </h2>
           {issues && (
-            <span className="rounded-full bg-bg-hover px-2 py-0.5 text-[10px] text-text-secondary">
+            <span className="rounded-pill bg-bg-hover px-2 py-0.5 text-caption text-text-secondary">
               총 {issues.length}건
             </span>
           )}
           {draggingIssue && (
-            <span className="text-[10px] font-medium text-text-primary-blue">
+            <span className="text-caption font-medium text-text-primary-blue">
               드래그하여 상태 변경
             </span>
           )}
@@ -343,7 +345,7 @@ export default function IssueBoard() {
             onPointerEnter={() => void loadIssueFormModal()}
             onFocus={() => void loadIssueFormModal()}
             onClick={() => setOpenModal({ kind: 'create' })}
-            className="cursor-pointer rounded-lg bg-btn-primary px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover"
+            className="cursor-pointer rounded-lg bg-btn-primary px-3 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover"
           >
             + 이슈 생성
           </button>
@@ -353,7 +355,7 @@ export default function IssueBoard() {
       {errorMessage && (
         <p
           role="alert"
-          className="rounded-lg border border-red-border bg-red-bg-soft px-3 py-2 text-[10px] text-text-danger"
+          className="rounded-lg border border-red-border bg-red-bg-soft px-3 py-2 text-caption text-text-danger"
         >
           {errorMessage}
         </p>
@@ -404,22 +406,22 @@ export default function IssueBoard() {
                   handleDragEnd();
                 }}
                 // 배경 · 테두리만 바꾼다 (ring 은 자리를 차지하지 않아 카드가 밀리지 않는다)
-                className={`-m-2 flex flex-col rounded-xl p-2 transition-colors ${
+                className={`-m-2 flex flex-col rounded-base p-2 transition-colors ${
                   showDropHint ? `${columnBg} ring-2 ${columnRing}` : ''
                 }`}
               >
                 <div className="mb-2.5 flex items-center gap-2">
                   <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold ${badge}`}
+                    className={`inline-flex items-center gap-1.5 rounded-pill px-2 py-0.5 text-caption font-semibold ${badge}`}
                   >
-                    <span className={`size-1.5 rounded-full ${dot}`} />
+                    <span className={`size-1.5 rounded-pill ${dot}`} />
                     {ISSUE_STATUS_LABELS[status]}
                   </span>
-                  <span className="text-[10px] text-text-secondary">
+                  <span className="text-caption text-text-secondary">
                     {columnIssues.length}
                   </span>
                   {showDropHint && (
-                    <span className="ml-auto text-[10px] font-medium text-text-primary-blue">
+                    <span className="ml-auto text-caption font-medium text-text-primary-blue">
                       여기에 놓기
                     </span>
                   )}
@@ -454,7 +456,7 @@ export default function IssueBoard() {
                   ))}
 
                   {columnIssues.length === 0 && (
-                    <p className="rounded-lg border border-dashed border-border-default px-3 py-6 text-center text-[10px] text-text-secondary">
+                    <p className="rounded-lg border border-dashed border-border-default px-3 py-6 text-center text-caption text-text-secondary">
                       이슈가 없습니다.
                     </p>
                   )}

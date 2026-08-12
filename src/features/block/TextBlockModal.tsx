@@ -84,16 +84,16 @@ export default function TextBlockModal({
         // 저장 중에는 ESC · 백드롭 클릭까지 막는다.
         // 닫은 뒤 응답이 도착하면 카드 내용이 예고 없이 바뀐다
         onClose={isSaving ? undefined : requestClose}
-        className="flex max-h-[85vh] w-full max-w-[680px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
+        className="flex max-h-[85vh] w-full max-w-[680px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
         header={
           <div className="flex shrink-0 items-center gap-2.5 border-b border-border-default px-5 py-3">
-            <span className="flex size-5 shrink-0 items-center justify-center rounded border border-border-default bg-bg-surface text-gray-text-soft">
+            <span className="flex size-5 shrink-0 items-center justify-center rounded-button-sm border border-border-default bg-bg-surface text-gray-text-soft">
               <BlockTypeIcon code="TEXT" />
             </span>
-            <h2 className="shrink-0 text-sm font-semibold text-text-primary">
+            <h2 className="shrink-0 text-body-m font-semibold text-text-primary">
               텍스트 블록 편집
             </h2>
-            <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-text-secondary">
+            <span className="min-w-0 flex-1 truncate font-mono text-caption text-text-secondary">
               {blockTitle}
             </span>
             <button
@@ -101,7 +101,7 @@ export default function TextBlockModal({
               onClick={requestClose}
               disabled={isSaving}
               aria-label="닫기"
-              className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               <CloseIcon />
             </button>
@@ -120,7 +120,7 @@ export default function TextBlockModal({
         <div className="flex shrink-0 items-center justify-between gap-4 border-t border-border-default bg-bg-surface px-5 py-3">
           <p
             role={errorMessage ? 'alert' : undefined}
-            className={`text-[10px] ${
+            className={`text-caption ${
               errorMessage ? 'text-text-danger' : 'text-text-secondary'
             }`}
           >
@@ -140,7 +140,7 @@ export default function TextBlockModal({
               type="button"
               onClick={requestSave}
               disabled={isSaving}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
             >
               {isSaving ? '저장 중…' : '저장'}
             </button>

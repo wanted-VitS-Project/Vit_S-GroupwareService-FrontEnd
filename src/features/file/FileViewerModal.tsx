@@ -10,7 +10,7 @@ import { FILE_CODES } from './errorCodes';
 import { extensionLabel, extensionStyle, formatFileSize } from './format';
 import PdfPages from './PdfPages';
 import { loadPreview } from './previewCache';
-import type { BlockFile, FileVersion, FileVersionsResponse } from './types';
+import type { FileVersion, FileVersionsResponse, ViewerFile } from './types';
 
 /** 미리보기 상태 — 로딩 · 지원 안 함 · 실패를 화면에서 구분해야 한다 */
 type Preview =
@@ -32,7 +32,11 @@ export default function FileViewerModal({
   file,
   onClose,
 }: {
-  file: BlockFile;
+  /**
+   * 블록 문서 목록 · 프로젝트 문서함이 함께 넘긴다.
+   * 문서함 응답에는 업로더 부서 · 직급이 없어 `ViewerFile` 에서 선택 필드다.
+   */
+  file: ViewerFile;
   onClose: () => void;
 }) {
   const [versionId, setVersionId] = useState(file.latestVersionId);
@@ -77,10 +81,24 @@ export default function FileViewerModal({
     extension: file.extension,
     sizeBytes: file.sizeBytes,
     uploaderName: file.uploaderName,
-    uploaderDepartment: file.uploaderDepartment,
-    uploaderPosition: file.uploaderPosition,
+    // 문서함에서 열면 비어 있다 — 버전 이력이 도착하면 채워진다
+    uploaderDepartment: file.uploaderDepartment ?? '',
+    uploaderPosition: file.uploaderPosition ?? '',
     completedAt: file.updatedAt,
   };
+
+  /**
+   * 업로더 한 줄 — `부서 / 직급 이름`.
+   * 부서 · 직급이 비어 있을 때 구분자만 남으면 (` / 김용준`) 값이 깨진 것처럼 보인다.
+   */
+  const uploaderLine = [
+    [current.uploaderDepartment, current.uploaderPosition]
+      .filter(Boolean)
+      .join(' / '),
+    current.uploaderName,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   const style = extensionStyle(current.extension);
 
@@ -160,12 +178,12 @@ export default function FileViewerModal({
     <Modal
       title={`${file.name} 문서 보기`}
       onClose={onClose}
-      className="flex h-[85vh] w-full max-w-[820px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
+      className="flex h-[85vh] w-full max-w-[820px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
       header={
         <div className="flex shrink-0 items-center gap-3 border-b border-border-default px-5 py-3">
           <span
             style={{ color: style.text, backgroundColor: style.background }}
-            className="shrink-0 rounded border px-2 py-0.5 font-mono text-[10px] font-bold"
+            className="shrink-0 rounded-button-sm border px-2 py-0.5 font-mono text-caption font-bold"
           >
             {extensionLabel(current.extension)}
           </span>
@@ -174,16 +192,13 @@ export default function FileViewerModal({
             <h2 className="truncate text-[13px] font-semibold text-text-primary">
               {current.originalFileName}
             </h2>
-            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[10px] text-text-secondary">
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-caption text-text-secondary">
               <span className="font-mono text-text-primary-blue">
                 v{current.versionNo}
                 {current.latest && ' (최신)'}
               </span>
               <span aria-hidden>·</span>
-              <span>
-                {current.uploaderDepartment} / {current.uploaderPosition}{' '}
-                {current.uploaderName}
-              </span>
+              <span>{uploaderLine}</span>
               <span aria-hidden>·</span>
               <span>
                 {current.completedAt.slice(0, 10).replaceAll('-', '.')}
@@ -198,7 +213,7 @@ export default function FileViewerModal({
               type="button"
               aria-pressed={showVersions}
               onClick={() => setShowVersions((wasOpen) => !wasOpen)}
-              className={`flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium ${
+              className={`flex cursor-pointer items-center gap-1.5 rounded-button-md px-2.5 py-1.5 text-[11px] font-medium ${
                 showVersions
                   ? 'bg-blue-bg-soft text-text-primary-blue'
                   : 'text-text-secondary hover:bg-bg-hover'
@@ -216,7 +231,7 @@ export default function FileViewerModal({
                   ),
                 )
               }
-              className="flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover"
+              className="flex cursor-pointer items-center gap-1.5 rounded-button-md px-2.5 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover"
             >
               <DownloadIcon />
               다운로드
@@ -225,7 +240,7 @@ export default function FileViewerModal({
               type="button"
               onClick={onClose}
               aria-label="닫기"
-              className="flex size-7 cursor-pointer items-center justify-center rounded-md text-text-secondary hover:bg-bg-hover"
+              className="flex size-7 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-hover"
             >
               <CloseIcon />
             </button>
@@ -236,7 +251,7 @@ export default function FileViewerModal({
       <div className="flex min-h-0 flex-1">
         {showVersions && (
           <aside className="flex w-60 shrink-0 flex-col border-r border-border-default">
-            <p className="shrink-0 border-b border-border-default px-4 py-2.5 font-mono text-[10px] font-bold tracking-[1px] text-text-secondary uppercase">
+            <p className="shrink-0 border-b border-border-default px-4 py-2.5 font-mono text-caption font-bold tracking-[1px] text-text-secondary uppercase">
               버전 이력
             </p>
             <div className="min-h-0 flex-1 overflow-y-auto p-3">
@@ -244,7 +259,7 @@ export default function FileViewerModal({
                 <div className="flex flex-col items-center gap-2 py-6">
                   <p
                     role="alert"
-                    className="text-center text-[10px] break-keep text-text-secondary"
+                    className="text-center text-caption break-keep text-text-secondary"
                   >
                     {versionsError}
                   </p>
@@ -254,7 +269,7 @@ export default function FileViewerModal({
                       setVersionsError('');
                       setVersionsRetry((count) => count + 1);
                     }}
-                    className="cursor-pointer rounded-md border border-border-default px-2.5 py-1 text-[10px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+                    className="cursor-pointer rounded-button-md border border-border-default px-2.5 py-1 text-caption font-medium text-text-primary-blue hover:bg-blue-bg-soft"
                   >
                     다시 시도
                   </button>
@@ -315,11 +330,11 @@ export default function FileViewerModal({
           />
 
           {preview.kind === 'ready' && (
-            <div className="w-full max-w-[576px] rounded border border-border-default bg-bg-surface p-3">
+            <div className="w-full max-w-[576px] rounded-button-sm border border-border-default bg-bg-surface p-3">
               <p className="font-mono text-[9px] text-text-secondary">
                 미리보기 제한 안내
               </p>
-              <p className="mt-1 text-[10px] text-text-secondary">
+              <p className="mt-1 text-caption text-text-secondary">
                 전체 문서는 다운로드 후 확인하세요.
                 {preview.total !== null && ` (총 ${preview.total}페이지`}
                 {preview.total !== null &&
@@ -333,7 +348,7 @@ export default function FileViewerModal({
           {errorMessage && (
             <p
               role="alert"
-              className="w-full max-w-[576px] rounded bg-red-bg-soft px-3 py-2 text-[10px] break-keep text-text-danger"
+              className="w-full max-w-[576px] rounded-button-sm bg-red-bg-soft px-3 py-2 text-caption break-keep text-text-danger"
             >
               {errorMessage}
             </p>
@@ -363,7 +378,7 @@ function PreviewPane({
       <div
         role="status"
         aria-label="미리보기를 불러오는 중입니다"
-        className="h-[600px] w-full max-w-[576px] animate-pulse rounded border border-border-default bg-white shadow-sm"
+        className="h-[600px] w-full max-w-[576px] animate-pulse rounded-button-sm border border-border-default bg-bg-card shadow-sm"
       />
     );
   }
@@ -377,8 +392,8 @@ function PreviewPane({
   }
 
   return (
-    <div className="flex h-[600px] w-full max-w-[576px] flex-col items-center justify-center gap-3 rounded border border-border-default bg-white px-8 text-center shadow-sm">
-      <p className="text-xs break-keep text-text-secondary">
+    <div className="flex h-[600px] w-full max-w-[576px] flex-col items-center justify-center gap-3 rounded-button-sm border border-border-default bg-bg-card px-8 text-center shadow-sm">
+      <p className="text-label break-keep text-text-secondary">
         {preview.kind === 'unsupported'
           ? 'PDF 만 미리보기를 지원합니다. 다운로드해서 확인해주세요.'
           : preview.message}
@@ -386,7 +401,7 @@ function PreviewPane({
       <button
         type="button"
         onClick={onDownload}
-        className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover"
+        className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover"
       >
         다운로드
       </button>
@@ -421,9 +436,9 @@ function VersionCard({
       >
         <span className="flex items-center gap-2">
           <span
-            className={`rounded px-1.5 py-0.5 font-mono text-[10px] font-bold ${
+            className={`rounded-button-sm px-1.5 py-0.5 font-mono text-caption font-bold ${
               isSelected
-                ? 'bg-btn-primary text-white'
+                ? 'bg-btn-primary text-text-white'
                 : 'bg-bg-hover text-text-secondary'
             }`}
           >
@@ -439,7 +454,7 @@ function VersionCard({
         <span className="mt-1.5 block text-[9px] text-text-secondary">
           {version.uploaderDepartment}
         </span>
-        <span className="mt-1 block text-[10px] font-semibold text-text-primary">
+        <span className="mt-1 block text-caption font-semibold text-text-primary">
           {version.uploaderPosition} {version.uploaderName}
         </span>
         {version.comment && (
@@ -456,7 +471,7 @@ function VersionCard({
       <button
         type="button"
         onClick={onDownload}
-        className="mt-2 flex w-full cursor-pointer items-center justify-center gap-1 rounded border border-dashed border-border-default px-2 py-1 text-[9px] font-medium text-text-secondary hover:bg-bg-hover"
+        className="mt-2 flex w-full cursor-pointer items-center justify-center gap-1 rounded-button-sm border border-dashed border-border-default px-2 py-1 text-[9px] font-medium text-text-secondary hover:bg-bg-hover"
       >
         <DownloadIcon />이 버전 다운로드
       </button>

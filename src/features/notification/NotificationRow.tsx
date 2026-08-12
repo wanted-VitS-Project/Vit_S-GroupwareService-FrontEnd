@@ -34,12 +34,12 @@ export default function NotificationRow({
   return (
     <div
       className={`flex items-start gap-3 px-4 py-3 ${
-        unread ? 'bg-blue-bg-soft' : 'bg-white'
+        unread ? 'bg-blue-bg-soft' : 'bg-bg-card'
       }`}
     >
       <span
         aria-hidden
-        className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs ${icon.className}`}
+        className={`flex size-8 shrink-0 items-center justify-center rounded-pill text-label ${icon.className}`}
       >
         {icon.symbol}
       </span>
@@ -50,11 +50,11 @@ export default function NotificationRow({
         disabled={disabled}
         className="min-w-0 flex-1 cursor-pointer text-left disabled:cursor-not-allowed"
       >
-        <p className="truncate text-xs font-bold text-text-primary">
+        <p className="truncate text-label font-bold text-text-primary">
           {notification.title}
         </p>
         {/* 한 줄로 자른다 — 알림마다 길이가 달라 목록이 들쭉날쭉해진다 */}
-        <p className="mt-0.5 truncate text-xs text-text-secondary">
+        <p className="mt-0.5 truncate text-label text-text-secondary">
           {notification.message}
         </p>
         {/* 형식이 어긋나면 빈 값이라 `empty:hidden` 으로 줄이 접힌다 */}
@@ -71,7 +71,7 @@ export default function NotificationRow({
           <span
             role="img"
             aria-label="읽지 않음"
-            className="size-1.5 rounded-full bg-btn-primary"
+            className="size-1.5 rounded-pill bg-btn-primary"
           />
         )}
       </div>

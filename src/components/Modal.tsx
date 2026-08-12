@@ -30,9 +30,9 @@ interface ModalProps {
 }
 
 /** 모달 동작에 필요해 항상 적용한다 */
-const BASE_PANEL = 'm-auto bg-white backdrop:bg-text-primary/50';
+const BASE_PANEL = 'm-auto bg-bg-card backdrop:bg-text-primary/50';
 /** className 을 넘기지 않을 때의 크기 · 여백 */
-const DEFAULT_PANEL = 'w-full max-w-sm rounded-xl p-8 shadow-lg';
+const DEFAULT_PANEL = 'w-full max-w-sm rounded-base p-8 shadow-lg';
 
 /**
  * 화면 오른쪽 아래에 붙는 곁패널의 자리 · 높이.
@@ -41,7 +41,7 @@ const DEFAULT_PANEL = 'w-full max-w-sm rounded-xl p-8 shadow-lg';
  * 패널이 다른 자리로 튄다. 그래서 문자열을 여기 한 곳에만 둔다.
  */
 const SIDE_PANEL_BASE =
-  'mt-auto mr-4 mb-4 ml-auto flex h-[72vh] max-h-[560px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl';
+  'mt-auto mr-4 mb-4 ml-auto flex h-[72vh] max-h-[560px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl';
 
 /** 곁패널 기본 폭 — `연결된 이슈` · `블록 활동 로그` */
 export const SIDE_PANEL = `${SIDE_PANEL_BASE} w-[380px]`;
@@ -105,9 +105,11 @@ export default function Modal({
         <div className="flex items-start justify-between gap-4">
           <div>
             {stepLabel && (
-              <p className="text-xs font-bold text-text-muted">{stepLabel}</p>
+              <p className="text-label font-bold text-text-muted">
+                {stepLabel}
+              </p>
             )}
-            <h2 className="text-lg font-bold">{title}</h2>
+            <h2 className="text-heading-m font-bold">{title}</h2>
           </div>
           {onClose && (
             <button
@@ -134,7 +136,7 @@ export function ModalButton({
   return (
     <button
       {...props}
-      className={`mt-6 w-full cursor-pointer rounded-lg bg-text-primary py-3 text-sm font-bold text-white transition-colors hover:bg-bg-sidebar-hover disabled:cursor-not-allowed disabled:bg-bg-hover-secondary ${className}`}
+      className={`mt-6 w-full cursor-pointer rounded-lg bg-text-primary py-3 text-body-m font-bold text-text-white transition-colors hover:bg-bg-sidebar-hover disabled:cursor-not-allowed disabled:bg-bg-hover-secondary ${className}`}
     />
   );
 }

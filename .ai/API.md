@@ -1,7 +1,8 @@
 # 연동 API 명세서
 
 **최종 업데이트**: 2026-08-11 (입찰 — 공고 직접 등록 · 수정 본문, 수동 수집 호출 순서 추가)
-**최종 업데이트**: 2026-08-11 (입찰 공고 목록 · 상세 — 103~104 추가, 입찰 도메인 공통 절 신설)
+**최종 업데이트**: 2026-08-11 (스테이지 · 스텝 쓰기 — 112~~120 추가, 스테이지·스텝 공통 절 신설)
+**최종 업데이트**: 2026-08-11 (프로젝트 전체 화면 — 103~~111 추가, 파일·이미지 삭제·복구 공통 절 신설)
 **최종 업데이트**: 2026-08-09 (내 프로젝트 목록 — 84 추가)
 
 > 📌 이 파일은 **프론트가 연동하는 백엔드 API**를 정리하는 곳이에요. (내가 만드는 게 아니라 **호출하는** 입장)
@@ -116,24 +117,44 @@
 | [100](#100-페이지-접근-가능자-목록)       | 접근 가능자 목록   | `GET /pages/{pageCode}/permissions`                          | ✅ `features/pagePermission/api.ts`   |
 | [101](#101-페이지-권한-부여--등급-변경)   | 권한 부여·변경     | `POST /pages/{pageCode}/permissions`                         | ✅ `features/pagePermission/api.ts`   |
 | [102](#102-페이지-권한-회수)              | 권한 회수          | `DELETE /pages/{pageCode}/permissions/{userId}`              | ✅ `features/pagePermission/api.ts`   |
-| [103](#103-입찰-공고-목록-조회)           | 입찰 공고 목록     | `GET /bidding/notices`                                       | ✅ `features/bidding/api.ts`          |
-| [104](#104-입찰-공고-상세-조회)           | 입찰 공고 상세     | `GET /bidding/notices/{noticeId}`                            | ✅ `features/bidding/api.ts`          |
+| [103](#103-휴지통에서-복구)               | 파일 복구          | `POST /files/{fileId}/restore`                               | ✅ `features/file/api.ts`             |
+| [104](#104-파일-영구-삭제)                | 파일 영구 삭제     | `POST /files/{fileId}/permanent-deletion`                    | ✅ `features/file/api.ts`             |
+| [105](#105-프로젝트-문서함-전체-파일)     | 프로젝트 문서함    | `GET /projects/{projectId}/files`                            | ✅ `features/file/api.ts`             |
+| [106](#106-프로젝트-휴지통-모아보기)      | 프로젝트 휴지통    | `GET /projects/{projectId}/files/trash`                      | ✅ `features/file/api.ts`             |
+| [107](#107-프로젝트-이미지-모아보기)      | 이미지 모아보기    | `GET /projects/{projectId}/images`                           | ✅ `features/block/api.ts`            |
+| [108](#108-프로젝트-단위-이슈-목록-조회)  | 프로젝트 이슈      | `GET /projects/{projectId}/issues`                           | ✅ `features/issue/api.ts`            |
+| [109](#109-이미지-휴지통-조회)            | 이미지 휴지통      | `GET /projects/{projectId}/images/trash`                     | ✅ `features/block/api.ts`            |
+| [110](#110-이미지-복구-다건)              | 이미지 복구        | `PATCH /blocks/images/items/restore`                         | ✅ `features/block/api.ts`            |
+| [111](#111-이미지-영구-삭제-다건)         | 이미지 영구 삭제   | `DELETE /blocks/images/items/hard`                           | ✅ `features/block/api.ts`            |
+| [112](#112-스테이지-생성)                 | 스테이지 생성      | `POST /projects/{projectId}/stages`                          | ✅ `features/project/api.ts`          |
+| [113](#113-스테이지-수정)                 | 스테이지 수정      | `PATCH /stages/{stageId}`                                    | ✅ `features/project/api.ts`          |
+| [114](#114-스테이지-삭제)                 | 스테이지 삭제      | `DELETE /stages/{stageId}`                                   | ✅ `features/project/api.ts`          |
+| [115](#115-스텝-생성)                     | 스텝 생성          | `POST /projects/{projectId}/steps`                           | ✅ `features/project/api.ts`          |
+| [116](#116-스텝-수정)                     | 스텝 수정          | `PATCH /steps/{stepId}`                                      | ✅ `features/project/api.ts`          |
+| [117](#117-스텝-삭제)                     | 스텝 삭제          | `DELETE /steps/{stepId}`                                     | ✅ `features/project/api.ts`          |
+| [118](#118-스텝-완료-처리)                | 스텝 완료 처리     | `POST /steps/{stepId}/complete`                              | ✅ `features/project/api.ts`          |
+| [119](#119-스테이지-순서-변경)            | 스테이지 순서      | `PATCH /projects/{projectId}/stages/order`                   | ✅ `features/project/api.ts`          |
+| [120](#120-스텝-순서-변경)                | 스텝 순서 · 소속   | `PATCH /projects/{projectId}/steps/order`                    | ✅ `features/project/api.ts`          |
+| [121](#121-블록-스텝-이동)                | 블록 스텝 이동     | `PATCH /blocks/{blockId}/step`                               | ✅ `features/block/api.ts`            |
+| [122](#122-입찰-공고-목록-조회)           | 입찰 공고 목록     | `GET /bidding/notices`                                       | ✅ `features/bidding/api.ts`          |
+| [123](#123-입찰-공고-상세-조회)           | 입찰 공고 상세     | `GET /bidding/notices/{noticeId}`                            | ✅ `features/bidding/api.ts`          |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
-> 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통) · [이미지 도메인 — 공통](#이미지-도메인--공통) · [사원 그룹 도메인 — 공통](#사원-그룹-도메인--공통) · [페이지 권한 도메인 — 공통](#페이지-권한-도메인--공통)
+> 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통) · [이미지 도메인 — 공통](#이미지-도메인--공통) · [사원 그룹 도메인 — 공통](#사원-그룹-도메인--공통) · [페이지 권한 도메인 — 공통](#페이지-권한-도메인--공통) · [스테이지 · 스텝 도메인 — 공통](#스테이지--스텝-도메인--공통) · [입찰 도메인 — 공통](#입찰-도메인--공통)
 
 ### ❗ 백엔드 확인 대기
 
-| 항목                                             | 막힌 기능                        | 섹션  |
-| ------------------------------------------------ | -------------------------------- | ----- |
-| `block.type` enum 이 "10값" 인데 정리된 값은 9개 | 모르는 유형은 껍데기로 표시      | 9     |
-| 블록 생성 응답 `data` 스키마                     | 생성 직후 해당 블록 지정         | 9     |
-| `detail.chkBlockId` · `detail.items`             | 체크리스트 항목 추가 · 목록      | 10    |
-| `detail.txtId` · `detail.content`                | 텍스트 본문 편집                 | 10    |
-| `detail` 의 첫 이미지 키 이름                    | 이미지 블록 (자세히는 이미지 절) | 10·66 |
-| 배치 동시 편집 보호 (버전 · 변경 알림 채널)      | 마지막 저장이 남의 변경을 덮음   | 44    |
-| 파일 API `PR #190` 머지 대기                     | 문서 블록 실동작 확인            | 36~43 |
-| 휴지통 화면 목업                                 | 복구 · 영구 삭제 API 연동        | —     |
+| 항목                                             | 막힌 기능                          | 섹션  |
+| ------------------------------------------------ | ---------------------------------- | ----- |
+| `block.type` enum 이 "10값" 인데 정리된 값은 9개 | 모르는 유형은 껍데기로 표시        | 9     |
+| 블록 생성 응답 `data` 스키마                     | 생성 직후 해당 블록 지정           | 9     |
+| `detail.chkBlockId` · `detail.items`             | 체크리스트 항목 추가 · 목록        | 10    |
+| `detail.txtId` · `detail.content`                | 텍스트 본문 편집                   | 10    |
+| `detail` 의 첫 이미지 키 이름                    | 이미지 블록 (자세히는 이미지 절)   | 10·66 |
+| 배치 동시 편집 보호 (버전 · 변경 알림 채널)      | 마지막 저장이 남의 변경을 덮음     | 44    |
+| 파일 API `PR #190` 머지 대기                     | 문서 블록 실동작 확인              | 36~43 |
+| 휴지통 화면 목업                                 | 복구 · 영구 삭제 API 연동          | —     |
+| **스테이지 · 스텝 목록에 `version` 이 오는지**   | 수정 · 순서 변경 저장 (없으면 400) | 7·8   |
 
 ---
 
@@ -426,6 +447,7 @@ interface ChangePasswordRequest {
 
 > ℹ️ `data` 안에 `stages` 로 한 겹 더 감싸져 있다. `getProjectStages()` 가 벗겨서 배열만 반환한다.
 > ℹ️ **`sortOrder` 오름차순으로 정렬되어 온다** — 프론트에서 다시 정렬하지 않는다.
+> ❗ **`version` 확인 필요.** 수정(113) · 순서 변경(119)이 이 값을 요구한다. 명세에는 아직 없어 타입은 `version?: number` 로 두고, 없으면 화면이 저장을 막는다. ([스테이지 · 스텝 도메인 — 공통](#스테이지--스텝-도메인--공통))
 
 ---
 
@@ -468,6 +490,7 @@ interface ChangePasswordRequest {
 > ⚠️ `progressRate` 는 **선택 필드**다. 이슈가 0개면 오지 않으므로 `?? 0` 로 받는다.
 > ℹ️ 스텝 진척률 바는 `inProgressIssueCount`(노랑) · `doneIssueCount`(파랑) · 나머지(회색) 비율로 그린다.
 > ℹ️ 명세 표에는 없지만 실제 응답에 **`inProgressIssueCount`** 가 포함된다.
+> ❗ **`version` 확인 필요.** 수정(116) · 순서 변경(120)이 이 값을 요구한다. 스테이지와 같은 처리다. ([스테이지 · 스텝 도메인 — 공통](#스테이지--스텝-도메인--공통))
 
 ---
 
@@ -1541,11 +1564,17 @@ interface UpdateBlockLayoutRequest {
     rowIndex: number; // 필수 — 행 인덱스
     sortOrder: number; // 필수 — 행 내 순서
     colSpan: number; // 필수 — 열 병합 수 1~3
+    version: number; // 필수 ⭐ 2026-08-11 — 이 블록을 조회했을 때의 값
   }[];
 }
 ```
 
 **응답 data** — `{ blocks: [...] }` 로 반영된 배치가 요청과 같은 모양으로 온다.
+`blocks[].version` 은 **저장 후의 새 값**이다 — 화면 블록에 덮어써야 다음 저장이 통과한다 (`applyLayouts()`).
+
+> ⚠️ **낙관적 락을 항목마다 검사한다** (2026-08-11 신설). 하나라도 어긋나면 **요청 전체가 409 로 롤백**된다.
+> ⛔ **`overwrite` 가 없다** — 409 면 재전송으로는 절대 통과하지 못한다. 화면은 되돌리는 데서 그치지 않고 **목록을 다시 읽어** 새 `version` 을 받는다 (`useLayoutSaver` → `notifyBlockChanged()`).
+> ⚠️ 공통 값 하나로 `version` 을 채우면 컴파일도 되고 요청도 나가지만 **전부 409** 다 — 블록마다 자기 값을 실어야 한다 (`toLayoutOrders()`).
 
 | status | code                     | 화면 처리                                      |
 | ------ | ------------------------ | ---------------------------------------------- |
@@ -1586,7 +1615,13 @@ interface UpdateBlockLayoutRequest {
 | **Path**      | `/api/v1/blocks/{blockId}`                    |
 | **사용 위치** | `src/features/block/api.ts` → `updateBlock()` |
 
-요청은 `title?: string | null`, `owner?: string | null` 이다. 보낸 필드만 반영하고, `null` 은 해제, 생략은 기존 값 유지다. 둘 다 생략하면 400이다. 응답은 `blockId`, nullable `title`, nullable `owner`(`userId`·`name`), `updatedAt` 을 담는다.
+요청은 `title?: string | null`, `owner?: string | null`, **`version: number`(필수)**, `overwrite?: boolean` 이다.
+보낸 필드만 반영하고, `null` 은 해제, 생략은 기존 값 유지다. `title`·`owner` 를 둘 다 생략하면 400 `BLOCK_UPDATE_FIELD_REQUIRED` 다.
+응답은 `blockId`, nullable `title`, nullable `owner`(`userId`·`name`), `updatedAt`, **`version`** 을 담는다.
+
+> ⭐ **여기만 진짜 부분 수정이다.** 스테이지(113) · 스텝(116) 수정은 전체 덮어쓰기라 생략한 필드가 해제된다 — 헷갈리지 말 것.
+> ⚠️ **낙관적 락** (2026-08-11 신설) — `version` 을 빼면 400 `BLOCK_VERSION_REQUIRED`, 늦으면 409 다. 409 면 **재조회 / 덮어쓰기**를 사용자에게 묻는다 (`BlockEditModal`).
+> ⚠️ 응답 `version` 은 **저장 후의 새 값**이다. 보드 상태(`BlockActionsContext.patch`)에 함께 꽂지 않으면 **다음 수정도, 배치 저장도 전부 409** 다 — 배치는 이 블록의 `version` 을 그대로 실어 보낸다.
 
 ## 47. 블록 삭제
 
@@ -2789,7 +2824,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
       businessCategories: { categoryId: number; name: string; code: string | null }[];
       members: { userId: string; name: string }[];   // 카드 아바타용 · 이름 오름차순
       myIssueInProgressCount: number;
-      myApprovalOpenCount: number;
+      myApprovalInProgressCount: number;   // ⭐ 2026-08-11 개명 (구: myApprovalOpenCount)
     }[];
     page: number;
     size: number;
@@ -2802,7 +2837,9 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 > ⭐ **정렬은 `created_at DESC` → `project_id DESC` 고정이다.** 정렬 파라미터를 받지 않는다.
 > ⭐ **권한이 없는 프로젝트는 403 이 아니라 목록에서 빠진다.** 상세 조회(6번)는 반대로 403 을 낸다 — 화면이 역할별로 목록을 거르지 않는다.
 > ⭐ `members` 가 목록에 실려 오므로 카드마다 45번(참여자 목록)을 부르지 않는다. 없었다면 20건 페이지에서 21콜이 된다.
-> ⚠️ `myApprovalOpenCount` 는 `결재 대기` 가 **아니다** — 요청자가 **기안한** `IN_PROGRESS`+`REJECTED` 수라 결재함 숫자와 다르다.
+> ⚠️ `myApprovalInProgressCount` 는 `결재 대기` 가 **아니다** — 요청자가 **기안한** `IN_PROGRESS`+`REJECTED` 수라 결재함 숫자와 다르다.
+> ⚠️ 이름이 `InProgress` 라고 **그 상태만 세는 것이 아니다.** `REJECTED` 도 들어간다 — 2026-08-11 `myApprovalOpenCount` 에서 개명됐고 **뜻은 그대로**다.
+> ❗ 개명 전 이름으로 읽으면 `undefined` 가 되어 카드에 **숫자 없이 `건` 만** 찍힌다. 응답을 `as T` 로 단언하는 구조라 **타입체크·빌드로는 안 잡힌다.**
 > ⚠️ **상세와 달리 `stepCount` · `doneStepCount` 가 없다.** 카드에 `완료/전체` 를 그릴 수 없어 위 두 건수 뱃지로 대신했다.
 > ⚠️ **상태별 집계 API 가 없다.** 통계 카드는 상태마다 `size=1` 로 물어 `totalElements` 만 쓴다 (`getProjectCount()`).
 > **보관 기능이 없다** — 종결(`CLOSED`) 건도 `status` 필터로 다시 볼 수 있다 (PRJ-015).
@@ -3381,6 +3418,645 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 ---
 
+## 파일 삭제 · 복구 — 공통
+
+삭제는 **전면 soft delete** 다. 휴지통은 보관 기간 제한이 없고, **영구 삭제만** 저장소(S3) 객체를 지운다.
+권한은 파일 단위가 아니라 **스텝 EDITOR** 를 그대로 따른다 (업로더 본인 제한 없음).
+
+| 단계        | 엔드포인트                                        | 되돌리기 |
+| ----------- | ------------------------------------------------- | -------- |
+| 휴지통 이동 | `DELETE /files/{fileId}` (40번)                   | 가능     |
+| 복구        | `POST /files/{fileId}/restore` (103번)            | —        |
+| 영구 삭제   | `POST /files/{fileId}/permanent-deletion` (104번) | ❌ 불가  |
+
+> ⚠️ **결재가 잠근다.** 진행 중 결재의 대상이면 휴지통 이동이 409 로 막히고, **완료 포함** 결재 참조가 있으면 영구 삭제가 409 로 막힌다.
+
+---
+
+## 103. 휴지통에서 복구
+
+| 항목          | 내용                                     |
+| ------------- | ---------------------------------------- |
+| **Method**    | `POST`                                   |
+| **Path**      | `/api/v1/files/{fileId}/restore`         |
+| **인증 필요** | ✅ (스텝 `EDITOR`)                       |
+| **사용 위치** | `features/file/api.ts` → `restoreFile()` |
+
+원래 블록으로 복구된다 (연결은 휴지통에 있는 동안에도 유지). **블록이 삭제됐어도 복구되며**, 이 경우 파일은 블록에 붙지 않은 채 살아나 `blockId: null` · `blockDeleted: true` 로 응답한다.
+
+**응답 data**
+
+| 필드           | 타입             | 설명                                             |
+| -------------- | ---------------- | ------------------------------------------------ |
+| `fileId`       | `number`         | 복구한 문서                                      |
+| `name`         | `string`         | 표시명                                           |
+| `blockId`      | `number \| null` | 붙은 블록. 블록이 삭제됐으면 `null`              |
+| `blockDeleted` | `boolean`        | `true` 면 "블록이 삭제되어 문서함으로 복구" 안내 |
+
+| status | code                            | 화면 처리                     |
+| ------ | ------------------------------- | ----------------------------- |
+| 200    | —                               | 목록에서 제거 · 문서함에 반영 |
+| 400    | `FILE_NOT_DELETED`              | 휴지통에 없음                 |
+| 403    | `FILE_EDIT_PERMISSION_REQUIRED` | 편집 권한 없음                |
+| 404    | `FILE_NOT_FOUND`                | 문서 없음                     |
+
+> ℹ️ 폐기된 `FILE_BLOCK_DELETED` 규칙은 없다 — 블록이 지워졌다고 복구가 막히지 않는다.
+
+---
+
+## 104. 파일 영구 삭제
+
+| 항목          | 내용                                               |
+| ------------- | -------------------------------------------------- |
+| **Method**    | `POST` (⚠️ `DELETE` 가 아니다)                     |
+| **Path**      | `/api/v1/files/{fileId}/permanent-deletion`        |
+| **인증 필요** | ✅ (스텝 `EDITOR`)                                 |
+| **사용 위치** | `features/file/api.ts` → `permanentlyDeleteFile()` |
+
+**휴지통 문서만** 대상이다. 확인 문자가 정확히 `영구 삭제` 여야 하고 **서버가 검증**한다 — 본문이 필요해서 `DELETE` 가 아니라 `POST` 다 (일부 프록시가 `DELETE` 본문을 버린다).
+
+**요청 body**
+
+| 필드          | 타입     | 필수 | 설명                       |
+| ------------- | -------- | ---- | -------------------------- |
+| `confirmText` | `string` | ✅   | `영구 삭제` 와 정확히 일치 |
+
+**응답 data**
+
+| 필드                  | 타입     | 설명                                                    |
+| --------------------- | -------- | ------------------------------------------------------- |
+| `fileId`              | `number` | 지운 문서                                               |
+| `deletedVersionCount` | `number` | 지운 버전 수                                            |
+| `storageDeletedCount` | `number` | 저장소 **삭제 요청 수** (S3 삭제는 커밋 후 best-effort) |
+
+| status | code                            | 화면 처리                           |
+| ------ | ------------------------------- | ----------------------------------- |
+| 200    | —                               | 휴지통에서 제거                     |
+| 400    | `FILE_CONFIRM_TEXT_MISMATCH`    | 확인 문자 불일치                    |
+| 400    | `FILE_NOT_DELETED`              | 휴지통에 없는 문서                  |
+| 403    | `FILE_EDIT_PERMISSION_REQUIRED` | 편집 권한 없음                      |
+| 404    | `FILE_NOT_FOUND`                | 문서 없음                           |
+| 409    | `FILE_APPROVAL_REFERENCED`      | **완료 포함** 모든 결재 참조가 차단 |
+
+> ⚠️ 모든 버전의 S3 객체를 제거한다 — **되돌릴 수 없다.** DB 삭제 전 파생데이터 정리 포트를 먼저 부른다 (비타메이트 `file_index` · `document_chunk` 등).
+
+---
+
+## 105. 프로젝트 문서함 (전체 파일)
+
+| 항목          | 내용                                         |
+| ------------- | -------------------------------------------- |
+| **Method**    | `GET`                                        |
+| **Path**      | `/api/v1/projects/{projectId}/files`         |
+| **인증 필요** | ✅ (접근 권한 보유자)                        |
+| **사용 위치** | `features/file/api.ts` → `getProjectFiles()` |
+
+스텝 · 블록 위치와 함께 **평면 목록**(`files[]`)을 주고 **프론트가 스텝 → 블록 트리로 조합**한다 (이미지 모아보기와 구조 통일). 활성 문서만 · 문서 단위 최신 1행. 고아 파일도 포함(`blockId: null` · `blockDeleted: true`).
+
+**응답 data — `files[]`**
+
+| 필드                                           | 타입                              | 설명                        |
+| ---------------------------------------------- | --------------------------------- | --------------------------- |
+| `stepId` / `stepName`                          | `number`/`string`                 | 속한 스텝                   |
+| `blockId` / `blockTitle`                       | `number \| null`/`string \| null` | 속한 블록                   |
+| `blockDeleted`                                 | `boolean`                         | 블록이 지워진 고아 파일     |
+| `fileId` / `name`                              | `number`/`string`                 | 문서 · 표시명               |
+| `latestVersionId` / `latestVersionNo`          | `number`                          | 최신 버전                   |
+| `versionCount`                                 | `number`                          | 버전 수                     |
+| `originalFileName` / `extension` / `sizeBytes` | `string`/`string`/`number`        | 원본 정보                   |
+| `previewable`                                  | `boolean`                         | PDF 만 `true`               |
+| `uploaderName`                                 | `string`                          | 업로더 (부서 · 직급은 없다) |
+| `updatedAt`                                    | `string`                          | `YYYY-MM-DDTHH:mm:ss`       |
+
+| status | code                              | 화면 처리      |
+| ------ | --------------------------------- | -------------- |
+| 200    | —                                 | 없으면 빈 배열 |
+| 403    | `FILE_ACCESS_PERMISSION_REQUIRED` | 접근 권한 없음 |
+| 404    | `PROJECT_NOT_FOUND`               | 프로젝트 없음  |
+
+> ⚠️ **presigned 미임베드** — 다운로드는 클릭 시 42번(5분 URL)을 호출한다. 정렬은 `stepId` → `blockId` → 연결일.
+
+---
+
+## 106. 프로젝트 휴지통 모아보기
+
+| 항목          | 내용                                              |
+| ------------- | ------------------------------------------------- |
+| **Method**    | `GET`                                             |
+| **Path**      | `/api/v1/projects/{projectId}/files/trash`        |
+| **인증 필요** | ✅ (접근 권한 보유자)                             |
+| **사용 위치** | `features/file/api.ts` → `getProjectTrashFiles()` |
+
+블록 파일 목록(36번 `?deleted=true`)이 **블록 단위**인 것과 달리 **프로젝트 범위**다. 블록 삭제로 블록 목록에서 사라진 고아 파일도 여기서 보이고 복구 · 영구삭제 대상이 된다.
+
+**응답 data — `files[]`**
+
+| 필드                                           | 타입              | 설명                 |
+| ---------------------------------------------- | ----------------- | -------------------- |
+| `stepId` / `stepName`                          | `number`/`string` | 속한 스텝            |
+| `blockId` / `blockTitle` / `blockDeleted`      | —                 | 105번과 동일         |
+| `fileId` / `name` / `versionCount`             | —                 | 문서 정보            |
+| `originalFileName` / `extension` / `sizeBytes` | —                 | 원본 정보            |
+| `deletedAt`                                    | `string`          | 휴지통에 들어간 시각 |
+
+| status | code                              | 화면 처리      |
+| ------ | --------------------------------- | -------------- |
+| 200    | —                                 | 없으면 빈 배열 |
+| 403    | `FILE_ACCESS_PERMISSION_REQUIRED` | 접근 권한 없음 |
+| 404    | `PROJECT_NOT_FOUND`               | 프로젝트 없음  |
+
+> ℹ️ 휴지통 문서만 · presigned 미임베드(복구 · 영구삭제만 가능하다). 정렬은 `deletedAt` 내림차순.
+
+---
+
+## 107. 프로젝트 이미지 모아보기
+
+| 항목          | 내용                                           |
+| ------------- | ---------------------------------------------- |
+| **Method**    | `GET`                                          |
+| **Path**      | `/api/v1/projects/{projectId}/images`          |
+| **인증 필요** | ✅ (접근 권한 보유자)                          |
+| **사용 위치** | `features/block/api.ts` → `getProjectImages()` |
+
+**응답 data — `images[]`**
+
+| 필드           | 타입     | 설명                    |
+| -------------- | -------- | ----------------------- |
+| `imgId`        | `number` | 이미지 ID               |
+| `imgBlockId`   | `number` | 속한 블록 ID            |
+| `originalName` | `string` | 원본 파일명             |
+| `imageUrl`     | `string` | 저장소 이미지 URL       |
+| `caption`      | `string` | 캡션 (없으면 빈 문자열) |
+| `createdAt`    | `string` | `YYYY-MM-DDTHH:mm:ss`   |
+
+> ⚠️ 66 · 71번과 달리 `orderIndex` 가 **없다** — 순서 표기는 화면이 하지 않는다. 스텝 이름도 없어 블록 단위로만 묶인다.
+
+---
+
+## 108. 프로젝트 단위 이슈 목록 조회
+
+| 항목          | 내용                                           |
+| ------------- | ---------------------------------------------- |
+| **Method**    | `GET`                                          |
+| **Path**      | `/api/v1/projects/{projectId}/issues`          |
+| **인증 필요** | ✅ (프로젝트 참여자 · `VIEWER` 이상)           |
+| **사용 위치** | `features/issue/api.ts` → `getProjectIssues()` |
+
+삭제되지 않은 모든 Step 의 이슈를 **Step 별로 묶어** 반환한다. 이슈가 없는 Step 도 `issues: []` 로 포함되고, 삭제된 Step 은 응답에서 완전히 빠진다. **페이징이 없다.**
+
+**응답 data**
+
+| 필드       | 타입     | 설명                               |
+| ---------- | -------- | ---------------------------------- |
+| `progress` | `object` | 프로젝트 전체 진척도               |
+| `steps`    | `array`  | Step 별 이슈 묶음 (sortOrder 정렬) |
+
+**`progress` · `steps[]` 공통 진척도 필드**
+
+| 필드                   | 타입             | 설명                           |
+| ---------------------- | ---------------- | ------------------------------ |
+| `totalIssueCount`      | `number`         | 전체 이슈 수                   |
+| `doneIssueCount`       | `number`         | 완료(`DONE`) 수                |
+| `inProgressIssueCount` | `number`         | 진행 중(`IN_PROGRESS`) 수      |
+| `progressRate`         | `number \| null` | 완료율(%). 이슈가 0개면 `null` |
+
+**`steps[]` 추가 필드** — `stepId` · `stepName` · `issues[]`
+**`issues[]`** — 55번 목록 응답과 같은 모양 (`issueId` · `title` · `status` · `priority` · `dueDate` · `assignees[]` · `relatedBlocks[]`). `content` 는 없다.
+
+| 화면 기능        | FE 처리 기준                                         |
+| ---------------- | ---------------------------------------------------- |
+| 아코디언 순서    | `steps` 배열 순서 (이미 `sortOrder` 정렬됨)          |
+| Step 진척도 뱃지 | `steps[].doneIssueCount` / `steps[].totalIssueCount` |
+| Step 완료율      | `steps[].progressRate` (`null` 이면 이슈 없음)       |
+| 전체 진척도 바   | `progress.progressRate`                              |
+| 시작 전(TODO) 수 | `total - done - inProgress` 로 **FE 가 계산**        |
+
+> ℹ️ Step 자체가 하나도 없으면 `steps: []` 이고 `progress` 는 전부 0 (`progressRate` 는 `null`).
+
+---
+
+## 이미지 삭제 · 복구 — 공통
+
+이미지도 문서와 같은 3단계(soft → 복구 → 영구)지만 **계약이 다르다.** 같은 화면(휴지통)에 붙이므로 차이를 여기 모아 둔다.
+
+| 항목        | 문서 (103 · 104)                 | 이미지 (110 · 111)                           |
+| ----------- | -------------------------------- | -------------------------------------------- |
+| 대상        | 한 건 (`{fileId}` 경로)          | **다건** (`imgIds[]` 본문)                   |
+| 복구        | `POST /files/{id}/restore`       | `PATCH /blocks/images/items/restore`         |
+| 영구 삭제   | `POST .../permanent-deletion`    | `DELETE /blocks/images/items/hard`           |
+| 확인 문자   | ✅ `영구 삭제` 서버 검증         | ❌ **없다** — 화면이 확인 모달로 막아야 한다 |
+| 휴지통 조회 | `GET /projects/{id}/files/trash` | `GET /projects/{id}/images/trash`            |
+
+> ⚠️ 이미지 영구 삭제는 **본문 있는 `DELETE`** 다. 문서 쪽(104번)은 "일부 프록시가 `DELETE` 본문을 버린다" 는 이유로 `POST` 를 쓰는데 이미지는 그러지 않는다 — **배포 환경에서 본문이 사라지면 400 이 난다.** 실동작 확인 필요.
+> ⚠️ 이미지에는 확인 문자가 없어 오조작이 곧 영구 삭제다. 화면은 문서와 **같은 무게의 확인 모달**을 띄운다.
+> ❗ 110번 명세 본문 표의 필드명이 `imagIds` 로 적혀 있으나 요청 예시 · 111번과 대조해 **`imgIds`** 로 연동했다. 백엔드 확인 필요.
+
+---
+
+## 109. 이미지 휴지통 조회
+
+| 항목          | 내용                                                |
+| ------------- | --------------------------------------------------- |
+| **Method**    | `GET`                                               |
+| **Path**      | `/api/v1/projects/{projectId}/images/trash`         |
+| **인증 필요** | ✅ (접근 권한 보유자)                               |
+| **사용 위치** | `features/block/api.ts` → `getProjectTrashImages()` |
+
+**응답 data — `images[]`**
+
+| 필드           | 타입     | 설명                    |
+| -------------- | -------- | ----------------------- |
+| `imgId`        | `number` | 이미지 ID               |
+| `originalName` | `string` | 원본 파일명             |
+| `imageUrl`     | `string` | 저장소 이미지 URL       |
+| `caption`      | `string` | 캡션 (없으면 빈 문자열) |
+| `deletedAt`    | `string` | 삭제 일시               |
+
+> ⚠️ 107번(활성 목록)과 달리 **`imgBlockId` 가 없다** — 어느 블록에서 지워졌는지 알 수 없어, 휴지통 화면은 이미지를 블록으로 묶지 못하고 삭제 시각순 평면 목록으로만 보여준다.
+
+---
+
+## 110. 이미지 복구 (다건)
+
+| 항목          | 내용                                                |
+| ------------- | --------------------------------------------------- |
+| **Method**    | `PATCH`                                             |
+| **Path**      | `/api/v1/blocks/images/items/restore`               |
+| **인증 필요** | ✅ (편집 권한 — **각 이미지가 속한 스텝별로** 확인) |
+| **사용 위치** | `features/block/api.ts` → `restoreImages()`         |
+
+**요청 body**
+
+| 필드     | 타입       | 필수 | 설명             |
+| -------- | ---------- | ---- | ---------------- |
+| `imgIds` | `number[]` | ✅   | 복구할 이미지 ID |
+
+**응답 data — `images[]`**
+
+| 필드           | 타입     | 설명                           |
+| -------------- | -------- | ------------------------------ |
+| `imgBlockId`   | `number` | 복구된 블록                    |
+| `imgId`        | `number` | 복구된 이미지                  |
+| `originalName` | `string` | 원본 파일명                    |
+| `orderIndex`   | `number` | **복구 후** 순서 (뒤에 붙는다) |
+
+> ℹ️ 권한을 스텝별로 보므로, 여러 스텝의 이미지를 한 번에 보내면 일부만 복구될 수 있다 — 화면은 **응답의 `images[]` 를 기준으로** 목록에서 지운다 (보낸 목록 기준으로 지우면 안 된다).
+
+---
+
+## 111. 이미지 영구 삭제 (다건)
+
+| 항목          | 내용                                                  |
+| ------------- | ----------------------------------------------------- |
+| **Method**    | `DELETE` (⚠️ **본문 있음**)                           |
+| **Path**      | `/api/v1/blocks/images/items/hard`                    |
+| **인증 필요** | ✅ (편집 권한)                                        |
+| **사용 위치** | `features/block/api.ts` → `permanentlyDeleteImages()` |
+
+**요청 body**
+
+| 필드     | 타입       | 필수 | 설명                                    |
+| -------- | ---------- | ---- | --------------------------------------- |
+| `imgIds` | `number[]` | ✅   | 영구 삭제할 이미지 (휴지통에 있는 것만) |
+
+**응답 data** — `null`
+
+> ⚠️ **되돌릴 수 없다.** 확인 문자가 없어(문서 104번과 다름) 화면 확인 모달이 유일한 방어선이다.
+> ⚠️ 응답이 `null` 이라 **몇 건이 지워졌는지 알 수 없다** — 화면은 보낸 목록을 지우고 곧바로 휴지통을 재조회한다.
+
+---
+
+## 스테이지 · 스텝 도메인 — 공통
+
+`GET` 두 건(7 · 8번)만 있던 영역에 **쓰기 9종(112~120)** 이 붙었다. 공통 규칙만 여기 모은다.
+
+### 낙관적 락 (2026-08-11 신설)
+
+| API                       | `version` | `overwrite` | 409           |
+| ------------------------- | --------- | ----------- | ------------- |
+| 113 스테이지 수정         | ✅ 필수   | ✅ 있음     | 덮어쓰기 가능 |
+| 116 스텝 수정             | ✅ 필수   | ✅ 있음     | 덮어쓰기 가능 |
+| 119 스테이지 순서 변경    | ✅ 항목별 | ❌ **없음** | **전체 롤백** |
+| 120 스텝 순서 변경        | ✅ 항목별 | ❌ **없음** | **전체 롤백** |
+| 114 · 117 삭제 · 118 완료 | ❌        | ❌          | 없음 (멱등)   |
+
+> ❗ **`version` 이 조회 응답(7 · 8번)에 아직 명시돼 있지 않다.** 수정 · 순서 변경은 이 값이 없으면 400 이다.
+> 프론트는 `ProjectStage.version?` · `ProjectStep.version?` **선택 필드**로 받고, 값이 없으면 저장 버튼을 막고 재조회를 안내한다. 백엔드 확인 후 `?` 를 뗀다.
+>
+> ⚠️ 수정 응답의 `version` 은 **저장 후의 새 값**이다. 화면 상태를 갈아끼우지 않으면 다음 저장이 또 409 다.
+> ⚠️ 순서 변경 2종은 **전체 최종 순서**를 보내야 한다. 일부만 보내면 나머지와 `sort_order` 가 겹친다.
+
+### `version` 이 오르는 시점 (2026-08-11 확인)
+
+| 대상 | 오르는 조건                         |
+| ---- | ----------------------------------- |
+| 스텝 | 자신의 `sort_order` · **이름** 변경 |
+
+> ℹ️ 이름만 바뀌어도 오르므로, 화면이 **순서만 보고 상태 교체를 판단하면 안 된다** —
+> 남이 이름을 고친 뒤 내가 순서를 저장하면 옛 `version` 이 실려 409 다.
+> `StageManageModal` 은 그래서 초안 교체 지문에 `version` 을 포함한다(`syncPrint`).
+>
+> ⛔ 순서 변경 2종은 `overwrite` 가 없다. **409 를 받으면 재조회 말고는 출구가 없으므로**,
+> 실패한 화면은 재조회 전까지 저장을 막아야 한다 (안 막으면 같은 요청이 영원히 409).
+
+### 위치 · 순서의 단일 경로
+
+- 스텝의 **소속 스테이지 · 정렬 순서**는 `120` 만 바꾼다. 스텝 수정(`116`)은 `stageId` 를 **받지 않는다** (2026-08-09 · `47a3866`).
+- 스테이지 정렬 순서는 `119` 만 바꾼다. 스테이지 수정(`113`)은 이름만 바꾼다.
+
+### 하위 정리 규칙
+
+| 삭제 대상 | 하위 스텝 · 블록                                | 하위 이슈            |
+| --------- | ----------------------------------------------- | -------------------- |
+| 스테이지  | **함께 삭제되지 않는다** — `moveToStageId` 필수 | —                    |
+| 스텝      | 블록은 `moveBlockIds` 로 고른 것만 살아남는다   | **무조건 함께 삭제** |
+
+🏢 **회사 격리** (2026-08-11) — 다른 회사의 프로젝트 · 스테이지 · 스텝은 403 이 아니라 **404** 다.
+
+---
+
+## 112. 스테이지 생성
+
+| 항목          | 내용                                        |
+| ------------- | ------------------------------------------- |
+| **Method**    | `POST`                                      |
+| **Path**      | `/api/v1/projects/{projectId}/stages`       |
+| **인증 필요** | ✅ (프로젝트 EDITOR)                        |
+| **사용 위치** | `features/project/api.ts` → `createStage()` |
+
+**요청 body**
+
+| 필드        | 타입     | 필수 | 설명                               |
+| ----------- | -------- | ---- | ---------------------------------- |
+| `name`      | `string` | ✅   | 스테이지명 (최대 100자)            |
+| `sortOrder` | `number` | —    | 미지정 시 `max+1` (화면은 안 보냄) |
+
+**응답 data (201)** — `stageId` · `projectId` · `name` · `sortOrder`
+
+---
+
+## 113. 스테이지 수정
+
+| 항목          | 내용                                        |
+| ------------- | ------------------------------------------- |
+| **Method**    | `PATCH`                                     |
+| **Path**      | `/api/v1/stages/{stageId}`                  |
+| **인증 필요** | ✅ (프로젝트 EDITOR)                        |
+| **사용 위치** | `features/project/api.ts` → `updateStage()` |
+
+**요청 body**
+
+| 필드        | 타입      | 필수 | 설명                               |
+| ----------- | --------- | ---- | ---------------------------------- |
+| `name`      | `string`  | ✅   | 스테이지명 (최대 100자)            |
+| `version`   | `number`  | ✅   | 목록에서 받은 값. 누락하면 400     |
+| `overwrite` | `boolean` | —    | `true` 면 충돌을 무시하고 덮어쓴다 |
+
+**응답 data** — `stageId` · `name` · `sortOrder` · `version`(**저장 후 새 값**)
+
+> ⚠️ 409 `STAGE_VERSION_CONFLICT` — 화면은 조용히 삼키지 말고 **재조회 / 덮어쓰기**를 묻는다.
+> ⛔ 순서는 이 API 로 못 바꾼다 — 119번 소관.
+
+---
+
+## 114. 스테이지 삭제
+
+| 항목          | 내용                                        |
+| ------------- | ------------------------------------------- |
+| **Method**    | `DELETE`                                    |
+| **Path**      | `/api/v1/stages/{stageId}`                  |
+| **인증 필요** | ✅ (프로젝트 EDITOR)                        |
+| **사용 위치** | `features/project/api.ts` → `deleteStage()` |
+
+**쿼리 파라미터**
+
+| 필드            | 타입     | 필수 | 설명                                    |
+| --------------- | -------- | ---- | --------------------------------------- |
+| `moveToStageId` | `number` | ✅   | 하위 스텝을 옮길 스테이지. `0` = 미소속 |
+
+**응답 data** — `deletedStageId` · `movedStepCount` · `moveToStageId`(`null` 이면 미소속)
+
+| 코드 | code                         | 설명                             |
+| ---- | ---------------------------- | -------------------------------- |
+| 400  | `STAGE_MOVE_TARGET_REQUIRED` | 이전 대상 미지정                 |
+| 400  | `STAGE_MOVE_TARGET_INVALID`  | 다른 프로젝트이거나 자기 자신    |
+| 403  | `PROJECT_EDIT_DENIED`        | 프로젝트 편집 권한 없음          |
+| 404  | `STAGE_NOT_FOUND`            | 없음 · **다른 회사 것도 여기로** |
+
+> ⛔ **스텝이 함께 삭제되지 않는다** (STG-003). 이전된 스텝의 **권한은 그대로 유지**된다.
+> ⛔ 낙관적 락 대상이 아니다 — 두 번 눌러도 결과가 같다.
+
+---
+
+## 115. 스텝 생성
+
+| 항목          | 내용                                       |
+| ------------- | ------------------------------------------ |
+| **Method**    | `POST`                                     |
+| **Path**      | `/api/v1/projects/{projectId}/steps`       |
+| **인증 필요** | ✅ (프로젝트 EDITOR)                       |
+| **사용 위치** | `features/project/api.ts` → `createStep()` |
+
+**요청 body**
+
+| 필드          | 타입     | 필수 | 설명                             |
+| ------------- | -------- | ---- | -------------------------------- |
+| `name`        | `string` | ✅   | 스텝명 (**최대 200자**)          |
+| `stageId`     | `number` | —    | 미지정 시 미소속(`null`)         |
+| `startedOn`   | `string` | —    | `YYYY-MM-DD`                     |
+| `endedOn`     | `string` | —    | `YYYY-MM-DD`                     |
+| `ownerUserId` | `string` | —    | 책임자 **사번**. 작업자가 아니다 |
+
+**응답 data (201)** — `stepId` · `projectId` · `stageId` · `name` · `status`(`NOT_STARTED`) · `sortOrder` · `startedOn` · `endedOn` · `owner` · `createdAt`
+
+> ⛔ 템플릿 적용 · `stepType` 파라미터는 없다 (송부 스텝 폐기 · 2026-08-03).
+
+---
+
+## 116. 스텝 수정
+
+| 항목          | 내용                                       |
+| ------------- | ------------------------------------------ |
+| **Method**    | `PATCH`                                    |
+| **Path**      | `/api/v1/steps/{stepId}`                   |
+| **인증 필요** | ✅ (**스텝** EDITOR — 프로젝트가 아니다)   |
+| **사용 위치** | `features/project/api.ts` → `updateStep()` |
+
+**요청 body**
+
+| 필드          | 타입      | 필수 | 설명                              |
+| ------------- | --------- | ---- | --------------------------------- |
+| `name`        | `string`  | ✅   | 최대 200자. 빈 문자열 · 공백 불가 |
+| `startedOn`   | `string`  | —    | `YYYY-MM-DD`                      |
+| `endedOn`     | `string`  | —    | `YYYY-MM-DD`                      |
+| `ownerUserId` | `string`  | —    | **생략하면 책임자가 해제된다**    |
+| `version`     | `number`  | ✅   | 누락하면 400                      |
+| `overwrite`   | `boolean` | —    | `true` 면 덮어쓴다                |
+
+**응답 data** — `stepId` · `name` · `stageId`(**현재값 에코**) · `startedOn` · `endedOn` · `owner`(`owner.deleted` 포함) · `updatedAt` · `version`
+
+> ⚠️ **전체 덮어쓰기다. 생략한 필드는 유지가 아니라 해제.** 화면은 폼 전체를 매번 보낸다.
+> ⛔ `stageId` · `stepType` 은 받지 않는다 — 보내도 무시된다.
+> 권한을 **스텝 기준**으로 본다 — 오버라이드로 이 스텝만 편집 가능한 사람이 있다.
+
+---
+
+## 117. 스텝 삭제
+
+| 항목          | 내용                                       |
+| ------------- | ------------------------------------------ |
+| **Method**    | `DELETE`                                   |
+| **Path**      | `/api/v1/steps/{stepId}`                   |
+| **인증 필요** | ✅ (프로젝트 EDITOR)                       |
+| **사용 위치** | `features/project/api.ts` → `deleteStep()` |
+
+**쿼리 파라미터**
+
+| 필드           | 타입       | 필수 | 설명                                     |
+| -------------- | ---------- | ---- | ---------------------------------------- |
+| `moveBlockIds` | `number[]` | —    | 살려서 옮길 블록. 생략하면 **전부 삭제** |
+| `moveToStepId` | `number`   | △    | `moveBlockIds` 가 있으면 **필수**        |
+
+**응답 data** — `deletedStepId` · `movedBlockCount` · `deletedBlockCount` · `deletedIssueCount`
+
+| 코드 | code                         | 설명                                      |
+| ---- | ---------------------------- | ----------------------------------------- |
+| 400  | `BLOCK_MOVE_TARGET_REQUIRED` | `moveBlockIds` 만 있고 대상이 없음        |
+| 400  | `BLOCK_MOVE_TARGET_INVALID`  | 다른 프로젝트이거나 삭제 대상 스텝 자신   |
+| 403  | `STEP_EDIT_DENIED`           | NONE·VIEWER 오버라이드로 하위 정리가 막힘 |
+| 404  | `BLOCK_NOT_FOUND`            | 이 스텝의 블록이 아닌 ID 가 섞임          |
+
+> ⛔ **이슈는 선택지가 없다** — 무조건 함께 삭제된다 (STP-013).
+> ⚠️ 옮긴 블록의 **이슈 연결은 끊긴다** (BLK-014 · INV-06).
+> ⛔ 삭제 잠금은 폐기됐다 (2026-08-09) — 잠금 블록 409 는 더 이상 없다.
+> ⚠️ 재무 연결 해제(BLK-013)는 미구현 — 입금 · 계산서가 붙은 블록도 그대로 삭제된다.
+
+---
+
+## 118. 스텝 완료 처리
+
+| 항목          | 내용                                         |
+| ------------- | -------------------------------------------- |
+| **Method**    | `POST`                                       |
+| **Path**      | `/api/v1/steps/{stepId}/complete`            |
+| **인증 필요** | ✅ (스텝 EDITOR)                             |
+| **사용 위치** | `features/project/api.ts` → `completeStep()` |
+
+**요청 body**
+
+| 필드              | 타입     | 필수 | 설명                                     |
+| ----------------- | -------- | ---- | ---------------------------------------- |
+| `openIssueAction` | `string` | ✅   | `KEEP`(그대로 두기) · `CLOSE`(함께 종료) |
+
+**응답 data** — `stepId` · `status`(`DONE`) · `openIssueCount` · `openIssueAction` · `closedIssueCount` · `completedBy`(`deleted` 포함) · `completedAt`
+
+| 코드 | code                         | 설명             |
+| ---- | ---------------------------- | ---------------- |
+| 400  | `OPEN_ISSUE_ACTION_REQUIRED` | 처리 방식 미지정 |
+| 400  | `OPEN_ISSUE_ACTION_INVALID`  | 허용되지 않은 값 |
+
+> **이슈가 미완료여도 완료할 수 있다** (STP-005). `KEEP` 이면 남은 이슈에 `완료된 스텝` 배지가 붙는다.
+> ⚠️ **이미 완료된 스텝은 완료자 · 완료시각을 덮어쓰지 않는다** — 멱등이라 낙관적 락 대상이 아니다.
+> 🗑️ 완료자가 삭제된 사원이어도 이름은 그대로 온다 (D-6) — `completedBy.deleted` 로 구분한다.
+
+---
+
+## 119. 스테이지 순서 변경
+
+| 항목          | 내용                                             |
+| ------------- | ------------------------------------------------ |
+| **Method**    | `PATCH`                                          |
+| **Path**      | `/api/v1/projects/{projectId}/stages/order`      |
+| **인증 필요** | ✅ (프로젝트 EDITOR)                             |
+| **사용 위치** | `features/project/api.ts` → `updateStageOrder()` |
+
+**요청 body**
+
+| 필드                 | 타입       | 필수 | 설명                    |
+| -------------------- | ---------- | ---- | ----------------------- |
+| `orders`             | `object[]` | ✅   | **재정렬 전체 목록**    |
+| `orders[].stageId`   | `number`   | ✅   | 스테이지 ID             |
+| `orders[].sortOrder` | `number`   | ✅   | 새 정렬 순서            |
+| `orders[].version`   | `number`   | ✅   | 조회했을 때의 `version` |
+
+**응답 data** — `stages[]` (`stageId` · `sortOrder` · `version`(**저장 후 새 값**))
+
+> ⚠️ **낙관적 락을 항목마다 검사한다.** 하나라도 어긋나면 **요청 전체가 409 로 롤백**된다 — 부분 적용은 없다.
+> ⚠️ `overwrite` 가 **없다.** 409 면 재조회해서 다시 끄는 수밖에 없다.
+> ⚠️ **전체 최종 순서**를 보낸다. 일부만 보내면 보내지 않은 스테이지와 `sort_order` 가 겹친다.
+> `sort_order` 만 갱신한다 — **하위 스텝은 건드리지 않는다** (STG-002).
+
+---
+
+## 120. 스텝 순서 변경
+
+| 항목          | 내용                                            |
+| ------------- | ----------------------------------------------- |
+| **Method**    | `PATCH`                                         |
+| **Path**      | `/api/v1/projects/{projectId}/steps/order`      |
+| **인증 필요** | ✅ (프로젝트 EDITOR)                            |
+| **사용 위치** | `features/project/api.ts` → `updateStepOrder()` |
+
+**요청 body**
+
+| 필드                 | 타입             | 필수 | 설명                                    |
+| -------------------- | ---------------- | ---- | --------------------------------------- |
+| `orders`             | `object[]`       | ✅   | **보드 전체의 최종 배치**               |
+| `orders[].stepId`    | `number`         | ✅   | 스텝 ID                                 |
+| `orders[].stageId`   | `number \| null` | ✅   | 이동할 스테이지. **미소속은 `null`**    |
+| `orders[].sortOrder` | `number`         | ✅   | 새 정렬 순서 — **프로젝트 단위 통번호** |
+| `orders[].version`   | `number`         | ✅   | 조회했을 때의 `version`                 |
+
+**응답 data** — `steps[]` (`stepId` · `stageId` · `sortOrder` · `version`(**저장 후 새 값**))
+
+> ⚠️ **위치를 바꾸는 유일한 경로다** — 스텝 수정(116)은 `stageId` 를 받지 않는다.
+> ⚠️ 항목별 낙관적 락 · 전체 롤백 · `overwrite` 없음 — 119번과 같다.
+> ⚠️ **선행 스텝 완료를 검사하지 않는다** (STP-002).
+
+**2026-08-11 백엔드 확인 3건** — 셋 다 빌드·타입체크에 안 걸리고 런타임 400/409 로만 드러난다.
+
+| 항목                | 확답                                                                             |
+| ------------------- | -------------------------------------------------------------------------------- |
+| `sortOrder` 범위    | **프로젝트 단위 통번호.** 스테이지마다 1부터 다시 세지 않는다                    |
+| 미소속 표현         | **`stageId: null`.** 스테이지 삭제(114)의 `moveToStageId=0` 과 **규약이 다르다** |
+| 스텝 `version` 증가 | **`sort_order` 와 이름이 바뀔 때** 오른다                                        |
+
+> ❗ **`sortOrder` 가 프로젝트 통번호라 스테이지 순서만 바꿔도 스텝 번호가 전부 밀린다.**
+> 119번만 부르면 스텝 `sort_order` 가 옛 배열에 남아 다음 조회에서 순서가 어긋난다 —
+> **단계를 끌었으면 120번도 함께 보내야 한다.** (`StageManageModal.toStepPlan`)
+>
+> ℹ️ 반대로 119번은 스텝을 건드리지 않으므로(`version` 은 스텝 자신의 `sort_order`·이름이 바뀔 때만 오른다)
+> 119 → 120 을 잇달아 보내도 뒤엣것이 옛 `version` 으로 헛돌지 않는다.
+
+---
+
+## 121. 블록 스텝 이동
+
+| 항목          | 내용                                          |
+| ------------- | --------------------------------------------- |
+| **Method**    | `PATCH`                                       |
+| **Path**      | `/api/v1/blocks/{blockId}/step`               |
+| **인증 필요** | ✅ (**출발 · 도착 양쪽 스텝의 EDITOR**)       |
+| **사용 위치** | `features/block/api.ts` → `moveBlockToStep()` |
+
+**요청 body**
+
+| 필드        | 타입      | 필수 | 설명                               |
+| ----------- | --------- | ---- | ---------------------------------- |
+| `stepId`    | `number`  | ✅   | 같은 프로젝트의 **다른** 스텝      |
+| `version`   | `number`  | ✅   | 조회에서 받은 값. 누락하면 400     |
+| `overwrite` | `boolean` | —    | `true` 면 충돌을 무시하고 덮어쓴다 |
+
+**응답 data** — `blockId` · `stepId` · `unlinkedIssueCount` · `version`(**저장 후 새 값**)
+
+> ⚠️ **옮기면 이슈 연결이 끊긴다** (BLK-014 · INV-06) — 블록과 이슈는 같은 스텝이어야 한다.
+> `unlinkedIssueCount` 가 **0 이 아니면 사용자에게 알려야 한다** (이슈 자체는 지워지지 않는다).
+> ⚠️ 도착 스텝에 편집 권한이 없으면 403 `STEP_EDIT_DENIED` — 화면은 선택지 자체를 막는다.
+> ℹ️ 배치 편집(드래그)은 **같은 스텝 안에서만** 자리를 바꾼다. 스텝을 넘는 이동은 드롭 대상이
+> 화면에 없어 끌어서 할 수 없으므로 `⋯` 메뉴의 `스텝 이동` 으로 목적지를 고른다.
+
+---
+
 ## 입찰 도메인 — 공통
 
 수집된 입찰 공고를 조회하고 프로젝트로 전환하는 도메인. 사이드바 `BIDDING`(`/notices`) 화면이다.
@@ -3424,8 +4100,8 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 | 메서드  | 경로                                                | 문서                                                                             |
 | ------- | --------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `GET`   | `/bidding/notices`                                  | [103](#103-입찰-공고-목록-조회)                                                  |
-| `GET`   | `/bidding/notices/{noticeId}`                       | [104](#104-입찰-공고-상세-조회)                                                  |
+| `GET`   | `/bidding/notices`                                  | [122](#122-입찰-공고-목록-조회)                                                  |
+| `GET`   | `/bidding/notices/{noticeId}`                       | [123](#123-입찰-공고-상세-조회)                                                  |
 | `POST`  | `/bidding/notices`                                  | 공고 직접 등록 (미연동)                                                          |
 | `PATCH` | `/bidding/notices/{noticeId}`                       | 직접 등록 공고 수정 — 수집 공고는 `409 BIDDING_NOTICE_EDIT_NOT_ALLOWED` (미연동) |
 | `GET`   | `/bidding/collection-conditions`                    | 아래 `수집 조건`                                                                 |
@@ -3617,7 +4293,7 @@ GET  /bidding/collection-runs/{runId}          ← COMPLETED | FAILED 까지 폴
 
 ---
 
-## 103. 입찰 공고 목록 조회
+## 122. 입찰 공고 목록 조회
 
 | 항목          | 내용                                       |
 | ------------- | ------------------------------------------ |
@@ -3683,7 +4359,7 @@ GET  /bidding/collection-runs/{runId}          ← COMPLETED | FAILED 까지 폴
 
 ---
 
-## 104. 입찰 공고 상세 조회
+## 123. 입찰 공고 상세 조회
 
 | 항목          | 내용                                            |
 | ------------- | ----------------------------------------------- |

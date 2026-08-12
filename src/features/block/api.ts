@@ -2,14 +2,19 @@ import { ENDPOINTS } from '@/constants/endpoints';
 import { api, postForm, requestRaw } from '@/lib/api';
 
 import type {
-  BlockLayout,
+  BlockLayoutOrder,
   CreateBlockRequest,
   CreateChecklistItemResponse,
   CreateImageItemsResponse,
   DeleteChecklistItemResponse,
   ImageItemResponse,
   ImageItemsResponse,
+  MoveBlockRequest,
+  MoveBlockResponse,
+  ProjectImage,
+  RestoredImage,
   StepBlock,
+  TrashImage,
   UpdateBlockLayoutResponse,
   UpdateBlockRequest,
   UpdateBlockResponse,
@@ -59,14 +64,35 @@ export function deleteBlock(blockId: number | string, signal?: AbortSignal) {
 }
 
 /**
+ * 블록을 다른 스텝으로 옮긴다 (2026-08-11 신설).
+ *
+ * ⚠️ 낙관적 락 — 409 면 재조회 · 덮어쓰기(`overwrite: true`)를 사용자에게 묻는다.
+ * ⚠️ 출발 · 도착 **양쪽 EDITOR** 여야 한다 (`STEP_EDIT_DENIED`).
+ * ⚠️ 옮기면 **이슈 연결이 끊긴다** — 응답 `unlinkedIssueCount` 를 화면이 알려야 한다.
+ */
+export function moveBlockToStep(
+  blockId: number | string,
+  body: MoveBlockRequest,
+  signal?: AbortSignal,
+) {
+  return api.patch<MoveBlockResponse>(
+    ENDPOINTS.blocks.step(blockId),
+    body,
+    signal,
+  );
+}
+
+/**
  * 블록 배치 변경 — 스텝 EDITOR 권한이 필요하다.
  *
  * ⚠️ 옮긴 블록만이 아니라 **스텝의 배치 전체**를 보낸다.
  * 중간 상태의 중복 좌표를 서버가 허용하므로(BLK-004) 드래그 한 번에 한 번만 부른다.
+ * ⚠️ 낙관적 락을 **항목마다** 검사한다 — 하나라도 어긋나면 요청 전체가 409 로 롤백된다.
+ * ⛔ `overwrite` 가 없다 — 409 면 재조회뿐이다.
  */
 export function updateBlockLayout(
   stepId: number | string,
-  layouts: BlockLayout[],
+  layouts: BlockLayoutOrder[],
   signal?: AbortSignal,
 ) {
   return api
@@ -165,6 +191,70 @@ export function getImageItems(
 ) {
   return api.get<ImageItemsResponse>(
     ENDPOINTS.blocks.imageItems(imgBlockId),
+    signal,
+  );
+}
+
+/**
+ * 프로젝트 전체 이미지 모아보기. (명세 107번)
+ *
+ * ⚠️ 블록 목록(71번)과 달리 **열람 권한이면 볼 수 있고**, 대신 `orderIndex` 가 없다 —
+ *    블록 안에서 몇 번째 장인지는 알 수 없어 화면도 순서를 표기하지 않는다.
+ */
+export function getProjectImages(
+  projectId: number | string,
+  signal?: AbortSignal,
+) {
+  return api
+    .get<{ images: ProjectImage[] }>(
+      ENDPOINTS.projects.images(projectId),
+      signal,
+    )
+    .then((data) => data.images);
+}
+
+/** 이미지 휴지통. 삭제 시각 내림차순 평면 목록이다 (명세 109번) */
+export function getProjectTrashImages(
+  projectId: number | string,
+  signal?: AbortSignal,
+) {
+  return api
+    .get<{ images: TrashImage[] }>(
+      ENDPOINTS.projects.imagesTrash(projectId),
+      signal,
+    )
+    .then((data) => data.images);
+}
+
+/**
+ * 이미지 복구 — **다건**. (명세 110번)
+ *
+ * ⚠️ 권한을 이미지가 속한 **스텝별로** 확인하므로 보낸 것이 다 돌아오지 않을 수 있다.
+ *    호출 측은 응답 `images[]` 에 담겨 온 것만 목록에서 지워야 한다.
+ * ⚠️ 복구된 이미지는 원래 자리가 아니라 블록 **맨 뒤**에 붙는다 (`orderIndex` 재부여).
+ */
+export function restoreImages(imgIds: number[], signal?: AbortSignal) {
+  return api
+    .patch<{
+      images: RestoredImage[];
+    }>(ENDPOINTS.blocks.imageItemsRestore, { imgIds }, signal)
+    .then((data) => data.images);
+}
+
+/**
+ * 이미지 영구 삭제 — **다건 · 되돌릴 수 없다.** (명세 111번)
+ *
+ * ⚠️ 파일 영구 삭제(104번)와 달리 **확인 문자가 없다** — 화면 확인 모달이 유일한 방어선이다.
+ * ⚠️ 응답이 `null` 이라 몇 건이 지워졌는지 알 수 없다. 호출 후 휴지통을 다시 읽는다.
+ * ⚠️ 본문 있는 `DELETE` 라 프록시가 본문을 버리면 실패한다 (`.ai/API.md` 이미지 공통 절).
+ */
+export function permanentlyDeleteImages(
+  imgIds: number[],
+  signal?: AbortSignal,
+) {
+  return api.deleteWithBody<null>(
+    ENDPOINTS.blocks.imageItemsHardDelete,
+    { imgIds },
     signal,
   );
 }

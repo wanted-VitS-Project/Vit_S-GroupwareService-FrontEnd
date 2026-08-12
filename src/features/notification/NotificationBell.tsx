@@ -210,7 +210,7 @@ export default function NotificationBell({
         <BellIcon />
 
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex min-w-4 items-center justify-center rounded-full bg-red-text px-1 text-[9px] font-bold text-white">
+          <span className="absolute -top-0.5 -right-0.5 flex min-w-4 items-center justify-center rounded-pill bg-red-text px-1 text-[9px] font-bold text-text-white">
             {unreadCount > BADGE_MAX ? `${BADGE_MAX}+` : unreadCount}
           </span>
         )}
@@ -220,15 +220,17 @@ export default function NotificationBell({
         <div
           role="dialog"
           aria-label="알림"
-          className="absolute top-full right-0 z-20 mt-2 w-95 overflow-hidden rounded-xl border border-border-default bg-white shadow-lg"
+          className="absolute top-full right-0 z-20 mt-2 w-95 overflow-hidden rounded-base border border-border-default bg-bg-card shadow-lg"
         >
           <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-sm font-bold text-text-primary">알림</span>
+            <span className="text-body-m font-bold text-text-primary">
+              알림
+            </span>
             <button
               type="button"
               onClick={readAll}
               disabled={isBusy || unreadCount === 0}
-              className="cursor-pointer text-xs text-text-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:text-text-muted"
+              className="cursor-pointer text-label text-text-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:text-text-muted"
             >
               모두 읽음
             </button>
@@ -237,20 +239,20 @@ export default function NotificationBell({
           {error !== '' && (
             <p
               role="alert"
-              className="px-4 pb-3 text-xs break-keep text-text-danger"
+              className="px-4 pb-3 text-label break-keep text-text-danger"
             >
               {error}
             </p>
           )}
 
           {items === null && (
-            <p className="px-4 pb-4 text-xs text-text-secondary">
+            <p className="px-4 pb-4 text-label text-text-secondary">
               불러오는 중…
             </p>
           )}
 
           {items?.length === 0 && error === '' && (
-            <p className="px-4 pb-4 text-xs text-text-secondary">
+            <p className="px-4 pb-4 text-label text-text-secondary">
               알림이 없습니다.
             </p>
           )}
@@ -272,7 +274,7 @@ export default function NotificationBell({
           <Link
             href={NOTIFICATION_ROUTES.list}
             onClick={() => setIsOpen(false)}
-            className="block border-t border-border-default py-3 text-center text-xs font-semibold text-text-primary-blue hover:bg-bg-surface"
+            className="block border-t border-border-default py-3 text-center text-label font-semibold text-text-primary-blue hover:bg-bg-surface"
           >
             알림 전체 보기
           </Link>

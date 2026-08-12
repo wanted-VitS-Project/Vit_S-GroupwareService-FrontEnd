@@ -43,7 +43,7 @@ export function EmployeeTableSkeleton({ rows = 10 }: { rows?: number }) {
       label: '권한',
       headerClassName: 'w-24 px-4 py-3 font-medium',
       cellClassName: 'px-4 py-3.5',
-      render: () => <Skeleton className="h-5 w-12 rounded-full" />,
+      render: () => <Skeleton className="h-5 w-12 rounded-pill" />,
     },
     {
       label: '이메일',
@@ -55,7 +55,7 @@ export function EmployeeTableSkeleton({ rows = 10 }: { rows?: number }) {
       label: '상태',
       headerClassName: 'w-24 px-4 py-3 font-medium',
       cellClassName: 'px-4 py-3.5',
-      render: () => <Skeleton className="h-5 w-12 rounded-full" />,
+      render: () => <Skeleton className="h-5 w-12 rounded-pill" />,
     },
     {
       label: '관리',
@@ -167,11 +167,11 @@ export function CategoryTableSkeleton() {
 export function EmployeeDetailSkeleton() {
   return (
     <SkeletonGroup label="사원 정보를 불러오는 중입니다" className="mt-6">
-      <div className="mb-4 flex items-center justify-between rounded-xl border border-border-default bg-white p-5">
+      <div className="mb-4 flex items-center justify-between rounded-base border border-border-default bg-bg-card p-5">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <Skeleton className="h-5 w-24" />
-            <Skeleton className="h-5 w-12 rounded-full" />
+            <Skeleton className="h-5 w-12 rounded-pill" />
           </div>
           <Skeleton className="h-3 w-40" />
         </div>
@@ -181,7 +181,7 @@ export function EmployeeDetailSkeleton() {
         {[0, 1].map((card) => (
           <div
             key={card}
-            className="rounded-xl border border-border-default bg-white p-5"
+            className="rounded-base border border-border-default bg-bg-card p-5"
           >
             <Skeleton className="mb-4 h-4 w-24" />
             <div className="flex flex-col gap-4">
@@ -195,9 +195,9 @@ export function EmployeeDetailSkeleton() {
           </div>
         ))}
       </div>
-      <div className="mt-4 flex gap-2 rounded-xl border border-border-default bg-white p-5">
-        <Skeleton className="h-6 w-20 rounded-full" />
-        <Skeleton className="h-6 w-28 rounded-full" />
+      <div className="mt-4 flex gap-2 rounded-base border border-border-default bg-bg-card p-5">
+        <Skeleton className="h-6 w-20 rounded-pill" />
+        <Skeleton className="h-6 w-28 rounded-pill" />
       </div>
     </SkeletonGroup>
   );
@@ -208,7 +208,7 @@ export function EmployeeFormSkeleton() {
     <SkeletonGroup label="사원 정보를 불러오는 중입니다" className="mt-6">
       <Skeleton className="mb-2 h-5 w-24" />
       <Skeleton className="mb-6 h-3 w-72" />
-      <div className="grid grid-cols-2 gap-x-5 gap-y-4 rounded-xl border border-border-default bg-white p-5">
+      <div className="grid grid-cols-2 gap-x-5 gap-y-4 rounded-base border border-border-default bg-bg-card p-5">
         {Array.from({ length: 8 }, (_, field) => (
           <SkeletonField key={field} />
         ))}
@@ -241,12 +241,12 @@ export function PagePermissionTableSkeleton() {
         {
           label: '전역 권한',
           headerClassName: 'w-28 px-5 py-3 font-medium',
-          render: () => <Skeleton className="h-5 w-14 rounded-full" />,
+          render: () => <Skeleton className="h-5 w-14 rounded-pill" />,
         },
         {
           label: '등급',
           headerClassName: 'w-24 px-5 py-3 font-medium',
-          render: () => <Skeleton className="h-5 w-12 rounded-full" />,
+          render: () => <Skeleton className="h-5 w-12 rounded-pill" />,
         },
         {
           label: '권한 출처',

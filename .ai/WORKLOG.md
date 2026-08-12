@@ -116,6 +116,400 @@
 
 ---
 
+## [2026-08-11] 프로젝트 카드 결재 뱃지 필드명 정정 ✅
+
+브랜치: `user/project` · 이슈: 확인 필요 · 근거: BE 전달본 §02 「지금 호출하면 실패하는 3건」 3번
+
+### 변경 파일
+
+| 파일                                   | 변경                                                       |
+| -------------------------------------- | ---------------------------------------------------------- |
+| `src/features/project/types.ts`        | 수정 (`myApprovalOpenCount` → `myApprovalInProgressCount`) |
+| `src/features/project/ProjectCard.tsx` | 수정 (사용처 1곳)                                          |
+| `.ai/API.md`                           | 수정 (84번 스키마 · 주의 문구)                             |
+
+### 주요 작업 내용
+
+- 프로젝트 목록(84번) 응답의 결재 건수 필드명을 서버 계약에 맞춰 정정 — **카드의 `내 결재` 숫자가 다시 뜬다**
+
+### 트러블슈팅
+
+| 문제                                     | 원인                                                                                           | 해결                               |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------- |
+| 카드에 `내 결재  건` — **숫자만 사라짐** | 필드명이 서버와 달라 `undefined`. React 는 `undefined` 를 안 그리고, `count > 0` 도 항상 false | 필드명 정정 (3곳)                  |
+| 타입체크 · 빌드가 못 잡음                | `lib/api.ts` 가 응답을 `as T` 로 **단언**한다 — 런타임 검증이 없어 없는 필드도 있다고 믿는다   | 문서에 "타입체크로 안 잡힌다" 명시 |
+
+### 부수 결정
+
+- **새 이름이 뜻을 더 헷갈리게 한다** — `myApprovalInProgressCount` 인데 실제로는 `IN_PROGRESS` + **`REJECTED`** 합계다. 기존 주의 문구를 지우지 않고 "이름과 달리 `REJECTED` 도 포함" 을 한 줄 더 붙였다
+- 화면 라벨(`내 결재`)은 그대로 — 값의 뜻은 바뀌지 않았다
+
+### ⚠️ 남은 것
+
+BE 전달본 §02 3건이 **모두 해소**됐다. 다만 **실서버 검증은 아직**이다 —
+조회 응답에 `version` 이 실제로 실리는지, 이 필드명이 맞는지는 DevTools 로 직접 확인해야 한다 (둘 다 빌드로는 안 잡힌다).
+
+---
+
+## [2026-08-11] 블록 배치 저장 · 수정 낙관적 락 배관 ✅
+
+브랜치: `user/project` · 이슈: 확인 필요 · 근거: BE 전달본 §02 「지금 호출하면 실패하는 3건」
+
+### 변경 파일
+
+| 파일                                    | 변경                                                                               |
+| --------------------------------------- | ---------------------------------------------------------------------------------- |
+| `src/features/block/types.ts`           | 수정 (`BlockLayout.version?` · `BlockLayoutOrder` · `UpdateBlockRequest/Response`) |
+| `src/features/block/blockLayout.ts`     | 수정 (`toLayoutOrders()` 신설)                                                     |
+| `src/features/block/api.ts`             | 수정 (`updateBlockLayout` 시그니처)                                                |
+| `src/features/block/errorCodes.ts`      | 수정 (`versionRequired` · `updateFieldRequired` · `LAYOUT_CONFLICT_MESSAGE`)       |
+| `src/features/block/useLayoutSaver.ts`  | 수정 (버전 조립 · 409 재조회)                                                      |
+| `src/features/block/BlockBoard.tsx`     | 수정 (`patch` 가 `version` 교체)                                                   |
+| `src/features/block/BlockEditModal.tsx` | 수정 (`version` · `overwrite` · 409 확인 모달 · 저장 차단)                         |
+
+### 주요 작업 내용
+
+- **배치 저장**(`PATCH /steps/{id}/blocks/layout`) — 블록마다 자기 `version` 을 실어 보낸다
+- **제목·담당자 수정**(`PATCH /blocks/{id}`) — `version` 필수 · 409 시 `덮어쓰기 / 다시 불러오기`
+- 저장 응답의 새 `version` 을 화면 상태에 **반드시 꽂는다** (배치는 `applyLayouts`, 수정은 `patch`)
+
+### 트러블슈팅
+
+| 문제                                    | 원인                                                                                                   | 해결                                                                         |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| 배치 409 는 다시 보내도 **영원히 실패** | 이 API 에는 `overwrite` 가 없다. 되돌리기만 하면 화면이 든 `version` 은 그대로 옛 값이다               | 409 면 되돌린 뒤 `notifyBlockChanged()` 로 **목록을 다시 읽게** 한다         |
+| 수정 후 배치 저장이 409 날 뻔           | 수정 응답의 새 `version` 을 `patch()` 가 안 꽂고 있었다. 배치는 블록의 `version` 을 그대로 실어 보낸다 | `patch()` 에 `version: updated.version` 추가                                 |
+| `version` 없는 요청이 나갈 수 있었음    | 위치만 만드는 `toLayouts()` 로 요청까지 조립하고 있었다                                                | 요청 전용 `toLayoutOrders()` 분리 — 하나라도 없으면 `null` 을 주고 안 보낸다 |
+
+### 부수 결정
+
+- **`BlockLayout`(위치) 과 `BlockLayoutOrder`(요청) 를 타입으로 나눴다** — 지문 비교·좌표 계산에는 `version` 이 필요 없고, 오히려 섞이면 버전 없는 값이 요청에 실린다
+- **배치 지문에는 `version` 을 넣지 않는다** — 위치가 그대로인데 버전만 올랐다고 재저장할 이유가 없다
+- **`version` 이 없으면 배치를 되돌린다** — 저장이 불가능한데 화면만 옮겨진 채로 두면 저장된 줄 안다
+- 수정 모달은 **저장 버튼 자체를 막는다** — 확인 모달까지 거친 뒤 실패하는 흐름을 피한다
+
+---
+
+## [2026-08-11] 블록 — 배치 편집 중에만 핸들 노출 · 스텝 이동 (API 121) ✅
+
+브랜치: `user/project` · 이슈: 확인 필요
+
+### 변경 파일
+
+| 파일                                        | 변경                                                                   |
+| ------------------------------------------- | ---------------------------------------------------------------------- |
+| `src/constants/endpoints.ts`                | 수정 (`blocks.step`)                                                   |
+| `src/features/block/types.ts`               | 수정 (`StepBlock.version?` · `MoveBlockRequest` · `MoveBlockResponse`) |
+| `src/features/block/api.ts`                 | 수정 (`moveBlockToStep`)                                               |
+| `src/features/block/BlockMoveStepModal.tsx` | 생성 (목적지 선택 · 이슈 연결 경고 · 409 확인)                         |
+| `src/features/block/events.ts`              | 생성 (`BLOCK_CHANGED_EVENT` · `notifyBlockChanged`)                    |
+| `src/features/block/BlockCard.tsx`          | 수정 (핸들 조건부 렌더 · `스텝 이동` 메뉴 · 모달 연결)                 |
+| `src/features/block/StepBlocks.tsx`         | 수정 (이벤트 상수 사용)                                                |
+
+### 주요 작업 내용
+
+- **드래그 핸들(점 6개)을 배치 편집 중에만 그린다** — 평소에는 아예 렌더하지 않는다
+- `⋯` 메뉴에 **`스텝 이동`** 추가 → 같은 프로젝트의 다른 스텝을 골라 옮긴다 (API 121)
+- 옮긴 뒤 블록을 보드에서 빼고 토스트로 결과를 알린다. 이슈 연결이 끊기면 건수를 함께 알린다
+
+### 부수 결정
+
+- **핸들은 `invisible` 이 아니라 미렌더** — 흐리게 남겨 두면 "끌 수 있나?" 하고 잡아보게 되는데 아무 일도 일어나지 않는다. 대신 편집 모드를 오갈 때 제목이 핸들 폭만큼 좌우로 밀린다 (배너가 함께 뜨는 전환이라 감수)
+- **권한 없는 스텝도 선택지에 보여주되 `disabled`** — 목록에서 지우면 "왜 저 스텝이 안 보이지" 로 읽힌다. 라벨에 `(편집 권한 없음)` 을 붙인다
+- **이슈 연결 경고는 연결이 있을 때만 빨갛게** — 없는데도 띄우면 다음에 진짜 위험할 때 읽지 않는다
+- **`block:changed` 문자열을 `events.ts` 로 모았다** — 3곳에 흩어져 있었고, 이슈 · 알림 도메인은 이미 같은 모양의 파일을 갖고 있다
+- `StepBlock.version` 은 **선택 필드** — 스테이지 · 스텝과 같은 방침이다. 없으면 이동 저장을 막고 재조회를 안내한다
+
+### ⚠️ 남은 것
+
+블록 도메인의 나머지 `version` 배관(**배치 저장** · **제목/담당자 수정**)은 여전히 미처리다 — 그쪽은 400 이 난다.
+
+---
+
+## [2026-08-11] 단계 관리 모달 행 이동 애니메이션 (중첩 FLIP) ✅
+
+브랜치: `user/project` · 이슈: 확인 필요
+
+### 변경 파일
+
+| 파일                                              | 변경                                                         |
+| ------------------------------------------------- | ------------------------------------------------------------ |
+| `src/lib/useFlipReorder.ts`                       | 수정 (중첩 보정 · 읽기/쓰기 단계 분리 · `matchMedia` 재사용) |
+| `src/features/project/stage/StageManageModal.tsx` | 수정 (`register` 2곳 · `capture()` 3곳)                      |
+
+### 주요 작업 내용
+
+- 단계 · 스텝을 끌어 놓거나 ↑↓ 로 옮길 때 행이 **미끄러지듯 이동**한다 (200ms · `cubic-bezier(0.2,0,0,1)`)
+- `되돌리기` 로 한꺼번에 제자리로 돌아갈 때도 같은 애니메이션을 탄다
+- 공용 훅에 **중첩 목록 지원**을 넣어 `단계 > 스텝` 2단 구조에서도 정확히 움직인다
+
+### 트러블슈팅
+
+| 문제                                       | 원인                                                                                            | 해결                                                                     |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| 단계를 옮기면 안쪽 스텝이 **두 배로 밀림** | 단계 `<li>` 와 스텝 `<li>` 를 모두 등록하면, 스텝이 부모의 `transform` 위에 자기 것을 또 얹는다 | 가장 가까운 **등록된 조상의 이동량을 빼서** 자기 몫만 남긴다             |
+| 행마다 강제 리플로우                       | 취소 → 측정 → 애니메이션을 행 단위로 번갈아 하고 있었다                                         | 취소(쓰기) → 측정(읽기) → 보정(계산) → 애니메이션(쓰기) **4단계로 분리** |
+
+### 부수 결정
+
+- **중첩 보정은 옵션이 아니라 기본 동작**으로 넣었다 — 평평한 목록에서는 등록된 조상이 없어 그냥 지나가므로, 기존 사용처(`ImageEditModal` · `ImageUploadModal`)에 영향이 없다. 옵션 플래그를 두면 다음 사람이 켜는 걸 잊는다
+- **`capture()` 는 드롭 · 버튼 클릭에서만 부른다** — 이 모달은 `dragover` 로 순서를 바꾸지 않아 이슈 보드처럼 잦은 측정이 일어나지 않는다
+- `matchMedia` 를 모듈 수준에서 한 번만 만든다 — 순서를 바꿀 때마다 `MediaQueryList` 를 새로 만들 이유가 없다
+
+---
+
+## [2026-08-11] 순서 변경 로직 점검 — BE 계약 전달본 반영 ✅
+
+브랜치: `user/project` · 이슈: 확인 필요 · 근거: BE 전달본 「프로젝트 · 스테이지 · 스텝 · 블록 + 권한 API 변경」(백엔드 `24636ed`)
+
+### 변경 파일
+
+| 파일                                              | 변경                                                                                   |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `src/features/project/stage/StageManageModal.tsx` | 수정 (`syncPrint` · `isStale` · `toStepPlan`/`planPrint` 신설, `stepArrangement` 제거) |
+| `src/features/project/types.ts`                   | 수정 (`StepOrderItem.stageId` → `number \| null` 필수 · `sortOrder` 통번호 명시)       |
+| `src/features/project/api.ts`                     | 수정 (`updateStepOrder` 주석에 BE 확인 3건 기록)                                       |
+| `.ai/API.md`                                      | 수정 (120번 요청 표 정정 · `version` 증가 시점 표 · 119↔120 동반 호출 경고)            |
+
+### 트러블슈팅
+
+| 문제                                          | 원인                                                                                                                          | 해결                                                                                    |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| 순서 저장이 409 나면 **영영 409 에 갇힘**     | 순서 API 에는 `overwrite` 가 없어 재조회가 유일한 출구인데, 실패 시 재조회 경로가 없었다. `되돌리기` 도 옛 `version` 그대로다 | `isStale` 도입 — 실패하면 드래그·저장을 잠그고 확인 버튼을 `다시 불러오기` 로 교체      |
+| 남이 **이름만 고쳐도** 다음 저장이 409        | 초안 교체를 순서 지문으로만 판단해, 순서가 같고 `version` 만 오른 경우를 놓쳤다                                               | 교체 지문에 `version` 포함(`syncPrint`). 저장 여부(`isDirty`) 판단은 순서만 유지        |
+| 단계 순서만 바꾸면 스텝 번호가 어긋남         | `sortOrder` 를 스테이지마다 1부터 세고 있었다. 실제로는 **프로젝트 단위 통번호**(BE 확인)                                     | `toStepPlan` 이 보드를 위에서 아래로 훑어 1..N 을 매기고, 단계를 끌면 120번도 함께 전송 |
+| 미분류 스텝 이동이 400 날 수 있었음           | 순서 변경의 미소속을 `0` 으로 보냈다. 실제 규약은 `null` (BE 확인)                                                            | `stageId: number \| null` 로 정정. 스테이지 삭제의 `0` 과 상수를 분리                   |
+| 단계는 저장되고 스텝만 실패하는 경우를 미고지 | 두 API 는 각각 전체 롤백이지만 **서로는 원자적이 아니다**                                                                     | `hasSavedStageOrder` 로 추적해 "단계 순서는 저장됐다" 를 문구에 넣음                    |
+
+### 부수 결정
+
+- **미소속 표현이 두 곳에서 다르다** — 순서 변경은 `null`, 스테이지 삭제는 `0`. 상수를 돌려쓰면 헷갈려서 `UNASSIGN_STEPS`(API) 와 `UNASSIGNED_KEY`(화면 내부 맵 열쇠)로 나눴다
+- **보낼 값을 직접 만들어 비교한다** — `sortOrder` 가 통번호라 "스텝을 안 건드렸으니 생략" 같은 어림짐작이 성립하지 않는다. `toStepPlan()` 결과를 baseline 과 문자열로 비교해 전송 여부를 정한다
+
+### ⚠️ 남은 것 (이번 범위 밖)
+
+BE 전달본 §02 「지금 호출하면 실패하는 3건」 중 **블록 도메인 2건이 미처리**다 — 스테이지·스텝 범위가 아니라 손대지 않았다.
+
+| 건                    | 위치                                       | 증상                                                |
+| --------------------- | ------------------------------------------ | --------------------------------------------------- |
+| 블록 배치 저장        | `block/api.ts` · `block/useLayoutSaver.ts` | `version` 없음 → **드래그 저장 400**                |
+| 블록 제목·담당자 수정 | `block/api.ts`                             | `version` 없음 → 400                                |
+| 결재 뱃지 필드명      | `project/types.ts`                         | `myApprovalOpenCount` → `myApprovalInProgressCount` |
+
+---
+
+## [2026-08-11] 디자인 토큰 스윕 — 타이포 · radius · 흰색 · danger hover ✅
+
+브랜치: `user/project` · 이슈: 확인 필요
+
+### 변경 파일
+
+`src/**/*.tsx` **117개** (기계적 치환 · 로직 변경 없음). `src/app/globals.css` 는 건드리지 않았다.
+
+### 주요 작업 내용
+
+| 갈래   | 치환                                                                                                                                                                                                                             | 건수 |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| 타이포 | `text-[10px]`→`text-caption` · `text-xs`/`text-[12px]`→`text-label` · `text-sm`→`text-body-m` · `text-base`→`text-body-l` · `text-lg`→`text-heading-m` · `text-xl`/`text-2xl`→`text-heading-l`/`-xl` · `text-[22px]`→`text-logo` | 604  |
+| radius | `rounded`→`rounded-button-sm` · `rounded-full`/`rounded-l-full`→`rounded-pill` · `rounded-xl`→`rounded-base` · `rounded-md`→`rounded-button-md`                                                                                  | 354  |
+| 흰색   | `bg-white`→`bg-bg-card` · `text-white`→`text-text-white`                                                                                                                                                                         | 181  |
+| hex    | `hover:bg-[#c50009]` · `[#c60009]`→`hover:bg-btn-danger-hover`                                                                                                                                                                   | 9    |
+
+- 삭제 버튼 hover 가 `#c50009` · `#c60009` · `#c10007` **세 값**으로 갈려 있던 것을 토큰 하나로 통일
+- 원시 Tailwind 팔레트(`text-slate-300` 등)는 스캔 결과 **이미 0건**임을 확인 — STATE.md 의 옛 기록을 정정
+
+### 트러블슈팅
+
+| 문제                                            | 원인                                                                  | 해결                                              |
+| ----------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------- |
+| `grep -P` 가 로케일 오류로 안 돌아감            | Git Bash 로케일이 unibyte/UTF-8 이 아님                               | 스캔·치환 모두 `perl -ne` / `perl -pi -e` 로 통일 |
+| `CategoryList.tsx` 가 grep 결과에서 통째로 빠짐 | 50줄 캐시 키에 **literal NUL 바이트**가 박혀 있어 바이너리로 판정된다 | 스캔 시 `-a` 사용. 소스는 별건으로 백로그 등록    |
+| prettier 가 파일 하나를 못 씀 (`UNKNOWN: open`) | 일시적 파일 잠금                                                      | 재실행으로 해결                                   |
+
+### 부수 결정
+
+- **값이 1:1로 같은 것만 치환한다** — `features/file/format.ts`(확장자 액센트) · `features/block/types.ts`(블록 유형 액센트)는 값이 우연히 토큰과 같아도 **도메인 고유색**이라 남겼다. `text-danger` 가 바뀔 때 PDF 배지가 따라 움직이면 안 된다
+- **`MyProjectList` 의 `tint` 는 손대지 않는다** — `` `${card.tint}15` `` 로 알파값을 문자열로 이어붙여서 `var()` 로 바꾸면 깨진다
+- **`text-[#C10007]`(4곳)도 남겼다** — 값이 같은 토큰이 `btn-danger-hover`(버튼 hover 전용)뿐이라 연체 배지 글자색에 쓰면 뜻이 어긋난다
+- **`rounded-lg`(266곳)는 치환하지 않았다** — 8px 토큰이 `button`·`sidebar`·`icon` 셋이라 기계 치환이 안 된다. 컨테이너용 8px 토큰이 없는 것도 함께 봐야 한다
+- **`text-[11px]`(261곳)은 보류** — 토큰 신설도, 12px 흡수도 지금 결정할 근거가 없어 백로그로 넘겼다
+
+### ⚠️ 남은 확인
+
+**줄높이가 함께 바뀌었다.** 토큰에는 `--text-*--line-height` 가 물려 있어, 폰트 크기만 지정했던 임의값(`normal` ≈1.2)이 1.5 로 올라간다.
+
+| 이전          | 줄높이 | 이후              | 줄높이 | 차이     |
+| ------------- | ------ | ----------------- | ------ | -------- |
+| `text-[10px]` | ≈12px  | `text-caption`    | 15px   | **+3px** |
+| `text-xs`     | 16px   | `text-label`      | 18px   | **+2px** |
+| `text-sm`     | 20px   | `text-body-m`     | 21px   | +1px     |
+| `text-lg`     | 28px   | `text-heading-m`  | 26.1px | −1.9px   |
+| `text-2xl`    | 32px   | `text-heading-xl` | 33.6px | +1.6px   |
+
+명시적 `leading-*` 은 54곳뿐이라 나머지는 전부 영향을 받는다. `text-caption`(332곳)이 몰린 **모달 안내문 · 표 행 · 배지** 실화면 확인이 필요하다.
+
+---
+
+## [2026-08-11] 단계 · 스텝 CRUD · 순서 변경 · 완료 처리 ✅
+
+브랜치: `user/project` · 이슈: 확인 필요
+
+### 변경 파일
+
+| 파일                                              | 변경                                                                                                                                                        |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.ai/API.md`                                      | 수정 (112~120 추가 · `스테이지 · 스텝 도메인 — 공통` 절 신설 · 목차 9줄 · 7 · 8번에 `version` 확인 필요 주석)                                               |
+| `src/constants/endpoints.ts`                      | 수정 (`stages.detail` · `steps.detail/complete` · `projects.stagesOrder/stepsOrder`)                                                                        |
+| `src/features/project/types.ts`                   | 수정 (요청/응답 16종 · `STAGE_NAME_MAX_LENGTH`(100) · `STEP_NAME_MAX_LENGTH`(200) · `UNASSIGN_STEPS`(0) · `version?`)                                       |
+| `src/features/project/api.ts`                     | 수정 (`createStage` · `updateStage` · `deleteStage` · `updateStageOrder` · `createStep` · `updateStep` · `updateStepOrder` · `deleteStep` · `completeStep`) |
+| `src/features/project/errorCodes.ts`              | 생성 (`STAGE_CODES` · `STEP_CODES` · `isVersionConflict()`)                                                                                                 |
+| `src/features/project/stage/StageFormModal.tsx`   | 생성 (단계 추가 · 이름 수정 공용 · 409 확인 모달)                                                                                                           |
+| `src/features/project/stage/StageDeleteModal.tsx` | 생성 (하위 스텝 이전 대상 선택)                                                                                                                             |
+| `src/features/project/stage/StageManageModal.tsx` | 생성 (`단계수정` 진입점 · 단계 · 스텝 드래그 재정렬 · `순서 저장`)                                                                                          |
+| `src/features/project/step/StepFormModal.tsx`     | 생성 (스텝 추가 · 수정 공용 · 409 확인 모달)                                                                                                                |
+| `src/features/project/step/StepDeleteModal.tsx`   | 생성 (살릴 블록 체크 · 대상 스텝 선택)                                                                                                                      |
+| `src/features/project/step/StepCompleteModal.tsx` | 생성 (`openIssueAction` 라디오)                                                                                                                             |
+| `src/components/ProjectSidebar.tsx`               | 수정 (TODO 4곳 연결 · `RowMenu` 항목 주입형으로 일반화 · 모달 6종 `dynamic` · `reloadCount` 재조회 · 토스트)                                                |
+
+### 주요 작업 내용
+
+- **스테이지 3종 + 스텝 4종 API 연동** — 생성 · 수정 · 삭제 · 완료 처리에 순서 변경 2종까지 총 9개
+- **낙관적 락 처리** — 409 를 삼키지 않고 `재조회 / 덮어쓰기` 를 묻는 확인 모달. 순서 변경은 `overwrite` 가 없어 재조회만 안내
+- **`단계수정` → 단계 관리 모달** — 단계 · 스텝을 드래그(또는 ↑↓ 버튼)로 재정렬하고 `순서 저장` 때 한 번에 전송. 스텝은 다른 단계 · `미분류` 로도 옮긴다
+- **하위 정리 UI** — 스테이지 삭제는 스텝 이전 대상 select(필수), 스텝 삭제는 블록을 체크해 골라 살린다. 이슈는 선택지 없이 함께 삭제됨을 상시 경고
+- **사이드바 TODO 해제** — `추가` · 스테이지 `＋` · `⋯` 메뉴(이름 수정 · 스텝 수정 · 완료 처리 · 삭제) 전부 연결
+
+### 트러블슈팅
+
+| 문제                                                          | 원인                                                                    | 해결                                                                                                 |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| 수정 API 가 요구하는 `version` 이 목록 명세(7 · 8번)에 없다   | 낙관적 락이 2026-08-11 신설이라 조회 응답 반영 여부가 미확인            | `version?` 선택 필드로 받고, 없으면 저장 버튼을 막고 재조회를 안내. `.ai/API.md` 확인 대기 표에 등록 |
+| 책임자가 참여자 목록에 없으면 저장 시 조용히 해제된다         | `<select>` 에 없는 값은 브라우저가 버린다 + 스텝 수정이 전체 덮어쓰기다 | 현재 책임자를 옵션으로 끼워 넣는다 (`· 삭제된 사원` 표기)                                            |
+| `useRef` 로 초안 재동기화를 하니 `react-hooks/refs` 린트 실패 | 렌더 중 ref 접근 금지                                                   | `useState` 로 바꿔 렌더 중 상태 조정 패턴 사용 (`ProjectSidebar` 의 `syncedStageId` 와 같은 방식)    |
+| 단계만 끌었는데 스텝 순서 API 까지 나갈 뻔                    | 하나의 지문으로 변경 여부를 판정했다                                    | `fingerprint`(순서 포함) · `stepArrangement`(묶음 정렬) 두 지문으로 분리                             |
+
+### 부수 결정
+
+- **순서는 드롭마다가 아니라 `순서 저장` 때 한 번** — 두 API 모두 전체 최종 순서를 받는다. 매번 보내면 옮기는 중인 배치가 남의 화면에 그대로 보인다 (블록 배치 편집과 같은 규칙)
+- **순서 편집 중에는 이름 수정 · 삭제 · 추가를 막는다** — 그 작업들이 목록을 재조회시켜 저장 안 된 드래그를 덮어쓴다
+- **충돌 모달의 취소(= Esc · 배경 클릭)를 `다시 불러오기` 에 둔다** — 파괴적인 `덮어쓰기` 를 Esc 로 흘리면 안 된다
+- **순서 API 는 `version` 이 하나라도 없으면 아예 보내지 않는다** — 항목별 락이라 하나만 어긋나도 전체 롤백이다
+- **스텝 수정 폼은 빈 칸도 그대로 보낸다** — 수정이 전체 덮어쓰기라 "비우면 해제" 를 모달 문구로도 알린다
+- **소속 단계 변경은 수정 폼에 두지 않았다** — `PATCH /steps/{stepId}` 가 `stageId` 를 받지 않는다(2026-08-09). 단계 관리 모달의 드래그가 유일한 경로다
+- **`단계수정` 을 단계 관리 모달로 붙였다** — `⋯` 메뉴는 호버해야 나와 처음 쓰는 사람이 못 찾는다
+- **모달 6종은 `dynamic` + 호버 프리로드** — 사이드바는 프로젝트 하위 전 화면에 떠 있어, 정적으로 물면 편집 권한이 없는 사용자도 매번 내려받는다
+
+---
+
+## [2026-08-11] 프로젝트 전체 화면 — 전체 일정 · 문서함 · 이미지 · 휴지통 ✅
+
+브랜치: `user/project` · 이슈: #107
+
+### 변경 파일
+
+| 파일                                                           | 변경                                                                                                                                                |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.ai/API.md`                                                   | 수정 (103~111 추가 · 파일/이미지 삭제·복구 공통 절 2개 신설 · 목차 9줄)                                                                             |
+| `src/constants/endpoints.ts`                                   | 수정 (`projects.files/filesTrash/images/imagesTrash/issues` · `files.restore/permanentDeletion` · `blocks.imageItemsRestore/imageItemsHardDelete`)  |
+| `src/lib/api.ts`                                               | 수정 (`api.deleteWithBody()` 신설 — 본문 있는 DELETE)                                                                                               |
+| `src/components/ProjectTabs.tsx`                               | 생성 (전체 이슈 · 문서함 · 이미지 · 휴지통 탭)                                                                                                      |
+| `src/app/projects/[id]/(overview)/layout.tsx`                  | 생성 (라우트 그룹 + 탭바)                                                                                                                           |
+| `src/app/projects/[id]/(overview)/page.tsx`                    | 생성 (기존 `[id]/page.tsx` 대체)                                                                                                                    |
+| `src/app/projects/[id]/(overview)/files·images·trash/page.tsx` | 생성                                                                                                                                                |
+| `src/features/project/overview/ProjectIssues.tsx`              | 생성 (스텝 아코디언 + 상태 3열)                                                                                                                     |
+| `src/features/project/overview/IssueProgressBar.tsx`           | 생성 (3색 진척 바 · 개수 범례)                                                                                                                      |
+| `src/features/project/overview/ProjectFiles.tsx`               | 생성 (스텝 → 블록 트리 문서함)                                                                                                                      |
+| `src/features/project/overview/groupFiles.ts`                  | 생성 (평면 목록 → 트리 조합)                                                                                                                        |
+| `src/features/project/overview/ProjectImages.tsx`              | 생성 (타일 그리드 · 라이트박스)                                                                                                                     |
+| `src/features/project/overview/ProjectTrash.tsx`               | 생성 (문서 · 이미지 갈래)                                                                                                                           |
+| `src/features/project/overview/TrashFiles.tsx`                 | 생성 (건별 복구 · 영구 삭제)                                                                                                                        |
+| `src/features/project/overview/TrashImages.tsx`                | 생성 (다중 선택 일괄 처리)                                                                                                                          |
+| `src/features/project/overview/ProjectOverviewSkeletons.tsx`   | 생성 (이슈 · 문서 · 이미지)                                                                                                                         |
+| `src/features/project/overview/useProjectStages.ts`            | 생성 (`stepId → stageId` 색인 · `groupByStage()`)                                                                                                   |
+| `src/features/project/overview/StageSection.tsx`               | 생성 (스테이지 묶음 머리)                                                                                                                           |
+| `src/features/project/overview/useImageBlockNames.ts`          | 생성 (`imgBlockId → 블록 이름`)                                                                                                                     |
+| `src/components/Toast.tsx`                                     | 생성 (`ToastHost` · `notifyToast()`)                                                                                                                |
+| `src/components/AppShell.tsx`                                  | 수정 (`ToastHost` 마운트)                                                                                                                           |
+| `src/features/file/PermanentDeleteFileModal.tsx`               | 생성 (확인 문자 입력)                                                                                                                               |
+| `src/features/block/PermanentDeleteImagesModal.tsx`            | 생성 (다건 확인)                                                                                                                                    |
+| `src/features/file/api.ts` · `types.ts`                        | 수정 (`getProjectFiles` · `getProjectTrashFiles` · `restoreFile` · `permanentlyDeleteFile` · `ViewerFile` · `FileLocation`)                         |
+| `src/features/file/FileViewerModal.tsx`                        | 수정 (`BlockFile` → `ViewerFile`, 업로더 줄 조립)                                                                                                   |
+| `src/features/issue/api.ts` · `types.ts`                       | 수정 (`getProjectIssues` · `IssueProgress` · `todoIssueCount()`)                                                                                    |
+| `src/features/block/api.ts` · `types.ts`                       | 수정 (`getProjectImages` · `getProjectTrashImages` · `restoreImages` · `permanentlyDeleteImages` · `ProjectImage` · `TrashImage` · `RestoredImage`) |
+
+### 주요 작업 내용
+
+- **`(overview)` 라우트 그룹** — `/projects/{id}` URL 을 유지하면서 형제인 `steps` · `settings` · `settlement` 에는 탭바가 붙지 않게 격리
+- **전체 일정** — 프로젝트 진척도 바 + **스테이지 > 스텝** 아코디언. 펼치면 **스텝 이슈 보드와 같은 3열 칸반**(시작 전 · 진행 중 · 완료)
+- **문서함** — 평면 응답을 스텝 → 블록 트리로 조합하고 **스테이지로 한 겹 더 묶는다**. 고아 파일은 스텝당 `블록 삭제됨` 한 묶음
+- **이미지 모아보기** — 타일 그리드 + 라이트박스, `블록별로 보기` 토글. 블록 이름은 스텝 블록 목록(10번)에서 모아 온다
+- **휴지통** — 문서(건별 · 확인 문자 `영구 삭제`) · 이미지(다중 선택 일괄) 두 갈래. **복구 · 영구 삭제는 낙관적 처리 + 토스트**
+- **공용 토스트** — `AppShell` 에 `ToastHost` 하나, 어디서나 `notifyToast()`
+
+### 부수 결정
+
+- **네 화면 모두 조회 전용** — 업로드 · 이름 수정 · 캡션 수정 · 상태 변경은 원래 블록/스텝 화면이 정본이다. 프로젝트를 가로질러 훑는 화면에서 고치면 어느 블록을 건드렸는지 보이지 않는다. 대신 스텝 · 일정으로 가는 링크를 각 머리에 둔다
+- **문서 · 파일 화면을 합쳤다** — 사용자는 둘로 요청했지만 백엔드 API 가 `GET /projects/{id}/files` 하나뿐이고, 이 프로젝트에서 "문서 = 파일" 은 같은 도메인이다
+- **휴지통을 문서 · 이미지로 나눴다** — 계약이 다르다. 문서는 건별(경로 ID) + 확인 문자, 이미지는 다건(`imgIds[]`) + 확인 문자 없음. 한 목록으로 합치면 어떤 항목이 무슨 규칙으로 지워지는지 설명할 수 없다
+- **휴지통은 트리로 묶지 않는다** — 찾는 기준이 위치가 아니라 "언제 지웠나" 다 (서버도 `deletedAt` 내림차순). 위치는 행에 한 줄로 붙인다
+- **이미지 복구는 응답 기준으로 목록에서 뺀다** — 권한을 이미지가 속한 **스텝별로** 보므로 보낸 것이 다 돌아오지 않는다. 보낸 목록 기준으로 지우면 복구 안 된 것이 사라진다
+- **이미지 영구 삭제 후에는 재조회** — 응답이 `null` 이라 몇 장이 지워졌는지 알 수 없다
+- **`ViewerFile` 신설** — 문서함 응답에 업로더 부서 · 직급이 없어 뷰어 prop 을 `BlockFile` 에서 넓혔다. 비는 것은 버전 이력이 도착하기 전 잠깐뿐
+- **`api.deleteWithBody()` 를 기본형으로 두지 않았다** — 이미지 영구 삭제만 본문 있는 `DELETE` 다. 같은 성격의 파일 영구 삭제는 프록시가 본문을 버리는 문제로 `POST` 로 설계돼 있다
+- **확인 문자는 입력값을 그대로 보낸다** — 상수로 덮어쓰면 아무 값이나 넣어도 통과하는 것처럼 보인다. 화면 검사는 버튼 잠금용 편의일 뿐이고 검증 주체는 서버다
+- **이슈 필터 · 제목 검색은 넣지 않았다** — 스텝 보드용으로 이미 백로그에 있어 두 화면을 함께 손보는 편이 맞다
+- **탭 이름을 `전체 일정` 으로** — 스텝 화면의 같은 것이 `일정` 탭이다. 한쪽만 `이슈` 라고 부르면 같은 데이터가 두 이름으로 불린다
+- **스테이지 묶기는 부가 조회로** — 105 · 108 응답에 `stageId` 가 없어 7 · 8번을 따로 읽는다. **실패해도 목록을 막지 않고** 묶지 않은 채 그린다. 사이드바가 같은 두 API 를 이미 쓰지만 컴포넌트가 달라 값을 넘겨받을 길이 없다
+- **스테이지는 아코디언으로 만들지 않았다** — 접히는 층이 둘이면 문서 하나 보는 데 클릭이 세 번이다. 머리로 경계만 긋는다
+- **비어 있는 스테이지는 그리지 않는다** — 이슈도 문서도 없는 칸이 늘어서면 훑기가 어렵다
+- **이미지 블록 이름은 켤 때만 읽는다** — 스텝 수만큼 요청이 늘어(N+1) `블록별로 보기` · `크게 보기` 에서만 조회한다. 못 읽으면 `블록 #3` 으로 되돌아간다. ❗ 107번에 `blockTitle` 이 실리면 `useImageBlockNames` 는 통째로 지운다
+- **복구 · 영구 삭제를 낙관적으로 바꿨다** — 되돌릴 수 없는 동작이지만 확인 모달(영구 삭제) · 명시적 버튼(복구)에서 뜻을 이미 물었고, 여러 건을 잇달아 정리하는 화면이라 매번 응답을 기다리면 손이 멎는다. 실패하면 **원래 자리로** 되돌리고 오류 토스트를 띄운다
+- **확인 모달은 요청을 보내지 않는다** — 뜻만 확인하고 닫히며 요청은 부르는 쪽이 뒤에서 돌린다. 그래서 실패 안내가 모달이 아니라 토스트로 간다
+- **이미지 복구는 돌아오지 않은 것만 되살린다** — 권한을 스텝별로 봐서 일부만 복구될 수 있다
+- **토스트를 컨텍스트가 아니라 전역 이벤트로** — 화면마다 프로바이더를 끼우지 않는다 (`issue:changed` 와 같은 방식). ⚠️ 네이티브 `<dialog>` 가 최상위 레이어라 토스트를 가린다 — 모달을 닫은 뒤 띄운다 (낙관적 처리라 자연히 그렇게 된다)
+
+### 코드 스플리팅 · 최적화
+
+**나눈 청크**
+
+| 대상                                                               | 청크             | 신호                                 |
+| ------------------------------------------------------------------ | ---------------- | ------------------------------------ |
+| `TrashFiles`                                                       | 12KB             | 휴지통 진입 시                       |
+| `TrashImages`                                                      | 16KB             | `이미지` 갈래 hover · focus 프리로드 |
+| `ProjectImageLightbox`                                             | 4KB              | 타일 그리드 hover 프리로드           |
+| `FileViewerModal`(+pdfjs) · `IssueDetailModal` · 영구삭제 모달 2종 | 기존 방식 그대로 | hover · focus                        |
+
+한 번에 하나만 그리는 휴지통 두 갈래를 함께 싣지 않는다 — 문서만 보고 나가는 사용자가 다중 선택 · 이미지 영구삭제 로더까지 받을 이유가 없다. 이미지 라이트박스도 목록만 훑는 사용자에게는 `Modal` 이 짐이다.
+
+**요청 줄이기 — `sharedRequest`**
+
+`전체 일정` 과 `문서함` 이 둘 다 스테이지 · 스텝을 읽고, 탭을 오갈 때마다 컴포넌트가 새로 마운트돼 같은 요청이 반복됐다. 이미지 블록 이름은 더 비싸다(N+1). 키 기준으로 **도는 요청은 합치고 결과는 TTL 동안 캐시**한다 (스테이지 60초 · 블록 이름 5분). `projectFileVersionsStore` 같은 구독 스토어를 또 만들지 않은 이유는 여기 필요한 것이 폴링이 아니라 중복 제거뿐이어서다.
+
+⚠️ `AbortSignal` 을 받지 않는다 — 요청을 여럿이 나눠 쓰므로 한 화면이 떠났다고 끊으면 기다리는 다른 화면까지 실패한다. 대신 부르는 쪽이 `isStale` 플래그로 **결과를 버린다.**
+⚠️ 실패는 캐시하지 않는다 — 한 번 끊겼다고 TTL 동안 재시도가 막히면 안 된다.
+
+**렌더 줄이기**
+
+- `memo` — `StepAccordion` · `IssueRow` · `BlockGroup` · `FileRow` · `ImageGrid`. 스텝 하나를 접었다고 나머지 스텝의 카드까지 다시 그리지 않는다
+- 콜백은 **대상을 인자로 받는 고정 함수**(`useCallback`) — 행마다 새 화살표 함수를 넘기면 `memo` 가 무력해진다 (`IssueCard` 와 같은 규칙)
+- `useMemo` — `groupFilesByStep` · `groupByStage` · `groupImagesByBlock` · 스텝별 `byDueDate` 정렬. 접혀 있는 스텝은 정렬 자체를 하지 않는다(`isOpen` 조건)
+
+### 트러블슈팅
+
+**1. 삭제한 `[id]/page.tsx` 참조가 남아 타입 체크가 깨졌다**
+
+`(overview)` 로 옮긴 뒤 `next build` 가 `.next/dev/types/validator.ts` 에서 `Cannot find module '.../[id]/page.js'` 로 실패했다. dev 서버가 만들어 둔 **stale 라우트 타입**이라 `.next` 를 지우고 다시 빌드하면 해결된다 (dev 서버는 재시작).
+
+### ❗ 백엔드 확인 필요
+
+- **110번 요청 필드명** — 표에는 `imagIds`, 예시와 111번은 `imgIds`. 예시 쪽으로 연동했다
+- **111번이 본문 있는 `DELETE`** — 104번이 `POST` 인 이유("일부 프록시가 DELETE 본문을 버림")가 이미지엔 적용되지 않았다. 배포 환경에서 본문이 사라지면 400
+- **111번에 확인 문자가 없다** — 오조작이 곧 영구 삭제다. 프론트 모달이 유일한 방어선
+- **109번에 `imgBlockId` 가 없다** — 107번엔 있다. 없어서 이미지 휴지통을 블록으로 묶지 못한다
+- **107번에 `orderIndex` · 블록 제목이 없다** — 블록 머리를 `블록 #3` 처럼 ID 로만 적는다
+
+---
+
 ## [2026-08-11] 사원 그룹 관리 · 직급별 사원 목록 ✅
 
 브랜치: `feat/employee-group` · 이슈: #96 · #97

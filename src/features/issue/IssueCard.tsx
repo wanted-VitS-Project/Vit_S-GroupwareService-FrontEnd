@@ -59,7 +59,7 @@ function IssueCard({
       // 카드 위에서도 열(section)이 dragover 를 받아야 한다 — 여기서 막지 않는다
       onClick={() => onOpen(issue.issueId)}
       // 크기 · 위치를 바꾸는 효과는 쓰지 않는다 — 드래그 중 카드가 흔들려 보인다
-      className={`rounded-lg border bg-white p-3 transition-colors select-none ${
+      className={`rounded-lg border bg-bg-card p-3 transition-colors select-none ${
         canEdit ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
       } ${
         isDragging
@@ -110,7 +110,7 @@ function IssueCard({
 
       <div className="flex items-center justify-between gap-2">
         <AssigneeAvatars assignees={issue.assignees} />
-        <div className="flex items-center gap-2 text-[10px] text-text-secondary">
+        <div className="flex items-center gap-2 text-caption text-text-secondary">
           {issue.relatedBlocks.length > 0 && (
             <span title={`연결된 블록 ${issue.relatedBlocks.length}개`}>
               🔗 {issue.relatedBlocks.length}

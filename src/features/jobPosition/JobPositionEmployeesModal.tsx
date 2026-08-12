@@ -52,7 +52,7 @@ export default function JobPositionEmployeesModal({
   return (
     <PanelModal title={`${position.name} 사원`} onClose={onClose}>
       <div className="p-5">
-        <p className="pb-2 text-[10px] break-keep text-text-secondary">
+        <p className="pb-2 text-caption break-keep text-text-secondary">
           재직 중인 사원만 나옵니다. 퇴사자와 시스템 계정은 제외됩니다.
         </p>
 
@@ -90,7 +90,7 @@ export default function JobPositionEmployeesModal({
                       {employee.userId}
                     </span>
                   </span>
-                  <span className="mt-0.5 block truncate text-[10px] text-text-secondary">
+                  <span className="mt-0.5 block truncate text-caption text-text-secondary">
                     {/* 경로가 있으면 상위 부서까지 보여야 같은 이름의 팀을 가릴 수 있다 */}
                     {employee.departmentPath ??
                       employee.departmentName ??

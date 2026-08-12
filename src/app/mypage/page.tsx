@@ -11,7 +11,7 @@ export default function MyPage() {
 
   return (
     <>
-      <p className="text-xs text-text-secondary">마이페이지</p>
+      <p className="text-label text-text-secondary">마이페이지</p>
       <PageTitle title="내 정보" />
 
       <div className="space-y-6">
@@ -34,7 +34,7 @@ export default function MyPage() {
         </Card>
       </div>
 
-      <p className="mt-6 text-xs text-text-secondary">
+      <p className="mt-6 text-label text-text-secondary">
         비밀번호를 분실한 경우 시스템 관리자에게 문의하세요.
       </p>
     </>
@@ -49,9 +49,9 @@ interface CardProps {
 
 function Card({ title, action, children }: CardProps) {
   return (
-    <section className="rounded-xl bg-white p-6">
+    <section className="rounded-base bg-bg-card p-6">
       <div className="flex items-center justify-between gap-4">
-        <h3 className="text-xs text-text-secondary">{title}</h3>
+        <h3 className="text-label text-text-secondary">{title}</h3>
         {action}
       </div>
 
@@ -62,7 +62,7 @@ function Card({ title, action, children }: CardProps) {
 
 function Field({ label, value }: { label: string; value?: string | null }) {
   return (
-    <div className="flex gap-6 text-sm">
+    <div className="flex gap-6 text-body-m">
       {/* 라벨 폭을 고정해 값의 시작선을 맞춘다 — '마지막 로그인' 이 들어가는 너비 */}
       <dt className="w-24 shrink-0 whitespace-nowrap text-text-secondary">
         {label}

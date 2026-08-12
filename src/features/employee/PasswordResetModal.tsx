@@ -100,7 +100,7 @@ export default function PasswordResetModal({
                         {failure.userId}
                       </span>
                     </p>
-                    <p className="mt-0.5 text-[10px] break-keep text-text-danger">
+                    <p className="mt-0.5 text-caption break-keep text-text-danger">
                       {PASSWORD_RESET_FAILURE_LABELS[failure.reason]}
                     </p>
                   </li>
@@ -118,10 +118,10 @@ export default function PasswordResetModal({
         ) : (
           <>
             <div className="rounded-lg border border-border-default bg-bg-surface px-3 py-2.5">
-              <span className="block text-[10px] text-text-secondary">
+              <span className="block text-caption text-text-secondary">
                 대상
               </span>
-              <span className="mt-0.5 block text-xs font-semibold text-text-primary">
+              <span className="mt-0.5 block text-label font-semibold text-text-primary">
                 {targets.length === 1
                   ? `${targets[0].name} (${targets[0].userId})`
                   : `${targets.length}명`}
@@ -135,7 +135,7 @@ export default function PasswordResetModal({
             </p>
 
             {missingEmailCount > 0 && (
-              <p className="text-[10px] break-keep text-text-danger">
+              <p className="text-caption break-keep text-text-danger">
                 이메일이 등록되지 않은 사원 {missingEmailCount}명은 실패로
                 처리됩니다.
               </p>
@@ -146,7 +146,7 @@ export default function PasswordResetModal({
         {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}
         <p
           role="alert"
-          className="text-[10px] break-keep text-text-danger empty:hidden"
+          className="text-caption break-keep text-text-danger empty:hidden"
         >
           {error}
         </p>
@@ -245,8 +245,8 @@ function Summary({
 
   return (
     <div className="flex-1 rounded-lg border border-border-default px-3 py-2 text-center">
-      <span className="block text-[10px] text-text-secondary">{label}</span>
-      <span className={`mt-0.5 block text-sm font-bold ${toneClass}`}>
+      <span className="block text-caption text-text-secondary">{label}</span>
+      <span className={`mt-0.5 block text-body-m font-bold ${toneClass}`}>
         {count}
       </span>
     </div>

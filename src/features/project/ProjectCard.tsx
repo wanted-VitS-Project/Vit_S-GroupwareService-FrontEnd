@@ -53,7 +53,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
 
   return (
     <li
-      className={`overflow-hidden rounded-xl border bg-white ${
+      className={`overflow-hidden rounded-base border bg-bg-card ${
         isOpen ? 'border-border-default' : 'border-border-default'
       }`}
     >
@@ -74,7 +74,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
             카테고리 이름 길이에 따라 폭이 달라지면 카드마다 과업명 시작 위치가 어긋난다
           */}
           <span
-            className={`flex w-16 shrink-0 justify-center rounded-full px-2 py-0.5 text-xs font-medium ${style.badge}`}
+            className={`flex w-16 shrink-0 justify-center rounded-pill px-2 py-0.5 text-label font-medium ${style.badge}`}
           >
             {PROJECT_STATUS_LABELS[row.status]}
           </span>
@@ -91,13 +91,13 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
             {categoryTags.map((category) => (
               <span
                 key={category.categoryId}
-                className="min-w-0 truncate rounded-[9px] border-[1.5px] border-border-default bg-bg-surface px-3 py-0.5 text-xs font-medium text-gray-text-soft"
+                className="min-w-0 truncate rounded-[9px] border-[1.5px] border-border-default bg-bg-surface px-3 py-0.5 text-label font-medium text-gray-text-soft"
               >
                 {category.name}
               </span>
             ))}
             {restCategoryCount > 0 && (
-              <span className="shrink-0 rounded-[9px] border-[1.5px] border-border-default bg-bg-surface px-2 py-0.5 text-xs font-medium text-text-secondary">
+              <span className="shrink-0 rounded-[9px] border-[1.5px] border-border-default bg-bg-surface px-2 py-0.5 text-label font-medium text-text-secondary">
                 +{restCategoryCount}
               </span>
             )}
@@ -131,7 +131,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
               />
             ))}
             {restCount > 0 && (
-              <span className="flex size-6 items-center justify-center rounded-full border border-white bg-bg-hover-secondary text-[10px] font-semibold text-text-secondary">
+              <span className="flex size-6 items-center justify-center rounded-pill border border-white bg-bg-hover-secondary text-caption font-semibold text-text-secondary">
                 +{restCount}
               </span>
             )}
@@ -140,11 +140,11 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
 
           <span className="flex w-32 shrink-0 items-center gap-3">
             {/* 스텝이 0개면 진척률이 응답에 없다 — 0% 로 단정하지 않고 빈 바로 둔다 */}
-            <span className="h-2 flex-1 overflow-hidden rounded-full bg-bg-hover-secondary">
+            <span className="h-2 flex-1 overflow-hidden rounded-pill bg-bg-hover-secondary">
               {/* 색은 상태와 무관하게 하나로 둔다 — 채운 길이만으로 진행도를 읽는다 */}
               <span
                 style={{ width: `${row.progressRate ?? 0}%` }}
-                className="block h-full rounded-l-full bg-btn-primary"
+                className="block h-full rounded-l-pill bg-btn-primary"
               />
             </span>
             <span className="w-9 text-right text-[13px] font-semibold text-gray-text-soft">
@@ -192,13 +192,13 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
             <span aria-hidden className="h-4 w-px bg-bg-hover-secondary" />
             <CountItem
               label="내 결재"
-              count={row.myApprovalOpenCount}
+              count={row.myApprovalInProgressCount}
               className="text-yellow-border"
             />
 
             <Link
               href={PROJECT_ROUTES.detail(row.projectId)}
-              className="ml-auto flex items-center gap-2 rounded-lg bg-btn-primary px-5 py-2 text-[13px] font-medium text-white hover:bg-btn-primary-hover"
+              className="ml-auto flex items-center gap-2 rounded-lg bg-btn-primary px-5 py-2 text-[13px] font-medium text-text-white hover:bg-btn-primary-hover"
             >
               프로젝트 전체 보기
               <ArrowIcon />
@@ -331,7 +331,7 @@ function ProjectPanel({ projectId }: { projectId: number }) {
         <button
           type="button"
           onClick={() => setReloadCount((count) => count + 1)}
-          className="cursor-pointer rounded-lg border border-border-default px-2.5 py-1 text-xs font-semibold text-text-primary hover:bg-bg-hover"
+          className="cursor-pointer rounded-lg border border-border-default px-2.5 py-1 text-label font-semibold text-text-primary hover:bg-bg-hover"
         >
           다시 시도
         </button>
@@ -407,7 +407,7 @@ function StageBox({ name, steps }: { name: string; steps: ProjectStep[] }) {
           {name}
         </span>
         <span
-          className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${badge.className}`}
+          className={`shrink-0 rounded-pill px-2.5 py-0.5 text-[11px] font-medium ${badge.className}`}
         >
           {badge.label}
         </span>
@@ -433,10 +433,10 @@ function StageBox({ name, steps }: { name: string; steps: ProjectStep[] }) {
           tabIndex={0}
           role="group"
           aria-label={`${name} 스텝 진행 상황`}
-          className="flex h-[124px] items-center overflow-x-auto overflow-y-hidden bg-white px-5"
+          className="flex h-[124px] items-center overflow-x-auto overflow-y-hidden bg-bg-card px-5"
         >
           {sorted.length === 0 ? (
-            <p className="text-xs text-text-muted">등록된 스텝이 없어요.</p>
+            <p className="text-label text-text-muted">등록된 스텝이 없어요.</p>
           ) : (
             <ol className="flex w-full items-start">
               {sorted.map((step, index) => {
@@ -453,15 +453,15 @@ function StageBox({ name, steps }: { name: string; steps: ProjectStep[] }) {
                     <div className="flex w-20 shrink-0 flex-col items-center text-center">
                       <span
                         aria-hidden
-                        className={`flex size-9 items-center justify-center rounded-full border-2 ${style.node}`}
+                        className={`flex size-9 items-center justify-center rounded-pill border-2 ${style.node}`}
                       >
                         {step.status === 'DONE' && <CheckIcon />}
                         {step.status === 'IN_PROGRESS' && (
-                          <span className="size-2.5 rounded-full bg-btn-primary" />
+                          <span className="size-2.5 rounded-pill bg-btn-primary" />
                         )}
                       </span>
                       <span
-                        className={`mt-2 w-full truncate text-xs font-medium ${style.label}`}
+                        className={`mt-2 w-full truncate text-label font-medium ${style.label}`}
                         title={step.name}
                       >
                         {step.name}

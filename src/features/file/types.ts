@@ -31,6 +31,29 @@ export interface BlockFile extends FileUploader {
   deletedAt: string | null;
 }
 
+/**
+ * 뷰어(`FileViewerModal`)가 여는 문서.
+ *
+ * 블록 문서 목록(36번)과 프로젝트 문서함(105번)이 **같은 뷰어**를 쓰는데 응답 모양이 조금 다르다 —
+ * 문서함에는 업로더 **부서 · 직급이 없어** 선택 필드로 둔다.
+ * 뷰어가 버전 이력(41번)을 받으면 그 값으로 덮이므로, 비어 있는 것은 여는 순간 잠깐뿐이다.
+ */
+export interface ViewerFile {
+  fileId: number;
+  name: string;
+  latestVersionId: number;
+  latestVersionNo: number;
+  versionCount: number;
+  originalFileName: string;
+  extension: string;
+  sizeBytes: number;
+  previewable: boolean;
+  updatedAt: string;
+  uploaderName: string;
+  uploaderDepartment?: string;
+  uploaderPosition?: string;
+}
+
 export interface BlockFilesResponse {
   blockId: number;
   /** 업로드 · 수정 · 삭제 버튼 노출 기준 (스텝 EDITOR) */
@@ -90,6 +113,79 @@ export interface TrashFileResponse {
   fileId: number;
   deletedAt: string;
 }
+
+/**
+ * 문서가 어느 스텝 · 블록에 붙어 있는지. (프로젝트 문서함 · 휴지통 공통)
+ *
+ * `blockDeleted` 가 true 면 블록이 지워진 **고아 파일**이다 — 파일은 프로젝트 소속이라
+ * 블록이 사라져도 살아 있고, 문서함에서는 `블록 삭제됨` 묶음으로 모인다.
+ */
+export interface FileLocation {
+  stepId: number;
+  stepName: string;
+  blockId: number | null;
+  blockTitle: string | null;
+  blockDeleted: boolean;
+}
+
+/**
+ * GET /projects/{projectId}/files 의 한 줄.
+ *
+ * 블록 파일 목록(`BlockFile`)과 달리 **업로더 이름만** 온다 (부서 · 직급 없음).
+ * presigned 가 실려 있지 않아 다운로드는 클릭 시 42번을 따로 부른다.
+ */
+export interface ProjectFile extends FileLocation {
+  fileId: number;
+  name: string;
+  latestVersionId: number;
+  latestVersionNo: number;
+  versionCount: number;
+  originalFileName: string;
+  extension: string;
+  sizeBytes: number;
+  previewable: boolean;
+  uploaderName: string;
+  updatedAt: string;
+}
+
+/**
+ * GET /projects/{projectId}/files/trash 의 한 줄.
+ * 휴지통은 미리보기 · 다운로드가 없어 `latestVersionId` · `previewable` 이 오지 않는다.
+ */
+export interface ProjectTrashFile extends FileLocation {
+  fileId: number;
+  name: string;
+  versionCount: number;
+  originalFileName: string;
+  extension: string;
+  sizeBytes: number;
+  /** 휴지통에 들어간 시각 — 목록은 이 값 내림차순이다 */
+  deletedAt: string;
+}
+
+/** POST /files/{fileId}/restore */
+export interface RestoreFileResponse {
+  fileId: number;
+  name: string;
+  /** 블록이 지워졌으면 null — 이때 문서함으로만 살아난다 */
+  blockId: number | null;
+  blockDeleted: boolean;
+}
+
+/** POST /files/{fileId}/permanent-deletion */
+export interface PermanentDeleteResponse {
+  fileId: number;
+  deletedVersionCount: number;
+  /** S3 삭제는 커밋 후 best-effort 라 **삭제 요청 수**다 */
+  storageDeletedCount: number;
+}
+
+/**
+ * 영구 삭제 확인 문자.
+ *
+ * ⚠️ **서버가 정확히 이 문자열을 검증한다** — 화면 문구를 바꾸려면 백엔드와 함께 바꿔야 한다.
+ */
+export const FILE_PERMANENT_DELETE_CONFIRM_TEXT = '영구 삭제';
 
 /** GET /files/{fileId}/versions 의 버전 하나 */
 export interface FileVersion extends FileUploader {

@@ -141,7 +141,7 @@ export default function MyProjectList() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h2 className="text-[22px] leading-8 font-bold text-text-primary">
+        <h2 className="text-logo leading-8 font-bold text-text-primary">
           내 프로젝트
         </h2>
         <p className="mt-1 text-[13px] text-text-secondary">
@@ -172,7 +172,7 @@ export default function MyProjectList() {
             onChange={(event) => setKeywordInput(event.target.value)}
             /* 백엔드 `keyword` 는 과업명뿐 아니라 발주처도 함께 검색한다 */
             placeholder="과업명 · 발주처 검색"
-            className="h-[41px] w-full rounded-lg border border-border-default bg-white pr-4 pl-9 text-[13px] text-text-primary placeholder:text-text-muted focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+            className="h-[41px] w-full rounded-lg border border-border-default bg-bg-card pr-4 pl-9 text-[13px] text-text-primary placeholder:text-text-muted focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
           />
         </div>
 
@@ -183,7 +183,7 @@ export default function MyProjectList() {
         <div
           role="group"
           aria-label="프로젝트 상태 필터"
-          className="flex items-center gap-1 rounded-lg border border-border-default bg-white p-1"
+          className="flex items-center gap-1 rounded-lg border border-border-default bg-bg-card p-1"
         >
           <StatusTab
             label="전체"
@@ -243,7 +243,7 @@ export default function MyProjectList() {
           </ul>
 
           {page && (
-            <div className="rounded-xl border border-border-default bg-white">
+            <div className="rounded-base border border-border-default bg-bg-card">
               <Pagination
                 page={query.page ?? 0}
                 totalPages={page.totalPages}
@@ -321,7 +321,7 @@ function ProjectSummary({ reloadCount }: { reloadCount: number }) {
     return (
       <section
         aria-label="프로젝트 상태 요약"
-        className="flex items-center gap-3 rounded-xl border border-border-default bg-white px-5 py-4"
+        className="flex items-center gap-3 rounded-base border border-border-default bg-bg-card px-5 py-4"
       >
         <p role="alert" className="text-[13px] text-text-secondary">
           상태별 건수를 불러오지 못했어요.
@@ -329,7 +329,7 @@ function ProjectSummary({ reloadCount }: { reloadCount: number }) {
         <button
           type="button"
           onClick={() => setRetryCount((count) => count + 1)}
-          className="cursor-pointer rounded-lg border border-border-default px-2.5 py-1 text-xs font-semibold text-text-primary hover:bg-bg-hover"
+          className="cursor-pointer rounded-lg border border-border-default px-2.5 py-1 text-label font-semibold text-text-primary hover:bg-bg-hover"
         >
           다시 시도
         </button>
@@ -346,7 +346,7 @@ function ProjectSummary({ reloadCount }: { reloadCount: number }) {
       {cards.map((card, index) => (
         <div
           key={card.label}
-          className="flex h-24 items-center gap-4 rounded-xl border border-border-default bg-white px-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+          className="flex h-24 items-center gap-4 rounded-base border border-border-default bg-bg-card px-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
         >
           <span
             aria-hidden
@@ -359,7 +359,7 @@ function ProjectSummary({ reloadCount }: { reloadCount: number }) {
             <p className="truncate text-[13px] text-text-secondary">
               {card.label}
             </p>
-            <p className="mt-0.5 truncate text-[22px] leading-8 font-semibold text-text-primary">
+            <p className="mt-0.5 truncate text-logo leading-8 font-semibold text-text-primary">
               {/* 아직 세는 중이면 자리만 잡아 둔다 — 0 을 먼저 보이면 잘못된 값을 읽힌다 */}
               {values ? (values[index] ?? 0).toLocaleString('ko-KR') : '–'}
               <span className="ml-1 text-[13px] font-medium text-text-secondary">
@@ -416,7 +416,7 @@ function CategoryPeriodFilter({
   return (
     <div
       id="projectFilters"
-      className="flex flex-wrap items-center gap-3 rounded-xl border border-border-default bg-white px-5 py-3"
+      className="flex flex-wrap items-center gap-3 rounded-base border border-border-default bg-bg-card px-5 py-3"
     >
       <span className="text-[15px] font-semibold text-gray-text-soft">
         기간
@@ -446,7 +446,7 @@ function CategoryPeriodFilter({
           onChange={(event) =>
             onChange({ categoryId: event.target.value || undefined })
           }
-          className="w-44 cursor-pointer rounded-[9px] border-[1.5px] border-border-default bg-white px-3 py-1 text-[13px] font-medium text-gray-text-soft focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+          className="w-44 cursor-pointer rounded-[9px] border-[1.5px] border-border-default bg-bg-card px-3 py-1 text-[13px] font-medium text-gray-text-soft focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
         >
           {/* 아직 못 받았어도 `전체` 는 고를 수 있어야 한다 — 필터를 지우는 유일한 값이다 */}
           <option value="">전체</option>
@@ -464,7 +464,7 @@ function CategoryPeriodFilter({
           onClick={() =>
             onChange({ categoryId: undefined, from: undefined, to: undefined })
           }
-          className="ml-auto cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-bg-hover"
+          className="ml-auto cursor-pointer rounded-lg px-3 py-1.5 text-label font-medium text-text-secondary hover:bg-bg-hover"
         >
           초기화
         </button>
@@ -516,7 +516,7 @@ function StatusTab({
       type="button"
       aria-pressed={isActive}
       onClick={onClick}
-      className={`cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium ${
+      className={`cursor-pointer rounded-button-md px-3 py-1.5 text-label font-medium ${
         isActive
           ? 'bg-blue-bg-soft text-text-primary-blue'
           : 'text-btn-gray-text-hover hover:bg-bg-hover'
@@ -529,7 +529,7 @@ function StatusTab({
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-border-default bg-white py-16">
+    <div className="flex flex-col items-center justify-center rounded-base border border-border-default bg-bg-card py-16">
       {children}
     </div>
   );

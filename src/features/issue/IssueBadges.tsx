@@ -24,9 +24,9 @@ export function IssueStatusBadge({ status }: { status: IssueStatus }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[9px] font-medium ${badge}`}
+      className={`inline-flex items-center gap-1 rounded-button-sm border px-1.5 py-0.5 text-[9px] font-medium ${badge}`}
     >
-      <span className={`size-1.5 rounded-full ${dot}`} />
+      <span className={`size-1.5 rounded-pill ${dot}`} />
       {ISSUE_STATUS_LABELS[status]}
     </span>
   );
@@ -49,9 +49,9 @@ export function IssuePriorityBadge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[9px] font-medium ${badge}`}
+      className={`inline-flex items-center gap-1 rounded-button-sm border px-1.5 py-0.5 text-[9px] font-medium ${badge}`}
     >
-      {withDot && <span className={`size-1.5 rounded-full ${dot}`} />}
+      {withDot && <span className={`size-1.5 rounded-pill ${dot}`} />}
       {withPrefix && '우선순위 '}
       {ISSUE_PRIORITY_LABELS[priority]}
     </span>
@@ -65,7 +65,7 @@ export function OverdueBadge({ days }: { days: number }) {
   return (
     <span
       title={`마감일에서 ${days}일 지났습니다`}
-      className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[9px] font-medium ${ISSUE_OVERDUE_STYLE}`}
+      className={`inline-flex items-center rounded-button-sm border px-1.5 py-0.5 text-[9px] font-medium ${ISSUE_OVERDUE_STYLE}`}
     >
       D+{days}
     </span>
@@ -94,7 +94,9 @@ export function AssigneeAvatars({
   size?: 'xs' | 'sm';
 }) {
   if (assignees.length === 0) {
-    return <span className="text-[10px] text-text-secondary">담당자 없음</span>;
+    return (
+      <span className="text-caption text-text-secondary">담당자 없음</span>
+    );
   }
 
   return (
@@ -137,7 +139,7 @@ export function IssueBlockIcon({
         borderColor: option?.border ?? 'rgba(28,31,42,0.09)',
         color: option?.icon ?? '#6C7389',
       }}
-      className="flex shrink-0 items-center justify-center rounded border [&_svg]:size-2.5"
+      className="flex shrink-0 items-center justify-center rounded-button-sm border [&_svg]:size-2.5"
     >
       {option && <BlockTypeIcon code={option.code} />}
     </span>

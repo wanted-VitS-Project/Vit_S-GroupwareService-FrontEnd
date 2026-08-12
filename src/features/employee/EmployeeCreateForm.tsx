@@ -228,7 +228,7 @@ export default function EmployeeCreateForm() {
 
   return (
     <>
-      <p className="text-xs text-text-secondary">
+      <p className="text-label text-text-secondary">
         <Link
           href="/settings"
           className="hover:text-text-primary hover:underline"
@@ -246,8 +246,8 @@ export default function EmployeeCreateForm() {
       </p>
 
       <div className="mt-2 mb-6">
-        <h2 className="text-lg font-bold">사원 등록</h2>
-        <p className="mt-1.5 text-xs break-keep text-text-secondary">
+        <h2 className="text-heading-m font-bold">사원 등록</h2>
+        <p className="mt-1.5 text-label break-keep text-text-secondary">
           로그인 계정이 함께 발급됩니다. 초기 비밀번호는 입력한 이메일로
           발송됩니다.
         </p>
@@ -264,8 +264,8 @@ export default function EmployeeCreateForm() {
         />
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
-          <section className="rounded-xl border border-border-default bg-white p-5">
-            <h3 className="text-xs font-semibold text-text-primary">계정</h3>
+          <section className="rounded-base border border-border-default bg-bg-card p-5">
+            <h3 className="text-label font-semibold text-text-primary">계정</h3>
 
             <div className="mt-4 space-y-4">
               <TextField
@@ -296,8 +296,8 @@ export default function EmployeeCreateForm() {
             </div>
           </section>
 
-          <section className="rounded-xl border border-border-default bg-white p-5">
-            <h3 className="text-xs font-semibold text-text-primary">
+          <section className="rounded-base border border-border-default bg-bg-card p-5">
+            <h3 className="text-label font-semibold text-text-primary">
               인사 정보
             </h3>
 
@@ -339,7 +339,7 @@ export default function EmployeeCreateForm() {
               />
 
               {hasOptionsFailed && (
-                <p role="alert" className="text-[10px] text-text-danger">
+                <p role="alert" className="text-caption text-text-danger">
                   부서 · 직급 목록을 불러오지 못했습니다. 부서는 필수라 등록할
                   수 없습니다.{' '}
                   <button
@@ -391,7 +391,7 @@ export default function EmployeeCreateForm() {
             {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}
             <p
               role="alert"
-              className="mr-auto text-[10px] break-keep text-text-danger"
+              className="mr-auto text-caption break-keep text-text-danger"
             >
               {error}
             </p>
@@ -438,9 +438,11 @@ function CreatedResult({
 
   return (
     <>
-      <section className="rounded-xl border border-border-default bg-white p-6">
-        <p className="text-sm font-bold text-green-text">✅ 등록되었습니다</p>
-        <p className="mt-2 text-xs text-text-primary">
+      <section className="rounded-base border border-border-default bg-bg-card p-6">
+        <p className="text-body-m font-bold text-green-text">
+          ✅ 등록되었습니다
+        </p>
+        <p className="mt-2 text-label text-text-primary">
           <b>{result.name}</b>{' '}
           <span className="text-text-secondary">({result.userId})</span>
         </p>

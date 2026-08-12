@@ -17,9 +17,24 @@ export const ENDPOINTS = {
     /** 내 프로젝트 목록 — 권한 밖 건은 403 이 아니라 목록에서 빠진다 */
     root: `${V1}/projects`,
     detail: (projectId: number | string) => `${V1}/projects/${projectId}`,
+    /** 스테이지 목록 조회 · 생성 */
     stages: (projectId: number | string) =>
       `${V1}/projects/${projectId}/stages`,
+    /**
+     * 스테이지 순서 변경 — **전체 최종 순서**를 보낸다.
+     * ⚠️ 항목마다 `version` 을 검사하고 하나라도 어긋나면 요청 전체가 409 로 롤백된다.
+     *    `overwrite` 가 없어 409 면 재조회 후 다시 끄는 수밖에 없다.
+     */
+    stagesOrder: (projectId: number | string) =>
+      `${V1}/projects/${projectId}/stages/order`,
+    /** 스텝 목록 조회 · 생성 */
     steps: (projectId: number | string) => `${V1}/projects/${projectId}/steps`,
+    /**
+     * 스텝 순서 · 소속 스테이지 변경 — **위치를 바꾸는 유일한 경로**다.
+     * ⚠️ 보드 전체의 최종 배치를 보낸다. 낙관적 락은 항목별이고 롤백은 전체다.
+     */
+    stepsOrder: (projectId: number | string) =>
+      `${V1}/projects/${projectId}/steps/order`,
     members: (projectId: number | string) =>
       `${V1}/projects/${projectId}/members`,
     /**
@@ -28,6 +43,23 @@ export const ENDPOINTS = {
      */
     fileVersions: (projectId: number | string) =>
       `${V1}/projects/${projectId}/file-versions`,
+    /**
+     * 프로젝트 문서함 — 스텝 · 블록 위치가 붙은 **평면 목록**이다.
+     * 트리로 묶는 것은 화면 몫이다 (`ProjectFileTree`).
+     */
+    files: (projectId: number | string) => `${V1}/projects/${projectId}/files`,
+    /** 프로젝트 휴지통 — 블록 목록(`?deleted=true`)과 달리 프로젝트 범위다 */
+    filesTrash: (projectId: number | string) =>
+      `${V1}/projects/${projectId}/files/trash`,
+    /** 프로젝트 이미지 모아보기 — 블록 ID 만 오고 스텝 정보는 없다 */
+    images: (projectId: number | string) =>
+      `${V1}/projects/${projectId}/images`,
+    /** 이미지 휴지통 — ⚠️ 위와 달리 `imgBlockId` 조차 오지 않는다 */
+    imagesTrash: (projectId: number | string) =>
+      `${V1}/projects/${projectId}/images/trash`,
+    /** 프로젝트 전체 이슈 — 스텝별로 묶여 오고 페이징이 없다 */
+    issues: (projectId: number | string) =>
+      `${V1}/projects/${projectId}/issues`,
   },
   businessCategories: {
     /** 목록 조회 · 생성 */
@@ -100,7 +132,26 @@ export const ENDPOINTS = {
     employees: (jobPositionId: number | string) =>
       `${V1}/job-positions/${jobPositionId}/employees`,
   },
+  stages: {
+    /**
+     * 스테이지 이름 수정 · 삭제.
+     *
+     * ⚠️ 수정은 **낙관적 락**이다 — 목록에서 받은 `version` 을 실어야 하고, 늦으면 409 다.
+     * ⚠️ 삭제는 `?moveToStageId=` 가 **필수**다 (`0` 이면 미소속). 하위 스텝은 함께 지워지지 않는다.
+     * ⛔ 순서 변경은 이 경로가 아니다 — `PATCH /projects/{projectId}/stages/order` 소관이다.
+     */
+    detail: (stageId: number | string) => `${V1}/stages/${stageId}`,
+  },
   steps: {
+    /**
+     * 스텝 수정 · 삭제.
+     *
+     * ⚠️ 수정은 **낙관적 락**이고 **전체 덮어쓰기**다 — 생략한 필드는 유지가 아니라 해제된다.
+     * ⛔ `stageId` 는 받지 않는다 (2026-08-09) — 소속·순서는 `steps/order` 로 일원화됐다.
+     */
+    detail: (stepId: number | string) => `${V1}/steps/${stepId}`,
+    /** 스텝 완료 처리 — 미완료 이슈 처리 방식(`openIssueAction`)이 **필수**다 */
+    complete: (stepId: number | string) => `${V1}/steps/${stepId}/complete`,
     blocks: (stepId: number | string) => `${V1}/steps/${stepId}/blocks`,
     /** 블록 배치 변경 — 스텝의 배치 전체를 한 번에 보낸다 */
     blocksLayout: (stepId: number | string) =>
@@ -154,6 +205,14 @@ export const ENDPOINTS = {
   },
   blocks: {
     detail: (blockId: number | string) => `${V1}/blocks/${blockId}`,
+    /**
+     * 블록을 **다른 스텝으로 이동** (2026-08-11 신설).
+     *
+     * ⚠️ 낙관적 락 대상이다 — `version` 필수, 409 면 재조회 · 덮어쓰기를 묻는다.
+     * ⚠️ 출발 · 도착 **양쪽 스텝의 EDITOR** 여야 한다 (`STEP_EDIT_DENIED`).
+     * ⚠️ 옮기면 **이슈 연결이 끊긴다** — 응답 `unlinkedIssueCount` 로 몇 건인지 알려준다.
+     */
+    step: (blockId: number | string) => `${V1}/blocks/${blockId}/step`,
     /** 체크리스트 항목 생성 — 블록 ID 기준 */
     checklistItems: (chkBlockId: number | string) =>
       `${V1}/blocks/checklists/${chkBlockId}/items`,
@@ -188,6 +247,13 @@ export const ENDPOINTS = {
     /** 이미지 항목 삭제 — 이쪽은 **항목 ID(`imgId`)** 다. 위 경로와 모양만 같다 */
     imageItem: (imgId: number | string) => `${V1}/blocks/images/items/${imgId}`,
     /**
+     * 이미지 복구 · 영구 삭제 — **다건**이라 ID 를 경로가 아니라 본문에 싣는다.
+     * 위 `imageItem(imgId)` 과 경로 모양이 겹치므로(`.../items/{...}`) 고정 문자열로 둔다.
+     */
+    imageItemsRestore: `${V1}/blocks/images/items/restore`,
+    /** ⚠️ **본문 있는 DELETE** 다 — 파일 영구 삭제(POST)와 방식이 다르다 */
+    imageItemsHardDelete: `${V1}/blocks/images/items/hard`,
+    /**
      * 정산 항목 — 수정 시 조회(GET) · 작성/수정(PATCH).
      * ⚠️ 둘 다 `?type=INCOME|OUTCOME` 이 **필수**다.
      */
@@ -220,6 +286,14 @@ export const ENDPOINTS = {
     detail: (fileId: number | string) => `${V1}/files/${fileId}`,
     /** 버전 이력 */
     versions: (fileId: number | string) => `${V1}/files/${fileId}/versions`,
+    /** 휴지통에서 복구 — 블록이 지워졌어도 살아난다 */
+    restore: (fileId: number | string) => `${V1}/files/${fileId}/restore`,
+    /**
+     * 영구 삭제 — 확인 문자를 본문에 실어야 해서 `DELETE` 가 아니라 `POST` 다
+     * (일부 프록시가 `DELETE` 본문을 버린다).
+     */
+    permanentDeletion: (fileId: number | string) =>
+      `${V1}/files/${fileId}/permanent-deletion`,
   },
   fileVersions: {
     /** 버전 단건 조회 (결재용) — 문서가 휴지통이어도 반환된다 */
