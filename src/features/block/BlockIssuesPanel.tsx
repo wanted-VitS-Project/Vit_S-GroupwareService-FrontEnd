@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import MemberAvatar from '@/components/MemberAvatar';
 import Modal, { SIDE_PANEL } from '@/components/Modal';
 import ModalLoadingFallback from '@/components/ModalLoadingFallback';
+import { personLabel } from '@/components/PersonNote';
 import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
 import { getStepIssues } from '@/features/issue/api';
 import {
@@ -267,6 +268,11 @@ export default function BlockIssuesPanel({
                         {issue.assignees.slice(0, 3).map((assignee, index) => (
                           <span
                             key={assignee.userId}
+                            // 겹친 아바타라 배지 자리가 없다 — 흐리게 + tooltip 으로만 알린다
+                            title={personLabel(
+                              assignee.name,
+                              assignee.resignedAt !== null,
+                            )}
                             className={index > 0 ? '-ml-1' : ''}
                           >
                             <MemberAvatar
@@ -274,6 +280,7 @@ export default function BlockIssuesPanel({
                               name={assignee.name}
                               size="xs"
                               decorative={index > 0}
+                              resigned={assignee.resignedAt !== null}
                             />
                           </span>
                         ))}

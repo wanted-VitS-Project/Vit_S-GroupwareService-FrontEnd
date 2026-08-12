@@ -162,7 +162,18 @@ export const BLOCK_COLUMNS = 3;
 export interface BlockOwner {
   /** 사번 */
   userId: string;
+  /** ⚠️ 삭제된 사원이어도 **비우지 않는다** */
   name: string;
+  /**
+   * 사원 데이터 삭제 여부 (D-6 · 2026-08-11 신설).
+   *
+   * `true` 여도 이름은 그대로 온다 — 이름 옆에 `삭제됨` 배지를 그리고
+   * **담당자 선택 후보에서만 제외**한다.
+   *
+   * ⚠️ 이슈 담당자 · 활동 수행자의 `resignedAt`(퇴사)와 **다른 값**이다. 서로 대체하지 마라.
+   * ⚠️ 생성 응답(9번)에서는 항상 `false` 다 — `true` 는 조회(10번)에서만 온다.
+   */
+  deleted: boolean;
 }
 
 /**
@@ -658,6 +669,11 @@ export interface UpdateBlockRequest {
 export interface UpdateBlockResponse {
   blockId: number;
   title: string | null;
+  /**
+   * ⚠️ 이 응답의 `deleted` 는 **명세에 명시돼 있지 않다** — 없으면 `undefined` 로 들어와
+   * 배지가 잠깐 사라진다. 방금 고른 담당자는 후보 목록에서 온 **재직 중인 사원**이라
+   * 실제로 문제가 되는 경우는 없다 (다음 조회에서 정확한 값으로 덮인다).
+   */
   owner: BlockOwner | null;
   updatedAt: string;
   /** ⚠️ 저장 후의 새 값. 화면 상태를 이 값으로 교체하지 않으면 다음 저장이 또 409 다 */

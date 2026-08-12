@@ -3,6 +3,7 @@
 import { memo } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
+import PersonNote from '@/components/PersonNote';
 import { IssueBlockIcon } from '@/features/issue/IssueBadges';
 
 import { parseActivityTime } from './time';
@@ -68,9 +69,14 @@ function ActivityLogItem({
             name={log.actor.name}
             size="xs"
             decorative
+            resigned={log.actor.resignedAt !== null}
           />
-          <span className="text-detail font-semibold text-text-primary">
-            {log.actor.name}
+          {/* 퇴사자여도 로그를 지우지 않는다 — 이름 뒤에 문구만 붙인다 */}
+          <span className="flex items-center gap-0.5">
+            <span className="text-detail font-semibold text-text-primary">
+              {log.actor.name}
+            </span>
+            {log.actor.resignedAt && <PersonNote />}
           </span>
 
           {showBlock && (

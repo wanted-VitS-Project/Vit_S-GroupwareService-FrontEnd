@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
 import Modal from '@/components/Modal';
+import PersonNote from '@/components/PersonNote';
 import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
 import { isAbortError, messageOf } from '@/lib/api';
 import { formatDate } from '@/lib/format';
@@ -320,9 +321,14 @@ export default function IssueDetailModal({
                           userId={assignee.userId}
                           name={assignee.name}
                           decorative
+                          resigned={assignee.resignedAt !== null}
                         />
-                        <span className="text-label font-medium text-text-primary">
-                          {assignee.name}
+                        {/* 퇴사자여도 항목을 빼지 않는다 — 이름 뒤에 문구만 붙인다 */}
+                        <span className="flex items-center gap-0.5">
+                          <span className="text-label font-medium text-text-primary">
+                            {assignee.name}
+                          </span>
+                          {assignee.resignedAt && <PersonNote />}
                         </span>
                       </div>
                     ))}

@@ -12,12 +12,19 @@ export type ActivityAction = 'CREATE' | 'MODIFY' | 'DELETE';
 /** `resource.resourceId` 유무로 갈린다 — 서버가 계산해서 내려준다 */
 export type ActivityTargetType = 'BLOCK' | 'RESOURCE';
 
-/** 활동 수행자. `userId` 는 사번이다 */
+/**
+ * 활동 수행자. `userId` 는 사번이다.
+ *
+ * 퇴사자여도 **로그 항목을 화면에서 지우지 않는다** — 이름을 그대로 두고
+ * 옆에 `퇴사함` 배지만 붙인다 (2026-08-12 퇴사자 표기 컨벤션).
+ */
 export interface ActivityActor {
   userId: string;
   name: string;
   /** Sprint1 에서는 항상 null */
   profileImageUrl: string | null;
+  /** 퇴사일 `yyyy-MM-dd`. 재직 중이면 null */
+  resignedAt: string | null;
 }
 
 /** 활동이 발생한 블록 */

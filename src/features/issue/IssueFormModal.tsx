@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
 import Modal from '@/components/Modal';
+import PersonNote from '@/components/PersonNote';
 import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
 import { notifyToast } from '@/components/Toast';
 import { getStepBlocks } from '@/features/block/api';
@@ -639,13 +640,19 @@ export default function IssueFormModal({
                   </span>
                 ) : (
                   values.assigneeIds.map((userId) => {
+                    /*
+                     * 이미 담당자인 퇴사자는 후보 목록에 없다 (후보에서만 제외한다) —
+                     * 이름과 퇴사 여부는 **이슈 응답**에서 가져와 칩을 그대로 그린다.
+                     */
+                    const assigned = base?.assignees.find(
+                      (assignee) => assignee.userId === userId,
+                    );
                     const name =
                       members.find((member) => member.userId === userId)
                         ?.name ??
-                      base?.assignees.find(
-                        (assignee) => assignee.userId === userId,
-                      )?.name ??
+                      assigned?.name ??
                       userId;
+                    const isResigned = assigned?.resignedAt != null;
 
                     return (
                       <span
@@ -657,9 +664,13 @@ export default function IssueFormModal({
                           name={name}
                           size="xs"
                           decorative
+                          resigned={isResigned}
                         />
-                        <span className="text-caption font-medium text-text-primary">
-                          {name}
+                        <span className="flex items-center gap-0.5">
+                          <span className="text-caption font-medium text-text-primary">
+                            {name}
+                          </span>
+                          {isResigned && <PersonNote />}
                         </span>
                         <button
                           type="button"

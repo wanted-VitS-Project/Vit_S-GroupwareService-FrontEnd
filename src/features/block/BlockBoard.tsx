@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { useParams } from 'next/navigation';
 import {
   memo,
   useCallback,
@@ -24,6 +25,10 @@ import {
 } from './blockLayout';
 import { BlockActionsProvider, type BlockActions } from './BlockActionsContext';
 import { BlockDragProvider, type BlockDragValue } from './BlockDragContext';
+import {
+  ResignedOwnersProvider,
+  useResignedOwners,
+} from './BlockOwnerResignedContext';
 import {
   BLOCK_COLUMNS,
   type StepBlock,
@@ -167,6 +172,12 @@ export default function BlockBoard({
   /** 대기 중인 배치를 지금 보내는 손잡이를 넘겨준다 (블록 생성 직전에 쓴다) */
   flushLayoutRef?: RefObject<(() => void) | null>;
 }) {
+  const { id: projectId } = useParams<{ id: string }>();
+  /**
+   * 담당자 퇴사 표기 — 블록 응답에 `resignedAt` 이 없어 참여자 목록으로 보충한다.
+   * 카드마다 부르지 않도록 **보드에서 한 번만** 받아 컨텍스트로 내려준다.
+   */
+  const resignedOwners = useResignedOwners(projectId);
   const [order, setOrder] = useState(() => toFlatOrder(blocks));
   const [draggingId, setDraggingId] = useState<number | null>(null);
   /** 커서가 올라가 있는 빈 칸 안내 — 강조 표시에만 쓴다 */
@@ -600,120 +611,122 @@ export default function BlockBoard({
 
   return (
     <BlockActionsProvider value={actions}>
-      {/* 편집 모드가 아니면 배선을 아예 내려주지 않는다 — 카드가 드래그 핸들 없이 그려진다 */}
-      <BlockDragProvider value={isArranging ? drag : null}>
-        <div className="flex flex-col gap-4">
-          {isArranging && (
-            <div className="flex items-center gap-2 rounded-button-sm border border-border-primary/30 bg-blue-bg-soft px-2.5 py-1.5 text-caption text-text-primary-blue">
-              <p className="min-w-0 flex-1">
-                블록을 끌어 자리를 바꾼 뒤 <strong>배치 완료</strong> 를
-                눌러주세요. 저장은 그때 한 번만 이뤄집니다.
+      <ResignedOwnersProvider value={resignedOwners}>
+        {/* 편집 모드가 아니면 배선을 아예 내려주지 않는다 — 카드가 드래그 핸들 없이 그려진다 */}
+        <BlockDragProvider value={isArranging ? drag : null}>
+          <div className="flex flex-col gap-4">
+            {isArranging && (
+              <div className="flex items-center gap-2 rounded-button-sm border border-border-primary/30 bg-blue-bg-soft px-2.5 py-1.5 text-caption text-text-primary-blue">
+                <p className="min-w-0 flex-1">
+                  블록을 끌어 자리를 바꾼 뒤 <strong>배치 완료</strong> 를
+                  눌러주세요. 저장은 그때 한 번만 이뤄집니다.
+                </p>
+                {hasArrangeChanges && (
+                  <button
+                    type="button"
+                    onClick={() => arrangeApi.revert()}
+                    className="shrink-0 cursor-pointer rounded-button-sm px-1.5 py-0.5 font-medium underline-offset-2 hover:bg-bg-card hover:underline"
+                  >
+                    되돌리기
+                  </button>
+                )}
+              </div>
+            )}
+
+            {saveError && (
+              <p
+                role="alert"
+                className="rounded-button-sm border border-border-danger/20 bg-red-bg-soft px-2.5 py-1.5 text-caption text-text-danger"
+              >
+                {saveError}
               </p>
-              {hasArrangeChanges && (
-                <button
-                  type="button"
-                  onClick={() => arrangeApi.revert()}
-                  className="shrink-0 cursor-pointer rounded-button-sm px-1.5 py-0.5 font-medium underline-offset-2 hover:bg-bg-card hover:underline"
-                >
-                  되돌리기
-                </button>
-              )}
-            </div>
-          )}
+            )}
 
-          {saveError && (
-            <p
-              role="alert"
-              className="rounded-button-sm border border-border-danger/20 bg-red-bg-soft px-2.5 py-1.5 text-caption text-text-danger"
-            >
-              {saveError}
-            </p>
-          )}
-
-          <div
-            ref={boardRef}
-            // 끄는 동안 텍스트가 파랗게 잡히면 이동이 지저분해 보인다
-            className={`grid grid-cols-3 items-stretch gap-4 ${
-              isDragging ? 'select-none' : ''
-            }`}
-            /*
+            <div
+              ref={boardRef}
+              // 끄는 동안 텍스트가 파랗게 잡히면 이동이 지저분해 보인다
+              className={`grid grid-cols-3 items-stretch gap-4 ${
+                isDragging ? 'select-none' : ''
+              }`}
+              /*
             **캡처 단계**에서 받는다. 버블 단계로 받으면 카드 안쪽 자식이 이벤트를 멈췄을 때
             판정이 통째로 빠지고, 그 블록은 "드래그해도 반응이 없는 블록" 이 된다.
             여백에 놓아도 취소되지 않도록 preventDefault 는 항상 건다.
           */
-            onDragOverCapture={(event) => {
-              // 블록 드래그가 아닐 때(예: 바탕화면 파일)는 손대지 않는다
-              if (draggingId === null) return;
+              onDragOverCapture={(event) => {
+                // 블록 드래그가 아닐 때(예: 바탕화면 파일)는 손대지 않는다
+                if (draggingId === null) return;
 
-              // 여백에 놓아도 취소되지 않도록 항상 건다
-              event.preventDefault();
+                // 여백에 놓아도 취소되지 않도록 항상 건다
+                event.preventDefault();
 
-              const target = readDropTarget(event.target);
-              if (target) drag.hover(target.blockId, target.mode);
-            }}
-            onDropCapture={(event) => {
-              if (draggingId === null) return;
+                const target = readDropTarget(event.target);
+                if (target) drag.hover(target.blockId, target.mode);
+              }}
+              onDropCapture={(event) => {
+                if (draggingId === null) return;
 
-              event.preventDefault();
-              drag.finish();
-            }}
-          >
-            {/*
+                event.preventDefault();
+                drag.finish();
+              }}
+            >
+              {/*
             행 단위로 훑되 **평평한 배열 하나**로 내보낸다 (Fragment 로 묶지 않는다).
             빈 칸 안내는 행의 마지막 블록 뒤에 꽂아 grid 가 남은 칸에 배치하게 둔다.
           */}
-            {rows.flatMap((row, rowIndex) => {
-              const cells = row.map((block) => (
-                <div
-                  key={block.blockId}
-                  ref={slide.register(block.blockId)}
-                  data-drop-block={block.blockId}
-                  // 겨누는 중 — 자리를 내주기 직전이라는 신호
-                  className={`min-w-0 rounded-lg ${
-                    COL_SPAN_CLASS[toSpan(block.colSpan)]
-                  } ${
-                    aimingId === block.blockId
-                      ? 'ring-2 ring-border-primary/40 ring-offset-2'
-                      : ''
-                  }`}
-                >
-                  <BlockBody
-                    block={block}
-                    autoEdit={block.blockId === autoEditBlockId}
-                  />
-                </div>
-              ));
+              {rows.flatMap((row, rowIndex) => {
+                const cells = row.map((block) => (
+                  <div
+                    key={block.blockId}
+                    ref={slide.register(block.blockId)}
+                    data-drop-block={block.blockId}
+                    // 겨누는 중 — 자리를 내주기 직전이라는 신호
+                    className={`min-w-0 rounded-lg ${
+                      COL_SPAN_CLASS[toSpan(block.colSpan)]
+                    } ${
+                      aimingId === block.blockId
+                        ? 'ring-2 ring-border-primary/40 ring-offset-2'
+                        : ''
+                    }`}
+                  >
+                    <BlockBody
+                      block={block}
+                      autoEdit={block.blockId === autoEditBlockId}
+                    />
+                  </div>
+                ));
 
-              const free = BLOCK_COLUMNS - usedColumns(row);
-              const rowLast = row[row.length - 1];
+                const free = BLOCK_COLUMNS - usedColumns(row);
+                const rowLast = row[row.length - 1];
 
-              // 마지막 행의 빈 칸은 아래 꼬리 자리와 뜻이 같다 — 둘 다 켜지면 어디로 갈지 헷갈린다
-              if (isDragging && free > 0 && rowIndex < rows.length - 1) {
-                cells.push(
-                  <DropSlot
-                    key={`slot-${rowIndex}`}
-                    span={free}
-                    afterBlockId={rowLast.blockId}
-                    isActive={activeSlot === rowLast.blockId}
-                  />,
-                );
-              }
+                // 마지막 행의 빈 칸은 아래 꼬리 자리와 뜻이 같다 — 둘 다 켜지면 어디로 갈지 헷갈린다
+                if (isDragging && free > 0 && rowIndex < rows.length - 1) {
+                  cells.push(
+                    <DropSlot
+                      key={`slot-${rowIndex}`}
+                      span={free}
+                      afterBlockId={rowLast.blockId}
+                      isActive={activeSlot === rowLast.blockId}
+                    />,
+                  );
+                }
 
-              return cells;
-            })}
+                return cells;
+              })}
 
-            {needsTailSlot && lastRow && (
-              <DropSlot
-                key="slot-tail"
-                span={BLOCK_COLUMNS}
-                label="맨 뒤로 보내기"
-                afterBlockId={lastRow[lastRow.length - 1].blockId}
-                isActive={activeSlot === lastRow[lastRow.length - 1].blockId}
-              />
-            )}
+              {needsTailSlot && lastRow && (
+                <DropSlot
+                  key="slot-tail"
+                  span={BLOCK_COLUMNS}
+                  label="맨 뒤로 보내기"
+                  afterBlockId={lastRow[lastRow.length - 1].blockId}
+                  isActive={activeSlot === lastRow[lastRow.length - 1].blockId}
+                />
+              )}
+            </div>
           </div>
-        </div>
-      </BlockDragProvider>
+        </BlockDragProvider>
+      </ResignedOwnersProvider>
     </BlockActionsProvider>
   );
 }

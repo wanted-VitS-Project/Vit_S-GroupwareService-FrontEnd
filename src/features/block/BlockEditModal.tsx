@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import MemberAvatar from '@/components/MemberAvatar';
 import Modal from '@/components/Modal';
+import PersonNote from '@/components/PersonNote';
 import { getProjectMembers } from '@/features/project/api';
 import type { ProjectMember } from '@/features/project/types';
 import { ApiError, messageOf } from '@/lib/api';
@@ -120,9 +121,29 @@ export default function BlockEditModal({
     }
   }
 
-  /** 담당자는 한 명이라 고른 사람은 칩으로, 나머지는 후보 버튼으로 나눈다 */
+  /**
+   * 담당자는 한 명이라 고른 사람은 칩으로, 나머지는 후보 버튼으로 나눈다.
+   *
+   * ⚠️ 지금 담당자가 **참여자 목록에 없을 수 있다** — 사원이 삭제됐거나(D-6) 권한이 회수된 경우다.
+   *    그대로 두면 칩이 사라져 `담당자 없음` 으로 오해하니, 블록 응답의 이름으로 대신 그린다.
+   *    (담당자를 **바꿀 때만** 후보에서 빠질 뿐, 지금 값은 지우지 않는다)
+   */
   const selectedMember = members.find((member) => member.userId === owner);
+  const selected =
+    selectedMember ??
+    (owner && block.owner?.userId === owner
+      ? { userId: owner, name: block.owner.name }
+      : null);
+  /** 삭제된 사원은 후보에 나오지 않는다 — 목록 자체에서 빠진다 */
   const candidates = members.filter((member) => member.userId !== owner);
+  /**
+   * 칩에 `(퇴사자)` 를 붙일지.
+   * 근거가 둘이다 — 블록 응답의 `owner.deleted`(사원 데이터 삭제) · 참여자 목록의 `resigned`(퇴사).
+   * 사용자에게는 "재직 중이 아니다" 하나로 읽히면 되므로 둘을 합쳐 같은 문구를 쓴다.
+   */
+  const isSelectedResigned =
+    (block.owner?.userId === owner && block.owner.deleted) ||
+    selectedMember?.resigned === true;
 
   /**
    * 담당자를 고르거나 해제하면 방금 누른 버튼이 사라진다.
@@ -202,25 +223,29 @@ export default function BlockEditModal({
               담당자
             </span>
             <div className="flex min-h-[40px] flex-wrap items-center gap-1.5 rounded-lg border border-border-default bg-bg-surface p-2.5">
-              {selectedMember ? (
+              {selected ? (
                 <span className="flex items-center gap-1 rounded-pill border border-border-default bg-bg-card px-2 py-0.5">
                   <MemberAvatar
-                    userId={selectedMember.userId}
-                    name={selectedMember.name}
+                    userId={selected.userId}
+                    name={selected.name}
                     size="xs"
                     decorative
+                    resigned={isSelectedResigned}
                   />
-                  <span className="text-caption font-medium text-text-primary">
-                    {selectedMember.name}
+                  <span className="flex items-center gap-0.5">
+                    <span className="text-caption font-medium text-text-primary">
+                      {selected.name}
+                    </span>
+                    {isSelectedResigned && <PersonNote />}
                   </span>
                   <button
                     type="button"
                     ref={releaseButtonRef}
-                    aria-label={`${selectedMember.name} 해제`}
+                    aria-label={`${selected.name} 해제`}
                     disabled={isSubmitting}
                     onClick={() => {
                       // 해제하면 이 버튼이 사라진다 — 다시 나타날 후보 버튼으로 초점을 넘긴다
-                      releasedUserId.current = selectedMember.userId;
+                      releasedUserId.current = selected.userId;
                       focusAfterRender.current = 'candidate';
                       setOwner('');
                     }}
@@ -263,16 +288,18 @@ export default function BlockEditModal({
                       focusAfterRender.current = 'chip';
                       setOwner(member.userId);
                     }}
-                    title={`${member.name}${member.department ? ` · ${member.department}` : ''}${member.resigned ? ' · 퇴사' : ''}`}
-                    className="flex cursor-pointer items-center gap-1 rounded-button-md px-1.5 py-0.5 text-caption text-text-secondary hover:bg-bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                    title={`${member.name}${member.department ? ` · ${member.department}` : ''}${member.resigned ? ' · 퇴사자' : ''}`}
+                    className="flex cursor-pointer items-center gap-0.5 rounded-button-md px-1.5 py-0.5 text-caption text-text-secondary hover:bg-bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <MemberAvatar
                       userId={member.userId}
                       name={member.name}
                       size="xs"
                       decorative
+                      resigned={member.resigned}
                     />
-                    {member.name}
+                    <span className="ml-0.5">{member.name}</span>
+                    {member.resigned && <PersonNote />}
                   </button>
                 ))
               )}
