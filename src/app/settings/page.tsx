@@ -71,17 +71,17 @@ const SECTIONS: { title: string; items: SettingItem[] }[] = [
 export default function Page() {
   return (
     <>
-      <p className="text-xs text-text-secondary">전사 관리</p>
+      <p className="text-label text-text-secondary">전사 관리</p>
       <PageTitle title="전사 관리" />
 
       <div className="space-y-8">
         {SECTIONS.map((section) => (
           <section key={section.title}>
-            <h3 className="mb-2 px-1 text-xs font-medium text-text-secondary">
+            <h3 className="mb-2 px-1 text-label font-medium text-text-secondary">
               {section.title}
             </h3>
 
-            <div className="divide-y divide-border-default overflow-hidden rounded-xl border border-border-default bg-white">
+            <div className="divide-y divide-border-default overflow-hidden rounded-base border border-border-default bg-bg-card">
               {section.items.map((item) => (
                 <SettingRow key={item.label} item={item} />
               ))}
@@ -100,10 +100,10 @@ function SettingRow({ item }: { item: SettingItem }) {
         <SettingIconMark icon={item.icon} />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-bold text-text-primary">
+        <span className="block text-body-m font-bold text-text-primary">
           {item.label}
         </span>
-        <span className="mt-0.5 block text-xs break-keep text-text-secondary">
+        <span className="mt-0.5 block text-label break-keep text-text-secondary">
           {item.description}
         </span>
       </span>
@@ -115,7 +115,7 @@ function SettingRow({ item }: { item: SettingItem }) {
     return (
       <div className="flex items-center gap-4 px-5 py-4 opacity-60">
         {content}
-        <span className="shrink-0 rounded bg-bg-hover px-2 py-0.5 text-[10px] text-text-secondary">
+        <span className="shrink-0 rounded-button-sm bg-bg-hover px-2 py-0.5 text-caption text-text-secondary">
           준비 중
         </span>
       </div>

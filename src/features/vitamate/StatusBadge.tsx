@@ -29,7 +29,7 @@ export default function StatusBadge({ status }: { status: AnalysisStatus }) {
 
   return (
     <span
-      className={`shrink-0 rounded border px-1.5 py-px text-[9px] font-semibold ${className}`}
+      className={`shrink-0 rounded-button-sm border px-1.5 py-px text-[9px] font-semibold ${className}`}
     >
       {label}
     </span>

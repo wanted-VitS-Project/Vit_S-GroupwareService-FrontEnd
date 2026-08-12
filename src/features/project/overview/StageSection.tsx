@@ -24,10 +24,10 @@ export default function StageSection({
   return (
     <section className="flex flex-col gap-2">
       <div className="flex items-center gap-2 px-1">
-        <h3 className="text-xs font-semibold tracking-[0.9px] text-text-secondary uppercase">
+        <h3 className="text-label font-semibold tracking-[0.9px] text-text-secondary uppercase">
           {name}
         </h3>
-        <span className="text-[10px] text-text-secondary">
+        <span className="text-caption text-text-secondary">
           {count}
           {countLabel}
         </span>

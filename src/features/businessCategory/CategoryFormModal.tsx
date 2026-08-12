@@ -161,7 +161,7 @@ export default function CategoryFormModal({
         <ModalFooter>
           <p
             role={error ? 'alert' : undefined}
-            className="mr-auto text-[10px] break-keep text-text-danger"
+            className="mr-auto text-caption break-keep text-text-danger"
           >
             {error}
           </p>
@@ -177,7 +177,7 @@ export default function CategoryFormModal({
             <button
               type="submit"
               disabled={!canSubmit}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
             >
               {isSubmitting ? '저장 중…' : isEditing ? '저장' : '추가'}
             </button>
@@ -227,7 +227,7 @@ function Field({
             <span className="font-normal text-text-secondary">(선택)</span>
           )}
         </label>
-        <span className="text-[10px] text-text-secondary">
+        <span className="text-caption text-text-secondary">
           {value.length} / {maxLength}
         </span>
       </div>
@@ -250,13 +250,16 @@ function Field({
         <p
           id={`${id}-error`}
           role="alert"
-          className="mt-1 text-[10px] break-keep text-text-danger"
+          className="mt-1 text-caption break-keep text-text-danger"
         >
           {error}
         </p>
       ) : (
         help && (
-          <p id={`${id}-help`} className="mt-1 text-[10px] text-text-secondary">
+          <p
+            id={`${id}-help`}
+            className="mt-1 text-caption text-text-secondary"
+          >
             {help}
           </p>
         )

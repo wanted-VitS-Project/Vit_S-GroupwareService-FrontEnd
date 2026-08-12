@@ -24,7 +24,7 @@ export function ActivityLogSkeleton() {
                   <div className="mb-1.5 flex items-center gap-1.5">
                     <Skeleton shape="circle" className="size-5" />
                     <Skeleton className="h-3 w-12" />
-                    <Skeleton className="h-4 w-28 rounded" />
+                    <Skeleton className="h-4 w-28 rounded-button-sm" />
                   </div>
                   <Skeleton className="h-7 w-full" />
                 </div>

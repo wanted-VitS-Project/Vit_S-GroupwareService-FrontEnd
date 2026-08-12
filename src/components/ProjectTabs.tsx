@@ -39,7 +39,7 @@ export default function ProjectTabs() {
       aria-label="프로젝트 화면"
       // 사이드바 '홈으로 돌아가기' 줄과 같은 높이(h-13)로 맞춘다.
       // 위 10px 을 비워 탭 자체는 42px 이 된다 (시안)
-      className="h-13 shrink-0 border-b border-border-default bg-white px-4 pt-2.5"
+      className="h-13 shrink-0 border-b border-border-default bg-bg-card px-4 pt-2.5"
     >
       <ul className="flex h-full items-stretch">
         {TABS.map((tab) => {
@@ -52,7 +52,7 @@ export default function ProjectTabs() {
               <Link
                 href={href}
                 aria-current={isActive ? 'page' : undefined}
-                className={`flex items-center gap-1.5 border-b-2 px-3 text-base font-medium ${
+                className={`flex items-center gap-1.5 border-b-2 px-3 text-body-l font-medium ${
                   isActive
                     ? 'border-border-primary text-text-primary-blue'
                     : 'border-transparent text-text-secondary hover:text-text-primary'

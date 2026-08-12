@@ -137,7 +137,7 @@ export default function ProjectIssues() {
   if (hasFailed) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border-default px-4 py-12">
-        <p className="text-xs text-text-secondary">
+        <p className="text-label text-text-secondary">
           이슈를 불러오지 못했습니다.
         </p>
         <button
@@ -146,7 +146,7 @@ export default function ProjectIssues() {
             setFailedProjectId(null);
             setReloadCount((count) => count + 1);
           }}
-          className="cursor-pointer rounded px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+          className="cursor-pointer rounded-button-sm px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
         >
           다시 시도
         </button>
@@ -163,14 +163,14 @@ export default function ProjectIssues() {
     <div className="flex flex-col gap-4">
       <section
         aria-label="프로젝트 전체 진척도"
-        className="flex flex-col gap-3 rounded-xl border border-border-default bg-white p-4"
+        className="flex flex-col gap-3 rounded-base border border-border-default bg-bg-card p-4"
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-text-primary">
+            <h2 className="text-body-m font-semibold text-text-primary">
               전체 일정
             </h2>
-            <span className="rounded-full bg-bg-hover px-2 py-0.5 text-[10px] text-text-secondary">
+            <span className="rounded-pill bg-bg-hover px-2 py-0.5 text-caption text-text-secondary">
               총 {progress.totalIssueCount}건
             </span>
           </div>
@@ -179,7 +179,7 @@ export default function ProjectIssues() {
 
         <div className="flex items-center gap-2.5">
           <IssueProgressBar progress={progress} className="h-2 flex-1" />
-          <span className="w-9 shrink-0 text-right text-xs font-medium text-text-primary-blue">
+          <span className="w-9 shrink-0 text-right text-label font-medium text-text-primary-blue">
             {/* 이슈가 없으면 `null` 이 온다 — 0% 로 그리면 '다 못 끝냈다' 로 읽힌다 */}
             {progress.progressRate === null ? '—' : `${progress.progressRate}%`}
           </span>
@@ -187,13 +187,13 @@ export default function ProjectIssues() {
       </section>
 
       {steps.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border-default px-4 py-12 text-center text-xs text-text-secondary">
+        <p className="rounded-lg border border-dashed border-border-default px-4 py-12 text-center text-label text-text-secondary">
           등록된 스텝이 없습니다.
         </p>
       ) : (
         <>
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[10px] text-text-secondary">
+            <p className="text-caption text-text-secondary">
               스텝 {steps.length}개 · 머리를 눌러 접거나 펼칩니다
             </p>
             <button
@@ -205,7 +205,7 @@ export default function ProjectIssues() {
                     : new Set(steps.map((step) => step.stepId)),
                 )
               }
-              className="cursor-pointer rounded px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+              className="cursor-pointer rounded-button-sm px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
             >
               {areAllOpen ? '모두 접기' : '모두 펼치기'}
             </button>
@@ -285,7 +285,7 @@ const StepAccordion = memo(function StepAccordion({
   );
 
   return (
-    <section className="overflow-hidden rounded-xl border border-border-default bg-white">
+    <section className="overflow-hidden rounded-base border border-border-default bg-bg-card">
       <div className="flex items-center gap-3 px-4 py-3">
         <button
           type="button"
@@ -301,7 +301,7 @@ const StepAccordion = memo(function StepAccordion({
           >
             {step.stepName}
           </span>
-          <span className="shrink-0 rounded-full bg-bg-hover px-2 py-0.5 text-[10px] text-text-secondary">
+          <span className="shrink-0 rounded-pill bg-bg-hover px-2 py-0.5 text-caption text-text-secondary">
             {step.doneIssueCount}/{step.totalIssueCount}
           </span>
         </button>
@@ -323,7 +323,7 @@ const StepAccordion = memo(function StepAccordion({
         {/* 이 화면은 조회 전용이다 — 고치려면 스텝 일정 화면으로 넘어간다 */}
         <Link
           href={`/projects/${projectId}/steps/${step.stepId}/issue`}
-          className="shrink-0 rounded px-2 py-1 text-[11px] font-medium text-text-secondary hover:bg-bg-surface hover:text-text-primary-blue"
+          className="shrink-0 rounded-button-sm px-2 py-1 text-[11px] font-medium text-text-secondary hover:bg-bg-surface hover:text-text-primary-blue"
         >
           일정 열기
         </Link>
@@ -351,12 +351,12 @@ const StepAccordion = memo(function StepAccordion({
                 <section key={status} aria-label={ISSUE_STATUS_LABELS[status]}>
                   <div className="mb-2.5 flex items-center gap-2">
                     <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold ${badge}`}
+                      className={`inline-flex items-center gap-1.5 rounded-pill px-2 py-0.5 text-caption font-semibold ${badge}`}
                     >
-                      <span className={`size-1.5 rounded-full ${dot}`} />
+                      <span className={`size-1.5 rounded-pill ${dot}`} />
                       {ISSUE_STATUS_LABELS[status]}
                     </span>
-                    <span className="text-[10px] text-text-secondary">
+                    <span className="text-caption text-text-secondary">
                       {columnIssues.length}
                     </span>
                   </div>
@@ -370,7 +370,7 @@ const StepAccordion = memo(function StepAccordion({
                   </ul>
 
                   {columnIssues.length === 0 && (
-                    <p className="rounded-lg border border-dashed border-border-default px-3 py-6 text-center text-[10px] text-text-secondary">
+                    <p className="rounded-lg border border-dashed border-border-default px-3 py-6 text-center text-caption text-text-secondary">
                       이슈가 없습니다.
                     </p>
                   )}
@@ -404,7 +404,7 @@ const IssueRow = memo(function IssueRow({
       onFocus={() => void loadIssueDetailModal()}
       onClick={() => onOpen(issue.issueId)}
       aria-label={`${issue.title} 이슈 상세 보기`}
-      className="h-full w-full cursor-pointer rounded-lg border border-border-default bg-white p-3 text-left transition-[border-color,box-shadow] hover:border-border-primary/30 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-primary"
+      className="h-full w-full cursor-pointer rounded-lg border border-border-default bg-bg-card p-3 text-left transition-[border-color,box-shadow] hover:border-border-primary/30 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-primary"
     >
       <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
         <IssuePriorityBadge priority={issue.priority} />

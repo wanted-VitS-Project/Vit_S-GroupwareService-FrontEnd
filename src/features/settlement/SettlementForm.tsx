@@ -17,7 +17,7 @@ import {
 } from './types';
 
 const FIELD_CLASS =
-  'w-full rounded-lg border border-border-default bg-bg-surface px-2.5 py-1.5 text-[10px] text-text-primary placeholder:text-text-placeholder focus:outline-2 focus:outline-offset-2 focus:outline-border-primary';
+  'w-full rounded-lg border border-border-default bg-bg-surface px-2.5 py-1.5 text-caption text-text-primary placeholder:text-text-placeholder focus:outline-2 focus:outline-offset-2 focus:outline-border-primary';
 
 const TYPES: SettlementType[] = ['INCOME', 'OUTCOME'];
 
@@ -184,7 +184,7 @@ export default function SettlementForm({
               setRevertNotice('');
               setType(value);
             }}
-            className={`flex-1 cursor-pointer rounded-lg border py-1.5 text-[10px] font-semibold ${
+            className={`flex-1 cursor-pointer rounded-lg border py-1.5 text-caption font-semibold ${
               value === type
                 ? 'border-border-primary bg-btn-primary/5 text-text-primary-blue'
                 : 'border-border-default text-text-secondary hover:bg-bg-hover'
@@ -196,14 +196,14 @@ export default function SettlementForm({
       </div>
 
       {type === null && (
-        <p className="text-[10px] break-keep text-text-secondary">
+        <p className="text-caption break-keep text-text-secondary">
           입금 · 출금을 고르면 추천 회차와 금액을 불러옵니다.
         </p>
       )}
 
       {/* 탭이 저절로 되돌아간 이유 — 조회가 성공해도 지우지 않는다 */}
       {revertNotice !== '' && (
-        <p role="status" className="text-[10px] break-keep text-yellow-text">
+        <p role="status" className="text-caption break-keep text-yellow-text">
           {revertNotice}
         </p>
       )}
@@ -280,7 +280,7 @@ export default function SettlementForm({
       )}
 
       {error !== '' && (
-        <p role="alert" className="text-[10px] break-keep text-text-danger">
+        <p role="alert" className="text-caption break-keep text-text-danger">
           {error}
         </p>
       )}
@@ -337,7 +337,7 @@ function Field({
 }) {
   return (
     <label className="flex items-center gap-2">
-      <span className="w-20 shrink-0 text-[10px] text-text-secondary">
+      <span className="w-20 shrink-0 text-caption text-text-secondary">
         {label}
       </span>
       <span className="min-w-0 flex-1">

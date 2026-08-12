@@ -34,7 +34,7 @@ export default function SettlementBlock({ block }: { block: StepBlock }) {
   if (!detail) {
     return (
       <BlockCard block={block}>
-        <p className="text-[10px] break-keep text-text-secondary">
+        <p className="text-caption break-keep text-text-secondary">
           정산 정보를 불러올 수 없습니다. 블록을 다시 만들어주세요.
         </p>
       </BlockCard>
@@ -139,8 +139,8 @@ function Loaded({
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-2">
-      <dt className="shrink-0 text-[10px] text-text-secondary">{label}</dt>
-      <dd className="min-w-0 truncate text-[10px] font-medium text-text-primary">
+      <dt className="shrink-0 text-caption text-text-secondary">{label}</dt>
+      <dd className="min-w-0 truncate text-caption font-medium text-text-primary">
         {value}
       </dd>
     </div>
@@ -168,14 +168,14 @@ function Progress({ ratio }: { ratio: number }) {
   return (
     <div className="mt-3">
       <div className="flex items-baseline justify-between">
-        <span className="text-[10px] text-text-secondary">수급 진행률</span>
-        <span className="text-[10px] text-text-secondary">
+        <span className="text-caption text-text-secondary">수급 진행률</span>
+        <span className="text-caption text-text-secondary">
           {percent.toFixed(1)}%
         </span>
       </div>
-      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-bg-surface">
+      <div className="mt-1 h-1.5 overflow-hidden rounded-pill bg-bg-surface">
         <div
-          className="h-full rounded-full bg-btn-primary"
+          className="h-full rounded-pill bg-btn-primary"
           style={{ width: `${percent}%` }}
         />
       </div>

@@ -118,7 +118,7 @@ export default function RowMenu({
         onClick={toggle}
         aria-label={`${label} 관리`}
         aria-expanded={isOpen}
-        className="cursor-pointer rounded px-2 py-1 text-text-secondary hover:bg-bg-hover"
+        className="cursor-pointer rounded-button-sm px-2 py-1 text-text-secondary hover:bg-bg-hover"
       >
         ⋯
       </button>
@@ -129,7 +129,7 @@ export default function RowMenu({
             ref={menuRef}
             role="menu"
             style={{ top: position.top, left: position.left, width }}
-            className="fixed z-50 overflow-hidden rounded-lg border border-border-default bg-white py-1 shadow-lg"
+            className="fixed z-50 overflow-hidden rounded-lg border border-border-default bg-bg-card py-1 shadow-lg"
           >
             {items.map((item, index) => (
               <button

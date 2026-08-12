@@ -40,7 +40,7 @@ export default function ImageLightbox({
     <Modal
       title={image.caption || image.originalName || '이미지 크게 보기'}
       onClose={onClose}
-      className="flex max-h-[90vh] w-full max-w-[880px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
+      className="flex max-h-[90vh] w-full max-w-[880px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
       header={
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border-default px-5 py-3">
           <p className="min-w-0 truncate text-[11px] font-semibold text-text-primary">
@@ -50,7 +50,7 @@ export default function ImageLightbox({
             <button
               type="button"
               onClick={onDownload}
-              className="cursor-pointer rounded-lg px-2.5 py-1 text-[10px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+              className="cursor-pointer rounded-lg px-2.5 py-1 text-caption font-medium text-text-primary-blue hover:bg-blue-bg-soft"
             >
               다운로드
             </button>
@@ -107,11 +107,11 @@ export default function ImageLightbox({
 
       <div className="shrink-0 border-t border-border-default bg-bg-surface px-5 py-2 text-center">
         {errorMessage ? (
-          <p role="alert" className="text-[10px] break-keep text-text-danger">
+          <p role="alert" className="text-caption break-keep text-text-danger">
             {errorMessage}
           </p>
         ) : (
-          <p className="font-mono text-[10px] text-text-secondary">
+          <p className="font-mono text-caption text-text-secondary">
             {totalCount ? `${orderIndex} / ${totalCount}` : orderIndex}
           </p>
         )}
@@ -137,7 +137,7 @@ function NavButton({
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border-default bg-white text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-30"
+      className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-pill border border-border-default bg-bg-card text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-30"
     >
       {children}
     </button>

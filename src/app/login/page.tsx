@@ -39,7 +39,7 @@ function Field({ id, label, value, onChange, secret }: FieldProps) {
 
   return (
     <div className="space-y-2">
-      <label htmlFor={id} className="block text-sm font-bold">
+      <label htmlFor={id} className="block text-body-m font-bold">
         {label}
       </label>
       <div className="relative">
@@ -50,7 +50,7 @@ function Field({ id, label, value, onChange, secret }: FieldProps) {
           onChange={(event) => onChange(event.target.value)}
           placeholder={`${label} 입력`}
           autoComplete={secret ? 'current-password' : 'username'}
-          className="w-full border-b border-border-default py-2 pr-12 text-sm outline-none placeholder:text-text-muted focus:border-text-primary"
+          className="w-full border-b border-border-default py-2 pr-12 text-body-m outline-none placeholder:text-text-muted focus:border-text-primary"
         />
         {secret && (
           <PasswordVisibilityToggle
@@ -100,7 +100,7 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
       <div className="w-full max-w-md rounded-2xl border border-border-default px-10 py-12">
-        <h1 className="text-center text-xl font-bold">VitaS</h1>
+        <h1 className="text-center text-heading-l font-bold">VitaS</h1>
 
         <form onSubmit={handleSubmit} className="mt-10 space-y-6">
           <Field
@@ -118,20 +118,20 @@ export default function LoginPage() {
           />
 
           {/* min-h-10 — 에러가 떠도 버튼 위치가 흔들리지 않게 자리를 잡아둔다 */}
-          <p role="alert" className="min-h-10 text-sm text-text-danger">
+          <p role="alert" className="min-h-10 text-body-m text-text-danger">
             {error}
           </p>
 
           <button
             type="submit"
             disabled={!canSubmit}
-            className="w-full cursor-pointer rounded-lg bg-text-primary py-3.5 text-sm font-bold text-white transition-colors hover:bg-bg-sidebar-hover disabled:cursor-not-allowed disabled:bg-bg-hover-secondary"
+            className="w-full cursor-pointer rounded-lg bg-text-primary py-3.5 text-body-m font-bold text-text-white transition-colors hover:bg-bg-sidebar-hover disabled:cursor-not-allowed disabled:bg-bg-hover-secondary"
           >
             {isPending ? '로그인 중…' : '로그인'}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-text-secondary">
+        <p className="mt-6 text-center text-label text-text-secondary">
           계정 문의는 시스템 관리자에게 연락하세요.
         </p>
       </div>

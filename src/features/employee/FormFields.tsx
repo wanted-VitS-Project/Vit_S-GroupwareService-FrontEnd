@@ -47,7 +47,7 @@ function FieldShell({
         <p
           id={`${id}-error`}
           role="alert"
-          className="mt-1 text-[10px] break-keep text-text-danger"
+          className="mt-1 text-caption break-keep text-text-danger"
         >
           {error}
         </p>
@@ -55,7 +55,7 @@ function FieldShell({
         hint && (
           <p
             id={`${id}-hint`}
-            className="mt-1 text-[10px] break-keep text-text-secondary"
+            className="mt-1 text-caption break-keep text-text-secondary"
           >
             {hint}
           </p>

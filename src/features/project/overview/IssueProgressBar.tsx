@@ -34,11 +34,11 @@ export default function IssueProgressBar({
 
   // 이슈가 하나도 없으면 빈 바로 둔다 — 0% 로 그리면 '다 못 끝냈다' 로 읽힌다
   if (progress.totalIssueCount === 0) {
-    return <div className={`${className} rounded-full bg-btn-gray-bg-hover`} />;
+    return <div className={`${className} rounded-pill bg-btn-gray-bg-hover`} />;
   }
 
   return (
-    <div className={`${className} flex overflow-hidden rounded-full`}>
+    <div className={`${className} flex overflow-hidden rounded-pill`}>
       {/*
         0인 구간도 지우지 않고 폭 0으로 둔다 — DOM 에서 빼면 값이 바뀔 때
         막대가 끊겼다 나타나 깜빡인다. 비율만 부드럽게 전환한다. (사이드바와 같은 규칙)
@@ -95,7 +95,7 @@ function CountItem({
     <span className="flex items-center gap-1">
       <span
         aria-hidden
-        className={`size-2 shrink-0 rounded-full ${dotClass}`}
+        className={`size-2 shrink-0 rounded-pill ${dotClass}`}
       />
       <span className={textClass}>
         {label} {count}

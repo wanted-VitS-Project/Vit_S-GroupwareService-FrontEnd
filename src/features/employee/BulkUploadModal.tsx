@@ -177,7 +177,7 @@ export default function BulkUploadModal({
       onClose={isBusy ? undefined : onClose}
       // 검증 표를 훑다 바깥을 잘못 눌러 파일 선택부터 다시 하게 되면 곤란하다
       dismissOnBackdrop={false}
-      className="w-full max-w-[640px] rounded-xl p-8 shadow-lg"
+      className="w-full max-w-[640px] rounded-base p-8 shadow-lg"
     >
       <div className="mt-5">
         {step === 'pick' && (
@@ -204,7 +204,7 @@ export default function BulkUploadModal({
         {step === 'done' && result && <DoneStep result={result} />}
 
         {errorMessage && (
-          <p role="alert" className="mt-4 text-xs text-text-danger">
+          <p role="alert" className="mt-4 text-label text-text-danger">
             {errorMessage}
           </p>
         )}
@@ -325,10 +325,10 @@ function PickStep({
   return (
     <div className="flex flex-col gap-5">
       <section className="rounded-lg border border-border-default p-4">
-        <h3 className="text-sm font-semibold text-text-primary">
+        <h3 className="text-body-m font-semibold text-text-primary">
           1. 템플릿 내려받기
         </h3>
-        <p className="mt-1 text-xs break-keep text-text-secondary">
+        <p className="mt-1 text-label break-keep text-text-secondary">
           아래 8개 열로 되어 있습니다. 열을 지우거나 순서를 바꾸지 마세요.
         </p>
         <button
@@ -340,7 +340,7 @@ function PickStep({
           {busy === 'template' ? '내려받는 중…' : '템플릿 다운로드'}
         </button>
 
-        <table className="mt-4 w-full text-left text-xs">
+        <table className="mt-4 w-full text-left text-label">
           <thead>
             <tr className="text-text-secondary">
               <th scope="col" className="pb-1.5 font-medium">
@@ -372,13 +372,13 @@ function PickStep({
             ))}
           </tbody>
         </table>
-        <p className="mt-2 text-xs text-text-secondary">
+        <p className="mt-2 text-label text-text-secondary">
           <span className="text-text-danger">*</span> 는 필수 항목입니다.
         </p>
       </section>
 
       <section>
-        <h3 className="text-sm font-semibold text-text-primary">
+        <h3 className="text-body-m font-semibold text-text-primary">
           2. 작성한 파일 선택
         </h3>
 
@@ -416,7 +416,7 @@ function PickStep({
           {file ? '다른 파일 선택' : '파일 선택'}
         </label>
 
-        <p className="mt-2 text-xs text-text-secondary">
+        <p className="mt-2 text-label text-text-secondary">
           {file ? `선택됨 — ${file.name}` : '선택된 파일이 없습니다.'}
         </p>
       </section>
@@ -447,7 +447,7 @@ function ValidatedStep({
       />
 
       {validation.emailNotRegisteredCount > 0 && (
-        <p className="rounded-lg bg-bg-hover px-4 py-3 text-xs break-keep text-text-secondary">
+        <p className="rounded-lg bg-bg-hover px-4 py-3 text-label break-keep text-text-secondary">
           이메일이 없는 행이 {validation.emailNotRegisteredCount}건 있습니다.
           등록은 되지만 초기 비밀번호 메일이 발송되지 않습니다.
         </p>
@@ -457,13 +457,13 @@ function ValidatedStep({
         <>
           <RowErrorTable errors={validation.errors} />
           {/* 한 행에 오류가 여러 개여도 응답은 하나만 준다 (2026-08-10 실측) */}
-          <p className="text-xs break-keep text-text-secondary">
+          <p className="text-label break-keep text-text-secondary">
             한 행에 문제가 여러 개여도 사유는 하나씩만 표시됩니다. 고친 뒤 다시
             검증하면 남은 문제가 나타납니다.
           </p>
           {/* 정상 행이 없으면 켜든 끄든 등록될 게 없다 — 고를 이유가 없어 감춘다 */}
           {validation.validCount > 0 && (
-            <label className="flex cursor-pointer items-start gap-2 text-xs text-text-primary">
+            <label className="flex cursor-pointer items-start gap-2 text-label text-text-primary">
               <input
                 type="checkbox"
                 checked={skipErrors}
@@ -487,13 +487,13 @@ function ValidatedStep({
         "등록할 수 있다" 고 해놓고 버튼은 비활성인 화면이 된다.
       */}
       {validation.validCount === 0 ? (
-        <p className="text-xs break-keep text-text-secondary">
+        <p className="text-label break-keep text-text-secondary">
           등록할 수 있는 행이 없습니다. 파일을 채우거나 오류를 고친 뒤 다시
           검증해주세요.
         </p>
       ) : (
         validation.errorCount === 0 && (
-          <p className="text-xs text-text-secondary">
+          <p className="text-label text-text-secondary">
             오류가 없습니다. 그대로 등록할 수 있습니다.
           </p>
         )
@@ -514,20 +514,20 @@ function DoneStep({ result }: { result: BulkRegisterResult }) {
         ]}
       />
 
-      <p className="text-xs text-text-secondary">
+      <p className="text-label text-text-secondary">
         초기 비밀번호 메일 {result.emailSentCount}건 발송
       </p>
 
       {result.emailNotRegistered.length > 0 && (
         <div className="rounded-lg bg-bg-hover px-4 py-3">
-          <p className="text-xs font-semibold text-text-primary">
+          <p className="text-label font-semibold text-text-primary">
             이메일이 없어 발송하지 못한 사번 {result.emailNotRegistered.length}
             건
           </p>
-          <p className="mt-1 text-xs break-keep text-text-secondary">
+          <p className="mt-1 text-label break-keep text-text-secondary">
             {result.emailNotRegistered.join(' · ')}
           </p>
-          <p className="mt-1 text-xs break-keep text-text-secondary">
+          <p className="mt-1 text-label break-keep text-text-secondary">
             이메일을 등록한 뒤 비밀번호 재설정으로 발송할 수 있습니다.
           </p>
         </div>
@@ -550,9 +550,9 @@ function CountRow({
           key={item.label}
           className="flex-1 rounded-lg border border-border-default px-4 py-3"
         >
-          <dt className="text-xs text-text-secondary">{item.label}</dt>
+          <dt className="text-label text-text-secondary">{item.label}</dt>
           <dd
-            className={`mt-0.5 text-lg font-bold ${
+            className={`mt-0.5 text-heading-m font-bold ${
               item.isDanger && item.value > 0
                 ? 'text-text-danger'
                 : 'text-text-primary'
@@ -573,7 +573,7 @@ function CountRow({
 function RowErrorTable({ errors }: { errors: BulkRowError[] }) {
   return (
     <div className="max-h-60 overflow-auto rounded-lg border border-border-default">
-      <table className="w-full text-left text-xs">
+      <table className="w-full text-left text-label">
         <thead className="sticky top-0 bg-bg-hover">
           <tr className="text-text-secondary">
             <th scope="col" className="px-4 py-2.5 font-medium">

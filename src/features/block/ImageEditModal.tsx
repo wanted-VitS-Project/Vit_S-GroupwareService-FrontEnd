@@ -208,14 +208,14 @@ export default function ImageEditModal({
       <Modal
         title="이미지 수정"
         onClose={isSaving ? undefined : requestClose}
-        className="flex max-h-[85vh] w-full max-w-[480px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
+        className="flex max-h-[85vh] w-full max-w-[480px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
         header={
           <div className="flex shrink-0 items-center justify-between border-b border-border-default px-5 py-3.5">
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-text-primary">
+              <h2 className="text-body-m font-semibold text-text-primary">
                 이미지 수정
               </h2>
-              <span className="font-mono text-[10px] text-text-secondary">
+              <span className="font-mono text-caption text-text-secondary">
                 {remaining.length}장
               </span>
             </div>
@@ -231,7 +231,7 @@ export default function ImageEditModal({
           </div>
         }
       >
-        <p className="shrink-0 border-b border-border-default bg-bg-surface px-5 py-2 text-[10px] text-text-secondary">
+        <p className="shrink-0 border-b border-border-default bg-bg-surface px-5 py-2 text-caption text-text-secondary">
           순서를 바꾸려면 왼쪽 핸들을 드래그하세요
         </p>
 
@@ -245,7 +245,7 @@ export default function ImageEditModal({
               <button
                 type="button"
                 onClick={() => setRetryCount((count) => count + 1)}
-                className="cursor-pointer rounded-md border border-border-default px-2.5 py-1 text-[10px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+                className="cursor-pointer rounded-button-md border border-border-default px-2.5 py-1 text-caption font-medium text-text-primary-blue hover:bg-blue-bg-soft"
               >
                 다시 시도
               </button>
@@ -259,7 +259,7 @@ export default function ImageEditModal({
               {[0, 1, 2].map((row) => (
                 <div
                   key={row}
-                  className="h-[76px] animate-pulse rounded-xl bg-bg-surface"
+                  className="h-[76px] animate-pulse rounded-base bg-bg-surface"
                 />
               ))}
             </div>
@@ -288,7 +288,7 @@ export default function ImageEditModal({
                       setDraggingIndex(null);
                       setHoverIndex(null);
                     }}
-                    className={`flex gap-3 rounded-xl border p-2.5 ${
+                    className={`flex gap-3 rounded-base border p-2.5 ${
                       hoverIndex === index && draggingIndex !== index
                         ? 'border-border-primary/50 bg-blue-bg-soft'
                         : 'border-border-default'
@@ -302,8 +302,8 @@ export default function ImageEditModal({
                     >
                       {[0, 1, 2].map((row) => (
                         <span key={row} className="flex gap-0.5">
-                          <span className="size-1 rounded-full bg-current" />
-                          <span className="size-1 rounded-full bg-current" />
+                          <span className="size-1 rounded-pill bg-current" />
+                          <span className="size-1 rounded-pill bg-current" />
                         </span>
                       ))}
                     </span>
@@ -348,7 +348,7 @@ export default function ImageEditModal({
                             : [...previous, image.imgId],
                         )
                       }
-                      className={`shrink-0 cursor-pointer self-center rounded-md px-1.5 py-1 text-[10px] font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
+                      className={`shrink-0 cursor-pointer self-center rounded-button-md px-1.5 py-1 text-caption font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
                         isRemoved
                           ? 'text-text-primary-blue hover:bg-blue-bg-soft'
                           : 'text-text-secondary hover:bg-red-bg-soft hover:text-text-danger'
@@ -363,14 +363,14 @@ export default function ImageEditModal({
           )}
 
           {errorMessage && (
-            <p role="alert" className="mt-3 text-[10px] text-text-danger">
+            <p role="alert" className="mt-3 text-caption text-text-danger">
               {errorMessage}
             </p>
           )}
         </div>
 
         <div className="flex shrink-0 items-center justify-between gap-2 border-t border-border-default bg-bg-surface px-5 py-3.5">
-          <span className="text-[10px] text-text-secondary">
+          <span className="text-caption text-text-secondary">
             {removedIds.length > 0 && `저장 시 ${removedIds.length}장 삭제`}
           </span>
           <div className="flex gap-2">
@@ -386,7 +386,7 @@ export default function ImageEditModal({
               type="button"
               onClick={requestSave}
               disabled={isSaving || !images}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
             >
               {isSaving ? '저장 중…' : '저장'}
             </button>

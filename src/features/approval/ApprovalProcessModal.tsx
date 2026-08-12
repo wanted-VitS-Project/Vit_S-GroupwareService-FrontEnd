@@ -29,7 +29,7 @@ const COPY = {
     submit: '반려',
     busy: '반려 중…',
     placeholder: '반려 사유를 입력해주세요',
-    className: 'bg-red-text hover:bg-[#c60009]',
+    className: 'bg-red-text hover:bg-btn-danger-hover',
     failure: '반려하지 못했습니다.',
   },
 } as const;
@@ -96,12 +96,12 @@ export default function ApprovalProcessModal({
 
   return (
     <Modal title={copy.title} onClose={isBusy ? undefined : onClose}>
-      <p className="text-xs break-keep text-text-secondary">
+      <p className="text-label break-keep text-text-secondary">
         {copy.description}
       </p>
 
       <label className="mt-4 block">
-        <span className="mb-1 block text-xs font-semibold text-text-primary">
+        <span className="mb-1 block text-label font-semibold text-text-primary">
           결재 의견
           {/* 별표는 눈으로만 보인다 — 보조기술에는 아래 `aria-required` 로 전한다 */}
           {isOpinionRequired && (
@@ -116,7 +116,7 @@ export default function ApprovalProcessModal({
           placeholder={copy.placeholder}
           aria-required={isOpinionRequired}
           rows={4}
-          className="w-full resize-y rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-xs text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+          className="w-full resize-y rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-label text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
         />
       </label>
 
@@ -127,7 +127,7 @@ export default function ApprovalProcessModal({
           type="button"
           onClick={onClose}
           disabled={isBusy}
-          className="flex-1 cursor-pointer rounded-lg border border-border-default py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+          className="flex-1 cursor-pointer rounded-lg border border-border-default py-2 text-label font-semibold text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
         >
           취소
         </button>
@@ -135,7 +135,7 @@ export default function ApprovalProcessModal({
           type="button"
           onClick={submit}
           disabled={isBusy || (isOpinionRequired && isEmpty)}
-          className={`flex-1 cursor-pointer rounded-lg py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary ${copy.className}`}
+          className={`flex-1 cursor-pointer rounded-lg py-2 text-label font-semibold text-text-white disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary ${copy.className}`}
         >
           {isBusy ? copy.busy : copy.submit}
         </button>

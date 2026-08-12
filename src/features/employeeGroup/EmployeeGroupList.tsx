@@ -69,7 +69,7 @@ export default function EmployeeGroupList() {
 
   return (
     <>
-      <p className="text-xs text-text-secondary">
+      <p className="text-label text-text-secondary">
         <Link href="/settings" className="hover:text-text-primary">
           전사 관리
         </Link>{' '}
@@ -79,7 +79,7 @@ export default function EmployeeGroupList() {
       <div className="mt-2 mb-6 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <PageTitle title="그룹 관리" />
-          <p className="mt-1.5 text-xs break-keep text-text-secondary">
+          <p className="mt-1.5 text-label break-keep text-text-secondary">
             사원을 묶어두면 결재선 · 페이지 권한에서 한 번에 고를 수 있습니다.
             그룹 자체는 권한이 아닙니다.
           </p>
@@ -106,17 +106,17 @@ export default function EmployeeGroupList() {
           onChange={(event) => setKeywordInput(event.target.value)}
           placeholder="그룹명 검색"
           aria-label="그룹명 검색"
-          className="w-64 rounded-lg border border-border-default px-3 py-2 text-xs text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+          className="w-64 rounded-lg border border-border-default px-3 py-2 text-label text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
         />
         <button type="submit" className="btn btn-sm btn-gray-outlined">
           검색
         </button>
       </form>
 
-      <div className="overflow-hidden rounded-xl border border-border-default bg-white">
+      <div className="overflow-hidden rounded-base border border-border-default bg-bg-card">
         {hasFailed ? (
           <Centered>
-            <p className="text-xs text-text-secondary">
+            <p className="text-label text-text-secondary">
               그룹을 불러오지 못했습니다.
             </p>
             <button
@@ -129,18 +129,18 @@ export default function EmployeeGroupList() {
           </Centered>
         ) : groups === null ? (
           <Centered>
-            <p className="text-xs text-text-secondary">불러오는 중…</p>
+            <p className="text-label text-text-secondary">불러오는 중…</p>
           </Centered>
         ) : groups.length === 0 ? (
           <Centered>
-            <p className="text-xs break-keep text-text-secondary">
+            <p className="text-label break-keep text-text-secondary">
               {keyword
                 ? `'${keyword}' 와 일치하는 그룹이 없습니다.`
                 : '아직 만든 그룹이 없습니다.'}
             </p>
           </Centered>
         ) : (
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-label">
             <thead className="border-b border-border-default bg-bg-surface">
               <tr className="text-text-secondary">
                 <th scope="col" className="px-5 py-3 font-medium">

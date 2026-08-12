@@ -195,7 +195,7 @@ export default function TrashImages() {
   if (hasFailed) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border-default px-4 py-12">
-        <p className="text-xs text-text-secondary">
+        <p className="text-label text-text-secondary">
           휴지통을 불러오지 못했습니다.
         </p>
         <button
@@ -204,7 +204,7 @@ export default function TrashImages() {
             setFailedProjectId(null);
             setReloadCount((count) => count + 1);
           }}
-          className="cursor-pointer rounded px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+          className="cursor-pointer rounded-button-sm px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
         >
           다시 시도
         </button>
@@ -220,7 +220,7 @@ export default function TrashImages() {
   return (
     <div className="flex flex-col gap-3">
       {images.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border-default bg-white px-3 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border-default bg-bg-card px-3 py-2">
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -231,11 +231,11 @@ export default function TrashImages() {
                     : new Set(images.map((image) => image.imgId)),
                 )
               }
-              className="cursor-pointer rounded px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+              className="cursor-pointer rounded-button-sm px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
             >
               {areAllSelected ? '전체 해제' : '전체 선택'}
             </button>
-            <span className="text-[10px] text-text-secondary">
+            <span className="text-caption text-text-secondary">
               {selectedIds.size > 0
                 ? `${selectedIds.size}장 선택`
                 : '복구하거나 지울 이미지를 고르세요'}
@@ -247,7 +247,7 @@ export default function TrashImages() {
               type="button"
               onClick={restore}
               disabled={selectedIds.size === 0}
-              className="cursor-pointer rounded-md border border-border-primary px-2.5 py-1 text-[10px] font-medium text-text-primary-blue hover:bg-blue-bg-soft disabled:cursor-not-allowed disabled:opacity-40"
+              className="cursor-pointer rounded-button-md border border-border-primary px-2.5 py-1 text-caption font-medium text-text-primary-blue hover:bg-blue-bg-soft disabled:cursor-not-allowed disabled:opacity-40"
             >
               복구
             </button>
@@ -257,7 +257,7 @@ export default function TrashImages() {
               onFocus={() => void loadPermanentDeleteModal()}
               onClick={deleteModal.open}
               disabled={selectedIds.size === 0}
-              className="cursor-pointer rounded-md border border-red-border px-2.5 py-1 text-[10px] font-medium text-text-danger hover:bg-red-bg-soft disabled:cursor-not-allowed disabled:opacity-40"
+              className="cursor-pointer rounded-button-md border border-red-border px-2.5 py-1 text-caption font-medium text-text-danger hover:bg-red-bg-soft disabled:cursor-not-allowed disabled:opacity-40"
             >
               영구 삭제
             </button>
@@ -266,7 +266,7 @@ export default function TrashImages() {
       )}
 
       {images.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border-default px-4 py-12 text-center text-xs text-text-secondary">
+        <p className="rounded-lg border border-dashed border-border-default px-4 py-12 text-center text-label text-text-secondary">
           휴지통에 이미지가 없습니다.
         </p>
       ) : (
@@ -281,7 +281,7 @@ export default function TrashImages() {
                   체크박스만 눌러야 하면 목표가 작아 답답하다.
                 */}
                 <label
-                  className={`flex h-full cursor-pointer flex-col overflow-hidden rounded-xl border bg-white transition-colors ${
+                  className={`flex h-full cursor-pointer flex-col overflow-hidden rounded-base border bg-bg-card transition-colors ${
                     isSelected
                       ? 'border-border-primary ring-2 ring-border-primary/30'
                       : 'border-border-default hover:border-border-primary/40'
@@ -309,7 +309,7 @@ export default function TrashImages() {
 
                   {/* 캡션이 있든 없든 두 줄 자리를 잡아 둔다 — 그리드 행이 어긋나지 않게 */}
                   <span className="flex h-11 flex-col justify-center gap-0.5 px-2.5 py-1.5">
-                    <span className="truncate text-[10px] font-medium text-text-primary">
+                    <span className="truncate text-caption font-medium text-text-primary">
                       {image.caption || image.originalName}
                     </span>
                     <span className="font-mono text-[9px] text-text-secondary">

@@ -79,11 +79,11 @@ export default function DeleteCategoryModal({
     <PanelModal title={title} onClose={requestClose}>
       <div className="space-y-4 p-5">
         <div className="flex items-center gap-2 rounded-lg border border-border-default bg-bg-surface px-3 py-2.5">
-          <span className="min-w-0 truncate text-xs font-semibold text-text-primary">
+          <span className="min-w-0 truncate text-label font-semibold text-text-primary">
             {category.name}
           </span>
           {category.code && (
-            <span className="shrink-0 rounded border border-border-default bg-white px-1.5 py-0.5 font-mono text-[10px] text-text-secondary">
+            <span className="shrink-0 rounded-button-sm border border-border-default bg-bg-card px-1.5 py-0.5 font-mono text-caption text-text-secondary">
               {category.code}
             </span>
           )}
@@ -102,7 +102,7 @@ export default function DeleteCategoryModal({
         )}
 
         {error && (
-          <p role="alert" className="text-[10px] break-keep text-text-danger">
+          <p role="alert" className="text-caption break-keep text-text-danger">
             {error}
           </p>
         )}
@@ -114,7 +114,7 @@ export default function DeleteCategoryModal({
             <button
               type="button"
               onClick={onClose}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover"
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover"
             >
               확인
             </button>
@@ -132,7 +132,7 @@ export default function DeleteCategoryModal({
                 type="button"
                 onClick={handleDelete}
                 disabled={isSubmitting}
-                className="cursor-pointer rounded-lg bg-red-text px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#c50009] disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+                className="cursor-pointer rounded-lg bg-red-text px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-danger-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
               >
                 {isSubmitting ? '삭제 중…' : '삭제'}
               </button>

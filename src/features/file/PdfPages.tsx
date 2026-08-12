@@ -156,7 +156,7 @@ function LazyPage({
         추정 비율이 실제보다 작아도 캔버스가 잘리지 않게 하기 위해서다.
       */
       style={isRendered ? undefined : { minHeight: Math.round(width * ratio) }}
-      className="mb-4 overflow-hidden rounded border border-border-default bg-white shadow-sm last:mb-0"
+      className="mb-4 overflow-hidden rounded-button-sm border border-border-default bg-bg-card shadow-sm last:mb-0"
     >
       {isVisible && (
         <Page

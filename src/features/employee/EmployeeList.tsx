@@ -189,7 +189,7 @@ export default function EmployeeList() {
 
   return (
     <>
-      <p className="text-xs text-text-secondary">
+      <p className="text-label text-text-secondary">
         <Link
           href="/settings"
           className="hover:text-text-primary hover:underline"
@@ -201,8 +201,8 @@ export default function EmployeeList() {
 
       <div className="mt-2 mb-6 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-lg font-bold">사원 관리</h2>
-          <p className="mt-1.5 text-xs break-keep text-text-secondary">
+          <h2 className="text-heading-m font-bold">사원 관리</h2>
+          <p className="mt-1.5 text-label break-keep text-text-secondary">
             사원 정보와 계정 상태를 관리합니다. 등록하면 로그인 계정이 함께
             발급됩니다.
           </p>
@@ -241,12 +241,12 @@ export default function EmployeeList() {
             value={keywordInput}
             onChange={(event) => setKeywordInput(event.target.value)}
             placeholder="이름 · 사번 검색"
-            className="w-full rounded-lg border border-border-default py-2 pr-10 pl-3 text-xs text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+            className="w-full rounded-lg border border-border-default py-2 pr-10 pl-3 text-label text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
           />
           <button
             type="submit"
             aria-label="검색"
-            className="absolute top-1/2 right-1 flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-text-secondary hover:bg-bg-hover hover:text-text-primary"
+            className="absolute top-1/2 right-1 flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-hover hover:text-text-primary"
           >
             <SearchIcon />
           </button>
@@ -295,7 +295,7 @@ export default function EmployeeList() {
         </label>
 
         {hasDepartmentFailed && (
-          <span role="alert" className="text-[10px] text-text-danger">
+          <span role="alert" className="text-caption text-text-danger">
             부서 목록을 불러오지 못했습니다.{' '}
             <button
               type="button"
@@ -317,7 +317,7 @@ export default function EmployeeList() {
             <button
               type="button"
               onClick={() => setSelectedIds([])}
-              className="cursor-pointer rounded-lg px-3 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-white"
+              className="cursor-pointer rounded-lg px-3 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-card"
             >
               선택 해제
             </button>
@@ -332,10 +332,10 @@ export default function EmployeeList() {
         </div>
       )}
 
-      <div className="rounded-xl border border-border-default bg-white">
+      <div className="rounded-base border border-border-default bg-bg-card">
         {hasFailed ? (
           <Centered>
-            <p className="text-xs text-text-secondary">
+            <p className="text-label text-text-secondary">
               사원을 불러오지 못했습니다.
             </p>
             <button
@@ -351,10 +351,10 @@ export default function EmployeeList() {
         ) : rows.length === 0 ? (
           <Centered>
             <PeopleIcon />
-            <p className="text-sm font-bold text-text-primary">
+            <p className="text-body-m font-bold text-text-primary">
               조건에 맞는 사원이 없습니다
             </p>
-            <p className="text-xs break-keep text-text-secondary">
+            <p className="text-label break-keep text-text-secondary">
               검색어나 필터를 바꿔보세요
             </p>
           </Centered>
@@ -415,32 +415,32 @@ export default function EmployeeList() {
                           href={EMPLOYEE_ROUTES.detail(employee.userId)}
                           className="block min-w-0"
                         >
-                          <span className="block truncate text-xs font-bold text-text-primary group-hover:underline">
+                          <span className="block truncate text-label font-bold text-text-primary group-hover:underline">
                             {employee.name}
                           </span>
-                          <span className="mt-0.5 block truncate text-[10px] text-text-secondary">
+                          <span className="mt-0.5 block truncate text-caption text-text-secondary">
                             {employee.userId}
                           </span>
                         </Link>
                       </td>
                       <td className="px-4 py-3.5">
-                        <span className="block truncate text-xs text-text-primary">
+                        <span className="block truncate text-label text-text-primary">
                           {employee.departmentPath ?? '미지정'}
                         </span>
-                        <span className="mt-0.5 block truncate text-[10px] text-text-secondary">
+                        <span className="mt-0.5 block truncate text-caption text-text-secondary">
                           {employee.jobPositionName ?? '직급 없음'}
                         </span>
                       </td>
-                      <td className="px-4 py-3.5 text-xs text-text-secondary">
+                      <td className="px-4 py-3.5 text-label text-text-secondary">
                         {ROLE_LABELS[employee.role]}
                       </td>
                       <td className="px-4 py-3.5">
                         {employee.emailRegistered ? (
-                          <span className="block truncate text-xs text-text-secondary">
+                          <span className="block truncate text-label text-text-secondary">
                             {employee.email}
                           </span>
                         ) : (
-                          <span className="inline-block rounded bg-yellow-bg-soft px-1.5 py-0.5 text-[10px] font-medium text-yellow-text">
+                          <span className="inline-block rounded-button-sm bg-yellow-bg-soft px-1.5 py-0.5 text-caption font-medium text-yellow-text">
                             ⚠ 이메일 미등록 · 로그인 불가
                           </span>
                         )}
@@ -527,7 +527,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value || undefined)}
-        className="cursor-pointer rounded-lg border border-border-default px-2.5 py-2 text-xs text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+        className="cursor-pointer rounded-lg border border-border-default px-2.5 py-2 text-label text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
       >
         <option value="">{label} 전체</option>
         {options.map((option) => (

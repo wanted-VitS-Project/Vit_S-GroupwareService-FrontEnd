@@ -29,7 +29,7 @@ export default function ProjectImageLightbox({
     <Modal
       title={image.caption || image.originalName || '이미지 크게 보기'}
       onClose={onClose}
-      className="flex max-h-[90vh] w-full max-w-[880px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
+      className="flex max-h-[90vh] w-full max-w-[880px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
       header={
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border-default px-5 py-3">
           <p className="min-w-0 truncate text-[11px] font-semibold text-text-primary">
@@ -62,7 +62,7 @@ export default function ProjectImageLightbox({
       </div>
 
       <div className="shrink-0 border-t border-border-default bg-bg-surface px-5 py-2 text-center">
-        <p className="text-[10px] text-text-secondary">
+        <p className="text-caption text-text-secondary">
           {blockName?.stepName && `${blockName.stepName} · `}
           {blockName?.title?.trim() || `블록 #${image.imgBlockId}`} ·{' '}
           <span className="font-mono">{formatDate(image.createdAt)}</span>

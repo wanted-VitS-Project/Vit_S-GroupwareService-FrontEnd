@@ -71,8 +71,8 @@ export default function RoleChangeModal({
       <form onSubmit={handleSubmit}>
         <div className="space-y-4 p-5">
           <div className="rounded-lg border border-border-default bg-bg-surface px-3 py-2.5">
-            <span className="block text-[10px] text-text-secondary">대상</span>
-            <span className="mt-0.5 block truncate text-xs font-semibold text-text-primary">
+            <span className="block text-caption text-text-secondary">대상</span>
+            <span className="mt-0.5 block truncate text-label font-semibold text-text-primary">
               {employee.name} ({employee.userId})
             </span>
           </div>
@@ -113,7 +113,7 @@ export default function RoleChangeModal({
             ))}
           </fieldset>
 
-          <p className="text-[10px] break-keep text-text-secondary">
+          <p className="text-caption break-keep text-text-secondary">
             관리자 권한은 이 화면에서 부여할 수 없습니다.
           </p>
         </div>
@@ -122,7 +122,7 @@ export default function RoleChangeModal({
           {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}
           <p
             role="alert"
-            className="mr-auto text-[10px] break-keep text-text-danger"
+            className="mr-auto text-caption break-keep text-text-danger"
           >
             {error}
           </p>

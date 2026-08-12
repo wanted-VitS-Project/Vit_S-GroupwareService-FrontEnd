@@ -27,7 +27,7 @@ import {
 /** 섹션 제목 — 상세 모달에서만 쓰는 작은 라벨 */
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-[10px] font-semibold tracking-[0.5px] text-text-secondary uppercase">
+    <div className="text-caption font-semibold tracking-[0.5px] text-text-secondary uppercase">
       {children}
     </div>
   );
@@ -125,19 +125,19 @@ export default function IssueDetailModal({
             {issue ? (
               <>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[10px] text-text-secondary">
+                  <span className="text-caption text-text-secondary">
                     #{issue.issueId}
                   </span>
                   <IssueStatusBadge status={issue.status} />
                   <IssuePriorityBadge priority={issue.priority} withPrefix />
                   <OverdueBadge days={overdue} />
                 </div>
-                <h2 className="pt-1 text-base leading-snug font-semibold text-text-primary">
+                <h2 className="pt-1 text-body-l leading-snug font-semibold text-text-primary">
                   {issue.title}
                 </h2>
               </>
             ) : failure ? (
-              <h2 className="text-base font-semibold text-text-primary">
+              <h2 className="text-body-l font-semibold text-text-primary">
                 이슈 상세
               </h2>
             ) : (
@@ -181,7 +181,7 @@ export default function IssueDetailModal({
       <div className="min-h-0 flex-1 overflow-y-auto">
         {failure ? (
           <div className="flex flex-col items-center gap-3 px-6 py-12">
-            <p role="alert" className="text-xs text-text-danger">
+            <p role="alert" className="text-label text-text-danger">
               {failure}
             </p>
             <div className="flex items-center gap-2">
@@ -221,7 +221,7 @@ export default function IssueDetailModal({
                     {issue.content}
                   </p>
                 ) : (
-                  <p className="pt-2 text-xs text-text-muted italic">
+                  <p className="pt-2 text-label text-text-muted italic">
                     설명 없음
                   </p>
                 )}
@@ -270,7 +270,7 @@ export default function IssueDetailModal({
                     );
                   })}
                 </div>
-                <p className="pt-1.5 text-[10px] text-text-secondary">
+                <p className="pt-1.5 text-caption text-text-secondary">
                   상태는 보드에서 카드를 끌어 옮겨 변경합니다.
                 </p>
               </div>
@@ -278,7 +278,7 @@ export default function IssueDetailModal({
               <div>
                 <SectionLabel>연결된 블록</SectionLabel>
                 {issue.relatedBlocks.length === 0 ? (
-                  <p className="pt-2 text-xs text-text-secondary">
+                  <p className="pt-2 text-label text-text-secondary">
                     연결된 블록 없음
                   </p>
                 ) : (
@@ -321,7 +321,7 @@ export default function IssueDetailModal({
                           name={assignee.name}
                           decorative
                         />
-                        <span className="text-xs font-medium text-text-primary">
+                        <span className="text-label font-medium text-text-primary">
                           {assignee.name}
                         </span>
                       </div>
@@ -339,14 +339,14 @@ export default function IssueDetailModal({
 
               <div>
                 <SectionLabel>연결 블록</SectionLabel>
-                <p className="pt-2 text-xs font-medium text-text-primary">
+                <p className="pt-2 text-label font-medium text-text-primary">
                   {issue.relatedBlocks.length}개
                 </p>
               </div>
 
               <div>
                 <SectionLabel>이슈 ID</SectionLabel>
-                <p className="pt-2 text-xs font-medium text-text-primary">
+                <p className="pt-2 text-label font-medium text-text-primary">
                   #{issue.issueId}
                 </p>
               </div>
