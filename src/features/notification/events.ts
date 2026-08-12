@@ -39,6 +39,21 @@ export interface UnreadCountMessage {
   sentAt: number;
 }
 
+/** 안 읽은 개수 메시지인지 — 숫자 두 개가 제대로 들어왔는지만 본다 */
+function isUnreadCountMessage(data: unknown): data is UnreadCountMessage {
+  if (typeof data !== 'object' || data === null) return false;
+
+  const { unreadCount, sentAt } = data as Partial<UnreadCountMessage>;
+
+  return (
+    typeof unreadCount === 'number' &&
+    Number.isFinite(unreadCount) &&
+    unreadCount >= 0 &&
+    typeof sentAt === 'number' &&
+    Number.isFinite(sentAt)
+  );
+}
+
 function openChannel() {
   if (typeof window === 'undefined' || !('BroadcastChannel' in window)) {
     return null;
@@ -67,8 +82,14 @@ export function subscribeUnreadCount(
   const channel = openChannel();
 
   if (channel) {
-    channel.onmessage = (event: MessageEvent<UnreadCountMessage>) =>
-      listener(event.data);
+    /**
+     * ⚠️ `MessageEvent<T>` 는 **타입 주장일 뿐 런타임 검증이 아니다.**
+     * 같은 origin 의 다른 코드가 엉뚱한 값을 보내면 배지 숫자가 깨진다 —
+     * 모양을 확인한 메시지만 넘긴다.
+     */
+    channel.onmessage = (event: MessageEvent<unknown>) => {
+      if (isUnreadCountMessage(event.data)) listener(event.data);
+    };
   }
 
   return {

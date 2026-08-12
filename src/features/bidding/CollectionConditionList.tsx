@@ -98,8 +98,13 @@ export default function CollectionConditionList() {
   const toggleDialog = useModalTarget<CollectionCondition>();
   /** 활성 여부 보기 — 조건 목록 API 에 필터가 없어 받아온 뒤 화면에서 거른다 */
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>('ALL');
-  /** 토글 진행 중인 조건 — 연타로 요청이 겹치지 않게 막는다 */
-  const [togglingId, setTogglingId] = useState<number | null>(null);
+  /**
+   * 토글 진행 중인 조건들 — 연타로 요청이 겹치지 않게 막는다.
+   *
+   * ⚠️ **하나만 들면 안 된다.** 여러 조건을 동시에 토글할 수 있어서,
+   *    먼저 끝난 요청이 값을 비우면 아직 처리 중인 조건의 버튼이 다시 열린다.
+   */
+  const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
   /**
    * 토글 실패 메시지 — **조건별**로 들고 있는다.
    * 화면 위쪽에 하나만 띄우면 어느 조건에서 난 오류인지 알 수 없고, 다음 동작에도 남는다.
@@ -215,7 +220,7 @@ export default function CollectionConditionList() {
   async function toggleActive(condition: CollectionCondition) {
     const { conditionId } = condition;
 
-    setTogglingId(conditionId);
+    markToggling(conditionId, true);
     // 다시 시도할 때 지난 실패 문구가 남아 있으면 방금 또 실패한 것처럼 보인다
     clearToggleError(conditionId);
 
@@ -247,8 +252,17 @@ export default function CollectionConditionList() {
         [conditionId]: messageOf(error, '활성 여부를 바꾸지 못했어요.'),
       }));
     } finally {
-      setTogglingId(null);
+      markToggling(conditionId, false);
     }
+  }
+
+  function markToggling(conditionId: number, isBusy: boolean) {
+    setTogglingIds((prev) => {
+      const next = new Set(prev);
+      if (isBusy) next.add(conditionId);
+      else next.delete(conditionId);
+      return next;
+    });
   }
 
   function clearToggleError(conditionId: number) {
@@ -349,7 +363,7 @@ export default function CollectionConditionList() {
               key={condition.conditionId}
               condition={condition}
               state={runs[condition.conditionId]}
-              isToggling={togglingId === condition.conditionId}
+              isToggling={togglingIds.has(condition.conditionId)}
               toggleError={toggleErrors[condition.conditionId]}
               onRun={() => startRun(condition)}
               onEdit={() => formModal.open(condition)}

@@ -21,6 +21,17 @@ import { Skeleton, SkeletonGroup } from './Skeleton';
  * ⚠️ 색 · 글자 크기는 `globals.css` 토큰만 쓴다. 여기서 새 스타일을 만들지 않는다.
  */
 
+/**
+ * 로딩 폴백(`Suspense`)에서 쓰는 열 정의.
+ *
+ * 실제 화면의 열과 **폭 · 순서 · 스켈레톤 폭만** 맞추면 되므로 `cell` 을 요구하지 않는다.
+ * `DataTable` 에 `rows={null}` 로 넘기면 같은 껍데기가 나오고,
+ * 그래서 폴백이 실제 표로 바뀔 때 열이 튀지 않는다.
+ */
+export type DataTableSkeletonColumn = Omit<DataTableColumn<never>, 'cell'> & {
+  cell?: never;
+};
+
 export interface DataTableColumn<T> {
   /** React key 이자 개발 경고에 쓰는 식별자 */
   key: string;
@@ -44,10 +55,18 @@ export interface DataTableColumn<T> {
 }
 
 interface DataTableProps<T> {
-  columns: DataTableColumn<T>[];
+  /** 로딩만 그릴 때는 `cell` 없는 `DataTableSkeletonColumn[]` 도 받는다 */
+  columns: (DataTableColumn<T> | DataTableSkeletonColumn)[];
   /** `null` 이면 로딩으로 본다 — 빈 배열(`[]`)과 구분된다 */
   rows: T[] | null;
-  rowKey: (row: T) => string | number;
+  /**
+   * 행의 React key.
+   *
+   * ⚠️ 로딩만 그리는 **`Suspense` 폴백에서는 넘기지 않는다** — 폴백은 서버 컴포넌트에서
+   *    렌더되는데, 함수는 서버에서 클라이언트 컴포넌트로 넘어가지 못해 화면이 통째로 비어 버린다.
+   *    행이 없으면 key 도 필요 없으므로 선택 값으로 둔다.
+   */
+  rowKey?: (row: T) => string | number;
   /** 스크린리더용 표 설명. 로딩 안내 문구로도 쓴다 */
   caption: string;
   /** 열이 많아 좁은 화면에서 가로로 흘려야 하는 표 (예: `840`) */
@@ -162,10 +181,15 @@ export default function DataTable<T>({
 
   const body = (
     <div
-      // `maxHeight` 는 인라인으로 준다 — Tailwind 임의값(`max-h-[60vh]`)을 쓰면
-      // 호출부마다 문자열이 흩어지고 빌드 시점에 없는 값은 클래스가 생성되지 않는다
+      /**
+       * `maxHeight` 는 인라인으로 준다 — Tailwind 임의값(`max-h-[60vh]`)을 쓰면
+       * 호출부마다 문자열이 흩어지고 빌드 시점에 없는 값은 클래스가 생성되지 않는다.
+       *
+       * ⚠️ 축을 하나만 열면 `maxHeight` + `minWidth` 를 함께 준 표에서 **오른쪽 열이 잘린다.**
+       *    두 축을 모두 `auto` 로 두면 필요한 쪽만 스크롤바가 생긴다.
+       */
       style={maxHeight ? { maxHeight } : undefined}
-      className={maxHeight ? 'overflow-y-auto' : 'overflow-x-auto'}
+      className="overflow-auto"
     >
       <table
         style={minWidth ? { minWidth: `${minWidth}px` } : undefined}
@@ -211,7 +235,7 @@ export default function DataTable<T>({
               ))
             : rows.map((row, index) => (
                 <tr
-                  key={rowKey(row)}
+                  key={rowKey?.(row) ?? index}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
                   className={`group border-b border-border-default text-label last:border-b-0 hover:bg-bg-surface ${
                     onRowClick ? 'cursor-pointer' : ''
@@ -228,7 +252,7 @@ export default function DataTable<T>({
                       }
                       className={`px-5 py-3.5 ${ALIGN_CLASS[column.align ?? 'left']}`}
                     >
-                      {column.cell(row, index)}
+                      {column.cell?.(row, index)}
                     </td>
                   ))}
                 </tr>

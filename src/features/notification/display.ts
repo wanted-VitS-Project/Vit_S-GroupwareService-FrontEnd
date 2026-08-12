@@ -96,15 +96,16 @@ export function routeOf(target: NotificationTarget) {
 /**
  * `extra` 에서 ID 를 꺼낸다.
  *
- * ⚠️ 명세는 `Record<string, string>` 이지만 **실제로는 숫자가 온다.**
- *    둘 다 들어와도 경로가 깨지지 않게 숫자로 검사한 뒤 문자열로 돌려준다.
+ * ⚠️ 명세는 `Record<string, string>` 이지만 **실제로는 숫자가 온다.** 둘 다 받아들인다.
+ * ⚠️ **양의 정수만** 통과시킨다 — 공백 · 음수 · 소수 · 지수 표기(`1e3`)가 그대로 경로에
+ *    들어가면 없는 화면으로 보내게 된다. 통과한 값은 `String(숫자)` 로 정규화한다.
  */
 function pickId(
   extra: NotificationTarget['extra'],
   key: string,
 ): string | null {
-  const value = extra?.[key];
+  const parsed = Number(extra?.[key]);
 
-  if (value === undefined || value === null || value === '') return null;
-  return Number.isFinite(Number(value)) ? String(value) : null;
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) return null;
+  return String(parsed);
 }

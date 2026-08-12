@@ -465,7 +465,7 @@ export default function EmployeeList() {
         rowKey={(employee) => employee.userId}
         // 열이 7개라 좁은 화면에서만 표가 가로로 흐른다
         minWidth={960}
-        skeletonRows={20}
+        skeletonRows={PAGE_SIZE}
         errorMessage={hasFailed ? '사원을 불러오지 못했습니다.' : undefined}
         onRetry={reload}
         onRowClick={(employee) => openDetail(employee.userId)}

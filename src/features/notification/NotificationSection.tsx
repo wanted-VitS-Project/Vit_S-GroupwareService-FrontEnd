@@ -94,7 +94,7 @@ export default function NotificationSection({
 
       /**
        * 이동하든 말든 **읽음은 이미 됐다.** 알리지 않고 떠나면 헤더 배지가
-       * 다음 주기 조회(60초)까지 낡은 숫자를 물고 있는다.
+       * 다음 주기 조회(`NotificationBell` 의 `POLL_MS`)까지 낡은 숫자를 물고 있는다.
        */
       notifyNotificationChanged();
       if (route) router.push(route);
