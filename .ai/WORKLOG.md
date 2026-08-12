@@ -6,28 +6,138 @@
 
 ---
 
+## [2026-08-11] 입찰 수집 조건 운영 · 공고 직접 등록 ✅
+
+> 같은 브랜치(`feat/notices`)에서 아래 `입찰 공고 조회 — 목록 · 상세` 에 이어서 진행했다.
+> 그때 막혀 있던 **수집 실패가 해소돼** 목록 · 상세도 실데이터로 검증됐다.
+
+### 변경 파일
+
+| 파일                                                    | 변경                                               |
+| ------------------------------------------------------- | -------------------------------------------------- |
+| `src/features/bidding/CollectionConditionList.tsx`      | 생성                                               |
+| `src/features/bidding/CollectionConditionFormModal.tsx` | 생성                                               |
+| `src/features/bidding/collectionDisplay.ts`             | 생성                                               |
+| `src/features/bidding/NoticeCreateForm.tsx`             | 생성                                               |
+| `src/features/bidding/FormFields.tsx`                   | 생성                                               |
+| `src/features/bidding/regions.ts`                       | 생성                                               |
+| `src/app/notices/conditions/page.tsx`                   | 생성                                               |
+| `src/app/notices/new/page.tsx`                          | 생성                                               |
+| `src/features/bidding/api.ts`                           | 수정 (수집 조건 · 실행 · 공고 등록/수정 7개 추가)  |
+| `src/features/bidding/types.ts`                         | 수정 (수집 조건 · 실행 · 등록 본문 타입)           |
+| `src/features/bidding/routes.ts`                        | 수정 (`create` · `conditions`)                     |
+| `src/features/bidding/display.ts`                       | 수정 (배지 색을 `.badge-*` 로)                     |
+| `src/features/bidding/NoticeBadges.tsx`                 | 수정 (공용 `.badge` 사용)                          |
+| `src/features/bidding/NoticeList.tsx`                   | 수정 (표 · 필터 정리, 액션 버튼)                   |
+| `src/features/bidding/NoticeDetail.tsx`                 | 수정 (버튼을 `.btn` 으로)                          |
+| `src/components/bidding/NoticeSkeletons.tsx`            | 수정 (열 구성 동기화)                              |
+| `src/constants/endpoints.ts`                            | 수정 (`bidding` 수집 API 4개)                      |
+| `.ai/API.md`                                            | 수정 (수집 호출 순서 · 등록/수정 본문 · 응답 코드) |
+
+### 주요 작업 내용
+
+- **수집 조건 관리** (`/notices/conditions`) — 조건 카드 목록 · 등록/수정 모달 · 활성 토글 · 활성 여부 칩 필터
+- **수동 수집 E2E** — `지금 수집`(202) → `runId` 폴링(2초 · 최대 45회) → 결과 패널(전체 · 신규 · 갱신 · 건너뜀). 조건 등록부터 공고 목록 반영까지 실동작 확인
+- **공고 직접 등록** (`/notices/new`) — 5개 구획 19개 필드, 첨부는 URL 행 추가 방식, 등록 후 상세로 이동
+- **표기 정리** — 배지 · 버튼 · 입력 · 칩을 `globals.css` 공용 클래스(`.badge-*` · `.btn-*` · `.input` · `.tag-*`)로 통일, 안내 띠는 `AlertBanner` 하나로 통합
+
+### 트러블슈팅
+
+- **문제**: 자동 수집이 켜진 조건을 비활성화하면 `400 자동 수집 일정이 올바르지 않습니다`
+- **원인**: `isActive: false` 인데 `autoCollectionEnabled: true` 는 서버가 모순으로 본다 (비활성 조건이 스케줄로 돌 수 없다)
+- **해결**: 비활성으로 내릴 때 `autoCollectionEnabled` · 스케줄 3개를 함께 `null` 로 보낸다. 확인 다이얼로그에 "자동 수집도 꺼집니다" 를 명시
+
+- **문제**: 토글 실패 배너가 화면 위에 남아 사라지지 않고, 어느 조건에서 난 오류인지 알 수 없음
+- **원인**: 실패 메시지를 화면 단위 상태 하나로 들고 있었다
+- **해결**: **조건별**(`Record<conditionId, string>`)로 바꿔 카드 안에 표시. 닫기(✕) + 재시도 시 자동 제거
+
+- **문제**: 조건 모달의 둥근 모서리가 위아래 짝짝이
+- **원인**: `<dialog>` 패널 자체가 `overflow-y-auto` 라 스크롤바가 모서리를 잘라먹음
+- **해결**: 패널은 `flex flex-col`, **안쪽 필드 영역만** 스크롤. 제목 · 하단 버튼이 고정되는 부수 효과도 얻음
+
+- **문제**: `Date.now()` 로 폴링 시간을 재니 ESLint `react-hooks/purity` 위반
+- **해결**: 시계 대신 **시도 횟수**로 상한을 센다 (`MAX_POLLS`)
+
+### 부수 결정
+
+- **수정(`PATCH`)은 전체 교체다** — 한 값만 바꿔도 나머지를 다 실어야 해서 `toUpdateRequest()` 를 `api.ts` 에 두고 모든 부분 수정이 이걸 거치게 했다
+- **`scheduledTime` 포맷 비대칭** — 응답 `HH:mm:ss`, 요청 `HH:mm`. 변환 지점을 `toUpdateRequest()` · `toFormState()` 두 곳으로 고정
+- **사업 카테고리를 입찰에서 뺐다** — 우리 카테고리는 회사 내부 분류, 나라장터는 업종코드(수천 개)라 체계가 다르다. 억지로 매핑하면 틀린 분류가 쌓인다. 카테고리는 **프로젝트 생성 시 사람이 지정**한다
+- **원문 URL 을 화면 정책으로 필수** — 백엔드는 요구하지 않지만, 직접 등록 건은 근거가 사람 입력뿐이라 링크가 없으면 나중에 확인할 방법이 없다
+- **`COMPLETED` + 0건은 실패가 아니다** — "조건에 맞는 공고가 없었어요" 로 문구를 분리
+- **409 는 오류가 아니라 진행 중** — `BIDDING_COLLECTION_RUN_ALREADY_PROCESSING` 은 빨간 오류 대신 노란 안내
+- **없는 API 의 버튼은 만들지 않는다** — 공고 삭제 · 제외 · 복구 · 프로젝트 전환. 전환만 자리를 잡아 `disabled` + 사유 툴팁
+- **지역 코드는 프론트 상수** (`regions.ts`) — 목록 API 가 없다. ⚠️ 강원 `51` · 전북 `52` 는 특별자치도 전환 코드라 확인 필요
+
+### 검증
+
+- 조건 등록 → `지금 수집` → 폴링 → 공고 목록에 **나라장터 실공고 534건** 반영 확인
+- `tsc --noEmit` · ESLint · Prettier 통과
+
+---
+
+## [2026-08-11] 입찰 공고 조회 — 목록 · 상세 🚧
+
+### 변경 파일
+
+| 파일                                         | 변경                           |
+| -------------------------------------------- | ------------------------------ |
+| `src/features/bidding/types.ts`              | 생성                           |
+| `src/features/bidding/api.ts`                | 생성                           |
+| `src/features/bidding/display.ts`            | 생성                           |
+| `src/features/bidding/errorCodes.ts`         | 생성                           |
+| `src/features/bidding/routes.ts`             | 생성                           |
+| `src/features/bidding/NoticeBadges.tsx`      | 생성                           |
+| `src/features/bidding/NoticeList.tsx`        | 생성                           |
+| `src/features/bidding/NoticeDetail.tsx`      | 생성                           |
+| `src/components/bidding/NoticeSkeletons.tsx` | 생성                           |
+| `src/app/notices/page.tsx`                   | 수정 (골격 → 목록 연결)        |
+| `src/app/notices/[id]/page.tsx`              | 수정 (골격 → 상세 연결)        |
+| `src/constants/endpoints.ts`                 | 수정 (`bidding` 추가)          |
+| `.ai/API.md`                                 | 수정 (103·104 + 수집 API 실측) |
+
+### 주요 작업 내용
+
+- 공고 목록 — 8개 필터(기간 · 발주처 · 카테고리 · 지역 · 마감임박 · 검색어 · 상태 · 정렬) + 페이징. URL 이 필터의 단일 원본이다
+- 공고 상세 — 좌측 카드 4장(공고 정보 · 일정 · 금액 · 참가 자격·계약) + 우측 카드 2장(원문·첨부 · 프로젝트)
+- 표기 규칙(`display.ts`)을 목록·상세가 공유한다 — D-day 배지 5단계, 금액 축약(`3.4억`) vs 전체(`340,000,000원`)
+
+### 트러블슈팅
+
+- **문제**: 화면에 공고가 한 건도 보이지 않음
+- **원인**: 프론트가 아니라 **백엔드 수집 실패**. `POST /bidding/collection-conditions/1/runs` 를 두 번(`runId` 1 · 2) 실행했으나 모두 6초 뒤 `FAILED` · `all_collection_tasks_failed`. `bid_notice` 테이블이 0행이다
+- **해결**: 미해결 — 백엔드 대기. 프론트 계층은 정상 확인(`GET /bidding/notices` → `200`, `content: []`)
+
+### 부수 결정
+
+- **읽기 전용으로 범위 고정** — 제외 · 복구 · 프로젝트 전환 API 가 미배포라 버튼을 두지 않는다. 목록·상세 모두 `disabled` + 사유 툴팁
+- **`noticeStatus` · `sort` 는 스웨거가 `string` 이라 값 검증 불가** — `sort=ANNOUNCED_DESC` 만 `200` 으로 실측. 나머지는 데이터가 생겨야 확인된다
+- **백엔드 테스트 가이드를 명세로 쓰지 않는다** — 가이드에 있는 `POST /bidding/notices` 등이 실제로는 미배포다. 스웨거에 뜨는 것만 호출한다
+
+---
+
 ## [2026-08-11] 사원 그룹 관리 · 직급별 사원 목록 ✅
 
 브랜치: `feat/employee-group` · 이슈: #96 · #97
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/features/employeeGroup/types.ts` | 생성 (그룹 · 구성원 · 결과 타입 · 길이 상수) |
-| `src/features/employeeGroup/errorCodes.ts` | 생성 (`GRP_*` 4개 · `ADD_MEMBER_REJECTED_CODES`) |
-| `src/features/employeeGroup/api.ts` | 생성 (91~97 7개 함수) |
-| `src/features/employeeGroup/EmployeeGroupList.tsx` | 생성 (목록 · 검색 · 케밥) |
-| `src/features/employeeGroup/EmployeeGroupFormModal.tsx` | 생성 (추가 · 수정 겸용) |
-| `src/features/employeeGroup/DeleteEmployeeGroupModal.tsx` | 생성 (공용 `AlertDialogTwoButton`) |
-| `src/features/employeeGroup/GroupMembersModal.tsx` | 생성 (구성원 목록 · 추가 · 제거) |
-| `src/app/settings/employee-groups/page.tsx` | 생성 (라우트) |
-| `src/features/jobPosition/JobPositionEmployeesModal.tsx` | 생성 (직급별 사원 패널) |
-| `src/features/jobPosition/types.ts` · `api.ts` | 수정 (`JobPositionEmployee` · `getJobPositionEmployees()`) |
-| `src/features/jobPosition/JobPositionList.tsx` | 수정 (인원수를 링크 버튼으로) |
-| `src/constants/endpoints.ts` | 수정 (`employeeGroups` 4개 · `jobPositions.employees`) |
-| `src/features/pagePermission/catalog.ts` | 수정 (`PageRoute.label` 신설 — `ADMIN_CONSOLE` 라벨 덮기) |
-| `src/app/settings/page.tsx` | 수정 (`그룹 관리` 준비 중 해제) |
+| 파일                                                      | 변경                                                       |
+| --------------------------------------------------------- | ---------------------------------------------------------- |
+| `src/features/employeeGroup/types.ts`                     | 생성 (그룹 · 구성원 · 결과 타입 · 길이 상수)               |
+| `src/features/employeeGroup/errorCodes.ts`                | 생성 (`GRP_*` 4개 · `ADD_MEMBER_REJECTED_CODES`)           |
+| `src/features/employeeGroup/api.ts`                       | 생성 (91~97 7개 함수)                                      |
+| `src/features/employeeGroup/EmployeeGroupList.tsx`        | 생성 (목록 · 검색 · 케밥)                                  |
+| `src/features/employeeGroup/EmployeeGroupFormModal.tsx`   | 생성 (추가 · 수정 겸용)                                    |
+| `src/features/employeeGroup/DeleteEmployeeGroupModal.tsx` | 생성 (공용 `AlertDialogTwoButton`)                         |
+| `src/features/employeeGroup/GroupMembersModal.tsx`        | 생성 (구성원 목록 · 추가 · 제거)                           |
+| `src/app/settings/employee-groups/page.tsx`               | 생성 (라우트)                                              |
+| `src/features/jobPosition/JobPositionEmployeesModal.tsx`  | 생성 (직급별 사원 패널)                                    |
+| `src/features/jobPosition/types.ts` · `api.ts`            | 수정 (`JobPositionEmployee` · `getJobPositionEmployees()`) |
+| `src/features/jobPosition/JobPositionList.tsx`            | 수정 (인원수를 링크 버튼으로)                              |
+| `src/constants/endpoints.ts`                              | 수정 (`employeeGroups` 4개 · `jobPositions.employees`)     |
+| `src/features/pagePermission/catalog.ts`                  | 수정 (`PageRoute.label` 신설 — `ADMIN_CONSOLE` 라벨 덮기)  |
+| `src/app/settings/page.tsx`                               | 수정 (`그룹 관리` 준비 중 해제)                            |
 
 ### 주요 작업 내용
 
@@ -68,17 +178,17 @@
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/features/employee/BulkUploadModal.tsx` | 생성 (3단 스텝퍼 · 입력 형식표 · 행 오류 표 · 등록 확인) |
-| `src/lib/download.ts` | 생성 (`saveResponseAsFile()` — 응답을 파일로 저장. 도메인 무관) |
-| `src/features/employee/api.ts` | 수정 (`downloadBulkTemplate()` · `validateBulkEmployees()` · `registerBulkEmployees()`) |
-| `src/features/employee/types.ts` | 수정 (`BulkRowError` · `BulkValidateResult` · `BulkRegisterResult`) |
-| `src/features/employee/errorCodes.ts` | 수정 (파일 3종 + `EMP_HAS_ERRORS` · `BULK_FILE_CODES`) |
-| `src/constants/endpoints.ts` | 수정 (`bulkTemplate` · `bulkValidate` · `bulk`) |
-| `src/components/Modal.tsx` | 수정 (`dismissOnBackdrop` prop 신설) |
-| `src/features/employee/EmployeeList.tsx` | 수정 (`BulkUploadButton` 제거 · 모달 연결 · `.btn` 전환 · `useModal`/`useModalTarget` 전환) |
-| `EmployeeDetail` · `EmployeeCreateForm` · `EmployeeEditForm` · `RoleChangeModal` · `PasswordResetModal` | 수정 (하드코딩 버튼 → `.btn` 계열 14곳) |
+| 파일                                                                                                    | 변경                                                                                        |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `src/features/employee/BulkUploadModal.tsx`                                                             | 생성 (3단 스텝퍼 · 입력 형식표 · 행 오류 표 · 등록 확인)                                    |
+| `src/lib/download.ts`                                                                                   | 생성 (`saveResponseAsFile()` — 응답을 파일로 저장. 도메인 무관)                             |
+| `src/features/employee/api.ts`                                                                          | 수정 (`downloadBulkTemplate()` · `validateBulkEmployees()` · `registerBulkEmployees()`)     |
+| `src/features/employee/types.ts`                                                                        | 수정 (`BulkRowError` · `BulkValidateResult` · `BulkRegisterResult`)                         |
+| `src/features/employee/errorCodes.ts`                                                                   | 수정 (파일 3종 + `EMP_HAS_ERRORS` · `BULK_FILE_CODES`)                                      |
+| `src/constants/endpoints.ts`                                                                            | 수정 (`bulkTemplate` · `bulkValidate` · `bulk`)                                             |
+| `src/components/Modal.tsx`                                                                              | 수정 (`dismissOnBackdrop` prop 신설)                                                        |
+| `src/features/employee/EmployeeList.tsx`                                                                | 수정 (`BulkUploadButton` 제거 · 모달 연결 · `.btn` 전환 · `useModal`/`useModalTarget` 전환) |
+| `EmployeeDetail` · `EmployeeCreateForm` · `EmployeeEditForm` · `RoleChangeModal` · `PasswordResetModal` | 수정 (하드코딩 버튼 → `.btn` 계열 14곳)                                                     |
 
 ### 주요 작업 내용
 
@@ -115,11 +225,11 @@
 
 **4. 단계를 오가면 선택한 파일 표시가 갈렸다**
 
-| 항목 | 내용 |
-| ---- | ---- |
-| 문제 | `파일 다시 선택` 후 네이티브 input 은 "선택된 파일 없음", 아래 문구는 파일명을 표시 |
+| 항목 | 내용                                                                                                            |
+| ---- | --------------------------------------------------------------------------------------------------------------- |
+| 문제 | `파일 다시 선택` 후 네이티브 input 은 "선택된 파일 없음", 아래 문구는 파일명을 표시                             |
 | 원인 | 단계 전환으로 input 이 새 DOM 요소로 다시 그려지는데 `input[type=file]` 의 값은 **보안상 JS 로 되돌릴 수 없다** |
-| 해결 | 네이티브 표시를 쓰지 않는다 — `sr-only` input + `label` 버튼으로 두고 파일명은 우리 state 한 줄로만 보여준다 |
+| 해결 | 네이티브 표시를 쓰지 않는다 — `sr-only` input + `label` 버튼으로 두고 파일명은 우리 state 한 줄로만 보여준다    |
 
 ### 검증
 
