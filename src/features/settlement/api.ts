@@ -35,6 +35,13 @@ export function getSettlementDraft(
  *
  * ⚠️ 응답의 `accountNumber` 는 **마스킹**돼 있다 — 폼에 되돌려 넣으면 안 된다.
  * ⚠️ `OUTCOME` 인데 계좌 3종이 빠지면 400 이다.
+ *
+ * ⚠️ **낙관적 락** (2026-08-12) — `body.version` 은 블록 목록의 `detail.version` 이다.
+ *    늦으면 409 `SETTLEMENT_VERSION_CONFLICT` 이고, 재조회 · 덮어쓰기(`overwrite: true`)를
+ *    사용자에게 묻는다.
+ * 🚨 **409 가 곧 버전 충돌은 아니다** — `SETL-006` · `SETL-007` · `SETL-008` 도 409 로 온다.
+ *    판정은 status 가 아니라 `code` 로 한다 (`errorCodes.ts`).
+ * ⚠️ 응답 `version` 은 저장 후의 새 값이라 화면에 꽂아야 다음 저장이 통과한다.
  */
 export function saveSettlement(
   settleId: number,
