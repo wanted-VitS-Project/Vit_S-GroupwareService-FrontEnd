@@ -6,11 +6,11 @@ import { useEffect, useRef, useState } from 'react';
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import MemberAvatar from '@/components/MemberAvatar';
 import Modal from '@/components/Modal';
-import { getProjectMembers } from '@/features/project/api';
-import type { ProjectMember } from '@/features/project/types';
+import PersonNote from '@/components/PersonNote';
 import { ApiError, messageOf } from '@/lib/api';
 
 import { updateBlock } from './api';
+import { useBlockMembers, useBlockMembersSource } from './BlockMembersContext';
 import BlockTypeIcon from './BlockTypeIcon';
 import { notifyBlockChanged } from './events';
 import {
@@ -32,9 +32,17 @@ export default function BlockEditModal({
   const { id: projectId } = useParams<{ id: string }>();
   const [title, setTitle] = useState(block.title ?? '');
   const [owner, setOwner] = useState(block.owner?.userId ?? '');
-  const [members, setMembers] = useState<ProjectMember[]>([]);
-  const [isMembersLoading, setIsMembersLoading] = useState(true);
-  const [membersFailed, setMembersFailed] = useState(false);
+  /**
+   * 참여자 목록은 **보드가 이미 받아 둔 것**을 쓴다 (`BlockMembersContext`).
+   * 보드 밖에서 열렸을 때만(컨텍스트 없음) 직접 조회한다 — 같은 목록을 두 번 받지 않는다.
+   */
+  const sharedMembers = useBlockMembers();
+  const ownMembers = useBlockMembersSource(sharedMembers ? null : projectId);
+  const {
+    members,
+    isLoading: isMembersLoading,
+    failed: membersFailed,
+  } = sharedMembers ?? ownMembers;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [confirmation, setConfirmation] = useState<
@@ -62,23 +70,6 @@ export default function BlockEditModal({
     }
     setConfirmation('save');
   }
-
-  useEffect(() => {
-    const controller = new AbortController();
-    getProjectMembers(projectId, controller.signal)
-      .then((nextMembers) => {
-        setMembers(nextMembers);
-        setIsMembersLoading(false);
-      })
-      .catch((caught) => {
-        if (!controller.signal.aborted) {
-          setMembersFailed(true);
-          setIsMembersLoading(false);
-          setErrorMessage(messageOf(caught, '참여자를 불러오지 못했습니다.'));
-        }
-      });
-    return () => controller.abort();
-  }, [projectId]);
 
   async function submit(overwrite = false) {
     if (isSubmitting) return;
@@ -120,9 +111,37 @@ export default function BlockEditModal({
     }
   }
 
-  /** 담당자는 한 명이라 고른 사람은 칩으로, 나머지는 후보 버튼으로 나눈다 */
+  /**
+   * 담당자는 한 명이라 고른 사람은 칩으로, 나머지는 후보 버튼으로 나눈다.
+   *
+   * ⚠️ 지금 담당자가 **참여자 목록에 없을 수 있다** — 사원이 삭제됐거나(D-6) 권한이 회수된 경우다.
+   *    그대로 두면 칩이 사라져 `담당자 없음` 으로 오해하니, 블록 응답의 이름으로 대신 그린다.
+   *    (담당자를 **바꿀 때만** 후보에서 빠질 뿐, 지금 값은 지우지 않는다)
+   */
   const selectedMember = members.find((member) => member.userId === owner);
-  const candidates = members.filter((member) => member.userId !== owner);
+  const selected =
+    selectedMember ??
+    (owner && block.owner?.userId === owner
+      ? { userId: owner, name: block.owner.name }
+      : null);
+  /**
+   * 담당자 후보.
+   *
+   * **퇴사자는 새로 지정할 수 없다** — 이미 지정된 사람은 위 칩으로 그대로 남기고
+   * 여기서만 뺀다 (이슈 담당자 지정과 같은 규칙 · `IssueFormModal`).
+   * 삭제된 사원은 참여자 목록 자체에 없어 따로 거를 것이 없다.
+   */
+  const candidates = members.filter(
+    (member) => member.userId !== owner && !member.resigned,
+  );
+  /**
+   * 칩에 `(퇴사자)` 를 붙일지.
+   * 근거가 둘이다 — 블록 응답의 `owner.deleted`(사원 데이터 삭제) · 참여자 목록의 `resigned`(퇴사).
+   * 사용자에게는 "재직 중이 아니다" 하나로 읽히면 되므로 둘을 합쳐 같은 문구를 쓴다.
+   */
+  const isSelectedResigned =
+    (block.owner?.userId === owner && block.owner.deleted) ||
+    selectedMember?.resigned === true;
 
   /**
    * 담당자를 고르거나 해제하면 방금 누른 버튼이 사라진다.
@@ -202,25 +221,29 @@ export default function BlockEditModal({
               담당자
             </span>
             <div className="flex min-h-[40px] flex-wrap items-center gap-1.5 rounded-lg border border-border-default bg-bg-surface p-2.5">
-              {selectedMember ? (
+              {selected ? (
                 <span className="flex items-center gap-1 rounded-pill border border-border-default bg-bg-card px-2 py-0.5">
                   <MemberAvatar
-                    userId={selectedMember.userId}
-                    name={selectedMember.name}
+                    userId={selected.userId}
+                    name={selected.name}
                     size="xs"
                     decorative
+                    resigned={isSelectedResigned}
                   />
-                  <span className="text-caption font-medium text-text-primary">
-                    {selectedMember.name}
+                  <span className="flex items-center gap-0.5">
+                    <span className="text-caption font-medium text-text-primary">
+                      {selected.name}
+                    </span>
+                    {isSelectedResigned && <PersonNote />}
                   </span>
                   <button
                     type="button"
                     ref={releaseButtonRef}
-                    aria-label={`${selectedMember.name} 해제`}
+                    aria-label={`${selected.name} 해제`}
                     disabled={isSubmitting}
                     onClick={() => {
                       // 해제하면 이 버튼이 사라진다 — 다시 나타날 후보 버튼으로 초점을 넘긴다
-                      releasedUserId.current = selectedMember.userId;
+                      releasedUserId.current = selected.userId;
                       focusAfterRender.current = 'candidate';
                       setOwner('');
                     }}
@@ -263,9 +286,10 @@ export default function BlockEditModal({
                       focusAfterRender.current = 'chip';
                       setOwner(member.userId);
                     }}
-                    title={`${member.name}${member.department ? ` · ${member.department}` : ''}${member.resigned ? ' · 퇴사' : ''}`}
+                    title={`${member.name}${member.department ? ` · ${member.department}` : ''}`}
                     className="flex cursor-pointer items-center gap-1 rounded-button-md px-1.5 py-0.5 text-caption text-text-secondary hover:bg-bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
                   >
+                    {/* 후보는 재직자뿐이라 상태 문구가 붙을 일이 없다 */}
                     <MemberAvatar
                       userId={member.userId}
                       name={member.name}

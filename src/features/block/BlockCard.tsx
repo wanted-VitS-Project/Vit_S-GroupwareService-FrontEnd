@@ -9,6 +9,7 @@ import { SIDE_PANEL } from '@/components/Modal';
 import ModalLoadingFallback, {
   SidePanelFallbackHeader,
 } from '@/components/ModalLoadingFallback';
+import PersonNote from '@/components/PersonNote';
 import { notifyToast } from '@/components/Toast';
 import ActivityIcon from '@/features/activityLog/ActivityIcon';
 import { notifyIssueChanged } from '@/features/issue/events';
@@ -16,6 +17,7 @@ import { useModal, useModalRouter } from '@/lib/useModal';
 
 import { useBlockActions } from './BlockActionsContext';
 import { setPillDragImage, useBlockDrag } from './BlockDragContext';
+import { useOwnerResigned } from './BlockMembersContext';
 import { notifyBlockChanged } from './events';
 import BlockTypeIcon from './BlockTypeIcon';
 import { BLOCK_TYPES, type StepBlock } from './types';
@@ -93,6 +95,8 @@ export default function BlockCard({
   const panel = useModalRouter<'issues' | 'logs'>();
   const type = BLOCK_TYPES.find((option) => option.code === block.type);
   const drag = useBlockDrag();
+  /** 담당자 이름 뒤 `(퇴사자)` — `owner.deleted` 와 참여자 목록의 `resigned` 를 합쳐 본다 */
+  const isOwnerResigned = useOwnerResigned(block.owner);
   const label = block.title || type?.label || '블록';
   const isDragging = drag?.draggingId === block.blockId;
 
@@ -189,9 +193,17 @@ export default function BlockCard({
               withRing={false}
               // 바로 옆에 이름 글자가 있다
               decorative
+              resigned={isOwnerResigned}
             />
-            <span className="min-w-0 flex-1 truncate text-micro text-text-secondary">
-              {block.owner.name}
+            {/*
+              이름은 그대로 두고 뒤에 `(퇴사자)` 만 붙인다.
+              ⚠️ 이 응답에는 `resignedAt` 이 없어 `owner.deleted` 만으로는 퇴사자를 놓친다 —
+                 보드가 참여자 목록으로 보충한 값을 쓴다 (`BlockMembersContext`).
+              문구는 줄이지 않는다 — 이름이 길면 이름 쪽이 잘린다.
+            */}
+            <span className="flex min-w-0 flex-1 items-center gap-0.5 text-micro text-text-secondary">
+              <span className="truncate">{block.owner.name}</span>
+              {isOwnerResigned && <PersonNote />}
             </span>
           </>
         ) : (

@@ -138,6 +138,7 @@
 | [121](#121-블록-스텝-이동)                | 블록 스텝 이동     | `PATCH /blocks/{blockId}/step`                               | ✅ `features/block/api.ts`            |
 | [122](#122-입찰-공고-목록-조회)           | 입찰 공고 목록     | `GET /bidding/notices`                                       | ✅ `features/bidding/api.ts`          |
 | [123](#123-입찰-공고-상세-조회)           | 입찰 공고 상세     | `GET /bidding/notices/{noticeId}`                            | ✅ `features/bidding/api.ts`          |
+| [124](#124-스텝-상세-조회)                | 스텝 상세          | `GET /steps/{stepId}`                                        | ❌ 미연동                             |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
 > 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통) · [이미지 도메인 — 공통](#이미지-도메인--공통) · [사원 그룹 도메인 — 공통](#사원-그룹-도메인--공통) · [페이지 권한 도메인 — 공통](#페이지-권한-도메인--공통) · [스테이지 · 스텝 도메인 — 공통](#스테이지--스텝-도메인--공통) · [이슈 도메인 — 공통](#이슈-도메인--공통) · [입찰 도메인 — 공통](#입찰-도메인--공통)
@@ -421,12 +422,18 @@ interface ChangePasswordRequest {
     progressRate?: number;     // 진척률(%) — 스텝 0개면 응답에 없다
     stepCount: number;
     doneStepCount: number;
-    businessCategories: { categoryId: number; name: string; code: string }[];
+    businessCategories: {
+      categoryId: number;
+      name: string;
+      code: string | null;
+      deleted: boolean;        // 삭제된 카테고리 (D-6)
+    }[];
     bidNoticeId: number | null;
     closeReasonCode: string | null;  // 종결 건만
     closeReasonNote: string | null;
     myPermission: 'VIEWER' | 'EDITOR';
     createdAt: string;         // '2026-08-05T03:39:08'
+    version: number;           // 낙관적 락 버전 — 수정·상태변경에 그대로 실어 보낸다
   }
 }
 ```
@@ -434,6 +441,19 @@ interface ChangePasswordRequest {
 > ⚠️ `progressRate` 는 **선택 필드**다. 스텝이 0개면 아예 오지 않으므로 `?? 0` 로 받는다.
 > ⚠️ `myPermission === 'VIEWER'` 면 수정·추가 버튼을 숨긴다. (실제 차단은 백엔드가 한다)
 > ✅ 참여자 목록은 45번 API로 연동했다. 사이드바와 블록 담당자 지정이 같은 목록을 사용한다.
+> ⚠️ **`version` 은 화면에 그리는 값이 아니라 다음 쓰기 요청에 실어 보낼 값**이다 (2026-08-11 신설). 상세를 받아 보관하지 않으면 프로젝트 수정·상태변경을 호출할 수 없다.
+> 🗑️ **삭제된 카테고리도 이름은 그대로 내려온다** (D-6 · 2026-08-11). 연결 행이 남아 있어 목록에서 사라지지 않으니 `deleted: true` 는 **배지로 표시**하고, **선택 드롭다운에서만 제외**한다.
+> ⚠️ `businessCategories[].code` 는 **`null` 이 올 수 있다.**
+
+**Status Code**
+
+| 코드 | code                    | 설명                                                       |
+| ---- | ----------------------- | ---------------------------------------------------------- |
+| 401  | `AUTH_UNAUTHENTICATED`  | 세션 없음/만료                                             |
+| 403  | `PROJECT_ACCESS_DENIED` | 프로젝트 접근 권한 없음                                    |
+| 404  | `PROJECT_NOT_FOUND`     | 존재하지 않음 · **다른 회사의 프로젝트도 여기로 떨어진다** |
+
+> 🏢 **회사 격리** (2026-08-11 신설) — 모든 조회가 로그인 사용자의 회사(`company_id`)로 제한된다. 다른 회사 리소스는 403 이 아니라 **404** 다 — 존재 자체를 숨긴다. 화면은 "삭제됐거나 접근 권한이 없습니다" 한 문구로 처리한다.
 
 ---
 
@@ -554,8 +574,45 @@ interface CreateBlockRequest {
 > ⚠️ ERD Cloud 상 테이블명이 다른 항목이 있다 — `IMAGE` → `img_block`, `CHECKLIST` → `chk_block`.
 > ℹ️ 화면 라벨 · 아이콘 색은 `src/features/block/types.ts` 의 `BLOCK_TYPES` 가 단일 소스다.
 > ℹ️ **`rowIndex` · `sortOrder` 는 프론트가 계산해 보낸다** (`blockLayout.ts` → `nextPosition()`). 마지막 행에 칸이 남으면 그 행 오른쪽, 모자라면 새 행이다 — 서버 기본값(맨 아래 새 행)에 맡기면 남는 칸이 비어 보인다. 목록을 아직 못 불러왔을 때만 생략한다.
-> ❗ **응답 `data` 스키마는 확인 필요.** 현재 프론트는 응답 본문을 쓰지 않는다.
-> ❗ **에러 코드 목록도 확인 필요.** 지금은 백엔드 `message` 를 그대로 노출한다.
+> ⛔ **`BID_NOTICE` 는 사용자가 직접 만들 수 없다** (2026-08-11 확인). 공고→프로젝트 전환 API 가 자동 생성한다 (`BID-V1` CNV-06) — 이 API 로 보내면 400 `BLOCK_TYPE_INVALID` 다. **블록 추가 모달 목록에서 제거할 것.**
+> ⛔ `MEMO` 는 폐기됐다 (2026-08-03). enum 에도 타입 선택 목록에도 없다.
+
+**Response (201 Created)** — ✅ 2026-08-11 확정
+
+```ts
+data: {
+  blockId: number;
+  stepId: number;
+  projectId: number;
+  type: BlockTypeCode;
+  title: string | null;
+  owner: { userId: string; name: string; deleted: boolean } | null;
+  rowIndex: number;
+  sortOrder: number;
+  colSpan: number;
+  createdAt: string;   // '2026-08-01T14:00:00'
+}
+```
+
+> ⚠️ **응답에 `version` 이 없다.** 새 블록은 `1` 로 시작하지만, 이어서 제목·담당자 수정(46) · 배치 변경(44) · 이동(121)을 하려면 **10번을 한 번 다시 불러 `version` 을 받아야 한다.**
+> ℹ️ 생성 응답의 `owner.deleted` 는 **항상 `false`** 다. `true` 가 올 수 있는 곳은 조회(10번)뿐이다.
+> ℹ️ 10번과 달리 `projectId` 가 여기엔 온다 — 조회 응답에는 내려주지 않는다.
+
+**Status Code** — ✅ 2026-08-11 확정
+
+| 코드 | code                                | 설명                                                  |
+| ---- | ----------------------------------- | ----------------------------------------------------- |
+| 400  | `BLOCK_TYPE_INVALID`                | 9종 밖의 타입 · **`BID_NOTICE` 도 여기로 떨어진다**   |
+| 400  | `BLOCK_TITLE_TOO_LONG`              | `title` 200자 초과                                    |
+| 400  | `BLOCK_COL_SPAN_INVALID`            | `colSpan` 이 1~3 밖                                   |
+| 401  | `AUTH_UNAUTHENTICATED`              | 세션 없음/만료                                        |
+| 403  | `STEP_EDIT_DENIED`                  | 스텝 편집 권한 없음                                   |
+| 404  | `STEP_NOT_FOUND`                    | 스텝 없음 · **다른 회사의 스텝도 여기로** (회사 격리) |
+| 404  | `USER_NOT_FOUND`                    | 지정한 담당자(`owner`)가 존재하지 않음                |
+| 409  | `PAYMENT_CONFIRM_BLOCK_DUPLICATED`  | 입금확인 블록은 **스텝당 1개** (PCB-001B)             |
+| 409  | `TAX_INVOICE_VIEW_BLOCK_DUPLICATED` | 세금계산서 조회 블록도 **스텝당 1개** (TXL-001B)      |
+
+> ⚠️ **스텝당 1개 제한이 두 타입에 걸린다** — `PAYMENT_CONFIRM` · `TAX_INVOICE_VIEW`. 이미 있는 스텝에서는 추가 모달에서 미리 비활성화하는 편이 낫다.
 
 ---
 
@@ -576,28 +633,80 @@ data: {
     blockId: number;
     type: BlockTypeCode;
     title: string | null;
-    owner: { userId: string; name: string } | null; // 미지정이면 null (BLK-012)
+    owner: {
+      userId: string;
+      name: string;     // 삭제된 사원이어도 비우지 않는다
+      deleted: boolean; // 사원 데이터 삭제 여부 (D-6) — 퇴사(resigned)와 다른 값
+    } | null;           // 미지정이면 null (BLK-012)
     rowIndex: number;   // 같은 값끼리 한 행
     sortOrder: number;  // 행 내 순서
     colSpan: number;    // 1~3
-    detail: unknown;    // 타입별 상세 — 구조가 타입마다 다르다
+    detail: unknown;    // 타입별 상세 — 구조가 타입마다 다르다. 어댑터 없는 타입은 null
     linkedIssueTotal: number;
     linkedIssueDone: number;
+    version: number;    // 낙관적 락 버전 — 46 · 44 · 121 에 실어 보낸다
   }[];
 }
 ```
 
+**타입별 `detail` — ✅ 확정 2종**
+
+```ts
+// TEXT
+detail: {
+  txtId: number; // 11번 PATCH /blocks/texts/{txtId} 의 키
+  content: string | null; // 마크다운 문자열(HTML 아님). null = 한 번도 저장 안 함
+}
+
+// CHECKLIST
+detail: {
+  chkBlockId: number; // 12번 POST /blocks/checklists/{chkBlockId}/items 의 키
+  totalCount: number; // deleted_at IS NULL 만
+  completedCount: number;
+  items: {
+    chkId: number; // 13 · 14번의 키
+    content: string;
+    isCompleted: boolean;
+  }
+  []; // chk_id 오름차순(생성순) — sort_order 컬럼이 없어 재정렬 불가
+}
+```
+
+> ✅ **`detail.txtId` · `detail.chkBlockId` · `detail.items` 키 이름이 확정됐다** (2026-08-11). 프론트의 런타임 검증(`readChecklistBlockDetail` 등)은 방어용으로 남겨도 되지만 **키 추측 분기는 정리 가능**하다.
+> ℹ️ 블록 추가 직후 `CHECKLIST` 는 `{ chkBlockId, totalCount: 0, completedCount: 0, items: [] }` 다.
+> ℹ️ `items` 에 `sortOrder` 가 없다 — **체크리스트 드래그 재정렬 기능은 만들 수 없다.**
+
 > ℹ️ `data` 안에 `blocks` 로 한 겹 더 감싸져 있다. `getStepBlocks()` 가 벗겨서 배열만 반환한다.
 > ℹ️ **`rowIndex` · `sortOrder` 순으로 정렬되어 온다.** 보드는 이 둘로 **평면 순서**를 만든 뒤 앞에서부터 3칸씩 채워 행을 다시 만든다 (`blockLayout.ts`). 서버 `rowIndex` 를 그대로 행으로 쓰지 않으므로 한 행이 3칸을 넘는 일이 없다.
 > ⚠️ **`colSpan` 이 1~3 이다.** 블록 생성 명세와 같지만, 화면 기획상 1·2칸만 쓰이더라도 3까지 들어올 수 있어 보드는 3칸까지 그린다.
-> ⚠️ **`type` 이 "ERD enum 10값" 으로 적혀 있다.** 9번에 정리된 enum 은 9값 — **나머지 1값 확인 필요.** 프론트는 모르는 값이 오면 `준비 중인 블록입니다.` 껍데기로 그린다.
+> ✅ **블록 타입 10종 확정** (2026-08-11) — 9번의 9종 + **`SETTLEMENT`**(정산). `MEMO` 는 폐기됐다. 조회에는 10종이 오지만 **생성 가능한 것은 9종**이고, 그중 `BID_NOTICE` 도 사용자가 못 만든다. 프론트는 모르는 값이 오면 `준비 중인 블록입니다.` 껍데기로 그린다.
+> ⚠️ **`status` 필드가 없다.** 블록은 자체 진행 상태를 갖지 않는다 (BLK-005).
+> ⛔ **`typeId` · `projectId` 는 내려오지 않는다.** `type_id` 는 다형성 내부 식별자라 노출하지 않고, `block.project_id` 는 폐기됐다.
 > ℹ️ **`detail` 은 블록의 내용을 담는 하위 계층이다.** `blockId` 로 관리하는 것은 위 공통 필드까지고, 내용은 타입별 상세 ID(예: `CHECKLIST` 의 `chkBlockId`)로 관리한다.
-> ❗ **`detail` 스키마는 `FILE` 의 `{ fileCount: 3 }` 만 확인됐다.**
-> `CHECKLIST` 는 **`chkBlockId`(필수) 와 항목 배열**이 필요하다. 프론트는 `detail.chkBlockId` · `detail.items` 를 런타임 검증해서 읽고, 없거나 형태가 다르면 항목 추가를 막고 빈 목록으로 떨어뜨린다. **키 이름 확인 필요.**
+> ❗ **나머지 `detail` 은 `FILE` 의 `{ fileCount: 3 }` · `SETTLEMENT` 의 `settleId` 평면 스키마만 확인됐다.** 상세 어댑터가 아직 없는 타입은 `detail: null` 로 온다.
 > `IMAGE` 는 **`imgBlockId` 와 첫 이미지(필수)** 가 필요하다 — 목록 조회 API 가 없어 **첫 장은 이 응답으로 함께 내려준다** (2026-08-07 확정). 카드는 이 값으로 바로 그리고 두 번째 장부터 66번으로 받는다.
 > ❗ **첫 이미지의 키 이름은 확인 필요.** `readImageBlockDetail()` 이 `images: [...]` · `firstImage: {...}` · `detail` 바로 아래 평면(`imgId` · `imageUrl` · `caption` · `orderIndex`) 세 모양을 모두 읽는다. 확정되면 해당 분기만 남긴다.
 > ℹ️ `totalCount`(또는 `imageCount`)도 함께 주면 `1 / 5` 표기와 마지막 장 판정이 정확해진다. 없으면 프론트가 다음 장 버튼을 막지 않고 66번 응답의 `totalCount` 로 채운다.
 > `APPROVAL` 은 **`approvalId` · `revisionId`(둘 다 필수)** 가 필요하다. 결재 API 가 전부 `approvalId` 로 시작해서, 이 둘이 없으면 `blockId` 만으로는 어느 결재인지 알 수 없다 — `readApprovalBlockDetail()` 이 런타임 검증하고 없으면 블록이 안내만 띄운다.
+
+### 🔄 2026-08-11 변경
+
+🔒 **낙관적 락** — `blocks[].version` 신설. **이 값을 보드 상태에 보관해야** 제목·담당자 수정(46) · 배치 변경(44) · 블록 이동(121)을 호출할 수 있다. 안 보내면 400 `BLOCK_VERSION_REQUIRED` 다. **`version` 이 필수인 블록 API 는 이 3개뿐** — 생성 · 삭제 · 조회는 아니다.
+
+🗑️ **삭제 표시** — `blocks[].owner.deleted` 신설. 담당자 사원이 삭제돼도 **행과 이름이 그대로 내려온다** (예전엔 `INNER JOIN` 이라 사라졌다). `true` 면 이름 뒤에 `(퇴사자)` 문구를 붙이고 **담당자 선택 드롭다운에서만 제외**한다.
+
+> ⚠️ 사원 도메인의 `resigned`(퇴사 · 45번 참여자 목록)와 **다른 값**이다. 서로 대체하지 말 것.
+> ❗ **이 응답의 `owner` 에는 `resignedAt` 이 없다.** 이슈 담당자 · 활동 수행자와 달리 **퇴사 여부는 알 수 없어**,
+> `deleted` 만 보면 **퇴사했지만 사원 데이터가 남은 담당자를 놓친다.** 그래서 보드가
+> [45. 참여자 목록](#45-프로젝트-참여자-목록-조회)을 **한 번 받아 퇴사자 사번 집합**을 만들어 카드로 내려준다
+> (`src/features/block/BlockMembersContext.tsx` · 2026-08-12). 이 목록은 **블록 수정 모달의 담당자 후보와 같은 소스**다 — 화면당 한 번만 부른다.
+> 문구는 다른 화면과 같은 **`(퇴사자)`** 다 — `deleted` · `resigned` 중 **하나만 참이어도** 붙인다.
+> 사용자에게는 "재직 중이 아니다" 하나로 읽히면 되고, 사원 데이터가 남았는지는 백엔드 사정이다.
+> ℹ️ **담당자 후보에서는 퇴사자를 제외**한다 (이슈 담당자와 같은 규칙). 이미 지정된 퇴사자는 그대로 둔다.
+> ❗ 담당자 수정(46번) 응답에는 `owner.deleted` 가 **명시돼 있지 않다** — 없으면 화면이 옛 값을 유지한다 (`normalizeUpdatedOwner`).
+> 📌 블록 응답에 **`owner.resignedAt` 이 실리면 이 우회는 통째로 지운다** — 백엔드에 요청할 항목이다.
+
+🏢 **회사 격리** — 다른 회사의 스텝은 403 이 아니라 **404 `STEP_NOT_FOUND`** 다. 그 외 401 `AUTH_UNAUTHENTICATED` · 403 `STEP_ACCESS_DENIED`.
 
 ---
 
@@ -1669,7 +1778,15 @@ interface UpdateBlockLayoutRequest {
 | **권한**      | 스텝 `EDITOR`                                 |
 | **사용 위치** | `src/features/block/api.ts` → `deleteBlock()` |
 
-soft delete만 지원하며 응답 `data` 는 `null` 이다. 입금 연결 입금확인, 계산서 연결 조회, 진행 중 결재, 결재 대상 파일은 삭제 잠금 대상으로 409를 반환한다.
+soft delete(`deleted_at` 플래그)만 지원하며 응답 `data` 는 `null` 이다. **하드 삭제 API 는 존재하지 않는다** (BLK-007 · INV-05).
+
+> ⛔ **삭제 잠금 4종은 폐기됐다** (2026-08-09 · 백엔드 `BLOCK.md` §8 재작성). 입금 연결 입금확인 · 계산서 연결 조회 · 진행 중 결재 · 결재 대상 파일 — **네 가지 모두 더 이상 409 를 내지 않는다.** 화면에서 삭제를 미리 막던 분기가 있으면 걷어낸다.
+> ⚠️ 막는 대신 **옮길 수단을 준다** — 살리고 싶은 블록은 **블록 이동(121)** 으로 다른 스텝에 옮긴 뒤 지운다 (BLK-014).
+> ⚠️ 입금·계산서 **연결 해제(BLK-013)는 아직 미구현**이라, 연결이 남은 채로 블록이 삭제된다.
+> ⛔ **낙관적 락 대상이 아니다** — `version` 을 받지 않고 409 `BLOCK_VERSION_CONFLICT` 도 나지 않는다. 삭제는 멱등이라 두 번 눌러도 결과가 같고 유실될 편집 내용이 없다.
+
+**Status Code** — 200 · 401 `AUTH_UNAUTHENTICATED` · 403 `STEP_EDIT_DENIED` · 404 `BLOCK_NOT_FOUND`(**다른 회사의 블록도 여기로**)
+
 ---
 
 ## 결재 도메인 — 공통
@@ -1900,8 +2017,46 @@ soft delete만 지원하며 응답 `data` 는 `null` 이다. 입금 연결 입�
 | **필터 · 정렬** | **서버가 하지 않는다.** 상태 · 담당자 · 블록 · 우선순위 · 제목 검색 · 마감일 정렬은 모두 프론트에서 처리 |
 | **없는 것**     | 화면용 `issueKey`, 시작일, 이슈별 진척도, 이슈 활동 이력 — 응답에 없다. 화면에서 만들지 않는다           |
 
-**Assignee** — `{ userId, name }` (`userId` 는 사번). 목록 응답 예시에 `profileImageUrl` 이 섞여 있지만 명세 표에 없어 쓰지 않는다.
+**Assignee** — `{ userId, name, resignedAt }` (`userId` 는 사번). 목록 응답 예시에 `profileImageUrl` 이 섞여 있지만 명세 표에 없어 쓰지 않는다.
 **Related Block** — `{ blockId, title, type }`. `title` · `type` 은 표시용이라 요청 body 에 보내지 않는다.
+
+### 🧑‍💼 퇴사자 표기 (2026-08-12 신설 · 도메인 공통 컨벤션)
+
+**사원은 삭제되지 않고 퇴사일만 기록된다.** 사람 객체에 `resignedAt` 이 함께 온다.
+
+```ts
+{
+  userId: string;
+  name: string;
+  resignedAt: string | null;
+} // 'yyyy-MM-dd'
+```
+
+| `resignedAt` | 화면                                                 |
+| ------------ | ---------------------------------------------------- |
+| `null`       | 재직자 — 기존처럼 이름만                             |
+| 날짜         | 퇴사자 — **이름은 그대로 두고 뒤에 `(퇴사자)` 문구** |
+
+> ⚠️ **필드명은 `deletedAt` 이 아니라 `resignedAt` 이다.** 블록 담당자의 `deleted`(사원 데이터 삭제 · D-6)와도 **다른 값**이라 서로 대체하지 마라.
+> ⚠️ **퇴사자여도 담당자 · 활동 로그 항목을 화면에서 제거하지 않는다.** 목록에서 빼면 담당자 수가 달라 보인다.
+> ℹ️ **사원 조회 API 를 따로 부를 필요가 없다** — 응답에 이미 실려 온다.
+
+**적용 대상**
+
+| API                         | 응답 경로                                 | 화면                            |
+| --------------------------- | ----------------------------------------- | ------------------------------- |
+| 55 스텝별 이슈 목록         | `issues[].assignees[].resignedAt`         | 이슈 보드 · 블록 연결 이슈 팝업 |
+| 57 이슈 상세                | `assignees[].resignedAt`                  | 이슈 상세                       |
+| 108 프로젝트 단위 이슈 목록 | `steps[].issues[].assignees[].resignedAt` | 스텝별 이슈 아코디언            |
+| 56 이슈 생성 · 58 부분 수정 | `assignees[].resignedAt`                  | 저장 직후 화면 상태 갱신        |
+| 72 스텝별 활동 기록         | `activities[].actor.resignedAt`           | 활동 기록 · 블록 활동 로그 팝업 |
+
+**적용하지 않는 응답** — 담당자 · 수행자 객체 자체가 없다: `GET /issues/calendar` · `PATCH /issues/{issueId}/status` · `DELETE /issues/{issueId}`
+
+> ℹ️ 화면 구현은 `src/components/PersonNote.tsx` 가 단일 소스다 — **문구는 `(퇴사자)` 하나로 통일**한다 (근거 필드는 `resignedAt` · 블록 담당자만 `owner.deleted`).
+> ⚠️ **테두리 배지가 아니라 이름 뒤 회색 괄호 문구**다. 이름과 붙여 읽히도록 간격은 `gap-0.5` 로 좁힌다.
+> 겹친 아바타 스택처럼 문구를 놓을 자리가 없는 곳은 **흐리게 + `이름 (퇴사자)` tooltip** 으로 대신한다.
+> ℹ️ **담당자 선택 후보(드롭다운)** 에서는 퇴사자를 뺀다 — 다만 **이미 지정된 퇴사자는 지우지 않는다** (`IssueFormModal` 은 칩 이름을 이슈 응답에서 가져온다).
 
 ### 낙관적 락 (2026-08-12 신설)
 
@@ -2527,6 +2682,7 @@ data: {
       userId: string;
       name: string;
       profileImageUrl: string | null;
+      resignedAt: string | null; // 퇴사일 'yyyy-MM-dd' — 재직 중이면 null
     }
     block: {
       blockId: number;
@@ -2557,6 +2713,7 @@ data: {
 
 > ℹ️ 결과가 없으면 `200` + `{ activities: [], nextCursor: null, hasNext: false }`.
 > ℹ️ 화면 조립 — 윗줄 `actor.name` + `block.title` + `block.type`, 아랫줄 `displayName` + 동작.
+> ⚠️ **퇴사자여도 로그를 지우지 않는다** — `actor.resignedAt` 이 있으면 이름 뒤에 `(퇴사자)` 문구만 붙인다. ([퇴사자 표기](#-퇴사자-표기-2026-08-12-신설--도메인-공통-컨벤션))
 > ℹ️ 필터 선택지는 [10. 블록 일괄 조회](#10-스텝-블록-일괄-조회) 로 받는다. 필터를 바꾸면 **목록 · 커서를 초기화**하고 다시 조회한다.
 > ❗ 명세 예시의 `fieldName` 이 `completed` 인데 단어 사전은 `isCompleted` 다 — 실제로 무엇이 오는지 **확인 필요**. 지금은 두 이름 모두 받는다.
 
@@ -4147,8 +4304,22 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 > ⚠️ **낙관적 락을 항목마다 검사한다.** 하나라도 어긋나면 **요청 전체가 409 로 롤백**된다 — 부분 적용은 없다.
 > ⚠️ `overwrite` 가 **없다.** 409 면 재조회해서 다시 끄는 수밖에 없다.
-> ⚠️ **전체 최종 순서**를 보낸다. 일부만 보내면 보내지 않은 스테이지와 `sort_order` 가 겹친다.
+> ⚠️ **사이드바 전체의 최종 순서**를 보낸다. 일부만 보내면 보내지 않은 스테이지와 `sort_order` 가 겹친다.
 > `sort_order` 만 갱신한다 — **하위 스텝은 건드리지 않는다** (STG-002).
+
+**Status Code**
+
+| 코드 | code                     | 설명                                               |
+| ---- | ------------------------ | -------------------------------------------------- |
+| 400  | `STAGE_ORDER_INVALID`    | 순서 목록이 비었거나 순서 값이 중복                |
+| 400  | `STAGE_VERSION_REQUIRED` | 항목 중 `version` 이 빠진 것이 있음                |
+| 401  | `AUTH_UNAUTHENTICATED`   | 세션 없음/만료                                     |
+| 403  | `PROJECT_EDIT_DENIED`    | 프로젝트 편집 권한 없음                            |
+| 404  | `STAGE_NOT_FOUND`        | 스테이지 없음 · **이 프로젝트 소속이 아닌 경우도** |
+| 404  | `PROJECT_NOT_FOUND`      | 프로젝트 없음                                      |
+| 409  | `STAGE_VERSION_CONFLICT` | 하나라도 먼저 수정됨 — **전체 롤백**               |
+
+> 🏢 **회사 격리** (2026-08-11) — 다른 회사의 리소스는 404 다.
 
 ---
 
@@ -4578,6 +4749,48 @@ GET  /bidding/collection-runs/{runId}          ← COMPLETED | FAILED 까지 폴
 
 > ⚠️ **참여사(`participants`) 는 응답에 없다** — 초안 명세에는 있었으나 실제로는 오지 않는다. 참여사 표를 만들지 않는다.
 > ⚠️ 반대로 **첨부 목록(`attachments`) 은 온다** — 초안에는 `hasAttachment` 뿐이었다. 다만 **우리 저장소 파일이 아니라 원문 사이트 링크**라 다운로드 API 를 부르지 않고 새 탭으로 연다.
+
+---
+
+## 124. 스텝 상세 조회
+
+| 항목          | 내용                                 |
+| ------------- | ------------------------------------ |
+| **Method**    | `GET`                                |
+| **Path**      | `/api/v1/steps/{stepId}`             |
+| **인증 필요** | ✅ (스텝 접근 권한)                  |
+| **사용 위치** | ❌ **미연동**                        |
+| **요구사항**  | STP-003 · STP-004 · STP-012 · INV-04 |
+
+**Response (200 OK)**
+
+```ts
+data: {
+  stepId: number;
+  projectId: number;          // NOT NULL
+  stageId: number | null;     // 미배정 가능
+  name: string;
+  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'DONE';
+  startedOn: string;          // '2026-08-01'
+  endedOn: string;            // '2026-08-10'
+  owner: { userId: string; name: string; deleted: boolean } | null;  // 책임자 — 작업자가 아니다
+  totalIssueCount: number;
+  doneIssueCount: number;
+  inProgressIssueCount: number;   // 3색 진행바용
+  progressRate?: number;          // 이슈 0개면 응답에 없다 (INV-04)
+  completedBy: { userId: string; name: string; deleted: boolean } | null;
+  completedAt: string | null;
+  myPermission: 'VIEWER' | 'EDITOR';
+  version: number;                // 낙관적 락 버전
+}
+```
+
+> ℹ️ **스텝 목록(8번)과 필드가 거의 같고, `projectId` · `completedBy` · `completedAt` · `version` 이 더 온다.** 목록으로 이미 그릴 수 있어 화면은 아직 이 API 를 부르지 않는다 — 스텝 단독 진입(딥링크)이나 목록 없이 `version` 만 다시 받고 싶을 때 쓸 자리다.
+> ⚠️ `owner` 는 **책임자**다. 작업자가 아니다.
+> 🗑️ **삭제된 사원도 이름은 그대로 내려온다** (D-6 · 2026-08-11) — `deleted: true` 는 배지로 표시하고 재지정을 유도한다. 퇴사(`resigned`)와는 별개 상태다.
+> ⚠️ `version` 은 화면에 그리는 값이 아니라 **스텝 수정(116) · 완료(118) · 순서 변경(120)에 실어 보낼 값**이다.
+
+**Status Code** — 200 · 401 `AUTH_UNAUTHENTICATED` · 403 `STEP_ACCESS_DENIED`(`NONE` 권한) · 404 `STEP_NOT_FOUND`(**다른 회사의 스텝도 여기로**)
 
 ---
 

@@ -7,6 +7,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
 import ModalLoadingFallback from '@/components/ModalLoadingFallback';
+import { personLabel } from '@/components/PersonNote';
 import { getProjectIssues } from '@/features/issue/api';
 import { IssuePriorityBadge, OverdueBadge } from '@/features/issue/IssueBadges';
 import {
@@ -421,12 +422,31 @@ const IssueRow = memo(function IssueRow({
       <div className="flex items-center justify-between gap-2 text-micro text-text-secondary">
         <span className="flex min-w-0 items-center">
           {issue.assignees.slice(0, 3).map((assignee, index) => (
-            <span key={assignee.userId} className={index > 0 ? '-ml-1' : ''}>
+            <span
+              key={assignee.userId}
+              /*
+               * 겹친 아바타라 문구 자리가 없다 — 흐리게 + tooltip 으로 알린다.
+               * 뒤쪽 아바타는 `decorative` 라 아바타 자체가 `aria-hidden` 이다.
+               * `title` 만으로는 접근성 이름이 되지 않으므로 감싼 쪽이 대신 읽힌다.
+               */
+              {...(index > 0
+                ? {
+                    role: 'img',
+                    'aria-label': personLabel(
+                      assignee.name,
+                      assignee.resignedAt !== null,
+                    ),
+                  }
+                : {})}
+              title={personLabel(assignee.name, assignee.resignedAt !== null)}
+              className={index > 0 ? '-ml-1' : ''}
+            >
               <MemberAvatar
                 userId={assignee.userId}
                 name={assignee.name}
                 size="xs"
                 decorative={index > 0}
+                resigned={assignee.resignedAt !== null}
               />
             </span>
           ))}

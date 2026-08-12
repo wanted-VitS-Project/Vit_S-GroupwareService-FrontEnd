@@ -106,10 +106,15 @@ export function AssigneeAvatars({
           key={assignee.userId}
           style={{ marginLeft: index === 0 ? 0 : -6, zIndex: index }}
         >
+          {/*
+            겹친 스택이라 문구를 놓을 자리가 없다 — 흐리게 + `이름 (퇴사자)` tooltip 으로만 알린다.
+            ⚠️ 퇴사자라고 아바타를 빼지 않는다 (담당자 수가 달라 보인다).
+          */}
           <MemberAvatar
             userId={assignee.userId}
             name={assignee.name}
             size={size}
+            resigned={assignee.resignedAt !== null}
           />
         </span>
       ))}

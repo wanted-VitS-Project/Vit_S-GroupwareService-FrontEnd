@@ -11,10 +11,21 @@ export type IssueStatus = 'TODO' | 'IN_PROGRESS' | 'DONE';
 
 export type IssuePriority = 'LOW' | 'MEDIUM' | 'HIGH';
 
-/** 담당자 — `userId` 는 사번이다. 참여자 응답의 `memberId` 를 쓰면 안 된다 */
+/**
+ * 담당자 — `userId` 는 사번이다. 참여자 응답의 `memberId` 를 쓰면 안 된다.
+ *
+ * 사원은 삭제되지 않고 **퇴사일만 기록된다** (2026-08-12 컨벤션).
+ * 퇴사자여도 담당자 항목을 화면에서 빼지 않고 이름 뒤에 `(퇴사자)` 문구만 붙인다 —
+ * 사원 조회 API 를 따로 부를 필요가 없다.
+ *
+ * ⚠️ 필드명은 `deletedAt` 이 아니라 **`resignedAt`** 이고, 블록 담당자의
+ *    `deleted`(사원 데이터 삭제 · D-6)와도 **다른 값**이다.
+ */
 export interface IssueAssignee {
   userId: string;
   name: string;
+  /** 퇴사일 `yyyy-MM-dd`. 재직 중이면 null */
+  resignedAt: string | null;
 }
 
 /** 이슈에 연결된 블록. `title` · `type` 은 표시용이라 요청에 보내지 않는다 */
