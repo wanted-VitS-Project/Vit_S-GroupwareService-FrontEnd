@@ -278,7 +278,8 @@ export interface StepOrderItem {
 /** PATCH /api/v1/projects/{projectId}/steps/order */
 export interface StepOrderResult {
   stepId: number;
-  stageId: number;
+  /** 요청과 마찬가지로 **미소속은 `null`** 이다 */
+  stageId: number | null;
   sortOrder: number;
   /** ⚠️ 저장 후의 새 값 */
   version: number;

@@ -46,6 +46,10 @@ export default function StepDeleteModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const targets = steps.filter((candidate) => candidate.stepId !== step.stepId);
+  /** 실제로 고를 수 있는 곳 — 도착 스텝도 EDITOR 여야 블록이 옮겨진다 */
+  const hasEditableTarget = targets.some(
+    (target) => target.myPermission === 'EDITOR',
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -217,16 +221,36 @@ export default function StepDeleteModal({
               <option value="" disabled>
                 옮길 스텝을 선택해주세요
               </option>
-              {targets.map((target) => (
-                <option key={target.stepId} value={target.stepId}>
-                  {target.name}
-                </option>
-              ))}
+              {/*
+                편집 권한이 없는 스텝은 서버가 `STEP_EDIT_DENIED` 로 거절한다 —
+                삭제를 누른 뒤에 알게 되지 않도록 **고르기 전에** 막는다.
+                목록에서 아예 지우지는 않는다: "왜 저 스텝이 안 보이지" 가 된다.
+              */}
+              {targets.map((target) => {
+                const canEdit = target.myPermission === 'EDITOR';
+                return (
+                  <option
+                    key={target.stepId}
+                    value={target.stepId}
+                    disabled={!canEdit}
+                  >
+                    {target.name}
+                    {canEdit ? '' : ' (편집 권한 없음)'}
+                  </option>
+                );
+              })}
             </select>
-            <p className="mt-1 text-caption break-keep text-yellow-text">
-              옮긴 블록의 <strong>이슈 연결은 끊깁니다.</strong> 블록과 이슈는
-              같은 스텝에 있어야 합니다.
-            </p>
+            {hasEditableTarget ? (
+              <p className="mt-1 text-caption break-keep text-yellow-text">
+                옮긴 블록의 <strong>이슈 연결은 끊깁니다.</strong> 블록과 이슈는
+                같은 스텝에 있어야 합니다.
+              </p>
+            ) : (
+              <p className="mt-1 text-caption break-keep text-text-danger">
+                편집 권한이 있는 스텝이 없어 블록을 옮길 수 없습니다. 체크를
+                해제하면 블록과 함께 삭제됩니다.
+              </p>
+            )}
           </div>
         )}
 

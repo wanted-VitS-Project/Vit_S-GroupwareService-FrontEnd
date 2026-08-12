@@ -453,6 +453,8 @@ export default function StageManageModal({
                           <MoveButtons
                             label={stage.name}
                             disabled={isSaving || isStale}
+                            canMoveUp={bucketIndex > 0}
+                            canMoveDown={bucketIndex < realStages.length - 1}
                             onUp={() => moveStage(bucketIndex, bucketIndex - 1)}
                             onDown={() =>
                               moveStage(bucketIndex, bucketIndex + 1)
@@ -541,9 +543,18 @@ export default function StageManageModal({
                               <span className="min-w-0 flex-1 truncate text-caption text-text-primary">
                                 {step.name}
                               </span>
+                              {/*
+                                묶음 끝에서 한 번 더 누르면 이웃 묶음으로 넘어가므로,
+                                **보드 전체의 처음 · 마지막**에서만 막는다
+                              */}
                               <MoveButtons
                                 label={step.name}
                                 disabled={isSaving || isStale}
+                                canMoveUp={bucketIndex > 0 || index > 0}
+                                canMoveDown={
+                                  bucketIndex < buckets.length - 1 ||
+                                  index < bucket.steps.length - 1
+                                }
                                 onUp={() => moveStepBy(bucketIndex, index, -1)}
                                 onDown={() => moveStepBy(bucketIndex, index, 1)}
                               />
@@ -652,14 +663,24 @@ export default function StageManageModal({
 }
 
 /** 끌지 못하는 환경(키보드 · 터치)에서도 순서를 바꿀 수 있게 둔다 */
+/**
+ * 끌지 못하는 환경(키보드 · 터치)에서도 순서를 바꿀 수 있게 둔다.
+ *
+ * ⚠️ 위/아래 **각각** 막을 수 있어야 한다 — 첫 줄에서 `위로` 를 눌러 아무 일도 없으면
+ *    키보드 · 스크린리더 사용자는 조작이 실패한 것으로 읽는다.
+ */
 function MoveButtons({
   label,
   disabled,
+  canMoveUp = true,
+  canMoveDown = true,
   onUp,
   onDown,
 }: {
   label: string;
   disabled: boolean;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
   onUp: () => void;
   onDown: () => void;
 }) {
@@ -668,7 +689,7 @@ function MoveButtons({
       <button
         type="button"
         aria-label={`${label} 위로`}
-        disabled={disabled}
+        disabled={disabled || !canMoveUp}
         onClick={onUp}
         className="flex size-5 cursor-pointer items-center justify-center rounded-button-sm text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
       >
@@ -677,7 +698,7 @@ function MoveButtons({
       <button
         type="button"
         aria-label={`${label} 아래로`}
-        disabled={disabled}
+        disabled={disabled || !canMoveDown}
         onClick={onDown}
         className="flex size-5 cursor-pointer items-center justify-center rounded-button-sm text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
       >

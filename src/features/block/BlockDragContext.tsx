@@ -23,6 +23,14 @@ export interface BlockDragValue {
   hover: (blockId: number, mode: 'swap' | 'after') => void;
   /** 놓기 · 취소 모두 여기서 정리한다 */
   finish: () => void;
+  /**
+   * 평면 순서에서 한 칸 앞/뒤로 옮긴다 — **키보드 경로**다.
+   *
+   * 드래그는 포인터가 있어야만 쓸 수 있어, 핸들에 화살표 키를 붙여 같은 이동을 연다.
+   * 드래그와 마찬가지로 **저장하지 않는다** — `배치 완료` 때 한 번만 보낸다.
+   * 양 끝에서는 아무 일도 일어나지 않는다 (드래그로 화면 밖에 놓은 것과 같다).
+   */
+  moveBy: (blockId: number, delta: -1 | 1) => void;
 }
 
 const BlockDragContext = createContext<BlockDragValue | null>(null);

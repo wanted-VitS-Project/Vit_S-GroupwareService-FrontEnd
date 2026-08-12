@@ -491,9 +491,38 @@ export default function BlockBoard({
    * 매 렌더 새 객체를 내려주면 강조 표시가 바뀔 때마다 **모든 `BlockCard` 가**
    * 다시 그려진다 (본문에 에디터 · 파일 목록이 달린 카드까지).
    */
+  /**
+   * 키보드로 한 칸 옮긴다.
+   *
+   * `liveOrder` 는 ref 라 이 함수의 참조가 고정된다 — 컨텍스트를 매 렌더 새로 만들지 않아
+   * 카드가 통째로 다시 그려지지 않는다 (드래그 배선과 같은 이유).
+   */
+  const moveBy = useCallback(
+    (blockId: number, delta: -1 | 1) => {
+      const current = liveOrder.current;
+      const from = current.findIndex((block) => block.blockId === blockId);
+      if (from === -1) return;
+
+      const to = from + delta;
+      // 양 끝에서는 아무 일도 하지 않는다 — 드래그로 밖에 놓은 것과 같다
+      if (to < 0 || to >= current.length) return;
+
+      const next = [...current];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+
+      slide.capture();
+      liveOrder.current = next;
+      setOrder(next);
+      // 드래그의 `finish` 와 같은 자리 — 저장은 `배치 완료` 때 한 번만 한다
+      publish(next);
+    },
+    [publish, slide],
+  );
+
   const drag: BlockDragValue = useMemo(
-    () => ({ draggingId, start, hover, finish }),
-    [draggingId, start, hover, finish],
+    () => ({ draggingId, start, hover, finish, moveBy }),
+    [draggingId, start, hover, finish, moveBy],
   );
 
   /** 드래그 배선과 같은 이유로 참조를 고정한다 — 매 렌더 바뀌면 카드가 전부 다시 그려진다 */

@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import MemberAvatar from '@/components/MemberAvatar';
 import ModalLoadingFallback from '@/components/ModalLoadingFallback';
 import { notifyToast } from '@/components/Toast';
+import { notifyBlockChanged } from '@/features/block/events';
 import {
   ISSUE_CHANGED_EVENT,
   notifyIssueChanged,
@@ -322,6 +323,11 @@ export default function ProjectSidebar() {
     );
     reload();
     if (step.totalIssueCount > 0) notifyIssueChanged();
+    /*
+     * 블록을 옮겼으면 **도착 스텝의 목록이 달라진다** —
+     * 그 보드가 열려 있으면 알리지 않는 한 옛 목록을 계속 보여준다.
+     */
+    if (movedBlockCount > 0) notifyBlockChanged();
 
     // 보고 있던 스텝이 사라졌다 — 빈 화면에 남겨두지 않는다
     if (params.stepId === String(step.stepId)) {
@@ -1073,6 +1079,7 @@ function RowMenu({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLSpanElement>(null);
 
   /** 메뉴를 닫고 트리거로 포커스를 돌려준다 — 키보드로 되돌아갈 곳이 필요하다 */
   function close() {
@@ -1080,14 +1087,48 @@ function RowMenu({
     triggerRef.current?.focus();
   }
 
+  /**
+   * 항목 사이를 화살표로 옮긴다 (WAI-ARIA 메뉴 패턴).
+   *
+   * Tab 만으로도 닿기는 하지만, 메뉴는 **위아래로 훑는 것**이 표준 동작이다.
+   * 끝에서 한 번 더 누르면 반대쪽으로 돌아간다 — 목록이 짧아 되돌아가는 편이 빠르다.
+   */
+  function focusItem(step: 1 | -1) {
+    const buttons = menuRef.current?.querySelectorAll('[role="menuitem"]');
+    if (!buttons?.length) return;
+
+    const current = Array.from(buttons).indexOf(
+      document.activeElement as Element,
+    );
+    // 아직 항목에 없으면(트리거에 포커스) 방향에 맞는 끝에서 시작한다
+    const next =
+      current === -1
+        ? step === 1
+          ? 0
+          : buttons.length - 1
+        : (current + step + buttons.length) % buttons.length;
+
+    (buttons[next] as HTMLElement).focus();
+  }
+
   return (
     <span
       className="relative shrink-0"
-      // 팝업 메뉴는 Esc 로 닫히는 것이 표준 동작이다
       onKeyDown={(event) => {
-        if (event.key !== 'Escape' || !isOpen) return;
-        event.stopPropagation();
-        close();
+        if (!isOpen) return;
+
+        // 팝업 메뉴는 Esc 로 닫히는 것이 표준 동작이다
+        if (event.key === 'Escape') {
+          event.stopPropagation();
+          close();
+          return;
+        }
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+          // 화살표로 목록을 훑는 동안 뒤 화면이 스크롤되면 안 된다
+          event.preventDefault();
+          event.stopPropagation();
+          focusItem(event.key === 'ArrowDown' ? 1 : -1);
+        }
       }}
     >
       <button
@@ -1119,6 +1160,7 @@ function RowMenu({
             className="fixed inset-0 z-10 cursor-default"
           />
           <span
+            ref={menuRef}
             role="menu"
             className="absolute top-full right-0 z-20 mt-1 flex w-32 flex-col overflow-hidden rounded-lg border border-border-default bg-bg-card shadow-lg"
           >

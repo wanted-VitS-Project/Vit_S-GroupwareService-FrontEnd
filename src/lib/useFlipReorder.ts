@@ -130,10 +130,10 @@ export function useFlipReorder<Key extends string | number>(
     }
 
     // ② 측정 (읽기) — 여기서 한 번만 레이아웃이 확정된다
-    const deltas = new Map<HTMLElement, Spot>();
+    const measured = new Map<HTMLElement, Spot>();
     for (const { node, before } of moving) {
       const after = node.getBoundingClientRect();
-      deltas.set(node, {
+      measured.set(node, {
         left: before.left - after.left,
         top: before.top - after.top,
       });
@@ -143,28 +143,38 @@ export function useFlipReorder<Key extends string | number>(
      * ③ 중첩 보정 (계산만)
      * 등록한 행 안에 또 등록한 행이 있으면(단계 > 스텝) 부모가 이미 그만큼 옮겨 준다.
      * 그대로 두면 자기 것이 겹쳐 두 배로 밀리므로 **자기 몫만** 남긴다.
+     *
+     * ⚠️ 보정 결과를 `measured` 에 덮어쓰면 안 된다 — 3단계 이상(A > B > C)에서
+     *    C 가 읽는 B 값이 이미 보정된 "자기 몫" 이 되어 어긋난다.
+     *    조상에서 빼야 하는 값은 **화면에서 실제로 움직인 양(측정값)** 이다.
      */
+    const corrected = new Map<HTMLElement, Spot>();
     for (const { node } of moving) {
-      const own = deltas.get(node);
+      const own = measured.get(node);
       if (!own) continue;
+
+      let dx = own.left;
+      let dy = own.top;
 
       for (
         let parent = node.parentElement;
         parent;
         parent = parent.parentElement
       ) {
-        const ancestor = deltas.get(parent);
-        // 가장 가까운 등록 조상 하나만 본다 — 그 위는 이미 조상에 반영돼 있다
+        const ancestor = measured.get(parent);
+        // 가장 가까운 등록 조상 하나만 본다 — 그 위는 이미 조상의 이동에 포함돼 있다
         if (!ancestor) continue;
-        own.left -= ancestor.left;
-        own.top -= ancestor.top;
+        dx -= ancestor.left;
+        dy -= ancestor.top;
         break;
       }
+
+      corrected.set(node, { left: dx, top: dy });
     }
 
     // ④ 애니메이션 (쓰기)
     for (const { node } of moving) {
-      const delta = deltas.get(node);
+      const delta = corrected.get(node);
       if (!delta) continue;
 
       const { left: dx, top: dy } = delta;

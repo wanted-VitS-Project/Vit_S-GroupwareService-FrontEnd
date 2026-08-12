@@ -73,6 +73,16 @@ export default function BlockMoveStepModal({
   const candidates =
     steps?.filter((step) => String(step.stepId) !== currentStepId) ?? [];
 
+  /**
+   * 실제로 고를 수 있는 후보가 하나라도 있는지.
+   *
+   * 후보는 있는데 전부 권한이 없으면 `<option>` 이 모두 `disabled` 라
+   * **아무것도 못 고르는데 이유도 안 보인다.** 그 경우를 따로 알린다.
+   */
+  const hasSelectableCandidate = candidates.some(
+    (step) => step.myPermission === 'EDITOR',
+  );
+
   const isLoading = steps === null;
   const canSubmit =
     !isLoading && !isSubmitting && !hasNoVersion && targetStepId !== '';
@@ -149,6 +159,11 @@ export default function BlockMoveStepModal({
           ) : candidates.length === 0 ? (
             <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-[11px] break-keep text-text-secondary">
               옮길 수 있는 다른 스텝이 없습니다.
+            </p>
+          ) : !hasSelectableCandidate ? (
+            <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-[11px] break-keep text-text-secondary">
+              편집 권한이 있는 스텝이 없어 옮길 수 없습니다. 스텝 편집 권한을
+              요청해주세요.
             </p>
           ) : (
             <div>

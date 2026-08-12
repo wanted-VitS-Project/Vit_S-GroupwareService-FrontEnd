@@ -9,6 +9,9 @@
  */
 export const ISSUE_CHANGED_EVENT = 'issue:changed';
 
+/** 서버에서 부르면 아무 일도 하지 않는다 — `components/Toast` 의 `notifyToast` 와 같은 방침 */
 export function notifyIssueChanged() {
+  if (typeof window === 'undefined') return;
+
   window.dispatchEvent(new Event(ISSUE_CHANGED_EVENT));
 }

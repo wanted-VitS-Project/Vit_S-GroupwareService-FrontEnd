@@ -59,7 +59,6 @@ export default function StepFormModal({
   const [haveMembersFailed, setHaveMembersFailed] = useState(false);
 
   const [nameError, setNameError] = useState('');
-  const [dateError, setDateError] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConflicting, setIsConflicting] = useState(false);
@@ -90,7 +89,6 @@ export default function StepFormModal({
   /** 값을 고치면 직전 서버 오류는 더 이상 맞지 않는다 */
   function clearErrors() {
     setNameError('');
-    setDateError('');
     setError('');
   }
 
@@ -162,11 +160,7 @@ export default function StepFormModal({
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-
-    if (isRangeReversed) {
-      setDateError('종료일은 시작일보다 앞설 수 없습니다.');
-      return;
-    }
+    // 기간 역전은 `canSubmit` 이 막고, 이유는 폼에 상시 표시된다
     if (canSubmit) void save(false);
   }
 
@@ -275,12 +269,16 @@ export default function StepFormModal({
                 />
               </div>
             </div>
-            {dateError && (
+            {/*
+              저장 버튼이 이미 막혀 있어 **누르는 순간 알리는 방식은 닿지 않는다** —
+              역전된 순간 바로 이유를 보여준다.
+            */}
+            {isRangeReversed && (
               <p
                 role="alert"
                 className="text-caption break-keep text-text-danger"
               >
-                {dateError}
+                종료일은 시작일보다 앞설 수 없습니다.
               </p>
             )}
 

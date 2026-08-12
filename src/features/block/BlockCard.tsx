@@ -118,15 +118,31 @@ export default function BlockCard({
         */}
         {drag && (
           <span
-            aria-label={`${label} 위치 이동 핸들`}
+            role="button"
+            /*
+             * 드래그는 포인터가 있어야만 쓸 수 있다 — 핸들에 초점을 줄 수 있게 하고
+             * **화살표 키로 같은 이동**을 연다 (`drag.moveBy`).
+             * 좌우로 둔 이유: 블록은 3칸 그리드를 왼→오른쪽으로 흐르는 **평면 순서**라
+             * 위/아래는 몇 칸 움직이는지가 배치에 따라 달라져 예측할 수 없다.
+             */
+            tabIndex={0}
+            aria-label={`${label} 위치 이동 핸들. 왼쪽·오른쪽 화살표 키로 순서를 바꿉니다`}
             draggable
             onDragStart={(event) => {
               setPillDragImage(event, label);
               drag.start(block.blockId, label);
             }}
             onDragEnd={drag.finish}
+            onKeyDown={(event) => {
+              if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+                return;
+              }
+              // 보드가 좌우로 스크롤되거나 초점이 옆 카드로 넘어가면 안 된다
+              event.preventDefault();
+              drag.moveBy(block.blockId, event.key === 'ArrowLeft' ? -1 : 1);
+            }}
             // 점 6개(약 12×10px)만으로는 잡기 어렵다 — 여백으로 실제 클릭 영역을 넓힌다
-            className="-m-1 flex cursor-grab flex-col gap-0.5 rounded-button-sm p-1 opacity-40 hover:bg-bg-hover hover:opacity-80 active:cursor-grabbing"
+            className="-m-1 flex cursor-grab flex-col gap-0.5 rounded-button-sm p-1 opacity-40 hover:bg-bg-hover hover:opacity-80 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-primary active:cursor-grabbing"
           >
             {[0, 1, 2].map((row) => (
               <span key={row} className="flex gap-0.5">
