@@ -7,11 +7,10 @@ import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import MemberAvatar from '@/components/MemberAvatar';
 import Modal from '@/components/Modal';
 import PersonNote from '@/components/PersonNote';
-import { getProjectMembers } from '@/features/project/api';
-import type { ProjectMember } from '@/features/project/types';
 import { ApiError, messageOf } from '@/lib/api';
 
 import { updateBlock } from './api';
+import { useBlockMembers, useBlockMembersSource } from './BlockMembersContext';
 import BlockTypeIcon from './BlockTypeIcon';
 import { notifyBlockChanged } from './events';
 import {
@@ -33,9 +32,17 @@ export default function BlockEditModal({
   const { id: projectId } = useParams<{ id: string }>();
   const [title, setTitle] = useState(block.title ?? '');
   const [owner, setOwner] = useState(block.owner?.userId ?? '');
-  const [members, setMembers] = useState<ProjectMember[]>([]);
-  const [isMembersLoading, setIsMembersLoading] = useState(true);
-  const [membersFailed, setMembersFailed] = useState(false);
+  /**
+   * 참여자 목록은 **보드가 이미 받아 둔 것**을 쓴다 (`BlockMembersContext`).
+   * 보드 밖에서 열렸을 때만(컨텍스트 없음) 직접 조회한다 — 같은 목록을 두 번 받지 않는다.
+   */
+  const sharedMembers = useBlockMembers();
+  const ownMembers = useBlockMembersSource(sharedMembers ? null : projectId);
+  const {
+    members,
+    isLoading: isMembersLoading,
+    failed: membersFailed,
+  } = sharedMembers ?? ownMembers;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [confirmation, setConfirmation] = useState<
@@ -63,23 +70,6 @@ export default function BlockEditModal({
     }
     setConfirmation('save');
   }
-
-  useEffect(() => {
-    const controller = new AbortController();
-    getProjectMembers(projectId, controller.signal)
-      .then((nextMembers) => {
-        setMembers(nextMembers);
-        setIsMembersLoading(false);
-      })
-      .catch((caught) => {
-        if (!controller.signal.aborted) {
-          setMembersFailed(true);
-          setIsMembersLoading(false);
-          setErrorMessage(messageOf(caught, '참여자를 불러오지 못했습니다.'));
-        }
-      });
-    return () => controller.abort();
-  }, [projectId]);
 
   async function submit(overwrite = false) {
     if (isSubmitting) return;
@@ -134,8 +124,16 @@ export default function BlockEditModal({
     (owner && block.owner?.userId === owner
       ? { userId: owner, name: block.owner.name }
       : null);
-  /** 삭제된 사원은 후보에 나오지 않는다 — 목록 자체에서 빠진다 */
-  const candidates = members.filter((member) => member.userId !== owner);
+  /**
+   * 담당자 후보.
+   *
+   * **퇴사자는 새로 지정할 수 없다** — 이미 지정된 사람은 위 칩으로 그대로 남기고
+   * 여기서만 뺀다 (이슈 담당자 지정과 같은 규칙 · `IssueFormModal`).
+   * 삭제된 사원은 참여자 목록 자체에 없어 따로 거를 것이 없다.
+   */
+  const candidates = members.filter(
+    (member) => member.userId !== owner && !member.resigned,
+  );
   /**
    * 칩에 `(퇴사자)` 를 붙일지.
    * 근거가 둘이다 — 블록 응답의 `owner.deleted`(사원 데이터 삭제) · 참여자 목록의 `resigned`(퇴사).
@@ -288,18 +286,17 @@ export default function BlockEditModal({
                       focusAfterRender.current = 'chip';
                       setOwner(member.userId);
                     }}
-                    title={`${member.name}${member.department ? ` · ${member.department}` : ''}${member.resigned ? ' · 퇴사자' : ''}`}
-                    className="flex cursor-pointer items-center gap-0.5 rounded-button-md px-1.5 py-0.5 text-caption text-text-secondary hover:bg-bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                    title={`${member.name}${member.department ? ` · ${member.department}` : ''}`}
+                    className="flex cursor-pointer items-center gap-1 rounded-button-md px-1.5 py-0.5 text-caption text-text-secondary hover:bg-bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
                   >
+                    {/* 후보는 재직자뿐이라 상태 문구가 붙을 일이 없다 */}
                     <MemberAvatar
                       userId={member.userId}
                       name={member.name}
                       size="xs"
                       decorative
-                      resigned={member.resigned}
                     />
-                    <span className="ml-0.5">{member.name}</span>
-                    {member.resigned && <PersonNote />}
+                    {member.name}
                   </button>
                 ))
               )}

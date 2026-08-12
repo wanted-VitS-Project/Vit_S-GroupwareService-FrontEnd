@@ -17,7 +17,7 @@ import { useModal, useModalRouter } from '@/lib/useModal';
 
 import { useBlockActions } from './BlockActionsContext';
 import { setPillDragImage, useBlockDrag } from './BlockDragContext';
-import { useOwnerResigned } from './BlockOwnerResignedContext';
+import { useOwnerResigned } from './BlockMembersContext';
 import { notifyBlockChanged } from './events';
 import BlockTypeIcon from './BlockTypeIcon';
 import { BLOCK_TYPES, type StepBlock } from './types';
@@ -198,7 +198,7 @@ export default function BlockCard({
             {/*
               이름은 그대로 두고 뒤에 `(퇴사자)` 만 붙인다.
               ⚠️ 이 응답에는 `resignedAt` 이 없어 `owner.deleted` 만으로는 퇴사자를 놓친다 —
-                 보드가 참여자 목록으로 보충한 값을 쓴다 (`BlockOwnerResignedContext`).
+                 보드가 참여자 목록으로 보충한 값을 쓴다 (`BlockMembersContext`).
               문구는 줄이지 않는다 — 이름이 길면 이름 쪽이 잘린다.
             */}
             <span className="flex min-w-0 flex-1 items-center gap-0.5 text-micro text-text-secondary">

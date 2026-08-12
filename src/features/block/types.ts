@@ -167,10 +167,12 @@ export interface BlockOwner {
   /**
    * 사원 데이터 삭제 여부 (D-6 · 2026-08-11 신설).
    *
-   * `true` 여도 이름은 그대로 온다 — 이름 옆에 `삭제됨` 배지를 그리고
+   * `true` 여도 이름은 그대로 온다 — 이름 뒤에 `(퇴사자)` 문구를 붙이고
    * **담당자 선택 후보에서만 제외**한다.
    *
-   * ⚠️ 이슈 담당자 · 활동 수행자의 `resignedAt`(퇴사)와 **다른 값**이다. 서로 대체하지 마라.
+   * ⚠️ 이슈 담당자 · 활동 수행자의 `resignedAt`(퇴사)와 **다른 값**이다 — 서로 대체하지 말고,
+   *    화면 표기만 하나로 합친다 (`components/PersonNote.tsx`). 이 응답에는 `resignedAt` 이 없어
+   *    참여자 목록의 `resigned` 로 보충한다 (`BlockMembersContext`).
    * ⚠️ 생성 응답(9번)에서는 항상 `false` 다 — `true` 는 조회(10번)에서만 온다.
    */
   deleted: boolean;
@@ -233,6 +235,25 @@ export interface MoveBlockResponse {
   unlinkedIssueCount: number;
   /** 저장 후의 새 값 */
   version: number;
+}
+
+/**
+ * 수정 응답의 담당자를 화면 상태에 넣을 수 있는 모양으로 맞춘다.
+ *
+ * `deleted` 가 오지 않았을 때 —
+ * - **같은 담당자면** 화면이 들고 있던 값을 유지한다 (표기가 깜빡 사라지지 않는다)
+ * - **바뀐 담당자면** `false` 다. 새 담당자는 후보 목록에서 온 재직 중인 사원뿐이다
+ */
+export function normalizeUpdatedOwner(
+  updated: UpdateBlockResponse['owner'],
+  previous: BlockOwner | null,
+): BlockOwner | null {
+  if (updated === null) return null;
+  if (updated.deleted !== undefined)
+    return { ...updated, deleted: updated.deleted };
+
+  const isSamePerson = previous?.userId === updated.userId;
+  return { ...updated, deleted: isSamePerson ? previous.deleted : false };
 }
 
 export interface ChecklistItem {
@@ -670,11 +691,12 @@ export interface UpdateBlockResponse {
   blockId: number;
   title: string | null;
   /**
-   * ⚠️ 이 응답의 `deleted` 는 **명세에 명시돼 있지 않다** — 없으면 `undefined` 로 들어와
-   * 배지가 잠깐 사라진다. 방금 고른 담당자는 후보 목록에서 온 **재직 중인 사원**이라
-   * 실제로 문제가 되는 경우는 없다 (다음 조회에서 정확한 값으로 덮인다).
+   * ⚠️ **`deleted` 가 없을 수 있다** — 46번 명세에 이 필드가 명시돼 있지 않다.
+   *    그래서 응답 경계에서는 **선택 필드**로 받고, 화면 상태에 넣기 전에
+   *    `normalizeUpdatedOwner()` 로 정규화한다 (없으면 옛 값을 유지).
+   *    그대로 꽂으면 제목만 고쳤는데 담당자의 `(퇴사자)` 표기가 사라진다.
    */
-  owner: BlockOwner | null;
+  owner: (Omit<BlockOwner, 'deleted'> & { deleted?: boolean }) | null;
   updatedAt: string;
   /** ⚠️ 저장 후의 새 값. 화면 상태를 이 값으로 교체하지 않으면 다음 저장이 또 409 다 */
   version: number;

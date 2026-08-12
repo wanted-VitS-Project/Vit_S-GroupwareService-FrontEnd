@@ -26,11 +26,12 @@ import {
 import { BlockActionsProvider, type BlockActions } from './BlockActionsContext';
 import { BlockDragProvider, type BlockDragValue } from './BlockDragContext';
 import {
-  ResignedOwnersProvider,
-  useResignedOwners,
-} from './BlockOwnerResignedContext';
+  BlockMembersProvider,
+  useBlockMembersSource,
+} from './BlockMembersContext';
 import {
   BLOCK_COLUMNS,
+  normalizeUpdatedOwner,
   type StepBlock,
   type UpdateBlockResponse,
 } from './types';
@@ -174,10 +175,10 @@ export default function BlockBoard({
 }) {
   const { id: projectId } = useParams<{ id: string }>();
   /**
-   * 담당자 퇴사 표기 — 블록 응답에 `resignedAt` 이 없어 참여자 목록으로 보충한다.
-   * 카드마다 부르지 않도록 **보드에서 한 번만** 받아 컨텍스트로 내려준다.
+   * 참여자 목록 — 담당자 퇴사 표기(카드)와 담당자 후보(수정 모달)가 함께 쓴다.
+   * 여기서 **한 번만** 받아 컨텍스트로 내려준다 (`BlockMembersContext`).
    */
-  const resignedOwners = useResignedOwners(projectId);
+  const members = useBlockMembersSource(projectId);
   const [order, setOrder] = useState(() => toFlatOrder(blocks));
   const [draggingId, setDraggingId] = useState<number | null>(null);
   /** 커서가 올라가 있는 빈 칸 안내 — 강조 표시에만 쓴다 */
@@ -551,7 +552,8 @@ export default function BlockBoard({
       next[index] = {
         ...current[index],
         title: updated.title,
-        owner: updated.owner,
+        // 응답에 `deleted` 가 없을 수 있다 — 그대로 꽂으면 `(퇴사자)` 표기가 사라진다
+        owner: normalizeUpdatedOwner(updated.owner, current[index].owner),
         /*
          * ⚠️ `version` 을 빠뜨리면 안 된다 — 서버는 이미 올려 놓았다.
          * 옛 값을 든 채로 두면 **다음 수정도, 배치 저장도 전부 409** 다
@@ -611,7 +613,7 @@ export default function BlockBoard({
 
   return (
     <BlockActionsProvider value={actions}>
-      <ResignedOwnersProvider value={resignedOwners}>
+      <BlockMembersProvider value={members}>
         {/* 편집 모드가 아니면 배선을 아예 내려주지 않는다 — 카드가 드래그 핸들 없이 그려진다 */}
         <BlockDragProvider value={isArranging ? drag : null}>
           <div className="flex flex-col gap-4">
@@ -726,7 +728,7 @@ export default function BlockBoard({
             </div>
           </div>
         </BlockDragProvider>
-      </ResignedOwnersProvider>
+      </BlockMembersProvider>
     </BlockActionsProvider>
   );
 }

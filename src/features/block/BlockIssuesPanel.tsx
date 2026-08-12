@@ -268,7 +268,19 @@ export default function BlockIssuesPanel({
                         {issue.assignees.slice(0, 3).map((assignee, index) => (
                           <span
                             key={assignee.userId}
-                            // 겹친 아바타라 배지 자리가 없다 — 흐리게 + tooltip 으로만 알린다
+                            /*
+                             * 겹친 아바타라 문구 자리가 없다 — 흐리게 + tooltip 으로 알린다.
+                             * 뒤쪽 아바타는 `decorative`(aria-hidden) 라 감싼 쪽이 이름을 읽힌다.
+                             */
+                            {...(index > 0
+                              ? {
+                                  role: 'img',
+                                  'aria-label': personLabel(
+                                    assignee.name,
+                                    assignee.resignedAt !== null,
+                                  ),
+                                }
+                              : {})}
                             title={personLabel(
                               assignee.name,
                               assignee.resignedAt !== null,
