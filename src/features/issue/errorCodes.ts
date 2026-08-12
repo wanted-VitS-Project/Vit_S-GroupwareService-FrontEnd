@@ -5,10 +5,17 @@
 
 import { ApiError } from '@/lib/api';
 
+/**
+ * ⚠️ 이슈 도메인 코드는 접두어가 **`ISS_`** 다.
+ *    예외가 하나 있다 — 낙관적 락 충돌만 팀 표준(`{도메인}_VERSION_CONFLICT`)을 따라 **`ISSUE_`** 다.
+ *    (백엔드 `.ai/api/issue.md` · `.ai/docs/global/CONCURRENCY.md` §5-3)
+ */
 export const ISSUE_CODES = {
   /** 409 — 그 사이 남이 먼저 저장했다 (2026-08-12 낙관적 락 신설) */
   versionConflict: 'ISSUE_VERSION_CONFLICT',
-  notFound: 'ISSUE_NOT_FOUND',
+  notFound: 'ISS_NOT_FOUND',
+  /** 400 — `version` 누락 · 1 미만. 수정할 필드 없음 등 다른 형식 오류와 코드를 공유한다 */
+  invalidRequest: 'ISS_INVALID_REQUEST',
 } as const;
 
 /**
@@ -23,10 +30,6 @@ export function isIssueVersionConflict(error: unknown) {
 
   return error.code === ISSUE_CODES.versionConflict || error.status === 409;
 }
-
-/** 버전을 못 받아 저장을 시작조차 할 수 없을 때 */
-export const ISSUE_NO_VERSION_MESSAGE =
-  '이슈 버전 정보를 받지 못해 저장할 수 없습니다. 새로고침 후 다시 시도해주세요.';
 
 /** 자동 병합에 성공했을 때 — 사용자가 모르고 지나가면 안 된다 */
 export const ISSUE_MERGED_MESSAGE =
