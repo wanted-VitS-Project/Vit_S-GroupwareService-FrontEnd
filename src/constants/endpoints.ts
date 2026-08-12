@@ -306,6 +306,38 @@ export const ENDPOINTS = {
     preview: (fileVersionId: number | string) =>
       `${V1}/file-versions/${fileVersionId}/preview`,
   },
+  /**
+   * 입찰 도메인. (.ai/API.md 103~104 · `입찰 도메인 — 공통`)
+   *
+   * ⚠️ 수집 조건 경로는 명세 초안의 `crawl-conditions` 가 아니라 **`collection-conditions`** 다.
+   *    공고(`notices`)는 초안 그대로다.
+   */
+  bidding: {
+    /** 공고 목록 — 기간 · 발주처 · 카테고리 · 지역 · 마감임박 · 공고명으로 거른다 */
+    notices: `${V1}/bidding/notices`,
+    /** 공고 상세 — 첨부 목록(`attachments`)까지 함께 온다 */
+    notice: (noticeId: number | string) => `${V1}/bidding/notices/${noticeId}`,
+    /**
+     * 수집 조건 목록(GET) · 등록(POST).
+     * ⚠️ 초안 명세의 `crawl-conditions` 가 아니다. 목록은 페이징이 없다 (`data.content` 만).
+     */
+    collectionConditions: `${V1}/bidding/collection-conditions`,
+    /** 수집 조건 수정 — `sourceCode` 는 보낼 수 없다 (등록 때만 정한다) */
+    collectionCondition: (conditionId: number | string) =>
+      `${V1}/bidding/collection-conditions/${conditionId}`,
+    /**
+     * 수동 수집 요청 — 본문이 없고 `202` 로 `runId` 만 온다 (비동기).
+     * ⚠️ 비활성 조건은 400, 이미 돌고 있으면 409 다.
+     */
+    collectionRuns: (conditionId: number | string) =>
+      `${V1}/bidding/collection-conditions/${conditionId}/runs`,
+    /**
+     * 수집 실행 결과 — `PENDING` → `PROCESSING` → `COMPLETED` | `FAILED` 를 폴링한다.
+     * ⚠️ 실행 이력 **목록** API 는 없다 — `runId` 를 잃으면 되살릴 수 없다.
+     */
+    collectionRun: (runId: number | string) =>
+      `${V1}/bidding/collection-runs/${runId}`,
+  },
   notifications: {
     /** 알림 목록 — `category` · `isRead` · `page` · `size` 로 거른다 */
     root: `${V1}/notifications`,
