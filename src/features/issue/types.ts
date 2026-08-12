@@ -35,6 +35,14 @@ export interface IssueSummary {
   dueDate: string | null;
   assignees: IssueAssignee[];
   relatedBlocks: IssueRelatedBlock[];
+  /**
+   * 낙관적 락 버전 (2026-08-12 신설).
+   *
+   * ⚠️ **선택 필드로 둔다** — 목록 · 상세에 실린다는 계약은 나왔지만 실서버 확인 전이다.
+   *    값이 없으면 화면이 **수정 · 상태 변경을 막고 재조회를 안내한다**
+   *    (스테이지 · 스텝 · 블록과 같은 방침).
+   */
+  version?: number;
 }
 
 /**
@@ -109,6 +117,11 @@ export interface UpdateIssueRequest {
   priority?: IssuePriority;
   assigneeIds?: string[];
   blockIds?: number[];
+  /**
+   * ⚠️ **필수.** 최초 조회값(`base`)의 버전을 싣는다 — 어긋나면 409 다.
+   *    화면이 들고 있는 draft 의 버전이 아니라 **비교 기준의 버전**이어야 한다.
+   */
+  version: number;
 }
 
 /** PATCH /issues/{issueId}/status 응답 */
@@ -117,6 +130,14 @@ export interface IssueStatusChanged {
   status: IssueStatus;
   completedAt: string | null;
   updatedAt: string;
+  /**
+   * 저장 후의 새 값. 상태 변경도 issue 버전을 올린다 —
+   * 화면 카드에 덮어쓰지 않으면 **다음 수정이 409** 다.
+   *
+   * ⚠️ 응답에 실리는지 확인 전이라 선택으로 둔다. 없으면 화면은 카드 버전을 비워
+   *    다음 저장 때 재조회를 타게 한다 (옛 값을 들고 있는 것보다 낫다).
+   */
+  version?: number;
 }
 
 /**
@@ -133,6 +154,125 @@ export interface IssueFormValues {
   dueDate: string;
   assigneeIds: string[];
   blockIds: number[];
+}
+
+/**
+ * 부분 수정(58번)이 다루는 필드 전체.
+ *
+ * `status` · `completedAt` 은 여기 없다 — 상태는 별도 API(59번) 소관이라
+ * 충돌 비교 대상도 아니다.
+ */
+export const ISSUE_EDIT_FIELDS = [
+  'title',
+  'content',
+  'dueDate',
+  'priority',
+  'assigneeIds',
+  'blockIds',
+] as const;
+
+export type IssueEditField = (typeof ISSUE_EDIT_FIELDS)[number];
+
+export const ISSUE_FIELD_LABELS: Record<IssueEditField, string> = {
+  title: '이슈 이름',
+  content: '이슈 설명',
+  dueDate: '마감일',
+  priority: '우선순위',
+  assigneeIds: '담당자',
+  blockIds: '관련 블록',
+};
+
+export function toIssueFormValues(issue: IssueDetail): IssueFormValues {
+  return {
+    title: issue.title,
+    content: issue.content ?? '',
+    priority: issue.priority,
+    dueDate: issue.dueDate ?? '',
+    assigneeIds: issue.assignees.map((assignee) => assignee.userId),
+    blockIds: issue.relatedBlocks.map((block) => block.blockId),
+  };
+}
+
+/** 순서만 다른 같은 집합은 변경으로 보지 않는다 — 불필요한 관계 재동기화를 막는다 */
+export function isSameIdSet<T>(left: T[], right: T[]) {
+  return (
+    left.length === right.length && left.every((item) => right.includes(item))
+  );
+}
+
+/**
+ * 비교 전 다듬기.
+ *
+ * 제목 · 설명의 앞뒤 공백은 저장할 때 어차피 떨어진다 — 다듬지 않고 비교하면
+ * 스페이스 하나 눌렀다 지운 것이 "수정한 필드" 로 잡혀 **없던 충돌이 생긴다.**
+ */
+function trimmed(values: IssueFormValues) {
+  return {
+    ...values,
+    title: values.title.trim(),
+    content: values.content.trim(),
+  };
+}
+
+/** `left` 가 `right` 와 다른 필드 목록. 어느 쪽을 기준에 두느냐는 부르는 쪽이 정한다 */
+export function changedIssueFields(
+  left: IssueFormValues,
+  right: IssueFormValues,
+): IssueEditField[] {
+  const one = trimmed(left);
+  const other = trimmed(right);
+
+  return ISSUE_EDIT_FIELDS.filter((field) => {
+    if (field === 'assigneeIds') {
+      return !isSameIdSet(one.assigneeIds, other.assigneeIds);
+    }
+    if (field === 'blockIds') return !isSameIdSet(one.blockIds, other.blockIds);
+    return one[field] !== other[field];
+  });
+}
+
+/** `target` 위에 `source` 의 지정 필드만 얹는다 — 자동 병합 · 충돌 해소 공용 */
+export function mergeIssueFields(
+  target: IssueFormValues,
+  source: IssueFormValues,
+  fields: IssueEditField[],
+): IssueFormValues {
+  const merged = { ...target };
+
+  for (const field of fields) {
+    if (field === 'assigneeIds') merged.assigneeIds = [...source.assigneeIds];
+    else if (field === 'blockIds') merged.blockIds = [...source.blockIds];
+    else if (field === 'priority') merged.priority = source.priority;
+    else merged[field] = source[field];
+  }
+
+  return merged;
+}
+
+/**
+ * PATCH 본문 — **지정한 필드만** 담는다. `null` 은 해제 신호다.
+ *
+ * ⚠️ 상세 객체 전체를 다시 보내지 않는다. 안 보낸 필드는 서버가 건드리지 않아,
+ *    남이 그 사이 고친 다른 필드가 내 화면의 옛 값으로 되돌아가지 않는다.
+ */
+export function issuePatchOf(
+  values: IssueFormValues,
+  fields: IssueEditField[],
+  version: number,
+): UpdateIssueRequest {
+  const body: UpdateIssueRequest = { version };
+  const clean = trimmed(values);
+
+  for (const field of fields) {
+    if (field === 'title') body.title = clean.title;
+    else if (field === 'content') body.content = clean.content || null;
+    else if (field === 'dueDate') body.dueDate = clean.dueDate || null;
+    else if (field === 'priority') body.priority = clean.priority;
+    else if (field === 'assigneeIds') body.assigneeIds = clean.assigneeIds;
+    else body.blockIds = clean.blockIds;
+  }
+
+  return body;
 }
 
 /** 보드 열 순서 — 왼쪽부터 이 순서로 그린다 */
