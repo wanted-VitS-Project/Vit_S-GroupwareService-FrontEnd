@@ -9,7 +9,7 @@ export function ProjectOverviewSkeleton() {
       <ProjectSkeleton className="h-5 w-40" />
       <ProjectSkeleton className="h-4 w-24" />
       <ProjectSkeleton className="h-3 w-full" />
-      <ProjectSkeleton className="h-[5px] w-full rounded-full" />
+      <ProjectSkeleton className="h-[5px] w-full rounded-pill" />
       <ProjectSkeleton className="h-4 w-36" />
     </ProjectSkeletonGroup>
   );

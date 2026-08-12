@@ -43,9 +43,9 @@ export default function Header() {
   const { isCollapsed } = useProjectSidebarCollapse();
 
   return (
-    // 사이드바 로고 줄과 같은 60px — 두 영역의 밑줄이 한 선으로 이어진다
+    // 사이드바 로고 줄과 같은 52px — 두 영역의 밑줄이 한 선으로 이어진다
     <header
-      className={`flex h-15 shrink-0 items-center justify-between border-b pr-8 ${
+      className={`flex h-13 shrink-0 items-center justify-between border-b pr-8 ${
         isDark
           ? 'border-bg-sidebar-hover bg-bg-sidebar pl-0'
           : 'border-border-default bg-bg-header pl-8'

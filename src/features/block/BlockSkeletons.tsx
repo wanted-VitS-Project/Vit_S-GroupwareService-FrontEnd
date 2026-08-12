@@ -12,7 +12,7 @@ export function BlockBoardSkeleton() {
       {[0, 1, 2].map((column) => (
         <div
           key={column}
-          className="h-56 rounded-lg border border-border-default bg-white p-3"
+          className="h-56 rounded-lg border border-border-default bg-bg-card p-3"
         >
           <div className="flex items-center gap-2 border-b border-border-default pb-3">
             <ProjectSkeleton shape="circle" className="size-5" />

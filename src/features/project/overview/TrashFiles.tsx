@@ -165,7 +165,7 @@ export default function TrashFiles() {
   if (hasFailed) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border-default px-4 py-12">
-        <p className="text-xs text-text-secondary">
+        <p className="text-label text-text-secondary">
           휴지통을 불러오지 못했습니다.
         </p>
         <button
@@ -174,7 +174,7 @@ export default function TrashFiles() {
             setFailedProjectId(null);
             setReloadCount((count) => count + 1);
           }}
-          className="cursor-pointer rounded px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+          className="cursor-pointer rounded-button-sm px-2 py-1 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
         >
           다시 시도
         </button>
@@ -194,7 +194,7 @@ export default function TrashFiles() {
   return (
     <div className="flex flex-col gap-3">
       {files.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border-default px-4 py-12 text-center text-xs text-text-secondary">
+        <p className="rounded-lg border border-dashed border-border-default px-4 py-12 text-center text-label text-text-secondary">
           휴지통에 문서가 없습니다.
         </p>
       ) : (
@@ -241,23 +241,23 @@ function TrashFileRow({
   const style = extensionStyle(file.extension);
 
   return (
-    <li className="flex items-center gap-3 rounded-xl border border-border-default bg-white p-3">
+    <li className="flex items-center gap-3 rounded-base border border-border-default bg-bg-card p-3">
       <span
         aria-hidden
         style={{ color: style.text, backgroundColor: style.background }}
-        className="flex size-9 shrink-0 items-center justify-center rounded opacity-60"
+        className="flex size-9 shrink-0 items-center justify-center rounded-button-sm opacity-60"
       >
         <DocumentIcon />
       </span>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1">
-          <span className="min-w-0 truncate text-[11px] font-semibold text-text-primary">
+          <span className="min-w-0 truncate text-detail font-semibold text-text-primary">
             {file.name}
           </span>
           <span
             style={{ color: style.text, backgroundColor: style.background }}
-            className="shrink-0 rounded px-1 py-0.5 font-mono text-[8px] font-semibold"
+            className="shrink-0 rounded-button-sm px-1 py-0.5 font-mono text-[8px] font-semibold"
           >
             {extensionLabel(file.extension)}
           </span>
@@ -265,22 +265,22 @@ function TrashFileRow({
             `v{n}` 으로 쓰지 않는다 — 휴지통 응답(106번)에는 `latestVersionNo` 가 없어
             `versionCount` 뿐이라, `v3` 이라고 적으면 **3차 버전**으로 읽힌다.
           */}
-          <span className="shrink-0 rounded bg-bg-hover px-1 py-0.5 text-[8px] font-semibold text-text-secondary">
+          <span className="shrink-0 rounded-button-sm bg-bg-hover px-1 py-0.5 text-[8px] font-semibold text-text-secondary">
             버전 {file.versionCount}개
           </span>
         </div>
 
-        <p className="mt-0.5 truncate text-[9px] text-text-secondary">
+        <p className="mt-0.5 truncate text-micro text-text-secondary">
           {file.stepName}
           {file.blockDeleted ? (
-            <span className="ml-1 rounded bg-bg-hover px-1 py-0.5 text-text-secondary">
+            <span className="ml-1 rounded-button-sm bg-bg-hover px-1 py-0.5 text-text-secondary">
               블록 삭제됨
             </span>
           ) : (
             ` · ${file.blockTitle || '제목 없는 블록'}`
           )}
         </p>
-        <p className="font-mono text-[9px] text-text-secondary">
+        <p className="font-mono text-micro text-text-secondary">
           {formatDateTime(file.deletedAt)} 삭제 ·{' '}
           {formatFileSize(file.sizeBytes)}
         </p>
@@ -290,7 +290,7 @@ function TrashFileRow({
         <button
           type="button"
           onClick={onRestore}
-          className="cursor-pointer rounded-md border border-border-primary px-2 py-1 text-[10px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+          className="cursor-pointer rounded-button-md border border-border-primary px-2 py-1 text-caption font-medium text-text-primary-blue hover:bg-blue-bg-soft"
         >
           복구
         </button>
@@ -299,7 +299,7 @@ function TrashFileRow({
           onPointerEnter={() => void loadPermanentDeleteModal()}
           onFocus={() => void loadPermanentDeleteModal()}
           onClick={onPermanentDelete}
-          className="cursor-pointer rounded-md border border-red-border px-2 py-1 text-[10px] font-medium text-text-danger hover:bg-red-bg-soft"
+          className="cursor-pointer rounded-button-md border border-red-border px-2 py-1 text-caption font-medium text-text-danger hover:bg-red-bg-soft"
         >
           영구 삭제
         </button>

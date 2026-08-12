@@ -125,11 +125,11 @@ export default function EmployeeGroupFormModal({
             <div className="flex items-end justify-between gap-2 pb-1.5">
               <label
                 htmlFor={nameId}
-                className="text-[11px] font-semibold text-text-primary"
+                className="text-detail font-semibold text-text-primary"
               >
                 그룹명 <span className="text-text-danger">*</span>
               </label>
-              <span className="text-[10px] text-text-secondary">
+              <span className="text-caption text-text-secondary">
                 {name.length} / {GROUP_NAME_MAX_LENGTH}
               </span>
             </div>
@@ -142,7 +142,7 @@ export default function EmployeeGroupFormModal({
               placeholder="입찰 검토팀"
               aria-invalid={nameError ? true : undefined}
               aria-describedby={nameError ? `${nameId}-error` : undefined}
-              className={`w-full rounded-lg border bg-bg-surface px-3 py-2 text-[11px] text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 ${
+              className={`w-full rounded-lg border bg-bg-surface px-3 py-2 text-detail text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 ${
                 nameError
                   ? 'border-border-danger focus:outline-border-danger'
                   : 'border-border-default focus:outline-border-primary'
@@ -152,12 +152,12 @@ export default function EmployeeGroupFormModal({
               <p
                 id={`${nameId}-error`}
                 role="alert"
-                className="mt-1 text-[10px] break-keep text-text-danger"
+                className="mt-1 text-caption break-keep text-text-danger"
               >
                 {nameError}
               </p>
             ) : (
-              <p className="mt-1 text-[10px] break-keep text-text-secondary">
+              <p className="mt-1 text-caption break-keep text-text-secondary">
                 그룹명은 전체에서 중복될 수 없습니다.
               </p>
             )}
@@ -167,11 +167,11 @@ export default function EmployeeGroupFormModal({
             <div className="flex items-end justify-between gap-2 pb-1.5">
               <label
                 htmlFor={descriptionId}
-                className="text-[11px] font-semibold text-text-primary"
+                className="text-detail font-semibold text-text-primary"
               >
                 설명
               </label>
-              <span className="text-[10px] text-text-secondary">
+              <span className="text-caption text-text-secondary">
                 {description.length} / {GROUP_DESCRIPTION_MAX_LENGTH}
               </span>
             </div>
@@ -182,12 +182,12 @@ export default function EmployeeGroupFormModal({
               maxLength={GROUP_DESCRIPTION_MAX_LENGTH}
               onChange={(event) => change(setDescription, event.target.value)}
               placeholder="어떤 일을 함께 하는 그룹인지 적어두면 고를 때 헷갈리지 않습니다."
-              className="w-full resize-none rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-[11px] text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+              className="w-full resize-none rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-detail text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
             />
           </div>
 
           {!isEditing && (
-            <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-[10px] leading-relaxed break-keep text-text-secondary">
+            <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-caption leading-relaxed break-keep text-text-secondary">
               먼저 빈 그룹을 만든 뒤 구성원을 추가합니다.
             </p>
           )}
@@ -197,7 +197,7 @@ export default function EmployeeGroupFormModal({
           {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}
           <p
             role="alert"
-            className="mr-auto text-[10px] break-keep text-text-danger"
+            className="mr-auto text-caption break-keep text-text-danger"
           >
             {error}
           </p>

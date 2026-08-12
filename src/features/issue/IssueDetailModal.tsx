@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
 import Modal from '@/components/Modal';
+import PersonNote from '@/components/PersonNote';
 import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
 import { isAbortError, messageOf } from '@/lib/api';
 import { formatDate } from '@/lib/format';
@@ -27,7 +28,7 @@ import {
 /** 섹션 제목 — 상세 모달에서만 쓰는 작은 라벨 */
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-[10px] font-semibold tracking-[0.5px] text-text-secondary uppercase">
+    <div className="text-caption font-semibold tracking-[0.5px] text-text-secondary uppercase">
       {children}
     </div>
   );
@@ -125,19 +126,19 @@ export default function IssueDetailModal({
             {issue ? (
               <>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[10px] text-text-secondary">
+                  <span className="text-caption text-text-secondary">
                     #{issue.issueId}
                   </span>
                   <IssueStatusBadge status={issue.status} />
                   <IssuePriorityBadge priority={issue.priority} withPrefix />
                   <OverdueBadge days={overdue} />
                 </div>
-                <h2 className="pt-1 text-base leading-snug font-semibold text-text-primary">
+                <h2 className="pt-1 text-body-l leading-snug font-semibold text-text-primary">
                   {issue.title}
                 </h2>
               </>
             ) : failure ? (
-              <h2 className="text-base font-semibold text-text-primary">
+              <h2 className="text-body-l font-semibold text-text-primary">
                 이슈 상세
               </h2>
             ) : (
@@ -153,14 +154,14 @@ export default function IssueDetailModal({
                 <button
                   type="button"
                   onClick={onEdit}
-                  className="cursor-pointer rounded-lg border border-border-default px-3 py-1.5 text-[11px] font-medium text-text-primary hover:bg-bg-hover"
+                  className="cursor-pointer rounded-lg border border-border-default px-3 py-1.5 text-detail font-medium text-text-primary hover:bg-bg-hover"
                 >
                   수정
                 </button>
                 <button
                   type="button"
                   onClick={onDelete}
-                  className="cursor-pointer rounded-lg border border-red-border px-3 py-1.5 text-[11px] font-medium text-text-danger hover:bg-red-bg-soft"
+                  className="cursor-pointer rounded-lg border border-red-border px-3 py-1.5 text-detail font-medium text-text-danger hover:bg-red-bg-soft"
                 >
                   삭제
                 </button>
@@ -181,21 +182,21 @@ export default function IssueDetailModal({
       <div className="min-h-0 flex-1 overflow-y-auto">
         {failure ? (
           <div className="flex flex-col items-center gap-3 px-6 py-12">
-            <p role="alert" className="text-xs text-text-danger">
+            <p role="alert" className="text-label text-text-danger">
               {failure}
             </p>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setRetryCount((count) => count + 1)}
-                className="cursor-pointer rounded-lg border border-border-default px-3 py-1.5 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+                className="cursor-pointer rounded-lg border border-border-default px-3 py-1.5 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
               >
                 다시 시도
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="cursor-pointer rounded-lg px-3 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover"
+                className="cursor-pointer rounded-lg px-3 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover"
               >
                 닫기
               </button>
@@ -221,7 +222,7 @@ export default function IssueDetailModal({
                     {issue.content}
                   </p>
                 ) : (
-                  <p className="pt-2 text-xs text-text-muted italic">
+                  <p className="pt-2 text-label text-text-muted italic">
                     설명 없음
                   </p>
                 )}
@@ -259,7 +260,7 @@ export default function IssueDetailModal({
                       <span
                         key={status}
                         aria-current={isCurrent ? 'true' : undefined}
-                        className={`flex-1 rounded-lg border py-1.5 text-center text-[11px] font-medium ${
+                        className={`flex-1 rounded-lg border py-1.5 text-center text-detail font-medium ${
                           isCurrent
                             ? ISSUE_STATUS_STYLES[status].badge
                             : 'border-border-default text-text-secondary'
@@ -270,7 +271,7 @@ export default function IssueDetailModal({
                     );
                   })}
                 </div>
-                <p className="pt-1.5 text-[10px] text-text-secondary">
+                <p className="pt-1.5 text-caption text-text-secondary">
                   상태는 보드에서 카드를 끌어 옮겨 변경합니다.
                 </p>
               </div>
@@ -278,7 +279,7 @@ export default function IssueDetailModal({
               <div>
                 <SectionLabel>연결된 블록</SectionLabel>
                 {issue.relatedBlocks.length === 0 ? (
-                  <p className="pt-2 text-xs text-text-secondary">
+                  <p className="pt-2 text-label text-text-secondary">
                     연결된 블록 없음
                   </p>
                 ) : (
@@ -289,10 +290,10 @@ export default function IssueDetailModal({
                         className="flex items-center gap-2 rounded-lg border border-border-default bg-bg-surface p-2"
                       >
                         <IssueBlockIcon type={block.type} />
-                        <span className="flex-1 truncate text-[11px] font-medium text-text-primary">
+                        <span className="flex-1 truncate text-detail font-medium text-text-primary">
                           {block.title || '제목 없음'}
                         </span>
-                        <span className="text-[9px] text-text-secondary">
+                        <span className="text-micro text-text-secondary">
                           {block.type}
                         </span>
                       </div>
@@ -306,7 +307,7 @@ export default function IssueDetailModal({
               <div>
                 <SectionLabel>담당자</SectionLabel>
                 {issue.assignees.length === 0 ? (
-                  <p className="pt-2 text-[11px] text-text-secondary">
+                  <p className="pt-2 text-detail text-text-secondary">
                     지정 전
                   </p>
                 ) : (
@@ -320,9 +321,14 @@ export default function IssueDetailModal({
                           userId={assignee.userId}
                           name={assignee.name}
                           decorative
+                          resigned={assignee.resignedAt !== null}
                         />
-                        <span className="text-xs font-medium text-text-primary">
-                          {assignee.name}
+                        {/* 퇴사자여도 항목을 빼지 않는다 — 이름 뒤에 문구만 붙인다 */}
+                        <span className="flex items-center gap-0.5">
+                          <span className="text-label font-medium text-text-primary">
+                            {assignee.name}
+                          </span>
+                          {assignee.resignedAt && <PersonNote />}
                         </span>
                       </div>
                     ))}
@@ -339,14 +345,14 @@ export default function IssueDetailModal({
 
               <div>
                 <SectionLabel>연결 블록</SectionLabel>
-                <p className="pt-2 text-xs font-medium text-text-primary">
+                <p className="pt-2 text-label font-medium text-text-primary">
                   {issue.relatedBlocks.length}개
                 </p>
               </div>
 
               <div>
                 <SectionLabel>이슈 ID</SectionLabel>
-                <p className="pt-2 text-xs font-medium text-text-primary">
+                <p className="pt-2 text-label font-medium text-text-primary">
                   #{issue.issueId}
                 </p>
               </div>

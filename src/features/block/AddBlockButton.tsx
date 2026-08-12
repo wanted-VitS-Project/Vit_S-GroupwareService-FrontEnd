@@ -41,7 +41,7 @@ export default function AddBlockButton({
         onPointerEnter={() => void loadAddBlockModal()}
         onFocus={() => void loadAddBlockModal()}
         onClick={() => (isBlocked ? onBlocked?.() : modal.open())}
-        className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-btn-primary px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover"
+        className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-btn-primary px-3 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover"
       >
         <svg
           viewBox="0 0 24 24"

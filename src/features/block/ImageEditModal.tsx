@@ -9,6 +9,11 @@ import { useFlipReorder } from '@/lib/useFlipReorder';
 
 import { deleteImageItem, getImageItems, updateImageItems } from './api';
 import {
+  IMAGE_CONFLICT_MESSAGE,
+  isImageVersionConflict,
+  NO_VERSION_MESSAGE,
+} from './errorCodes';
+import {
   imageAltText,
   IMAGE_CAPTION_MAX_LENGTH,
   type BlockImage,
@@ -22,6 +27,21 @@ function imageSignature(images: BlockImage[]) {
   return JSON.stringify(
     images.map(({ imgId, caption }) => ({ imgId, caption })),
   );
+}
+
+/**
+ * 목록에 담긴 이미지가 **같은 식구인지**. (개수 · `imgId` 만 본다 — 순서는 저장 대상이라 뺀다)
+ *
+ * ⚠️ 낙관적 락은 **남아 있는 항목의 변경**만 잡는다. 그 사이 남이 이미지를 지우거나
+ *    새로 올린 것은 버전으로 드러나지 않는다 — 지워진 것은 요청에서 빠져 있어도
+ *    409 가 안 나고, 새로 올라온 것은 우리 배열에 없어서 **저장하는 순간 삭제된다.**
+ *    그래서 저장 직전에 목록을 한 번 더 읽어 이걸로 대조한다.
+ */
+function sameMembers(left: BlockImage[], right: BlockImage[]) {
+  if (left.length !== right.length) return false;
+
+  const ids = new Set(right.map((image) => image.imgId));
+  return left.every((image) => ids.has(image.imgId));
 }
 
 /**
@@ -142,17 +162,22 @@ export default function ImageEditModal({
    * 그대로 두면 화면은 옛 목록을 들고 있는데 서버에는 이미 지워진 이미지가 있다 —
    * 사용자가 다시 저장을 눌러도 없는 `imgId` 를 보내게 된다.
    */
+  /** 서버에서 읽어 온 목록으로 화면을 갈아끼운다 — 편집 중이던 순서 · 캡션은 버린다 */
+  function applyLatest(latest: BlockImage[], reason: string) {
+    const sorted = [...latest].sort(
+      (left, right) => left.orderIndex - right.orderIndex,
+    );
+    setImages(sorted);
+    setRemovedIds([]);
+    setInitialSignature(imageSignature(sorted));
+    onResynced(sorted);
+    setErrorMessage(`${reason} 서버의 최신 목록으로 되돌렸습니다.`);
+  }
+
   async function resync(reason: string) {
     try {
       const loaded = await getImageItems(imgBlockId);
-      const sorted = [...loaded.images].sort(
-        (left, right) => left.orderIndex - right.orderIndex,
-      );
-      setImages(sorted);
-      setRemovedIds([]);
-      setInitialSignature(imageSignature(sorted));
-      onResynced(sorted);
-      setErrorMessage(`${reason} 서버의 최신 목록으로 되돌렸습니다.`);
+      applyLatest(loaded.images, reason);
     } catch {
       setErrorMessage(
         `${reason} 최신 목록도 불러오지 못했습니다 — 창을 닫고 새로고침해주세요.`,
@@ -167,6 +192,41 @@ export default function ImageEditModal({
     setIsSaving(true);
     setErrorMessage('');
 
+    const kept = images.filter((image) => !removedIds.includes(image.imgId));
+
+    /*
+     * ⚠️ 버전 없이 보내면 400 (`IMAGE_VERSION_REQUIRED`) 이다. 한 장이라도 없으면
+     *    배열 전체가 막히므로, 부분만 보내지 않고 저장 자체를 멈추고 새로고침을 안내한다.
+     */
+    if (kept.some((image) => image.version === undefined)) {
+      setErrorMessage(NO_VERSION_MESSAGE);
+      setIsSaving(false);
+      return;
+    }
+
+    /*
+     * 저장 직전에 목록을 한 번 더 읽어 **식구가 그대로인지** 본다 (`sameMembers` 주석 참고).
+     * 다르면 저장하지 않고 최신 목록으로 갈아 끼운 뒤 사용자에게 확인을 맡긴다 —
+     * 이 상태로 보내면 남이 방금 올린 이미지가 배열에서 빠져 **조용히 삭제된다.**
+     */
+    try {
+      const latest = await getImageItems(imgBlockId);
+      if (!sameMembers(images, latest.images)) {
+        applyLatest(
+          latest.images,
+          '다른 사람이 이미지를 추가하거나 삭제했습니다.',
+        );
+        setIsSaving(false);
+        return;
+      }
+    } catch {
+      setErrorMessage(
+        '최신 이미지 목록을 확인하지 못해 저장을 멈췄습니다. 다시 시도해주세요.',
+      );
+      setIsSaving(false);
+      return;
+    }
+
     /*
      * 삭제 → 순서·캡션 순으로 나간다. 지운 이미지가 섞인 목록을 보내면 정렬이 어긋난다.
      * ⚠️ 이 둘을 한 번에 처리하는 API 가 없어 **중간에 끊길 수 있다** (부분 반영).
@@ -180,11 +240,19 @@ export default function ImageEditModal({
         hasDeleted = true;
       }
 
-      const kept = images.filter((image) => !removedIds.includes(image.imgId));
       if (kept.length > 0) {
         await updateImageItems(
           imgBlockId,
-          kept.map((image) => ({ imgId: image.imgId, caption: image.caption })),
+          /*
+           * ⚠️ 방금 재조회한 버전이 아니라 **화면이 들고 있던 버전**을 보낸다.
+           *    재조회 값을 실으면 그 사이 남이 고친 캡션까지 조용히 덮어쓰게 된다 —
+           *    재조회는 추가 · 삭제를 알아내는 데만 쓰고, 충돌 판정은 서버에 맡긴다.
+           */
+          kept.map((image) => ({
+            imgId: image.imgId,
+            caption: image.caption,
+            version: image.version as number,
+          })),
         );
       }
 
@@ -193,6 +261,13 @@ export default function ImageEditModal({
         kept.map((image, index) => ({ ...image, orderIndex: index + 1 })),
       );
     } catch (caught) {
+      // 남이 먼저 저장했다 — ⛔ `overwrite` 가 없어 재조회가 유일한 출구다
+      if (isImageVersionConflict(caught)) {
+        await resync(IMAGE_CONFLICT_MESSAGE);
+        setIsSaving(false);
+        return;
+      }
+
       const message = messageOf(caught, '이미지를 저장하지 못했습니다.');
 
       // 아무것도 안 지워졌으면 서버는 그대로다 — 굳이 다시 읽지 않고 재시도만 열어 둔다
@@ -208,14 +283,14 @@ export default function ImageEditModal({
       <Modal
         title="이미지 수정"
         onClose={isSaving ? undefined : requestClose}
-        className="flex max-h-[85vh] w-full max-w-[480px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
+        className="flex max-h-[85vh] w-full max-w-[480px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
         header={
           <div className="flex shrink-0 items-center justify-between border-b border-border-default px-5 py-3.5">
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-text-primary">
+              <h2 className="text-body-m font-semibold text-text-primary">
                 이미지 수정
               </h2>
-              <span className="font-mono text-[10px] text-text-secondary">
+              <span className="font-mono text-caption text-text-secondary">
                 {remaining.length}장
               </span>
             </div>
@@ -231,7 +306,7 @@ export default function ImageEditModal({
           </div>
         }
       >
-        <p className="shrink-0 border-b border-border-default bg-bg-surface px-5 py-2 text-[10px] text-text-secondary">
+        <p className="shrink-0 border-b border-border-default bg-bg-surface px-5 py-2 text-caption text-text-secondary">
           순서를 바꾸려면 왼쪽 핸들을 드래그하세요
         </p>
 
@@ -239,13 +314,13 @@ export default function ImageEditModal({
         <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto p-4">
           {loadFailed ? (
             <div className="flex flex-col items-center gap-2 py-8">
-              <p className="text-[11px] text-text-secondary">
+              <p className="text-detail text-text-secondary">
                 이미지 목록을 불러오지 못했습니다.
               </p>
               <button
                 type="button"
                 onClick={() => setRetryCount((count) => count + 1)}
-                className="cursor-pointer rounded-md border border-border-default px-2.5 py-1 text-[10px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+                className="cursor-pointer rounded-button-md border border-border-default px-2.5 py-1 text-caption font-medium text-text-primary-blue hover:bg-blue-bg-soft"
               >
                 다시 시도
               </button>
@@ -259,7 +334,7 @@ export default function ImageEditModal({
               {[0, 1, 2].map((row) => (
                 <div
                   key={row}
-                  className="h-[76px] animate-pulse rounded-xl bg-bg-surface"
+                  className="h-[76px] animate-pulse rounded-base bg-bg-surface"
                 />
               ))}
             </div>
@@ -288,7 +363,7 @@ export default function ImageEditModal({
                       setDraggingIndex(null);
                       setHoverIndex(null);
                     }}
-                    className={`flex gap-3 rounded-xl border p-2.5 ${
+                    className={`flex gap-3 rounded-base border p-2.5 ${
                       hoverIndex === index && draggingIndex !== index
                         ? 'border-border-primary/50 bg-blue-bg-soft'
                         : 'border-border-default'
@@ -302,8 +377,8 @@ export default function ImageEditModal({
                     >
                       {[0, 1, 2].map((row) => (
                         <span key={row} className="flex gap-0.5">
-                          <span className="size-1 rounded-full bg-current" />
-                          <span className="size-1 rounded-full bg-current" />
+                          <span className="size-1 rounded-pill bg-current" />
+                          <span className="size-1 rounded-pill bg-current" />
                         </span>
                       ))}
                     </span>
@@ -316,7 +391,7 @@ export default function ImageEditModal({
                     />
 
                     <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
-                      <p className="truncate font-mono text-[9px] text-text-secondary">
+                      <p className="truncate font-mono text-micro text-text-secondary">
                         {isRemoved ? '삭제 예정' : `이미지 ${index + 1}`} ·{' '}
                         {image.originalName}
                       </p>
@@ -329,7 +404,7 @@ export default function ImageEditModal({
                         onChange={(event) =>
                           updateCaption(image.imgId, event.target.value)
                         }
-                        className="w-full rounded-lg border border-border-default bg-bg-surface px-2.5 py-1.5 text-[11px] text-text-primary outline-none placeholder:text-text-muted focus:border-border-primary disabled:cursor-not-allowed"
+                        className="w-full rounded-lg border border-border-default bg-bg-surface px-2.5 py-1.5 text-detail text-text-primary outline-none placeholder:text-text-muted focus:border-border-primary disabled:cursor-not-allowed"
                       />
                     </div>
 
@@ -348,7 +423,7 @@ export default function ImageEditModal({
                             : [...previous, image.imgId],
                         )
                       }
-                      className={`shrink-0 cursor-pointer self-center rounded-md px-1.5 py-1 text-[10px] font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
+                      className={`shrink-0 cursor-pointer self-center rounded-button-md px-1.5 py-1 text-caption font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
                         isRemoved
                           ? 'text-text-primary-blue hover:bg-blue-bg-soft'
                           : 'text-text-secondary hover:bg-red-bg-soft hover:text-text-danger'
@@ -363,14 +438,14 @@ export default function ImageEditModal({
           )}
 
           {errorMessage && (
-            <p role="alert" className="mt-3 text-[10px] text-text-danger">
+            <p role="alert" className="mt-3 text-caption text-text-danger">
               {errorMessage}
             </p>
           )}
         </div>
 
         <div className="flex shrink-0 items-center justify-between gap-2 border-t border-border-default bg-bg-surface px-5 py-3.5">
-          <span className="text-[10px] text-text-secondary">
+          <span className="text-caption text-text-secondary">
             {removedIds.length > 0 && `저장 시 ${removedIds.length}장 삭제`}
           </span>
           <div className="flex gap-2">
@@ -378,7 +453,7 @@ export default function ImageEditModal({
               type="button"
               onClick={requestClose}
               disabled={isSaving}
-              className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               취소
             </button>
@@ -386,7 +461,7 @@ export default function ImageEditModal({
               type="button"
               onClick={requestSave}
               disabled={isSaving || !images}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
             >
               {isSaving ? '저장 중…' : '저장'}
             </button>

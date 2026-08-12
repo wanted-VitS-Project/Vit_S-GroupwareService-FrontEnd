@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import MemberAvatar from '@/components/MemberAvatar';
 import Modal, { SIDE_PANEL } from '@/components/Modal';
 import ModalLoadingFallback from '@/components/ModalLoadingFallback';
+import { personLabel } from '@/components/PersonNote';
 import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
 import { getStepIssues } from '@/features/issue/api';
 import {
@@ -80,30 +81,30 @@ export default function BlockIssuesPanel({
         className={SIDE_PANEL}
         header={
           <div className="flex shrink-0 items-center gap-2 border-b border-border-default px-4 py-3">
-            <span className="flex size-5 shrink-0 items-center justify-center rounded border border-blue-border-soft bg-blue-bg text-[11px] font-semibold text-text-primary-blue">
+            <span className="flex size-5 shrink-0 items-center justify-center rounded-button-sm border border-blue-border-soft bg-blue-bg text-detail font-semibold text-text-primary-blue">
               #
             </span>
             <div className="min-w-0 flex-1">
-              <h2 className="text-xs font-semibold text-text-primary">
+              <h2 className="text-label font-semibold text-text-primary">
                 연결된 이슈
               </h2>
-              <p className="truncate text-[10px] text-text-secondary">
+              <p className="truncate text-caption text-text-secondary">
                 {blockTitle}
               </p>
             </div>
             {issues && (
-              <span className="shrink-0 rounded-full bg-blue-bg-soft px-2 py-0.5 text-[10px] font-semibold text-text-primary-blue">
+              <span className="shrink-0 rounded-pill bg-blue-bg-soft px-2 py-0.5 text-caption font-semibold text-text-primary-blue">
                 {issues.length}건
               </span>
             )}
             {!issues && !error && (
-              <Skeleton className="h-5 w-10 shrink-0 rounded-full" />
+              <Skeleton className="h-5 w-10 shrink-0 rounded-pill" />
             )}
             <button
               type="button"
               onClick={onClose}
               aria-label="닫기"
-              className="flex size-6 cursor-pointer items-center justify-center rounded text-text-secondary hover:bg-bg-hover"
+              className="flex size-6 cursor-pointer items-center justify-center rounded-button-sm text-text-secondary hover:bg-bg-hover"
             >
               ✕
             </button>
@@ -135,15 +136,15 @@ export default function BlockIssuesPanel({
                   onClick={() => setStatusFilter(filter)}
                   className={`relative flex size-8 cursor-pointer items-center justify-center rounded-lg border transition-colors ${
                     isActive
-                      ? 'border-border-primary/30 bg-white text-text-primary-blue shadow-sm'
-                      : 'border-transparent text-text-muted hover:border-border-default hover:bg-white hover:text-gray-text-soft'
+                      ? 'border-border-primary/30 bg-bg-card text-text-primary-blue shadow-sm'
+                      : 'border-transparent text-text-muted hover:border-border-default hover:bg-bg-card hover:text-gray-text-soft'
                   }`}
                 >
                   <StatusFilterIcon filter={filter} />
                   <span
-                    className={`absolute -top-1 -right-1 flex min-w-3.5 items-center justify-center rounded-full px-1 text-[8px] leading-3.5 font-semibold ${
+                    className={`absolute -top-1 -right-1 flex min-w-3.5 items-center justify-center rounded-pill px-1 text-[8px] leading-3.5 font-semibold ${
                       isActive
-                        ? 'bg-btn-primary text-white'
+                        ? 'bg-btn-primary text-text-white'
                         : 'bg-bg-hover-secondary text-text-secondary'
                     }`}
                   >
@@ -152,7 +153,7 @@ export default function BlockIssuesPanel({
                 </button>
               );
             })}
-            <span className="ml-auto text-[9px] font-medium text-text-secondary">
+            <span className="ml-auto text-micro font-medium text-text-secondary">
               {statusFilter === 'ALL'
                 ? '전체'
                 : ISSUE_STATUS_LABELS[statusFilter]}
@@ -182,7 +183,7 @@ export default function BlockIssuesPanel({
         <div className="min-h-0 flex-1 overflow-y-auto p-3">
           {error ? (
             <div className="flex h-full min-h-28 flex-col items-center justify-center gap-2 text-center">
-              <p role="alert" className="text-[11px] text-text-danger">
+              <p role="alert" className="text-detail text-text-danger">
                 {error}
               </p>
               <button
@@ -192,7 +193,7 @@ export default function BlockIssuesPanel({
                   setError('');
                   setRetryCount((count) => count + 1);
                 }}
-                className="cursor-pointer text-[10px] font-semibold text-text-primary-blue hover:underline"
+                className="cursor-pointer text-caption font-semibold text-text-primary-blue hover:underline"
               >
                 다시 시도
               </button>
@@ -210,13 +211,13 @@ export default function BlockIssuesPanel({
             </SkeletonGroup>
           ) : issues.length === 0 ? (
             <div className="flex h-full min-h-28 flex-col items-center justify-center gap-1 text-center">
-              <span className="flex size-10 items-center justify-center rounded-full bg-bg-hover text-text-secondary">
+              <span className="flex size-10 items-center justify-center rounded-pill bg-bg-hover text-text-secondary">
                 #
               </span>
-              <p className="text-[11px] text-text-secondary">
+              <p className="text-detail text-text-secondary">
                 연결된 이슈가 없습니다.
               </p>
-              <p className="text-[10px] text-text-muted">
+              <p className="text-caption text-text-muted">
                 이슈 생성·수정에서 이 블록을 연결하세요.
               </p>
             </div>
@@ -226,14 +227,14 @@ export default function BlockIssuesPanel({
                 filter={statusFilter}
                 className="size-6 text-text-muted"
               />
-              <p className="text-[11px] text-text-secondary">
+              <p className="text-detail text-text-secondary">
                 {ISSUE_STATUS_LABELS[statusFilter as IssueStatus]} 이슈가
                 없습니다.
               </p>
               <button
                 type="button"
                 onClick={() => setStatusFilter('ALL')}
-                className="cursor-pointer text-[10px] font-semibold text-text-primary-blue hover:underline"
+                className="cursor-pointer text-caption font-semibold text-text-primary-blue hover:underline"
               >
                 전체 이슈 보기
               </button>
@@ -248,10 +249,10 @@ export default function BlockIssuesPanel({
                     onFocus={() => void loadIssueDetailModal()}
                     onClick={() => setSelectedIssueId(issue.issueId)}
                     aria-label={`${issue.title} 이슈 상세 보기`}
-                    className="w-full cursor-pointer rounded-lg border border-border-default bg-white p-3 text-left transition-[border-color,box-shadow] hover:border-border-primary/30 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-primary"
+                    className="w-full cursor-pointer rounded-lg border border-border-default bg-bg-card p-3 text-left transition-[border-color,box-shadow] hover:border-border-primary/30 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-primary"
                   >
                     <div className="mb-1.5 flex items-center gap-1.5">
-                      <span className="text-[9px] text-text-secondary">
+                      <span className="text-micro text-text-secondary">
                         #{issue.issueId}
                       </span>
                       <IssuePriorityBadge priority={issue.priority} />
@@ -259,14 +260,31 @@ export default function BlockIssuesPanel({
                         <IssueStatusBadge status={issue.status} />
                       </span>
                     </div>
-                    <p className="mb-2 text-[11px] leading-snug font-semibold text-text-primary">
+                    <p className="mb-2 text-detail leading-snug font-semibold text-text-primary">
                       {issue.title}
                     </p>
-                    <div className="flex items-center justify-between gap-2 text-[9px] text-text-secondary">
+                    <div className="flex items-center justify-between gap-2 text-micro text-text-secondary">
                       <div className="flex min-w-0 items-center">
                         {issue.assignees.slice(0, 3).map((assignee, index) => (
                           <span
                             key={assignee.userId}
+                            /*
+                             * 겹친 아바타라 문구 자리가 없다 — 흐리게 + tooltip 으로 알린다.
+                             * 뒤쪽 아바타는 `decorative`(aria-hidden) 라 감싼 쪽이 이름을 읽힌다.
+                             */
+                            {...(index > 0
+                              ? {
+                                  role: 'img',
+                                  'aria-label': personLabel(
+                                    assignee.name,
+                                    assignee.resignedAt !== null,
+                                  ),
+                                }
+                              : {})}
+                            title={personLabel(
+                              assignee.name,
+                              assignee.resignedAt !== null,
+                            )}
                             className={index > 0 ? '-ml-1' : ''}
                           >
                             <MemberAvatar
@@ -274,6 +292,7 @@ export default function BlockIssuesPanel({
                               name={assignee.name}
                               size="xs"
                               decorative={index > 0}
+                              resigned={assignee.resignedAt !== null}
                             />
                           </span>
                         ))}
@@ -309,11 +328,11 @@ export default function BlockIssuesPanel({
 
 function IssueCardSkeleton() {
   return (
-    <div className="rounded-lg border border-border-default bg-white p-3">
+    <div className="rounded-lg border border-border-default bg-bg-card p-3">
       <div className="mb-2 flex items-center gap-1.5">
         <Skeleton className="h-2.5 w-7" />
-        <Skeleton className="h-4 w-11 rounded-full" />
-        <Skeleton className="ml-auto h-4 w-12 rounded-full" />
+        <Skeleton className="h-4 w-11 rounded-pill" />
+        <Skeleton className="ml-auto h-4 w-12 rounded-pill" />
       </div>
       <Skeleton className="mb-1.5 h-3 w-4/5" />
       <Skeleton className="mb-2.5 h-3 w-2/5" />

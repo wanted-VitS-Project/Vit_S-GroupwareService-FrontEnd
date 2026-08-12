@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
+import DataTable from '@/components/DataTable';
 import Pagination from '@/components/Pagination';
 import RowMenu from '@/components/RowMenu';
-import { EmployeeTableSkeleton } from '@/components/settings/SettingsSkeletons';
 import { EMPLOYEE_STATUS_LABELS, ROLE_LABELS } from '@/constants/status';
 import { getDepartments } from '@/features/department/api';
 import { toDepartmentOptions } from '@/features/department/options';
@@ -189,7 +189,7 @@ export default function EmployeeList() {
 
   return (
     <>
-      <p className="text-xs text-text-secondary">
+      <p className="text-label text-text-secondary">
         <Link
           href="/settings"
           className="hover:text-text-primary hover:underline"
@@ -201,8 +201,8 @@ export default function EmployeeList() {
 
       <div className="mt-2 mb-6 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-lg font-bold">사원 관리</h2>
-          <p className="mt-1.5 text-xs break-keep text-text-secondary">
+          <h2 className="text-heading-m font-bold">사원 관리</h2>
+          <p className="mt-1.5 text-label break-keep text-text-secondary">
             사원 정보와 계정 상태를 관리합니다. 등록하면 로그인 계정이 함께
             발급됩니다.
           </p>
@@ -241,12 +241,12 @@ export default function EmployeeList() {
             value={keywordInput}
             onChange={(event) => setKeywordInput(event.target.value)}
             placeholder="이름 · 사번 검색"
-            className="w-full rounded-lg border border-border-default py-2 pr-10 pl-3 text-xs text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+            className="w-full rounded-lg border border-border-default py-2 pr-10 pl-3 text-label text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
           />
           <button
             type="submit"
             aria-label="검색"
-            className="absolute top-1/2 right-1 flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-text-secondary hover:bg-bg-hover hover:text-text-primary"
+            className="absolute top-1/2 right-1 flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-hover hover:text-text-primary"
           >
             <SearchIcon />
           </button>
@@ -280,7 +280,7 @@ export default function EmployeeList() {
           }))}
         />
 
-        <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-text-secondary">
+        <label className="flex cursor-pointer items-center gap-1.5 text-detail text-text-secondary">
           <input
             type="checkbox"
             checked={query.resigned ?? false}
@@ -295,7 +295,7 @@ export default function EmployeeList() {
         </label>
 
         {hasDepartmentFailed && (
-          <span role="alert" className="text-[10px] text-text-danger">
+          <span role="alert" className="text-caption text-text-danger">
             부서 목록을 불러오지 못했습니다.{' '}
             <button
               type="button"
@@ -310,14 +310,14 @@ export default function EmployeeList() {
 
       {selected.length > 0 && (
         <div className="mb-2 flex items-center justify-between gap-4 rounded-lg border border-border-primary/20 bg-blue-bg-soft px-4 py-2.5">
-          <p className="text-[11px] font-medium text-text-primary">
+          <p className="text-detail font-medium text-text-primary">
             {selected.length}명 선택됨
           </p>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setSelectedIds([])}
-              className="cursor-pointer rounded-lg px-3 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-white"
+              className="cursor-pointer rounded-lg px-3 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-card"
             >
               선택 해제
             </button>
@@ -332,161 +332,167 @@ export default function EmployeeList() {
         </div>
       )}
 
-      <div className="rounded-xl border border-border-default bg-white">
-        {hasFailed ? (
-          <Centered>
-            <p className="text-xs text-text-secondary">
-              사원을 불러오지 못했습니다.
-            </p>
-            <button
-              type="button"
-              onClick={reload}
-              className="btn btn-sm btn-primary"
-            >
-              다시 시도
-            </button>
-          </Centered>
-        ) : !rows || !page ? (
-          <EmployeeTableSkeleton rows={20} />
-        ) : rows.length === 0 ? (
-          <Centered>
+      <DataTable
+        caption="사원 목록"
+        columns={[
+          {
+            key: 'select',
+            header: (
+              <input
+                type="checkbox"
+                checked={isAllSelected}
+                onChange={toggleAll}
+                aria-label="이 페이지 전체 선택"
+                className="size-3.5 cursor-pointer accent-btn-primary"
+              />
+            ),
+            width: '3rem',
+            skeletonWidth: 'w-4',
+            // 체크박스는 그 자체가 동작이라 행 이동으로 새면 안 된다
+            stopRowClick: true,
+            cell: (employee) => (
+              <input
+                type="checkbox"
+                checked={selectedIds.includes(employee.userId)}
+                onChange={() => toggleOne(employee.userId)}
+                aria-label={`${employee.name} 선택`}
+                className="size-3.5 cursor-pointer accent-btn-primary"
+              />
+            ),
+          },
+          {
+            key: 'name',
+            header: '이름 · 사번',
+            width: '11rem',
+            skeletonWidth: 'w-24',
+            /*
+              행 클릭과 별개로 링크를 남긴다 — 키보드 이동 · 새 탭 열기가 되어야 한다.
+              전파를 막지 않으면 `Ctrl+클릭` 이 새 탭을 열면서 현재 탭까지 이동시킨다
+            */
+            stopRowClick: true,
+            cell: (employee) => (
+              <Link
+                href={EMPLOYEE_ROUTES.detail(employee.userId)}
+                className="block min-w-0"
+              >
+                <span className="block truncate font-bold text-text-primary group-hover:underline">
+                  {employee.name}
+                </span>
+                <span className="mt-0.5 block truncate text-caption text-text-secondary">
+                  {employee.userId}
+                </span>
+              </Link>
+            ),
+          },
+          {
+            key: 'department',
+            header: '부서 · 직급',
+            skeletonWidth: 'w-40',
+            cell: (employee) => (
+              <>
+                <span className="block truncate text-text-primary">
+                  {employee.departmentPath ?? '미지정'}
+                </span>
+                <span className="mt-0.5 block truncate text-caption text-text-secondary">
+                  {employee.jobPositionName ?? '직급 없음'}
+                </span>
+              </>
+            ),
+          },
+          {
+            key: 'role',
+            header: '권한',
+            width: '6rem',
+            skeletonWidth: 'w-14',
+            cell: (employee) => (
+              <span className="text-text-secondary">
+                {ROLE_LABELS[employee.role]}
+              </span>
+            ),
+          },
+          {
+            key: 'email',
+            header: '이메일',
+            width: '14rem',
+            skeletonWidth: 'w-40',
+            cell: (employee) =>
+              employee.emailRegistered ? (
+                <span className="block truncate text-text-secondary">
+                  {employee.email}
+                </span>
+              ) : (
+                <span className="tag tag-yellow">
+                  ⚠ 이메일 미등록 · 로그인 불가
+                </span>
+              ),
+          },
+          {
+            key: 'status',
+            header: '상태',
+            width: '6rem',
+            skeletonWidth: 'w-12',
+            cell: (employee) => (
+              <EmployeeStatusBadge status={employeeStatusOf(employee)} />
+            ),
+          },
+          {
+            key: 'menu',
+            header: <span className="sr-only">관리</span>,
+            width: '3.5rem',
+            align: 'right',
+            skeletonWidth: 'w-6',
+            stopRowClick: true,
+            cell: (employee) => (
+              <RowMenu
+                label={employee.name}
+                width={130}
+                items={[
+                  {
+                    label: '상세 보기',
+                    onSelect: () =>
+                      router.push(EMPLOYEE_ROUTES.detail(employee.userId)),
+                  },
+                  {
+                    label: '비밀번호 초기화',
+                    onSelect: () => resetModal.open([employee]),
+                  },
+                ]}
+              />
+            ),
+          },
+        ]}
+        rows={hasFailed ? [] : rows}
+        rowKey={(employee) => employee.userId}
+        // 열이 7개라 좁은 화면에서만 표가 가로로 흐른다
+        minWidth={960}
+        skeletonRows={PAGE_SIZE}
+        errorMessage={hasFailed ? '사원을 불러오지 못했습니다.' : undefined}
+        onRetry={reload}
+        onRowClick={(employee) => openDetail(employee.userId)}
+        emptyState={
+          <>
             <PeopleIcon />
-            <p className="text-sm font-bold text-text-primary">
+            <p className="text-body-m font-bold text-text-primary">
               조건에 맞는 사원이 없습니다
             </p>
-            <p className="text-xs break-keep text-text-secondary">
+            <p className="text-label break-keep text-text-secondary">
               검색어나 필터를 바꿔보세요
             </p>
-          </Centered>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[880px] border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-border-default text-[11px] text-text-secondary">
-                    <th className="w-10 px-3 py-3">
-                      <input
-                        type="checkbox"
-                        checked={isAllSelected}
-                        onChange={toggleAll}
-                        aria-label="이 페이지 전체 선택"
-                        className="size-3.5 cursor-pointer accent-btn-primary"
-                      />
-                    </th>
-                    <th className="w-44 px-4 py-3 font-medium">이름 · 사번</th>
-                    <th className="px-4 py-3 font-medium">부서 · 직급</th>
-                    <th className="w-24 px-4 py-3 font-medium">권한</th>
-                    <th className="w-56 px-4 py-3 font-medium">이메일</th>
-                    <th className="w-24 px-4 py-3 font-medium">상태</th>
-                    <th className="w-12 px-3 py-3">
-                      <span className="sr-only">관리</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((employee) => (
-                    <tr
-                      key={employee.userId}
-                      onClick={() => openDetail(employee.userId)}
-                      className="group cursor-pointer border-b border-border-default last:border-b-0 hover:bg-bg-surface"
-                    >
-                      {/* 체크박스 · 케밥은 각자의 동작이 있다 — 행 이동으로 새지 않게 막는다 */}
-                      <td
-                        className="px-3 py-3.5"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.includes(employee.userId)}
-                          onChange={() => toggleOne(employee.userId)}
-                          aria-label={`${employee.name} 선택`}
-                          className="size-3.5 cursor-pointer accent-btn-primary"
-                        />
-                      </td>
-                      {/*
-                        행 클릭과 별개로 링크를 남긴다 — 키보드 이동 · 새 탭 열기가 되어야 한다.
-                        전파를 막지 않으면 `Ctrl+클릭` 이 새 탭을 열면서 현재 탭까지 이동시킨다
-                      */}
-                      <td
-                        className="px-4 py-3.5"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        <Link
-                          href={EMPLOYEE_ROUTES.detail(employee.userId)}
-                          className="block min-w-0"
-                        >
-                          <span className="block truncate text-xs font-bold text-text-primary group-hover:underline">
-                            {employee.name}
-                          </span>
-                          <span className="mt-0.5 block truncate text-[10px] text-text-secondary">
-                            {employee.userId}
-                          </span>
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span className="block truncate text-xs text-text-primary">
-                          {employee.departmentPath ?? '미지정'}
-                        </span>
-                        <span className="mt-0.5 block truncate text-[10px] text-text-secondary">
-                          {employee.jobPositionName ?? '직급 없음'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 text-xs text-text-secondary">
-                        {ROLE_LABELS[employee.role]}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        {employee.emailRegistered ? (
-                          <span className="block truncate text-xs text-text-secondary">
-                            {employee.email}
-                          </span>
-                        ) : (
-                          <span className="inline-block rounded bg-yellow-bg-soft px-1.5 py-0.5 text-[10px] font-medium text-yellow-text">
-                            ⚠ 이메일 미등록 · 로그인 불가
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <EmployeeStatusBadge
-                          status={employeeStatusOf(employee)}
-                        />
-                      </td>
-                      <td
-                        className="px-3 py-3.5 text-right"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        <RowMenu
-                          label={employee.name}
-                          width={130}
-                          items={[
-                            {
-                              label: '상세 보기',
-                              onSelect: () =>
-                                router.push(
-                                  EMPLOYEE_ROUTES.detail(employee.userId),
-                                ),
-                            },
-                            {
-                              label: '비밀번호 초기화',
-                              onSelect: () => resetModal.open([employee]),
-                            },
-                          ]}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <Pagination
-              page={page.page}
-              totalPages={page.totalPages}
-              totalElements={page.totalElements}
-              onChange={(next) => applyFilter({ page: String(next) })}
-            />
           </>
-        )}
-      </div>
+        }
+      />
+
+      {/* 표 바깥에 둔다 — 실패 · 빈 상태에서는 넘길 페이지가 없다 */}
+      {!hasFailed && page && page.totalElements > 0 && (
+        <div className="mt-3 overflow-hidden rounded-base border border-border-default bg-bg-card">
+          <Pagination
+            page={page.page}
+            totalPages={page.totalPages}
+            totalElements={page.totalElements}
+            onChange={(next) => applyFilter({ page: String(next) })}
+          />
+        </div>
+      )}
 
       {bulkModal.isOpen && (
         <BulkUploadModal
@@ -527,7 +533,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value || undefined)}
-        className="cursor-pointer rounded-lg border border-border-default px-2.5 py-2 text-xs text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+        className="cursor-pointer rounded-lg border border-border-default px-2.5 py-2 text-label text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
       >
         <option value="">{label} 전체</option>
         {options.map((option) => (
@@ -537,14 +543,6 @@ function FilterSelect({
         ))}
       </select>
     </label>
-  );
-}
-
-function Centered({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-2 px-5 py-20 text-center">
-      {children}
-    </div>
   );
 }
 

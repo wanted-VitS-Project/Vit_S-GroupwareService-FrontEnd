@@ -55,13 +55,13 @@ export default function NotificationMenu({
         disabled={disabled}
         aria-expanded={isOpen}
         aria-label="알림 메뉴"
-        className="flex size-6 cursor-pointer items-center justify-center rounded text-text-secondary hover:bg-bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:text-text-muted"
+        className="flex size-6 cursor-pointer items-center justify-center rounded-button-sm text-text-secondary hover:bg-bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:text-text-muted"
       >
         ⋮
       </button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 z-30 mt-1 w-24 overflow-hidden rounded-lg border border-border-default bg-white py-1 shadow-lg">
+        <div className="absolute top-full right-0 z-30 mt-1 w-24 overflow-hidden rounded-lg border border-border-default bg-bg-card py-1 shadow-lg">
           <MenuItem onClick={() => choose(onDelete)} tone="danger">
             삭제
           </MenuItem>
@@ -86,7 +86,7 @@ function MenuItem({
     <button
       type="button"
       onClick={onClick}
-      className={`block w-full cursor-pointer px-3 py-1.5 text-left text-xs hover:bg-bg-hover ${
+      className={`block w-full cursor-pointer px-3 py-1.5 text-left text-caption hover:bg-bg-hover ${
         tone === 'danger' ? 'text-text-danger' : 'text-text-primary'
       }`}
     >

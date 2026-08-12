@@ -52,14 +52,14 @@ export default function JobPositionEmployeesModal({
   return (
     <PanelModal title={`${position.name} 사원`} onClose={onClose}>
       <div className="p-5">
-        <p className="pb-2 text-[10px] break-keep text-text-secondary">
+        <p className="pb-2 text-caption break-keep text-text-secondary">
           재직 중인 사원만 나옵니다. 퇴사자와 시스템 계정은 제외됩니다.
         </p>
 
         <div className="max-h-72 overflow-auto rounded-lg border border-border-default">
           {hasFailed ? (
             <Centered>
-              <p className="text-[11px] text-text-secondary">
+              <p className="text-detail text-text-secondary">
                 사원을 불러오지 못했습니다.
               </p>
               <button
@@ -72,11 +72,11 @@ export default function JobPositionEmployeesModal({
             </Centered>
           ) : employees === null ? (
             <Centered>
-              <p className="text-[11px] text-text-secondary">불러오는 중…</p>
+              <p className="text-detail text-text-secondary">불러오는 중…</p>
             </Centered>
           ) : employees.length === 0 ? (
             <Centered>
-              <p className="text-[11px] break-keep text-text-secondary">
+              <p className="text-detail break-keep text-text-secondary">
                 이 직급인 사원이 없습니다.
               </p>
             </Centered>
@@ -84,13 +84,13 @@ export default function JobPositionEmployeesModal({
             <ul className="divide-y divide-border-default">
               {employees.map((employee) => (
                 <li key={employee.userId} className="px-3 py-2.5">
-                  <span className="block truncate text-[11px] font-semibold text-text-primary">
+                  <span className="block truncate text-detail font-semibold text-text-primary">
                     {employee.name}
                     <span className="ml-1.5 font-normal text-text-secondary">
                       {employee.userId}
                     </span>
                   </span>
-                  <span className="mt-0.5 block truncate text-[10px] text-text-secondary">
+                  <span className="mt-0.5 block truncate text-caption text-text-secondary">
                     {/* 경로가 있으면 상위 부서까지 보여야 같은 이름의 팀을 가릴 수 있다 */}
                     {employee.departmentPath ??
                       employee.departmentName ??

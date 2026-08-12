@@ -78,10 +78,10 @@ export default function ToastHost() {
         <div
           key={toast.id}
           role={toast.tone === 'error' ? 'alert' : 'status'}
-          className={`pointer-events-auto max-w-sm animate-panel-in rounded-lg border px-3.5 py-2.5 text-[11px] leading-snug font-medium shadow-lg motion-reduce:animate-none ${
+          className={`pointer-events-auto max-w-sm animate-panel-in rounded-lg border px-3.5 py-2.5 text-detail leading-snug font-medium shadow-lg motion-reduce:animate-none ${
             toast.tone === 'error'
               ? 'border-red-border bg-red-bg-soft text-text-danger'
-              : 'border-border-default bg-white text-text-primary'
+              : 'border-border-default bg-bg-card text-text-primary'
           }`}
         >
           <span className="flex items-start gap-2">

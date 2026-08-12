@@ -42,7 +42,7 @@ function FileViewerFallback() {
   return (
     <Modal
       title="문서 보기"
-      className="flex h-[85vh] w-full max-w-[820px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
+      className="flex h-[85vh] w-full max-w-[820px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
     >
       <div
         role="status"
@@ -51,7 +51,7 @@ function FileViewerFallback() {
       >
         <div
           aria-hidden
-          className="h-[600px] w-full max-w-[576px] animate-pulse rounded border border-border-default bg-white shadow-sm"
+          className="h-[600px] w-full max-w-[576px] animate-pulse rounded-button-sm border border-border-default bg-bg-card shadow-sm"
         />
       </div>
     </Modal>
@@ -147,7 +147,7 @@ export default function ProjectFiles() {
   if (hasFailed) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border-default px-4 py-12">
-        <p className="text-xs text-text-secondary">
+        <p className="text-label text-text-secondary">
           문서를 불러오지 못했습니다.
         </p>
         <button
@@ -156,7 +156,7 @@ export default function ProjectFiles() {
             setFailedProjectId(null);
             setReloadCount((count) => count + 1);
           }}
-          className="cursor-pointer rounded px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+          className="cursor-pointer rounded-button-sm px-2 py-1 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
         >
           다시 시도
         </button>
@@ -176,11 +176,13 @@ export default function ProjectFiles() {
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-text-primary">문서함</h2>
-          <span className="rounded-full bg-bg-hover px-2 py-0.5 text-[10px] text-text-secondary">
+          <h2 className="text-body-m font-semibold text-text-primary">
+            문서함
+          </h2>
+          <span className="rounded-pill bg-bg-hover px-2 py-0.5 text-caption text-text-secondary">
             총 {files.length}개
           </span>
-          <span className="text-[10px] text-text-secondary">
+          <span className="text-caption text-text-secondary">
             스텝 {steps.length}개
           </span>
         </div>
@@ -194,7 +196,7 @@ export default function ProjectFiles() {
                   : new Set(steps.map((step) => step.stepId)),
               )
             }
-            className="cursor-pointer rounded px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+            className="cursor-pointer rounded-button-sm px-2 py-1 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
           >
             {areAllClosed ? '모두 펼치기' : '모두 접기'}
           </button>
@@ -204,14 +206,14 @@ export default function ProjectFiles() {
       {errorMessage && (
         <p
           role="alert"
-          className="rounded-lg border border-red-border bg-red-bg-soft px-3 py-2 text-[10px] text-text-danger"
+          className="rounded-lg border border-red-border bg-red-bg-soft px-3 py-2 text-caption text-text-danger"
         >
           {errorMessage}
         </p>
       )}
 
       {steps.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border-default px-4 py-12 text-center text-xs text-text-secondary">
+        <p className="rounded-lg border border-dashed border-border-default px-4 py-12 text-center text-label text-text-secondary">
           등록된 문서가 없습니다.
         </p>
       ) : (
@@ -231,7 +233,7 @@ export default function ProjectFiles() {
               return (
                 <section
                   key={step.stepId}
-                  className="overflow-hidden rounded-xl border border-border-default bg-white"
+                  className="overflow-hidden rounded-base border border-border-default bg-bg-card"
                 >
                   <div className="flex items-center gap-3 px-4 py-3">
                     <button
@@ -250,14 +252,14 @@ export default function ProjectFiles() {
                       >
                         {step.stepName}
                       </span>
-                      <span className="shrink-0 rounded-full bg-bg-hover px-2 py-0.5 text-[10px] text-text-secondary">
+                      <span className="shrink-0 rounded-pill bg-bg-hover px-2 py-0.5 text-caption text-text-secondary">
                         {step.fileCount}개
                       </span>
                     </button>
 
                     <Link
                       href={`/projects/${projectId}/steps/${step.stepId}`}
-                      className="shrink-0 rounded px-2 py-1 text-[11px] font-medium text-text-secondary hover:bg-bg-surface hover:text-text-primary-blue"
+                      className="shrink-0 rounded-button-sm px-2 py-1 text-detail font-medium text-text-secondary hover:bg-bg-surface hover:text-text-primary-blue"
                     >
                       스텝 열기
                     </Link>
@@ -306,26 +308,26 @@ const BlockGroup = memo(function BlockGroup({
   onDownload: (file: ProjectFile) => void;
 }) {
   return (
-    <div className="rounded-lg border border-border-default bg-white p-2.5">
+    <div className="rounded-lg border border-border-default bg-bg-card p-2.5">
       <div className="mb-1.5 flex items-center gap-1.5 px-1">
         {block.blockDeleted ? (
           <>
             <span
-              className="rounded border border-border-default bg-bg-hover px-1.5 py-0.5 text-[9px] font-medium text-text-secondary"
+              className="rounded-button-sm border border-border-default bg-bg-hover px-1.5 py-0.5 text-micro font-medium text-text-secondary"
               title="블록이 삭제돼 문서만 남아 있습니다"
             >
               블록 삭제됨
             </span>
-            <span className="text-[10px] text-text-secondary">
+            <span className="text-caption text-text-secondary">
               연결된 블록이 없는 문서
             </span>
           </>
         ) : (
-          <span className="min-w-0 truncate text-[11px] font-semibold text-text-primary">
+          <span className="min-w-0 truncate text-detail font-semibold text-text-primary">
             {block.blockTitle || '제목 없는 블록'}
           </span>
         )}
-        <span className="ml-auto shrink-0 text-[9px] text-text-secondary">
+        <span className="ml-auto shrink-0 text-micro text-text-secondary">
           {block.files.length}개
         </span>
       </div>
@@ -380,31 +382,31 @@ const FileRow = memo(function FileRow({
       <span
         aria-hidden
         style={{ color: style.text, backgroundColor: style.background }}
-        className="pointer-events-none relative flex size-8 shrink-0 items-center justify-center rounded"
+        className="pointer-events-none relative flex size-8 shrink-0 items-center justify-center rounded-button-sm"
       >
         <DocumentIcon />
       </span>
 
       <div className="pointer-events-none relative min-w-0 flex-1">
         <div className="flex items-center gap-1">
-          <span className="min-w-0 truncate text-[11px] font-semibold text-text-primary">
+          <span className="min-w-0 truncate text-detail font-semibold text-text-primary">
             {file.name}
           </span>
           <span
             style={{ color: style.text, backgroundColor: style.background }}
-            className="shrink-0 rounded px-1 py-0.5 font-mono text-[8px] font-semibold"
+            className="shrink-0 rounded-button-sm px-1 py-0.5 font-mono text-[8px] font-semibold"
           >
             {extensionLabel(file.extension)}
           </span>
           {/* v1 도 표기한다 — 버전이 하나뿐인 문서도 차수가 보여야 한다 */}
           <span
             title={`버전 ${file.versionCount}개`}
-            className="shrink-0 rounded bg-blue-bg-soft px-1 py-0.5 font-mono text-[8px] font-semibold text-text-primary-blue"
+            className="shrink-0 rounded-button-sm bg-blue-bg-soft px-1 py-0.5 font-mono text-[8px] font-semibold text-text-primary-blue"
           >
             v{file.latestVersionNo}
           </span>
         </div>
-        <p className="mt-0.5 truncate text-[9px] text-text-secondary">
+        <p className="mt-0.5 truncate text-micro text-text-secondary">
           {file.uploaderName} · {formatDate(file.updatedAt)} ·{' '}
           {formatFileSize(file.sizeBytes)}
         </p>
@@ -417,7 +419,7 @@ const FileRow = memo(function FileRow({
           title={`${file.name} 다운로드`}
           aria-label={`${file.name} 다운로드`}
           onClick={() => onDownload(file)}
-          className="flex size-6 cursor-pointer items-center justify-center rounded-md text-text-secondary hover:bg-white hover:text-text-primary-blue"
+          className="flex size-6 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-card hover:text-text-primary-blue"
         >
           <DownloadIcon />
         </button>

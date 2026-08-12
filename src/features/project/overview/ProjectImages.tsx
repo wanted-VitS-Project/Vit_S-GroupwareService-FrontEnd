@@ -81,7 +81,7 @@ export default function ProjectImages() {
   if (hasFailed) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border-default px-4 py-12">
-        <p className="text-xs text-text-secondary">
+        <p className="text-label text-text-secondary">
           이미지를 불러오지 못했습니다.
         </p>
         <button
@@ -90,7 +90,7 @@ export default function ProjectImages() {
             setFailedProjectId(null);
             setReloadCount((count) => count + 1);
           }}
-          className="cursor-pointer rounded px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+          className="cursor-pointer rounded-button-sm px-2 py-1 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
         >
           다시 시도
         </button>
@@ -104,11 +104,13 @@ export default function ProjectImages() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-text-primary">이미지</h2>
-          <span className="rounded-full bg-bg-hover px-2 py-0.5 text-[10px] text-text-secondary">
+          <h2 className="text-body-m font-semibold text-text-primary">
+            이미지
+          </h2>
+          <span className="rounded-pill bg-bg-hover px-2 py-0.5 text-caption text-text-secondary">
             총 {images.length}장
           </span>
-          <span className="text-[10px] text-text-secondary">
+          <span className="text-caption text-text-secondary">
             블록 {blocks.length}개
           </span>
         </div>
@@ -121,7 +123,7 @@ export default function ProjectImages() {
           <button
             type="button"
             onClick={() => setGroupByBlock((grouped) => !grouped)}
-            className="cursor-pointer rounded px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+            className="cursor-pointer rounded-button-sm px-2 py-1 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
           >
             {groupByBlock ? '전체 보기' : '블록별로 보기'}
           </button>
@@ -129,26 +131,26 @@ export default function ProjectImages() {
       </div>
 
       {images.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border-default px-4 py-12 text-center text-xs text-text-secondary">
+        <p className="rounded-lg border border-dashed border-border-default px-4 py-12 text-center text-label text-text-secondary">
           등록된 이미지가 없습니다.
         </p>
       ) : groupByBlock ? (
         blocks.map((block) => (
           <section
             key={block.imgBlockId}
-            className="flex flex-col gap-2.5 rounded-xl border border-border-default bg-white p-4"
+            className="flex flex-col gap-2.5 rounded-base border border-border-default bg-bg-card p-4"
           >
             <div className="flex flex-wrap items-center gap-2">
               {/* 제목이 107번 응답에 없어 스텝 블록 목록에서 모아 온 이름이다 */}
-              <h3 className="text-[11px] font-semibold text-text-primary">
+              <h3 className="text-detail font-semibold text-text-primary">
                 {imageBlockLabel(block.imgBlockId, blockNames)}
               </h3>
               {blockNames?.get(block.imgBlockId)?.stepName && (
-                <span className="rounded-full bg-bg-hover px-2 py-0.5 text-[9px] text-text-secondary">
+                <span className="rounded-pill bg-bg-hover px-2 py-0.5 text-micro text-text-secondary">
                   {blockNames.get(block.imgBlockId)?.stepName}
                 </span>
               )}
-              <span className="text-[10px] text-text-secondary">
+              <span className="text-caption text-text-secondary">
                 {block.images.length}장
               </span>
             </div>
@@ -193,7 +195,7 @@ const ImageGrid = memo(function ImageGrid({
             type="button"
             onClick={() => onOpen(image)}
             aria-label={`${projectImageAltText(image)} 크게 보기`}
-            className="w-full cursor-pointer overflow-hidden rounded-xl border border-border-default bg-white text-left transition-[border-color,box-shadow] hover:border-border-primary/40 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-primary"
+            className="w-full cursor-pointer overflow-hidden rounded-base border border-border-default bg-bg-card text-left transition-[border-color,box-shadow] hover:border-border-primary/40 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-primary"
           >
             <span className="flex aspect-square items-center justify-center overflow-hidden bg-bg-surface">
               {/* eslint-disable-next-line @next/next/no-img-element -- 저장소(S3) 도메인이 확정되지 않아 next/image 원격 패턴을 걸 수 없다 */}
@@ -209,10 +211,10 @@ const ImageGrid = memo(function ImageGrid({
               조건부로 그리면 캡션이 있는 타일만 길어져 그리드 행이 어긋난다.
             */}
             <span className="flex h-11 flex-col justify-center gap-0.5 px-2.5 py-1.5">
-              <span className="truncate text-[10px] font-medium text-text-primary">
+              <span className="truncate text-caption font-medium text-text-primary">
                 {image.caption || image.originalName}
               </span>
-              <span className="font-mono text-[9px] text-text-secondary">
+              <span className="font-mono text-micro text-text-secondary">
                 {formatDate(image.createdAt)}
               </span>
             </span>

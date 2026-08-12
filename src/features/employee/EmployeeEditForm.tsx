@@ -223,7 +223,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
 
   return (
     <>
-      <p className="text-xs text-text-secondary">
+      <p className="text-label text-text-secondary">
         <Link
           href="/settings"
           className="hover:text-text-primary hover:underline"
@@ -249,7 +249,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
 
       {failure && !employee ? (
         <Centered>
-          <p className="text-xs break-keep text-text-secondary">
+          <p className="text-label break-keep text-text-secondary">
             {failure.isNotFound
               ? '사원을 찾을 수 없습니다. 삭제되었거나 접근할 수 없는 계정입니다.'
               : '사원 정보를 불러오지 못했습니다.'}
@@ -263,15 +263,15 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
       ) : (
         <>
           <div className="mt-2 mb-6">
-            <h2 className="text-lg font-bold">정보 수정</h2>
-            <p className="mt-1.5 text-xs break-keep text-text-secondary">
+            <h2 className="text-heading-m font-bold">정보 수정</h2>
+            <p className="mt-1.5 text-label break-keep text-text-secondary">
               인사 정보를 수정합니다. 바꾼 항목만 저장됩니다.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <section className="rounded-xl border border-border-default bg-white p-5">
-              <h3 className="text-xs font-semibold text-text-primary">
+            <section className="rounded-base border border-border-default bg-bg-card p-5">
+              <h3 className="text-label font-semibold text-text-primary">
                 변경할 수 없는 항목
               </h3>
               <dl className="mt-4 space-y-3">
@@ -295,8 +295,8 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
               </dl>
             </section>
 
-            <section className="rounded-xl border border-border-default bg-white p-5">
-              <h3 className="text-xs font-semibold text-text-primary">
+            <section className="rounded-base border border-border-default bg-bg-card p-5">
+              <h3 className="text-label font-semibold text-text-primary">
                 인사 정보
               </h3>
 
@@ -360,7 +360,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
                 />
 
                 {hasOptionsFailed && (
-                  <p role="alert" className="text-[10px] text-text-danger">
+                  <p role="alert" className="text-caption text-text-danger">
                     부서 · 직급 목록을 불러오지 못했습니다.{' '}
                     <button
                       type="button"
@@ -389,7 +389,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
               {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}
               <p
                 role="alert"
-                className="mr-auto text-[10px] break-keep text-text-danger"
+                className="mr-auto text-caption break-keep text-text-danger"
               >
                 {error}
               </p>
@@ -397,7 +397,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
                 type="button"
                 onClick={leave}
                 disabled={isSubmitting}
-                className="cursor-pointer rounded-lg px-4 py-2 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+                className="cursor-pointer rounded-lg px-4 py-2 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
               >
                 취소
               </button>
@@ -427,14 +427,14 @@ function ReadOnlyField({
   note?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-4 text-xs">
+    <div className="flex items-center gap-4 text-label">
       <dt className="w-20 shrink-0 text-text-secondary">{label}</dt>
       <dd className="m-0 min-w-0 flex-1">
         <span className="block truncate font-medium text-text-primary">
           {value}
         </span>
         {note && (
-          <span className="mt-0.5 block text-[10px] break-keep text-text-secondary">
+          <span className="mt-0.5 block text-caption break-keep text-text-secondary">
             {note}
           </span>
         )}
@@ -445,7 +445,7 @@ function ReadOnlyField({
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mt-4 flex flex-col items-center justify-center gap-3 rounded-xl border border-border-default bg-white px-5 py-20 text-center">
+    <div className="mt-4 flex flex-col items-center justify-center gap-3 rounded-base border border-border-default bg-bg-card px-5 py-20 text-center">
       {children}
     </div>
   );

@@ -28,12 +28,16 @@
   --text-heading-m--line-height: 1.45;
   --text-body-l: 16px; /* 본문, 메뉴, 버튼 */
   --text-body-l--line-height: 1.5;
-  --text-body-m: 14px; /* 보조 정보 */
+  --text-body-m: 16px; /* 보조 정보 */
   --text-body-m--line-height: 1.5;
-  --text-label: 12px; /* 태그, 카테고리 */
+  --text-label: 14px; /* 태그, 카테고리 */
   --text-label--line-height: 1.5;
-  --text-caption: 10px; /* 최소 보조 정보 */
+  --text-caption: 12px; /* 최소 보조 정보 */
   --text-caption--line-height: 1.5;
+  --text-detail: 13px; /* 상세 보조 정보 */
+  --text-detail--line-height: 1.5;
+  --text-micro: 11px; /* 가장 작은 보조 정보 */
+  --text-micro--line-height: 1.5;
   --text-logo: 22px; /* 워드마크 — 사이드바 · 프로젝트 헤더가 함께 쓴다 */
   --text-logo--line-height: 1.5;
 
@@ -119,7 +123,7 @@
    */
   --color-step-not-started: #d1d5db;
   --color-step-in-progress: #ffb900;
-  --color-step-done: #2563eb;
+  --color-step-done: #00bc7d;
 
   /* ---------- Button Palette ---------- */
   --color-btn-primary: #2563eb;

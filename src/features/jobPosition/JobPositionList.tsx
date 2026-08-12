@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
+import DataTable from '@/components/DataTable';
 import RowMenu from '@/components/RowMenu';
-import { JobPositionTableSkeleton } from '@/components/settings/SettingsSkeletons';
 import { useModalTarget } from '@/lib/useModal';
 
 import { getJobPositions, updateJobPosition } from './api';
@@ -98,7 +98,7 @@ export default function JobPositionList() {
 
   return (
     <>
-      <p className="text-xs text-text-secondary">
+      <p className="text-label text-text-secondary">
         <Link
           href="/settings"
           className="hover:text-text-primary hover:underline"
@@ -110,8 +110,8 @@ export default function JobPositionList() {
 
       <div className="mt-2 mb-6 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-lg font-bold">직급 관리</h2>
-          <p className="mt-1.5 text-xs break-keep text-text-secondary">
+          <h2 className="text-heading-m font-bold">직급 관리</h2>
+          <p className="mt-1.5 text-label break-keep text-text-secondary">
             사원에게 지정할 직급과 노출 순서를 관리합니다. 사용 중인 직급은
             삭제할 수 없습니다.
           </p>
@@ -121,121 +121,115 @@ export default function JobPositionList() {
 
       <p
         role="alert"
-        className="mb-2 text-[11px] break-keep text-text-danger empty:hidden"
+        className="mb-2 text-detail break-keep text-text-danger empty:hidden"
       >
         {moveError}
       </p>
 
-      <div className="rounded-xl border border-border-default bg-white">
-        {hasFailed ? (
-          <Centered>
-            <p className="text-xs text-text-secondary">
-              직급을 불러오지 못했습니다.
-            </p>
-            <button
-              type="button"
-              onClick={reload}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover"
-            >
-              다시 시도
-            </button>
-          </Centered>
-        ) : !positions ? (
-          <JobPositionTableSkeleton />
-        ) : positions.length === 0 ? (
-          <Centered>
+      <DataTable
+        caption="직급 목록"
+        columns={[
+          {
+            key: 'order',
+            header: '순서',
+            width: '4rem',
+            skeletonWidth: 'w-6',
+            cell: (_position, index) => (
+              <span className="text-text-secondary">{index + 1}</span>
+            ),
+          },
+          {
+            key: 'name',
+            header: '직급명',
+            skeletonWidth: 'w-32',
+            cell: (position) => (
+              <span className="block truncate font-bold text-text-primary">
+                {position.name}
+              </span>
+            ),
+          },
+          {
+            key: 'employeeCount',
+            header: '사용 인원',
+            width: '7rem',
+            skeletonWidth: 'w-12',
+            cell: (position) =>
+              position.employeeCount > 0 ? (
+                // 누가 그 직급인지 여기서 바로 확인한다 (.ai/API.md 90)
+                <button
+                  type="button"
+                  onClick={() => employeesModal.open(position)}
+                  className="cursor-pointer font-medium text-text-primary-blue underline underline-offset-2"
+                >
+                  {position.employeeCount}명
+                </button>
+              ) : (
+                // 0명은 열어봐야 빈 목록이라 누를 것을 만들지 않는다
+                <span className="text-text-muted">미사용</span>
+              ),
+          },
+          {
+            key: 'move',
+            header: '순서 변경',
+            width: '6rem',
+            skeletonWidth: 'w-14',
+            cell: (position, index) => (
+              <span className="flex items-center gap-1">
+                <MoveButton
+                  direction="up"
+                  name={position.name}
+                  disabled={index === 0 || isMoving}
+                  onClick={() => move(index, -1)}
+                />
+                <MoveButton
+                  direction="down"
+                  name={position.name}
+                  disabled={index === (positions?.length ?? 0) - 1 || isMoving}
+                  onClick={() => move(index, 1)}
+                />
+              </span>
+            ),
+          },
+          {
+            key: 'menu',
+            header: <span className="sr-only">관리</span>,
+            width: '3.5rem',
+            align: 'right',
+            skeletonWidth: 'w-6',
+            cell: (position) => (
+              <RowMenu
+                label={position.name}
+                items={[
+                  { label: '수정', onSelect: () => formModal.open(position) },
+                  {
+                    label: '삭제',
+                    danger: true,
+                    onSelect: () => deleteModal.open(position),
+                  },
+                ]}
+              />
+            ),
+          },
+        ]}
+        rows={hasFailed ? [] : positions}
+        rowKey={(position) => position.jobPositionId}
+        // 목록이 길어지면 표 영역만 스크롤된다
+        maxHeight="60vh"
+        errorMessage={hasFailed ? '직급을 불러오지 못했습니다.' : undefined}
+        onRetry={reload}
+        emptyState={
+          <>
             <BadgeIcon />
-            <p className="text-sm font-bold text-text-primary">
+            <p className="text-body-m font-bold text-text-primary">
               등록된 직급이 없습니다
             </p>
-            <p className="text-xs break-keep text-text-secondary">
+            <p className="text-label break-keep text-text-secondary">
               직급을 추가하면 사원 등록 시 선택할 수 있어요
             </p>
             <AddButton subtle onClick={() => formModal.open('create')} />
-          </Centered>
-        ) : (
-          // 목록이 길어지면 이 영역만 스크롤된다
-          <div className="max-h-[60vh] overflow-y-auto">
-            <table className="w-full table-fixed border-collapse text-left">
-              <thead className="sticky top-0 bg-white">
-                <tr className="border-b border-border-default text-[11px] text-text-secondary">
-                  <th className="w-16 px-5 py-3 font-medium">순서</th>
-                  <th className="px-5 py-3 font-medium">직급명</th>
-                  <th className="w-28 px-5 py-3 font-medium">사용 인원</th>
-                  <th className="w-24 px-5 py-3 font-medium">순서 변경</th>
-                  <th className="w-14 px-5 py-3">
-                    <span className="sr-only">관리</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {positions.map((position, index) => (
-                  <tr
-                    key={position.jobPositionId}
-                    className="border-b border-border-default last:border-b-0"
-                  >
-                    <td className="px-5 py-3.5 text-xs text-text-secondary">
-                      {index + 1}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className="block truncate text-xs font-bold text-text-primary">
-                        {position.name}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {position.employeeCount > 0 ? (
-                        // 누가 그 직급인지 여기서 바로 확인한다 (.ai/API.md 90)
-                        <button
-                          type="button"
-                          onClick={() => employeesModal.open(position)}
-                          className="cursor-pointer text-xs font-medium text-text-primary-blue underline underline-offset-2"
-                        >
-                          {position.employeeCount}명
-                        </button>
-                      ) : (
-                        // 0명은 열어봐야 빈 목록이라 누를 것을 만들지 않는다
-                        <span className="text-xs text-text-muted">미사용</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className="flex items-center gap-1">
-                        <MoveButton
-                          direction="up"
-                          name={position.name}
-                          disabled={index === 0 || isMoving}
-                          onClick={() => move(index, -1)}
-                        />
-                        <MoveButton
-                          direction="down"
-                          name={position.name}
-                          disabled={index === positions.length - 1 || isMoving}
-                          onClick={() => move(index, 1)}
-                        />
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-right">
-                      <RowMenu
-                        label={position.name}
-                        items={[
-                          {
-                            label: '수정',
-                            onSelect: () => formModal.open(position),
-                          },
-                          {
-                            label: '삭제',
-                            danger: true,
-                            onSelect: () => deleteModal.open(position),
-                          },
-                        ]}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+          </>
+        }
+      />
 
       {formModal.target && (
         <JobPositionFormModal
@@ -276,10 +270,10 @@ function AddButton({
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 cursor-pointer rounded-lg px-4 py-2 text-xs font-semibold ${
+      className={`shrink-0 cursor-pointer rounded-lg px-4 py-2 text-label font-semibold ${
         subtle
           ? 'border border-border-default text-text-primary hover:bg-bg-hover'
-          : 'bg-btn-primary text-white hover:bg-btn-primary-hover'
+          : 'bg-btn-primary text-text-white hover:bg-btn-primary-hover'
       }`}
     >
       + 직급 추가
@@ -304,7 +298,7 @@ function MoveButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={`${name} ${direction === 'up' ? '위로' : '아래로'} 이동`}
-      className="cursor-pointer rounded border border-border-default px-1.5 py-1 text-text-secondary hover:bg-bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:text-text-muted disabled:hover:bg-transparent"
+      className="cursor-pointer rounded-button-sm border border-border-default px-1.5 py-1 text-text-secondary hover:bg-bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:text-text-muted disabled:hover:bg-transparent"
     >
       <svg
         viewBox="0 0 24 24"
@@ -319,14 +313,6 @@ function MoveButton({
         <path d={direction === 'up' ? 'm6 15 6-6 6 6' : 'm6 9 6 6 6-6'} />
       </svg>
     </button>
-  );
-}
-
-function Centered({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-2 px-5 py-20 text-center">
-      {children}
-    </div>
   );
 }
 

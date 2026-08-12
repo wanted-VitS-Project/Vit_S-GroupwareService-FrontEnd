@@ -11,6 +11,7 @@ import type {
   ProjectFile,
   ProjectFileVersion,
   ProjectTrashFile,
+  RenameFileRequest,
   RenameFileResponse,
   RestoreFileResponse,
   StartUploadRequest,
@@ -69,15 +70,21 @@ export function completeUpload(
   );
 }
 
-/** 표시명만 바꾼다. 각 버전의 원본 파일명은 그대로다 */
+/**
+ * 표시명만 바꾼다. 각 버전의 원본 파일명은 그대로다.
+ *
+ * ⚠️ **낙관적 락** (2026-08-11) — `body.version` 은 문서 목록(36번)에서 받은 `version` 이다
+ *    (`latestVersionNo` 가 아니다). 늦으면 409 `FILE_VERSION_CONFLICT` 가 오고,
+ *    부르는 쪽이 재조회 · 덮어쓰기(`overwrite: true`)를 사용자에게 묻는다.
+ */
 export function renameFile(
   fileId: number | string,
-  name: string,
+  body: RenameFileRequest,
   signal?: AbortSignal,
 ) {
   return api.patch<RenameFileResponse>(
     ENDPOINTS.files.detail(fileId),
-    { name },
+    body,
     signal,
   );
 }

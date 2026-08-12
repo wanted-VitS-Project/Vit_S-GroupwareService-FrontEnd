@@ -61,6 +61,11 @@ export function createIssue(
 /**
  * 부분 수정. 보낸 필드만 반영된다.
  * `status` 는 여기서 못 바꾼다 — `updateIssueStatus()` 를 쓴다.
+ *
+ * ⚠️ **낙관적 락이다.** `body.version` 은 최초 조회값(`base`)의 버전이어야 하고,
+ *    그 사이 남이 먼저 저장했으면 409 `ISSUE_VERSION_CONFLICT` 가 온다 —
+ *    부르는 쪽이 최신값을 읽어 **자동 병합 또는 사용자 선택**으로 풀어야 한다.
+ * ⚠️ 응답 `version` 은 **저장 후의 새 값**이라 화면 상태를 갈아끼워야 다음 저장이 통과한다.
  */
 export function updateIssue(
   issueId: number | string,
@@ -70,14 +75,21 @@ export function updateIssue(
   return api.patch<IssueDetail>(ENDPOINTS.issues.detail(issueId), body, signal);
 }
 
+/**
+ * 상태만 바꾼다. 상태 · 완료 시각도 **같은 `version` 조건**을 탄다.
+ *
+ * ⚠️ 같은 상태로 다시 보내면 서버는 아무것도 바꾸지 않지만, 버전이 어긋나 있으면
+ *    그것도 409 다 — 부르는 쪽은 최신값을 읽어 카드를 맞춰야 한다.
+ */
 export function updateIssueStatus(
   issueId: number | string,
   status: IssueStatus,
+  version: number,
   signal?: AbortSignal,
 ) {
   return api.patch<IssueStatusChanged>(
     ENDPOINTS.issues.status(issueId),
-    { status },
+    { status, version },
     signal,
   );
 }

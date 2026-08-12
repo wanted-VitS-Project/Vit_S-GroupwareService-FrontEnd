@@ -25,15 +25,17 @@ export default function PanelModal({
     <Modal
       title={title}
       onClose={onClose}
-      className="w-full max-w-[420px] overflow-hidden rounded-xl border border-border-default shadow-2xl"
+      className="w-full max-w-[420px] overflow-hidden rounded-base border border-border-default shadow-2xl"
       header={
         <div className="flex items-center justify-between gap-2 border-b border-border-default px-5 py-3.5">
-          <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
+          <h2 className="text-body-m font-semibold text-text-primary">
+            {title}
+          </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="닫기"
-            className="flex size-6 cursor-pointer items-center justify-center rounded-md text-text-secondary hover:bg-bg-hover"
+            className="flex size-6 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-hover"
           >
             ✕
           </button>

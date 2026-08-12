@@ -97,11 +97,11 @@ export default function JobPositionFormModal({
             <div className="flex items-end justify-between gap-2 pb-1.5">
               <label
                 htmlFor="jobPositionName"
-                className="text-[11px] font-semibold text-text-primary"
+                className="text-detail font-semibold text-text-primary"
               >
                 직급명 <span className="text-text-danger">*</span>
               </label>
-              <span className="text-[10px] text-text-secondary">
+              <span className="text-caption text-text-secondary">
                 {name.length} / {JOB_POSITION_NAME_MAX_LENGTH}
               </span>
             </div>
@@ -114,7 +114,7 @@ export default function JobPositionFormModal({
               placeholder="선임연구원"
               aria-invalid={nameError ? true : undefined}
               aria-describedby={describedBy}
-              className={`w-full rounded-lg border bg-bg-surface px-3 py-2 text-[11px] text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 ${
+              className={`w-full rounded-lg border bg-bg-surface px-3 py-2 text-detail text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 ${
                 nameError
                   ? 'border-border-danger focus:outline-border-danger'
                   : 'border-border-default focus:outline-border-primary'
@@ -124,12 +124,12 @@ export default function JobPositionFormModal({
               <p
                 id="jobPositionName-error"
                 role="alert"
-                className="mt-1 text-[10px] break-keep text-text-danger"
+                className="mt-1 text-caption break-keep text-text-danger"
               >
                 {nameError}
               </p>
             ) : (
-              <p className="mt-1 text-[10px] break-keep text-text-secondary">
+              <p className="mt-1 text-caption break-keep text-text-secondary">
                 {isEditing
                   ? '이름을 바꿔도 이 직급이 지정된 사원은 그대로 유지됩니다.'
                   : '노출 순서는 추가 후 목록에서 바꿀 수 있습니다.'}
@@ -142,7 +142,7 @@ export default function JobPositionFormModal({
           {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 — role 을 함께 붙이면 놓친다 */}
           <p
             role="alert"
-            className="mr-auto text-[10px] break-keep text-text-danger"
+            className="mr-auto text-caption break-keep text-text-danger"
           >
             {error}
           </p>
@@ -151,14 +151,14 @@ export default function JobPositionFormModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+              className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
             >
               취소
             </button>
             <button
               type="submit"
               disabled={!canSubmit}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
             >
               {isSubmitting ? '저장 중…' : isEditing ? '저장' : '추가'}
             </button>

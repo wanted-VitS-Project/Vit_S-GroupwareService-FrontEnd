@@ -6,6 +6,8 @@ import { useEffect } from 'react';
 import { ErrorStateTwoButton } from '@/components/ErrorState';
 
 import { isPageDenied, isPageGated } from './catalog';
+import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
+
 import { useMyPages } from './useMyPages';
 
 /**
@@ -20,6 +22,30 @@ import { useMyPages } from './useMyPages';
  *
  * 사이드바 · 헤더는 감싸지 않는다 — 본문만 가려 셸이 깜빡이지 않게 한다.
  */
+/**
+ * 권한 판단 대기 화면. 어느 화면이 올지 모르므로 **표 · 카드 공통 골격**만 그린다
+ * (제목 줄 + 목록 상자). 실제 표 스켈레톤은 화면이 그려진 뒤 `DataTable` 이 맡는다.
+ */
+function GateLoading() {
+  return (
+    <SkeletonGroup label="화면을 준비하는 중입니다">
+      <Skeleton className="h-5 w-40" />
+      <Skeleton className="mt-2 h-3 w-64" />
+
+      <div className="mt-6 overflow-hidden rounded-xl border border-border-default bg-bg-card">
+        <div className="border-b border-border-default bg-bg-surface px-5 py-3">
+          <Skeleton className="h-3 w-24" />
+        </div>
+        {[0, 1, 2, 3, 4, 5].map((row) => (
+          <div key={row} className="border-b border-border-default px-5 py-3.5">
+            <Skeleton className="h-3 w-full max-w-md" />
+          </div>
+        ))}
+      </div>
+    </SkeletonGroup>
+  );
+}
+
 export default function PageAccessGate({
   children,
 }: {
@@ -44,10 +70,14 @@ export default function PageAccessGate({
 
   /**
    * 판단 전에 그리면 권한 없는 화면이 한 번 번쩍이고, 그 화면의 API 호출까지 나간다.
-   * 목록이 오는 사이는 비워 둔다.
+   * 그래서 `/my/pages` 가 오는 동안은 본문을 그리지 않는다.
+   *
+   * ⚠️ 예전에는 `불러오는 중…` **글자 한 줄**이었다. 권한이 걸린 화면(입찰 · 재무)은
+   *    이 단계가 먼저 지나가므로, 정작 표 스켈레톤은 그 뒤에 잠깐 스쳐 **로딩이 두 번 다른 모양**
+   *    으로 보였다. 표 골격을 흉내 낸 덩어리로 바꿔 한 흐름으로 읽히게 한다.
    */
   if (isDenied || (isGated && status === 'loading')) {
-    return <p className="p-6 text-body-m text-text-secondary">불러오는 중…</p>;
+    return <GateLoading />;
   }
 
   /**

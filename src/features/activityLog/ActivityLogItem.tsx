@@ -3,6 +3,7 @@
 import { memo } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
+import PersonNote from '@/components/PersonNote';
 import { IssueBlockIcon } from '@/features/issue/IssueBadges';
 
 import { parseActivityTime } from './time';
@@ -56,7 +57,7 @@ function ActivityLogItem({
 
       <span
         aria-hidden
-        className={`relative z-[1] flex size-[27px] shrink-0 items-center justify-center rounded-full border bg-white ${style.icon}`}
+        className={`relative z-[1] flex size-[27px] shrink-0 items-center justify-center rounded-pill border bg-bg-card ${style.icon}`}
       >
         <ActionIcon action={log.action} />
       </span>
@@ -68,20 +69,25 @@ function ActivityLogItem({
             name={log.actor.name}
             size="xs"
             decorative
+            resigned={log.actor.resignedAt !== null}
           />
-          <span className="text-[11px] font-semibold text-text-primary">
-            {log.actor.name}
+          {/* 퇴사자여도 로그를 지우지 않는다 — 이름 뒤에 문구만 붙인다 */}
+          <span className="flex items-center gap-0.5">
+            <span className="text-detail font-semibold text-text-primary">
+              {log.actor.name}
+            </span>
+            {log.actor.resignedAt && <PersonNote />}
           </span>
 
           {showBlock && (
-            <span className="inline-flex min-w-0 items-center gap-1 rounded border border-border-default bg-bg-surface px-1.5 py-0.5 text-[10px] text-text-secondary">
+            <span className="inline-flex min-w-0 items-center gap-1 rounded-button-sm border border-border-default bg-bg-surface px-1.5 py-0.5 text-caption text-text-secondary">
               <IssueBlockIcon type={log.block.type} size={16} />
               <span className="truncate">{blockTitle}</span>
             </span>
           )}
 
           <span
-            className={`rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${style.badge}`}
+            className={`rounded-pill border px-1.5 py-0.5 text-caption font-semibold ${style.badge}`}
           >
             {actionLabel}
           </span>
@@ -93,13 +99,13 @@ function ActivityLogItem({
           <span
             // 읽을 수 없는 값이면 빈칸으로 두지 않는다 — 시각이 왜 없는지 알 수 있게
             title={time?.full ?? `시각을 읽을 수 없습니다 (${log.createdAt})`}
-            className="ml-auto w-14 shrink-0 text-right text-[10px] text-text-muted"
+            className="ml-auto w-14 shrink-0 text-right text-caption text-text-muted"
           >
             {time?.relative ?? '시각 미상'}
           </span>
         </div>
 
-        <div className="mt-1 rounded-md bg-bg-surface px-2.5 py-1.5 text-[11px] leading-relaxed text-gray-text-soft">
+        <div className="mt-1 rounded-button-md bg-bg-surface px-2.5 py-1.5 text-detail leading-relaxed text-gray-text-soft">
           <span className="font-medium text-text-primary">‘{targetName}’</span>{' '}
           {log.action === 'MODIFY' && log.fieldName ? (
             <>
@@ -135,7 +141,7 @@ function FieldChange({ log }: { log: ActivityLog }) {
   if (fieldDisplay(log.fieldName) === 'expand') {
     return (
       <details className="group mt-1">
-        <summary className="flex w-fit cursor-pointer list-none items-center gap-1 text-[10px] font-medium text-text-primary-blue hover:underline">
+        <summary className="flex w-fit cursor-pointer list-none items-center gap-1 text-caption font-medium text-text-primary-blue hover:underline">
           <svg
             viewBox="0 0 24 24"
             fill="none"
@@ -181,9 +187,9 @@ function InlineValue({
 }) {
   return (
     <span
-      className={`rounded border px-1.5 py-0.5 text-[10px] ${
+      className={`rounded-button-sm border px-1.5 py-0.5 text-caption ${
         tone === 'before'
-          ? 'border-border-default bg-white text-text-muted line-through'
+          ? 'border-border-default bg-bg-card text-text-muted line-through'
           : 'border-blue-border bg-blue-bg font-medium text-btn-primary-hover'
       }`}
     >
@@ -204,7 +210,7 @@ function FullValue({
 }) {
   return (
     <div>
-      <p className="mb-0.5 text-[10px] font-medium text-text-secondary">
+      <p className="mb-0.5 text-caption font-medium text-text-secondary">
         {label}
       </p>
       {/*
@@ -215,9 +221,9 @@ function FullValue({
         tabIndex={0}
         role="region"
         aria-label={label}
-        className={`max-h-40 overflow-auto rounded border px-2 py-1.5 text-[10px] leading-relaxed whitespace-pre-wrap focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-border-primary ${
+        className={`max-h-40 overflow-auto rounded-button-sm border px-2 py-1.5 text-caption leading-relaxed whitespace-pre-wrap focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-border-primary ${
           tone === 'before'
-            ? 'border-border-default bg-white text-text-muted'
+            ? 'border-border-default bg-bg-card text-text-muted'
             : 'border-blue-border bg-blue-bg-soft text-text-primary'
         }`}
       >

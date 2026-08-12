@@ -155,7 +155,7 @@ export default function GrantPermissionModal({
         <div className="space-y-4 p-5">
           {!isEditing && (
             <div>
-              <label className="block pb-1.5 text-[11px] font-semibold text-text-primary">
+              <label className="block pb-1.5 text-detail font-semibold text-text-primary">
                 사원 검색
               </label>
               <EmployeeSearchInput
@@ -179,14 +179,14 @@ export default function GrantPermissionModal({
                   ])
                 }
               />
-              <p className="mt-1 text-[10px] break-keep text-text-secondary">
+              <p className="mt-1 text-caption break-keep text-text-secondary">
                 이미 접근 가능한 사원은 목록에서 등급만 바꿀 수 있습니다.
               </p>
             </div>
           )}
 
           {picked.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-border-default px-3 py-6 text-center text-[11px] text-text-secondary">
+            <p className="rounded-lg border border-dashed border-border-default px-3 py-6 text-center text-detail text-text-secondary">
               권한을 줄 사원을 검색해 추가해주세요.
             </p>
           ) : (
@@ -197,14 +197,14 @@ export default function GrantPermissionModal({
                   className="flex items-center gap-2 rounded-lg border border-border-default bg-bg-surface px-3 py-2.5"
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-semibold text-text-primary">
+                    <span className="block truncate text-label font-semibold text-text-primary">
                       {item.name}
                       <span className="ml-1 font-normal text-text-secondary">
                         {item.userId}
                       </span>
                     </span>
                     {item.belongs && (
-                      <span className="mt-0.5 block truncate text-[10px] text-text-secondary">
+                      <span className="mt-0.5 block truncate text-caption text-text-secondary">
                         {item.belongs}
                       </span>
                     )}
@@ -253,7 +253,7 @@ export default function GrantPermissionModal({
           {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}
           <p
             role="alert"
-            className="mr-auto text-[10px] break-keep text-text-danger"
+            className="mr-auto text-caption break-keep text-text-danger"
           >
             {error}
           </p>

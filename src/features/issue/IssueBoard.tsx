@@ -9,7 +9,8 @@ import { getProjectSteps } from '@/features/project/api';
 import { isAbortError, messageOf } from '@/lib/api';
 
 import DeleteIssueModal from './DeleteIssueModal';
-import { getStepIssues, updateIssueStatus } from './api';
+import { getIssue, getStepIssues, updateIssueStatus } from './api';
+import { isIssueVersionConflict } from './errorCodes';
 import { notifyIssueChanged } from './events';
 import IssueCard from './IssueCard';
 import { IssueBoardSkeleton } from './IssueSkeletons';
@@ -39,7 +40,7 @@ const IssueFormModal = dynamic(loadIssueFormModal, {
   loading: () => (
     <ModalLoadingFallback
       title="이슈 작성"
-      className="flex max-h-[90vh] w-full max-w-[560px] flex-col overflow-hidden rounded-xl border border-border-default p-6 shadow-2xl"
+      className="flex max-h-[90vh] w-full max-w-[560px] flex-col overflow-hidden rounded-base border border-border-default p-6 shadow-2xl"
       bodyClassName="mt-5 h-[460px]"
     />
   ),
@@ -234,7 +235,13 @@ export default function IssueBoard() {
    */
   const sendingStatusRef = useRef(new Set<number>());
 
-  /** 화면을 먼저 옮기고 호출한다. 실패하면 되돌린다 (명세 59번) */
+  /**
+   * 화면을 먼저 옮기고 호출한다. 실패하면 되돌린다 (명세 59번)
+   *
+   * ⚠️ **낙관적 락이다** (2026-08-12) — 카드가 든 `version` 을 실어 보낸다.
+   *    409 면 최신값을 읽어, 남이 이미 같은 상태로 바꿔 뒀으면 **버전만 맞추고**
+   *    다른 상태로 바꿨으면 **카드를 그 상태로 되돌린다.**
+   */
   async function changeStatus(issueId: number, status: IssueStatus) {
     const index = issues?.findIndex((issue) => issue.issueId === issueId) ?? -1;
     const before = index >= 0 ? issues?.[index] : undefined;
@@ -246,15 +253,63 @@ export default function IssueBoard() {
     moveToFront(before, status);
 
     try {
-      await updateIssueStatus(issueId, status);
+      const changed = await updateIssueStatus(issueId, status, before.version);
+      /*
+       * 상태 변경도 issue 버전을 올린다 — 옛 값을 들고 있으면 다음 수정이 409 라
+       * 새 값으로 갈아끼운다.
+       */
+      replaceIssue({ ...before, status, version: changed.version });
       // 스텝 · 프로젝트 진척률이 바뀐다 — 사이드바가 다시 읽게 알린다
       notifyIssueChanged();
     } catch (caught) {
-      restoreAt(before, index);
-      setErrorMessage(messageOf(caught, '이슈 상태를 변경하지 못했습니다.'));
+      if (isIssueVersionConflict(caught)) {
+        await syncAfterConflict(issueId, status, before, index);
+      } else {
+        restoreAt(before, index);
+        setErrorMessage(messageOf(caught, '이슈 상태를 변경하지 못했습니다.'));
+      }
     } finally {
       sendingStatusRef.current.delete(issueId);
     }
+  }
+
+  /** 409 뒷처리 — 최신 상태 · 버전으로 카드를 맞춘다 */
+  async function syncAfterConflict(
+    issueId: number,
+    wanted: IssueStatus,
+    before: IssueSummary,
+    index: number,
+  ) {
+    let latest: IssueDetail | null = null;
+    try {
+      latest = await getIssue(issueId);
+    } catch {
+      latest = null;
+    }
+
+    if (latest === null) {
+      restoreAt(before, index);
+      setErrorMessage(
+        '다른 사람이 먼저 이 이슈를 바꿨습니다. 최신 상태를 불러오지 못했으니 새로고침해주세요.',
+      );
+      return;
+    }
+
+    // 남이 이미 같은 상태로 옮겨 뒀다 — 카드는 그대로 두고 버전만 맞춘다
+    if (latest.status === wanted) {
+      replaceIssue(latest);
+      notifyIssueChanged();
+      return;
+    }
+
+    restoreAt(
+      { ...before, status: latest.status, version: latest.version },
+      index,
+    );
+    setErrorMessage(
+      '다른 사람이 먼저 이 이슈의 상태를 바꿔, 최신 상태로 맞췄습니다.',
+    );
+    notifyIssueChanged();
   }
 
   const handleDragStart = useCallback(
@@ -265,7 +320,7 @@ export default function IssueBoard() {
       const ghost = document.createElement('div');
       ghost.textContent = issue.title;
       ghost.style.cssText =
-        'position:fixed;top:-999px;background:#3B5BDB;color:#fff;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:600;white-space:nowrap';
+        'position:fixed;top:-999px;background:#3B5BDB;color:#fff;padding:6px 12px;border-radius:8px;font-size:var(--text-detail);font-weight:600;white-space:nowrap';
       document.body.appendChild(ghost);
       event.dataTransfer.setDragImage(ghost, 60, 16);
       event.dataTransfer.effectAllowed = 'move';
@@ -304,7 +359,7 @@ export default function IssueBoard() {
   if (hasFailed) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border-default px-4 py-12">
-        <p className="text-xs text-text-secondary">
+        <p className="text-label text-text-secondary">
           이슈를 불러오지 못했습니다.
         </p>
         <button
@@ -313,7 +368,7 @@ export default function IssueBoard() {
             setFailedStepId(null);
             setReloadCount((count) => count + 1);
           }}
-          className="cursor-pointer rounded px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+          className="cursor-pointer rounded-button-sm px-2 py-1 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
         >
           다시 시도
         </button>
@@ -325,14 +380,16 @@ export default function IssueBoard() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-text-primary">이슈 보드</h2>
+          <h2 className="text-body-m font-semibold text-text-primary">
+            이슈 보드
+          </h2>
           {issues && (
-            <span className="rounded-full bg-bg-hover px-2 py-0.5 text-[10px] text-text-secondary">
+            <span className="rounded-pill bg-bg-hover px-2 py-0.5 text-caption text-text-secondary">
               총 {issues.length}건
             </span>
           )}
           {draggingIssue && (
-            <span className="text-[10px] font-medium text-text-primary-blue">
+            <span className="text-caption font-medium text-text-primary-blue">
               드래그하여 상태 변경
             </span>
           )}
@@ -343,7 +400,7 @@ export default function IssueBoard() {
             onPointerEnter={() => void loadIssueFormModal()}
             onFocus={() => void loadIssueFormModal()}
             onClick={() => setOpenModal({ kind: 'create' })}
-            className="cursor-pointer rounded-lg bg-btn-primary px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover"
+            className="cursor-pointer rounded-lg bg-btn-primary px-3 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover"
           >
             + 이슈 생성
           </button>
@@ -353,7 +410,7 @@ export default function IssueBoard() {
       {errorMessage && (
         <p
           role="alert"
-          className="rounded-lg border border-red-border bg-red-bg-soft px-3 py-2 text-[10px] text-text-danger"
+          className="rounded-lg border border-red-border bg-red-bg-soft px-3 py-2 text-caption text-text-danger"
         >
           {errorMessage}
         </p>
@@ -404,22 +461,22 @@ export default function IssueBoard() {
                   handleDragEnd();
                 }}
                 // 배경 · 테두리만 바꾼다 (ring 은 자리를 차지하지 않아 카드가 밀리지 않는다)
-                className={`-m-2 flex flex-col rounded-xl p-2 transition-colors ${
+                className={`-m-2 flex flex-col rounded-base p-2 transition-colors ${
                   showDropHint ? `${columnBg} ring-2 ${columnRing}` : ''
                 }`}
               >
                 <div className="mb-2.5 flex items-center gap-2">
                   <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold ${badge}`}
+                    className={`inline-flex items-center gap-1.5 rounded-pill px-2 py-0.5 text-caption font-semibold ${badge}`}
                   >
-                    <span className={`size-1.5 rounded-full ${dot}`} />
+                    <span className={`size-1.5 rounded-pill ${dot}`} />
                     {ISSUE_STATUS_LABELS[status]}
                   </span>
-                  <span className="text-[10px] text-text-secondary">
+                  <span className="text-caption text-text-secondary">
                     {columnIssues.length}
                   </span>
                   {showDropHint && (
-                    <span className="ml-auto text-[10px] font-medium text-text-primary-blue">
+                    <span className="ml-auto text-caption font-medium text-text-primary-blue">
                       여기에 놓기
                     </span>
                   )}
@@ -454,7 +511,7 @@ export default function IssueBoard() {
                   ))}
 
                   {columnIssues.length === 0 && (
-                    <p className="rounded-lg border border-dashed border-border-default px-3 py-6 text-center text-[10px] text-text-secondary">
+                    <p className="rounded-lg border border-dashed border-border-default px-3 py-6 text-center text-caption text-text-secondary">
                       이슈가 없습니다.
                     </p>
                   )}

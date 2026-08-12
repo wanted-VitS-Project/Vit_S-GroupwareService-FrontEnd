@@ -2,22 +2,29 @@
 
 import { useEffect, useState } from 'react';
 
+import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import { ApiError, messageOf } from '@/lib/api';
 
 import { getSettlementDraft, saveSettlement } from './api';
 import {
+  isSettlementGone,
+  isSettlementVersionConflict,
+  SETTLEMENT_CODES,
+  SETTLEMENT_NO_VERSION_MESSAGE,
+} from './errorCodes';
+import {
   findBlocker,
   SETTLEMENT_TYPE_LABELS,
   traderLabel,
-  type SaveSettlementRequest,
   type SettlementDraft,
+  type SettlementFields,
   type SettlementFormValues,
   type SettlementItem,
   type SettlementType,
 } from './types';
 
 const FIELD_CLASS =
-  'w-full rounded-lg border border-border-default bg-bg-surface px-2.5 py-1.5 text-[10px] text-text-primary placeholder:text-text-placeholder focus:outline-2 focus:outline-offset-2 focus:outline-border-primary';
+  'w-full rounded-lg border border-border-default bg-bg-surface px-2.5 py-1.5 text-caption text-text-primary placeholder:text-text-placeholder focus:outline-2 focus:outline-offset-2 focus:outline-border-primary';
 
 const TYPES: SettlementType[] = ['INCOME', 'OUTCOME'];
 
@@ -39,25 +46,38 @@ const EMPTY_FORM: SettlementFormValues = {
  *
  * 타입을 고르면 그때 추천 회차 · 총액을 받아온다 — **타입마다 다른 값**이라 미리 받을 수 없다.
  * `OUTCOME` 이면 계좌 3종이 함께 필수고, 수정 화면에서만 **원본 계좌번호**를 받는다.
+ *
+ * ⚠️ **낙관적 락** (2026-08-12) — 받은 `version` 을 실어 보내고, 버전 충돌 409 면
+ *    **새로고침 / 덮어쓰기**를 묻는다. 그 사이 블록이 삭제(`SETL-002`)되거나 세금계산서 ·
+ *    입출금이 연결(`SETL-007`)됐다면 덮어쓰기로도 못 뚫으므로 **폼을 닫고 목록을 다시 읽는다.**
  */
 export default function SettlementForm({
   settleId,
   initialType,
   item,
+  version,
   onClose,
   onSaved,
+  onStale,
 }: {
   settleId: number;
   /** 블록이 이미 타입을 알고 있으면 그 값으로 열린다 */
   initialType: SettlementType | null;
   /** 이미 작성된 값. 없으면 빈 폼이다 */
   item: SettlementItem | null;
+  /** 낙관적 락 버전 — 없으면 저장을 막고 새로고침을 안내한다 */
+  version?: number;
   onClose: () => void;
   /**
    * 저장된 항목과 **그때 고른 타입**을 함께 넘긴다 —
    * 86번 응답에 `type` 이 없어 항목만으로는 입금인지 출금인지 알 수 없다.
    */
   onSaved: (next: SettlementItem, type: SettlementType) => void;
+  /**
+   * 화면이 든 값이 더 이상 맞지 않아 **목록을 다시 읽어야** 할 때.
+   * (남이 먼저 저장 → 새로고침 선택 · 블록 삭제됨 · 연결돼 잠김)
+   */
+  onStale: (reason: string) => void;
 }) {
   const [type, setType] = useState<SettlementType | null>(initialType);
   const [form, setForm] = useState<SettlementFormValues>(() => toForm(item));
@@ -71,6 +91,8 @@ export default function SettlementForm({
    * `setError('')` 가 안내를 지워버린다. 그러면 탭이 왜 튕겼는지 알 수 없다.
    */
   const [revertNotice, setRevertNotice] = useState('');
+  /** 버전 충돌 — 새로고침할지 덮어쓸지 묻는다 */
+  const [isConflicting, setIsConflicting] = useState(false);
 
   /**
    * 타입을 고르면 추천값과 원본 계좌번호를 받는다.
@@ -109,7 +131,12 @@ export default function SettlementForm({
          * ⚠️ 안내를 `error` 가 아니라 `revertNotice` 에 넣는다. 되돌린 타입으로 조회가
          * 곧 **성공**하면서 성공 분기의 `setError('')` 가 안내를 지워버리기 때문이다.
          */
-        if (caught instanceof ApiError && caught.status === 409) {
+        if (
+          caught instanceof ApiError &&
+          (caught.code === SETTLEMENT_CODES.typeDowngrade ||
+            // 코드를 못 읽어도 이 조회의 409 는 이것뿐이다 (저장은 넷이라 다르다)
+            (caught.code === undefined && caught.status === 409))
+        ) {
           setType(initialType);
           setRevertNotice(
             messageOf(caught, '이미 저장된 타입이라 되돌렸습니다.'),
@@ -133,7 +160,7 @@ export default function SettlementForm({
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
-  async function submit() {
+  async function submit(overwrite = false) {
     if (isBusy) return;
 
     if (type === null) {
@@ -151,13 +178,42 @@ export default function SettlementForm({
       return;
     }
 
+    // 버전 없이 보내면 400 이다 — 요청하지 않고 새로고침을 안내한다
+    if (version === undefined) {
+      setError(SETTLEMENT_NO_VERSION_MESSAGE);
+      return;
+    }
+
     setIsBusy(true);
     setError('');
+    setIsConflicting(false);
 
     try {
-      const saved = await saveSettlement(settleId, type, toRequest(type, form));
+      const saved = await saveSettlement(settleId, type, {
+        ...toFields(type, form),
+        version,
+        ...(overwrite ? { overwrite: true } : {}),
+      });
       onSaved(saved, type);
     } catch (caught) {
+      // 남이 먼저 저장했다 — 새로고침할지 덮어쓸지 묻는다
+      if (isSettlementVersionConflict(caught)) {
+        setIsConflicting(true);
+        return;
+      }
+
+      /*
+       * 덮어쓰기로도 못 뚫는 두 가지 — 그 사이 블록이 삭제됐거나(`SETL-002`),
+       * 세금계산서 · 입출금이 연결돼 잠겼다(`SETL-007`).
+       * 폼을 열어 둔 채 두면 사용자가 같은 저장을 계속 시도한다.
+       */
+      if (isSettlementGone(caught)) {
+        onStale(
+          messageOf(caught, '이 정산 블록은 더 이상 수정할 수 없습니다.'),
+        );
+        return;
+      }
+
       setError(messageOf(caught, '저장하지 못했습니다.'));
     } finally {
       setIsBusy(false);
@@ -184,7 +240,7 @@ export default function SettlementForm({
               setRevertNotice('');
               setType(value);
             }}
-            className={`flex-1 cursor-pointer rounded-lg border py-1.5 text-[10px] font-semibold ${
+            className={`flex-1 cursor-pointer rounded-lg border py-1.5 text-caption font-semibold ${
               value === type
                 ? 'border-border-primary bg-btn-primary/5 text-text-primary-blue'
                 : 'border-border-default text-text-secondary hover:bg-bg-hover'
@@ -196,14 +252,14 @@ export default function SettlementForm({
       </div>
 
       {type === null && (
-        <p className="text-[10px] break-keep text-text-secondary">
+        <p className="text-caption break-keep text-text-secondary">
           입금 · 출금을 고르면 추천 회차와 금액을 불러옵니다.
         </p>
       )}
 
       {/* 탭이 저절로 되돌아간 이유 — 조회가 성공해도 지우지 않는다 */}
       {revertNotice !== '' && (
-        <p role="status" className="text-[10px] break-keep text-yellow-text">
+        <p role="status" className="text-caption break-keep text-yellow-text">
           {revertNotice}
         </p>
       )}
@@ -279,18 +335,46 @@ export default function SettlementForm({
         </>
       )}
 
+      {version === undefined && (
+        <p className="rounded-lg bg-yellow-bg-soft px-2.5 py-2 text-caption break-keep text-yellow-text">
+          버전 정보를 받지 못해 저장할 수 없습니다. 새로고침 후 다시
+          시도해주세요.
+        </p>
+      )}
+
       {error !== '' && (
-        <p role="alert" className="text-[10px] break-keep text-text-danger">
+        <p role="alert" className="text-caption break-keep text-text-danger">
           {error}
         </p>
+      )}
+
+      {isConflicting && (
+        /*
+         * 409 를 조용히 삼키면 사용자는 저장된 줄 안다.
+         * 취소(= Esc · 배경 클릭)를 **새로고침**에 두어, 잘못 눌러도 남의 값이 지워지지 않게 한다.
+         */
+        <AlertDialogTwoButton
+          icon={DialogIcons.warning}
+          title="다른 사람이 먼저 저장했어요"
+          description="그 사이 이 정산 항목이 수정됐습니다. 지금 입력한 값으로 덮어쓰거나, 최신 값을 다시 불러올 수 있습니다."
+          confirmLabel="덮어쓰기"
+          cancelLabel="새로고침"
+          isDanger
+          isBusy={isBusy}
+          onConfirm={() => void submit(true)}
+          onCancel={() => {
+            setIsConflicting(false);
+            onStale('다른 사람이 먼저 저장해 최신 값을 다시 불러왔습니다.');
+          }}
+        />
       )}
 
       <div className="flex gap-1.5">
         <button
           type="button"
-          onClick={submit}
-          disabled={isBusy}
-          className="flex-1 cursor-pointer rounded-lg bg-btn-primary py-2 text-[11px] font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-btn-gray-disabled-bg disabled:text-btn-gray-disabled-text"
+          onClick={() => void submit()}
+          disabled={isBusy || version === undefined}
+          className="flex-1 cursor-pointer rounded-lg bg-btn-primary py-2 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-btn-gray-disabled-bg disabled:text-btn-gray-disabled-text"
         >
           {isBusy ? '저장 중…' : '저장하기'}
         </button>
@@ -298,7 +382,7 @@ export default function SettlementForm({
           type="button"
           onClick={onClose}
           disabled={isBusy}
-          className="shrink-0 cursor-pointer rounded-lg border border-border-default px-3 py-2 text-[11px] font-semibold text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed"
+          className="shrink-0 cursor-pointer rounded-lg border border-border-default px-3 py-2 text-detail font-semibold text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed"
         >
           취소
         </button>
@@ -337,7 +421,7 @@ function Field({
 }) {
   return (
     <label className="flex items-center gap-2">
-      <span className="w-20 shrink-0 text-[10px] text-text-secondary">
+      <span className="w-20 shrink-0 text-caption text-text-secondary">
         {label}
       </span>
       <span className="min-w-0 flex-1">
@@ -349,7 +433,7 @@ function Field({
           className={FIELD_CLASS}
         />
         {/* 값이 없을 때만 접힌다 */}
-        <span className="mt-0.5 block text-[9px] text-purple-text empty:hidden">
+        <span className="mt-0.5 block text-micro text-purple-text empty:hidden">
           {hint ?? ''}
         </span>
       </span>
@@ -377,11 +461,11 @@ function toForm(item: SettlementItem | null): SettlementFormValues {
   };
 }
 
-function toRequest(
+function toFields(
   type: SettlementType,
   form: SettlementFormValues,
-): SaveSettlementRequest {
-  const base: SaveSettlementRequest = {
+): SettlementFields {
+  const base: SettlementFields = {
     roundNo: Number(form.roundNo),
     totalAmount: Number(form.totalAmount),
     plannedAmount: Number(form.plannedAmount),

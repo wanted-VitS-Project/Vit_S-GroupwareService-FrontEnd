@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import PageTitle from '@/components/PageTitle';
+import DataTable from '@/components/DataTable';
 import RowMenu from '@/components/RowMenu';
 import { isAbortError } from '@/lib/api';
 import { formatDate } from '@/lib/format';
@@ -69,7 +70,7 @@ export default function EmployeeGroupList() {
 
   return (
     <>
-      <p className="text-xs text-text-secondary">
+      <p className="text-label text-text-secondary">
         <Link href="/settings" className="hover:text-text-primary">
           전사 관리
         </Link>{' '}
@@ -79,7 +80,7 @@ export default function EmployeeGroupList() {
       <div className="mt-2 mb-6 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <PageTitle title="그룹 관리" />
-          <p className="mt-1.5 text-xs break-keep text-text-secondary">
+          <p className="mt-1.5 text-label break-keep text-text-secondary">
             사원을 묶어두면 결재선 · 페이지 권한에서 한 번에 고를 수 있습니다.
             그룹 자체는 권한이 아닙니다.
           </p>
@@ -106,111 +107,102 @@ export default function EmployeeGroupList() {
           onChange={(event) => setKeywordInput(event.target.value)}
           placeholder="그룹명 검색"
           aria-label="그룹명 검색"
-          className="w-64 rounded-lg border border-border-default px-3 py-2 text-xs text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+          className="w-64 rounded-lg border border-border-default px-3 py-2 text-label text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
         />
         <button type="submit" className="btn btn-sm btn-gray-outlined">
           검색
         </button>
       </form>
 
-      <div className="overflow-hidden rounded-xl border border-border-default bg-white">
-        {hasFailed ? (
-          <Centered>
-            <p className="text-xs text-text-secondary">
-              그룹을 불러오지 못했습니다.
-            </p>
-            <button
-              type="button"
-              onClick={reload}
-              className="btn btn-sm btn-gray-outlined mt-2"
-            >
-              다시 시도
-            </button>
-          </Centered>
-        ) : groups === null ? (
-          <Centered>
-            <p className="text-xs text-text-secondary">불러오는 중…</p>
-          </Centered>
-        ) : groups.length === 0 ? (
-          <Centered>
-            <p className="text-xs break-keep text-text-secondary">
-              {keyword
-                ? `'${keyword}' 와 일치하는 그룹이 없습니다.`
-                : '아직 만든 그룹이 없습니다.'}
-            </p>
-          </Centered>
-        ) : (
-          <table className="w-full text-left text-xs">
-            <thead className="border-b border-border-default bg-bg-surface">
-              <tr className="text-text-secondary">
-                <th scope="col" className="px-5 py-3 font-medium">
-                  그룹명
-                </th>
-                <th scope="col" className="px-5 py-3 font-medium">
-                  설명
-                </th>
-                <th scope="col" className="px-5 py-3 font-medium">
-                  구성원
-                </th>
-                <th scope="col" className="px-5 py-3 font-medium">
-                  생성
-                </th>
-                <th scope="col" className="w-12 px-5 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {groups.map((group) => (
-                <tr
-                  key={group.groupId}
-                  className="border-b border-border-default last:border-b-0"
-                >
-                  <td className="px-5 py-3.5 font-semibold text-text-primary">
-                    {group.name}
-                  </td>
-                  <td className="max-w-xs px-5 py-3.5 break-keep text-text-secondary">
-                    {group.description || '—'}
-                  </td>
-                  <td className="px-5 py-3.5 whitespace-nowrap">
-                    <button
-                      type="button"
-                      onClick={() => membersModal.open(group)}
-                      className="cursor-pointer font-medium text-text-primary-blue underline underline-offset-2"
-                    >
-                      {group.memberCount}명
-                    </button>
-                  </td>
-                  <td className="px-5 py-3.5 whitespace-nowrap text-text-secondary">
-                    {group.createdByName}
-                    <span className="ml-1.5 text-text-muted">
-                      {formatDate(group.createdAt)}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5 text-right">
-                    <RowMenu
-                      label={group.name}
-                      items={[
-                        {
-                          label: '구성원 관리',
-                          onSelect: () => membersModal.open(group),
-                        },
-                        {
-                          label: '수정',
-                          onSelect: () => formModal.open(group),
-                        },
-                        {
-                          label: '삭제',
-                          danger: true,
-                          onSelect: () => deleteModal.open(group),
-                        },
-                      ]}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <DataTable
+        caption="사원 그룹 목록"
+        columns={[
+          {
+            key: 'name',
+            header: '그룹명',
+            width: '20%',
+            skeletonWidth: 'w-24',
+            cell: (group) => (
+              <span className="font-semibold text-text-primary">
+                {group.name}
+              </span>
+            ),
+          },
+          {
+            key: 'description',
+            header: '설명',
+            width: '38%',
+            skeletonWidth: 'w-48',
+            cell: (group) => (
+              <span className="break-keep text-text-secondary">
+                {group.description || '—'}
+              </span>
+            ),
+          },
+          {
+            key: 'memberCount',
+            header: '구성원',
+            width: '12%',
+            skeletonWidth: 'w-12',
+            cell: (group) => (
+              <button
+                type="button"
+                onClick={() => membersModal.open(group)}
+                className="cursor-pointer font-medium whitespace-nowrap text-text-primary-blue underline underline-offset-2"
+              >
+                {group.memberCount}명
+              </button>
+            ),
+          },
+          {
+            key: 'createdAt',
+            header: '생성',
+            width: '25%',
+            skeletonWidth: 'w-28',
+            cell: (group) => (
+              <span className="whitespace-nowrap text-text-secondary">
+                {group.createdByName}
+                <span className="ml-1.5 text-text-muted">
+                  {formatDate(group.createdAt)}
+                </span>
+              </span>
+            ),
+          },
+          {
+            key: 'menu',
+            header: <span className="sr-only">관리</span>,
+            width: '5%',
+            align: 'right',
+            skeletonWidth: 'w-6',
+            cell: (group) => (
+              <RowMenu
+                label={group.name}
+                items={[
+                  {
+                    label: '구성원 관리',
+                    onSelect: () => membersModal.open(group),
+                  },
+                  { label: '수정', onSelect: () => formModal.open(group) },
+                  {
+                    label: '삭제',
+                    danger: true,
+                    onSelect: () => deleteModal.open(group),
+                  },
+                ]}
+              />
+            ),
+          },
+        ]}
+        rows={hasFailed ? [] : groups}
+        rowKey={(group) => group.groupId}
+        errorMessage={hasFailed ? '그룹을 불러오지 못했습니다.' : undefined}
+        onRetry={reload}
+        emptyMessage={
+          keyword
+            ? `'${keyword}' 와 일치하는 그룹이 없습니다.`
+            : '아직 만든 그룹이 없습니다.'
+        }
+      />
 
       {formModal.target && (
         <EmployeeGroupFormModal
@@ -237,13 +229,5 @@ export default function EmployeeGroupList() {
         />
       )}
     </>
-  );
-}
-
-function Centered({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col items-center justify-center px-5 py-20 text-center">
-      {children}
-    </div>
   );
 }

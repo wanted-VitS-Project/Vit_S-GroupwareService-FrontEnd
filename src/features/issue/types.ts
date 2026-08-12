@@ -11,10 +11,21 @@ export type IssueStatus = 'TODO' | 'IN_PROGRESS' | 'DONE';
 
 export type IssuePriority = 'LOW' | 'MEDIUM' | 'HIGH';
 
-/** 담당자 — `userId` 는 사번이다. 참여자 응답의 `memberId` 를 쓰면 안 된다 */
+/**
+ * 담당자 — `userId` 는 사번이다. 참여자 응답의 `memberId` 를 쓰면 안 된다.
+ *
+ * 사원은 삭제되지 않고 **퇴사일만 기록된다** (2026-08-12 컨벤션).
+ * 퇴사자여도 담당자 항목을 화면에서 빼지 않고 이름 뒤에 `(퇴사자)` 문구만 붙인다 —
+ * 사원 조회 API 를 따로 부를 필요가 없다.
+ *
+ * ⚠️ 필드명은 `deletedAt` 이 아니라 **`resignedAt`** 이고, 블록 담당자의
+ *    `deleted`(사원 데이터 삭제 · D-6)와도 **다른 값**이다.
+ */
 export interface IssueAssignee {
   userId: string;
   name: string;
+  /** 퇴사일 `yyyy-MM-dd`. 재직 중이면 null */
+  resignedAt: string | null;
 }
 
 /** 이슈에 연결된 블록. `title` · `type` 은 표시용이라 요청에 보내지 않는다 */
@@ -35,6 +46,14 @@ export interface IssueSummary {
   dueDate: string | null;
   assignees: IssueAssignee[];
   relatedBlocks: IssueRelatedBlock[];
+  /**
+   * 낙관적 락 버전 (2026-08-12 신설).
+   *
+   * ✅ **필수다** — 목록(55) · 상세(57) · 프로젝트 이슈(108) 응답 스키마에 실려 있는 것을
+   *    2026-08-12 실서버 `/v3/api-docs` 로 확인했다 (`IssueListResponseIssueSummary` ·
+   *    `IssueDetailResponse` · `ProjectIssueListResponseIssueSummary`).
+   */
+  version: number;
 }
 
 /**
@@ -109,6 +128,11 @@ export interface UpdateIssueRequest {
   priority?: IssuePriority;
   assigneeIds?: string[];
   blockIds?: number[];
+  /**
+   * ⚠️ **필수.** 최초 조회값(`base`)의 버전을 싣는다 — 어긋나면 409 다.
+   *    화면이 들고 있는 draft 의 버전이 아니라 **비교 기준의 버전**이어야 한다.
+   */
+  version: number;
 }
 
 /** PATCH /issues/{issueId}/status 응답 */
@@ -117,6 +141,13 @@ export interface IssueStatusChanged {
   status: IssueStatus;
   completedAt: string | null;
   updatedAt: string;
+  /**
+   * 저장 후의 새 값. 상태 변경도 issue 버전을 올린다 —
+   * 화면 카드에 덮어쓰지 않으면 **다음 수정이 409** 다.
+   *
+   * ✅ 응답 스키마(`IssueStatusChangeResponse`)에 있는 것을 2026-08-12 실서버로 확인했다.
+   */
+  version: number;
 }
 
 /**
@@ -133,6 +164,125 @@ export interface IssueFormValues {
   dueDate: string;
   assigneeIds: string[];
   blockIds: number[];
+}
+
+/**
+ * 부분 수정(58번)이 다루는 필드 전체.
+ *
+ * `status` · `completedAt` 은 여기 없다 — 상태는 별도 API(59번) 소관이라
+ * 충돌 비교 대상도 아니다.
+ */
+export const ISSUE_EDIT_FIELDS = [
+  'title',
+  'content',
+  'dueDate',
+  'priority',
+  'assigneeIds',
+  'blockIds',
+] as const;
+
+export type IssueEditField = (typeof ISSUE_EDIT_FIELDS)[number];
+
+export const ISSUE_FIELD_LABELS: Record<IssueEditField, string> = {
+  title: '이슈 이름',
+  content: '이슈 설명',
+  dueDate: '마감일',
+  priority: '우선순위',
+  assigneeIds: '담당자',
+  blockIds: '관련 블록',
+};
+
+export function toIssueFormValues(issue: IssueDetail): IssueFormValues {
+  return {
+    title: issue.title,
+    content: issue.content ?? '',
+    priority: issue.priority,
+    dueDate: issue.dueDate ?? '',
+    assigneeIds: issue.assignees.map((assignee) => assignee.userId),
+    blockIds: issue.relatedBlocks.map((block) => block.blockId),
+  };
+}
+
+/** 순서만 다른 같은 집합은 변경으로 보지 않는다 — 불필요한 관계 재동기화를 막는다 */
+export function isSameIdSet<T>(left: T[], right: T[]) {
+  return (
+    left.length === right.length && left.every((item) => right.includes(item))
+  );
+}
+
+/**
+ * 비교 전 다듬기.
+ *
+ * 제목 · 설명의 앞뒤 공백은 저장할 때 어차피 떨어진다 — 다듬지 않고 비교하면
+ * 스페이스 하나 눌렀다 지운 것이 "수정한 필드" 로 잡혀 **없던 충돌이 생긴다.**
+ */
+function trimmed(values: IssueFormValues) {
+  return {
+    ...values,
+    title: values.title.trim(),
+    content: values.content.trim(),
+  };
+}
+
+/** `left` 가 `right` 와 다른 필드 목록. 어느 쪽을 기준에 두느냐는 부르는 쪽이 정한다 */
+export function changedIssueFields(
+  left: IssueFormValues,
+  right: IssueFormValues,
+): IssueEditField[] {
+  const one = trimmed(left);
+  const other = trimmed(right);
+
+  return ISSUE_EDIT_FIELDS.filter((field) => {
+    if (field === 'assigneeIds') {
+      return !isSameIdSet(one.assigneeIds, other.assigneeIds);
+    }
+    if (field === 'blockIds') return !isSameIdSet(one.blockIds, other.blockIds);
+    return one[field] !== other[field];
+  });
+}
+
+/** `target` 위에 `source` 의 지정 필드만 얹는다 — 자동 병합 · 충돌 해소 공용 */
+export function mergeIssueFields(
+  target: IssueFormValues,
+  source: IssueFormValues,
+  fields: IssueEditField[],
+): IssueFormValues {
+  const merged = { ...target };
+
+  for (const field of fields) {
+    if (field === 'assigneeIds') merged.assigneeIds = [...source.assigneeIds];
+    else if (field === 'blockIds') merged.blockIds = [...source.blockIds];
+    else if (field === 'priority') merged.priority = source.priority;
+    else merged[field] = source[field];
+  }
+
+  return merged;
+}
+
+/**
+ * PATCH 본문 — **지정한 필드만** 담는다. `null` 은 해제 신호다.
+ *
+ * ⚠️ 상세 객체 전체를 다시 보내지 않는다. 안 보낸 필드는 서버가 건드리지 않아,
+ *    남이 그 사이 고친 다른 필드가 내 화면의 옛 값으로 되돌아가지 않는다.
+ */
+export function issuePatchOf(
+  values: IssueFormValues,
+  fields: IssueEditField[],
+  version: number,
+): UpdateIssueRequest {
+  const body: UpdateIssueRequest = { version };
+  const clean = trimmed(values);
+
+  for (const field of fields) {
+    if (field === 'title') body.title = clean.title;
+    else if (field === 'content') body.content = clean.content || null;
+    else if (field === 'dueDate') body.dueDate = clean.dueDate || null;
+    else if (field === 'priority') body.priority = clean.priority;
+    else if (field === 'assigneeIds') body.assigneeIds = clean.assigneeIds;
+    else body.blockIds = clean.blockIds;
+  }
+
+  return body;
 }
 
 /** 보드 열 순서 — 왼쪽부터 이 순서로 그린다 */
@@ -167,14 +317,14 @@ export const ISSUE_STATUS_STYLES: Record<IssueStatus, IssueStatusStyle> = {
     columnRing: 'ring-border-default',
   },
   IN_PROGRESS: {
-    badge: 'border-blue-border bg-blue-bg text-btn-primary-hover',
-    dot: 'bg-btn-primary',
-    columnBg: 'bg-blue-bg/50',
-    columnRing: 'ring-blue-border',
+    badge: 'border-yellow-border bg-yellow-bg-soft text-yellow-text',
+    dot: 'bg-step-in-progress',
+    columnBg: 'bg-yellow-bg-soft/50',
+    columnRing: 'ring-yellow-border',
   },
   DONE: {
     badge: 'border-green-border bg-green-bg text-green-text',
-    dot: 'bg-[#00C951]',
+    dot: 'bg-step-done',
     columnBg: 'bg-green-bg/50',
     columnRing: 'ring-green-border',
   },

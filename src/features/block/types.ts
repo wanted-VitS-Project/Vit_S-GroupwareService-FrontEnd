@@ -162,7 +162,20 @@ export const BLOCK_COLUMNS = 3;
 export interface BlockOwner {
   /** 사번 */
   userId: string;
+  /** ⚠️ 삭제된 사원이어도 **비우지 않는다** */
   name: string;
+  /**
+   * 사원 데이터 삭제 여부 (D-6 · 2026-08-11 신설).
+   *
+   * `true` 여도 이름은 그대로 온다 — 이름 뒤에 `(퇴사자)` 문구를 붙이고
+   * **담당자 선택 후보에서만 제외**한다.
+   *
+   * ⚠️ 이슈 담당자 · 활동 수행자의 `resignedAt`(퇴사)와 **다른 값**이다 — 서로 대체하지 말고,
+   *    화면 표기만 하나로 합친다 (`components/PersonNote.tsx`). 이 응답에는 `resignedAt` 이 없어
+   *    참여자 목록의 `resigned` 로 보충한다 (`BlockMembersContext`).
+   * ⚠️ 생성 응답(9번)에서는 항상 `false` 다 — `true` 는 조회(10번)에서만 온다.
+   */
+  deleted: boolean;
 }
 
 /**
@@ -188,6 +201,59 @@ export interface StepBlock {
   detail: unknown;
   linkedIssueTotal: number;
   linkedIssueDone: number;
+  /**
+   * 낙관적 락 버전 (2026-08-11 신설).
+   *
+   * ⚠️ **선택 필드로 둔다** — 조회 응답에 실린다는 계약은 나왔지만 실서버 확인 전이다.
+   * 값이 없으면 화면이 **이동 저장을 막고 재조회를 안내한다** (스테이지 · 스텝과 같은 방침).
+   *
+   * ❗ 배치 저장(`layout`) · 제목/담당자 수정도 `version` 을 요구한다 — 그쪽은 미배관이다.
+   */
+  version?: number;
+}
+
+/**
+ * PATCH /api/v1/blocks/{blockId}/step — 블록을 다른 스텝으로 옮긴다.
+ *
+ * ⚠️ 출발 · 도착 **양쪽 스텝의 EDITOR** 여야 한다.
+ */
+export interface MoveBlockRequest {
+  /** 같은 프로젝트의 **다른** 스텝 */
+  stepId: number;
+  version: number;
+  /** `true` 면 충돌을 무시하고 덮어쓴다 */
+  overwrite?: boolean;
+}
+
+export interface MoveBlockResponse {
+  blockId: number;
+  stepId: number;
+  /**
+   * 끊긴 이슈-블록 연결 수.
+   * ⚠️ **0 이 아니면 사용자에게 알려야 한다** — 블록과 이슈는 같은 스텝이어야 해서 끊긴다.
+   */
+  unlinkedIssueCount: number;
+  /** 저장 후의 새 값 */
+  version: number;
+}
+
+/**
+ * 수정 응답의 담당자를 화면 상태에 넣을 수 있는 모양으로 맞춘다.
+ *
+ * `deleted` 가 오지 않았을 때 —
+ * - **같은 담당자면** 화면이 들고 있던 값을 유지한다 (표기가 깜빡 사라지지 않는다)
+ * - **바뀐 담당자면** `false` 다. 새 담당자는 후보 목록에서 온 재직 중인 사원뿐이다
+ */
+export function normalizeUpdatedOwner(
+  updated: UpdateBlockResponse['owner'],
+  previous: BlockOwner | null,
+): BlockOwner | null {
+  if (updated === null) return null;
+  if (updated.deleted !== undefined)
+    return { ...updated, deleted: updated.deleted };
+
+  const isSamePerson = previous?.userId === updated.userId;
+  return { ...updated, deleted: isSamePerson ? previous.deleted : false };
 }
 
 export interface ChecklistItem {
@@ -235,6 +301,14 @@ export interface TextBlockDetail {
   txtId: number;
   /** 마크다운 원문 */
   content: string;
+  /**
+   * 낙관적 락 버전 (2026-08-11 신설).
+   *
+   * ⚠️ **`block.version` 과 다른 값이다** — `text` 테이블의 자기 버전이다.
+   *    블록 목록 조회의 `TEXT` 상세에 함께 실려 온다.
+   * ⚠️ 선택으로 둔다 — 없으면 화면이 저장을 막고 새로고침을 안내한다.
+   */
+  version?: number;
 }
 
 /**
@@ -244,17 +318,44 @@ export interface TextBlockDetail {
 export function readTextBlockDetail(detail: unknown): TextBlockDetail | null {
   if (typeof detail !== 'object' || detail === null) return null;
 
-  const { txtId, content } = detail as { txtId?: unknown; content?: unknown };
+  const { txtId, content, version } = detail as {
+    txtId?: unknown;
+    content?: unknown;
+    version?: unknown;
+  };
   if (typeof txtId !== 'number') return null;
 
-  return { txtId, content: typeof content === 'string' ? content : '' };
+  return {
+    txtId,
+    content: typeof content === 'string' ? content : '',
+    version: typeof version === 'number' ? version : undefined,
+  };
 }
 
-/** PATCH /api/v1/blocks/texts/{txtId} */
+/**
+ * PATCH /api/v1/blocks/texts/{txtId}
+ *
+ * ⚠️ **낙관적 락** — `version` 필수(없으면 400 `TEXT_VERSION_REQUIRED`),
+ *    늦으면 409 `TEXT_VERSION_CONFLICT`. 409 면 재조회 / 덮어쓰기를 묻는다.
+ */
+export interface UpdateTextBlockRequest {
+  /** 부분 수정이 아니라 전체 내용 */
+  content: string;
+  /** 블록 목록에서 받은 `detail.version` 그대로 */
+  version: number;
+  /** `true` 면 충돌을 무시하고 덮어쓴다 */
+  overwrite?: boolean;
+}
+
 export interface UpdateTextBlockResponse {
   txtId: number;
   content: string;
   updatedAt: string;
+  /**
+   * 저장 후의 새 값. 화면에 꽂지 않으면 **다음 저장이 또 409** 다.
+   * 응답에 없으면 화면은 버전을 비워 다음 저장 전에 새로고침을 안내한다.
+   */
+  version?: number;
 }
 
 /** POST /api/v1/blocks/checklists/{chkBlockId}/items */
@@ -308,6 +409,13 @@ export interface BlockImage {
    * 값이 오면 그대로 쓰고, 없으면 `imageAltText()` 가 차선책으로 떨어진다.
    */
   altText?: string;
+  /**
+   * 낙관적 락 버전 (2026-08-11 신설) — **이미지 한 장마다** 따로 있다 (`image` 테이블).
+   *
+   * 수정 요청의 `images[]` 각 항목에 그대로 실어 보낸다. 하나라도 어긋나면
+   * **배열 전체가 409** 이고 부분 저장은 없다. 선택으로 둬 없으면 저장을 막는다.
+   */
+  version?: number;
 }
 
 /**
@@ -541,11 +649,23 @@ export interface CreateImageItemsResponse {
 
 /** PATCH /api/v1/blocks/images/items/{imgBlockId} — 정렬된 전체 목록을 보낸다 */
 export interface UpdateImageItemsRequest {
-  images: { imgId: number; caption: string | null }[];
+  /**
+   * 정렬된 **전체** 목록. 빠진 이미지는 삭제로 간주된다.
+   *
+   * ⚠️ 항목마다 `version` 이 **필수**다 (없으면 400 `IMAGE_VERSION_REQUIRED`).
+   *    하나라도 늦으면 **배열 전체가 409** 다 — 부분 저장이 없다.
+   */
+  images: { imgId: number; caption: string | null; version: number }[];
 }
 
 export interface UpdateImageItemsResponse {
-  images: { imgId: number; orderIndex: number; caption: string }[];
+  /** `version` 은 저장 후의 새 값 — 다음 수정 요청에 그대로 실어 보낸다 */
+  images: {
+    imgId: number;
+    orderIndex: number;
+    caption: string;
+    version?: number;
+  }[];
 }
 
 /**
@@ -558,18 +678,34 @@ export interface BlockLayout {
   sortOrder: number;
   /** 열 병합 수 (1~3) */
   colSpan: number;
+  /**
+   * 낙관적 락 버전.
+   *
+   * 요청에는 **필수**(`BlockLayoutOrder`), 응답에는 **저장 후의 새 값**이 온다.
+   * 조회에 실리는지 확인 전이라 선택으로 둔다 (`StepBlock.version` 참고).
+   */
+  version?: number;
 }
+
+/**
+ * 서버로 보내는 배치 한 줄 — `version` 이 **반드시** 있어야 한다.
+ * 화면 좌표 계산용 `BlockLayout` 과 나눠 두어야, 버전 없는 값이 요청에 섞이지 않는다.
+ */
+export type BlockLayoutOrder = BlockLayout & { version: number };
 
 /**
  * PATCH /api/v1/steps/{stepId}/blocks/layout
  *
  * ⚠️ 스텝의 배치 **전체**를 보낸다 — 옮긴 블록만 보내면 나머지가 지워진다.
+ * ⚠️ 낙관적 락을 **항목마다** 검사한다. 하나라도 어긋나면 요청 전체가 409 로 롤백된다.
+ * ⛔ `overwrite` 가 **없다** — 409 면 재조회 말고는 출구가 없다.
  */
 export interface UpdateBlockLayoutRequest {
-  layouts: BlockLayout[];
+  layouts: BlockLayoutOrder[];
 }
 
 export interface UpdateBlockLayoutResponse {
+  /** `version` 은 저장 후의 새 값이다 — 화면 블록에 덮어써야 다음 저장이 통과한다 */
   blocks: BlockLayout[];
 }
 
@@ -589,14 +725,33 @@ export interface CreateBlockRequest {
 }
 
 /** PATCH /api/v1/blocks/{blockId} — 생략은 유지, null 은 해제 */
+/**
+ * PATCH /api/v1/blocks/{blockId}
+ *
+ * ⚠️ 이쪽은 **진짜 부분 수정**이다 (스테이지 · 스텝 수정과 다르다) —
+ *    키를 생략하면 유지, `null` 을 명시하면 해제.
+ *    ⛔ `title` · `owner` 를 **둘 다 생략하면** 400 `BLOCK_UPDATE_FIELD_REQUIRED`.
+ */
 export interface UpdateBlockRequest {
   title?: string | null;
   owner?: string | null;
+  /** ⚠️ **필수.** `title` · `owner` 는 생략할 수 있어도 이건 항상 보낸다 */
+  version: number;
+  /** `true` 면 충돌을 무시하고 덮어쓴다 */
+  overwrite?: boolean;
 }
 
 export interface UpdateBlockResponse {
   blockId: number;
   title: string | null;
-  owner: BlockOwner | null;
+  /**
+   * ⚠️ **`deleted` 가 없을 수 있다** — 46번 명세에 이 필드가 명시돼 있지 않다.
+   *    그래서 응답 경계에서는 **선택 필드**로 받고, 화면 상태에 넣기 전에
+   *    `normalizeUpdatedOwner()` 로 정규화한다 (없으면 옛 값을 유지).
+   *    그대로 꽂으면 제목만 고쳤는데 담당자의 `(퇴사자)` 표기가 사라진다.
+   */
+  owner: (Omit<BlockOwner, 'deleted'> & { deleted?: boolean }) | null;
   updatedAt: string;
+  /** ⚠️ 저장 후의 새 값. 화면 상태를 이 값으로 교체하지 않으면 다음 저장이 또 409 다 */
+  version: number;
 }

@@ -14,6 +14,7 @@ import { getStepBlocks } from './api';
 import ArrangeBlocksButton from './ArrangeBlocksButton';
 import BlockBoard, { type ArrangeHandle } from './BlockBoard';
 import { BlockBoardSkeleton } from './BlockSkeletons';
+import { BLOCK_CHANGED_EVENT } from './events';
 import type { StepBlock } from './types';
 
 const BlockArrangeExitModal = dynamic(() => import('./BlockArrangeExitModal'), {
@@ -125,8 +126,8 @@ export default function StepBlocks() {
 
   useEffect(() => {
     const reload = () => setReloadCount((count) => count + 1);
-    window.addEventListener('block:changed', reload);
-    return () => window.removeEventListener('block:changed', reload);
+    window.addEventListener(BLOCK_CHANGED_EVENT, reload);
+    return () => window.removeEventListener(BLOCK_CHANGED_EVENT, reload);
   }, []);
 
   /**
@@ -175,7 +176,7 @@ export default function StepBlocks() {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="min-w-0 truncate text-sm font-semibold text-text-primary">
+        <h2 className="min-w-0 truncate text-body-m font-semibold text-text-primary">
           {stepName || '스텝'}
         </h2>
         <div className="flex shrink-0 items-center gap-2">

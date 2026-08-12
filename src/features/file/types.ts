@@ -29,6 +29,14 @@ export interface BlockFile extends FileUploader {
   updatedAt: string;
   /** 휴지통이면 값이 있다 */
   deletedAt: string | null;
+  /**
+   * 낙관적 락 버전 (2026-08-11 신설) — 문서명 수정(39번)에 이 값을 실어 보낸다.
+   *
+   * ⚠️ **`versionNo`(버전 차수) · `versionCount`(총 버전 수) 와 전혀 다른 값이다.**
+   *    저 둘은 "문서의 몇 번째 판" 이고, 이건 동시 수정 검사용 행 버전이다.
+   * ⚠️ 선택으로 둔다 — 없으면 화면이 이름 수정을 막고 재조회를 안내한다.
+   */
+  version?: number;
 }
 
 /**
@@ -102,10 +110,25 @@ export interface CompleteUploadResponse extends FileUploader {
   completedAt: string;
 }
 
-/** PATCH /files/{fileId} */
+/**
+ * PATCH /files/{fileId}
+ *
+ * ⚠️ **낙관적 락** — `version` 필수(없으면 400 `FILE_INVALID_REQUEST`),
+ *    늦으면 409 `FILE_VERSION_CONFLICT`. 409 면 재조회 / 덮어쓰기를 묻는다.
+ */
+export interface RenameFileRequest {
+  name: string;
+  /** 블록 문서 목록(36번)에서 받은 `version` */
+  version: number;
+  /** `true` 면 충돌을 무시하고 덮어쓴다 */
+  overwrite?: boolean;
+}
+
 export interface RenameFileResponse {
   fileId: number;
   name: string;
+  /** 저장 후의 새 값 — 목록을 다시 읽지 않을 땐 이 값을 화면에 꽂아야 한다 */
+  version?: number;
 }
 
 /** DELETE /files/{fileId} */

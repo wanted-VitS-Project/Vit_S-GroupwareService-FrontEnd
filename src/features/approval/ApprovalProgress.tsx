@@ -14,7 +14,7 @@ export default function ApprovalProgress({
 }) {
   if (lines.length === 0) {
     return (
-      <p className="text-[10px] text-text-secondary">
+      <p className="text-caption text-text-secondary">
         지정된 결재자가 없습니다.
       </p>
     );
@@ -26,10 +26,10 @@ export default function ApprovalProgress({
   return (
     <div>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-semibold text-text-primary">
+        <span className="text-caption font-semibold text-text-primary">
           결재 진행 현황
         </span>
-        <span className="text-[10px] text-text-primary-blue">
+        <span className="text-caption text-text-primary-blue">
           {doneCount} / {ordered.length} 완료
         </span>
       </div>
@@ -54,7 +54,7 @@ export default function ApprovalProgress({
                 }`}
               />
             </div>
-            <span className="mt-1 w-full truncate px-0.5 text-center text-[9px] text-text-secondary">
+            <span className="mt-1 w-full truncate px-0.5 text-center text-micro text-text-secondary">
               {line.approverName}
             </span>
           </li>
@@ -71,11 +71,11 @@ function connectorClass(line: ApprovalDetailLine) {
 
 /** 동그라미 색. 승인만 채우고 나머지는 테두리로 구분한다 */
 const MARKER_CLASS: Record<ApprovalLineStatus, string> = {
-  APPROVED: 'border-[#12B76A] bg-[#12B76A] text-white',
-  REJECTED: 'border-border-danger bg-white text-text-danger',
-  ACTIVE: 'border-border-primary bg-white text-text-primary-blue',
-  WAITING: 'border-border-default bg-white text-text-secondary',
-  CANCELED: 'border-border-default bg-white text-text-muted',
+  APPROVED: 'border-[#12B76A] bg-[#12B76A] text-text-white',
+  REJECTED: 'border-border-danger bg-bg-card text-text-danger',
+  ACTIVE: 'border-border-primary bg-bg-card text-text-primary-blue',
+  WAITING: 'border-border-default bg-bg-card text-text-secondary',
+  CANCELED: 'border-border-default bg-bg-card text-text-muted',
 };
 
 function Marker({ line, step }: { line: ApprovalDetailLine; step: number }) {
@@ -87,7 +87,7 @@ function Marker({ line, step }: { line: ApprovalDetailLine; step: number }) {
     <span
       role="img"
       aria-label={`${line.approverName} ${LINE_STATUS_LABELS[line.status]}`}
-      className={`flex size-5 shrink-0 items-center justify-center rounded-full border text-[9px] font-semibold ${MARKER_CLASS[line.status]}`}
+      className={`flex size-5 shrink-0 items-center justify-center rounded-pill border text-micro font-semibold ${MARKER_CLASS[line.status]}`}
     >
       {symbol}
     </span>

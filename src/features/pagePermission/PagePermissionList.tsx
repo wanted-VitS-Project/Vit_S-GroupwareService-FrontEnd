@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
+import DataTable from '@/components/DataTable';
 import RowMenu from '@/components/RowMenu';
-import { PagePermissionTableSkeleton } from '@/components/settings/SettingsSkeletons';
 import { ROLE_LABELS } from '@/constants/status';
 
 import { getPageAccessors, getPages } from './api';
@@ -114,7 +114,7 @@ export default function PagePermissionList() {
 
   return (
     <>
-      <p className="text-xs text-text-secondary">
+      <p className="text-label text-text-secondary">
         <Link
           href="/settings"
           className="hover:text-text-primary hover:underline"
@@ -125,8 +125,8 @@ export default function PagePermissionList() {
       </p>
 
       <div className="mt-2 mb-6">
-        <h2 className="text-lg font-bold">페이지 권한</h2>
-        <p className="mt-1.5 text-xs break-keep text-text-secondary">
+        <h2 className="text-heading-m font-bold">페이지 권한</h2>
+        <p className="mt-1.5 text-label break-keep text-text-secondary">
           페이지별 접근 권한을 사원에게 부여합니다. 관리자 권한으로 열람하는
           사원은 회수할 수 없습니다.
         </p>
@@ -134,7 +134,7 @@ export default function PagePermissionList() {
 
       {hasPagesFailed ? (
         <Centered>
-          <p className="text-xs text-text-secondary">
+          <p className="text-label text-text-secondary">
             페이지 목록을 불러오지 못했습니다.
           </p>
           <button
@@ -149,10 +149,10 @@ export default function PagePermissionList() {
         <TabsSkeleton />
       ) : pages.length === 0 ? (
         <Centered>
-          <p className="text-sm font-bold text-text-primary">
+          <p className="text-body-m font-bold text-text-primary">
             부여할 수 있는 페이지가 없습니다
           </p>
-          <p className="text-xs break-keep text-text-secondary">
+          <p className="text-label break-keep text-text-secondary">
             페이지 카탈로그는 개발자가 코드로 제공합니다
           </p>
         </Centered>
@@ -181,7 +181,7 @@ export default function PagePermissionList() {
                   {page.name}
                   <span
                     className={`text-label ${
-                      isSelected ? 'text-white/80' : 'text-text-secondary'
+                      isSelected ? 'text-text-white/80' : 'text-text-secondary'
                     }`}
                   >
                     {page.accessCount}명
@@ -192,13 +192,13 @@ export default function PagePermissionList() {
           </div>
 
           {selectedPage && (
-            <div className="mb-4 flex items-start justify-between gap-4 rounded-base border border-border-default bg-white px-5 py-4">
+            <div className="mb-4 flex items-start justify-between gap-4 rounded-base border border-border-default bg-bg-card px-5 py-4">
               <div className="min-w-0">
-                <p className="text-xs font-bold text-text-primary">
+                <p className="text-label font-bold text-text-primary">
                   {selectedPage.name}
                 </p>
                 {selectedPage.description && (
-                  <p className="mt-1 text-xs break-keep text-text-secondary">
+                  <p className="mt-1 text-label break-keep text-text-secondary">
                     {selectedPage.description}
                   </p>
                 )}
@@ -223,7 +223,7 @@ export default function PagePermissionList() {
 
           <p
             role="status"
-            className="mb-2 text-[11px] break-keep text-text-primary-blue empty:hidden"
+            className="mb-2 text-detail break-keep text-text-primary-blue empty:hidden"
           >
             {notice}
           </p>
@@ -232,135 +232,140 @@ export default function PagePermissionList() {
             `overflow-hidden` 이 없으면 안쪽 표의 **각진 흰 배경**(sticky thead 포함)이
             둥근 모서리 위로 그대로 튀어나온다 — 모서리를 여기서 잘라낸다.
           */}
-          <div className="overflow-hidden rounded-base border border-border-default bg-white">
-            {hasAccessorsFailed ? (
-              <Centered>
-                <p className="text-xs text-text-secondary">
-                  접근 가능자를 불러오지 못했습니다.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setAccessorReload((count) => count + 1)}
-                  className="btn btn-sm btn-primary"
-                >
-                  다시 시도
-                </button>
-              </Centered>
-            ) : !accessors ? (
-              <PagePermissionTableSkeleton />
-            ) : accessors.content.length === 0 ? (
-              <Centered>
-                <LockIcon />
-                <p className="text-sm font-bold text-text-primary">
-                  접근 가능한 사원이 없습니다
-                </p>
-                <p className="text-xs break-keep text-text-secondary">
-                  권한을 부여하면 이 페이지의 메뉴로 들어갈 수 있어요
-                </p>
-              </Centered>
-            ) : (
-              <div className="max-h-[60vh] overflow-y-auto">
-                <table className="w-full table-fixed border-collapse text-left">
-                  <thead className="sticky top-0 bg-white">
-                    <tr className="border-b border-border-default text-[11px] text-text-secondary">
-                      <th className="w-44 px-5 py-3 font-medium">
-                        이름 · 사번
-                      </th>
-                      <th className="px-5 py-3 font-medium">부서 · 직급</th>
-                      <th className="w-28 px-5 py-3 font-medium">전역 권한</th>
-                      <th className="w-24 px-5 py-3 font-medium">등급</th>
-                      <th className="w-32 px-5 py-3 font-medium">권한 출처</th>
-                      <th className="w-14 px-5 py-3">
-                        <span className="sr-only">관리</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {accessors.content.map((accessor) => (
-                      <tr
-                        key={accessor.userId}
-                        className="border-b border-border-default last:border-b-0"
-                      >
-                        <td className="px-5 py-3.5">
-                          <span className="block truncate text-xs font-bold text-text-primary">
-                            {accessor.name}
-                          </span>
-                          <span className="mt-0.5 block truncate text-[10px] text-text-secondary">
-                            {accessor.userId}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <span className="block truncate text-xs text-text-secondary">
-                            {[accessor.departmentPath, accessor.jobPositionName]
-                              .filter(Boolean)
-                              .join(' · ') || '—'}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3.5">
-                          {/* 원값(`MASTER`)이 아니라 화면 이름으로 보여준다 */}
-                          <span className="text-xs text-text-secondary">
-                            {ROLE_LABELS[accessor.role]}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <span
-                            className={`badge ${PERMISSION_BADGE[accessor.permission]}`}
-                          >
-                            {PERMISSION_LABEL[accessor.permission]}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3.5">
-                          {/*
-                            한 줄로 둔다 — 배지 · 태그를 또 얹으면 옆 `등급` 배지와 싸운다.
-                            회수할 수 없는 권한만 자물쇠를 달아 케밥에 회수가 없는 이유를 알린다.
-                          */}
-                          <span
-                            title={
-                              NOT_REVOCABLE_REASON[accessor.source] || undefined
-                            }
-                            className={`flex items-center gap-1 text-xs whitespace-nowrap ${
-                              accessor.revocable
-                                ? 'text-text-primary'
-                                : 'text-text-muted'
-                            }`}
-                          >
-                            {!accessor.revocable && <LockMarkIcon />}
-                            {SOURCE_LABEL[accessor.source]}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3.5 text-right">
-                          {/*
-                            전역 권한 사용자도 **등급은 줄 수 있다** (부여 API 는 ADMIN 만 막는다).
-                            회수만 빠지므로 케밥 자체를 없애지 않는다 — 없애면 누를 것이 사라진다.
-                          */}
-                          {accessor.source !== 'ADMIN_ONLY' && (
-                            <RowMenu
-                              label={accessor.name}
-                              items={[
+          <div className="overflow-hidden rounded-base border border-border-default bg-bg-card">
+            <DataTable
+              caption="접근 가능자 목록"
+              columns={[
+                {
+                  key: 'name',
+                  header: '이름 · 사번',
+                  width: '11rem',
+                  skeletonWidth: 'w-24',
+                  cell: (accessor) => (
+                    <>
+                      <span className="block truncate font-bold text-text-primary">
+                        {accessor.name}
+                      </span>
+                      <span className="mt-0.5 block truncate text-caption text-text-secondary">
+                        {accessor.userId}
+                      </span>
+                    </>
+                  ),
+                },
+                {
+                  key: 'department',
+                  header: '부서 · 직급',
+                  skeletonWidth: 'w-40',
+                  cell: (accessor) => (
+                    <span className="block truncate text-text-secondary">
+                      {[accessor.departmentPath, accessor.jobPositionName]
+                        .filter(Boolean)
+                        .join(' · ') || '—'}
+                    </span>
+                  ),
+                },
+                {
+                  key: 'role',
+                  header: '전역 권한',
+                  width: '7rem',
+                  skeletonWidth: 'w-16',
+                  // 원값(`MASTER`)이 아니라 화면 이름으로 보여준다
+                  cell: (accessor) => (
+                    <span className="text-text-secondary">
+                      {ROLE_LABELS[accessor.role]}
+                    </span>
+                  ),
+                },
+                {
+                  key: 'permission',
+                  header: '등급',
+                  width: '6rem',
+                  skeletonWidth: 'w-12',
+                  cell: (accessor) => (
+                    <span
+                      className={`badge ${PERMISSION_BADGE[accessor.permission]}`}
+                    >
+                      {PERMISSION_LABEL[accessor.permission]}
+                    </span>
+                  ),
+                },
+                {
+                  key: 'source',
+                  header: '권한 출처',
+                  width: '8rem',
+                  skeletonWidth: 'w-20',
+                  /*
+                    한 줄로 둔다 — 배지 · 태그를 또 얹으면 옆 `등급` 배지와 싸운다.
+                    회수할 수 없는 권한만 자물쇠를 달아 케밥에 회수가 없는 이유를 알린다.
+                  */
+                  cell: (accessor) => (
+                    <span
+                      title={NOT_REVOCABLE_REASON[accessor.source] || undefined}
+                      className={`flex items-center gap-1 whitespace-nowrap ${
+                        accessor.revocable
+                          ? 'text-text-primary'
+                          : 'text-text-muted'
+                      }`}
+                    >
+                      {!accessor.revocable && <LockMarkIcon />}
+                      {SOURCE_LABEL[accessor.source]}
+                    </span>
+                  ),
+                },
+                {
+                  key: 'menu',
+                  header: <span className="sr-only">관리</span>,
+                  width: '3.5rem',
+                  align: 'right',
+                  skeletonWidth: 'w-6',
+                  /*
+                    전역 권한 사용자도 **등급은 줄 수 있다** (부여 API 는 ADMIN 만 막는다).
+                    회수만 빠지므로 케밥 자체를 없애지 않는다 — 없애면 누를 것이 사라진다.
+                  */
+                  cell: (accessor) =>
+                    accessor.source === 'ADMIN_ONLY' ? null : (
+                      <RowMenu
+                        label={accessor.name}
+                        items={[
+                          {
+                            label: '등급 변경',
+                            onSelect: () => setEditTarget(accessor),
+                          },
+                          ...(accessor.revocable
+                            ? [
                                 {
-                                  label: '등급 변경',
-                                  onSelect: () => setEditTarget(accessor),
+                                  label: '권한 회수',
+                                  danger: true,
+                                  onSelect: () => setRevokeTarget(accessor),
                                 },
-                                ...(accessor.revocable
-                                  ? [
-                                      {
-                                        label: '권한 회수',
-                                        danger: true,
-                                        onSelect: () =>
-                                          setRevokeTarget(accessor),
-                                      },
-                                    ]
-                                  : []),
-                              ]}
-                            />
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                              ]
+                            : []),
+                        ]}
+                      />
+                    ),
+                },
+              ]}
+              rows={hasAccessorsFailed ? [] : (accessors?.content ?? null)}
+              rowKey={(accessor) => accessor.userId}
+              maxHeight="60vh"
+              errorMessage={
+                hasAccessorsFailed
+                  ? '접근 가능자를 불러오지 못했습니다.'
+                  : undefined
+              }
+              onRetry={() => setAccessorReload((count) => count + 1)}
+              emptyState={
+                <>
+                  <LockIcon />
+                  <p className="text-body-m font-bold text-text-primary">
+                    접근 가능한 사원이 없습니다
+                  </p>
+                  <p className="text-label break-keep text-text-secondary">
+                    권한을 부여하면 이 페이지의 메뉴로 들어갈 수 있어요
+                  </p>
+                </>
+              }
+            />
           </div>
         </>
       )}

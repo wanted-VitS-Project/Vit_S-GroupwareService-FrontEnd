@@ -9,11 +9,16 @@ import { SIDE_PANEL } from '@/components/Modal';
 import ModalLoadingFallback, {
   SidePanelFallbackHeader,
 } from '@/components/ModalLoadingFallback';
+import PersonNote from '@/components/PersonNote';
+import { notifyToast } from '@/components/Toast';
 import ActivityIcon from '@/features/activityLog/ActivityIcon';
+import { notifyIssueChanged } from '@/features/issue/events';
 import { useModal, useModalRouter } from '@/lib/useModal';
 
 import { useBlockActions } from './BlockActionsContext';
 import { setPillDragImage, useBlockDrag } from './BlockDragContext';
+import { useOwnerResigned } from './BlockMembersContext';
+import { notifyBlockChanged } from './events';
 import BlockTypeIcon from './BlockTypeIcon';
 import { BLOCK_TYPES, type StepBlock } from './types';
 
@@ -22,6 +27,7 @@ const loadBlockActivityLogPanel = () =>
   import('@/features/activityLog/BlockActivityLogPanel');
 const loadBlockEditModal = () => import('./BlockEditModal');
 const loadBlockDeleteModal = () => import('./BlockDeleteModal');
+const loadBlockMoveStepModal = () => import('./BlockMoveStepModal');
 
 const BlockIssuesPanel = dynamic(loadBlockIssuesPanel, {
   loading: () => (
@@ -49,12 +55,21 @@ const BlockEditModal = dynamic(loadBlockEditModal, {
 const BlockDeleteModal = dynamic(loadBlockDeleteModal, {
   loading: () => <ModalLoadingFallback title="블록 삭제" />,
 });
+const BlockMoveStepModal = dynamic(loadBlockMoveStepModal, {
+  loading: () => (
+    <ModalLoadingFallback
+      title="다른 스텝으로 이동"
+      className="w-full max-w-[420px] rounded-xl p-6 shadow-2xl"
+    />
+  ),
+});
 
 function preloadBlockMenuChunks() {
   void loadBlockIssuesPanel();
   void loadBlockActivityLogPanel();
   void loadBlockEditModal();
   void loadBlockDeleteModal();
+  void loadBlockMoveStepModal();
 }
 
 interface BlockCardProps {
@@ -80,6 +95,8 @@ export default function BlockCard({
   const panel = useModalRouter<'issues' | 'logs'>();
   const type = BLOCK_TYPES.find((option) => option.code === block.type);
   const drag = useBlockDrag();
+  /** 담당자 이름 뒤 `(퇴사자)` — `owner.deleted` 와 참여자 목록의 `resigned` 를 합쳐 본다 */
+  const isOwnerResigned = useOwnerResigned(block.owner);
   const label = block.title || type?.label || '블록';
   const isDragging = drag?.draggingId === block.blockId;
 
@@ -91,40 +108,54 @@ export default function BlockCard({
        * 카드에 핸들러를 달면 그런 자식 위에서는 이벤트가 올라오지 않는다.
        */
       // 끄는 중인 카드는 "여기서 빠져나간 자리" 로 읽히게 점선 + 반투명으로 낮춘다
-      className={`flex h-full flex-col rounded-lg border bg-white transition-[opacity,border-color] duration-150 ${
+      className={`flex h-full flex-col rounded-lg border bg-bg-card transition-[opacity,border-color] duration-150 ${
         isDragging
           ? 'border-dashed border-border-primary/40 opacity-40'
           : 'border-border-default'
       }`}
     >
       <header className="flex items-center gap-2 border-b border-border-default px-3 py-2">
-        <span
-          aria-label={drag ? `${label} 위치 이동 핸들` : undefined}
-          aria-hidden={drag ? undefined : true}
-          draggable={Boolean(drag)}
-          onDragStart={
-            drag
-              ? (event) => {
-                  setPillDragImage(event, label);
-                  drag.start(block.blockId, label);
-                }
-              : undefined
-          }
-          onDragEnd={drag?.finish}
-          // 점 6개(약 12×10px)만으로는 잡기 어렵다 — 여백으로 실제 클릭 영역을 넓힌다
-          className={`-m-1 flex flex-col gap-0.5 rounded p-1 ${
-            drag
-              ? 'cursor-grab opacity-40 hover:bg-bg-hover hover:opacity-80 active:cursor-grabbing'
-              : 'opacity-25'
-          }`}
-        >
-          {[0, 1, 2].map((row) => (
-            <span key={row} className="flex gap-0.5">
-              <span className="size-1 rounded-full bg-text-secondary" />
-              <span className="size-1 rounded-full bg-text-secondary" />
-            </span>
-          ))}
-        </span>
+        {/*
+          핸들은 **배치 편집 중에만** 그린다 (`useBlockDrag()` 가 그때만 값을 준다).
+          평소에도 흐리게 남겨 두면 "끌 수 있나?" 하고 잡아보게 되는데 아무 일도 일어나지 않는다 —
+          할 수 없는 동작의 흔적을 남기지 않는 편이 낫다.
+        */}
+        {drag && (
+          <span
+            role="button"
+            /*
+             * 드래그는 포인터가 있어야만 쓸 수 있다 — 핸들에 초점을 줄 수 있게 하고
+             * **화살표 키로 같은 이동**을 연다 (`drag.moveBy`).
+             * 좌우로 둔 이유: 블록은 3칸 그리드를 왼→오른쪽으로 흐르는 **평면 순서**라
+             * 위/아래는 몇 칸 움직이는지가 배치에 따라 달라져 예측할 수 없다.
+             */
+            tabIndex={0}
+            aria-label={`${label} 위치 이동 핸들. 왼쪽·오른쪽 화살표 키로 순서를 바꿉니다`}
+            draggable
+            onDragStart={(event) => {
+              setPillDragImage(event, label);
+              drag.start(block.blockId, label);
+            }}
+            onDragEnd={drag.finish}
+            onKeyDown={(event) => {
+              if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+                return;
+              }
+              // 보드가 좌우로 스크롤되거나 초점이 옆 카드로 넘어가면 안 된다
+              event.preventDefault();
+              drag.moveBy(block.blockId, event.key === 'ArrowLeft' ? -1 : 1);
+            }}
+            // 점 6개(약 12×10px)만으로는 잡기 어렵다 — 여백으로 실제 클릭 영역을 넓힌다
+            className="-m-1 flex cursor-grab flex-col gap-0.5 rounded-button-sm p-1 opacity-40 hover:bg-bg-hover hover:opacity-80 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-primary active:cursor-grabbing"
+          >
+            {[0, 1, 2].map((row) => (
+              <span key={row} className="flex gap-0.5">
+                <span className="size-1 rounded-pill bg-text-secondary" />
+                <span className="size-1 rounded-pill bg-text-secondary" />
+              </span>
+            ))}
+          </span>
+        )}
 
         <span
           style={{
@@ -132,12 +163,12 @@ export default function BlockCard({
             borderColor: type?.border,
             color: type?.icon,
           }}
-          className="flex size-5 shrink-0 items-center justify-center rounded border"
+          className="flex size-5 shrink-0 items-center justify-center rounded-button-sm border"
         >
           <BlockTypeIcon code={block.type} />
         </span>
 
-        <h3 className="min-w-0 flex-1 truncate text-[11px] font-semibold text-text-primary">
+        <h3 className="min-w-0 flex-1 truncate text-detail font-semibold text-text-primary">
           {block.title || type?.label}
         </h3>
 
@@ -162,13 +193,21 @@ export default function BlockCard({
               withRing={false}
               // 바로 옆에 이름 글자가 있다
               decorative
+              resigned={isOwnerResigned}
             />
-            <span className="min-w-0 flex-1 truncate text-[9px] text-text-secondary">
-              {block.owner.name}
+            {/*
+              이름은 그대로 두고 뒤에 `(퇴사자)` 만 붙인다.
+              ⚠️ 이 응답에는 `resignedAt` 이 없어 `owner.deleted` 만으로는 퇴사자를 놓친다 —
+                 보드가 참여자 목록으로 보충한 값을 쓴다 (`BlockMembersContext`).
+              문구는 줄이지 않는다 — 이름이 길면 이름 쪽이 잘린다.
+            */}
+            <span className="flex min-w-0 flex-1 items-center gap-0.5 text-micro text-text-secondary">
+              <span className="truncate">{block.owner.name}</span>
+              {isOwnerResigned && <PersonNote />}
             </span>
           </>
         ) : (
-          <span className="flex-1 text-[9px] text-text-secondary">
+          <span className="flex-1 text-micro text-text-secondary">
             담당자 없음
           </span>
         )}
@@ -181,7 +220,7 @@ export default function BlockCard({
             onClick={() => panel.open('issues')}
             aria-label={`연결된 이슈 ${block.linkedIssueDone} / ${block.linkedIssueTotal} 완료`}
             title={`연결된 이슈 ${block.linkedIssueDone} / ${block.linkedIssueTotal} 완료`}
-            className="shrink-0 cursor-pointer rounded px-1 py-0.5 text-[9px] text-text-primary-blue hover:bg-blue-bg-soft hover:text-btn-primary-hover"
+            className="shrink-0 cursor-pointer rounded-button-sm px-1 py-0.5 text-micro text-text-primary-blue hover:bg-blue-bg-soft hover:text-btn-primary-hover"
           >
             # {block.linkedIssueDone} / {block.linkedIssueTotal}
           </button>
@@ -207,17 +246,6 @@ export default function BlockCard({
   );
 }
 
-/**
- * 목록을 다시 불러오라고 화면 전체에 알린다.
- *
- * 블록이 **없어지거나 생기는** 변화에만 쓴다. 이름 · 담당자처럼 그 블록 안에서 끝나는
- * 수정은 재조회하지 않고 응답을 곧바로 꽂는다 (`BlockActionsContext`) —
- * 왕복이 끝날 때까지 옛 값이 남거나, 새 배열로 갈리며 배치가 흔들리지 않게.
- */
-function notifyBlockChanged() {
-  window.dispatchEvent(new Event('block:changed'));
-}
-
 function BlockMenu({
   block,
   title,
@@ -229,11 +257,12 @@ function BlockMenu({
   onViewIssues: () => void;
   onViewLogs: () => void;
 }) {
+  const { id: projectId, stepId } = useParams<{ id: string; stepId: string }>();
   const actions = useBlockActions();
   /** ⋯ 드롭다운. 모달은 아니지만 여닫이가 같아 같은 훅을 쓴다 */
   const menu = useModal();
-  /** 메뉴에서 여는 모달 둘 — 하나만 열린다 */
-  const modal = useModalRouter<'edit' | 'delete'>();
+  /** 메뉴에서 여는 모달 셋 — 하나만 열린다 */
+  const modal = useModalRouter<'edit' | 'move' | 'delete'>();
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   function closeMenuAndFocus() {
@@ -242,7 +271,7 @@ function BlockMenu({
   }
 
   /** 메뉴에서 모달로 넘어간다 — 드롭다운이 뒤에 남으면 모달 밖 클릭을 가로챈다 */
-  function openFromMenu(name: 'edit' | 'delete') {
+  function openFromMenu(name: 'edit' | 'move' | 'delete') {
     menu.close();
     modal.open(name);
   }
@@ -266,7 +295,7 @@ function BlockMenu({
           onPointerEnter={preloadBlockMenuChunks}
           onFocus={preloadBlockMenuChunks}
           onClick={() => (menu.isOpen ? menu.close() : menu.open())}
-          className={`flex size-5 cursor-pointer items-center justify-center rounded text-text-secondary hover:bg-bg-hover ${
+          className={`flex size-5 cursor-pointer items-center justify-center rounded-button-sm text-text-secondary hover:bg-bg-hover ${
             menu.isOpen ? 'bg-bg-hover' : ''
           }`}
         >
@@ -284,7 +313,7 @@ function BlockMenu({
             />
             <span
               role="menu"
-              className="absolute top-full right-0 z-20 mt-1 flex w-28 flex-col overflow-hidden rounded-lg border border-border-default bg-white shadow-lg"
+              className="absolute top-full right-0 z-20 mt-1 flex w-28 flex-col overflow-hidden rounded-lg border border-border-default bg-bg-card shadow-lg"
             >
               <button
                 type="button"
@@ -293,12 +322,12 @@ function BlockMenu({
                   menu.close();
                   onViewIssues();
                 }}
-                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-text-primary hover:bg-bg-surface"
+                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-caption font-medium text-text-primary hover:bg-bg-surface"
               >
                 <HashIcon />
                 <span className="flex-1 text-left">연결된 이슈</span>
                 {block.linkedIssueTotal > 0 && (
-                  <span className="rounded-full bg-blue-bg px-1.5 py-0.5 text-[9px] font-bold text-btn-primary-hover">
+                  <span className="rounded-pill bg-blue-bg px-1.5 py-0.5 text-micro font-bold text-btn-primary-hover">
                     {block.linkedIssueTotal}
                   </span>
                 )}
@@ -310,7 +339,7 @@ function BlockMenu({
                   menu.close();
                   onViewLogs();
                 }}
-                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-text-primary hover:bg-bg-surface"
+                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-caption font-medium text-text-primary hover:bg-bg-surface"
               >
                 <ActivityIcon className="size-2.5 shrink-0 text-purple-text" />
                 <span className="flex-1 text-left">활동 로그</span>
@@ -319,7 +348,7 @@ function BlockMenu({
                 type="button"
                 role="menuitem"
                 onClick={() => openFromMenu('edit')}
-                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-text-primary hover:bg-bg-surface"
+                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-caption font-medium text-text-primary hover:bg-bg-surface"
               >
                 <PencilIcon />
                 수정
@@ -327,8 +356,17 @@ function BlockMenu({
               <button
                 type="button"
                 role="menuitem"
+                onClick={() => openFromMenu('move')}
+                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-caption font-medium text-text-primary hover:bg-bg-surface"
+              >
+                <MoveIcon />
+                <span className="flex-1 text-left">스텝 이동</span>
+              </button>
+              <button
+                type="button"
+                role="menuitem"
                 onClick={() => openFromMenu('delete')}
-                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-text-danger hover:bg-red-bg-soft"
+                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-caption font-medium text-text-danger hover:bg-red-bg-soft"
               >
                 <TrashIcon />
                 삭제
@@ -347,6 +385,31 @@ function BlockMenu({
           }
         />
       )}
+      {modal.isOpen('move') && (
+        <BlockMoveStepModal
+          projectId={projectId}
+          currentStepId={stepId}
+          block={block}
+          blockTitle={title}
+          onClose={modal.close}
+          onMoved={(result) => {
+            /*
+             * 옮긴 블록은 **이 스텝에서 사라진다** — 삭제와 같은 자리 정리다.
+             * 보드 밖에서 쓰인 카드(컨텍스트 없음)는 재조회로 되돌아간다.
+             */
+            if (actions) actions.remove(result.blockId);
+            else notifyBlockChanged();
+
+            notifyToast(
+              result.unlinkedIssueCount > 0
+                ? `블록을 옮기고 이슈 연결 ${result.unlinkedIssueCount}건을 끊었습니다.`
+                : '블록을 옮겼습니다.',
+            );
+            // 연결이 끊기면 이슈 쪽 숫자도 달라진다
+            if (result.unlinkedIssueCount > 0) notifyIssueChanged();
+          }}
+        />
+      )}
       {modal.isOpen('delete') && (
         <BlockDeleteModal
           blockId={block.blockId}
@@ -363,7 +426,27 @@ function BlockMenu({
 
 function HashIcon() {
   return (
-    <span className="text-[11px] font-semibold text-text-primary-blue">#</span>
+    <span className="text-detail font-semibold text-text-primary-blue">#</span>
+  );
+}
+
+/** 상자 밖으로 나가는 화살표 — "여기서 다른 곳으로" 를 뜻한다 */
+function MoveIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className="size-2.5 shrink-0 text-text-secondary"
+    >
+      <path d="M13 4h7v7" />
+      <path d="M20 4 11 13" />
+      <path d="M19 15v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h4" />
+    </svg>
   );
 }
 

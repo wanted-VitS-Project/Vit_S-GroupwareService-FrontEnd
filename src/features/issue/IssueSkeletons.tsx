@@ -13,14 +13,14 @@ export function IssueBoardSkeleton() {
       {CARDS_PER_COLUMN.map((count, column) => (
         <div key={column}>
           <div className="mb-2.5 flex items-center gap-2">
-            <Skeleton className="h-4 w-16 rounded-full" />
+            <Skeleton className="h-4 w-16 rounded-pill" />
             <Skeleton className="h-3 w-4" />
           </div>
           <div className="flex flex-col gap-2">
             {Array.from({ length: count }, (_, card) => (
               <div
                 key={card}
-                className="rounded-lg border border-border-default bg-white p-3"
+                className="rounded-lg border border-border-default bg-bg-card p-3"
               >
                 <Skeleton className="mb-2 h-4 w-12" />
                 <Skeleton className="mb-3 h-3 w-4/5" />

@@ -15,7 +15,7 @@ export default function ErrorText({
   return (
     <p
       role="alert"
-      className={`text-[10px] break-keep text-text-danger empty:hidden ${className}`}
+      className={`text-caption break-keep text-text-danger empty:hidden ${className}`}
     >
       {message}
     </p>

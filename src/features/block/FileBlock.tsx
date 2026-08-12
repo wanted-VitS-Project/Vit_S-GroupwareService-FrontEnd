@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import Modal from '@/components/Modal';
 import ModalLoadingFallback from '@/components/ModalLoadingFallback';
 import {
@@ -11,6 +12,7 @@ import {
   getBlockFiles,
   renameFile,
 } from '@/features/file/api';
+import { isFileVersionConflict } from '@/features/file/errorCodes';
 import { preloadPdfViewer } from '@/features/file/pdfViewer';
 import {
   cancelPreviewPrefetch,
@@ -70,7 +72,7 @@ function FileViewerFallback() {
   return (
     <Modal
       title="문서 보기"
-      className="flex h-[85vh] w-full max-w-[820px] flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
+      className="flex h-[85vh] w-full max-w-[820px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
     >
       <div
         role="status"
@@ -79,7 +81,7 @@ function FileViewerFallback() {
       >
         <div
           aria-hidden
-          className="h-[600px] w-full max-w-[576px] animate-pulse rounded border border-border-default bg-white shadow-sm"
+          className="h-[600px] w-full max-w-[576px] animate-pulse rounded-button-sm border border-border-default bg-bg-card shadow-sm"
         />
       </div>
     </Modal>
@@ -144,6 +146,11 @@ export default function FileBlock({ block }: { block: StepBlock }) {
   const trashModal = useModalTarget<BlockFile>();
   /** 동명 문서 확인 대기 — 확인하면 같은 파일을 다시 올린다 */
   const duplicateModal = useModalTarget<{ file: File; message: string }>();
+  /** 이름 저장이 409 로 막힘 — 덮어쓸지 다시 불러올지 묻는다 */
+  const renameConflictModal = useModalTarget<{
+    file: BlockFile;
+    name: string;
+  }>();
 
   const pickerRef = useRef<HTMLInputElement>(null);
   /** 새 버전을 올릴 대상. 비어 있으면 새 문서 */
@@ -169,6 +176,7 @@ export default function FileBlock({ block }: { block: StepBlock }) {
   const canEdit = loaded?.canEdit ?? false;
   // 지역 상수로 받아야 JSX 안에서 `null` 이 아님이 좁혀진다
   const duplicatePending = duplicateModal.target;
+  const renamePending = renameConflictModal.target;
 
   function reload() {
     setReloadCount((count) => count + 1);
@@ -209,18 +217,48 @@ export default function FileBlock({ block }: { block: StepBlock }) {
     }
   }
 
-  async function saveName(file: BlockFile) {
+  /**
+   * 문서명 저장. **낙관적 락**이라 `version` 을 실어 보낸다 (2026-08-11).
+   *
+   * 409 면 조용히 삼키지 않고 **재조회 / 덮어쓰기**를 묻는다 — 이름은 짧아도
+   * 남이 방금 고친 이름을 되돌려 놓으면 원인을 찾기 어렵다.
+   */
+  async function saveName(
+    file: BlockFile,
+    name: string,
+    overwrite = false,
+  ): Promise<void> {
+    // 버전 없이 보내면 400 이다 — 요청하지 않고 재조회를 안내한다
+    if (file.version === undefined) {
+      setErrorMessage(
+        '문서의 버전 정보를 받지 못해 이름을 바꿀 수 없습니다. 새로고침해주세요.',
+      );
+      return;
+    }
+
+    try {
+      await renameFile(file.fileId, {
+        name,
+        version: file.version,
+        ...(overwrite ? { overwrite: true } : {}),
+      });
+      reload();
+    } catch (caught) {
+      if (isFileVersionConflict(caught)) {
+        renameConflictModal.open({ file, name });
+        return;
+      }
+      setErrorMessage(messageOf(caught, '문서명을 바꾸지 못했습니다.'));
+    }
+  }
+
+  function requestSaveName(file: BlockFile) {
     const name = editingName.trim();
     setEditingFileId(null);
 
     if (!name || name === file.name) return;
 
-    try {
-      await renameFile(file.fileId, name);
-      reload();
-    } catch (caught) {
-      setErrorMessage(messageOf(caught, '문서명을 바꾸지 못했습니다.'));
-    }
+    void saveName(file, name);
   }
 
   return (
@@ -240,13 +278,13 @@ export default function FileBlock({ block }: { block: StepBlock }) {
         <div className="min-h-0 flex-1 overflow-y-auto">
           {hasFailed ? (
             <div className="flex flex-col items-center gap-2 py-6">
-              <p className="text-[10px] text-text-secondary">
+              <p className="text-caption text-text-secondary">
                 문서를 불러오지 못했습니다.
               </p>
               <button
                 type="button"
                 onClick={reload}
-                className="cursor-pointer rounded-md border border-border-default px-2.5 py-1 text-[10px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+                className="cursor-pointer rounded-button-md border border-border-default px-2.5 py-1 text-caption font-medium text-text-primary-blue hover:bg-blue-bg-soft"
               >
                 다시 시도
               </button>
@@ -254,7 +292,7 @@ export default function FileBlock({ block }: { block: StepBlock }) {
           ) : !files ? (
             <FileListSkeleton />
           ) : files.length === 0 ? (
-            <p className="py-6 text-center text-[10px] text-text-muted">
+            <p className="py-6 text-center text-caption text-text-muted">
               등록된 문서가 없습니다.
             </p>
           ) : (
@@ -276,7 +314,7 @@ export default function FileBlock({ block }: { block: StepBlock }) {
                     setEditingName(file.name);
                   }}
                   onCancelRename={() => setEditingFileId(null)}
-                  onSaveName={() => saveName(file)}
+                  onSaveName={() => requestSaveName(file)}
                   onOpen={() => viewerModal.open(file)}
                   onDownload={() =>
                     downloadVersion(file.latestVersionId).catch((caught) =>
@@ -294,13 +332,13 @@ export default function FileBlock({ block }: { block: StepBlock }) {
         </div>
 
         {errorMessage && (
-          <p role="alert" className="text-[9px] break-keep text-text-danger">
+          <p role="alert" className="text-micro break-keep text-text-danger">
             {errorMessage}
           </p>
         )}
 
         <div className="flex items-center justify-between gap-2 border-t border-border-default pt-1">
-          <span className="min-w-0 truncate text-[9px] text-text-secondary">
+          <span className="min-w-0 truncate text-micro text-text-secondary">
             {files ? `${files.length}개 문서` : '—'}
           </span>
 
@@ -309,7 +347,7 @@ export default function FileBlock({ block }: { block: StepBlock }) {
               type="button"
               onClick={() => pickFile()}
               disabled={isUploading}
-              className="flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium text-text-primary-blue hover:bg-blue-bg-soft disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex shrink-0 cursor-pointer items-center gap-1 rounded-button-md px-2 py-0.5 text-caption font-medium text-text-primary-blue hover:bg-blue-bg-soft disabled:cursor-not-allowed disabled:opacity-40"
             >
               <PlusIcon />
               {isUploading ? '올리는 중…' : '새 문서 추가'}
@@ -342,6 +380,26 @@ export default function FileBlock({ block }: { block: StepBlock }) {
           onConfirm={() => {
             duplicateModal.close();
             upload(duplicatePending.file, true);
+          }}
+        />
+      )}
+
+      {renamePending && (
+        /* 취소(= Esc · 배경 클릭)를 **다시 불러오기**에 둔다 — 잘못 눌러도 남의 이름이 안 지워진다 */
+        <AlertDialogTwoButton
+          icon={DialogIcons.warning}
+          title="다른 사람이 먼저 저장했어요"
+          description={`그 사이 이 문서가 수정됐습니다. '${renamePending.name}' 로 덮어쓰거나, 최신 내용을 다시 불러올 수 있습니다.`}
+          confirmLabel="덮어쓰기"
+          cancelLabel="다시 불러오기"
+          isDanger
+          onConfirm={() => {
+            renameConflictModal.close();
+            void saveName(renamePending.file, renamePending.name, true);
+          }}
+          onCancel={() => {
+            renameConflictModal.close();
+            reload();
           }}
         />
       )}
@@ -405,7 +463,7 @@ function FileRow({
       <span
         aria-hidden
         style={{ color: style.text, backgroundColor: style.background }}
-        className="pointer-events-none relative flex size-7 shrink-0 items-center justify-center rounded"
+        className="pointer-events-none relative flex size-7 shrink-0 items-center justify-center rounded-button-sm"
       >
         <DocumentIcon />
       </span>
@@ -424,17 +482,17 @@ function FileRow({
                 if (event.key === 'Enter') onSaveName();
                 if (event.key === 'Escape') onCancelRename();
               }}
-              className="pointer-events-auto min-w-0 flex-1 rounded border border-border-primary px-1 text-[11px] text-text-primary outline-none"
+              className="pointer-events-auto min-w-0 flex-1 rounded-button-sm border border-border-primary px-1 text-detail text-text-primary outline-none"
             />
           ) : (
-            <span className="min-w-0 truncate text-[11px] font-semibold text-text-primary">
+            <span className="min-w-0 truncate text-detail font-semibold text-text-primary">
               {file.name}
             </span>
           )}
 
           <span
             style={{ color: style.text, backgroundColor: style.background }}
-            className="shrink-0 rounded px-1 py-0.5 font-mono text-[8px] font-semibold"
+            className="shrink-0 rounded-button-sm px-1 py-0.5 font-mono text-[8px] font-semibold"
           >
             {extensionLabel(file.extension)}
           </span>
@@ -442,17 +500,17 @@ function FileRow({
           {/* v1 도 표기한다 — 버전이 하나뿐인 문서도 차수가 보여야 한다 */}
           <span
             title={`버전 ${file.versionCount}개`}
-            className="shrink-0 rounded bg-blue-bg-soft px-1 py-0.5 font-mono text-[8px] font-semibold text-text-primary-blue"
+            className="shrink-0 rounded-button-sm bg-blue-bg-soft px-1 py-0.5 font-mono text-[8px] font-semibold text-text-primary-blue"
           >
             v{file.latestVersionNo}
           </span>
         </div>
 
-        <p className="mt-0.5 truncate text-[9px] text-text-secondary">
+        <p className="mt-0.5 truncate text-micro text-text-secondary">
           {file.uploaderDepartment} · {file.uploaderPosition}{' '}
           {file.uploaderName}
         </p>
-        <p className="font-mono text-[9px] text-text-secondary">
+        <p className="font-mono text-micro text-text-secondary">
           {file.updatedAt.slice(0, 10).replaceAll('-', '.')} ·{' '}
           {formatFileSize(file.sizeBytes)}
         </p>
@@ -488,7 +546,7 @@ function FileRow({
  * 기본색은 모두 같고, 자기 위에 마우스를 올렸을 때만 강조색이 된다.
  */
 const ICON_BUTTON_CLASS =
-  'flex size-6 cursor-pointer items-center justify-center rounded-md text-text-secondary hover:bg-white hover:text-text-primary-blue';
+  'flex size-6 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-card hover:text-text-primary-blue';
 
 function IconButton({
   label,
@@ -633,7 +691,7 @@ function FileRowMenu({
               ref={menuRef}
               role="menu"
               style={{ top: position.top, left: position.left }}
-              className="fixed z-50 flex w-32 flex-col overflow-hidden rounded-lg border border-border-default bg-white shadow-lg"
+              className="fixed z-50 flex w-32 flex-col overflow-hidden rounded-lg border border-border-default bg-bg-card shadow-lg"
             >
               <MenuItem onClick={() => run(onStartRename)}>이름 수정</MenuItem>
               <MenuItem danger onClick={() => run(onTrash)}>
@@ -661,7 +719,7 @@ function MenuItem({
       type="button"
       role="menuitem"
       onClick={onClick}
-      className={`cursor-pointer px-2.5 py-1.5 text-left text-[10px] font-medium ${
+      className={`cursor-pointer px-2.5 py-1.5 text-left text-caption font-medium ${
         danger
           ? 'text-text-danger hover:bg-red-bg-soft'
           : 'text-text-primary hover:bg-bg-surface'

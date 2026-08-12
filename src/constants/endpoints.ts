@@ -17,9 +17,24 @@ export const ENDPOINTS = {
     /** 내 프로젝트 목록 — 권한 밖 건은 403 이 아니라 목록에서 빠진다 */
     root: `${V1}/projects`,
     detail: (projectId: number | string) => `${V1}/projects/${projectId}`,
+    /** 스테이지 목록 조회 · 생성 */
     stages: (projectId: number | string) =>
       `${V1}/projects/${projectId}/stages`,
+    /**
+     * 스테이지 순서 변경 — **전체 최종 순서**를 보낸다.
+     * ⚠️ 항목마다 `version` 을 검사하고 하나라도 어긋나면 요청 전체가 409 로 롤백된다.
+     *    `overwrite` 가 없어 409 면 재조회 후 다시 끄는 수밖에 없다.
+     */
+    stagesOrder: (projectId: number | string) =>
+      `${V1}/projects/${projectId}/stages/order`,
+    /** 스텝 목록 조회 · 생성 */
     steps: (projectId: number | string) => `${V1}/projects/${projectId}/steps`,
+    /**
+     * 스텝 순서 · 소속 스테이지 변경 — **위치를 바꾸는 유일한 경로**다.
+     * ⚠️ 보드 전체의 최종 배치를 보낸다. 낙관적 락은 항목별이고 롤백은 전체다.
+     */
+    stepsOrder: (projectId: number | string) =>
+      `${V1}/projects/${projectId}/steps/order`,
     members: (projectId: number | string) =>
       `${V1}/projects/${projectId}/members`,
     /**
@@ -117,7 +132,26 @@ export const ENDPOINTS = {
     employees: (jobPositionId: number | string) =>
       `${V1}/job-positions/${jobPositionId}/employees`,
   },
+  stages: {
+    /**
+     * 스테이지 이름 수정 · 삭제.
+     *
+     * ⚠️ 수정은 **낙관적 락**이다 — 목록에서 받은 `version` 을 실어야 하고, 늦으면 409 다.
+     * ⚠️ 삭제는 `?moveToStageId=` 가 **필수**다 (`0` 이면 미소속). 하위 스텝은 함께 지워지지 않는다.
+     * ⛔ 순서 변경은 이 경로가 아니다 — `PATCH /projects/{projectId}/stages/order` 소관이다.
+     */
+    detail: (stageId: number | string) => `${V1}/stages/${stageId}`,
+  },
   steps: {
+    /**
+     * 스텝 수정 · 삭제.
+     *
+     * ⚠️ 수정은 **낙관적 락**이고 **전체 덮어쓰기**다 — 생략한 필드는 유지가 아니라 해제된다.
+     * ⛔ `stageId` 는 받지 않는다 (2026-08-09) — 소속·순서는 `steps/order` 로 일원화됐다.
+     */
+    detail: (stepId: number | string) => `${V1}/steps/${stepId}`,
+    /** 스텝 완료 처리 — 미완료 이슈 처리 방식(`openIssueAction`)이 **필수**다 */
+    complete: (stepId: number | string) => `${V1}/steps/${stepId}/complete`,
     blocks: (stepId: number | string) => `${V1}/steps/${stepId}/blocks`,
     /** 블록 배치 변경 — 스텝의 배치 전체를 한 번에 보낸다 */
     blocksLayout: (stepId: number | string) =>
@@ -171,6 +205,14 @@ export const ENDPOINTS = {
   },
   blocks: {
     detail: (blockId: number | string) => `${V1}/blocks/${blockId}`,
+    /**
+     * 블록을 **다른 스텝으로 이동** (2026-08-11 신설).
+     *
+     * ⚠️ 낙관적 락 대상이다 — `version` 필수, 409 면 재조회 · 덮어쓰기를 묻는다.
+     * ⚠️ 출발 · 도착 **양쪽 스텝의 EDITOR** 여야 한다 (`STEP_EDIT_DENIED`).
+     * ⚠️ 옮기면 **이슈 연결이 끊긴다** — 응답 `unlinkedIssueCount` 로 몇 건인지 알려준다.
+     */
+    step: (blockId: number | string) => `${V1}/blocks/${blockId}/step`,
     /** 체크리스트 항목 생성 — 블록 ID 기준 */
     checklistItems: (chkBlockId: number | string) =>
       `${V1}/blocks/checklists/${chkBlockId}/items`,
@@ -263,6 +305,38 @@ export const ENDPOINTS = {
     /** 미리보기 — 응답이 JSON 이 아니라 앞 5페이지를 잘라낸 PDF 바이너리다 */
     preview: (fileVersionId: number | string) =>
       `${V1}/file-versions/${fileVersionId}/preview`,
+  },
+  /**
+   * 입찰 도메인. (.ai/API.md 103~104 · `입찰 도메인 — 공통`)
+   *
+   * ⚠️ 수집 조건 경로는 명세 초안의 `crawl-conditions` 가 아니라 **`collection-conditions`** 다.
+   *    공고(`notices`)는 초안 그대로다.
+   */
+  bidding: {
+    /** 공고 목록 — 기간 · 발주처 · 카테고리 · 지역 · 마감임박 · 공고명으로 거른다 */
+    notices: `${V1}/bidding/notices`,
+    /** 공고 상세 — 첨부 목록(`attachments`)까지 함께 온다 */
+    notice: (noticeId: number | string) => `${V1}/bidding/notices/${noticeId}`,
+    /**
+     * 수집 조건 목록(GET) · 등록(POST).
+     * ⚠️ 초안 명세의 `crawl-conditions` 가 아니다. 목록은 페이징이 없다 (`data.content` 만).
+     */
+    collectionConditions: `${V1}/bidding/collection-conditions`,
+    /** 수집 조건 수정 — `sourceCode` 는 보낼 수 없다 (등록 때만 정한다) */
+    collectionCondition: (conditionId: number | string) =>
+      `${V1}/bidding/collection-conditions/${conditionId}`,
+    /**
+     * 수동 수집 요청 — 본문이 없고 `202` 로 `runId` 만 온다 (비동기).
+     * ⚠️ 비활성 조건은 400, 이미 돌고 있으면 409 다.
+     */
+    collectionRuns: (conditionId: number | string) =>
+      `${V1}/bidding/collection-conditions/${conditionId}/runs`,
+    /**
+     * 수집 실행 결과 — `PENDING` → `PROCESSING` → `COMPLETED` | `FAILED` 를 폴링한다.
+     * ⚠️ 실행 이력 **목록** API 는 없다 — `runId` 를 잃으면 되살릴 수 없다.
+     */
+    collectionRun: (runId: number | string) =>
+      `${V1}/bidding/collection-runs/${runId}`,
   },
   notifications: {
     /** 알림 목록 — `category` · `isRead` · `page` · `size` 로 거른다 */

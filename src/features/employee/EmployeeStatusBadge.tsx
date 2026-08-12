@@ -20,8 +20,9 @@ export function employeeStatusOf({
   return 'ACTIVE';
 }
 
+/** 색은 `globals.css` 의 팔레트 토큰만 쓴다 — hex 를 직접 적으면 테마가 갈린다 */
 const BADGE_STYLES: Record<EmployeeStatus, string> = {
-  ACTIVE: 'bg-[#12B76A]/10 text-green-text',
+  ACTIVE: 'bg-green-bg text-green-text',
   RESET_REQUIRED: 'bg-yellow-bg-soft text-yellow-text',
   INACTIVE: 'bg-red-bg-soft text-text-danger',
   RESIGNED: 'bg-bg-hover text-text-secondary',
@@ -34,7 +35,7 @@ export default function EmployeeStatusBadge({
 }) {
   return (
     <span
-      className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium whitespace-nowrap ${BADGE_STYLES[status]}`}
+      className={`inline-block rounded-button-sm px-1.5 py-0.5 text-caption font-medium whitespace-nowrap ${BADGE_STYLES[status]}`}
     >
       {EMPLOYEE_STATUS_LABELS[status]}
     </span>

@@ -75,14 +75,14 @@ export default function AnalysisHistoryPanel({
       className={SIDE_PANEL_WIDE}
       header={
         <div className="flex shrink-0 items-center gap-2 border-b border-border-default px-4 py-3">
-          <span className="flex size-5 shrink-0 items-center justify-center rounded border border-purple-border bg-blue-bg-soft text-[11px] text-[#4F39F6]">
+          <span className="flex size-5 shrink-0 items-center justify-center rounded-button-sm border border-purple-border bg-blue-bg-soft text-detail text-[#4F39F6]">
             ✦
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="text-xs font-semibold text-text-primary">
+            <h2 className="text-label font-semibold text-text-primary">
               비타메이트 분석 이력
             </h2>
-            <p className="truncate text-[10px] text-text-secondary">
+            <p className="truncate text-caption text-text-secondary">
               {blockTitle}
             </p>
           </div>
@@ -90,7 +90,7 @@ export default function AnalysisHistoryPanel({
             type="button"
             onClick={onClose}
             aria-label="닫기"
-            className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-text-secondary hover:bg-bg-hover"
+            className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-hover"
           >
             ✕
           </button>
@@ -118,12 +118,12 @@ export default function AnalysisHistoryPanel({
           // 빈 목록과 같은 모양이면 실패를 "아직 없음" 으로 오해한다
           <p
             role="alert"
-            className="rounded border border-red-border bg-red-bg-soft px-2.5 py-3 text-center text-[11px] break-keep text-text-danger"
+            className="rounded-button-sm border border-red-border bg-red-bg-soft px-2.5 py-3 text-center text-detail break-keep text-text-danger"
           >
             {listError}
           </p>
         ) : analyses.length === 0 ? (
-          <p className="py-10 text-center text-xs text-text-secondary">
+          <p className="py-10 text-center text-label text-text-secondary">
             아직 실행한 분석이 없습니다.
           </p>
         ) : (
@@ -138,14 +138,14 @@ export default function AnalysisHistoryPanel({
                   >
                     <span className="flex items-center gap-1.5">
                       <StatusBadge status={analysis.analysisStatus} />
-                      <span className="min-w-0 flex-1 truncate text-[10px] text-text-secondary">
+                      <span className="min-w-0 flex-1 truncate text-caption text-text-secondary">
                         {analysis.reviewType ?? '검토 유형 지정 안 됨'}
                       </span>
-                      <span className="shrink-0 text-[9px] text-text-secondary">
+                      <span className="shrink-0 text-micro text-text-secondary">
                         {formatDateTime(analysis.createdAt)}
                       </span>
                     </span>
-                    <span className="mt-1 line-clamp-2 block text-[10px] leading-relaxed break-keep text-text-primary">
+                    <span className="mt-1 line-clamp-2 block text-caption leading-relaxed break-keep text-text-primary">
                       {analysis.prompt ?? '프롬프트 없음'}
                     </span>
                   </button>
@@ -153,7 +153,7 @@ export default function AnalysisHistoryPanel({
               ))}
             </ul>
             {analyses.length >= 20 && (
-              <p className="mt-2 text-center text-[9px] text-text-secondary">
+              <p className="mt-2 text-center text-micro text-text-secondary">
                 최근 20건까지만 보여집니다.
               </p>
             )}
@@ -215,13 +215,15 @@ function AnalysisDetail({
       <button
         type="button"
         onClick={onBack}
-        className="cursor-pointer self-start text-[10px] font-medium text-[#4F39F6] hover:underline"
+        className="cursor-pointer self-start text-caption font-medium text-[#4F39F6] hover:underline"
       >
         ← 이력 목록
       </button>
 
       {error ? (
-        <p className="py-10 text-center text-xs text-text-secondary">{error}</p>
+        <p className="py-10 text-center text-label text-text-secondary">
+          {error}
+        </p>
       ) : !analysis ? (
         <div
           aria-hidden
@@ -231,7 +233,7 @@ function AnalysisDetail({
         <>
           <div className="flex items-center gap-1.5">
             <StatusBadge status={analysis.analysisStatus} />
-            <span className="text-[9px] text-text-secondary">
+            <span className="text-micro text-text-secondary">
               {formatDateTime(analysis.completedAt ?? analysis.createdAt)}
             </span>
           </div>
@@ -239,13 +241,13 @@ function AnalysisDetail({
           <DocumentRoleList documents={analysis.documents} />
 
           {analysis.prompt && (
-            <blockquote className="rounded bg-bg-surface px-2.5 py-2 text-[10px] leading-relaxed break-keep text-text-secondary">
+            <blockquote className="rounded-button-sm bg-bg-surface px-2.5 py-2 text-caption leading-relaxed break-keep text-text-secondary">
               {analysis.prompt}
             </blockquote>
           )}
 
           {analysis.analysisStatus === 'FAILED' ? (
-            <p className="rounded border border-red-border bg-red-bg-soft px-2.5 py-2 text-[10px] break-keep text-text-danger">
+            <p className="rounded-button-sm border border-red-border bg-red-bg-soft px-2.5 py-2 text-caption break-keep text-text-danger">
               {analysis.errorMessage ?? '분석에 실패했습니다.'}
             </p>
           ) : analysis.result ? (
@@ -256,11 +258,11 @@ function AnalysisDetail({
             />
           ) : isRunning(analysis.analysisStatus) ? (
             // 진행 중인데 "결과 없음" 이라고 하면 끝났는데 빈 것으로 읽힌다
-            <p className="text-[10px] text-text-secondary">
+            <p className="text-caption text-text-secondary">
               아직 검토하고 있어요. 잠시 후 다시 확인해주세요.
             </p>
           ) : (
-            <p className="text-[10px] text-text-secondary">
+            <p className="text-caption text-text-secondary">
               결과가 비어 있는 분석입니다.
             </p>
           )}
@@ -283,13 +285,13 @@ export function DocumentRoleList({
       {documents.map((document) => (
         <li
           key={document.fileVersionId}
-          className="flex max-w-full items-center gap-1 rounded border border-border-default bg-bg-surface px-1.5 py-0.5"
+          className="flex max-w-full items-center gap-1 rounded-button-sm border border-border-default bg-bg-surface px-1.5 py-0.5"
         >
           {/* 블록 카드와 같은 매퍼를 쓴다 — 한쪽만 REFERENCE 로 보이면 용어가 갈린다 */}
           <span className="shrink-0 text-[8px] font-bold tracking-wider text-text-secondary">
             {ROLE_LABEL[document.documentRole]}
           </span>
-          <span className="min-w-0 truncate text-[10px] text-text-primary">
+          <span className="min-w-0 truncate text-caption text-text-primary">
             {document.fileName}
           </span>
         </li>

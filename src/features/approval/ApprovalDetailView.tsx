@@ -229,7 +229,7 @@ export default function ApprovalDetailView({
 
   return (
     <>
-      <p className="text-xs text-text-secondary">
+      <p className="text-label text-text-secondary">
         <Link
           href={APPROVAL_ROUTES.list}
           className="hover:text-text-primary hover:underline"
@@ -244,16 +244,16 @@ export default function ApprovalDetailView({
           <div className="flex items-center gap-2">
             <ApprovalStatusBadge status={headerStatus} />
             {headerRevisionNo > 1 && (
-              <span className="rounded bg-bg-hover px-1.5 py-0.5 text-[11px] text-text-secondary">
+              <span className="rounded-button-sm bg-bg-hover px-1.5 py-0.5 text-detail text-text-secondary">
                 {headerRevisionNo}회차
               </span>
             )}
           </div>
-          <h2 className="mt-1.5 text-lg font-bold break-keep">
+          <h2 className="mt-1.5 text-heading-m font-bold break-keep">
             {/* 제목만은 이력 요약에 없다 — 회차가 도착해야 알 수 있다 */}
             {viewing ? viewing.title || '제목 없음' : '불러오는 중…'}
           </h2>
-          <p className="mt-1.5 text-xs text-text-secondary">
+          <p className="mt-1.5 text-label text-text-secondary">
             {approval.drafterName}
             {approval.drafterPosition && ` ${approval.drafterPosition}`}
             {approval.drafterDepartment && ` · ${approval.drafterDepartment}`}
@@ -272,7 +272,7 @@ export default function ApprovalDetailView({
       )}
 
       {isPast && (
-        <p className="mt-3 rounded-lg border border-border-primary/20 bg-blue-bg-soft px-3 py-2 text-xs break-keep text-text-primary-blue">
+        <p className="mt-3 rounded-lg border border-border-primary/20 bg-blue-bg-soft px-3 py-2 text-label break-keep text-text-primary-blue">
           ⓘ 지난 회차를 보고 있습니다. 이미 끝난 이력이라 처리할 수 없습니다.
         </p>
       )}
@@ -280,9 +280,9 @@ export default function ApprovalDetailView({
       {/* 지난 회차는 따로 받아온다 — 도착 전까지 본문을 그릴 수 없다 (현재 회차는 늘 있다) */}
       {!viewing ? (
         pastError === '' ? (
-          <p className="mt-6 text-xs text-text-secondary">불러오는 중…</p>
+          <p className="mt-6 text-label text-text-secondary">불러오는 중…</p>
         ) : (
-          <p className="mt-6 text-xs break-keep text-text-danger">
+          <p className="mt-6 text-label break-keep text-text-danger">
             {pastError}
           </p>
         )
@@ -346,7 +346,7 @@ function RevisionTabs({
             onClick={() =>
               onSelect(revision.isCurrent ? null : revision.revisionId)
             }
-            className={`cursor-pointer rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold ${
+            className={`cursor-pointer rounded-lg border px-2.5 py-1.5 text-detail font-semibold ${
               isSelected
                 ? 'border-[#4F39F6] bg-[#4F39F6]/5 text-[#4F39F6]'
                 : 'border-border-default text-text-secondary hover:bg-bg-hover'
@@ -387,14 +387,14 @@ function RevisionBody({
     <div className="mt-6 flex flex-col gap-4 lg:flex-row">
       <div className="flex min-w-0 flex-1 flex-col gap-4">
         <Card title="결재 내용">
-          <p className="text-xs leading-relaxed break-keep whitespace-pre-wrap text-text-primary">
+          <p className="text-label leading-relaxed break-keep whitespace-pre-wrap text-text-primary">
             {viewing.content || '내용 없음'}
           </p>
         </Card>
 
         <Card title="결재 문서">
           {viewing.documents.length === 0 ? (
-            <p className="text-xs text-text-secondary">
+            <p className="text-label text-text-secondary">
               첨부된 문서가 없습니다.
             </p>
           ) : (
@@ -407,17 +407,17 @@ function RevisionBody({
                     className="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-border-default px-3 py-2.5 text-left hover:bg-bg-surface"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs text-text-primary">
+                      <p className="truncate text-label text-text-primary">
                         {/* 파일명은 회차마다 확정된 버전의 것이다 (AP-013) */}
                         {document.fileName ??
                           `파일 버전 #${document.fileVersionId}`}
                       </p>
-                      <p className="mt-0.5 text-[11px] text-text-secondary">
+                      <p className="mt-0.5 text-detail text-text-secondary">
                         {document.fileSize !== undefined &&
                           formatFileSize(document.fileSize)}
                       </p>
                     </div>
-                    <span className="shrink-0 text-[11px] font-semibold text-text-primary-blue">
+                    <span className="shrink-0 text-detail font-semibold text-text-primary-blue">
                       보기
                     </span>
                   </button>
@@ -440,14 +440,14 @@ function RevisionBody({
               <button
                 type="button"
                 onClick={() => onProcess('reject')}
-                className="flex-1 cursor-pointer rounded-lg border border-border-danger/30 py-2 text-xs font-semibold text-text-danger hover:bg-red-bg-soft"
+                className="flex-1 cursor-pointer rounded-lg border border-border-danger/30 py-2 text-label font-semibold text-text-danger hover:bg-red-bg-soft"
               >
                 반려
               </button>
               <button
                 type="button"
                 onClick={() => onProcess('approve')}
-                className="flex-1 cursor-pointer rounded-lg bg-[#4F39F6] py-2 text-xs font-semibold text-white hover:bg-[#4430d6]"
+                className="flex-1 cursor-pointer rounded-lg bg-[#4F39F6] py-2 text-label font-semibold text-text-white hover:bg-[#4430d6]"
               >
                 승인
               </button>
@@ -467,8 +467,10 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-border-default p-4">
-      <h3 className="mb-3 text-xs font-semibold text-text-primary">{title}</h3>
+    <section className="rounded-base border border-border-default p-4">
+      <h3 className="mb-3 text-label font-semibold text-text-primary">
+        {title}
+      </h3>
       {children}
     </section>
   );
@@ -477,21 +479,23 @@ function Card({
 /** 실패 화면. 문구는 백엔드 것을 그대로 쓰고 목록으로 돌려보낸다 */
 function FailureView({ kind, message }: { kind: Failure; message: string }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-border-default py-20 text-center">
-      <span aria-hidden className="text-2xl">
+    <div className="flex flex-col items-center justify-center rounded-base border border-border-default py-20 text-center">
+      <span aria-hidden className="text-heading-xl">
         📄
       </span>
 
-      <p className="mt-3 text-sm font-semibold text-text-primary">
+      <p className="mt-3 text-body-m font-semibold text-text-primary">
         {kind === 'notFound'
           ? '결재를 찾을 수 없습니다'
           : '결재를 불러오지 못했습니다'}
       </p>
-      <p className="mt-1.5 text-xs break-keep text-text-secondary">{message}</p>
+      <p className="mt-1.5 text-label break-keep text-text-secondary">
+        {message}
+      </p>
 
       <Link
         href={APPROVAL_ROUTES.list}
-        className="mt-4 rounded-lg border border-border-default px-3 py-1.5 text-xs font-semibold text-text-primary hover:bg-bg-hover"
+        className="mt-4 rounded-lg border border-border-default px-3 py-1.5 text-label font-semibold text-text-primary hover:bg-bg-hover"
       >
         결재 목록으로
       </Link>

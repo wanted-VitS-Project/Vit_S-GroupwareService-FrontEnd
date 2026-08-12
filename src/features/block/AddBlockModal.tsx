@@ -105,17 +105,17 @@ export default function AddBlockModal({
       <Modal
         title="Block 추가"
         onClose={isSubmitting ? undefined : requestClose}
-        className="w-full max-w-[640px] overflow-hidden rounded-xl border border-border-default shadow-2xl"
+        className="w-full max-w-[640px] overflow-hidden rounded-base border border-border-default shadow-2xl"
         header={
           <div className="flex items-center justify-between gap-2 border-b border-border-default px-5 py-3.5">
             <div className="flex min-w-0 items-center gap-2">
-              <span className="flex size-5 shrink-0 items-center justify-center rounded border border-border-primary/20 bg-blue-bg-soft text-text-primary-blue">
+              <span className="flex size-5 shrink-0 items-center justify-center rounded-button-sm border border-border-primary/20 bg-blue-bg-soft text-text-primary-blue">
                 <BlockTypeIcon code="TEXT" />
               </span>
-              <h2 className="text-sm font-semibold text-text-primary">
+              <h2 className="text-body-m font-semibold text-text-primary">
                 Block 추가
               </h2>
-              <span className="truncate rounded bg-bg-hover px-1.5 py-0.5 text-[10px] text-text-secondary">
+              <span className="truncate rounded-button-sm bg-bg-hover px-1.5 py-0.5 text-caption text-text-secondary">
                 {stepName}
               </span>
             </div>
@@ -124,7 +124,7 @@ export default function AddBlockModal({
               onClick={requestClose}
               disabled={isSubmitting}
               aria-label="닫기"
-              className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               <CloseIcon />
             </button>
@@ -132,7 +132,7 @@ export default function AddBlockModal({
         }
       >
         <div className="max-h-[70vh] overflow-y-auto p-5">
-          <p className="text-[9px] tracking-[0.9px] text-text-secondary uppercase">
+          <p className="text-micro tracking-[0.9px] text-text-secondary uppercase">
             블록 유형 선택 ({BLOCK_TYPES.length})
           </p>
 
@@ -151,7 +151,7 @@ export default function AddBlockModal({
                   role="radio"
                   aria-checked={isSelected}
                   onClick={() => selectType(type.code)}
-                  className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-left ${
+                  className={`flex cursor-pointer items-start gap-3 rounded-base border p-3 text-left ${
                     isSelected
                       ? 'border-border-primary bg-blue-bg-soft'
                       : 'border-border-default hover:bg-bg-surface'
@@ -163,15 +163,15 @@ export default function AddBlockModal({
                       borderColor: type.border,
                       color: type.icon,
                     }}
-                    className="flex size-9 shrink-0 items-center justify-center rounded-xl border"
+                    className="flex size-9 shrink-0 items-center justify-center rounded-base border"
                   >
                     <BlockTypeIcon code={type.code} />
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-xs font-semibold text-text-primary">
+                    <span className="block text-label font-semibold text-text-primary">
                       {type.label}
                     </span>
-                    <span className="mt-0.5 block text-[10px] font-medium break-keep text-text-secondary">
+                    <span className="mt-0.5 block text-caption font-medium break-keep text-text-secondary">
                       {type.description}
                     </span>
                   </span>
@@ -181,7 +181,7 @@ export default function AddBlockModal({
           </div>
 
           <label className="mt-5 block">
-            <span className="block pb-1.5 text-[11px] font-semibold text-text-primary">
+            <span className="block pb-1.5 text-detail font-semibold text-text-primary">
               {titleLabel}{' '}
               <span className="font-normal text-text-secondary">(선택)</span>
             </span>
@@ -195,7 +195,7 @@ export default function AddBlockModal({
                   ? '예: 1차 기성'
                   : '블록의 이름을 입력해주세요.'
               }
-              className="w-full rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-[11px] text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+              className="w-full rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-detail text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
             />
           </label>
         </div>
@@ -203,7 +203,7 @@ export default function AddBlockModal({
         <div className="flex items-center justify-between gap-4 border-t border-border-default bg-bg-surface px-5 py-3.5">
           <p
             role={errorMessage ? 'alert' : undefined}
-            className={`text-[10px] ${
+            className={`text-caption ${
               errorMessage ? 'text-text-danger' : 'text-text-secondary'
             }`}
           >
@@ -217,7 +217,7 @@ export default function AddBlockModal({
               type="button"
               onClick={requestClose}
               disabled={isSubmitting}
-              className="cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               취소
             </button>
@@ -225,7 +225,7 @@ export default function AddBlockModal({
               type="button"
               onClick={submit}
               disabled={!selected || isSubmitting}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
             >
               {isSubmitting ? '추가 중…' : '추가하기'}
             </button>

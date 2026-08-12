@@ -86,7 +86,7 @@ export default function EmployeeDetail({ userId }: { userId: string }) {
 
   return (
     <>
-      <p className="text-xs text-text-secondary">
+      <p className="text-label text-text-secondary">
         <Link
           href="/settings"
           className="hover:text-text-primary hover:underline"
@@ -105,7 +105,7 @@ export default function EmployeeDetail({ userId }: { userId: string }) {
 
       {failure && !employee ? (
         <Centered>
-          <p className="text-xs break-keep text-text-secondary">
+          <p className="text-label break-keep text-text-secondary">
             {FAILURE_MESSAGES[failure]}
           </p>
           {/* 없는 사원 · 시스템 계정은 다시 불러도 결과가 같다 */}
@@ -157,10 +157,12 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
       <div className="mt-2 mb-6 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="truncate text-lg font-bold">{employee.name}</h2>
+            <h2 className="truncate text-heading-m font-bold">
+              {employee.name}
+            </h2>
             <EmployeeStatusBadge status={employeeStatusOf(employee)} />
           </div>
-          <p className="mt-1.5 text-xs text-text-secondary">
+          <p className="mt-1.5 text-label text-text-secondary">
             {employee.userId} · {employee.departmentPath ?? '부서 미지정'}
           </p>
         </div>
@@ -174,7 +176,7 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
 
       {/* 이메일이 없으면 로그인도 비밀번호 재설정도 못 한다 — 조치가 필요해 위로 올린다 */}
       {!employee.emailRegistered && (
-        <p className="mb-4 rounded-lg border border-yellow-border/30 bg-yellow-bg-soft px-4 py-3 text-[11px] leading-relaxed break-keep text-yellow-text">
+        <p className="mb-4 rounded-lg border border-yellow-border/30 bg-yellow-bg-soft px-4 py-3 text-detail leading-relaxed break-keep text-yellow-text">
           ⚠ 이메일이 등록되지 않아 이 사원은 <b>로그인할 수 없습니다.</b>{' '}
           비밀번호 초기화도 실패합니다 — 먼저{' '}
           <Link
@@ -283,7 +285,7 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
 
         <Card title="소속 그룹">
           {employee.groups.length === 0 ? (
-            <p className="text-xs text-text-secondary">
+            <p className="text-label text-text-secondary">
               소속된 그룹이 없습니다.
             </p>
           ) : (
@@ -291,7 +293,7 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
               {employee.groups.map((group) => (
                 <li
                   key={group.groupId}
-                  className="rounded-full border border-border-default bg-bg-surface px-2.5 py-1 text-[11px] text-text-primary"
+                  className="rounded-pill border border-border-default bg-bg-surface px-2.5 py-1 text-detail text-text-primary"
                 >
                   {group.name}
                 </li>
@@ -300,23 +302,25 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
           )}
         </Card>
 
-        <section className="rounded-xl border border-border-danger/20 bg-white p-5">
-          <h3 className="text-xs font-semibold text-text-danger">퇴사 처리</h3>
+        <section className="rounded-base border border-border-danger/20 bg-bg-card p-5">
+          <h3 className="text-label font-semibold text-text-danger">
+            퇴사 처리
+          </h3>
           {isResigned ? (
-            <p className="mt-2 text-[11px] break-keep text-text-secondary">
+            <p className="mt-2 text-detail break-keep text-text-secondary">
               {formatDate(employee.resignedAt)} 에 퇴사 처리되었습니다. 사원
               정보는 과거 이력에 그대로 남습니다.
             </p>
           ) : (
             <div className="mt-2 flex items-end justify-between gap-4">
-              <p className="text-[11px] break-keep text-text-secondary">
+              <p className="text-detail break-keep text-text-secondary">
                 퇴사일을 기록하고 계정을 즉시 정지합니다. 사원 정보는 삭제되지
                 않습니다.
               </p>
               <button
                 type="button"
                 onClick={() => modal.open('resignation')}
-                className="shrink-0 cursor-pointer rounded-lg bg-red-text px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#c50009]"
+                className="shrink-0 cursor-pointer rounded-lg bg-red-text px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-danger-hover"
               >
                 퇴사 처리
               </button>
@@ -365,8 +369,8 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-border-default bg-white p-5">
-      <h3 className="text-xs font-semibold text-text-primary">{title}</h3>
+    <section className="rounded-base border border-border-default bg-bg-card p-5">
+      <h3 className="text-label font-semibold text-text-primary">{title}</h3>
       <div className="mt-4">{children}</div>
     </section>
   );
@@ -405,7 +409,7 @@ interface FieldProps {
 
 function Field({ label, value, warning, action }: FieldProps) {
   return (
-    <div className="flex items-center gap-4 text-xs">
+    <div className="flex items-center gap-4 text-label">
       {/* 라벨 폭을 고정해 값의 시작선을 맞춘다 — '마지막 로그인' 이 들어가는 너비 */}
       <dt className="w-24 shrink-0 text-text-secondary">{label}</dt>
       <dd className="m-0 min-w-0 flex-1">
@@ -413,7 +417,7 @@ function Field({ label, value, warning, action }: FieldProps) {
           {value || '-'}
         </span>
         {warning && (
-          <span className="mt-0.5 block text-[10px] break-keep text-yellow-text">
+          <span className="mt-0.5 block text-caption break-keep text-yellow-text">
             ⚠ {warning}
           </span>
         )}
@@ -443,7 +447,7 @@ function CardButton({
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={`cursor-pointer rounded-lg border px-3 py-1 text-[11px] font-semibold disabled:cursor-not-allowed disabled:border-border-default disabled:text-text-muted ${
+      className={`cursor-pointer rounded-lg border px-3 py-1 text-detail font-semibold disabled:cursor-not-allowed disabled:border-border-default disabled:text-text-muted ${
         danger
           ? 'border-border-danger/30 text-text-danger hover:bg-red-bg-soft'
           : 'border-border-default text-text-primary hover:bg-bg-hover'
@@ -456,7 +460,7 @@ function CardButton({
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mt-4 flex flex-col items-center justify-center gap-3 rounded-xl border border-border-default bg-white px-5 py-20 text-center">
+    <div className="mt-4 flex flex-col items-center justify-center gap-3 rounded-base border border-border-default bg-bg-card px-5 py-20 text-center">
       {children}
     </div>
   );

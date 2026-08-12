@@ -8,7 +8,7 @@ export default function PageTitle({
 }) {
   return (
     <div className="mb-6 flex items-center justify-between">
-      <h2 className="text-lg font-bold">{title}</h2>
+      <h2 className="text-heading-m font-bold">{title}</h2>
       {children}
     </div>
   );

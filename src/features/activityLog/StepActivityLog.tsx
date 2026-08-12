@@ -93,13 +93,15 @@ export default function StepActivityLog() {
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-text-primary">활동 기록</h2>
+          <h2 className="text-body-m font-semibold text-text-primary">
+            활동 기록
+          </h2>
           {/*
             건수 배지는 목록이 있는 동안 계속 자리를 지킨다 —
             조건이 바뀔 때마다 사라졌다 나타나면 제목 줄이 흔들린다
           */}
           {visible && (
-            <span className="rounded-full bg-bg-hover px-2 py-0.5 text-[10px] text-text-secondary">
+            <span className="rounded-pill bg-bg-hover px-2 py-0.5 text-caption text-text-secondary">
               {visible.logs.length}건{visible.hasNext && ' +'}
             </span>
           )}
@@ -109,7 +111,7 @@ export default function StepActivityLog() {
           {/* 필터를 못 읽었다는 사실과 다시 시도할 방법을 알린다 — 조용히 비워 두지 않는다 */}
           {hasBlocksFailed && (
             <span className="flex items-center gap-1.5">
-              <span role="alert" className="text-[10px] text-text-danger">
+              <span role="alert" className="text-caption text-text-danger">
                 블록 목록을 불러오지 못했습니다.
               </span>
               <button
@@ -118,14 +120,14 @@ export default function StepActivityLog() {
                   setBlocksFailedStepId(null);
                   setBlocksReloadCount((count) => count + 1);
                 }}
-                className="cursor-pointer rounded px-1.5 py-0.5 text-[10px] font-semibold text-text-primary-blue hover:bg-blue-bg-soft"
+                className="cursor-pointer rounded-button-sm px-1.5 py-0.5 text-caption font-semibold text-text-primary-blue hover:bg-blue-bg-soft"
               >
                 다시 시도
               </button>
             </span>
           )}
 
-          <label className="flex items-center gap-2 text-[11px] text-text-secondary">
+          <label className="flex items-center gap-2 text-detail text-text-secondary">
             블록
             <select
               value={blockFilter}
@@ -134,7 +136,7 @@ export default function StepActivityLog() {
                 // 목록이 통째로 갈리는데 스크롤이 중간에 남아 있으면 아무 데나 떨어진다
                 topRef.current?.scrollIntoView({ block: 'start' });
               }}
-              className="cursor-pointer rounded-md border border-border-default bg-white px-2 py-1.5 text-[11px] text-text-primary focus:border-border-primary focus:outline-none"
+              className="cursor-pointer rounded-button-md border border-border-default bg-bg-card px-2 py-1.5 text-detail text-text-primary focus:border-border-primary focus:outline-none"
             >
               <option value={ALL_BLOCKS}>전체</option>
               {blocks?.map((block) => (
@@ -149,13 +151,13 @@ export default function StepActivityLog() {
 
       {hasFailed ? (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border-default px-4 py-12">
-          <p className="text-xs text-text-secondary">
+          <p className="text-label text-text-secondary">
             활동 기록을 불러오지 못했습니다.
           </p>
           <button
             type="button"
             onClick={retry}
-            className="cursor-pointer rounded px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+            className="cursor-pointer rounded-button-sm px-2 py-1 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
           >
             다시 시도
           </button>
@@ -163,7 +165,7 @@ export default function StepActivityLog() {
       ) : !visible ? (
         <ActivityLogSkeleton />
       ) : visible.logs.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border-default px-4 py-12 text-center text-[11px] text-text-secondary">
+        <p className="rounded-lg border border-dashed border-border-default px-4 py-12 text-center text-detail text-text-secondary">
           아직 활동 기록이 없습니다.
         </p>
       ) : (
@@ -177,7 +179,7 @@ export default function StepActivityLog() {
           {groups.map((group) => (
             <section key={group.dateKey}>
               <div className="mb-3 flex items-center gap-3">
-                <h3 className="text-[10px] font-semibold tracking-wider text-text-secondary">
+                <h3 className="text-caption font-semibold tracking-wider text-text-secondary">
                   {group.dateLabel}
                 </h3>
                 <span aria-hidden className="h-px flex-1 bg-bg-sidebar/10" />
@@ -200,14 +202,14 @@ export default function StepActivityLog() {
             <div className="flex flex-col items-center gap-2">
               <p
                 role="alert"
-                className="rounded-lg border border-red-border bg-red-bg-soft px-3 py-2 text-[10px] text-text-danger"
+                className="rounded-lg border border-red-border bg-red-bg-soft px-3 py-2 text-caption text-text-danger"
               >
                 {errorMessage}
               </p>
               <button
                 type="button"
                 onClick={loadMore}
-                className="cursor-pointer rounded px-2 py-1 text-[11px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+                className="cursor-pointer rounded-button-sm px-2 py-1 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
               >
                 다시 시도
               </button>
@@ -225,7 +227,7 @@ export default function StepActivityLog() {
             스켈레톤 ↔ 문구가 번갈아 나타나며 바닥이 깜빡인다
           */}
           {!visible.hasNext && !isLoadingMore && (
-            <p className="text-center text-[10px] text-text-muted">
+            <p className="text-center text-caption text-text-muted">
               마지막 기록입니다.
             </p>
           )}
