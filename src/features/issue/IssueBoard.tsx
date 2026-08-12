@@ -9,7 +9,8 @@ import { getProjectSteps } from '@/features/project/api';
 import { isAbortError, messageOf } from '@/lib/api';
 
 import DeleteIssueModal from './DeleteIssueModal';
-import { getStepIssues, updateIssueStatus } from './api';
+import { getIssue, getStepIssues, updateIssueStatus } from './api';
+import { isIssueVersionConflict } from './errorCodes';
 import { notifyIssueChanged } from './events';
 import IssueCard from './IssueCard';
 import { IssueBoardSkeleton } from './IssueSkeletons';
@@ -234,27 +235,90 @@ export default function IssueBoard() {
    */
   const sendingStatusRef = useRef(new Set<number>());
 
-  /** 화면을 먼저 옮기고 호출한다. 실패하면 되돌린다 (명세 59번) */
+  /**
+   * 화면을 먼저 옮기고 호출한다. 실패하면 되돌린다 (명세 59번)
+   *
+   * ⚠️ **낙관적 락이다** (2026-08-12) — 카드가 든 `version` 을 실어 보낸다.
+   *    409 면 최신값을 읽어, 남이 이미 같은 상태로 바꿔 뒀으면 **버전만 맞추고**
+   *    다른 상태로 바꿨으면 **카드를 그 상태로 되돌린다.**
+   */
   async function changeStatus(issueId: number, status: IssueStatus) {
     const index = issues?.findIndex((issue) => issue.issueId === issueId) ?? -1;
     const before = index >= 0 ? issues?.[index] : undefined;
     if (!before || before.status === status) return;
     if (sendingStatusRef.current.has(issueId)) return;
 
+    // 버전 없이 보내면 400 이다 — 옮기지 않고 재조회를 안내한다 (`types.ts` 참고)
+    if (before.version === undefined) {
+      setErrorMessage(
+        '이슈 버전 정보를 받지 못해 상태를 변경할 수 없습니다. 새로고침해주세요.',
+      );
+      return;
+    }
+
     sendingStatusRef.current.add(issueId);
     setErrorMessage('');
     moveToFront(before, status);
 
     try {
-      await updateIssueStatus(issueId, status);
+      const changed = await updateIssueStatus(issueId, status, before.version);
+      /*
+       * 상태 변경도 issue 버전을 올린다. 옛 값을 들고 있으면 다음 수정이 409 라
+       * 새 값으로 갈아끼운다. 응답에 없으면 **비워** 다음 저장이 재조회를 타게 한다
+       * (옛 값을 그대로 두는 것보다 낫다).
+       */
+      replaceIssue({ ...before, status, version: changed.version });
       // 스텝 · 프로젝트 진척률이 바뀐다 — 사이드바가 다시 읽게 알린다
       notifyIssueChanged();
     } catch (caught) {
-      restoreAt(before, index);
-      setErrorMessage(messageOf(caught, '이슈 상태를 변경하지 못했습니다.'));
+      if (isIssueVersionConflict(caught)) {
+        await syncAfterConflict(issueId, status, before, index);
+      } else {
+        restoreAt(before, index);
+        setErrorMessage(messageOf(caught, '이슈 상태를 변경하지 못했습니다.'));
+      }
     } finally {
       sendingStatusRef.current.delete(issueId);
     }
+  }
+
+  /** 409 뒷처리 — 최신 상태 · 버전으로 카드를 맞춘다 */
+  async function syncAfterConflict(
+    issueId: number,
+    wanted: IssueStatus,
+    before: IssueSummary,
+    index: number,
+  ) {
+    let latest: IssueDetail | null = null;
+    try {
+      latest = await getIssue(issueId);
+    } catch {
+      latest = null;
+    }
+
+    if (latest === null) {
+      restoreAt(before, index);
+      setErrorMessage(
+        '다른 사람이 먼저 이 이슈를 바꿨습니다. 최신 상태를 불러오지 못했으니 새로고침해주세요.',
+      );
+      return;
+    }
+
+    // 남이 이미 같은 상태로 옮겨 뒀다 — 카드는 그대로 두고 버전만 맞춘다
+    if (latest.status === wanted) {
+      replaceIssue(latest);
+      notifyIssueChanged();
+      return;
+    }
+
+    restoreAt(
+      { ...before, status: latest.status, version: latest.version },
+      index,
+    );
+    setErrorMessage(
+      '다른 사람이 먼저 이 이슈의 상태를 바꿔, 최신 상태로 맞췄습니다.',
+    );
+    notifyIssueChanged();
   }
 
   const handleDragStart = useCallback(

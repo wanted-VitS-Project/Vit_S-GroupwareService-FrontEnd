@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import MemberAvatar from '@/components/MemberAvatar';
 import Modal from '@/components/Modal';
 import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
+import { notifyToast } from '@/components/Toast';
 import { getStepBlocks } from '@/features/block/api';
 import type { StepBlock } from '@/features/block/types';
 import { getProjectMembers } from '@/features/project/api';
@@ -12,15 +13,29 @@ import type { ProjectMember } from '@/features/project/types';
 import { isAbortError, messageOf } from '@/lib/api';
 
 import { createIssue, getIssue, toCreateDueDate, updateIssue } from './api';
-import { IssueBlockIcon } from './IssueBadges';
 import {
+  ISSUE_MERGED_MESSAGE,
+  ISSUE_NO_VERSION_MESSAGE,
+  isIssueVersionConflict,
+} from './errorCodes';
+import { IssueBlockIcon } from './IssueBadges';
+import IssueConflictModal, {
+  type IssueConflictChoice,
+  type IssueConflictRow,
+} from './IssueConflictModal';
+import {
+  changedIssueFields,
+  ISSUE_FIELD_LABELS,
   ISSUE_PRIORITY_LABELS,
   ISSUE_PRIORITY_ORDER,
   ISSUE_PRIORITY_STYLES,
   type IssueDetail,
+  type IssueEditField,
   type IssueFormValues,
   type IssuePriority,
-  type UpdateIssueRequest,
+  issuePatchOf,
+  mergeIssueFields,
+  toIssueFormValues,
 } from './types';
 
 const FIELD_CLASS =
@@ -70,24 +85,6 @@ const EMPTY_FORM: IssueFormValues = {
   blockIds: [],
 };
 
-function toFormValues(issue: IssueDetail): IssueFormValues {
-  return {
-    title: issue.title,
-    content: issue.content ?? '',
-    priority: issue.priority,
-    dueDate: issue.dueDate ?? '',
-    assigneeIds: issue.assignees.map((assignee) => assignee.userId),
-    blockIds: issue.relatedBlocks.map((block) => block.blockId),
-  };
-}
-
-/** 순서만 다른 같은 집합은 변경으로 보지 않는다 — 불필요한 관계 재동기화를 막는다 */
-function isSameSet<T>(left: T[], right: T[]) {
-  return (
-    left.length === right.length && left.every((item) => right.includes(item))
-  );
-}
-
 /**
  * 이슈 생성 · 수정 폼. (.ai/API.md 56 · 58번)
  *
@@ -96,6 +93,14 @@ function isSameSet<T>(left: T[], right: T[]) {
  *
  * ⚠️ 상태는 이 폼에서 다루지 않는다. 생성은 항상 `TODO`(시작 전)이고,
  *    이후 변경은 보드에서 드래그로만 한다.
+ *
+ * ⚠️ **낙관적 락** (2026-08-12 신설) — 세 벌을 구분해서 든다:
+ *    - `base` : 최초 조회값. 비교 기준이자 **요청에 실을 `version` 의 출처**다
+ *    - `values`(draft) : 사용자가 지금 입력하고 있는 값. 409 가 와도 **건드리지 않는다**
+ *    - `latest` : 409 뒤에 다시 읽은 서버값. `conflict` 안에만 두고 `base` 를 바로 덮지 않는다
+ *
+ *    409 를 받으면 `내가 고친 필드 ∩ 남이 고친 필드` 를 계산해서,
+ *    겹치지 않으면 **조용히 병합해 한 번 재시도**하고, 겹치면 **사용자에게 고르게 한다.**
  */
 export default function IssueFormModal({
   projectId,
@@ -126,10 +131,25 @@ export default function IssueFormModal({
    */
   const [form, setForm] = useState<{
     key: number | null;
-    /** 수정 모드에서 무엇이 바뀌었는지 비교할 원본 (생성 모드는 null) */
-    original: IssueDetail | null;
+    /**
+     * 최초 조회값 — 무엇이 바뀌었는지 비교할 기준이고, 요청에 실을 `version` 의 출처다.
+     * (생성 모드는 `null`)
+     */
+    base: IssueDetail | null;
+    /** 사용자가 입력하고 있는 값(draft). 409 가 와도 초기화하지 않는다 */
     values: IssueFormValues;
-  } | null>(isEdit ? null : { key: null, original: null, values: EMPTY_FORM });
+  } | null>(isEdit ? null : { key: null, base: null, values: EMPTY_FORM });
+  /**
+   * 409 로 멈춘 뒤 사용자에게 물을 것.
+   *
+   * ⚠️ `latest` 를 `base` 에 바로 꽂지 않는다 — 사용자가 고르기 전에 기준을 옮기면
+   *    "내가 고친 필드" 판정이 달라져 내 입력이 변경 아닌 것으로 보일 수 있다.
+   */
+  const [conflict, setConflict] = useState<{
+    key: number | null;
+    latest: IssueDetail;
+    fields: IssueEditField[];
+  } | null>(null);
   /** 상세 조회 실패 — 로딩과 구분한다 */
   const [failed, setFailed] = useState<{
     key: number | null;
@@ -148,9 +168,16 @@ export default function IssueFormModal({
   // 지금 열려 있는 이슈의 것만 화면에 쓴다 (다른 이슈의 잔상 · 실패는 버린다)
   const current = form?.key === formKey ? form : null;
   const values = current?.values ?? null;
-  const original = current?.original ?? null;
+  const base = current?.base ?? null;
   const loadFailure = failed?.key === formKey ? failed.message : null;
   const errorMessage = saveError?.key === formKey ? saveError.message : '';
+  const asking = conflict?.key === formKey ? conflict : null;
+
+  /**
+   * 수정에 필요한 `version` 을 못 받은 경우. 그대로 보내면 400 이라 저장 자체를 막는다.
+   * (스테이지 · 스텝 · 블록과 같은 방침 — `types.ts` 참고)
+   */
+  const hasNoVersion = base !== null && base.version === undefined;
 
   /** 저장 오류 문구를 지금 대상에 붙여 둔다 */
   function showError(message: string) {
@@ -163,7 +190,12 @@ export default function IssueFormModal({
 
     getIssue(issueId, controller.signal)
       .then((issue) => {
-        setForm({ key: issueId, original: issue, values: toFormValues(issue) });
+        // base 와 draft 에 각각 복사한다 — 이후 입력은 draft 만 바꾼다
+        setForm({
+          key: issueId,
+          base: issue,
+          values: toIssueFormValues(issue),
+        });
         setFailed((prev) => (prev?.key === issueId ? null : prev));
       })
       .catch((caught) => {
@@ -240,37 +272,137 @@ export default function IssueFormModal({
     );
   }
 
-  /** 수정 모드에서 실제로 바뀐 필드만 모은다. `null` 은 해제 신호다 */
-  function buildPatch(form: IssueFormValues, before: IssueDetail) {
-    const body: UpdateIssueRequest = {};
+  /** draft 를 지금 base 기준으로 갈아끼운다 — 자동 병합 · 충돌 해소가 함께 쓴다 */
+  function rebase(nextBase: IssueDetail, nextValues: IssueFormValues) {
+    setForm((prev) =>
+      prev === null || prev.key !== formKey
+        ? prev
+        : { ...prev, base: nextBase, values: nextValues },
+    );
+  }
 
-    if (form.title !== before.title) body.title = form.title;
+  /**
+   * 수정 저장 — **바뀐 필드만** `base.version` 과 함께 보낸다.
+   *
+   * `isMerged` 는 자동 병합 재시도인지다. 재시도에서 또 409 면 다시 병합하지 않는다 —
+   * 남이 계속 저장하는 동안 화면이 같은 자리를 무한히 돌 수 있다.
+   */
+  async function saveEdit(
+    id: number,
+    draft: IssueFormValues,
+    from: IssueDetail,
+    isMerged: boolean,
+  ) {
+    const mine = changedIssueFields(draft, toIssueFormValues(from));
 
-    const content = form.content.trim() || null;
-    if (content !== (before.content ?? null)) body.content = content;
-
-    const dueDate = form.dueDate || null;
-    if (dueDate !== (before.dueDate ?? null)) body.dueDate = dueDate;
-
-    if (form.priority !== before.priority) body.priority = form.priority;
-
-    const beforeAssignees = before.assignees.map((assignee) => assignee.userId);
-    if (!isSameSet(form.assigneeIds, beforeAssignees)) {
-      body.assigneeIds = form.assigneeIds;
+    // 바뀐 게 없으면 요청을 보내지 않는다
+    if (mine.length === 0) {
+      onSaved(from);
+      return;
+    }
+    if (from.version === undefined) {
+      showError(ISSUE_NO_VERSION_MESSAGE);
+      setIsSaving(false);
+      return;
     }
 
-    const beforeBlocks = before.relatedBlocks.map((block) => block.blockId);
-    if (!isSameSet(form.blockIds, beforeBlocks)) {
-      body.blockIds = form.blockIds;
+    try {
+      const saved = await updateIssue(
+        id,
+        issuePatchOf(draft, mine, from.version),
+      );
+      // 병합해 저장한 것을 모르고 지나가면 안 된다 — 모달은 닫히므로 토스트로 알린다
+      if (isMerged) notifyToast(ISSUE_MERGED_MESSAGE);
+      onSaved(saved);
+      return;
+    } catch (caught) {
+      if (!isIssueVersionConflict(caught)) {
+        showError(messageOf(caught, '이슈를 수정하지 못했습니다.'));
+        setIsSaving(false);
+        return;
+      }
     }
 
-    return body;
+    // 409 — draft · 입력 화면 · 커서는 그대로 두고 뒷처리만 한다
+    await resolveConflict(id, draft, from, mine, isMerged);
+  }
+
+  /** 409 뒷처리 — 최신값을 읽어 자동 병합하거나, 겹치는 필드를 사용자에게 묻는다 */
+  async function resolveConflict(
+    id: number,
+    draft: IssueFormValues,
+    from: IssueDetail,
+    mine: IssueEditField[],
+    isMerged: boolean,
+  ) {
+    let latest: IssueDetail;
+    try {
+      latest = await getIssue(id);
+    } catch (caught) {
+      showError(
+        messageOf(
+          caught,
+          '최신 내용을 불러오지 못했습니다. 다시 시도해주세요.',
+        ),
+      );
+      setIsSaving(false);
+      return;
+    }
+
+    const latestValues = toIssueFormValues(latest);
+    const theirs = changedIssueFields(latestValues, toIssueFormValues(from));
+    // 남이 고쳤어도 **결과가 내 값과 같으면** 다툴 게 없다
+    const differs = changedIssueFields(draft, latestValues);
+    const clash = mine.filter(
+      (field) => theirs.includes(field) && differs.includes(field),
+    );
+
+    if (clash.length > 0) {
+      // 여기서는 base 를 옮기지 않는다 — 사용자가 고른 뒤에 옮긴다
+      setConflict({ key: formKey, latest, fields: clash });
+      setIsSaving(false);
+      return;
+    }
+
+    // 겹치는 필드가 없다 — 최신값 위에 내 수정만 얹어 최신 version 으로 다시 보낸다
+    const merged = mergeIssueFields(latestValues, draft, mine);
+    rebase(latest, merged);
+
+    if (isMerged) {
+      // 병합 재시도까지 밀렸다 — 기준만 최신으로 옮기고 다음 저장은 사용자에게 맡긴다
+      showError(
+        '다른 사람이 계속 수정하고 있어 저장이 밀렸습니다. 최신 내용을 반영했으니 다시 저장해주세요.',
+      );
+      setIsSaving(false);
+      return;
+    }
+
+    await saveEdit(id, merged, latest, true);
+  }
+
+  /** 비교 UI 에서 고른 결과로 저장한다 — 고르지 않은(겹치지 않는) 필드는 이미 병합 대상이다 */
+  async function applyConflictChoice(choices: IssueConflictChoice) {
+    if (asking === null || values === null || base === null) return;
+    if (issueId === undefined) return;
+
+    const { latest } = asking;
+    const mine = changedIssueFields(values, toIssueFormValues(base));
+    // `최신값` 을 고른 필드만 내 수정에서 뺀다
+    const keep = mine.filter((field) => choices[field] !== 'theirs');
+    const resolved = mergeIssueFields(toIssueFormValues(latest), values, keep);
+
+    setConflict(null);
+    rebase(latest, resolved);
+    setSaveError(null);
+    setIsSaving(true);
+    // 기준을 최신으로 옮겼으니 또 409 면 자동 병합 대신 다시 묻는다
+    await saveEdit(issueId, resolved, latest, true);
   }
 
   async function submit() {
     // 현재 대상의 상세를 아직 못 받았으면 저장하지 않는다 (다른 이슈를 덮어쓸 수 있다)
     if (values === null || isSaving) return;
-    if (isEdit && original === null) return;
+    if (isEdit && base === null) return;
 
     const title = values.title.trim();
     if (!title) {
@@ -285,19 +417,12 @@ export default function IssueFormModal({
     setIsSaving(true);
     setSaveError(null);
 
+    if (base !== null && issueId !== undefined) {
+      await saveEdit(issueId, { ...values, title }, base, false);
+      return;
+    }
+
     try {
-      if (original !== null && issueId !== undefined) {
-        const body = buildPatch({ ...values, title }, original);
-        // 바뀐 게 없으면 요청을 보내지 않는다
-        const saved =
-          Object.keys(body).length > 0
-            ? await updateIssue(issueId, body)
-            : original;
-
-        onSaved(saved);
-        return;
-      }
-
       const created = await createIssue(stepId, {
         title,
         content: values.content.trim() || null,
@@ -311,14 +436,8 @@ export default function IssueFormModal({
       });
       onSaved(created);
     } catch (caught) {
-      showError(
-        messageOf(
-          caught,
-          isEdit
-            ? '이슈를 수정하지 못했습니다.'
-            : '이슈를 생성하지 못했습니다.',
-        ),
-      );
+      // 수정 실패는 `saveEdit` 이 안내한다 — 여기까지 오는 것은 생성뿐이다
+      showError(messageOf(caught, '이슈를 생성하지 못했습니다.'));
       setIsSaving(false);
     }
   }
@@ -328,310 +447,390 @@ export default function IssueFormModal({
     (member) => !values?.assigneeIds.includes(member.userId),
   );
 
+  /**
+   * 겹친 필드의 비교 문구.
+   *
+   * 담당자 · 블록은 ID 만으로는 무엇이 다른지 알 수 없다 — 이름을 아는 곳이 여기라
+   * 문구를 만들어 넘긴다 (비교 모달은 값을 그리기만 한다).
+   */
+  function conflictRows(latest: IssueDetail): IssueConflictRow[] {
+    if (values === null) return [];
+
+    const latestValues = toIssueFormValues(latest);
+
+    /** 담당자 이름 — 참여자 목록에 없으면(퇴사 · 권한 회수) 최신값의 이름, 없으면 사번 */
+    function assigneeNames(ids: string[]) {
+      return (
+        ids
+          .map(
+            (userId) =>
+              members.find((member) => member.userId === userId)?.name ??
+              latest.assignees.find((assignee) => assignee.userId === userId)
+                ?.name ??
+              userId,
+          )
+          .join(', ') || ''
+      );
+    }
+
+    function blockNames(ids: number[]) {
+      return (
+        ids
+          .map(
+            (blockId) =>
+              blocks.find((block) => block.blockId === blockId)?.title ||
+              latest.relatedBlocks.find((block) => block.blockId === blockId)
+                ?.title ||
+              `블록 #${blockId}`,
+          )
+          .join(', ') || ''
+      );
+    }
+
+    function describe(field: IssueEditField, from: IssueFormValues) {
+      if (field === 'priority') return ISSUE_PRIORITY_LABELS[from.priority];
+      if (field === 'assigneeIds') return assigneeNames(from.assigneeIds);
+      if (field === 'blockIds') return blockNames(from.blockIds);
+      return from[field];
+    }
+
+    return (asking?.fields ?? []).map((field) => ({
+      field,
+      label: ISSUE_FIELD_LABELS[field],
+      mine: describe(field, values),
+      theirs: describe(field, latestValues),
+    }));
+  }
+
   return (
-    <Modal
-      title={modalTitle}
-      onClose={isSaving ? undefined : onClose}
-      className="flex max-h-[90vh] w-full max-w-[560px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
-      header={
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border-default px-5 py-3.5">
-          <div className="flex min-w-0 items-center gap-2">
-            <IssueMarkIcon />
-            <h2 className="text-body-m font-semibold text-text-primary">
-              {modalTitle}
-            </h2>
-            {stepName && (
-              <span className="truncate rounded-button-sm bg-bg-hover px-1.5 py-0.5 text-caption text-text-secondary">
-                {stepName}
-              </span>
-            )}
-            {isEdit && (
-              <span className="text-caption text-text-secondary">
-                #{issueId}
-              </span>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSaving}
-            aria-label="닫기"
-            className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            ✕
-          </button>
-        </div>
-      }
-    >
-      {loadFailure ? (
-        <div className="flex flex-col items-center gap-3 px-5 py-12">
-          <p role="alert" className="text-label text-text-danger">
-            {loadFailure}
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setRetryCount((count) => count + 1)}
-              className="cursor-pointer rounded-lg border border-border-default px-3 py-1.5 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
-            >
-              다시 시도
-            </button>
+    <>
+      <Modal
+        title={modalTitle}
+        onClose={isSaving ? undefined : onClose}
+        className="flex max-h-[90vh] w-full max-w-[560px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
+        header={
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border-default px-5 py-3.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <IssueMarkIcon />
+              <h2 className="text-body-m font-semibold text-text-primary">
+                {modalTitle}
+              </h2>
+              {stepName && (
+                <span className="truncate rounded-button-sm bg-bg-hover px-1.5 py-0.5 text-caption text-text-secondary">
+                  {stepName}
+                </span>
+              )}
+              {isEdit && (
+                <span className="text-caption text-text-secondary">
+                  #{issueId}
+                </span>
+              )}
+            </div>
             <button
               type="button"
               onClick={onClose}
-              className="cursor-pointer rounded-lg px-3 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover"
+              disabled={isSaving}
+              aria-label="닫기"
+              className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
-              닫기
+              ✕
             </button>
           </div>
-        </div>
-      ) : values === null ? (
-        <SkeletonGroup
-          label="이슈를 불러오는 중"
-          className="flex flex-col gap-4 p-5"
-        >
-          <Skeleton className="h-[34px] w-full" />
-          <Skeleton className="h-16 w-full" />
-          <Skeleton className="h-[34px] w-1/2" />
-        </SkeletonGroup>
-      ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
-          <label className="block">
-            <FieldLabel required>이슈 이름</FieldLabel>
-            <input
-              autoFocus
-              maxLength={200}
-              value={values.title}
-              onChange={(event) => patch({ title: event.target.value })}
-              placeholder="이슈 이름을 입력하세요"
-              className={FIELD_CLASS}
-            />
-          </label>
-
-          <label className="block">
-            <FieldLabel>이슈 설명</FieldLabel>
-            <textarea
-              rows={3}
-              value={values.content}
-              onChange={(event) => patch({ content: event.target.value })}
-              placeholder="이슈에 대한 상세 설명을 입력하세요"
-              className={`${FIELD_CLASS} resize-none`}
-            />
-          </label>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <FieldLabel required>우선순위</FieldLabel>
-              <div className="flex gap-1.5">
-                {ISSUE_PRIORITY_ORDER.map((code: IssuePriority) => {
-                  const isPicked = values.priority === code;
-
-                  return (
-                    <button
-                      key={code}
-                      type="button"
-                      aria-pressed={isPicked}
-                      onClick={() => patch({ priority: code })}
-                      className={`flex-1 cursor-pointer rounded-button-md border py-1.5 text-caption font-medium ${
-                        isPicked
-                          ? ISSUE_PRIORITY_STYLES[code].badge
-                          : 'border-border-default text-text-secondary hover:bg-bg-hover'
-                      }`}
-                    >
-                      {ISSUE_PRIORITY_LABELS[code]}
-                    </button>
-                  );
-                })}
-              </div>
+        }
+      >
+        {loadFailure ? (
+          <div className="flex flex-col items-center gap-3 px-5 py-12">
+            <p role="alert" className="text-label text-text-danger">
+              {loadFailure}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setRetryCount((count) => count + 1)}
+                className="cursor-pointer rounded-lg border border-border-default px-3 py-1.5 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+              >
+                다시 시도
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="cursor-pointer rounded-lg px-3 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover"
+              >
+                닫기
+              </button>
             </div>
+          </div>
+        ) : values === null ? (
+          <SkeletonGroup
+            label="이슈를 불러오는 중"
+            className="flex flex-col gap-4 p-5"
+          >
+            <Skeleton className="h-[34px] w-full" />
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-[34px] w-1/2" />
+          </SkeletonGroup>
+        ) : (
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
             <label className="block">
-              <FieldLabel>마감일</FieldLabel>
+              <FieldLabel required>이슈 이름</FieldLabel>
               <input
-                type="date"
-                value={values.dueDate}
-                onChange={(event) => patch({ dueDate: event.target.value })}
+                autoFocus
+                maxLength={200}
+                value={values.title}
+                onChange={(event) => patch({ title: event.target.value })}
+                placeholder="이슈 이름을 입력하세요"
                 className={FIELD_CLASS}
               />
             </label>
-          </div>
 
-          <div>
-            <FieldLabel>담당자 (다중 지정)</FieldLabel>
-            <div className="flex min-h-[40px] flex-wrap gap-1.5 rounded-lg border border-border-default bg-bg-surface p-2.5">
-              {values.assigneeIds.length === 0 ? (
-                <span className="text-caption text-text-secondary">
-                  아래에서 담당자를 선택하세요
-                </span>
-              ) : (
-                values.assigneeIds.map((userId) => {
-                  const name =
-                    members.find((member) => member.userId === userId)?.name ??
-                    original?.assignees.find(
-                      (assignee) => assignee.userId === userId,
-                    )?.name ??
-                    userId;
+            <label className="block">
+              <FieldLabel>이슈 설명</FieldLabel>
+              <textarea
+                rows={3}
+                value={values.content}
+                onChange={(event) => patch({ content: event.target.value })}
+                placeholder="이슈에 대한 상세 설명을 입력하세요"
+                className={`${FIELD_CLASS} resize-none`}
+              />
+            </label>
 
-                  return (
-                    <span
-                      key={userId}
-                      className="flex items-center gap-1 rounded-pill border border-border-default bg-bg-card px-2 py-0.5"
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <FieldLabel required>우선순위</FieldLabel>
+                <div className="flex gap-1.5">
+                  {ISSUE_PRIORITY_ORDER.map((code: IssuePriority) => {
+                    const isPicked = values.priority === code;
+
+                    return (
+                      <button
+                        key={code}
+                        type="button"
+                        aria-pressed={isPicked}
+                        onClick={() => patch({ priority: code })}
+                        className={`flex-1 cursor-pointer rounded-button-md border py-1.5 text-caption font-medium ${
+                          isPicked
+                            ? ISSUE_PRIORITY_STYLES[code].badge
+                            : 'border-border-default text-text-secondary hover:bg-bg-hover'
+                        }`}
+                      >
+                        {ISSUE_PRIORITY_LABELS[code]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <label className="block">
+                <FieldLabel>마감일</FieldLabel>
+                <input
+                  type="date"
+                  value={values.dueDate}
+                  onChange={(event) => patch({ dueDate: event.target.value })}
+                  className={FIELD_CLASS}
+                />
+              </label>
+            </div>
+
+            <div>
+              <FieldLabel>담당자 (다중 지정)</FieldLabel>
+              <div className="flex min-h-[40px] flex-wrap gap-1.5 rounded-lg border border-border-default bg-bg-surface p-2.5">
+                {values.assigneeIds.length === 0 ? (
+                  <span className="text-caption text-text-secondary">
+                    아래에서 담당자를 선택하세요
+                  </span>
+                ) : (
+                  values.assigneeIds.map((userId) => {
+                    const name =
+                      members.find((member) => member.userId === userId)
+                        ?.name ??
+                      base?.assignees.find(
+                        (assignee) => assignee.userId === userId,
+                      )?.name ??
+                      userId;
+
+                    return (
+                      <span
+                        key={userId}
+                        className="flex items-center gap-1 rounded-pill border border-border-default bg-bg-card px-2 py-0.5"
+                      >
+                        <MemberAvatar
+                          userId={userId}
+                          name={name}
+                          size="xs"
+                          decorative
+                        />
+                        <span className="text-caption font-medium text-text-primary">
+                          {name}
+                        </span>
+                        <button
+                          type="button"
+                          ref={(node) => {
+                            if (node) removeButtons.current.set(userId, node);
+                            else removeButtons.current.delete(userId);
+                          }}
+                          aria-label={`${name} 제외`}
+                          onClick={() => {
+                            // 이 버튼은 곧 사라진다 — 다시 나타날 후보 버튼으로 초점을 넘긴다
+                            focusAfterRender.current = {
+                              kind: 'candidate',
+                              userId,
+                            };
+                            patch({
+                              assigneeIds: values.assigneeIds.filter(
+                                (picked) => picked !== userId,
+                              ),
+                            });
+                          }}
+                          className="cursor-pointer text-caption text-text-secondary hover:text-text-primary"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    );
+                  })
+                )}
+              </div>
+              {/* 옮길 버튼이 사라졌을 때 초점을 받아줄 자리 */}
+              <div
+                ref={assigneeBoxRef}
+                tabIndex={-1}
+                className="mt-1.5 flex flex-wrap gap-1.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-primary"
+              >
+                {members.length === 0 ? (
+                  <span className="text-caption text-text-secondary">
+                    참여자를 불러오지 못했습니다.
+                  </span>
+                ) : (
+                  candidates.map((member) => (
+                    <button
+                      key={member.userId}
+                      type="button"
+                      ref={(node) => {
+                        if (node)
+                          candidateButtons.current.set(member.userId, node);
+                        else candidateButtons.current.delete(member.userId);
+                      }}
+                      onClick={() => {
+                        // 고르면 이 버튼이 사라진다 — 새로 생기는 제외 버튼으로 초점을 넘긴다
+                        focusAfterRender.current = {
+                          kind: 'remove',
+                          userId: member.userId,
+                        };
+                        patch({
+                          assigneeIds: [...values.assigneeIds, member.userId],
+                        });
+                      }}
+                      className="flex cursor-pointer items-center gap-1 rounded-button-md px-1.5 py-0.5 text-caption text-text-secondary hover:bg-bg-hover hover:text-text-primary"
                     >
                       <MemberAvatar
-                        userId={userId}
-                        name={name}
+                        userId={member.userId}
+                        name={member.name}
                         size="xs"
                         decorative
                       />
-                      <span className="text-caption font-medium text-text-primary">
-                        {name}
-                      </span>
-                      <button
-                        type="button"
-                        ref={(node) => {
-                          if (node) removeButtons.current.set(userId, node);
-                          else removeButtons.current.delete(userId);
-                        }}
-                        aria-label={`${name} 제외`}
-                        onClick={() => {
-                          // 이 버튼은 곧 사라진다 — 다시 나타날 후보 버튼으로 초점을 넘긴다
-                          focusAfterRender.current = {
-                            kind: 'candidate',
-                            userId,
-                          };
-                          patch({
-                            assigneeIds: values.assigneeIds.filter(
-                              (picked) => picked !== userId,
-                            ),
-                          });
-                        }}
-                        className="cursor-pointer text-caption text-text-secondary hover:text-text-primary"
-                      >
-                        ✕
-                      </button>
-                    </span>
-                  );
-                })
-              )}
-            </div>
-            {/* 옮길 버튼이 사라졌을 때 초점을 받아줄 자리 */}
-            <div
-              ref={assigneeBoxRef}
-              tabIndex={-1}
-              className="mt-1.5 flex flex-wrap gap-1.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-primary"
-            >
-              {members.length === 0 ? (
-                <span className="text-caption text-text-secondary">
-                  참여자를 불러오지 못했습니다.
-                </span>
-              ) : (
-                candidates.map((member) => (
-                  <button
-                    key={member.userId}
-                    type="button"
-                    ref={(node) => {
-                      if (node)
-                        candidateButtons.current.set(member.userId, node);
-                      else candidateButtons.current.delete(member.userId);
-                    }}
-                    onClick={() => {
-                      // 고르면 이 버튼이 사라진다 — 새로 생기는 제외 버튼으로 초점을 넘긴다
-                      focusAfterRender.current = {
-                        kind: 'remove',
-                        userId: member.userId,
-                      };
-                      patch({
-                        assigneeIds: [...values.assigneeIds, member.userId],
-                      });
-                    }}
-                    className="flex cursor-pointer items-center gap-1 rounded-button-md px-1.5 py-0.5 text-caption text-text-secondary hover:bg-bg-hover hover:text-text-primary"
-                  >
-                    <MemberAvatar
-                      userId={member.userId}
-                      name={member.name}
-                      size="xs"
-                      decorative
-                    />
-                    {member.name}
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div>
-            <FieldLabel>관련 블록 연결</FieldLabel>
-            {blocks.length === 0 ? (
-              <p className="text-caption text-text-secondary">
-                연결할 블록이 없습니다.
-              </p>
-            ) : (
-              <div className="flex max-h-44 flex-col gap-1 overflow-y-auto">
-                {blocks.map((block) => {
-                  const isPicked = values.blockIds.includes(block.blockId);
-
-                  return (
-                    <label
-                      key={block.blockId}
-                      className="flex cursor-pointer items-center gap-2 rounded-lg p-2 hover:bg-bg-hover"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isPicked}
-                        onChange={(event) =>
-                          patch({
-                            blockIds: event.target.checked
-                              ? [...values.blockIds, block.blockId]
-                              : values.blockIds.filter(
-                                  (picked) => picked !== block.blockId,
-                                ),
-                          })
-                        }
-                      />
-                      <IssueBlockIcon type={block.type} size={16} />
-                      <span className="flex-1 truncate text-detail font-medium text-text-primary">
-                        {block.title || '제목 없음'}
-                      </span>
-                      <span className="text-micro text-text-secondary">
-                        {block.type}
-                      </span>
-                    </label>
-                  );
-                })}
+                      {member.name}
+                    </button>
+                  ))
+                )}
               </div>
+            </div>
+
+            <div>
+              <FieldLabel>관련 블록 연결</FieldLabel>
+              {blocks.length === 0 ? (
+                <p className="text-caption text-text-secondary">
+                  연결할 블록이 없습니다.
+                </p>
+              ) : (
+                <div className="flex max-h-44 flex-col gap-1 overflow-y-auto">
+                  {blocks.map((block) => {
+                    const isPicked = values.blockIds.includes(block.blockId);
+
+                    return (
+                      <label
+                        key={block.blockId}
+                        className="flex cursor-pointer items-center gap-2 rounded-lg p-2 hover:bg-bg-hover"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isPicked}
+                          onChange={(event) =>
+                            patch({
+                              blockIds: event.target.checked
+                                ? [...values.blockIds, block.blockId]
+                                : values.blockIds.filter(
+                                    (picked) => picked !== block.blockId,
+                                  ),
+                            })
+                          }
+                        />
+                        <IssueBlockIcon type={block.type} size={16} />
+                        <span className="flex-1 truncate text-detail font-medium text-text-primary">
+                          {block.title || '제목 없음'}
+                        </span>
+                        <span className="text-micro text-text-secondary">
+                          {block.type}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {hasNoVersion && (
+              <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-detail leading-relaxed break-keep text-yellow-text">
+                이 이슈의 버전 정보를 받지 못해 수정할 수 없습니다. 새로고침 후
+                다시 시도해주세요.
+              </p>
+            )}
+
+            {errorMessage && (
+              <p role="alert" className="text-caption text-text-danger">
+                {errorMessage}
+              </p>
             )}
           </div>
+        )}
 
-          {errorMessage && (
-            <p role="alert" className="text-caption text-text-danger">
-              {errorMessage}
-            </p>
-          )}
+        <div className="flex shrink-0 items-center justify-between gap-2 border-t border-border-default bg-bg-surface px-5 py-3.5">
+          <span className="text-caption text-text-secondary">
+            * 필수 입력 항목
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSaving}
+              className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              onClick={submit}
+              disabled={
+                isSaving ||
+                values === null ||
+                loadFailure !== null ||
+                hasNoVersion
+              }
+              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+            >
+              {isSaving ? '저장 중…' : isEdit ? '수정 완료' : '이슈 생성'}
+            </button>
+          </div>
         </div>
+      </Modal>
+
+      {asking !== null && (
+        <IssueConflictModal
+          rows={conflictRows(asking.latest)}
+          isSaving={isSaving}
+          onSave={(choices) => void applyConflictChoice(choices)}
+          // 계속 편집 — draft 를 그대로 두고 닫는다. 다시 저장하면 최신값을 또 확인한다
+          onCancel={() => setConflict(null)}
+        />
       )}
-
-      <div className="flex shrink-0 items-center justify-between gap-2 border-t border-border-default bg-bg-surface px-5 py-3.5">
-        <span className="text-caption text-text-secondary">
-          * 필수 입력 항목
-        </span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSaving}
-            className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            취소
-          </button>
-          <button
-            type="button"
-            onClick={submit}
-            disabled={isSaving || values === null || loadFailure !== null}
-            className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
-          >
-            {isSaving ? '저장 중…' : isEdit ? '수정 완료' : '이슈 생성'}
-          </button>
-        </div>
-      </div>
-    </Modal>
+    </>
   );
 }
