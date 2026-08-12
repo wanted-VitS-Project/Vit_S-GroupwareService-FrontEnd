@@ -1,165 +1,48 @@
-import {
-  Skeleton,
-  SkeletonField,
-  SkeletonGroup,
-  SkeletonTable,
-  type SkeletonTableColumn,
-} from '@/components/Skeleton';
+import DataTable, {
+  type DataTableSkeletonColumn,
+} from '@/components/DataTable';
+import { Skeleton, SkeletonField, SkeletonGroup } from '@/components/Skeleton';
 
-const shortLine = () => <Skeleton className="h-3 w-16" />;
-const menuDot = () => <Skeleton shape="circle" className="ml-auto size-5" />;
+/**
+ * 사원 목록 로딩 껍데기 — **`Suspense` 폴백 전용**이다.
+ * (화면 안에서의 로딩은 `EmployeeList` 가 `DataTable` 에 `rows={null}` 로 그린다)
+ *
+ * ⚠️ `<table>` 을 따로 짜지 않고 **같은 `DataTable`** 에 `rows={null}` 을 넘긴다 —
+ *    이전에는 여백(`px-3`·`px-4` vs `px-5`) · 헤더 배경 · 최소폭(880 vs 960)이 어긋나
+ *    폴백이 실제 표로 바뀌는 순간 열이 튀었다. 맞춰야 할 값은 폭뿐이다.
+ */
+const EMPLOYEE_COLUMNS: DataTableSkeletonColumn[] = [
+  { key: 'select', header: '', width: '3rem', skeletonWidth: 'w-4' },
+  {
+    key: 'name',
+    header: '이름 · 사번',
+    width: '11rem',
+    skeletonWidth: 'w-24',
+  },
+  { key: 'department', header: '부서 · 직급', skeletonWidth: 'w-40' },
+  { key: 'role', header: '권한', width: '6rem', skeletonWidth: 'w-14' },
+  { key: 'email', header: '이메일', width: '14rem', skeletonWidth: 'w-40' },
+  { key: 'status', header: '상태', width: '6rem', skeletonWidth: 'w-12' },
+  {
+    key: 'menu',
+    header: '',
+    width: '3.5rem',
+    align: 'right',
+    skeletonWidth: 'w-6',
+  },
+];
 
-export function EmployeeTableSkeleton({ rows = 10 }: { rows?: number }) {
-  const columns: SkeletonTableColumn[] = [
-    {
-      label: '선택',
-      headerClassName: 'w-10 px-3 py-3 text-transparent',
-      cellClassName: 'px-3 py-3.5',
-      render: () => <Skeleton className="size-3.5" />,
-    },
-    {
-      label: '이름 · 사번',
-      headerClassName: 'w-44 px-4 py-3 font-medium',
-      cellClassName: 'px-4 py-3.5',
-      render: () => (
-        <div className="flex flex-col gap-1.5">
-          <Skeleton className="h-3 w-20" />
-          <Skeleton className="h-2.5 w-14" />
-        </div>
-      ),
-    },
-    {
-      label: '부서 · 직급',
-      headerClassName: 'px-4 py-3 font-medium',
-      cellClassName: 'px-4 py-3.5',
-      render: () => (
-        <div className="flex flex-col gap-1.5">
-          <Skeleton className="h-3 w-28" />
-          <Skeleton className="h-2.5 w-16" />
-        </div>
-      ),
-    },
-    {
-      label: '권한',
-      headerClassName: 'w-24 px-4 py-3 font-medium',
-      cellClassName: 'px-4 py-3.5',
-      render: () => <Skeleton className="h-5 w-12 rounded-pill" />,
-    },
-    {
-      label: '이메일',
-      headerClassName: 'w-56 px-4 py-3 font-medium',
-      cellClassName: 'px-4 py-3.5',
-      render: () => <Skeleton className="h-3 w-36" />,
-    },
-    {
-      label: '상태',
-      headerClassName: 'w-24 px-4 py-3 font-medium',
-      cellClassName: 'px-4 py-3.5',
-      render: () => <Skeleton className="h-5 w-12 rounded-pill" />,
-    },
-    {
-      label: '관리',
-      headerClassName: 'w-12 px-3 py-3 text-transparent',
-      cellClassName: 'px-3 py-3.5',
-      render: menuDot,
-    },
-  ];
+/** ⚠️ `EmployeeList` 의 `minWidth` 와 같은 값이어야 한다 */
+const EMPLOYEE_MIN_WIDTH = 960;
 
+export function EmployeeTableSkeleton({ rows = 20 }: { rows?: number }) {
   return (
-    <SkeletonTable
-      label="사원 목록을 불러오는 중입니다"
-      columns={columns}
-      rows={rows}
-      wrapperClassName="overflow-x-auto"
-      tableClassName="w-full min-w-[880px] border-collapse text-left"
-    />
-  );
-}
-
-export function DepartmentTableSkeleton() {
-  return (
-    <SkeletonTable
-      label="부서 목록을 불러오는 중입니다"
-      columns={[
-        {
-          label: '부서명',
-          render: (row) => (
-            <Skeleton className={`h-3 w-28 ${row % 3 === 0 ? '' : 'ml-6'}`} />
-          ),
-        },
-        {
-          label: '인원',
-          headerClassName: 'w-28 px-5 py-3 font-medium',
-          render: shortLine,
-        },
-        {
-          label: '소속 사원',
-          headerClassName: 'w-32 px-5 py-3 font-medium',
-          render: shortLine,
-        },
-        {
-          label: '관리',
-          headerClassName: 'w-14 px-5 py-3 text-transparent',
-          render: menuDot,
-        },
-      ]}
-    />
-  );
-}
-
-export function JobPositionTableSkeleton() {
-  return (
-    <SkeletonTable
-      label="직급 목록을 불러오는 중입니다"
-      columns={[
-        {
-          label: '순서',
-          headerClassName: 'w-16 px-5 py-3 font-medium',
-          render: () => <Skeleton className="h-3 w-5" />,
-        },
-        { label: '직급명', render: () => <Skeleton className="h-3 w-24" /> },
-        {
-          label: '사용 인원',
-          headerClassName: 'w-28 px-5 py-3 font-medium',
-          render: shortLine,
-        },
-        {
-          label: '순서 변경',
-          headerClassName: 'w-24 px-5 py-3 font-medium',
-          render: () => <Skeleton className="h-5 w-12" />,
-        },
-        {
-          label: '관리',
-          headerClassName: 'w-14 px-5 py-3 text-transparent',
-          render: menuDot,
-        },
-      ]}
-    />
-  );
-}
-
-export function CategoryTableSkeleton() {
-  return (
-    <SkeletonTable
-      label="카테고리 목록을 불러오는 중입니다"
-      columns={[
-        {
-          label: '카테고리 이름',
-          headerClassName: 'w-52 px-5 py-3 font-medium',
-          render: () => <Skeleton className="h-3 w-28" />,
-        },
-        {
-          label: '업무코드',
-          headerClassName: 'w-56 px-5 py-3 font-medium',
-          render: () => <Skeleton className="h-5 w-24" />,
-        },
-        { label: '설명', render: () => <Skeleton className="h-3 w-4/5" /> },
-        {
-          label: '관리',
-          headerClassName: 'w-14 px-5 py-3 text-transparent',
-          render: menuDot,
-        },
-      ]}
+    <DataTable
+      caption="사원 목록"
+      columns={EMPLOYEE_COLUMNS}
+      rows={null}
+      minWidth={EMPLOYEE_MIN_WIDTH}
+      skeletonRows={rows}
     />
   );
 }
@@ -214,51 +97,5 @@ export function EmployeeFormSkeleton() {
         ))}
       </div>
     </SkeletonGroup>
-  );
-}
-
-export function PagePermissionTableSkeleton() {
-  return (
-    <SkeletonTable
-      label="접근 가능자를 불러오는 중입니다"
-      // 부여 대상이 두 페이지뿐이라 인원이 적다 — 8줄을 깔면 실제 표와 높이 차가 크다
-      rows={4}
-      columns={[
-        {
-          label: '이름 · 사번',
-          headerClassName: 'w-44 px-5 py-3 font-medium',
-          render: () => (
-            <div className="flex flex-col gap-1.5">
-              <Skeleton className="h-3 w-20" />
-              <Skeleton className="h-2.5 w-14" />
-            </div>
-          ),
-        },
-        {
-          label: '부서 · 직급',
-          render: () => <Skeleton className="h-3 w-32" />,
-        },
-        {
-          label: '전역 권한',
-          headerClassName: 'w-28 px-5 py-3 font-medium',
-          render: () => <Skeleton className="h-5 w-14 rounded-pill" />,
-        },
-        {
-          label: '등급',
-          headerClassName: 'w-24 px-5 py-3 font-medium',
-          render: () => <Skeleton className="h-5 w-12 rounded-pill" />,
-        },
-        {
-          label: '권한 출처',
-          headerClassName: 'w-32 px-5 py-3 font-medium',
-          render: shortLine,
-        },
-        {
-          label: '관리',
-          headerClassName: 'w-14 px-5 py-3 text-transparent',
-          render: menuDot,
-        },
-      ]}
-    />
   );
 }

@@ -93,7 +93,7 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
 
   return (
     <>
-      <p className="text-xs text-text-secondary">
+      <p className="text-caption text-text-secondary">
         <Link
           href={BIDDING_ROUTES.list}
           className="hover:text-text-primary hover:underline"
@@ -110,10 +110,10 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
           <ConvertedBadge projectId={notice.projectId} />
         </div>
 
-        <h2 className="mt-1.5 text-lg font-bold break-keep">
+        <h2 className="mt-1.5 text-heading-m font-bold break-keep">
           {notice.noticeName}
         </h2>
-        <p className="mt-1.5 text-xs text-text-secondary">
+        <p className="mt-1.5 text-caption text-text-secondary">
           {orDash(notice.noticeAgency)}
           {/* 번호 없는 공고에 `공고번호 -` 를 붙이면 빠진 값처럼 읽힌다 — 통째로 뺀다 */}
           {formatNoticeNo(notice) !== '-' &&
@@ -124,7 +124,7 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
 
       {/* 제외 사유는 있을 때만 — 없는 줄을 비워 두면 제외가 아닌 것처럼 읽힌다 */}
       {notice.noticeStatus === 'DISMISSED' && notice.dismissReason && (
-        <p className="mt-4 rounded-lg bg-bg-hover px-3 py-2.5 text-xs break-keep text-text-secondary">
+        <p className="mt-4 rounded-lg bg-bg-hover px-3 py-2.5 text-caption break-keep text-text-secondary">
           <span className="font-semibold text-text-primary">제외 사유</span>{' '}
           {notice.dismissReason}
         </p>
@@ -237,7 +237,9 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
                 원문 공고 보기 <span aria-hidden>↗</span>
               </a>
             ) : (
-              <p className="text-xs text-text-secondary">원문 링크가 없어요.</p>
+              <p className="text-caption text-text-secondary">
+                원문 링크가 없어요.
+              </p>
             )}
 
             <div className="mt-4">
@@ -251,7 +253,7 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
           <Card title="프로젝트">
             {notice.projectId === null ? (
               <>
-                <p className="text-xs text-text-secondary">
+                <p className="text-caption text-text-secondary">
                   아직 프로젝트로 전환되지 않았어요.
                 </p>
                 {/**
@@ -291,13 +293,15 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
  */
 function AttachmentList({ attachments }: { attachments: NoticeAttachment[] }) {
   if (attachments.length === 0) {
-    return <p className="mt-1.5 text-xs text-text-secondary">첨부가 없어요.</p>;
+    return (
+      <p className="mt-1.5 text-caption text-text-secondary">첨부가 없어요.</p>
+    );
   }
 
   return (
     <ul className="mt-1.5 flex flex-col gap-1.5">
       {attachments.map((attachment) => (
-        <li key={attachment.attachmentOrder} className="min-w-0 text-xs">
+        <li key={attachment.attachmentOrder} className="min-w-0 text-caption">
           {attachment.sourceUrl ? (
             <a
               href={attachment.sourceUrl}
@@ -334,7 +338,9 @@ function Card({
 }) {
   return (
     <section className="rounded-xl border border-border-default p-4">
-      <h3 className="mb-3 text-xs font-semibold text-text-primary">{title}</h3>
+      <h3 className="mb-3 text-caption font-semibold text-text-primary">
+        {title}
+      </h3>
       {children}
     </section>
   );
@@ -349,7 +355,7 @@ function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
       <p className="text-detail text-text-secondary">{label}</p>
-      <p className="mt-0.5 text-xs break-keep text-text-primary">
+      <p className="mt-0.5 text-caption break-keep text-text-primary">
         {value || '-'}
       </p>
     </div>
@@ -361,7 +367,7 @@ function LongField({ label, value }: { label: string; value: string | null }) {
   return (
     <div>
       <p className="text-detail text-text-secondary">{label}</p>
-      <p className="mt-0.5 text-xs break-keep whitespace-pre-line text-text-primary">
+      <p className="mt-0.5 text-caption break-keep whitespace-pre-line text-text-primary">
         {orDash(value)}
       </p>
     </div>
@@ -372,16 +378,18 @@ function LongField({ label, value }: { label: string; value: string | null }) {
 function FailureView({ kind, message }: { kind: Failure; message: string }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-xl border border-border-default py-20 text-center">
-      <span aria-hidden className="text-2xl">
+      <span aria-hidden className="text-heading-xl">
         📋
       </span>
 
-      <p className="mt-3 text-sm font-semibold text-text-primary">
+      <p className="mt-3 text-label font-semibold text-text-primary">
         {kind === 'notFound'
           ? '공고를 찾을 수 없습니다'
           : '공고를 불러오지 못했습니다'}
       </p>
-      <p className="mt-1.5 text-xs break-keep text-text-secondary">{message}</p>
+      <p className="mt-1.5 text-caption break-keep text-text-secondary">
+        {message}
+      </p>
 
       <Link
         href={BIDDING_ROUTES.list}

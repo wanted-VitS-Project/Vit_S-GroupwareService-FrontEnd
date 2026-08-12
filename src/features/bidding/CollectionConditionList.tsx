@@ -91,12 +91,20 @@ export default function CollectionConditionList() {
   const timers = useRef<Set<number>>(new Set());
   const pollAbort = useRef<AbortController | null>(null);
   const formModal = useModalTarget<ConditionFormTarget>();
-  /** 비활성화 확인 — 자동 수집까지 함께 꺼지므로 되돌리기 전에 한 번 묻는다 */
-  const deactivateDialog = useModalTarget<CollectionCondition>();
+  /**
+   * 활성 여부 변경 확인.
+   * 켜고 끄는 것 모두 **수집 동작이 바뀌는 일**이라 양쪽 다 한 번 묻는다.
+   */
+  const toggleDialog = useModalTarget<CollectionCondition>();
   /** 활성 여부 보기 — 조건 목록 API 에 필터가 없어 받아온 뒤 화면에서 거른다 */
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>('ALL');
-  /** 토글 진행 중인 조건 — 연타로 요청이 겹치지 않게 막는다 */
-  const [togglingId, setTogglingId] = useState<number | null>(null);
+  /**
+   * 토글 진행 중인 조건들 — 연타로 요청이 겹치지 않게 막는다.
+   *
+   * ⚠️ **하나만 들면 안 된다.** 여러 조건을 동시에 토글할 수 있어서,
+   *    먼저 끝난 요청이 값을 비우면 아직 처리 중인 조건의 버튼이 다시 열린다.
+   */
+  const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
   /**
    * 토글 실패 메시지 — **조건별**로 들고 있는다.
    * 화면 위쪽에 하나만 띄우면 어느 조건에서 난 오류인지 알 수 없고, 다음 동작에도 남는다.
@@ -143,10 +151,7 @@ export default function CollectionConditionList() {
       timers.current.delete(timer);
 
       try {
-        const run = await getCollectionRun(
-          runId,
-          pollAbort.current?.signal,
-        );
+        const run = await getCollectionRun(runId, pollAbort.current?.signal);
         patchRun(conditionId, { run });
 
         if (!isRunning(run.runStatus)) {
@@ -215,7 +220,7 @@ export default function CollectionConditionList() {
   async function toggleActive(condition: CollectionCondition) {
     const { conditionId } = condition;
 
-    setTogglingId(conditionId);
+    markToggling(conditionId, true);
     // 다시 시도할 때 지난 실패 문구가 남아 있으면 방금 또 실패한 것처럼 보인다
     clearToggleError(conditionId);
 
@@ -247,8 +252,17 @@ export default function CollectionConditionList() {
         [conditionId]: messageOf(error, '활성 여부를 바꾸지 못했어요.'),
       }));
     } finally {
-      setTogglingId(null);
+      markToggling(conditionId, false);
     }
+  }
+
+  function markToggling(conditionId: number, isBusy: boolean) {
+    setTogglingIds((prev) => {
+      const next = new Set(prev);
+      if (isBusy) next.add(conditionId);
+      else next.delete(conditionId);
+      return next;
+    });
   }
 
   function clearToggleError(conditionId: number) {
@@ -272,7 +286,7 @@ export default function CollectionConditionList() {
 
   return (
     <>
-      <p className="text-xs text-text-secondary">
+      <p className="text-caption text-text-secondary">
         <Link
           href={BIDDING_ROUTES.list}
           className="hover:text-text-primary hover:underline"
@@ -284,8 +298,8 @@ export default function CollectionConditionList() {
 
       {/* 액션 버튼은 공고 조회와 같은 자리(필터 줄 오른쪽 끝)에 둔다 — 화면을 옮겨도 안 튄다 */}
       <div className="mb-6">
-        <h2 className="text-lg font-bold">수집 조건</h2>
-        <p className="mt-1.5 text-xs break-keep text-text-secondary">
+        <h2 className="text-heading-m font-bold">수집 조건</h2>
+        <p className="mt-1.5 text-caption break-keep text-text-secondary">
           어떤 공고를 가져올지 정하고, 필요할 때 직접 수집을 돌립니다.
         </p>
       </div>
@@ -338,7 +352,9 @@ export default function CollectionConditionList() {
         <EmptyState />
       ) : visible?.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border-default bg-bg-card px-6 py-12 text-center">
-          <p className="text-xs text-text-secondary">해당하는 조건이 없어요.</p>
+          <p className="text-caption text-text-secondary">
+            해당하는 조건이 없어요.
+          </p>
         </div>
       ) : (
         <div className="space-y-3 pb-10">
@@ -347,15 +363,11 @@ export default function CollectionConditionList() {
               key={condition.conditionId}
               condition={condition}
               state={runs[condition.conditionId]}
-              isToggling={togglingId === condition.conditionId}
+              isToggling={togglingIds.has(condition.conditionId)}
               toggleError={toggleErrors[condition.conditionId]}
               onRun={() => startRun(condition)}
               onEdit={() => formModal.open(condition)}
-              onToggleActive={() =>
-                condition.isActive
-                  ? deactivateDialog.open(condition)
-                  : toggleActive(condition)
-              }
+              onToggleActive={() => toggleDialog.open(condition)}
               onDismissToggleError={() =>
                 clearToggleError(condition.conditionId)
               }
@@ -364,25 +376,15 @@ export default function CollectionConditionList() {
         </div>
       )}
 
-      {deactivateDialog.target && (
-        <AlertDialogTwoButton
-          icon={DialogIcons.warning}
-          title="이 조건을 비활성화할까요?"
-          description={
-            deactivateDialog.target.autoCollectionEnabled
-              ? '비활성 조건은 수동 수집도 할 수 없고, 켜져 있던 자동 수집도 함께 꺼집니다. 다시 활성화해도 자동 수집은 꺼진 채로 남습니다.'
-              : '비활성 조건은 수동 수집도 할 수 없습니다. 언제든 다시 활성화할 수 있습니다.'
-          }
-          confirmLabel="비활성화"
-          isDanger
-          // 확인 즉시 닫고 카드 버튼이 `변경 중…` 을 맡는다 —
-          // 닫아 버리므로 다이얼로그의 `isBusy` 는 참이 될 틈이 없다
+      {toggleDialog.target && (
+        <ToggleConfirmDialog
+          condition={toggleDialog.target}
           onConfirm={() => {
-            const target = deactivateDialog.target;
-            deactivateDialog.close();
+            const target = toggleDialog.target;
+            toggleDialog.close();
             if (target) toggleActive(target);
           }}
-          onCancel={deactivateDialog.close}
+          onCancel={toggleDialog.close}
         />
       )}
 
@@ -400,14 +402,58 @@ export default function CollectionConditionList() {
   );
 }
 
+/**
+ * 활성 여부 확인 다이얼로그.
+ *
+ * 끄는 쪽은 잃는 것(자동 수집)이 있어 위험 색으로, 켜는 쪽은 되돌리기 쉬워 안내 색으로 묻는다.
+ */
+function ToggleConfirmDialog({
+  condition,
+  onConfirm,
+  onCancel,
+}: {
+  condition: CollectionCondition;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  if (condition.isActive) {
+    return (
+      <AlertDialogTwoButton
+        icon={DialogIcons.warning}
+        title="이 조건을 비활성화할까요?"
+        description={
+          condition.autoCollectionEnabled
+            ? '비활성 조건은 수동 수집도 할 수 없고, 켜져 있던 자동 수집도 함께 꺼집니다. 다시 활성화해도 자동 수집은 꺼진 채로 남습니다.'
+            : '비활성 조건은 수동 수집도 할 수 없습니다. 언제든 다시 활성화할 수 있습니다.'
+        }
+        confirmLabel="비활성화"
+        isDanger
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+      />
+    );
+  }
+
+  return (
+    <AlertDialogTwoButton
+      icon={DialogIcons.info}
+      title="이 조건을 활성화할까요?"
+      description="활성화하면 지금 수집을 돌릴 수 있습니다. 자동 수집은 꺼진 상태이며, 필요하면 수정에서 켜주세요."
+      confirmLabel="활성화"
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    />
+  );
+}
+
 /** 조건이 없으면 수동 수집을 **시작할 수 없다** — 등록으로 유도한다 */
 function EmptyState() {
   return (
     <div className="rounded-xl border border-dashed border-border-default bg-bg-card px-6 py-12 text-center">
-      <p className="text-sm font-bold text-text-primary">
+      <p className="text-label font-bold text-text-primary">
         등록된 수집 조건이 없어요.
       </p>
-      <p className="mt-1.5 text-xs break-keep text-text-secondary">
+      <p className="mt-1.5 text-caption break-keep text-text-secondary">
         조건을 먼저 등록해야 공고를 가져올 수 있어요.
       </p>
     </div>
@@ -454,7 +500,7 @@ function ConditionCard({
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="truncate text-sm font-bold text-text-primary">
+            <h3 className="truncate text-label font-bold text-text-primary">
               {conditionName}
             </h3>
             <Badge
@@ -578,7 +624,7 @@ function RunResult({ state }: { state: RunState }) {
           label={RUN_STATUS_LABELS[run.runStatus]}
           className={RUN_STATUS_CLASS[run.runStatus]}
         />
-        <span className="text-[10px] text-text-secondary">
+        <span className="text-caption text-text-secondary">
           실행 #{run.runId} · {formatDateTime(run.startedAt)}
         </span>
       </div>
@@ -596,7 +642,7 @@ function RunResult({ state }: { state: RunState }) {
           <p className="mt-2 text-detail text-text-primary">
             {summarizeRun(run.collectedCount, run.insertedCount)}
           </p>
-          <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-text-secondary">
+          <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-caption text-text-secondary">
             <Count label="전체" value={run.collectedCount} />
             <Count label="신규" value={run.insertedCount} />
             <Count label="갱신" value={run.updatedCount} />

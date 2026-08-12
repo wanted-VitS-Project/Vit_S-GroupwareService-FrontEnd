@@ -170,7 +170,8 @@ export default function CollectionConditionFormModal({
     if (form.conditionName.trim() === '') return '조건명을 입력해주세요.';
     if (form.noticeTypes.length === 0)
       return '공고 유형을 하나 이상 선택해주세요.';
-    if (form.keywords.length === 0) return '검색 키워드를 하나 이상 넣어주세요.';
+    if (form.keywords.length === 0)
+      return '검색 키워드를 하나 이상 넣어주세요.';
 
     const min = Number(form.minimumEstimatedPrice);
     const max = Number(form.maximumEstimatedPrice);
@@ -331,11 +332,11 @@ export default function CollectionConditionFormModal({
               </button>
             </div>
 
-            <p className="mt-1 text-[10px] break-keep text-text-secondary">
-            키워드가 없으면 조회 조합이 커져 수집 상한을 넘길 수 있어요.
-          </p>
+            <p className="mt-1 text-caption break-keep text-text-secondary">
+              키워드가 없으면 조회 조합이 커져 수집 상한을 넘길 수 있어요.
+            </p>
 
-          {form.keywords.length > 0 && (
+            {form.keywords.length > 0 && (
               <ul className="mt-2 flex flex-wrap gap-1.5">
                 {form.keywords.map((keyword) => (
                   <li key={keyword}>
@@ -476,7 +477,7 @@ function CheckGroup({
       </p>
 
       {options.length === 0 ? (
-        <p className="text-[10px] break-keep text-text-secondary">{hint}</p>
+        <p className="text-caption break-keep text-text-secondary">{hint}</p>
       ) : (
         <>
           <ul className="flex flex-wrap gap-1.5">
@@ -501,7 +502,7 @@ function CheckGroup({
             })}
           </ul>
           {hint && (
-            <p className="mt-1 text-[10px] break-keep text-text-secondary">
+            <p className="mt-1 text-caption break-keep text-text-secondary">
               {hint}
             </p>
           )}

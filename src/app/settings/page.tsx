@@ -71,7 +71,11 @@ const SECTIONS: { title: string; items: SettingItem[] }[] = [
 export default function Page() {
   return (
     <>
-      <p className="text-label text-text-secondary">전사 관리</p>
+      {/*
+        보조 문구를 두지 않는다 — 여기가 **최상위 화면**이라 위에 얹을 상위 경로가 없다.
+        제목과 같은 말을 두 줄로 반복하면 브레드크럼처럼 보여 한 단계 위가 있는 줄 알게 된다.
+        (하위 화면은 `전사 관리 > 부서 관리` 처럼 상위를 가리키므로 그대로 둔다)
+      */}
       <PageTitle title="전사 관리" />
 
       <div className="space-y-8">

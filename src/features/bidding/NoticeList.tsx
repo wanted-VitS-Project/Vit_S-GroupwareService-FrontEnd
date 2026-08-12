@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
-import { NoticeListSkeleton } from '@/components/bidding/NoticeSkeletons';
+import DataTable, { type DataTableColumn } from '@/components/DataTable';
 import Pagination from '@/components/Pagination';
 import { PROJECT_ROUTES } from '@/features/project/routes';
 import { formatDate, formatDateTime } from '@/lib/format';
@@ -156,8 +156,8 @@ export default function NoticeList() {
     <>
       {/* 액션 버튼은 필터 바의 검색 오른쪽에 둔다 (`NoticeFilterBar`) */}
       <div className="mb-6">
-        <h2 className="text-lg font-bold">공고 조회</h2>
-        <p className="mt-1.5 text-xs break-keep text-text-secondary">
+        <h2 className="text-heading-m font-bold">공고 조회</h2>
+        <p className="mt-1.5 text-caption break-keep text-text-secondary">
           수집된 입찰 공고를 확인하고 프로젝트로 전환합니다.
         </p>
       </div>
@@ -169,143 +169,165 @@ export default function NoticeList() {
         onApply={applyFilter}
       />
 
-      {hasFailed ? (
-        <Centered>
-          <p className="text-xs text-text-secondary">
-            공고 목록을 불러오지 못했어요.
-          </p>
-          <button
-            type="button"
-            onClick={() => setReloadCount((count) => count + 1)}
-            className="btn btn-sm btn-gray-outlined mt-3"
-          >
-            다시 시도
-          </button>
-        </Centered>
-      ) : isLoading && !rows ? (
-        <NoticeListSkeleton rows={PAGE_SIZE} />
-      ) : !rows || rows.length === 0 ? (
-        <Centered>
-          <p className="text-xs text-text-secondary">
-            {hasFilter
-              ? '조건에 맞는 공고가 없어요.'
-              : '아직 수집된 공고가 없어요.'}
-          </p>
-          {hasFilter && (
+      <DataTable
+        caption="입찰 공고 목록"
+        columns={NOTICE_COLUMNS}
+        rows={hasFailed ? [] : isLoading && !rows ? null : (rows ?? [])}
+        rowKey={(row) => row.noticeId}
+        // 열이 8개 · 본문 14px 라 좁은 화면에서만 표가 가로로 흐른다 (페이지는 흐르지 않는다)
+        minWidth={960}
+        skeletonRows={PAGE_SIZE}
+        errorMessage={
+          hasFailed ? '공고 목록을 불러오지 못했습니다.' : undefined
+        }
+        onRetry={() => setReloadCount((count) => count + 1)}
+        emptyMessage={
+          hasFilter
+            ? '조건에 맞는 공고가 없습니다.'
+            : '아직 수집된 공고가 없습니다.'
+        }
+        emptyAction={
+          hasFilter && (
             <button
               type="button"
               onClick={() => router.replace('?')}
-              className="btn btn-sm btn-gray-outlined mt-3"
+              className="btn btn-sm btn-gray-outlined"
             >
               필터 초기화
             </button>
-          )}
-        </Centered>
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-border-default">
-          {/**
-           * 열이 9개라 아주 좁은 화면에서만 표가 가로로 흐른다 (페이지는 흐르지 않는다).
-           * `전환` 과 버튼을 한 열로 합쳐 노트북 폭에서는 잘리지 않는다.
-           */}
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[840px] border-collapse text-left">
-              <thead className="bg-bg-surface">
-                <tr className="border-b border-border-default text-detail text-text-secondary">
-                  {/**
-                   * ⚠️ 폭의 **합이 정확히 100% 여야 한다.** 넘치면 브라우저가 알아서
-                   *    비율을 다시 나눠 헤더와 본문 열이 어긋나 보인다.
-                   */}
-                  {/* 공고명이 제일 중요한 정보라 폭을 몰아준다 (두 줄까지 보여준다) */}
-                  <Th className="w-[37%]">공고명</Th>
-                  <Th className="w-[14%]">발주처</Th>
-                  {/**
-                   * ⚠️ 사업 카테고리 열은 두지 않는다 (2026-08-11 결정).
-                   *    우리 카테고리는 **회사 내부 분류**고 나라장터는 **업종코드(수천 개)** 라
-                   *    체계가 다르다. 억지로 매핑하면 틀린 분류가 쌓인다.
-                   *    카테고리는 프로젝트를 만들 때 사람이 지정한다.
-                   */}
-                  <Th className="w-[8%] text-right">기초금액</Th>
-                  <Th className="w-[8%] text-right">추정가격</Th>
-                  <Th className="w-[6%]">공고일</Th>
-                  {/* 날짜 · 시각 · D-day 배지가 한 줄에 들어가야 해 넉넉히 준다 */}
-                  <Th className="w-[12%]">투찰 마감</Th>
-                  <Th className="w-[5%]">상태</Th>
-                  {/* 전환 여부와 버튼을 한 열에 둔다 — 버튼이 그 열의 다음 행동이라서 */}
-                  <Th className="w-[10%]">전환</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <NoticeRow key={row.noticeId} row={row} />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          )
+        }
+      />
 
-          {page && (
-            <Pagination
-              page={query.page ?? 0}
-              totalPages={page.totalPages}
-              totalElements={page.totalElements}
-              unit="건"
-              onChange={(next) => applyFilter({ page: String(next) })}
-            />
-          )}
+      {/* 표 바깥에 둔다 — 실패 · 빈 상태에서는 넘길 페이지가 없다 */}
+      {!hasFailed && page && page.totalElements > 0 && (
+        <div className="mt-3 overflow-hidden rounded-xl border border-border-default bg-bg-card">
+          <Pagination
+            page={query.page ?? 0}
+            totalPages={page.totalPages}
+            totalElements={page.totalElements}
+            unit="건"
+            onChange={(next) => applyFilter({ page: String(next) })}
+          />
         </div>
       )}
     </>
   );
 }
 
-/** 목록 한 줄. 공고명이 상세로 가는 링크고, 마지막 칸이 전환 여부에 따라 갈린다 */
-function NoticeRow({ row }: { row: BidNoticeListItem }) {
-  return (
-    <tr className="border-b border-border-default text-xs last:border-b-0 hover:bg-bg-surface">
-      <Td>
-        {/**
-         * 공고명은 잘라내지 않고 **두 줄까지** 보여준다 —
-         * `[TEST] …`, `(협상에 의한 계약)` 처럼 뒤쪽에 붙는 말이 구분에 필요하다.
-         * 세 줄이 넘는 것만 `…` 로 접고 전체는 `title` 로 읽게 한다.
-         */}
-        <Link
-          href={BIDDING_ROUTES.detail(row.noticeId)}
-          className="line-clamp-2 block font-semibold break-keep text-text-primary hover:underline"
-          title={row.noticeName}
-        >
-          {row.noticeName}
-        </Link>
-      </Td>
-      {/* 발주처도 두 줄까지 — `경상남도교육청 …교육지원청` 처럼 긴 이름이 흔하다 */}
-      <Td className="text-text-secondary">
-        <span className="line-clamp-2 break-keep" title={row.noticeAgency}>
-          {row.noticeAgency}
-        </span>
-      </Td>
-      <Td className="text-right text-text-primary">
+/**
+ * 열 정의. 폭 합계는 100% 여야 한다 (`DataTable` 이 개발 모드에서 검사한다).
+ *
+ * ⚠️ 사업 카테고리 열은 두지 않는다 — 우리 카테고리는 **회사 내부 분류**고
+ *    나라장터는 **업종코드(수천 개)** 라 체계가 다르다. 프로젝트를 만들 때 사람이 지정한다.
+ */
+const NOTICE_COLUMNS: DataTableColumn<BidNoticeListItem>[] = [
+  {
+    key: 'noticeName',
+    header: '공고명',
+    width: '37%',
+    skeletonWidth: 'w-64',
+    /**
+     * 공고명만 **두 줄까지** 편다 — `[TEST] …`, `(협상에 의한 계약)` 처럼
+     * 뒤에 붙는 말이 공고를 가르는 정보라 잘라내면 구분이 안 된다.
+     * `break-keep` 이라 단어 중간이 아니라 **단어 단위로** 끊긴다.
+     */
+    cell: (row) => (
+      <Link
+        href={BIDDING_ROUTES.detail(row.noticeId)}
+        className="line-clamp-2 block font-semibold break-keep text-text-primary hover:underline"
+        title={row.noticeName}
+      >
+        {row.noticeName}
+      </Link>
+    ),
+  },
+  {
+    key: 'noticeAgency',
+    header: '발주처',
+    width: '14%',
+    skeletonWidth: 'w-28',
+    /**
+     * 발주처는 **공고명과 함께 유일하게 두 줄을 허용**한다 —
+     * `경상남도교육청 경상남도밀양교육지원청` 처럼 긴 기관명이 흔하다.
+     * 나머지 열은 `whitespace-nowrap` 이라 행 높이가 들쭉날쭉해지지 않는다.
+     */
+    cell: (row) => (
+      <span
+        className="line-clamp-2 break-keep text-text-secondary"
+        title={row.noticeAgency}
+      >
+        {row.noticeAgency}
+      </span>
+    ),
+  },
+  {
+    key: 'baseAmount',
+    header: '기초금액',
+    width: '8%',
+    align: 'right',
+    skeletonWidth: 'w-16',
+    cell: (row) => (
+      <span className="whitespace-nowrap text-text-primary">
         {formatAmountShort(row.baseAmount)}
-      </Td>
-      <Td className="text-right text-text-primary">
+      </span>
+    ),
+  },
+  {
+    key: 'estimatedAmount',
+    header: '추정가격',
+    width: '8%',
+    align: 'right',
+    skeletonWidth: 'w-16',
+    cell: (row) => (
+      <span className="whitespace-nowrap text-text-primary">
         {formatAmountShort(row.estimatedAmount)}
-      </Td>
-      <Td className="text-text-secondary">
+      </span>
+    ),
+  },
+  {
+    key: 'announcedAt',
+    header: '공고일',
+    width: '6%',
+    skeletonWidth: 'w-20',
+    cell: (row) => (
+      <span className="whitespace-nowrap text-text-secondary">
         {formatDate(row.announcedAt) || '-'}
-      </Td>
-      {/* 날짜 · 시각 · D-day 를 한 줄로 둔다 — 배지가 아래로 내려가면 행이 두 줄이 된다 */}
-      <Td>
-        <span className="flex items-center gap-1.5 whitespace-nowrap">
-          <span className="text-text-secondary">
-            {formatDateTime(row.bidDeadlineAt) ||
-              formatDate(row.bidDeadlineAt) ||
-              '-'}
-          </span>
-          <DeadlineBadge dDay={row.dDay} />
+      </span>
+    ),
+  },
+  {
+    key: 'bidDeadlineAt',
+    header: '투찰 마감',
+    width: '12%',
+    skeletonWidth: 'w-24',
+    // 날짜 · 시각 · D-day 를 한 줄로 둔다 — 배지가 내려가면 행이 두 줄이 된다
+    cell: (row) => (
+      <span className="flex items-center gap-1.5 whitespace-nowrap">
+        <span className="text-text-secondary">
+          {formatDateTime(row.bidDeadlineAt) ||
+            formatDate(row.bidDeadlineAt) ||
+            '-'}
         </span>
-      </Td>
-      <Td>
-        <NoticeStatusBadge status={row.noticeStatus} />
-      </Td>
-      {/* 전환 여부(배지) 와 다음 행동(버튼) 을 한 칸에 세로로 둔다 */}
-      <Td>
+        <DeadlineBadge dDay={row.dDay} />
+      </span>
+    ),
+  },
+  {
+    key: 'noticeStatus',
+    header: '상태',
+    width: '5%',
+    skeletonWidth: 'w-12',
+    cell: (row) => <NoticeStatusBadge status={row.noticeStatus} />,
+  },
+  {
+    key: 'projectId',
+    header: '전환',
+    width: '10%',
+    skeletonWidth: 'w-20',
+    // 전환 여부(배지) 와 다음 행동(버튼) 을 한 칸에 세로로 둔다
+    cell: (row) => (
+      <>
         <ConvertedBadge projectId={row.projectId} />
 
         {row.projectId === null ? (
@@ -329,10 +351,10 @@ function NoticeRow({ row }: { row: BidNoticeListItem }) {
             프로젝트 보기
           </Link>
         )}
-      </Td>
-    </tr>
-  );
-}
+      </>
+    ),
+  },
+];
 
 /**
  * 필터 바. 값의 원본은 URL 이라 상태를 따로 들지 않는다
@@ -364,7 +386,7 @@ function NoticeFilterBar({
         value={searchParams.get('startDate') ?? ''}
         onChange={(value) => onApply({ startDate: value })}
       />
-      <span className="text-xs text-text-muted">~</span>
+      <span className="text-caption text-text-muted">~</span>
       <DateInput
         label="공고일 종료"
         value={searchParams.get('endDate') ?? ''}
@@ -398,7 +420,7 @@ function NoticeFilterBar({
         onClick={() =>
           onApply({ deadlineSoon: isDeadlineSoon ? undefined : 'true' })
         }
-        className={`h-9 shrink-0 cursor-pointer rounded-lg border px-3 text-xs font-semibold ${
+        className={`h-9 shrink-0 cursor-pointer rounded-lg border px-3 text-caption font-semibold ${
           isDeadlineSoon
             ? 'border-border-primary bg-blue-bg-soft text-text-primary-blue'
             : 'border-border-default text-text-secondary hover:bg-bg-hover'
@@ -417,7 +439,7 @@ function NoticeFilterBar({
           value={keywordInput}
           onChange={(event) => onKeywordChange(event.target.value)}
           placeholder="공고명 검색"
-          className="h-9 w-full rounded-lg border border-border-default pr-10 pl-3 text-xs text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+          className="h-9 w-full rounded-lg border border-border-default pr-10 pl-3 text-caption text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
         />
         <button
           type="submit"
@@ -434,7 +456,14 @@ function NoticeFilterBar({
        */}
       {/* `ml-auto` 로 남은 공간을 밀어 오른쪽 끝에 붙인다 */}
       <div className="ml-auto flex shrink-0 gap-2">
-        <Link href={BIDDING_ROUTES.conditions} className="btn btn-sm btn-gray">
+        {/**
+         * 둘 다 파란 채움이면 무엇이 주 동작인지 사라진다 —
+         * `수집 조건` 은 외곽선으로 강조하고 채움은 `공고 등록` 하나만 쓴다.
+         */}
+        <Link
+          href={BIDDING_ROUTES.conditions}
+          className="btn btn-sm btn-primary-outlined"
+        >
           수집 조건
         </Link>
         {/* 수집이 못 가져온 공고를 사람이 넣는 경로 */}
@@ -493,7 +522,7 @@ function TextFilter({
             commit();
           }
         }}
-        className="h-9 w-28 rounded-lg border border-border-default px-3 text-xs text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+        className="h-9 w-28 rounded-lg border border-border-default px-3 text-caption text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
       />
     </>
   );
@@ -516,30 +545,10 @@ function DateInput({
         value={value}
         aria-label={label}
         onChange={(event) => onChange(event.target.value || undefined)}
-        className="h-9 w-36 cursor-pointer rounded-lg border border-border-default px-3 text-xs text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+        className="h-9 w-36 cursor-pointer rounded-lg border border-border-default px-3 text-caption text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
       />
     </label>
   );
-}
-
-function Th({
-  className = '',
-  children,
-}: {
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return <th className={`px-4 py-3 font-medium ${className}`}>{children}</th>;
-}
-
-function Td({
-  className = '',
-  children,
-}: {
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return <td className={`px-4 py-3.5 ${className}`}>{children}</td>;
 }
 
 /** 결재 목록 · 사원 목록과 같은 아이콘 — 검색바 모양을 화면마다 다르게 두지 않는다 */
@@ -557,13 +566,5 @@ function SearchIcon() {
       <circle cx="11" cy="11" r="7" />
       <path d="m20 20-3.5-3.5" />
     </svg>
-  );
-}
-
-function Centered({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-border-default py-16">
-      {children}
-    </div>
   );
 }

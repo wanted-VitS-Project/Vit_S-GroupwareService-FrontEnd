@@ -114,7 +114,7 @@ export function AlertDialogTwoButton({
         type="button"
         onClick={onCancel}
         disabled={isBusy}
-        className="btn btn-gray w-40"
+        className="btn btn-gray flex-1"
       >
         {cancelLabel}
       </button>
@@ -122,7 +122,7 @@ export function AlertDialogTwoButton({
         type="button"
         onClick={onConfirm}
         disabled={isBusy}
-        className={`btn w-40 ${isDanger ? 'btn-danger' : 'btn-primary'}`}
+        className={`btn flex-1 ${isDanger ? 'btn-danger' : 'btn-primary'}`}
       >
         {confirmLabel}
       </button>
@@ -148,29 +148,29 @@ function Shell({
       title={title}
       onClose={onClose}
       header={icon}
-      // 480px 고정이되 좁은 화면에서는 줄어든다 — 고정만 하면 모바일에서 잘린다
-      className="w-120 max-w-[calc(100vw-2rem)] rounded-base bg-bg-card p-8"
+      // 400px 고정이되 좁은 화면에서는 줄어든다 — 고정만 하면 모바일에서 잘린다
+      className="w-100 max-w-[calc(100vw-2rem)] rounded-base bg-bg-card p-6"
     >
-      <div className="mt-6 text-center">
-        <h2 className="text-heading-xl font-semibold text-text-primary">
+      <div className="mt-4 text-center">
+        <h2 className="text-heading-m font-semibold text-text-primary">
           {title}
         </h2>
         {description && (
-          <div className="mt-3 text-heading-m text-text-secondary">
-            {description}
+          <div className="mt-2 text-label break-keep text-text-secondary">
+            <Clauses value={description} />
           </div>
         )}
         {errorMessage && (
           <p
             role="alert"
-            className="text-body-s mt-3 rounded-lg bg-red-bg-soft px-3 py-2 text-text-danger"
+            className="mt-3 rounded-lg bg-red-bg-soft px-3 py-2 text-caption break-keep text-text-danger"
           >
             {errorMessage}
           </p>
         )}
       </div>
 
-      <div className="mt-6 flex justify-center gap-2">{children}</div>
+      <div className="mt-5 flex justify-center gap-2">{children}</div>
     </Modal>
   );
 }
@@ -228,6 +228,35 @@ export const DialogIcons = {
   /** **되돌릴 수 없을 때** — 삭제 */
   danger: <DialogIcon isDanger>{DANGER_PATHS}</DialogIcon>,
 };
+
+/**
+ * 설명 문구를 **구두점에서 끊는다.**
+ *
+ * 그냥 두면 `자동 수집은 꺼진 상 / 태이며` 처럼 말 중간에서 넘어가 읽기가 걸린다.
+ * `.` · `,` 뒤에서 잘라 각 조각을 `inline-block` 으로 두면 —
+ * - 자리가 남으면 한 줄에 이어 붙고,
+ * - 넘칠 때는 **조각 사이**에서만 넘어간다 (조각 안에서 끊기지 않는다).
+ *
+ * 문자열이 아닌 설명(직접 만든 JSX)은 손대지 않고 그대로 그린다.
+ */
+function Clauses({ value }: { value: React.ReactNode }) {
+  if (typeof value !== 'string') return <>{value}</>;
+
+  // 구두점을 조각 **끝에** 남긴다 — 다음 줄 머리에 `.` 만 떨어지면 더 이상하다
+  const clauses = value.split(/(?<=[.,])\s+/).filter(Boolean);
+
+  return (
+    <>
+      {clauses.map((clause, index) => (
+        <span key={index} className="inline-block">
+          {clause}
+          {/* 조각 사이 공백. 없으면 붙어 보이고, 여기가 유일한 줄바꿈 자리가 된다 */}
+          {index < clauses.length - 1 && ' '}
+        </span>
+      ))}
+    </>
+  );
+}
 
 function DialogIcon({
   isDanger = false,
