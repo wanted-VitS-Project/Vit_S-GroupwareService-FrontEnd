@@ -3,6 +3,8 @@
  * 분기는 **status 가 아니라 `code`** 로 한다 — 400 하나에 여러 의미가 실린다.
  */
 
+import { ApiError } from '@/lib/api';
+
 export const BLOCK_CODES = {
   /** `colSpan` 이 1~3 범위 밖 */
   colSpanInvalid: 'BLOCK_COL_SPAN_INVALID',
@@ -50,3 +52,62 @@ export function layoutErrorMessage(code: string | undefined) {
  */
 export const LAYOUT_CONFLICT_MESSAGE =
   '다른 사람이 먼저 배치를 바꿨습니다. 최신 배치를 불러옵니다.';
+
+/**
+ * 텍스트 본문 수정 코드 (2026-08-11 낙관적 락 신설).
+ *
+ * ⚠️ 이 도메인의 나머지 코드는 `TXT-001` 처럼 **번호식**인데, 낙관락 코드만
+ *    팀 표준(`{도메인}_VERSION_*`)을 따라 의미식이다 — 헷갈리기 쉬워 여기 모아 둔다.
+ */
+export const TEXT_CODES = {
+  /** 400 — `version` 을 빠뜨렸다 */
+  versionRequired: 'TEXT_VERSION_REQUIRED',
+  /** 409 — 그 사이 남이 먼저 저장했다. `overwrite: true` 로 덮어쓸 수 있다 */
+  versionConflict: 'TEXT_VERSION_CONFLICT',
+  /** 400 — 내용이 비었다 */
+  contentRequired: 'TXT-003',
+  editDenied: 'TXT-001',
+  notFound: 'TXT-002',
+} as const;
+
+/** 이미지 항목 수정 코드 (2026-08-11 낙관적 락 신설) */
+export const IMAGE_CODES = {
+  versionRequired: 'IMAGE_VERSION_REQUIRED',
+  /** 409 — 배열 중 하나라도 어긋났다. ⛔ 이 API 에는 `overwrite` 가 없다 */
+  versionConflict: 'IMAGE_VERSION_CONFLICT',
+  /** 400 — 다른 블록 · 중복 · 없는 `imgId` 가 섞였다 */
+  listInvalid: 'IMG-005',
+  editDenied: 'IMG-002',
+  notFound: 'IMG-003',
+} as const;
+
+/**
+ * 낙관적 락 충돌인지 — 텍스트 · 이미지 공용.
+ *
+ * ⚠️ `code` 가 비어 있어도 **409 면 충돌로 본다** — 두 API 의 409 는 이것뿐이고,
+ *    코드를 못 읽었다고 조용히 삼키면 사용자는 저장된 줄 안다.
+ */
+function isVersionConflict(error: unknown, code: string) {
+  if (!(error instanceof ApiError)) return false;
+
+  return error.code === code || error.status === 409;
+}
+
+export function isTextVersionConflict(error: unknown) {
+  return isVersionConflict(error, TEXT_CODES.versionConflict);
+}
+
+export function isImageVersionConflict(error: unknown) {
+  return isVersionConflict(error, IMAGE_CODES.versionConflict);
+}
+
+/** 버전을 못 받아 저장을 시작조차 할 수 없을 때 — 두 화면이 같은 문구를 쓴다 */
+export const NO_VERSION_MESSAGE =
+  '버전 정보를 받지 못해 저장할 수 없습니다. 새로고침 후 다시 시도해주세요.';
+
+/**
+ * 이미지 저장이 409 로 막혔을 때.
+ * ⛔ `overwrite` 가 없다 — 여러 장 배열이라 "무엇을 덮어쓸지" 가 정해지지 않는다.
+ */
+export const IMAGE_CONFLICT_MESSAGE =
+  '다른 사람이 먼저 이미지를 수정했습니다. 최신 목록을 다시 불러왔으니 확인 후 저장해주세요.';

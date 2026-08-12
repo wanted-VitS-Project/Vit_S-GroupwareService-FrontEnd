@@ -51,10 +51,12 @@ export interface SettlementDraft {
 }
 
 /**
- * 정산 항목 작성 · 수정 요청 (.ai/API.md 86).
- * 계좌 3종은 `OUTCOME` 일 때만 보내며, 그때는 **셋 다 필수**다.
+ * 정산 항목의 값 자체. 요청 · 응답이 함께 쓰는 부분이다.
+ *
+ * 요청에만 있는 것(`version` · `overwrite`)과 응답에만 있는 것(실제 입출금 · 상태)을
+ * 이 위에 각각 얹는다 — 한 덩어리로 묶으면 응답 타입에 `overwrite` 가 새어 들어간다.
  */
-export interface SaveSettlementRequest {
+export interface SettlementFields {
   roundNo: number;
   /** 프로젝트 정산 예정 총 금액 */
   totalAmount: number;
@@ -79,13 +81,35 @@ export interface SaveSettlementRequest {
 }
 
 /**
+ * 정산 항목 작성 · 수정 요청 (.ai/API.md 86).
+ * 계좌 3종은 `OUTCOME` 일 때만 보내며, 그때는 **셋 다 필수**다.
+ *
+ * ⚠️ **낙관적 락** (2026-08-12 신설) — `version` 필수. 없으면 400
+ *    `SETTLEMENT_VERSION_REQUIRED`, 늦으면 409 `SETTLEMENT_VERSION_CONFLICT` 다.
+ */
+export interface SaveSettlementRequest extends SettlementFields {
+  /** 블록 목록의 `detail.version` 그대로 */
+  version: number;
+  /** `true` 면 충돌을 무시하고 덮어쓴다 */
+  overwrite?: boolean;
+}
+
+/**
  * 정산 항목 (.ai/API.md 86 응답).
  *
  * ⚠️ `accountNumber` 는 **마스킹된 값**(`100******444`)이다.
  * 폼에 채울 원본은 85번의 `originalAccountNumber` 에서 온다.
  */
-export interface SettlementItem extends SaveSettlementRequest {
+export interface SettlementItem extends SettlementFields {
   settleId: number;
+  /**
+   * 저장 후의 새 버전 (2026-08-12 신설).
+   *
+   * ⚠️ 화면에 꽂지 않으면 **연달아 두 번 저장할 때 두 번째가 409** 다 —
+   *    블록 목록을 다시 읽지 않으므로 `detail.version` 은 옛 값에 머문다.
+   * ⚠️ 선택으로 둔다 — 블록 `detail` 에서 읽어낸 항목에는 없을 수 있다.
+   */
+  version?: number;
   /** 재무팀이 나중에 채운다. 작성 직후에는 null — 화면은 `-` 로 그린다 */
   actualAmount: number | null;
   actualDate: string | null;
@@ -109,6 +133,14 @@ export interface SettlementBlockDetail {
   status: SettlementStatus | null;
   /** 아직 작성하지 않았으면 `null` */
   item: SettlementItem | null;
+  /**
+   * 낙관적 락 버전 (2026-08-12 신설) — 저장(86번)에 이 값을 실어 보낸다.
+   *
+   * ⚠️ **`block.version` 과 다른 값이다** — `settlement_block` 테이블의 자기 버전이다.
+   *    블록 목록의 `SETTLEMENT` 상세에 함께 실려 온다.
+   * ⚠️ 선택으로 둔다 — 없으면 화면이 저장을 막고 새로고침을 안내한다.
+   */
+  version?: number;
 }
 
 /**
@@ -129,6 +161,8 @@ export function readSettlementBlockDetail(
     status: readStatus(source.status),
     // 아직 아무것도 작성하지 않았으면 값이 없다 — 그 자체가 정상이다
     item: readItem(source),
+    // 작성 전에도 온다 — 첫 저장도 낙관적 락을 탄다
+    version: readNumber(source.version) ?? undefined,
   };
 }
 
@@ -186,6 +220,7 @@ function readItem(source: Record<string, unknown>): SettlementItem | null {
     status: readStatus(source.status) ?? 'PENDING',
     paidAmountRatio: readNumber(source.paidAmountRatio) ?? 0,
     createdAt: readText(source.createdAt) ?? '',
+    version: readNumber(source.version) ?? undefined,
   };
 }
 

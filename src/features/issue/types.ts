@@ -49,11 +49,11 @@ export interface IssueSummary {
   /**
    * 낙관적 락 버전 (2026-08-12 신설).
    *
-   * ⚠️ **선택 필드로 둔다** — 목록 · 상세에 실린다는 계약은 나왔지만 실서버 확인 전이다.
-   *    값이 없으면 화면이 **수정 · 상태 변경을 막고 재조회를 안내한다**
-   *    (스테이지 · 스텝 · 블록과 같은 방침).
+   * ✅ **필수다** — 목록(55) · 상세(57) · 프로젝트 이슈(108) 응답 스키마에 실려 있는 것을
+   *    2026-08-12 실서버 `/v3/api-docs` 로 확인했다 (`IssueListResponseIssueSummary` ·
+   *    `IssueDetailResponse` · `ProjectIssueListResponseIssueSummary`).
    */
-  version?: number;
+  version: number;
 }
 
 /**
@@ -145,10 +145,9 @@ export interface IssueStatusChanged {
    * 저장 후의 새 값. 상태 변경도 issue 버전을 올린다 —
    * 화면 카드에 덮어쓰지 않으면 **다음 수정이 409** 다.
    *
-   * ⚠️ 응답에 실리는지 확인 전이라 선택으로 둔다. 없으면 화면은 카드 버전을 비워
-   *    다음 저장 때 재조회를 타게 한다 (옛 값을 들고 있는 것보다 낫다).
+   * ✅ 응답 스키마(`IssueStatusChangeResponse`)에 있는 것을 2026-08-12 실서버로 확인했다.
    */
-  version?: number;
+  version: number;
 }
 
 /**

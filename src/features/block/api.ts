@@ -22,6 +22,7 @@ import type {
   UpdateChecklistItemResponse,
   UpdateImageItemsRequest,
   UpdateImageItemsResponse,
+  UpdateTextBlockRequest,
   UpdateTextBlockResponse,
 } from './types';
 
@@ -107,15 +108,20 @@ export function updateBlockLayout(
 /**
  * 텍스트 본문 수정 — `txtId` 는 텍스트 항목 ID (`blockId` 아님).
  * 부분 수정이 아니라 **전체 내용**을 보낸다.
+ *
+ * ⚠️ **낙관적 락** (2026-08-11) — `body.version` 은 블록 목록에서 받은
+ *    `detail.version` 이다 (`block.version` 이 아니다). 늦으면 409 이고,
+ *    부르는 쪽이 재조회 · 덮어쓰기(`overwrite: true`)를 사용자에게 묻는다.
+ * ⚠️ 응답 `version` 은 **저장 후의 새 값**이라 화면에 꽂아야 다음 저장이 통과한다.
  */
 export function updateTextBlock(
   txtId: number | string,
-  content: string,
+  body: UpdateTextBlockRequest,
   signal?: AbortSignal,
 ) {
   return api.patch<UpdateTextBlockResponse>(
     ENDPOINTS.blocks.text(txtId),
-    { content },
+    body,
     signal,
   );
 }
@@ -295,6 +301,11 @@ export function createImageItems(
  * ⚠️ 부분 수정이 아니라 **전체 치환**이다 — 보낸 순서대로 `orderIndex` 가 다시 매겨지고,
  *    목록에서 빠진 이미지가 어떻게 되는지는 확인되지 않았다. 항상 전체를 보낸다.
  * ⚠️ 경로의 마지막 값은 항목 ID 가 아니라 **블록 ID** 다.
+ *
+ * ⚠️ **낙관적 락이 항목마다다** (2026-08-11) — `images[].version` 필수.
+ *    하나라도 어긋나면 **배열 전체가 409** 로 롤백된다 (부분 저장 없음).
+ * ⛔ `overwrite` 가 **없다** — 여러 장 배열이라 무엇을 덮어쓸지 정할 수 없다.
+ *    409 면 재조회 말고는 출구가 없다.
  */
 export function updateImageItems(
   imgBlockId: number | string,
