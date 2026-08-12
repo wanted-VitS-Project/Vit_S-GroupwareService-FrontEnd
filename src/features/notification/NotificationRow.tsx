@@ -39,7 +39,7 @@ export default function NotificationRow({
     >
       <span
         aria-hidden
-        className={`flex size-8 shrink-0 items-center justify-center rounded-pill text-label ${icon.className}`}
+        className={`flex size-8 shrink-0 items-center justify-center rounded-pill text-caption ${icon.className}`}
       >
         {icon.symbol}
       </span>
@@ -50,15 +50,15 @@ export default function NotificationRow({
         disabled={disabled}
         className="min-w-0 flex-1 cursor-pointer text-left disabled:cursor-not-allowed"
       >
-        <p className="truncate text-label font-bold text-text-primary">
+        <p className="truncate text-caption font-bold text-text-primary">
           {notification.title}
         </p>
         {/* 한 줄로 자른다 — 알림마다 길이가 달라 목록이 들쭉날쭉해진다 */}
-        <p className="mt-0.5 truncate text-label text-text-secondary">
+        <p className="mt-0.5 truncate text-caption text-text-secondary">
           {notification.message}
         </p>
         {/* 형식이 어긋나면 빈 값이라 `empty:hidden` 으로 줄이 접힌다 */}
-        <p className="mt-1 text-detail text-text-secondary empty:hidden">
+        <p className="mt-1 text-caption text-text-secondary empty:hidden">
           {showFullTime
             ? formatFullTime(notification.createdAt)
             : notificationTimeLabel(notification.createdAt)}

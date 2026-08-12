@@ -1,6 +1,12 @@
 import { Skeleton, SkeletonTable } from '@/components/Skeleton';
 
-/** 목록 표의 열 구성을 실제 화면(`NoticeList`)과 맞춘다 — 다르면 로딩이 끝나며 열이 튄다 */
+/**
+ * 목록 표의 열 구성을 실제 화면(`NoticeList` 의 `NOTICE_COLUMNS`)과 맞춘다 —
+ * 다르면 로딩이 끝나며 열이 튄다.
+ *
+ * ℹ️ 화면 안에서의 로딩은 `DataTable` 이 `rows={null}` 로 직접 그린다.
+ *    이 스켈레톤은 **`Suspense` 폴백 전용**이다 (`useSearchParams` 가 준비되기 전 단계).
+ */
 const COLUMNS = [
   { label: '공고명', width: 'w-64' },
   { label: '발주처', width: 'w-28' },
@@ -19,7 +25,7 @@ export function NoticeListSkeleton({ rows = 10 }: { rows?: number }) {
       <SkeletonTable
         label="입찰 공고를 불러오는 중입니다"
         rows={rows}
-        wrapperClassName="min-w-[840px]"
+        wrapperClassName="min-w-[900px]"
         columns={COLUMNS.map((column) => ({
           label: column.label || ' ',
           render: () => <Skeleton className={`h-3 ${column.width}`} />,

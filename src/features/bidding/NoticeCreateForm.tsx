@@ -234,7 +234,7 @@ export default function NoticeCreateForm() {
   }
 
   /**
-   * 9) 첫 오류 항목으로 포커스를 옮긴다.
+   * 첫 오류 항목으로 포커스를 옮긴다.
    *
    * 구획 5개에 항목이 20개 가까워 제출 버튼에서 첫 오류가 보이지 않는다.
    * 포커스를 옮기면 스크롤과 스크린리더 안내가 함께 처리된다.
@@ -318,7 +318,7 @@ export default function NoticeCreateForm() {
 
   return (
     <>
-      <p className="text-xs text-text-secondary">
+      <p className="text-micro text-text-secondary">
         <Link
           href={BIDDING_ROUTES.list}
           className="hover:text-text-primary hover:underline"
@@ -532,7 +532,7 @@ export default function NoticeCreateForm() {
                 key={index}
                 className="flex items-end gap-2"
               >
-                <div className="w-1/3">
+                <div className="w-52 shrink-0">
                   <TextField
                     id={`attachment-name-${index}`}
                     label="파일명"

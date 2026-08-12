@@ -18,3 +18,61 @@ export function onNotificationChanged(listener: () => void) {
   window.addEventListener(NOTIFICATION_CHANGED, listener);
   return () => window.removeEventListener(NOTIFICATION_CHANGED, listener);
 }
+
+/* ─────────────────── 탭 간 공유 ─────────────────── */
+
+/**
+ * 안 읽은 개수를 **탭끼리 나눠 쓴다.**
+ *
+ * 탭을 세 개 열면 세 탭이 각자 물어봐 요청만 세 배가 된다. 한 탭이 받아온 숫자를
+ * 나머지에 뿌리면, 주기를 더 짧게 가져가도 서버가 받는 요청은 오히려 줄어든다.
+ *
+ * ⚠️ 실시간 채널이 아니다 — 새 알림을 **먼저 알려주는 것은 여전히 주기 조회**다.
+ *    이 통로는 이미 받아온 값을 옆 탭에 옮길 뿐이다.
+ * ℹ️ `BroadcastChannel` 을 지원하지 않는 환경에서는 조용히 꺼진다 (탭마다 각자 조회).
+ */
+const COUNT_CHANNEL = 'notification:unread-count';
+
+export interface UnreadCountMessage {
+  unreadCount: number;
+  /** 보낸 시각(ms). 받은 쪽이 "방금 갱신됐다" 를 판단하는 데 쓴다 */
+  sentAt: number;
+}
+
+function openChannel() {
+  if (typeof window === 'undefined' || !('BroadcastChannel' in window)) {
+    return null;
+  }
+  return new BroadcastChannel(COUNT_CHANNEL);
+}
+
+/** 방금 받아온 숫자를 다른 탭에 알린다 */
+export function shareUnreadCount(
+  channel: BroadcastChannel | null,
+  unreadCount: number,
+) {
+  channel?.postMessage({
+    unreadCount,
+    sentAt: Date.now(),
+  } satisfies UnreadCountMessage);
+}
+
+/**
+ * 다른 탭이 받아온 숫자를 구독한다.
+ * 정리 함수가 채널까지 닫으므로 이펙트에서 그대로 돌려주면 된다.
+ */
+export function subscribeUnreadCount(
+  listener: (message: UnreadCountMessage) => void,
+) {
+  const channel = openChannel();
+
+  if (channel) {
+    channel.onmessage = (event: MessageEvent<UnreadCountMessage>) =>
+      listener(event.data);
+  }
+
+  return {
+    channel,
+    close: () => channel?.close(),
+  };
+}

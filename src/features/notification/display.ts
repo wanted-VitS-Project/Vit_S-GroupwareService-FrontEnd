@@ -1,4 +1,5 @@
 import { APPROVAL_ROUTES } from '@/features/approval/routes';
+import { PROJECT_ROUTES } from '@/features/project/routes';
 
 import type { NotificationTarget, NotificationType } from './types';
 
@@ -64,12 +65,46 @@ export function iconOf(notificationType: NotificationType) {
  * 읽음 처리만 남는다 (이동 대상 조회가 읽음을 겸한다).
  */
 export function routeOf(target: NotificationTarget) {
-  if (target.targetId === null) return null;
-
   switch (target.type) {
     case 'APPROVAL':
-      return APPROVAL_ROUTES.detail(target.targetId);
+      return target.targetId === null
+        ? null
+        : APPROVAL_ROUTES.detail(target.targetId);
+
+    /**
+     * 이슈 알림. **`targetId`(이슈 ID)만으로는 갈 곳을 못 만든다** —
+     * 이슈 단독 화면이 없고 `프로젝트 > 스텝 > 이슈` 안에 있어서다.
+     * 그래서 `extra` 의 `projectId` · `stepId` 를 함께 본다 (2026-08-12 실측 확인).
+     */
+    case 'ISSUE': {
+      const projectId = pickId(target.extra, 'projectId');
+      if (projectId === null) return null;
+
+      const stepId = pickId(target.extra, 'stepId');
+
+      // 스텝을 모르면 프로젝트까지만 데려간다 — 아무 데도 못 가는 것보다 낫다
+      return stepId === null
+        ? PROJECT_ROUTES.detail(projectId)
+        : PROJECT_ROUTES.stepIssues(projectId, stepId);
+    }
+
     default:
       return null;
   }
+}
+
+/**
+ * `extra` 에서 ID 를 꺼낸다.
+ *
+ * ⚠️ 명세는 `Record<string, string>` 이지만 **실제로는 숫자가 온다.**
+ *    둘 다 들어와도 경로가 깨지지 않게 숫자로 검사한 뒤 문자열로 돌려준다.
+ */
+function pickId(
+  extra: NotificationTarget['extra'],
+  key: string,
+): string | null {
+  const value = extra?.[key];
+
+  if (value === undefined || value === null || value === '') return null;
+  return Number.isFinite(Number(value)) ? String(value) : null;
 }

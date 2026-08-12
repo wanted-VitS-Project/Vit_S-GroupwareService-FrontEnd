@@ -36,7 +36,7 @@ function FieldShell({
     <div>
       <label
         htmlFor={id}
-        className="block pb-1.5 text-detail font-semibold text-text-primary"
+        className="block pb-1.5 text-caption font-semibold text-text-primary"
       >
         {label} {required && <span className="text-text-danger">*</span>}
       </label>
@@ -45,7 +45,7 @@ function FieldShell({
         <p
           id={`${id}-error`}
           role="alert"
-          className="mt-1 text-[10px] break-keep text-text-danger"
+          className="mt-1 text-micro break-keep text-text-danger"
         >
           {error}
         </p>
@@ -53,7 +53,7 @@ function FieldShell({
         hint && (
           <p
             id={`${id}-hint`}
-            className="mt-1 text-[10px] break-keep text-text-secondary"
+            className="mt-1 text-micro break-keep text-text-secondary"
           >
             {hint}
           </p>
@@ -66,10 +66,13 @@ function FieldShell({
 /**
  * 입력 스타일은 `globals.css` 의 공용 `.input` 을 쓴다 —
  * 테두리 · 높이 · 포커스 색을 화면마다 다시 정하지 않는다.
- * 에러일 때만 `.input-error` 를 덧붙인다.
+ *
+ * 글자만 `text-label`(14px)로 덮는다 — `.input` 기본이 16px 라 항목이 20개 가까운
+ * 이 폼에서는 과하게 크다. 표 본문(`DataTable`)과 같은 크기로 맞춘다.
+ * (`.input` 은 `@layer components` 라 유틸리티가 이긴다)
  */
 function controlClass(hasError: boolean) {
-  return `input ${hasError ? 'input-error' : ''}`;
+  return `input text-label ${hasError ? 'input-error' : ''}`;
 }
 
 interface BaseProps {
@@ -176,7 +179,7 @@ export function AmountField({
           aria-describedby={describedBy(id, error, hint)}
           className={`${controlClass(error !== undefined)} pr-8`}
         />
-        <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-text-secondary">
+        <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-micro text-text-secondary">
           원
         </span>
       </div>
@@ -276,7 +279,7 @@ export function CheckboxField({
     <div>
       <label
         htmlFor={id}
-        className="flex cursor-pointer items-center gap-2 text-detail font-semibold text-text-primary"
+        className="flex cursor-pointer items-center gap-2 text-caption font-semibold text-text-primary"
       >
         <input
           id={id}
@@ -289,9 +292,7 @@ export function CheckboxField({
         {label}
       </label>
       {hint && (
-        <p className="mt-1 text-[10px] break-keep text-text-secondary">
-          {hint}
-        </p>
+        <p className="mt-1 text-micro break-keep text-text-secondary">{hint}</p>
       )}
     </div>
   );
@@ -320,7 +321,7 @@ export function AlertBanner({
   return (
     <p
       role={tone === 'danger' ? 'alert' : 'status'}
-      className={`rounded-lg border px-4 py-3 text-detail break-keep ${toneClass} ${className}`}
+      className={`rounded-lg border px-4 py-3 text-caption break-keep ${toneClass} ${className}`}
     >
       {children}
     </p>
@@ -339,9 +340,9 @@ export function FormSection({
 }) {
   return (
     <section className="rounded-xl border border-border-default bg-bg-card p-5">
-      <h3 className="text-sm font-bold text-text-primary">{title}</h3>
+      <h3 className="text-label font-bold text-text-primary">{title}</h3>
       {description && (
-        <p className="mt-1 text-[10px] break-keep text-text-secondary">
+        <p className="mt-1 text-micro break-keep text-text-secondary">
           {description}
         </p>
       )}

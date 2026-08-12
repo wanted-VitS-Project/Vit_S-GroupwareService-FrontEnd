@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
+import DataTable, { type DataTableColumn } from '@/components/DataTable';
 import RowMenu, { type RowMenuItem } from '@/components/RowMenu';
-import { DepartmentTableSkeleton } from '@/components/settings/SettingsSkeletons';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useModalTarget } from '@/lib/useModal';
 
@@ -119,24 +119,17 @@ export default function DepartmentList() {
         {canManage && <AddButton onClick={() => formModal.open({})} />}
       </div>
 
-      <div className="rounded-base border border-border-default bg-bg-card">
-        {hasFailed ? (
-          <Centered>
-            <p className="text-label text-text-secondary">
-              부서를 불러오지 못했습니다.
-            </p>
-            <button
-              type="button"
-              onClick={reload}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover"
-            >
-              다시 시도
-            </button>
-          </Centered>
-        ) : !rows ? (
-          <DepartmentTableSkeleton />
-        ) : rows.length === 0 ? (
-          <Centered>
+      <DataTable
+        caption="부서 목록"
+        columns={departmentColumns(canManage, menuItems)}
+        rows={hasFailed ? [] : rows}
+        rowKey={({ department }) => department.departmentId}
+        // 목록이 길어지면 표 영역만 스크롤된다 (헤더는 `DataTable` 이 고정한다)
+        maxHeight="60vh"
+        errorMessage={hasFailed ? '부서를 불러오지 못했습니다.' : undefined}
+        onRetry={reload}
+        emptyState={
+          <>
             <TreeIcon />
             <p className="text-body-m font-bold text-text-primary">
               등록된 부서가 없습니다
@@ -147,81 +140,9 @@ export default function DepartmentList() {
             {canManage && (
               <AddButton subtle onClick={() => formModal.open({})} />
             )}
-          </Centered>
-        ) : (
-          // 목록이 길어지면 이 영역만 스크롤된다
-          <div className="max-h-[60vh] overflow-y-auto">
-            <table className="w-full table-fixed border-collapse text-left">
-              <thead className="sticky top-0 bg-bg-card">
-                <tr className="border-b border-border-default text-detail text-text-secondary">
-                  <th className="px-5 py-3 font-medium">부서명</th>
-                  <th className="w-28 px-5 py-3 font-medium">인원</th>
-                  <th className="w-32 px-5 py-3 font-medium">소속 사원</th>
-                  <th className="w-14 px-5 py-3">
-                    <span className="sr-only">관리</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(({ department, depth }) => (
-                  <tr
-                    key={department.departmentId}
-                    className="border-b border-border-default last:border-b-0"
-                  >
-                    <td className="px-5 py-3.5">
-                      <span
-                        className={`flex min-w-0 items-center gap-1.5 ${depth === 1 ? 'pl-6' : ''}`}
-                      >
-                        {depth === 1 && (
-                          <span aria-hidden className="text-text-muted">
-                            └
-                          </span>
-                        )}
-                        <span
-                          className={`truncate text-label ${
-                            depth === 0
-                              ? 'font-bold text-text-primary'
-                              : 'text-text-secondary'
-                          }`}
-                        >
-                          {department.name}
-                        </span>
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {/* 하위 포함 인원. 삭제 가능 여부는 직속 인원으로 따로 판단한다 */}
-                      {department.totalEmployeeCount > 0 ? (
-                        <span className="text-label text-text-secondary">
-                          {department.totalEmployeeCount}명
-                        </span>
-                      ) : (
-                        <span className="text-label text-text-muted">없음</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <Link
-                        href={`/settings/employees?departmentId=${department.departmentId}`}
-                        className="text-detail font-medium text-text-primary-blue hover:underline"
-                      >
-                        사원 보기
-                      </Link>
-                    </td>
-                    <td className="px-5 py-3.5 text-right">
-                      {canManage && (
-                        <RowMenu
-                          label={department.name}
-                          width={120}
-                          items={menuItems(department, depth)}
-                        />
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+          </>
+        }
+      />
 
       {formModal.target && (
         <DepartmentFormModal
@@ -240,6 +161,93 @@ export default function DepartmentList() {
       )}
     </>
   );
+}
+
+/** 2단 트리를 평면 행으로 편 것 — 들여쓰기는 `depth` 로만 표현한다 */
+interface DepartmentRow {
+  department: Department;
+  depth: number;
+}
+
+/**
+ * 부서 표의 열 정의.
+ * 권한(`canManage`)에 따라 관리 열이 붙었다 빠지므로 함수로 만든다.
+ */
+function departmentColumns(
+  canManage: boolean,
+  menuItems: (department: Department, depth: number) => RowMenuItem[],
+): DataTableColumn<DepartmentRow>[] {
+  return [
+    {
+      key: 'name',
+      header: '부서명',
+      skeletonWidth: 'w-40',
+      cell: ({ department, depth }) => (
+        <span
+          className={`flex min-w-0 items-center gap-1.5 ${depth === 1 ? 'pl-6' : ''}`}
+        >
+          {depth === 1 && (
+            <span aria-hidden className="text-text-muted">
+              └
+            </span>
+          )}
+          <span
+            className={`truncate ${
+              depth === 0
+                ? 'font-bold text-text-primary'
+                : 'text-text-secondary'
+            }`}
+          >
+            {department.name}
+          </span>
+        </span>
+      ),
+    },
+    {
+      key: 'count',
+      header: '인원',
+      width: '7rem',
+      skeletonWidth: 'w-12',
+      // 하위 포함 인원. 삭제 가능 여부는 직속 인원으로 따로 판단한다
+      cell: ({ department }) =>
+        department.totalEmployeeCount > 0 ? (
+          <span className="text-text-secondary">
+            {department.totalEmployeeCount}명
+          </span>
+        ) : (
+          <span className="text-text-muted">없음</span>
+        ),
+    },
+    {
+      key: 'employees',
+      header: '소속 사원',
+      width: '8rem',
+      skeletonWidth: 'w-16',
+      cell: ({ department }) => (
+        <Link
+          href={`/settings/employees?departmentId=${department.departmentId}`}
+          className="font-medium text-text-primary-blue hover:underline"
+        >
+          사원 보기
+        </Link>
+      ),
+    },
+    {
+      key: 'menu',
+      header: <span className="sr-only">관리</span>,
+      width: '3.5rem',
+      align: 'right',
+      skeletonWidth: 'w-6',
+      cell: ({ department, depth }) =>
+        canManage ? (
+          <RowMenu
+            label={department.name}
+            width={120}
+            items={menuItems(department, depth)}
+          />
+        ) : null,
+    },
+  ];
 }
 
 function AddButton({
@@ -261,14 +269,6 @@ function AddButton({
     >
       + 부서 추가
     </button>
-  );
-}
-
-function Centered({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-2 px-5 py-20 text-center">
-      {children}
-    </div>
   );
 }
 

@@ -147,16 +147,19 @@ export default function NotificationSection({
 
   return (
     <section>
-      <h2 className="text-body-m font-bold text-text-primary">
+      <h2 className="text-label font-bold text-text-primary">
         {title}
         {/* 건수는 목록 길이가 아니라 전체 건수다 — 목록은 페이지 크기에 잘린다 */}
-        <span className="ml-1.5 text-label font-normal text-text-secondary">
+        <span className="ml-1.5 text-caption font-normal text-text-secondary">
           {data?.totalElements ?? 0}
         </span>
       </h2>
 
       {error !== '' && (
-        <p role="alert" className="mt-2 text-label break-keep text-text-danger">
+        <p
+          role="alert"
+          className="mt-2 text-caption break-keep text-text-danger"
+        >
           {error}
         </p>
       )}
@@ -168,19 +171,19 @@ export default function NotificationSection({
        */}
       <div className="mt-2 overflow-hidden rounded-base border border-border-default">
         {hasFailed && (
-          <p className="flex-1 px-4 py-10 text-center text-label text-text-secondary">
+          <p className="flex-1 px-4 py-10 text-center text-caption text-text-secondary">
             알림을 불러오지 못했습니다.
           </p>
         )}
 
         {!hasFailed && data === null && (
-          <p className="flex-1 px-4 py-10 text-center text-label text-text-secondary">
+          <p className="flex-1 px-4 py-10 text-center text-caption text-text-secondary">
             불러오는 중…
           </p>
         )}
 
         {data?.content.length === 0 && (
-          <p className="flex-1 px-4 py-10 text-center text-label text-text-secondary">
+          <p className="flex-1 px-4 py-10 text-center text-caption text-text-secondary">
             {emptyText}
           </p>
         )}
@@ -193,7 +196,7 @@ export default function NotificationSection({
              */}
             {groupByDate(data.content).map((group) => (
               <div key={group.dateKey}>
-                <p className="border-b border-border-default bg-bg-surface px-4 py-1.5 text-detail font-semibold text-text-secondary">
+                <p className="border-b border-border-default bg-bg-surface px-4 py-1.5 text-caption font-semibold text-text-secondary">
                   {group.dateLabel}
                 </p>
 

@@ -85,6 +85,75 @@
 
 ---
 
+## [2026-08-12] 목록 표 공용화 · 디자인 토큰 정리 ✅
+
+브랜치: `ref/data-table` · 이슈: 확인 필요
+
+### 변경 파일
+
+| 파일                                                 | 변경                                          |
+| ---------------------------------------------------- | --------------------------------------------- |
+| `src/components/DataTable.tsx`                       | 구현 (기존 `return null` 스텁 대체)           |
+| `src/features/employee/EmployeeList.tsx`             | 표 전환 (체크박스 · 행 클릭)                  |
+| `src/features/department/DepartmentList.tsx`         | 표 전환 (2단 들여쓰기)                        |
+| `src/features/jobPosition/JobPositionList.tsx`       | 표 전환 (순번 · 순서 이동)                    |
+| `src/features/businessCategory/CategoryList.tsx`     | 표 전환 + NUL 바이트 제거                     |
+| `src/features/employeeGroup/EmployeeGroupList.tsx`   | 표 전환                                       |
+| `src/features/pagePermission/PagePermissionList.tsx` | 표 전환                                       |
+| `src/features/bidding/NoticeList.tsx`                | 표 전환 + 액션 버튼 위치 · 강조 조정          |
+| `src/components/settings/SettingsSkeletons.tsx`      | 표 스켈레톤 4개 제거                          |
+| `src/components/AlertDialog.tsx`                     | 크기 축소 · 구두점 줄바꿈                     |
+| `src/components/ProfileMenu.tsx`                     | 글자 크기 축소                                |
+| `src/features/employee/EmployeeStatusBadge.tsx`      | 하드코딩 hex 제거                             |
+| `src/features/bidding/FormFields.tsx`                | 입력 글자 14px · 보조 문구 축소               |
+| `src/features/bidding/NoticeCreateForm.tsx`          | 첨부 칸 고정 폭 · 글자 축소                   |
+| `src/features/bidding/CollectionConditionList.tsx`   | 활성 여부 양방향 확인 다이얼로그              |
+| `src/features/notification/*`                        | 5초 주기 · 탭 간 공유 · 이슈 이동 · 글자 축소 |
+| `src/features/project/routes.ts`                     | `step` · `stepIssues` 경로 추가               |
+| `src/app/settings/page.tsx`                          | 중복 보조 문구 제거                           |
+| `.ai/API.md`                                         | 이슈 알림 `target` 실측 payload 반영          |
+
+### 주요 작업 내용
+
+- **공용 `DataTable`** — 열 정의 하나로 헤더 · 본문 · 스켈레톤이 함께 생성된다. 상태는 `rows`(`null`=로딩 / `[]`=빈 상태) + `errorMessage`(실패)로 갈린다
+- 특수 케이스 지원 — `onRowClick` + `column.stopRowClick`(사원 행 클릭), `cell(row, index)`(직급 순번 · 이동), `emptyState`(아이콘형 빈 상태)
+- **표 7개 전환** 및 지역 `Th` · `Td` · `Centered` 6벌 제거
+- **디자인 토큰 정리** — 임의 폰트 크기 · Tailwind 기본 스케일 · 하드코딩 hex 를 `globals.css` 토큰으로 교체 (입찰 · 전사관리 · 알림 기준 0건)
+- **알림** — 배지 5초 주기 + 창 포커스 갱신 + `BroadcastChannel` 탭 간 공유, 이슈 알림을 스텝 이슈 탭으로 이동, `모두 읽음` 제거
+
+### 트러블슈팅
+
+- **문제**: 입찰 목록 헤더와 본문 열이 어긋남
+- **원인**: `%` 폭 합계가 **103%**. 브라우저가 초과분을 비례 배분한다
+- **해결**: 100% 로 맞추고, `DataTable` 이 개발 모드에서 합계를 검사해 콘솔로 알린다
+
+- **문제**: `CategoryList.tsx` 가 grep · diff 에서 **바이너리로 취급**돼 리뷰 도구에서 변경이 안 보임
+- **원인**: 템플릿 리터럴 구분자 자리에 **NUL 바이트 2개**(`�`)가 들어가 있었다 (`HEAD` 부터 존재)
+- **해결**: 공백으로 교체
+
+- **문제**: 다이얼로그 설명이 `자동 수집은 꺼진 상 / 태이며` 처럼 말 중간에서 끊김
+- **원인**: 한국어는 기본값에서 단어 중간 줄바꿈이 허용된다
+- **해결**: `break-keep` + `.` · `,` 뒤로 잘라 `inline-block` 조각으로 둔다 (자리가 남으면 한 줄에 이어 붙는다)
+
+- **문제**: `text-body-s` 로 지정한 오류 문구 크기가 적용되지 않음
+- **원인**: **존재하지 않는 토큰**이다 (`globals.css` 에 없다)
+- **해결**: `text-caption` 으로 교체
+
+### 부수 결정
+
+- **표는 라이브러리 없이 자체 구현한다** — PrimeReact 를 검토했으나 자체 CSS 테마가 우리 토큰과 이중화되고, Tailwind v4 레이어와 충돌해 `unstyled` 로 쓰면 결국 스타일을 다 짜게 된다. 우리 표는 정렬 · 필터 · 페이징이 전부 서버 · URL 이라 라이브러리 기능을 쓰지 않는다
+- **리팩터링과 디자인 통일을 한 PR 에 넣었다** — 표를 옮기면서 여백 · 글자 크기가 어차피 한 곳으로 모이므로, 나누면 중간 상태가 더 어긋나 보인다
+- **`모두 읽음` 제거** — 읽음 취소 API 가 없어 되돌릴 수 없다. API 함수(`readAllNotifications`)는 명세 대조를 위해 남겼다
+- **`maxHeight` 는 인라인 style 로 준다** — Tailwind 임의값(`max-h-[60vh]`)은 호출부마다 문자열이 흩어지고, 빌드 시점에 없는 값은 클래스가 생성되지 않는다
+- **`SSE` 는 요청만 남긴다** — 프론트만으로는 5초가 한계다. 알림 하나에 연결 관리 · 프록시 설정 · 재연결 로직을 들이는 건 규모에 맞지 않아, 필요해지면 그때 붙인다
+
+### 검증
+
+- `tsc --noEmit` · ESLint · Prettier 통과
+- 실데이터로 표 7개 · 알림 드롭다운 · 확인 다이얼로그 확인 필요 (담당자 확인 대기)
+
+---
+
 ## [2026-08-11] 입찰 수집 조건 운영 · 공고 직접 등록 ✅
 
 > 같은 브랜치(`feat/notices`)에서 아래 `입찰 공고 조회 — 목록 · 상세` 에 이어서 진행했다.

@@ -86,7 +86,7 @@ function MenuItem({
     <button
       type="button"
       onClick={onClick}
-      className={`block w-full cursor-pointer px-3 py-1.5 text-left text-label hover:bg-bg-hover ${
+      className={`block w-full cursor-pointer px-3 py-1.5 text-left text-caption hover:bg-bg-hover ${
         tone === 'danger' ? 'text-text-danger' : 'text-text-primary'
       }`}
     >

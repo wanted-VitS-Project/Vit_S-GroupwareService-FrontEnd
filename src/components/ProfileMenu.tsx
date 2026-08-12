@@ -112,15 +112,20 @@ export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
           <span className="flex items-baseline gap-1.5">
             {/* `min-w-0` 이 없으면 flex 가 글자 폭 아래로 안 줄여 말줄임이 안 걸린다 */}
             <span
+              /**
+               * 헤더 · 사이드바 모두 **보조 정보가 함께 붙는 자리**라 제목 크기가 필요 없다.
+               * 표 본문(`DataTable`) · 폼 입력과 같은 14px 로 맞춘다.
+               * 보조 정보가 없을 때만 12px 로 한 단계 더 내린다.
+               */
               className={`min-w-0 truncate font-semibold ${
-                hasSubInfo ? 'text-heading-m' : 'text-body-l'
+                hasSubInfo ? 'text-label' : 'text-caption'
               } ${isDark ? 'text-text-white' : 'text-text-primary'}`}
             >
               {user.name}
             </span>
             {user.jobPositionName && (
               <span
-                className={`shrink-0 text-body-m ${
+                className={`shrink-0 text-caption ${
                   isDark ? 'text-text-muted' : 'text-text-secondary'
                 }`}
               >
@@ -130,7 +135,7 @@ export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
           </span>
           {user.departmentPath && (
             <span
-              className={`block truncate text-body-m ${
+              className={`block truncate text-caption ${
                 isDark ? 'text-text-muted' : 'text-text-secondary'
               }`}
             >
@@ -151,7 +156,7 @@ export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
           <Link
             href="/mypage"
             onClick={() => setIsOpen(false)}
-            className="block px-4 py-2.5 text-body-m text-text-primary hover:bg-bg-hover"
+            className="block px-4 py-2.5 text-label text-text-primary hover:bg-bg-hover"
           >
             마이페이지
           </Link>
@@ -160,7 +165,7 @@ export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
             type="button"
             onClick={handleLogout}
             disabled={isPending}
-            className="block w-full cursor-pointer border-t border-border-default px-4 py-2.5 text-left text-body-m text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+            className="block w-full cursor-pointer border-t border-border-default px-4 py-2.5 text-left text-label text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
           >
             {isPending ? '로그아웃 중…' : '로그아웃'}
           </button>

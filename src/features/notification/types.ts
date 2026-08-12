@@ -58,10 +58,15 @@ export interface NotificationQuery {
  * ❗ `type` 의 전체 목록 미확인 — 확인된 값은 `APPROVAL` · `NONE` 뿐이다.
  */
 export interface NotificationTarget {
-  type: 'APPROVAL' | 'NONE' | (string & {});
+  type: 'APPROVAL' | 'ISSUE' | 'NONE' | (string & {});
   targetId: number | null;
-  /** 도메인별 덤. 없으면 null */
-  extra: Record<string, string> | null;
+  /**
+   * 도메인별 덤. 없으면 null.
+   *
+   * ⚠️ 값이 **숫자로 온다** (2026-08-12 실측) — 명세의 `Record<string, string>` 과 다르다.
+   *    이슈 알림: `{ projectId: 1, stepId: 3 }`
+   */
+  extra: Record<string, string | number> | null;
 }
 
 /** PATCH /notifications/{id}/read — 멱등이라 이미 읽었어도 200 이다 */
