@@ -44,8 +44,10 @@ export default function ProjectTrash() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-text-primary">휴지통</h2>
-          <span className="text-[10px] text-text-secondary">
+          <h2 className="text-body-m font-semibold text-text-primary">
+            휴지통
+          </h2>
+          <span className="text-caption text-text-secondary">
             보관 기간 제한 없음 · 영구 삭제만 저장소에서 지워집니다
           </span>
         </div>
@@ -81,9 +83,9 @@ export default function ProjectTrash() {
                   : undefined
               }
               onClick={() => setKind(option.kind)}
-              className={`cursor-pointer rounded-md px-3 py-1 text-[11px] font-medium ${
+              className={`cursor-pointer rounded-button-md px-3 py-1 text-[11px] font-medium ${
                 kind === option.kind
-                  ? 'bg-white text-text-primary-blue shadow-sm'
+                  ? 'bg-bg-card text-text-primary-blue shadow-sm'
                   : 'text-text-secondary hover:text-text-primary'
               }`}
             >

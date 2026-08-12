@@ -152,7 +152,7 @@ export default function EmployeeSearchInput({
         // 항목 클릭이 블러보다 먼저 처리되도록 목록 쪽에서 mousedown 을 막는다
         onBlur={() => setIsOpen(false)}
         onKeyDown={handleKeyDown}
-        className="w-full min-w-0 rounded-lg border border-border-default bg-bg-surface px-2.5 py-1.5 text-[10px] text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary disabled:cursor-not-allowed disabled:text-text-muted"
+        className="w-full min-w-0 rounded-lg border border-border-default bg-bg-surface px-2.5 py-1.5 text-caption text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary disabled:cursor-not-allowed disabled:text-text-muted"
       />
 
       {isListVisible && (
@@ -160,10 +160,10 @@ export default function EmployeeSearchInput({
           id={listId}
           role="listbox"
           onMouseDown={(event) => event.preventDefault()}
-          className="absolute top-full right-0 left-0 z-10 mt-1 max-h-40 overflow-y-auto rounded-lg border border-border-default bg-white py-1 shadow-lg"
+          className="absolute top-full right-0 left-0 z-10 mt-1 max-h-40 overflow-y-auto rounded-lg border border-border-default bg-bg-card py-1 shadow-lg"
         >
           {isLoading && (
-            <li className="px-2.5 py-1.5 text-[10px] text-text-secondary">
+            <li className="px-2.5 py-1.5 text-caption text-text-secondary">
               검색 중…
             </li>
           )}
@@ -171,14 +171,14 @@ export default function EmployeeSearchInput({
           {!isLoading && error !== '' && (
             <li
               role="alert"
-              className="px-2.5 py-1.5 text-[10px] break-keep text-text-danger"
+              className="px-2.5 py-1.5 text-caption break-keep text-text-danger"
             >
               {error}
             </li>
           )}
 
           {!isLoading && error === '' && options.length === 0 && (
-            <li className="px-2.5 py-1.5 text-[10px] break-keep text-text-secondary">
+            <li className="px-2.5 py-1.5 text-caption break-keep text-text-secondary">
               검색 결과가 없습니다. 성만 입력해도 돼요 (예: 김)
             </li>
           )}
@@ -203,7 +203,7 @@ export default function EmployeeSearchInput({
                   onMouseEnter={() => {
                     if (!employee.isAdded) setActiveIndex(index);
                   }}
-                  className={`flex w-full items-baseline gap-1.5 px-2.5 py-1.5 text-left text-[10px] ${
+                  className={`flex w-full items-baseline gap-1.5 px-2.5 py-1.5 text-left text-caption ${
                     employee.isAdded ? 'cursor-not-allowed' : 'cursor-pointer'
                   } ${index === activeIndex ? 'bg-bg-hover' : ''}`}
                 >

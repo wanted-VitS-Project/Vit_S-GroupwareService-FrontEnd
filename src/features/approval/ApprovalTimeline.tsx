@@ -24,7 +24,7 @@ export default function ApprovalTimeline({
           <div className="flex flex-col items-center">
             <span
               aria-hidden
-              className={`flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${LINE_STATUS_CLASS[line.status]}`}
+              className={`flex size-7 shrink-0 items-center justify-center rounded-pill text-[11px] font-semibold ${LINE_STATUS_CLASS[line.status]}`}
             >
               {line.status === 'APPROVED'
                 ? '✓'
@@ -39,7 +39,7 @@ export default function ApprovalTimeline({
 
           <div className="min-w-0 flex-1 pb-5">
             <p className="flex flex-wrap items-center gap-1.5">
-              <span className="text-xs font-semibold text-text-primary">
+              <span className="text-label font-semibold text-text-primary">
                 {line.approverName}
               </span>
               {line.approverPosition && (
@@ -48,12 +48,12 @@ export default function ApprovalTimeline({
                 </span>
               )}
               {line.approverId === currentUserId && (
-                <span className="rounded bg-bg-hover px-1.5 py-0.5 text-[10px] text-text-secondary">
+                <span className="rounded-button-sm bg-bg-hover px-1.5 py-0.5 text-caption text-text-secondary">
                   나
                 </span>
               )}
               <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${LINE_STATUS_CLASS[line.status]}`}
+                className={`rounded-pill px-2 py-0.5 text-caption font-semibold ${LINE_STATUS_CLASS[line.status]}`}
               >
                 {LINE_STATUS_LABELS[line.status]}
               </span>
@@ -72,7 +72,7 @@ export default function ApprovalTimeline({
             )}
 
             {line.processedAt && (
-              <p className="mt-1 text-[10px] text-text-secondary">
+              <p className="mt-1 text-caption text-text-secondary">
                 {formatDateTime(line.processedAt)}
               </p>
             )}

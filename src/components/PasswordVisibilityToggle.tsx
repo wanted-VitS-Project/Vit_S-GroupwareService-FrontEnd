@@ -43,7 +43,7 @@ export default function PasswordVisibilityToggle({
       onClick={onToggle}
       aria-label={isVisible ? '비밀번호 숨기기' : '비밀번호 보기'}
       aria-pressed={isVisible}
-      className={`absolute top-1/2 -translate-y-1/2 cursor-pointer rounded p-1 text-text-muted transition-colors hover:bg-bg-hover hover:text-text-primary ${className}`}
+      className={`absolute top-1/2 -translate-y-1/2 cursor-pointer rounded-button-sm p-1 text-text-muted transition-colors hover:bg-bg-hover hover:text-text-primary ${className}`}
     >
       <EyeIcon off={isVisible} small={small} />
     </button>

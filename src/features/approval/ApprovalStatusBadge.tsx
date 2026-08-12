@@ -17,7 +17,7 @@ export default function ApprovalStatusBadge({
 }) {
   return (
     <span
-      className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${STATUS_CLASS[status]}`}
+      className={`inline-flex shrink-0 items-center rounded-pill px-2 py-0.5 text-[11px] font-semibold ${STATUS_CLASS[status]}`}
     >
       {APPROVAL_STATUS_LABELS[status]}
     </span>

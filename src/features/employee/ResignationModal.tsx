@@ -78,8 +78,8 @@ export default function ResignationModal({
       <form onSubmit={handleSubmit}>
         <div className="space-y-4 p-5">
           <div className="rounded-lg border border-border-default bg-bg-surface px-3 py-2.5">
-            <span className="block text-[10px] text-text-secondary">대상</span>
-            <span className="mt-0.5 block truncate text-xs font-semibold text-text-primary">
+            <span className="block text-caption text-text-secondary">대상</span>
+            <span className="mt-0.5 block truncate text-label font-semibold text-text-primary">
               {employee.name} ({employee.userId})
             </span>
           </div>
@@ -116,7 +116,7 @@ export default function ResignationModal({
           {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}
           <p
             role="alert"
-            className="text-[10px] break-keep text-text-danger empty:hidden"
+            className="text-caption break-keep text-text-danger empty:hidden"
           >
             {error}
           </p>
@@ -135,7 +135,7 @@ export default function ResignationModal({
             <button
               type="submit"
               disabled={!canSubmit}
-              className="cursor-pointer rounded-lg bg-red-text px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#c50009] disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="cursor-pointer rounded-lg bg-red-text px-4 py-1.5 text-[11px] font-semibold text-text-white hover:bg-btn-danger-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
             >
               {isSubmitting ? '처리 중…' : '퇴사 처리'}
             </button>

@@ -33,7 +33,7 @@ export default function ApprovalBlock({ block }: { block: StepBlock }) {
   if (!detail) {
     return (
       <BlockCard block={block}>
-        <p className="text-[10px] break-keep text-text-secondary">
+        <p className="text-caption break-keep text-text-secondary">
           결재 정보를 불러올 수 없습니다. 블록을 다시 만들어주세요.
         </p>
       </BlockCard>
@@ -164,7 +164,7 @@ function Loaded({
   if (hasFailed) {
     return (
       <BlockCard block={block}>
-        <p className="text-[10px] break-keep text-text-secondary">
+        <p className="text-caption break-keep text-text-secondary">
           결재를 불러오지 못했습니다.
         </p>
       </BlockCard>
@@ -174,7 +174,7 @@ function Loaded({
   if (!revision) {
     return (
       <BlockCard block={block}>
-        <p className="text-[10px] text-text-secondary">불러오는 중…</p>
+        <p className="text-caption text-text-secondary">불러오는 중…</p>
       </BlockCard>
     );
   }
@@ -191,7 +191,7 @@ function Loaded({
       headerExtra={
         // 재상신된 결재만 회차를 붙인다. 판단은 블록 `detail` 이 아니라 방금 받은 회차로 한다
         revision.revisionNo > 1 ? (
-          <span className="shrink-0 rounded bg-bg-hover px-1.5 py-0.5 text-[9px] text-text-secondary">
+          <span className="shrink-0 rounded-button-sm bg-bg-hover px-1.5 py-0.5 text-[9px] text-text-secondary">
             {revision.revisionNo}회차
           </span>
         ) : undefined
@@ -210,7 +210,7 @@ function Loaded({
         )}
 
         {isCompleted && (
-          <p className="rounded-lg border border-[#12B76A]/20 bg-[#12B76A]/5 px-2.5 py-2 text-[10px] font-semibold text-[#12B76A]">
+          <p className="rounded-lg border border-[#12B76A]/20 bg-[#12B76A]/5 px-2.5 py-2 text-caption font-semibold text-[#12B76A]">
             ✓ 최종 승인 완료
           </p>
         )}
@@ -229,13 +229,13 @@ function Loaded({
             <ApprovalProgress lines={revision.lines} />
 
             <div>
-              <p className="text-[10px] font-semibold text-text-primary">
+              <p className="text-caption font-semibold text-text-primary">
                 결재 제목
               </p>
-              <p className="mt-0.5 text-[10px] break-keep text-text-secondary">
+              <p className="mt-0.5 text-caption break-keep text-text-secondary">
                 {revision.title || detail.title || '제목 없음'}
               </p>
-              <p className="mt-1 line-clamp-3 text-[10px] break-keep text-text-secondary">
+              <p className="mt-1 line-clamp-3 text-caption break-keep text-text-secondary">
                 {revision.content || detail.content || '내용 없음'}
               </p>
             </div>
@@ -244,7 +244,7 @@ function Loaded({
               {/* 결재 상세 화면은 아직 없다 — 만들어지면 링크로 바꾼다 */}
               <span
                 title="결재 관리 페이지는 준비 중입니다"
-                className="flex flex-1 cursor-not-allowed items-center justify-center rounded-lg border border-border-default py-1.5 text-[10px] font-medium text-text-muted"
+                className="flex flex-1 cursor-not-allowed items-center justify-center rounded-lg border border-border-default py-1.5 text-caption font-medium text-text-muted"
               >
                 결재 상세 보기
               </span>
@@ -257,7 +257,7 @@ function Loaded({
                   type="button"
                   onClick={isRejected ? startRevise : () => setIsEditing(true)}
                   disabled={isBusy}
-                  className="shrink-0 cursor-pointer rounded-lg border border-border-default px-3 py-1.5 text-[10px] font-semibold text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+                  className="shrink-0 cursor-pointer rounded-lg border border-border-default px-3 py-1.5 text-caption font-semibold text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
                 >
                   {isBusy ? '준비 중…' : '수정'}
                 </button>
@@ -269,7 +269,7 @@ function Loaded({
               <button
                 type="button"
                 aria-disabled
-                className="w-full cursor-pointer rounded-lg bg-[#4F39F6] py-2 text-[11px] font-semibold text-white hover:bg-[#4430d6]"
+                className="w-full cursor-pointer rounded-lg bg-[#4F39F6] py-2 text-[11px] font-semibold text-text-white hover:bg-[#4430d6]"
               >
                 결재 승인 확인
               </button>
@@ -284,14 +284,14 @@ function Loaded({
               type="button"
               onClick={submit}
               disabled={isBusy || blocker !== null}
-              className="w-full cursor-pointer rounded-lg bg-[#4F39F6] py-2 text-[11px] font-semibold text-white hover:bg-[#4430d6] disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="w-full cursor-pointer rounded-lg bg-[#4F39F6] py-2 text-[11px] font-semibold text-text-white hover:bg-[#4430d6] disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
             >
               {isBusy ? '상신 중…' : '상신'}
             </button>
 
             {/* 왜 눌리지 않는지 바로 옆에서 알려준다 — 눌러보고 알게 하지 않는다 */}
             {blocker && (
-              <p className="mt-1 text-center text-[10px] break-keep text-text-secondary">
+              <p className="mt-1 text-center text-caption break-keep text-text-secondary">
                 {submitBlockerLabel(blocker)}
               </p>
             )}
@@ -340,13 +340,13 @@ function RejectionBanner({
 }) {
   return (
     <div className="rounded-lg border border-border-danger/20 bg-red-bg-soft px-2.5 py-2">
-      <p className="text-[10px] font-semibold text-text-danger">
+      <p className="text-caption font-semibold text-text-danger">
         ⓘ 반려됨
         {note && ` · ${note.approverName}`}
         {note?.approverPosition && ` ${note.approverPosition}`}
       </p>
 
-      <p className="mt-0.5 text-[10px] leading-relaxed break-keep text-text-danger">
+      <p className="mt-0.5 text-caption leading-relaxed break-keep text-text-danger">
         {note?.opinion ||
           '반려 사유가 등록되지 않았습니다. 결재 상세에서 확인해주세요.'}
       </p>
@@ -357,7 +357,7 @@ function RejectionBanner({
       </p>
 
       {showRetryGuide && (
-        <p className="mt-1.5 border-t border-border-danger/15 pt-1.5 text-[10px] break-keep text-text-danger">
+        <p className="mt-1.5 border-t border-border-danger/15 pt-1.5 text-caption break-keep text-text-danger">
           내용을 수정한 뒤 다시 상신해주세요.
         </p>
       )}

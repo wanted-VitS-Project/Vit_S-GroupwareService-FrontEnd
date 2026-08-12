@@ -31,7 +31,7 @@ const ImageLightbox = dynamic(loadImageLightbox, {
   loading: () => (
     <ModalLoadingFallback
       title="이미지 크게 보기"
-      className="flex h-[85vh] w-full max-w-[920px] flex-col rounded-xl p-6 shadow-2xl"
+      className="flex h-[85vh] w-full max-w-[920px] flex-col rounded-base p-6 shadow-2xl"
       bodyClassName="mt-5 min-h-0 flex-1"
     />
   ),
@@ -282,7 +282,7 @@ export default function ImageBlock({
     // detail.imgBlockId 없이는 어느 이미지 블록인지 지목할 수 없다
     return (
       <BlockCard block={block}>
-        <p className="text-[10px] text-text-secondary">
+        <p className="text-caption text-text-secondary">
           이미지를 불러올 수 없습니다.
         </p>
       </BlockCard>
@@ -314,14 +314,14 @@ export default function ImageBlock({
       >
         {showRetry ? (
           // 못 불러온 것뿐이다 — 이미지가 없다고 단정하지 않는다
-          <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-md border border-border-default bg-bg-surface">
-            <p role="alert" className="text-[10px] text-text-secondary">
+          <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-button-md border border-border-default bg-bg-surface">
+            <p role="alert" className="text-caption text-text-secondary">
               이미지를 불러오지 못했습니다.
             </p>
             <button
               type="button"
               onClick={() => reloadFrom(1)}
-              className="cursor-pointer rounded-md border border-border-default bg-white px-2.5 py-1 text-[10px] font-medium text-text-primary-blue hover:bg-blue-bg-soft"
+              className="cursor-pointer rounded-button-md border border-border-default bg-bg-card px-2.5 py-1 text-caption font-medium text-text-primary-blue hover:bg-blue-bg-soft"
             >
               다시 시도
             </button>
@@ -330,13 +330,15 @@ export default function ImageBlock({
           <button
             type="button"
             onClick={() => modal.open('upload')}
-            className="flex aspect-video w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-md border-2 border-dashed border-border-default bg-bg-surface hover:border-border-primary/40 hover:bg-blue-bg-soft"
+            className="flex aspect-video w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-button-md border-2 border-dashed border-border-default bg-bg-surface hover:border-border-primary/40 hover:bg-blue-bg-soft"
           >
             <ImageIcon />
-            <span className="text-[10px] text-text-secondary">이미지 추가</span>
+            <span className="text-caption text-text-secondary">
+              이미지 추가
+            </span>
           </button>
         ) : (
-          <div className="group/image relative aspect-video overflow-hidden rounded-md bg-bg-hover">
+          <div className="group/image relative aspect-video overflow-hidden rounded-button-md bg-bg-hover">
             {current ? (
               /* eslint-disable-next-line @next/next/no-img-element -- 저장소(S3) 도메인이 확정되지 않아 next/image 원격 패턴을 걸 수 없다 */
               <img
@@ -411,7 +413,7 @@ export default function ImageBlock({
         */}
         <p
           title={current?.caption || undefined}
-          className="h-3.5 truncate text-[10px] leading-[14px] text-text-secondary"
+          className="h-3.5 truncate text-caption leading-[14px] text-text-secondary"
         >
           {current?.caption || ' '}
         </p>
@@ -434,7 +436,7 @@ export default function ImageBlock({
             </TextButton>
             {current && (
               <>
-                <span className="text-[10px] text-text-muted">|</span>
+                <span className="text-caption text-text-muted">|</span>
                 <TextButton onClick={() => download()}>
                   <DownloadIcon /> 전체 다운로드
                 </TextButton>
@@ -510,7 +512,7 @@ function OverlayButton({
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className={`absolute top-1/2 ${position} flex size-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/50 text-white opacity-0 group-focus-within/image:opacity-100 group-hover/image:opacity-100 hover:bg-black/70 disabled:cursor-progress`}
+      className={`absolute top-1/2 ${position} flex size-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-pill bg-black/50 text-text-white opacity-0 group-focus-within/image:opacity-100 group-hover/image:opacity-100 hover:bg-black/70 disabled:cursor-progress`}
     >
       {children}
     </button>
@@ -541,7 +543,7 @@ function ImageMenu({
         aria-haspopup="menu"
         aria-expanded={isOpen}
         onClick={onToggle}
-        className={`flex size-6 cursor-pointer items-center justify-center rounded-md bg-black/50 text-white hover:bg-black/70 ${
+        className={`flex size-6 cursor-pointer items-center justify-center rounded-button-md bg-black/50 text-text-white hover:bg-black/70 ${
           isOpen
             ? 'opacity-100'
             : 'opacity-0 group-focus-within/image:opacity-100 group-hover/image:opacity-100'
@@ -553,7 +555,7 @@ function ImageMenu({
       {isOpen && (
         <span
           role="menu"
-          className="absolute top-7 right-0 z-20 flex w-32 flex-col overflow-hidden rounded-lg border border-border-default bg-white shadow-lg"
+          className="absolute top-7 right-0 z-20 flex w-32 flex-col overflow-hidden rounded-lg border border-border-default bg-bg-card shadow-lg"
         >
           <MenuItem onClick={onEdit}>이미지 수정</MenuItem>
           <MenuItem onClick={onDownload}>다운로드</MenuItem>
@@ -583,7 +585,7 @@ function MenuItem({
       role="menuitem"
       disabled={disabled}
       onClick={onClick}
-      className={`cursor-pointer px-2.5 py-1.5 text-left text-[10px] font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
+      className={`cursor-pointer px-2.5 py-1.5 text-left text-caption font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
         danger
           ? 'text-text-danger hover:bg-red-bg-soft'
           : 'text-text-primary hover:bg-bg-surface'
@@ -605,7 +607,7 @@ function TextButton({
     <button
       type="button"
       onClick={onClick}
-      className="flex cursor-pointer items-center gap-1 rounded px-1 py-0.5 text-[10px] text-text-secondary hover:bg-blue-bg-soft hover:text-text-primary-blue"
+      className="flex cursor-pointer items-center gap-1 rounded-button-sm px-1 py-0.5 text-caption text-text-secondary hover:bg-blue-bg-soft hover:text-text-primary-blue"
     >
       {children}
     </button>

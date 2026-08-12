@@ -84,7 +84,7 @@ export default function PermanentDeleteFileModal({
           onKeyDown={(event) => {
             if (event.key === 'Enter') submit();
           }}
-          className="rounded-lg border border-border-default px-3 py-2 text-sm text-text-primary outline-none focus:border-border-primary"
+          className="rounded-lg border border-border-default px-3 py-2 text-body-m text-text-primary outline-none focus:border-border-primary"
         />
       </div>
 

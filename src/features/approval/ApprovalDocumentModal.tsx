@@ -26,7 +26,7 @@ const PdfPages = dynamic(() => import('@/features/file/PdfPages'), {
     <div role="status" aria-label="미리보기 뷰어를 불러오는 중입니다">
       <div
         aria-hidden
-        className="h-[600px] w-full animate-pulse rounded-lg border border-border-default bg-white shadow-sm"
+        className="h-[600px] w-full animate-pulse rounded-lg border border-border-default bg-bg-card shadow-sm"
       />
     </div>
   ),
@@ -135,12 +135,12 @@ export default function ApprovalDocumentModal({
     <Modal
       title={`${fileName} 문서 보기`}
       onClose={onClose}
-      className="m-auto flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-border-default shadow-2xl"
+      className="m-auto flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
       // 기본 제목 줄을 대신한다 — 넘기지 않으면 파일명이 두 번 나온다
       header={
         <div className="flex shrink-0 items-center gap-3 border-b border-border-default px-5 py-3">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-text-primary">
+            <p className="truncate text-body-m font-semibold text-text-primary">
               {fileName}
             </p>
             <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-text-secondary">
@@ -163,7 +163,7 @@ export default function ApprovalDocumentModal({
           <button
             type="button"
             onClick={download}
-            className="shrink-0 cursor-pointer rounded-lg border border-border-default px-3 py-1.5 text-xs font-semibold text-text-primary hover:bg-bg-hover"
+            className="shrink-0 cursor-pointer rounded-lg border border-border-default px-3 py-1.5 text-label font-semibold text-text-primary hover:bg-bg-hover"
           >
             다운로드
           </button>
@@ -171,7 +171,7 @@ export default function ApprovalDocumentModal({
             type="button"
             onClick={onClose}
             aria-label="닫기"
-            className="shrink-0 cursor-pointer rounded-md px-2 py-1 text-text-secondary hover:bg-bg-hover"
+            className="shrink-0 cursor-pointer rounded-button-md px-2 py-1 text-text-secondary hover:bg-bg-hover"
           >
             ✕
           </button>
@@ -195,7 +195,7 @@ export default function ApprovalDocumentModal({
       {/* 스크롤은 이 영역이 갖는다 — PdfPages 는 페이지를 쌓기만 한다 */}
       <div className="min-h-0 flex-1 overflow-y-auto bg-bg-surface p-5">
         {preview.kind === 'loading' && (
-          <p className="text-center text-xs text-text-secondary">
+          <p className="text-center text-label text-text-secondary">
             미리보기를 불러오는 중…
           </p>
         )}
@@ -207,7 +207,7 @@ export default function ApprovalDocumentModal({
               onFailed={(message) => setPreview({ kind: 'failed', message })}
             />
             {preview.total !== null && preview.shown !== null && (
-              <p className="mt-4 rounded-lg bg-white px-3 py-2 text-center text-[11px] break-keep text-text-secondary">
+              <p className="mt-4 rounded-lg bg-bg-card px-3 py-2 text-center text-[11px] break-keep text-text-secondary">
                 미리보기는 {preview.shown}페이지까지만 보여줍니다. 전체 문서는
                 다운로드 후 확인하세요. (총 {preview.total}페이지)
               </p>
@@ -217,10 +217,10 @@ export default function ApprovalDocumentModal({
 
         {preview.kind === 'denied' && (
           <div className="text-center">
-            <p className="text-xs font-semibold text-text-primary">
+            <p className="text-label font-semibold text-text-primary">
               이 문서를 열람할 권한이 없습니다
             </p>
-            <p className="mt-1.5 text-xs break-keep text-text-secondary">
+            <p className="mt-1.5 text-label break-keep text-text-secondary">
               결재 문서는 원본 프로젝트의 스텝 열람 권한을 따릅니다. 해당
               프로젝트 참여자로 초대되어야 볼 수 있어요.
             </p>
@@ -228,7 +228,7 @@ export default function ApprovalDocumentModal({
         )}
 
         {preview.kind === 'unsupported' && (
-          <p className="text-center text-xs break-keep text-text-secondary">
+          <p className="text-center text-label break-keep text-text-secondary">
             이 형식은 미리보기를 지원하지 않습니다. 다운로드해서 확인해주세요.
           </p>
         )}
@@ -236,7 +236,7 @@ export default function ApprovalDocumentModal({
         {preview.kind === 'failed' && (
           <p
             role="alert"
-            className="text-center text-xs break-keep text-text-danger"
+            className="text-center text-label break-keep text-text-danger"
           >
             {preview.message}
           </p>
@@ -245,7 +245,7 @@ export default function ApprovalDocumentModal({
 
       <p
         role="alert"
-        className="shrink-0 px-5 pb-3 text-xs break-keep text-text-danger empty:hidden"
+        className="shrink-0 px-5 pb-3 text-label break-keep text-text-danger empty:hidden"
       >
         {downloadError}
       </p>

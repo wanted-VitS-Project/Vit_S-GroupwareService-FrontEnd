@@ -71,8 +71,8 @@ export default function AccountStatusModal({
     >
       <div className="space-y-4 p-5">
         <div className="rounded-lg border border-border-default bg-bg-surface px-3 py-2.5">
-          <span className="block text-[10px] text-text-secondary">대상</span>
-          <span className="mt-0.5 block truncate text-xs font-semibold text-text-primary">
+          <span className="block text-caption text-text-secondary">대상</span>
+          <span className="mt-0.5 block truncate text-label font-semibold text-text-primary">
             {employee.name} ({employee.userId})
           </span>
         </div>
@@ -91,7 +91,7 @@ export default function AccountStatusModal({
         )}
 
         {isSuspending && !employee.resignedAt && (
-          <p className="text-[10px] break-keep text-text-secondary">
+          <p className="text-caption break-keep text-text-secondary">
             퇴사한 사원이라면 정지 대신 퇴사 처리를 하면 퇴사일까지 함께
             기록됩니다.
           </p>
@@ -100,7 +100,7 @@ export default function AccountStatusModal({
         {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}
         <p
           role="alert"
-          className="text-[10px] break-keep text-text-danger empty:hidden"
+          className="text-caption break-keep text-text-danger empty:hidden"
         >
           {error}
         </p>
@@ -120,9 +120,9 @@ export default function AccountStatusModal({
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className={`cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary ${
+            className={`cursor-pointer rounded-lg px-4 py-1.5 text-[11px] font-semibold text-text-white disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary ${
               isSuspending
-                ? 'bg-red-text hover:bg-[#c50009]'
+                ? 'bg-red-text hover:bg-btn-danger-hover'
                 : 'bg-btn-primary hover:bg-btn-primary-hover'
             }`}
           >

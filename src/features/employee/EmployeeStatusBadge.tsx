@@ -34,7 +34,7 @@ export default function EmployeeStatusBadge({
 }) {
   return (
     <span
-      className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium whitespace-nowrap ${BADGE_STYLES[status]}`}
+      className={`inline-block rounded-button-sm px-1.5 py-0.5 text-caption font-medium whitespace-nowrap ${BADGE_STYLES[status]}`}
     >
       {EMPLOYEE_STATUS_LABELS[status]}
     </span>

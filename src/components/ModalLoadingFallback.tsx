@@ -18,12 +18,12 @@ export function SidePanelFallbackHeader({
 }) {
   return (
     <div className="flex shrink-0 items-center gap-2 border-b border-border-default px-4 py-3">
-      <Skeleton className="size-5 shrink-0 rounded" />
+      <Skeleton className="size-5 shrink-0 rounded-button-sm" />
       <div className="min-w-0 flex-1">
-        <h2 className="text-xs font-semibold text-text-primary">{title}</h2>
+        <h2 className="text-label font-semibold text-text-primary">{title}</h2>
         <Skeleton className="h-3 w-24" />
       </div>
-      {hasBadge && <Skeleton className="h-5 w-10 shrink-0 rounded-full" />}
+      {hasBadge && <Skeleton className="h-5 w-10 shrink-0 rounded-pill" />}
       <span aria-hidden className="size-6 shrink-0" />
     </div>
   );
@@ -32,7 +32,7 @@ export function SidePanelFallbackHeader({
 /** 동적 모달 청크를 받는 짧은 동안 기존 모달과 같은 top-layer와 크기를 유지한다. */
 export default function ModalLoadingFallback({
   title,
-  className = 'w-full max-w-[480px] rounded-xl p-6 shadow-2xl',
+  className = 'w-full max-w-[480px] rounded-base p-6 shadow-2xl',
   // 여백까지 부르는 쪽이 정한다 — 패널형처럼 안쪽 여백이 없는 모달도 있다
   bodyClassName = 'mt-5 h-40',
   header,

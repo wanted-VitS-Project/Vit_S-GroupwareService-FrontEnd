@@ -180,7 +180,7 @@ export default function GroupMembersModal({
               ])
             }
           />
-          <p className="mt-1 text-[10px] break-keep text-text-secondary">
+          <p className="mt-1 text-caption break-keep text-text-secondary">
             고른 사원은 아래 목록에 바로 표시됩니다. 확인을 눌러야 저장됩니다.
           </p>
         </section>
@@ -188,7 +188,7 @@ export default function GroupMembersModal({
         {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}
         <p
           role="alert"
-          className="text-[10px] break-keep text-text-danger empty:hidden"
+          className="text-caption break-keep text-text-danger empty:hidden"
         >
           {error}
         </p>
@@ -243,12 +243,12 @@ export default function GroupMembersModal({
                           {row.member.userId}
                         </span>
                         {ROW_BADGE[row.state] && (
-                          <span className="ml-1.5 rounded bg-bg-hover px-1.5 py-0.5 text-[10px] font-normal text-text-secondary">
+                          <span className="ml-1.5 rounded-button-sm bg-bg-hover px-1.5 py-0.5 text-caption font-normal text-text-secondary">
                             {ROW_BADGE[row.state]}
                           </span>
                         )}
                       </span>
-                      <span className="mt-0.5 block truncate text-[10px] text-text-secondary">
+                      <span className="mt-0.5 block truncate text-caption text-text-secondary">
                         {[row.member.departmentPath, row.member.jobPositionName]
                           .filter(Boolean)
                           .join(' · ') || '소속 없음'}
@@ -269,7 +269,7 @@ export default function GroupMembersModal({
           </div>
         </section>
 
-        <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-[10px] leading-relaxed break-keep text-text-secondary">
+        <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-caption leading-relaxed break-keep text-text-secondary">
           구성원을 바꿔도 이미 부여된 페이지 권한은 달라지지 않습니다.
           <br />
           그룹은 사람을 고를 때 쓰는 묶음입니다.

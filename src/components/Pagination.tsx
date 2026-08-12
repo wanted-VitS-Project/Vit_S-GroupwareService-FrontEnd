@@ -77,7 +77,7 @@ function PageButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="cursor-pointer rounded border border-border-default px-2 py-1 text-xs text-text-secondary hover:bg-bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:text-text-muted disabled:hover:bg-transparent"
+      className="cursor-pointer rounded-button-sm border border-border-default px-2 py-1 text-label text-text-secondary hover:bg-bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:text-text-muted disabled:hover:bg-transparent"
     >
       {children}
     </button>
