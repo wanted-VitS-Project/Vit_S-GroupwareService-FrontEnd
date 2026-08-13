@@ -8,8 +8,10 @@ import type {
   ClosedProject,
   CloseProjectRequest,
   CompletedStep,
+  CreatedProject,
   CreatedStage,
   CreatedStep,
+  CreateProjectRequest,
   CreateStageRequest,
   CreateStepRequest,
   DeletedStage,
@@ -189,6 +191,22 @@ export function removeProjectMember(
   );
 }
 
+/* ─────────────── 프로젝트 생성 ─────────────── */
+
+/**
+ * 프로젝트 직접 생성. 전체 사용자. (.ai/API.md 138 · PRJ-001)
+ *
+ * ⭐ 공고 연결 여부로 엔드포인트가 갈리지 않는다 — `bidNoticeId` 를 실으면 연결된 채로,
+ *    빼면 공고 없이 만들어진다. `/projects/new` 화면은 **빼고 부른다**.
+ * ⚠️ 응답에 `version` 이 없다 — 생성 직후 수정하려면 상세를 다시 읽는다.
+ */
+export function createProject(
+  body: CreateProjectRequest,
+  signal?: AbortSignal,
+) {
+  return api.post<CreatedProject>(ENDPOINTS.projects.root, body, signal);
+}
+
 /* ─────────────── 프로젝트 수정 · 상태 · 종결 ─────────────── */
 
 /**
@@ -244,6 +262,22 @@ export function closeProject(
     body,
     signal,
   );
+}
+
+/**
+ * 프로젝트 삭제. 프로젝트 `EDITOR` 전용. (.ai/API.md 139 · PRJ-014)
+ *
+ * ⛔ **`진행 전` 이면서 스텝이 0개일 때만** 지워진다 — 아니면 409 `PROJECT_DELETE_NOT_ALLOWED` 다.
+ *    이미 굴러간 프로젝트는 삭제가 아니라 **종결**(`closeProject`)로 남긴다.
+ * ℹ️ `deleted_at` 논리 삭제이고, **연결된 공고(`bid_notice_id`)는 비워진다** —
+ *    그렇게 하지 않으면 UNIQUE 를 시체가 점유해 그 공고로 다시 만들 수 없다.
+ * ℹ️ 블록 수는 보지 않는다 — 블록은 스텝에만 붙어 스텝이 0개면 블록도 0개다.
+ */
+export function deleteProject(
+  projectId: number | string,
+  signal?: AbortSignal,
+) {
+  return api.delete<null>(ENDPOINTS.projects.detail(projectId), signal);
 }
 
 /* ─────────────── 사업 카테고리 연결 · 해제 ─────────────── */

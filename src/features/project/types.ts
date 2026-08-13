@@ -413,6 +413,65 @@ export interface UpdatedMember {
   permission: ProjectPermission;
 }
 
+/* ─────────────── 프로젝트 생성 ─────────────── */
+
+/**
+ * 프로젝트 직접 생성 요청. (.ai/API.md 138)
+ *
+ * ⭐ **공고 있음 / 없음을 엔드포인트로 나누지 않는다** (2026-08-04) — `bidNoticeId` 선택 필드
+ *    하나로 통합돼 있다. `/projects/new` 화면은 **공고와 연결되지 않은 건만** 만들므로
+ *    이 필드를 보내지 않는다 (공고 연결은 입찰 화면 소관이다).
+ * ⚠️ 회사(`company_id`)는 로그인 사용자 것이 자동으로 박힌다 — 요청으로 지정할 수 없다.
+ * ℹ️ 상태는 시스템이 `NOT_STARTED` 로 정하고, 생성자는 자동으로 `EDITOR` 참여자가 된다.
+ */
+export interface CreateProjectRequest {
+  /** 최대 300자. 빈 문자열 · 공백은 400 이라 화면에서 미리 막는다 */
+  name: string;
+  description?: string;
+  /** 발주처. 최대 200자 */
+  clientName?: string;
+  /** YYYY-MM-DD */
+  startedOn?: string;
+  /** YYYY-MM-DD */
+  endedOn?: string;
+  contractAmount?: number;
+  /** 내 회사의 **살아있는** 카테고리만 통과한다 — 아니면 404 다 */
+  businessCategoryIds?: number[];
+  /** 연결할 공고 ID. 공고 1개당 프로젝트 1개(UNIQUE) 라 중복이면 409 다 */
+  bidNoticeId?: number;
+}
+
+/** 생성 응답의 생성자 — 사번과 이름만 온다 */
+export interface ProjectCreator {
+  /** 사번 */
+  userId: string;
+  name: string;
+}
+
+/**
+ * POST /api/v1/projects — 생성 결과. (.ai/API.md 138)
+ *
+ * ⚠️ **`version` 이 없다** (2026-08-11) — 새로 만든 프로젝트의 `version` 은 `1` 이다.
+ *    생성 직후 곧바로 수정하려면 상세(6)를 다시 조회한다.
+ * ℹ️ `businessCategories[].deleted` 는 쓰기 경로라 **항상 `false`** 다 —
+ *    삭제된 카테고리는 애초에 연결되지 않는다.
+ */
+export interface CreatedProject {
+  projectId: number;
+  name: string;
+  clientName: string | null;
+  status: ProjectStatus;
+  startedOn: string | null;
+  endedOn: string | null;
+  contractAmount: number | null;
+  businessCategories: BusinessCategory[];
+  /** 직접 생성이면 `null` */
+  bidNoticeId: number | null;
+  createdBy: ProjectCreator;
+  /** YYYY-MM-DDTHH:mm:ss */
+  createdAt: string;
+}
+
 /* ─────────────── 프로젝트 수정 · 상태 · 종결 ─────────────── */
 
 /**
