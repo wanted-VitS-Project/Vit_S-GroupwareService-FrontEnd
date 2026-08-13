@@ -59,3 +59,50 @@ export function formatDateRange(from?: string | null, to?: string | null) {
   if (start && end) return `${start} ~ ${end}`;
   return start || end;
 }
+
+/** 지역번호 두 자리는 서울(02)뿐이고, 나머지는 세 자리다 */
+const SEOUL_CODE = '02';
+/** 지역번호가 없는 전국 대표번호 — 8자리를 4-4 로 끊는다 */
+const NATIONWIDE_PREFIXES = ['15', '16', '18'];
+
+/**
+ * 연락처 자동 하이픈. **입력 중에 쓰는 것이라 자르지 않는다** —
+ * 아직 다 안 친 번호도 친 만큼만 끊어 준다 (`0101234` → `010-1234`).
+ *
+ * 숫자가 아닌 글자는 버린다. 붙여넣기로 `+82` · 공백 · 점이 섞여 들어와도
+ * 같은 모양으로 정리된다. 11자리를 넘기면 더 붙지 않는다.
+ *
+ * | 입력          | 결과            |
+ * | ------------- | --------------- |
+ * | `01012345678` | `010-1234-5678` |
+ * | `0111234567`  | `011-123-4567`  |
+ * | `021234567`   | `02-123-4567`   |
+ * | `15881234`    | `1588-1234`     |
+ */
+export function formatPhone(value: string) {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+
+  if (digits.length < 4) return digits;
+
+  // 1588 · 1600 · 1800 류 — 지역번호가 없어 4-4 로만 끊는다
+  if (NATIONWIDE_PREFIXES.includes(digits.slice(0, 2)) && digits[1] !== '0') {
+    return join(digits, 4);
+  }
+
+  if (digits.startsWith(SEOUL_CODE)) return join(digits, 2);
+  return join(digits, 3);
+}
+
+/**
+ * 앞자리를 떼고 남은 숫자를 반으로 나눈다.
+ * 남은 것이 7자리면 3-4, 8자리면 4-4 가 되도록 **뒤 4자리를 먼저 떼는** 방식이다 —
+ * 010 은 번호가 늘어나는 중이라 자릿수로 분기하면 입력 중에 자꾸 모양이 바뀐다.
+ */
+function join(digits: string, headLength: number) {
+  const head = digits.slice(0, headLength);
+  const rest = digits.slice(headLength);
+
+  if (rest.length <= 4) return rest ? `${head}-${rest}` : head;
+
+  return `${head}-${rest.slice(0, -4)}-${rest.slice(-4)}`;
+}

@@ -13,6 +13,7 @@ import {
 import { getJobPositions } from '@/features/jobPosition/api';
 import type { JobPosition } from '@/features/jobPosition/types';
 import { ApiError, messageOf } from '@/lib/api';
+import { formatPhone } from '@/lib/format';
 
 import { createEmployee } from './api';
 import { EMPLOYEE_CODES } from './errorCodes';
@@ -382,7 +383,7 @@ export default function EmployeeCreateForm() {
                 placeholder="010-0000-0000"
                 value={values.phone}
                 error={fieldErrors.phone}
-                onChange={(value) => change('phone', value)}
+                onChange={(value) => change('phone', formatPhone(value))}
               />
             </div>
           </section>

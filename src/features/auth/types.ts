@@ -47,4 +47,31 @@ export interface CurrentUser extends LoginResponse {
   hiredAt: string | null;
   /** yyyy-MM-dd HH:mm:ss */
   lastLoginAt: string | null;
+  /**
+   * 아바타 서빙 경로 (`/employees/{userId}/profile-image`). 사진이 없으면 `null` 이다.
+   *
+   * ⚠️ presigned URL 이 **아니다** — 만료되지 않는 우리 경로이고 서명은 서빙 API 가
+   *    매 요청 안에서 처리한다. 프론트에 캐싱 · 재발급 로직을 두지 않는다.
+   */
+  profileImageUrl: string | null;
 }
+
+/** 프로필 사진 등록 · 변경 응답 — 교체돼도 경로는 그대로다 */
+export interface ProfileImageResponse {
+  profileImageUrl: string;
+}
+
+/**
+ * 업로드 제약. 서버가 다시 검증하지만 5MB 를 올려놓고 거절당하는 왕복을 막으려
+ * 화면에서 먼저 거른다.
+ *
+ * ⚠️ `webp` 는 제외다 — JDK 내장 디코더가 없어 서버가 픽셀 수 상한을 검사할 수 없다.
+ */
+export const PROFILE_IMAGE_EXTENSIONS: readonly string[] = [
+  'jpg',
+  'jpeg',
+  'png',
+  'gif',
+];
+export const PROFILE_IMAGE_ACCEPT = '.jpg,.jpeg,.png,.gif';
+export const PROFILE_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
