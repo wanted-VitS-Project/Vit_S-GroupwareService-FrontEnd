@@ -42,8 +42,10 @@ export default function StepPermissionModal({
   const [entries, setEntries] = useState<StepPermissionEntry[] | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
   const [error, setError] = useState('');
-  /** 요청이 나가 있는 사번 — 그 줄만 막는다 */
+  /** 요청이 나가 있는 사번 — 처리 중에는 모든 줄을 잠근다 */
   const [savingUserId, setSavingUserId] = useState<string | null>(null);
+  /** 목록을 다시 읽는 신호 */
+  const [reloadCount, setReloadCount] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -57,7 +59,12 @@ export default function StepPermissionModal({
       });
 
     return () => controller.abort();
-  }, [stepId]);
+  }, [stepId, reloadCount]);
+
+  /** 서버 값으로 목록을 다시 맞춘다 — 화면 값이 더 이상 근거가 되지 못할 때 쓴다 */
+  function reload() {
+    setReloadCount((count) => count + 1);
+  }
 
   /** 응답 한 줄로 그 사람의 행만 갈아끼운다 — 목록을 다시 읽을 필요가 없다 */
   function patchEntry(
@@ -108,9 +115,14 @@ export default function StepPermissionModal({
     } catch (caught) {
       const code = caught instanceof ApiError ? caught.code : undefined;
 
-      // 행이 원래 없었다 — 이미 상속 상태라 실패로 보이게 할 이유가 없다
+      /*
+       * 행이 원래 없었다 — 이미 상속 상태라 실패로 보일 이유는 없지만,
+       * ⚠️ **화면 값을 그대로 두면 안 된다.** 지금 보이는 등급은 직접 지정 값이라
+       *    실제 상속 등급과 다를 수 있고, 그대로 두면 관리자가 잘못된 값으로 판단한다.
+       *    서버에서 다시 읽어 맞춘다.
+       */
       if (code === STEP_PERMISSION_CODES.notFound) {
-        patchEntry(entry.userId, entry.permission, false);
+        reload();
       } else {
         setError(messageOf(caught, '상속으로 되돌리지 못했습니다.'));
       }

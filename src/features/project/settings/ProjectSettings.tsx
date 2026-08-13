@@ -139,6 +139,10 @@ export default function ProjectSettings({ projectId }: { projectId: string }) {
   /**
    * 저장 응답이 준 **새 `version`** 을 화면 상태에 꽂는다.
    * 이걸 빼먹으면 같은 화면에서의 다음 저장이 전부 409 다.
+   *
+   * ⚠️ **이것만으로는 화면 값이 최신이 되지 않는다.** 수정 응답에는 `description` 처럼
+   *    빠진 필드가 있어 다른 필드까지 갈아끼울 수 없다 — 값을 바꾼 섹션은 이 함수와 함께
+   *    `onReload()` 로 상세를 다시 읽어 서버 값에 맞춘다 (`ProjectInfoForm` · `ProjectStatusSection`).
    */
   function syncVersion(version: number) {
     setResult((previous) =>

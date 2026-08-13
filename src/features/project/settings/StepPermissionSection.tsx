@@ -88,59 +88,65 @@ export default function StepPermissionSection({
         </p>
       ) : (
         <ul className="space-y-2">
-          {buckets.map((bucket) => (
-            <li
-              key={bucket.stage?.stageId ?? UNASSIGNED_KEY}
-              className="overflow-hidden rounded-lg border border-border-default"
-            >
-              <div className="flex items-center gap-2 bg-bg-surface px-3 py-2">
-                <span className="min-w-0 flex-1 truncate text-detail font-semibold text-text-primary">
-                  {bucket.stage?.name ?? '미분류 (단계 없음)'}
-                </span>
-                {/*
+          {buckets.map((bucket) => {
+            /*
+             * 지역 변수로 받아 좁힘을 유지한다 — `bucket.stage &&` 로 건 좁힘은
+             * `onClick` 콜백 안까지 따라오지 않아 `ProjectStage | null` 로 되돌아간다.
+             */
+            const { stage } = bucket;
+
+            return (
+              <li
+                key={stage?.stageId ?? UNASSIGNED_KEY}
+                className="overflow-hidden rounded-lg border border-border-default"
+              >
+                <div className="flex items-center gap-2 bg-bg-surface px-3 py-2">
+                  <span className="min-w-0 flex-1 truncate text-detail font-semibold text-text-primary">
+                    {stage?.name ?? '미분류 (단계 없음)'}
+                  </span>
+                  {/*
                   기본값은 **스테이지에만** 있다 — 미소속 스텝은 프로젝트 권한을 그대로
                   상속하므로 걸어 둘 자리가 없다 (STG-004).
                 */}
-                {bucket.stage && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      modal.open({ kind: 'stage', stage: bucket.stage })
-                    }
-                    className="shrink-0 cursor-pointer rounded-button-sm px-2 py-1 text-caption font-medium whitespace-nowrap text-text-primary-blue hover:bg-blue-bg-soft"
-                  >
-                    새 스텝 기본값
-                  </button>
-                )}
-              </div>
-
-              <ul className="divide-y divide-border-default border-t border-border-default">
-                {bucket.steps.length === 0 ? (
-                  <li className="px-3 py-2 text-caption text-text-muted">
-                    등록된 스텝이 없습니다.
-                  </li>
-                ) : (
-                  bucket.steps.map((step) => (
-                    <li
-                      key={step.stepId}
-                      className="flex items-center gap-2 bg-bg-card px-3 py-2"
+                  {stage && (
+                    <button
+                      type="button"
+                      onClick={() => modal.open({ kind: 'stage', stage })}
+                      className="shrink-0 cursor-pointer rounded-button-sm px-2 py-1 text-caption font-medium whitespace-nowrap text-text-primary-blue hover:bg-blue-bg-soft"
                     >
-                      <span className="min-w-0 flex-1 truncate text-detail text-text-primary">
-                        {step.name}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => modal.open({ kind: 'step', step })}
-                        className="shrink-0 cursor-pointer rounded-button-sm px-2 py-1 text-caption font-medium whitespace-nowrap text-text-primary-blue hover:bg-blue-bg-soft"
-                      >
-                        권한 관리
-                      </button>
+                      새 스텝 기본값
+                    </button>
+                  )}
+                </div>
+
+                <ul className="divide-y divide-border-default border-t border-border-default">
+                  {bucket.steps.length === 0 ? (
+                    <li className="px-3 py-2 text-caption text-text-muted">
+                      등록된 스텝이 없습니다.
                     </li>
-                  ))
-                )}
-              </ul>
-            </li>
-          ))}
+                  ) : (
+                    bucket.steps.map((step) => (
+                      <li
+                        key={step.stepId}
+                        className="flex items-center gap-2 bg-bg-card px-3 py-2"
+                      >
+                        <span className="min-w-0 flex-1 truncate text-detail text-text-primary">
+                          {step.name}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => modal.open({ kind: 'step', step })}
+                          className="shrink-0 cursor-pointer rounded-button-sm px-2 py-1 text-caption font-medium whitespace-nowrap text-text-primary-blue hover:bg-blue-bg-soft"
+                        >
+                          권한 관리
+                        </button>
+                      </li>
+                    ))
+                  )}
+                </ul>
+              </li>
+            );
+          })}
         </ul>
       )}
 

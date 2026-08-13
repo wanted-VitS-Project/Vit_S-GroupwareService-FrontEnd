@@ -91,11 +91,20 @@ export default function AddMemberModal({
 
       setError(
         addedCount > 0
-          ? `${reason} 앞선 ${addedCount}명은 이미 추가됐습니다.`
+          ? `${reason} 앞선 ${addedCount}명은 추가됐습니다. 남은 사람만 다시 시도해주세요.`
           : reason,
       );
-      // 앞부분이 들어갔을 수 있어 목록은 갱신해 둔다
-      if (addedCount > 0) onAdded();
+
+      if (addedCount > 0) {
+        /*
+         * ⚠️ **성공한 만큼을 골라둔 목록에서 뺀다.**
+         * 그대로 두면 `다시 추가` 가 이미 들어간 사람부터 호출해 곧바로
+         * `MEMBER_ALREADY_EXISTS` 로 멈춘다 — 뒤에 남은 사람은 영영 추가되지 않는다.
+         */
+        setSelected((current) => current.slice(addedCount));
+        // 앞부분이 들어갔으니 목록도 갱신해 둔다
+        onAdded();
+      }
       setIsSubmitting(false);
     }
   }

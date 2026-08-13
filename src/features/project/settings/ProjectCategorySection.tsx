@@ -37,7 +37,13 @@ export default function ProjectCategorySection({
 }: ProjectCategorySectionProps) {
   const linkModal = useModal();
   const [error, setError] = useState('');
-  /** 해제 중인 카테고리 — 같은 줄의 버튼만 막는다 */
+  /**
+   * 해제 중인 카테고리.
+   *
+   * 요청이 나가 있는 동안에는 **모든 줄의 버튼을 막는다** — 목록이 곧 갈릴 예정이라
+   * 다른 줄을 눌러도 어느 것이 지워졌는지 알기 어렵다. 대신 처리 중인 줄에는
+   * `aria-busy` 를 붙여 왜 안 눌리는지 알 수 있게 한다.
+   */
   const [unlinkingId, setUnlinkingId] = useState<number | null>(null);
 
   async function unlink(category: BusinessCategory) {
@@ -92,6 +98,7 @@ export default function ProjectCategorySection({
           {categories.map((category) => (
             <li
               key={category.categoryId}
+              aria-busy={unlinkingId === category.categoryId || undefined}
               className="flex items-center gap-1.5 rounded-pill border border-border-default bg-bg-surface py-1 pr-1 pl-3"
             >
               <span className="text-detail font-medium text-text-primary">

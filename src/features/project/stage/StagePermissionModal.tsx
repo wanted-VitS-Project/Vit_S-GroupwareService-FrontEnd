@@ -45,7 +45,12 @@ export default function StagePermissionModal({
   /** 대상은 한 명이다 — `MemberPicker` 는 배열을 받으므로 0~1개만 담는다 */
   const [selected, setSelected] = useState<PickablePerson | null>(null);
   const [permission, setPermission] = useState<StepPermission>('VIEWER');
-  const [applyToExistingSteps, setApplyToExistingSteps] = useState(true);
+  /**
+   * ⚠️ **기본값은 끔.** 켠 채로 두면 "새 스텝 기본값만 정하려던" 저장이
+   * 이 단계의 **기존 스텝 권한을 전부 덮어쓴다** — 되돌리는 화면이 없다.
+   * 안내문("이미 있는 스텝은 아래를 켜야 함께 바뀝니다")과도 이 상태가 맞다.
+   */
+  const [applyToExistingSteps, setApplyToExistingSteps] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 

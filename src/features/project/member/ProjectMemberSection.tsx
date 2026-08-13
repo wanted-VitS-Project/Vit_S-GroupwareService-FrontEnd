@@ -17,7 +17,8 @@ interface ProjectMemberSectionProps {
  * 설정 화면의 참여자 섹션 — 껍데기만 씌운다.
  *
  * 목록 · 권한 변경 · 제거 · 추가는 `MemberList` 한 곳에 있다 (사이드바와 공용).
- * 여기서는 **추가 버튼을 섹션 헤더 자리에** 두므로 목록 위 버튼은 끈다.
+ * 추가 버튼도 그 안에 있어(`showAddButton`) 목록 바로 위에 붙는다 —
+ * 섹션 헤더로 올리면 사이드바 모달에는 헤더가 없어 버튼 자리가 두 벌이 된다.
  */
 export default function ProjectMemberSection({
   projectId,

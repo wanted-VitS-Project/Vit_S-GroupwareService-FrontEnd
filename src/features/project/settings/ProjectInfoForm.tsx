@@ -143,7 +143,20 @@ export default function ProjectInfoForm({
       setError('시작일이 종료일보다 늦습니다.');
       return;
     }
-    if (values.contractAmount.trim() && Number(values.contractAmount) < 0) {
+    /*
+     * ⚠️ 숫자가 아닌 값을 먼저 거른다 — `Number('abc')` 는 `NaN` 이라 아래 음수 검사를
+     *    그냥 통과하고, JSON 직렬화에서 `null` 이 되어 서버가 400 을 내거나 값을 해제한다.
+     *    `type="number"` 가 대부분 막지만 붙여넣기 · IME 로 새어 들어올 수 있다.
+     */
+    const contractAmount = values.contractAmount.trim()
+      ? Number(values.contractAmount)
+      : null;
+
+    if (contractAmount !== null && !Number.isFinite(contractAmount)) {
+      setError('계약금액은 숫자로 입력해주세요.');
+      return;
+    }
+    if (contractAmount !== null && contractAmount < 0) {
       setError('계약금액은 0보다 작을 수 없습니다.');
       return;
     }
@@ -161,8 +174,15 @@ export default function ProjectInfoForm({
         projectId,
         toRequest(project.version, overwrite),
       );
-      // 응답의 새 version 을 꽂아야 다음 저장이 통과한다
+      /*
+       * ⚠️ **`version` 만 꽂고 끝내면 안 된다.**
+       * 폼 초기화 열쇠(`syncKey`)가 `version` 을 보고 있어, 버전만 올리면 폼이
+       * **방금 저장한 값이 아니라 옛 상세 값으로 되돌아간다.**
+       * 그래서 새 버전을 올린 뒤 상세를 다시 읽어 서버 값으로 맞춘다
+       * (수정 응답에는 `description` 이 없어 응답만으로는 폼을 채울 수 없다).
+       */
       onSaved(saved.version);
+      onReload();
       notifyToast('과업 정보를 저장했습니다.');
     } catch (caught) {
       const code = caught instanceof ApiError ? caught.code : undefined;

@@ -188,6 +188,15 @@ const REFRESH_QUIET_MS = 300;
 const MAX_COLLAPSED_DOTS = 9;
 
 /**
+ * 참여자 줄에 그릴 아바타 최대 개수.
+ *
+ * 아바타는 24px 이고 8px 씩 겹치므로 **한 명마다 16px** 늘어난다 —
+ * 사이드바는 고정 폭이라 열 명을 넘기면 줄이 영역을 벗어나고 `+` 표시를 밀어낸다.
+ * 넘치는 만큼은 `+N` 으로만 알리고, 전체 명단은 눌러서 여는 모달이 맡는다.
+ */
+const MAX_MEMBER_AVATARS = 8;
+
+/**
  * 스텝 상태 → 색. `GET /projects/{projectId}/steps` 의 `status` 를 그대로 쓴다.
  *
  * 실제 색값은 `globals.css` 의 `--color-step-*` 한 곳뿐이다 —
@@ -769,22 +778,40 @@ export default function ProjectSidebar() {
                         담당자 아바타는 `MemberAvatar` 하나로 모은다 — 사번 기준으로 색이 정해져
                         이슈 · 블록 담당자와 **같은 사람이 같은 색**으로 나온다
                       */}
-                      {members.map((member, index) => (
+                      {members
+                        .slice(0, MAX_MEMBER_AVATARS)
+                        .map((member, index) => (
+                          <span
+                            key={member.memberId}
+                            title={`${member.name}${member.department ? ` · ${member.department}` : ''}${member.resigned ? ' · 퇴사' : ''}`}
+                            style={{
+                              marginLeft: index === 0 ? 0 : -8,
+                              zIndex: index,
+                            }}
+                            className="flex"
+                          >
+                            <MemberAvatar
+                              userId={member.userId}
+                              name={member.name}
+                            />
+                          </span>
+                        ))}
+                      {/*
+                        넘치는 인원은 숫자로만 알린다 — 사이드바는 고정 폭이라
+                        한 명마다 16px 씩 늘어나면 아바타가 영역을 벗어나고 `+` 를 밀어낸다.
+                        전체 명단은 눌러서 여는 모달이 보여준다.
+                      */}
+                      {members.length > MAX_MEMBER_AVATARS && (
                         <span
-                          key={member.memberId}
-                          title={`${member.name}${member.department ? ` · ${member.department}` : ''}${member.resigned ? ' · 퇴사' : ''}`}
                           style={{
-                            marginLeft: index === 0 ? 0 : -8,
-                            zIndex: index,
+                            marginLeft: -8,
+                            zIndex: MAX_MEMBER_AVATARS,
                           }}
-                          className="flex"
+                          className="flex size-6 items-center justify-center rounded-pill border border-white bg-bg-hover text-micro font-medium text-text-secondary"
                         >
-                          <MemberAvatar
-                            userId={member.userId}
-                            name={member.name}
-                          />
+                          +{members.length - MAX_MEMBER_AVATARS}
                         </span>
-                      ))}
+                      )}
                       {/*
                         `+` 는 **버튼이 아니라 표시**다 — 영역 전체가 이미 버튼이라
                         안에 버튼을 또 넣을 수 없다 (중첩 버튼은 유효하지 않다).
@@ -792,7 +819,10 @@ export default function ProjectSidebar() {
                       {canEdit && (
                         <span
                           aria-hidden
-                          style={{ marginLeft: -8, zIndex: members.length }}
+                          style={{
+                            marginLeft: -8,
+                            zIndex: MAX_MEMBER_AVATARS + 1,
+                          }}
                           className="flex size-6 items-center justify-center rounded-pill border border-white bg-bg-hover text-text-secondary"
                         >
                           <PlusIcon />
@@ -1305,7 +1335,16 @@ function RowMenu({
     if (!isOpen) return;
 
     function dismiss() {
+      /*
+       * 메뉴 항목에 초점이 있는 채로 사라지면 초점이 `body` 로 떨어져,
+       * 키보드 사용자는 사이드바를 처음부터 다시 훑어야 한다 —
+       * 이때만 트리거로 돌려준다 (그 외에는 스크롤 위치를 건드리지 않는다).
+       */
+      const hadFocus =
+        menuRef.current?.contains(document.activeElement) ?? false;
+
       setPosition(null);
+      if (hadFocus) triggerRef.current?.focus();
     }
     // 스크롤은 사이드바 안쪽에서도 일어나므로 캡처 단계에서 받는다
     document.addEventListener('scroll', dismiss, true);

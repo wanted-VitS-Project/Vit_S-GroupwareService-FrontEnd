@@ -126,13 +126,15 @@ export default function MemberList({
         <ul className="divide-y divide-border-default">
           {members.map((member) => {
             const isMe = member.userId === me.userId;
-            const isSaving = savingMemberId === member.memberId;
+            /** 지금 이 행을 저장 중인지 — 스크린리더에 진행 상태를 알린다 */
+            const isSavingThisRow = savingMemberId === member.memberId;
             // 삭제된 사원은 쓰기 검증을 통과하지 못한다 — 권한 변경만 잠그고 제거는 남긴다
             const canChangePermission = canEdit && !isMe && !member.deleted;
 
             return (
               <li
                 key={member.memberId}
+                aria-busy={isSavingThisRow || undefined}
                 className="flex items-center gap-3 py-2.5"
               >
                 <div className="min-w-0 flex-1">
@@ -167,7 +169,13 @@ export default function MemberList({
                     <select
                       id={`permission-${member.memberId}`}
                       value={member.permission}
-                      disabled={isSaving}
+                      /*
+                       * 저장 중에는 **모든 행**을 잠근다 — `changePermission` 이
+                       * `savingMemberId !== null` 이면 그냥 돌아서기 때문에, 저장 중인 행만
+                       * 잠그면 다른 행을 바꿔도 값만 되돌아가고 아무 안내가 없다.
+                       * (`StepPermissionModal` 과 같은 규칙)
+                       */
+                      disabled={savingMemberId !== null}
                       onChange={(event) =>
                         void changePermission(
                           member,
@@ -201,7 +209,7 @@ export default function MemberList({
                 {canEdit && (
                   <button
                     type="button"
-                    disabled={isMe || isSaving}
+                    disabled={isMe || savingMemberId !== null}
                     title={isMe ? '자기 자신은 제거할 수 없습니다' : undefined}
                     onClick={() => removeModal.open(member)}
                     className="shrink-0 cursor-pointer rounded-button-sm px-2 py-1 text-caption font-medium whitespace-nowrap text-text-danger hover:bg-red-bg-soft disabled:cursor-not-allowed disabled:text-text-muted"
