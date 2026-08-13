@@ -4,29 +4,41 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 import { ErrorStateTwoButton } from '@/components/ErrorState';
+import { CashFlowListSkeleton } from '@/components/finance/CashFlowSkeletons';
 
-import { isPageDenied, isPageGated } from './catalog';
 import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
 
+import { isPageDenied, isPageGated } from './catalog';
 import { useMyPages } from './useMyPages';
 
 /**
- * `permission: NONE` 인 페이지 진입을 막는다.
+ * 권한 판단 대기 중에 그 화면 **자신의 골격**을 그릴 수 있는 경로.
  *
- * 노출과 접근은 분리돼 있다 — 메뉴 버튼은 보이지만(`GET /my/pages` 가 내려주니까)
- * 눌러서 들어오면 여기서 `/forbidden` 으로 보낸다.
+ * 여기 없으면 아래 범용 골격(제목 줄 + 목록 상자)이 나가는데, 그러면 새로고침할 때
+ * `회색 상자 → 표` 로 모양이 한 번 갈아엎힌다. 화면의 `Suspense` 폴백과 **같은 것**을
+ * 쓰는 경로만 등록한다 — 다르면 깜빡임을 옮기기만 할 뿐이다.
  *
- * ⚠️ 이건 통제가 아니다 — 실제 차단은 백엔드가 403 으로 한다. 다만 **판단이 서지 않은
- * 상태로 권한 대상 본문을 그리지는 않는다.** 목록을 못 불러왔으면(`failed`) 통과시키는
- * 대신 다시 시도하게 둔다. 권한 없는 화면이 한 번 떴다 사라지는 편보다 낫다.
- *
- * 사이드바 · 헤더는 감싸지 않는다 — 본문만 가려 셸이 깜빡이지 않게 한다.
+ * ⚠️ 입찰(`/notices`)은 아직 넣지 않았다. 그쪽 스켈레톤은 표만 그리고 제목 · 필터 바
+ *    자리를 잡지 않아, 지금 넣으면 표가 위로 붙었다가 내려앉는다. 폴백을 화면 골격으로
+ *    맞춘 뒤에 함께 등록한다.
  */
+const ROUTE_SKELETONS: { prefix: string; render: () => React.ReactNode }[] = [
+  { prefix: '/finance/payments', render: () => <CashFlowListSkeleton /> },
+];
+
 /**
- * 권한 판단 대기 화면. 어느 화면이 올지 모르므로 **표 · 카드 공통 골격**만 그린다
- * (제목 줄 + 목록 상자). 실제 표 스켈레톤은 화면이 그려진 뒤 `DataTable` 이 맡는다.
+ * 권한 판단 대기 화면.
+ *
+ * 등록된 경로면 그 화면의 골격을, 아니면 **표 · 카드 공통 골격**(제목 줄 + 목록 상자)을
+ * 그린다. 실제 표 스켈레톤은 화면이 그려진 뒤 `DataTable` 이 맡는다.
  */
-function GateLoading() {
+function GateLoading({ pathname }: { pathname: string }) {
+  const matched = ROUTE_SKELETONS.find((route) =>
+    pathname.startsWith(route.prefix),
+  );
+
+  if (matched) return <>{matched.render()}</>;
+
   return (
     <SkeletonGroup label="화면을 준비하는 중입니다">
       <Skeleton className="h-5 w-40" />
@@ -46,6 +58,18 @@ function GateLoading() {
   );
 }
 
+/**
+ * `permission: NONE` 인 페이지 진입을 막는다.
+ *
+ * 노출과 접근은 분리돼 있다 — 메뉴 버튼은 보이지만(`GET /my/pages` 가 내려주니까)
+ * 눌러서 들어오면 여기서 `/forbidden` 으로 보낸다.
+ *
+ * ⚠️ 이건 통제가 아니다 — 실제 차단은 백엔드가 403 으로 한다. 다만 **판단이 서지 않은
+ * 상태로 권한 대상 본문을 그리지는 않는다.** 목록을 못 불러왔으면(`failed`) 통과시키는
+ * 대신 다시 시도하게 둔다. 권한 없는 화면이 한 번 떴다 사라지는 편보다 낫다.
+ *
+ * 사이드바 · 헤더는 감싸지 않는다 — 본문만 가려 셸이 깜빡이지 않게 한다.
+ */
 export default function PageAccessGate({
   children,
 }: {
@@ -77,7 +101,7 @@ export default function PageAccessGate({
    *    으로 보였다. 표 골격을 흉내 낸 덩어리로 바꿔 한 흐름으로 읽히게 한다.
    */
   if (isDenied || (isGated && status === 'loading')) {
-    return <GateLoading />;
+    return <GateLoading pathname={pathname} />;
   }
 
   /**

@@ -147,6 +147,41 @@ export interface SettlementBlockDetail {
  * `detail` 을 런타임 검증해서 읽는다. 형태가 다르면 `null` —
  * 추측해서 API 를 부르면 **남의 정산 블록**을 고치게 된다.
  */
+/**
+ * 세금계산서 · 입출금이 연결돼 **수정할 수 없는** 정산 블록인지.
+ *
+ * ⚠️ 블록 응답에 연결 여부 플래그가 없어 **두 가지로 가늠한다** —
+ *    ① 실제 정산 금액 · 일자가 채워졌는지 (**입출금이 매칭되면 채워진다**)
+ *    ② 정산 상태가 `부분 정산` · `정산 완료` 인지
+ *    ①이 먼저 드러나므로 매칭만 돼도 걸린다.
+ *
+ * ⛔ **세금계산서만 연결된 경우는 여전히 알 수 없다** — 블록 응답에 그 흔적이 없다.
+ * 🔧 백엔드가 `detail` 에 연결 여부를 내려주면 이 추정은 통째로 지운다.
+ */
+export function isLockedSettlement(
+  status: SettlementStatus | null | undefined,
+  item: SettlementItem | null,
+) {
+  // 입출금이 붙으면 실제 금액 · 일자가 채워진다 — 상태보다 이쪽이 먼저 드러난다
+  if (item?.actualDate !== null && item?.actualDate !== undefined) return true;
+  if ((item?.actualAmount ?? 0) > 0) return true;
+
+  return status === 'PARTIAL' || status === 'COMPLETED';
+}
+
+/** 블록 목록의 원본(`block.detail`)에서 바로 판단한다 (정산 블록이 아니면 `false`) */
+export function isLockedSettlementBlock(block: {
+  type: string;
+  detail: unknown;
+}) {
+  if (block.type !== 'SETTLEMENT') return false;
+
+  const detail = readSettlementBlockDetail(block.detail);
+  if (!detail) return false;
+
+  return isLockedSettlement(detail.item?.status ?? detail.status, detail.item);
+}
+
 export function readSettlementBlockDetail(
   detail: unknown,
 ): SettlementBlockDetail | null {

@@ -338,6 +338,35 @@ export const ENDPOINTS = {
     collectionRun: (runId: number | string) =>
       `${V1}/bidding/collection-runs/${runId}`,
   },
+  finance: {
+    /** 재무 관리 허브의 3개 항목 수치 (입출금 · 세금계산서 · 정산 현황) */
+    summary: `${V1}/finance/summary`,
+    cashFlows: {
+      /** 목록 조회(GET) · 직접 등록(POST) · 다건 삭제(DELETE — body 에 id 배열) */
+      root: `${V1}/finance/cash-flows`,
+      /** 필터 옵션 — 프로젝트 목록만 내려온다 */
+      filters: `${V1}/finance/cash-flows/filters`,
+      /** 연결 대상 제외/포함 — 프로젝트와 무관한 건을 연결 후보에서 뺀다 */
+      exclude: `${V1}/finance/cash-flows/exclude`,
+      /**
+       * 수정 — csv · api 출처이거나 이미 블록에 연결된 건은 **메모만** 바뀐다.
+       * 나머지 필드는 화면에서 막는다.
+       */
+      detail: (cashFlowId: number | string) =>
+        `${V1}/finance/cash-flows/${cashFlowId}`,
+      /** 매칭 추천 — 프로젝트가 아니라 **정산 블록** 후보가 온다 */
+      matchCandidates: (cashFlowId: number | string) =>
+        `${V1}/finance/cash-flows/${cashFlowId}/match-candidates`,
+      match: (cashFlowId: number | string) =>
+        `${V1}/finance/cash-flows/${cashFlowId}/match`,
+      unmatch: (cashFlowId: number | string) =>
+        `${V1}/finance/cash-flows/${cashFlowId}/unmatch`,
+      /** CSV 컬럼 추천 · 미리보기 — 파일 자체는 저장되지 않는다 */
+      csvPreview: `${V1}/finance/cash-flows/csv/preview`,
+      /** 매핑 확정 후 실제 저장 */
+      csv: `${V1}/finance/cash-flows/csv`,
+    },
+  },
   notifications: {
     /** 알림 목록 — `category` · `isRead` · `page` · `size` 로 거른다 */
     root: `${V1}/notifications`,

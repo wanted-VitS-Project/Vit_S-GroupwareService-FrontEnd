@@ -32,16 +32,13 @@ const EMPLOYEE_COLUMNS: DataTableSkeletonColumn[] = [
   },
 ];
 
-/** ⚠️ `EmployeeList` 의 `minWidth` 와 같은 값이어야 한다 */
-const EMPLOYEE_MIN_WIDTH = 960;
-
 export function EmployeeTableSkeleton({ rows = 20 }: { rows?: number }) {
   return (
     <DataTable
       caption="사원 목록"
       columns={EMPLOYEE_COLUMNS}
       rows={null}
-      minWidth={EMPLOYEE_MIN_WIDTH}
+      dense
       skeletonRows={rows}
     />
   );

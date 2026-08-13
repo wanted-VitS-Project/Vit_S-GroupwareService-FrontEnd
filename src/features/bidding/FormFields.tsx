@@ -53,7 +53,12 @@ function FieldShell({
         hint && (
           <p
             id={`${id}-hint`}
-            className="mt-1 text-micro break-keep text-text-secondary"
+            /**
+             * ⚠️ `break-keep` 만 두면 `신한은행-20260807143000-999EA4` 처럼 **띄어쓰기 없는
+             *    긴 값**이 줄바꿈되지 못하고 칸 밖으로 넘친다. 한글은 단어 단위로 끊되
+             *    끊을 곳이 없으면 아무 데서나 끊게 한다.
+             */
+            className="mt-1 text-micro [overflow-wrap:anywhere] break-keep text-text-secondary"
           >
             {hint}
           </p>

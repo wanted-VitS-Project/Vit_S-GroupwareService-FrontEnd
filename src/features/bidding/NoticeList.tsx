@@ -6,16 +6,11 @@ import { useEffect, useMemo, useState } from 'react';
 
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
 import Pagination from '@/components/Pagination';
-import { PROJECT_ROUTES } from '@/features/project/routes';
-import { formatDate, formatDateTime } from '@/lib/format';
+import { formatDate, formatTime } from '@/lib/format';
 
 import { getNotices } from './api';
 import { formatAmountShort } from './display';
-import {
-  ConvertedBadge,
-  DeadlineBadge,
-  NoticeStatusBadge,
-} from './NoticeBadges';
+import { DeadlineBadge, NoticeStatusBadge } from './NoticeBadges';
 import { BIDDING_ROUTES } from './routes';
 import type {
   BidNoticeListItem,
@@ -174,8 +169,11 @@ export default function NoticeList() {
         columns={NOTICE_COLUMNS}
         rows={hasFailed ? [] : isLoading && !rows ? null : (rows ?? [])}
         rowKey={(row) => row.noticeId}
-        // 열이 8개 · 본문 14px 라 좁은 화면에서만 표가 가로로 흐른다 (페이지는 흐르지 않는다)
-        minWidth={960}
+        /**
+         * ⚠️ **가로 스크롤을 두지 않는다** (2026-08-12) — `minWidth` 를 뺐다.
+         *    대신 여백을 줄이고(`dense`) 날짜 · 시각을 두 줄로 쌓아 자리를 만든다.
+         */
+        dense
         skeletonRows={PAGE_SIZE}
         errorMessage={
           hasFailed ? '공고 목록을 불러오지 못했습니다.' : undefined
@@ -225,17 +223,23 @@ const NOTICE_COLUMNS: DataTableColumn<BidNoticeListItem>[] = [
   {
     key: 'noticeName',
     header: '공고명',
-    width: '37%',
+    width: '30%',
     skeletonWidth: 'w-64',
     /**
      * 공고명만 **두 줄까지** 편다 — `[TEST] …`, `(협상에 의한 계약)` 처럼
      * 뒤에 붙는 말이 공고를 가르는 정보라 잘라내면 구분이 안 된다.
      * `break-keep` 이라 단어 중간이 아니라 **단어 단위로** 끊긴다.
      */
+    /**
+     * ⚠️ `break-keep` — **단어 중간에서 끊지 않는다.** `실시설계기술용역` 같은 말이
+     *    `실시설계기` / `술용역` 으로 갈리면 훑어 읽을 수가 없다.
+     * ⚠️ `text-balance` — 두 줄의 **길이를 비슷하게** 나눈다. 그냥 두면 첫 줄이 꽉 차고
+     *    둘째 줄에 `분석 용역` 두 마디만 남아, 붙어 읽혀야 할 말이 갈린다.
+     */
     cell: (row) => (
       <Link
         href={BIDDING_ROUTES.detail(row.noticeId)}
-        className="line-clamp-2 block font-semibold break-keep text-text-primary hover:underline"
+        className="line-clamp-2 block font-semibold text-balance break-keep text-text-primary hover:underline"
         title={row.noticeName}
       >
         {row.noticeName}
@@ -245,12 +249,12 @@ const NOTICE_COLUMNS: DataTableColumn<BidNoticeListItem>[] = [
   {
     key: 'noticeAgency',
     header: '발주처',
-    width: '14%',
+    width: '16%',
     skeletonWidth: 'w-28',
     /**
      * 발주처는 **공고명과 함께 유일하게 두 줄을 허용**한다 —
      * `경상남도교육청 경상남도밀양교육지원청` 처럼 긴 기관명이 흔하다.
-     * 나머지 열은 `whitespace-nowrap` 이라 행 높이가 들쭉날쭉해지지 않는다.
+     * 잘라 감추지 않고 두 줄까지 편다 — 넘치면 `line-clamp-2` 가 받는다.
      */
     cell: (row) => (
       <span
@@ -268,7 +272,7 @@ const NOTICE_COLUMNS: DataTableColumn<BidNoticeListItem>[] = [
     align: 'right',
     skeletonWidth: 'w-16',
     cell: (row) => (
-      <span className="whitespace-nowrap text-text-primary">
+      <span className="block text-text-primary">
         {formatAmountShort(row.baseAmount)}
       </span>
     ),
@@ -280,7 +284,7 @@ const NOTICE_COLUMNS: DataTableColumn<BidNoticeListItem>[] = [
     align: 'right',
     skeletonWidth: 'w-16',
     cell: (row) => (
-      <span className="whitespace-nowrap text-text-primary">
+      <span className="block text-text-primary">
         {formatAmountShort(row.estimatedAmount)}
       </span>
     ),
@@ -288,10 +292,10 @@ const NOTICE_COLUMNS: DataTableColumn<BidNoticeListItem>[] = [
   {
     key: 'announcedAt',
     header: '공고일',
-    width: '6%',
+    width: '10%',
     skeletonWidth: 'w-20',
     cell: (row) => (
-      <span className="whitespace-nowrap text-text-secondary">
+      <span className="block text-text-secondary">
         {formatDate(row.announcedAt) || '-'}
       </span>
     ),
@@ -299,60 +303,38 @@ const NOTICE_COLUMNS: DataTableColumn<BidNoticeListItem>[] = [
   {
     key: 'bidDeadlineAt',
     header: '투찰 마감',
-    width: '12%',
+    width: '18%',
     skeletonWidth: 'w-24',
-    // 날짜 · 시각 · D-day 를 한 줄로 둔다 — 배지가 내려가면 행이 두 줄이 된다
+    /**
+     * 날짜 · 시각 · 남은 기간을 **한 줄**에 둔다 — 마감을 볼 때 셋은 한 덩어리로 읽힌다.
+     * 좁아지면 배지가 다음 줄로 흐른다 (잘리지는 않는다).
+     */
     cell: (row) => (
-      <span className="flex items-center gap-1.5 whitespace-nowrap">
+      <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        {/**
+         * 배지는 **칸 오른쪽 끝**에 붙인다 (`ml-auto`) — 날짜 · 시각 길이가 행마다 달라도
+         * 배지는 같은 자리에 서서 세로로 훑어 읽힌다.
+         */}
         <span className="text-text-secondary">
-          {formatDateTime(row.bidDeadlineAt) ||
-            formatDate(row.bidDeadlineAt) ||
-            '-'}
+          {formatDate(row.bidDeadlineAt) || '-'}
+          {formatTime(row.bidDeadlineAt) && (
+            <span className="ml-1 text-detail text-text-muted">
+              {formatTime(row.bidDeadlineAt)}
+            </span>
+          )}
         </span>
-        <DeadlineBadge dDay={row.dDay} />
+        <span className="ml-auto">
+          <DeadlineBadge dDay={row.dDay} />
+        </span>
       </span>
     ),
   },
   {
     key: 'noticeStatus',
     header: '상태',
-    width: '5%',
+    width: '10%',
     skeletonWidth: 'w-12',
     cell: (row) => <NoticeStatusBadge status={row.noticeStatus} />,
-  },
-  {
-    key: 'projectId',
-    header: '전환',
-    width: '10%',
-    skeletonWidth: 'w-20',
-    // 전환 여부(배지) 와 다음 행동(버튼) 을 한 칸에 세로로 둔다
-    cell: (row) => (
-      <>
-        <ConvertedBadge projectId={row.projectId} />
-
-        {row.projectId === null ? (
-          /**
-           * ⚠️ 전환 API(`POST /bidding/notices/{id}/projects`)가 아직 없다 —
-           * 누를 수 있게 두면 어디로도 가지 못한다. 사유를 툴팁으로 남기고 막아둔다.
-           */
-          <button
-            type="button"
-            disabled
-            title="프로젝트 전환 기능은 준비 중입니다"
-            className="btn btn-sm btn-gray-outlined mt-1 whitespace-nowrap"
-          >
-            프로젝트 생성
-          </button>
-        ) : (
-          <Link
-            href={PROJECT_ROUTES.detail(row.projectId)}
-            className="btn btn-sm btn-gray-outlined mt-1 whitespace-nowrap"
-          >
-            프로젝트 보기
-          </Link>
-        )}
-      </>
-    ),
   },
 ];
 

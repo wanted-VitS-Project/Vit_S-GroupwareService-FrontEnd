@@ -58,6 +58,71 @@
 
 ---
 
+## [2026-08-13] 재무 — 입출금 내역 · 정산 블록 매칭 ✅
+
+브랜치: `feat/finance` · 이슈: #12 #15
+근거: 스웨거 실측(`/v3/api-docs`) — `.ai/API.md` 에 재무 도메인 절이 아직 없어 스펙을 직접 대조했다
+
+### 변경 파일
+
+| 파일                                            | 변경                                                                     |
+| ----------------------------------------------- | ------------------------------------------------------------------------ |
+| `src/features/finance/types.ts`                 | **생성** (요약 · 목록 · 등록/수정 · 매칭 후보 · 다건 처리 결과)          |
+| `src/features/finance/api.ts`                   | **생성** (요약 · 목록 · 필터 · 등록 · 수정 · 삭제 · 제외 · 매칭 · 해제)  |
+| `src/features/finance/display.ts`               | **생성** (금액 표기 · 배지 색 · `bankNameFromTxnId`)                     |
+| `src/features/finance/routes.ts`                | **생성** (재무 화면 경로 단일 소스)                                       |
+| `src/features/finance/FinanceHub.tsx`           | **생성** (허브 — 항목별 미연결 건수)                                     |
+| `src/features/finance/CashFlowList.tsx`         | **생성** (필터 · 표 · 다건 선택 · 행 메뉴)                               |
+| `src/features/finance/CashFlowFormModal.tsx`    | **생성** (직접 등록 · 수정 — 출처/연결 상태로 입력 잠금)                 |
+| `src/features/finance/CashFlowMatchModal.tsx`   | **생성** (정산 블록 추천 후보 선택 · 연결)                               |
+| `src/components/finance/CashFlowSkeletons.tsx`  | **생성** (게이트 · `Suspense` 공용 골격)                                 |
+| `src/app/finance/page.tsx`                      | **생성** (`/finance` 허브 라우트)                                        |
+| `src/app/finance/payments/page.tsx`             | 수정 (stub → 목록 화면 연결)                                             |
+| `src/constants/endpoints.ts`                    | 수정 (`finance` 블록 — 요약 + 입출금 10개 경로)                          |
+| `src/constants/menu.ts` · `pagePermission/catalog.ts` | 수정 (사이드바 `재무 관리` → `/finance/invoices` → **`/finance`**) |
+| `src/features/auth/errorCodes.ts`               | 수정 (`FINANCE_ACCESS_DENIED` 를 권한 코드로 등록)                       |
+| `src/features/pagePermission/PageAccessGate.tsx` | 수정 (경로별 로딩 골격 `ROUTE_SKELETONS`)                               |
+| `src/components/DataTable.tsx`                  | 수정 (로딩 행 높이 정합 · `dense` 여백 옵션)                             |
+| `src/features/bidding/NoticeList.tsx` · `NoticeSkeletons.tsx` | 수정 (열 폭 재조정 · 가로 스크롤 제거 · `전환` 열 제거 · 공고명 `text-balance`) |
+| `src/features/employee/EmployeeList.tsx` · `SettingsSkeletons.tsx` | 수정 (가로 스크롤 제거)                                |
+| `src/features/settlement/errorCodes.ts` · `SettlementForm.tsx` · `SettlementBlock.tsx` | 수정 (`SETL-007` 잠김 → `수정하기` 비활성) |
+
+### 주요 작업 내용
+
+- **입출금 내역 화면 일습(#12)** — 기간 · 프로젝트 · 미연결 · 검색은 서버 쿼리로, **구분 · 출처는 서버 필터가 없어 화면에서** 거른다 (재조회하지 않도록 요청 키에서 뺐다)
+- **직접 등록 · 수정 모달** — `MANUAL` + `UNLINKED` 만 전체 수정이고, CSV · 외부 API 이거나 연결된 건은 **적요만** 열어 둔다 (서버 규칙과 동일)
+- **다건 삭제 · 연결 제외** — `skippedItems` 를 사유와 함께 토스트로 알린다. **부분 성공이 정상 동작**이다
+- **정산 블록 매칭(#15)** — 추천 후보(최대 5건)를 `matchTags`(추천 이유)와 함께 보여주고 라디오로 고른다. 연결/해제는 `linkStatus` 에 따라 **행 메뉴에 하나만** 노출한다
+- **연결된 정산 블록은 `수정하기` 를 막는다** — 매칭이 되기 시작하면서 드러난 문제. 정산 상태(`부분 정산` · `정산 완료`)로 잠금을 가늠하고, 상태로 못 걸러진 경우는 저장이 한 번 막힌 뒤(`SETL-007`) 받아 준다
+
+### 트러블슈팅
+
+| 문제                                        | 원인                                                                  | 해결                                                       |
+| ------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------- |
+| 재무 목록이 `불러오지 못했습니다` 로 떨어짐 | `FINANCE_ACCESS_DENIED` 가 권한 코드 목록에 없어 전역 403 처리에서 샜다 | `PERMISSION_CODES` 에 추가 → `/forbidden` 으로 보낸다       |
+| 수정 폼의 은행명이 빈칸                     | **목록 응답에 `bankName` 이 없고 단건 조회 API 도 없다**              | `bankTxnId`(은행명+거래일시) 앞부분을 되읽는다. 임시방편이라 백엔드에 필드 추가 요청 |
+| 표가 로딩 → 데이터에서 늘어남               | 로딩 막대(12px)가 글자 한 줄(21px)보다 낮아 행 높이가 달랐다          | 막대를 `h-[1.5em]` 상자에 담아 행 높이를 맞췄다            |
+| 표가 떴다가 줄어듦                          | 스켈레톤 10줄 뒤에 결과가 1~2건                                       | **첫 조회 중에는 표를 그리지 않는다** (안내 문구만)        |
+| 공고 목록 날짜가 겹쳐 보임                  | 공용화로 본문이 12px → 14px 가 됐는데 열 폭은 12px 기준 그대로였다     | 폭 재조정 + `dense`(여백 40 → 24px) + 마감일 두 줄          |
+| `수정할 수 없습니다` 안내 옆에서 폼이 열림  | 블록 응답에 연결 여부 플래그가 없어 화면이 잠금을 몰랐다              | 정산 상태로 판정(`PARTIAL`·`COMPLETED`) + 409 를 보조로 기억 |
+| 잠금이 새로고침하면 풀림                    | 409 를 화면 상태로만 기억해 새로고침에 날아갔다                       | **데이터(정산 상태)에서 판정**하도록 바꿔 새로고침에도 유지 |
+
+### 부수 결정
+
+- **가로 스크롤을 두지 않는다** — `minWidth` 를 쓰던 표 3개에서 걷어내고, `DataTable` 이 `minWidth` 없는 표는 `overflow-x-hidden` 으로 막는다. 여백은 `dense`(40 → 24px)로 줄였다
+- **칸 안에서 글자를 잘라 감추지 않는다** — 넘치면 줄바꿈. 공고명만 `line-clamp-2` + `text-balance`
+- **공고 목록 `전환` 열 제거** — 전환 API 가 없어 눌리지 않는 회색 버튼만 늘어서 있었다
+- **페이지네이션을 붙이지 않는다** — 목록 API 에 페이징이 없다 (`{ cashFlows: [] }`). 표 아래 `전체 N건` 만 둔다
+- **`FINANCE_EDIT_ACCESS_DENIED` 는 권한 코드에 넣지 않는다** — 화면은 볼 수 있는데 저장만 막힌 경우라 `/forbidden` 으로 보내면 보던 목록까지 사라진다
+
+### 백엔드 대기
+
+- 🔴 `PATCH /blocks/settlements/{id}/items` — `?type=INCOME` 을 실어 보내도 컨트롤러에서 null 이라 **500 NPE** (파라미터 바인딩). 정산 항목 작성이 막히면 매칭 후보도 비어 있다
+- ⏳ 입출금 목록 응답에 `bankName` 추가 (또는 단건 조회 API)
+- ⏳ 정산 블록 목록(10번) `detail` 에 **연결 여부 플래그** (`isLinked` 등). 지금은 정산 상태로 추정한다
+
+---
+
 ## [2026-08-12] 정산 블록 낙관적 락 배관 ✅
 
 브랜치: `feat/settlement-optimistic-lock` · 이슈: #125
@@ -408,7 +473,9 @@
 
 ---
 
-## [2026-08-11] 입찰 공고 조회 — 목록 · 상세 🚧
+## [2026-08-11] 입찰 공고 조회 — 목록 · 상세 ✅
+
+브랜치: `feat/notices` · 이슈: #7 · PR: #118 (같은 브랜치에서 #9 · #105 와 함께 머지. PR 본문에 `close #7` 이 빠져 이슈만 Open 으로 남았다 → 수동 종료)
 
 ### 변경 파일
 
@@ -438,11 +505,13 @@
 
 - **문제**: 화면에 공고가 한 건도 보이지 않음
 - **원인**: 프론트가 아니라 **백엔드 수집 실패**. `POST /bidding/collection-conditions/1/runs` 를 두 번(`runId` 1 · 2) 실행했으나 모두 6초 뒤 `FAILED` · `all_collection_tasks_failed`. `bid_notice` 테이블이 0행이다
-- **해결**: 미해결 — 백엔드 대기. 프론트 계층은 정상 확인(`GET /bidding/notices` → `200`, `content: []`)
+- **해결**: 위 `입찰 수집 조건 운영 · 공고 직접 등록` 작업에서 수집이 성공하며 해소. 실공고 534건으로 목록 · 상세 검증 완료
 
 ### 부수 결정
 
 - **읽기 전용으로 범위 고정** — 제외 · 복구 · 프로젝트 전환 API 가 미배포라 버튼을 두지 않는다. 목록·상세 모두 `disabled` + 사유 툴팁
+- **라우트를 `/notices` · `/notices/[id]` 로 잡았다** — 이슈 원문의 `/bidding/notices/:noticeId` 대신 앱 라우팅 컨벤션(도메인 1단계)에 맞췄다
+- **사업 카테고리 필터는 제외** — 나라장터 업종코드와 내부 분류 체계가 달라 억지 매핑을 하지 않는다. 카테고리는 프로젝트 생성 시 사람이 지정한다
 - **`noticeStatus` · `sort` 는 스웨거가 `string` 이라 값 검증 불가** — `sort=ANNOUNCED_DESC` 만 `200` 으로 실측. 나머지는 데이터가 생겨야 확인된다
 - **백엔드 테스트 가이드를 명세로 쓰지 않는다** — 가이드에 있는 `POST /bidding/notices` 등이 실제로는 미배포다. 스웨거에 뜨는 것만 호출한다
 
