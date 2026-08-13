@@ -27,7 +27,10 @@ export const PROJECT_ROUTES = {
     stepId: number | string,
     issueId?: number | string,
   ) =>
+    // 값에 `&` · `#` 이 섞이면 쿼리 구조가 깨져 엉뚱한 이슈를 열거나 아무것도 못 연다
     `${PROJECTS}/${projectId}/steps/${stepId}/issue${
-      issueId === undefined ? '' : `?${ISSUE_PARAM}=${issueId}`
+      issueId === undefined
+        ? ''
+        : `?${ISSUE_PARAM}=${encodeURIComponent(issueId)}`
     }`,
 } as const;

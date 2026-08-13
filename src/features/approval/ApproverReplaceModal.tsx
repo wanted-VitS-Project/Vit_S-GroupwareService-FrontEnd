@@ -60,6 +60,20 @@ export default function ApproverReplaceModal({
     return handling !== undefined && handling !== null;
   });
 
+  /**
+   * 이 결재선의 교체 후보에서 빼야 할 사람들.
+   *
+   * 기존 결재자뿐 아니라 **다른 행이 이미 고른 교체 대상**도 빼야 한다 —
+   * 같은 사람을 두 자리에 넣으면 한 사람이 중복 결재자가 되거나 서버가 요청을 거부한다.
+   */
+  function excludedFor(lineId: number) {
+    const pickedByOthers = [...handlings]
+      .filter(([id, handling]) => id !== lineId && handling?.kind === 'replace')
+      .map(([, handling]) => (handling as { approverId: string }).approverId);
+
+    return [...ordered.map((item) => item.approverId), ...pickedByOthers];
+  }
+
   async function save() {
     if (isBusy || !isReady) return;
 
@@ -119,8 +133,7 @@ export default function ApproverReplaceModal({
                 key={line.lineId}
                 line={line}
                 handling={handlings.get(line.lineId) ?? null}
-                // 이미 결재선에 있는 사람을 또 넣으면 순서가 꼬인다
-                excludedIds={ordered.map((item) => item.approverId)}
+                excludedIds={excludedFor(line.lineId)}
                 disabled={isBusy}
                 onDecide={(handling) => decide(line.lineId, handling)}
               />

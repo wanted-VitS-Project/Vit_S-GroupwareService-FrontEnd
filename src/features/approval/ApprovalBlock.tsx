@@ -335,8 +335,12 @@ function Loaded({
             {/**
              * 상신 전에는 언제든 다시 고칠 수 있어야 한다 (AP-006).
              * 반려된 결재는 새 회차를 먼저 만들어야 해서 `startRevise` 로 간다 (AP-062).
+             *
+             * ⛔ 기안자가 참여 불가인 반려 회차에서는 **배너가 유일한 경로**다.
+             *    여기 버튼도 `startRevise` 를 부르는데, 대행자가 이미 정해졌다면
+             *    그 사람이 아닌 모두가 403 을 받는다 — 눌리지 않을 버튼을 두지 않는다.
              */}
-            {(isDraft || isRejected) && (
+            {(isDraft || (isRejected && !revision.drafterUnavailable)) && (
               <button
                 type="button"
                 onClick={isRejected ? startRevise : () => setIsEditing(true)}
