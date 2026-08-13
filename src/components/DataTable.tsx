@@ -9,16 +9,19 @@ import { Skeleton, SkeletonGroup } from './Skeleton';
  * 각자 그리고 있었다. 모양이 조금씩 갈리는 것보다 **로딩 · 빈 상태 · 실패가 표마다
  * 다르게 처리되던 것**이 더 문제였다 — 여기서 한 번에 정한다.
  *
- * 통일 기준 (2026-08-12)
- * | 항목        | 값                                                     |
- * | ----------- | ------------------------------------------------------ |
- * | 가로 여백   | `px-5` (7개 중 6개가 쓰던 값)                            |
- * | 본문 글자   | `text-label`(14px) — 설정 표들이 쓰던 크기. 입찰만 12px 였다 |
- * | 세로 여백   | 헤더 `py-3` · 본문 `py-3.5` (원래 전부 같았다)           |
- * | sticky 헤더 | `maxHeight` 를 준 표만 — 세로 스크롤이 있을 때만 의미 있다 |
- * | 빈 상태     | `…없습니다` 체 (기존 다수)                                |
+ * 통일 기준 (2026-08-13 갱신)
+ * | 항목          | 값                                                          |
+ * | ------------- | ----------------------------------------------------------- |
+ * | 가로 여백     | `px-5` · 열이 많으면 `dense` 로 `px-3`                        |
+ * | 본문 글자     | `text-label`(14px) — 설정 표들이 쓰던 크기. 입찰만 12px 였다  |
+ * | 세로 여백     | 헤더 `py-3` · 본문 `py-3.5`                                  |
+ * | 세로 정렬     | `align-middle` — 한 칸이 두 줄이어도 나머지가 가운데를 잡는다 |
+ * | 가로 스크롤   | **기본 없음** — `minWidth` 를 준 표만 흐른다                  |
+ * | sticky 헤더   | `maxHeight` 를 준 표만 — 세로 스크롤이 있을 때만 의미 있다    |
+ * | 빈 상태       | `…없습니다` 체 (기존 다수)                                    |
  *
  * ⚠️ 색 · 글자 크기는 `globals.css` 토큰만 쓴다. 여기서 새 스타일을 만들지 않는다.
+ * ⚠️ 칸 안에서 **글자를 잘라 감추지 않는다** — 넘치면 줄바꿈으로 흐르게 둔다.
  */
 
 /**
@@ -69,8 +72,20 @@ interface DataTableProps<T> {
   rowKey?: (row: T) => string | number;
   /** 스크린리더용 표 설명. 로딩 안내 문구로도 쓴다 */
   caption: string;
-  /** 열이 많아 좁은 화면에서 가로로 흘려야 하는 표 (예: `840`) */
+  /**
+   * 열이 많아 좁은 화면에서 가로로 흘려야 하는 표 (예: `840`).
+   *
+   * ⚠️ **기본은 가로 스크롤 없음이다.** 주지 않으면 표가 화면 폭 안에서 나뉜다.
+   *    꼭 필요한 표(열이 아주 많고 값이 줄일 수 없는 경우)에만 준다.
+   */
   minWidth?: number;
+  /**
+   * 촘촘한 표 — 가로 여백을 `px-5`(40px) 대신 `px-3`(24px) 으로 줄인다.
+   *
+   * 열이 8개를 넘어가면 여백만 300px 이 넘어 글자 자리가 사라진다.
+   * 가로 스크롤을 만들지 않으려면 여백부터 줄여야 한다.
+   */
+  dense?: boolean;
   /** 주면 세로 스크롤 + **헤더 고정** (예: `'60vh'`) */
   maxHeight?: string;
   skeletonRows?: number;
@@ -132,6 +147,7 @@ export default function DataTable<T>({
   minWidth,
   maxHeight,
   skeletonRows = 8,
+  dense = false,
   emptyMessage = '표시할 내용이 없습니다.',
   emptyAction,
   emptyState,
@@ -141,6 +157,9 @@ export default function DataTable<T>({
   onRowClick,
 }: DataTableProps<T>) {
   warnIfWidthsBroken(columns);
+
+  /** 헤더 · 본문 · 빈 상태가 같은 값을 써야 열이 어긋나지 않는다 */
+  const padX = dense ? 'px-3' : 'px-5';
 
   // 세로 스크롤이 있는 표만 헤더를 고정한다 — 없으면 고정할 이유가 없다
   const isSticky = maxHeight !== undefined;
@@ -189,7 +208,14 @@ export default function DataTable<T>({
        *    두 축을 모두 `auto` 로 두면 필요한 쪽만 스크롤바가 생긴다.
        */
       style={maxHeight ? { maxHeight } : undefined}
-      className="overflow-auto"
+      /**
+       * ⚠️ `minWidth` 를 준 표만 가로로 흐른다. 안 준 표는 **가로 스크롤을 막는다** —
+       *    칸 안의 `whitespace-nowrap` 한 줄이 열보다 길면 스크롤바가 생겨,
+       *    분명 `minWidth` 를 뺐는데도 표가 옆으로 밀리는 일이 있었다.
+       */
+      className={
+        minWidth ? 'overflow-auto' : 'overflow-x-hidden overflow-y-auto'
+      }
     >
       <table
         style={minWidth ? { minWidth: `${minWidth}px` } : undefined}
@@ -212,7 +238,7 @@ export default function DataTable<T>({
               <th
                 key={column.key}
                 scope="col"
-                className={`px-5 py-3 font-medium ${ALIGN_CLASS[column.align ?? 'left']}`}
+                className={`${padX} py-3 font-medium ${ALIGN_CLASS[column.align ?? 'left']}`}
               >
                 {column.header}
               </th>
@@ -223,12 +249,25 @@ export default function DataTable<T>({
         <tbody>
           {rows === null
             ? Array.from({ length: skeletonRows }, (_, index) => (
-                <tr key={index} className="border-b border-border-default">
+                <tr
+                  key={index}
+                  // 본문과 같은 글자 크기를 얹어야 아래 `h-[1.5em]` 이 같은 값이 된다
+                  className="border-b border-border-default text-label"
+                >
                   {columns.map((column) => (
-                    <td key={column.key} className="px-5 py-3.5">
-                      <Skeleton
-                        className={`h-3 ${column.skeletonWidth ?? 'w-24'}`}
-                      />
+                    <td key={column.key} className={`${padX} py-3.5`}>
+                      {/**
+                       * 막대를 **글자 한 줄과 같은 높이의 상자**에 담는다.
+                       *
+                       * 그냥 두면 12px 막대가 21px 글자보다 낮아 로딩 행이 데이터 행보다
+                       * 짧고, 응답이 오는 순간 표 전체가 아래로 늘어나 화면이 튄다.
+                       * 틀을 먼저 고정하고 안의 내용만 바뀌게 한다.
+                       */}
+                      <span className="flex h-[1.5em] items-center">
+                        <Skeleton
+                          className={`h-3 ${column.skeletonWidth ?? 'w-24'}`}
+                        />
+                      </span>
                     </td>
                   ))}
                 </tr>
@@ -250,7 +289,11 @@ export default function DataTable<T>({
                           ? (event) => event.stopPropagation()
                           : undefined
                       }
-                      className={`px-5 py-3.5 ${ALIGN_CLASS[column.align ?? 'left']}`}
+                      /**
+                       * 세로는 **가운데**다 — 한 칸이 두 줄이 되어 행이 높아져도
+                       * 나머지 칸이 위에 매달려 있지 않고 가운데에서 균형을 잡는다.
+                       */
+                      className={`${padX} py-3.5 align-middle ${ALIGN_CLASS[column.align ?? 'left']}`}
                     >
                       {column.cell?.(row, index)}
                     </td>

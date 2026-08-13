@@ -20,10 +20,18 @@ export const GATE_CODES = {
   password: 'AUTH_PASSWORD_RESET_REQUIRED',
 } as const;
 
-/** 게이트가 아니라 권한이 모자란 403 — 다시 불러도 결과가 같다 */
+/**
+ * 게이트가 아니라 권한이 모자란 403 — 다시 불러도 결과가 같다.
+ *
+ * ⚠️ **편집 권한 부족(`FINANCE_EDIT_ACCESS_DENIED`)은 넣지 않는다.** 그건 화면은 볼 수 있는데
+ *    저장만 막힌 경우라, `/forbidden` 으로 보내면 보던 목록까지 사라진다 — 서버 문구를
+ *    그 자리에 띄우는 게 맞다. 여기 넣는 것은 **화면 자체를 볼 수 없는** 코드뿐이다.
+ */
 const PERMISSION_CODES: string[] = [
   'ACC_ADMIN_REQUIRED',
   'BUSINESS_CATEGORY_ADMIN_ONLY',
+  // 재무 화면 접근 권한 없음 — 목록이 '불러오지 못했습니다' 로 보이던 원인 (2026-08-12)
+  'FINANCE_ACCESS_DENIED',
 ];
 
 /** 권한 부족 403 인지. 도메인마다 코드가 달라 목록으로 둔다 */

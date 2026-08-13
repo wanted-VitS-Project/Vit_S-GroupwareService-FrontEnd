@@ -13,6 +13,7 @@ import PersonNote from '@/components/PersonNote';
 import { notifyToast } from '@/components/Toast';
 import ActivityIcon from '@/features/activityLog/ActivityIcon';
 import { notifyIssueChanged } from '@/features/issue/events';
+import { isLockedSettlementBlock } from '@/features/settlement/types';
 import { useModal, useModalRouter } from '@/lib/useModal';
 
 import { useBlockActions } from './BlockActionsContext';
@@ -362,6 +363,16 @@ function BlockMenu({
                 <MoveIcon />
                 <span className="flex-1 text-left">스텝 이동</span>
               </button>
+              {/**
+               * ⚠️ **연결된 정산 블록은 지울 수 없다.** 세금계산서 · 입출금이 붙은 블록을
+               *    지우면 재무 쪽 연결이 가리키는 대상이 사라진다 —
+               *    백엔드가 아직 이 삭제를 막지 않으므로 화면에서 먼저 막는다.
+               */}
+              {/**
+               * ℹ️ 연결된 정산 블록도 **삭제할 수 있다** (2026-08-13 백엔드 확인) —
+               *    지워진 뒤에는 재무 쪽 입출금이 `LINK_BLOCK_DELETED` 로 내려와
+               *    `블록 삭제됨` 으로 구분된다. 그래서 여기서 막지 않는다.
+               */}
               <button
                 type="button"
                 role="menuitem"
@@ -414,6 +425,8 @@ function BlockMenu({
         <BlockDeleteModal
           blockId={block.blockId}
           blockTitle={title}
+          // 연결된 정산 블록이면 확인 모달에서 무엇이 남는지 함께 알린다
+          isLinkedSettlement={isLockedSettlementBlock(block)}
           onClose={modal.close}
           onDeleted={(deletedId) =>
             actions ? actions.remove(deletedId) : notifyBlockChanged()

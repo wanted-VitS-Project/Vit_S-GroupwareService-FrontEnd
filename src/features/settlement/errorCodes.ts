@@ -59,6 +59,17 @@ export function isSettlementGone(error: unknown) {
   );
 }
 
+/**
+ * **연결돼서 잠긴** 경우인지 (`SETL-007`).
+ *
+ * `isSettlementGone` 과 나눠 쓴다 — 삭제(`SETL-002`)는 목록을 다시 읽으면 블록 자체가
+ * 사라지지만, 잠김은 **블록이 그대로 남는다.** 그래서 화면이 잠금 상태를 기억해
+ * `수정하기` 를 막지 않으면 열었다 저장에서 또 막히는 일이 반복된다.
+ */
+export function isSettlementLocked(error: unknown) {
+  return error instanceof ApiError && error.code === SETTLEMENT_CODES.linked;
+}
+
 /** 버전을 못 받아 저장을 시작조차 할 수 없을 때 */
 export const SETTLEMENT_NO_VERSION_MESSAGE =
   '정산 블록의 버전 정보를 받지 못해 저장할 수 없습니다. 새로고침 후 다시 시도해주세요.';

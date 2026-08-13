@@ -50,8 +50,9 @@ export const PAGE_ROUTES: Record<string, PageRoute> = {
   BIDDING: { href: '/notices', icon: 'search', requiresPermission: true },
   PROJECT_CREATE: { href: '/projects/new', icon: 'plus', exact: true },
   MY_PROJECT: { href: '/projects', icon: 'folder' },
+  // 하위 화면(입출금 내역 · 세금계산서 · 정산 현황)은 이 허브에서 타고 들어간다
   FINANCE: {
-    href: '/finance/invoices',
+    href: '/finance',
     icon: 'card',
     requiresPermission: true,
   },

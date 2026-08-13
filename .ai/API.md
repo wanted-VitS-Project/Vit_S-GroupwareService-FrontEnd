@@ -4796,3 +4796,102 @@ data: {
 
 > ✏️ 새 API를 연동할 때 위 양식대로 계속 추가하세요.
 > 핵심은 **백엔드 응답 타입을 정확히** 적어두는 것 — AI가 타입 안전하게 연동 코드를 짜줘요.
+
+---
+
+## 재무 도메인 — 입출금 내역
+
+> 📌 초안 명세가 없어 **스웨거(`/v3/api-docs`) 실측**으로 정리했다 (2026-08-12).
+> 연동 코드는 `src/features/finance/api.ts` · 타입은 `types.ts` 한 곳에 모여 있다.
+
+| 항목          | 내용                                              |
+| ------------- | ------------------------------------------------- |
+| **인증 필요** | ✅ `FINANCE` 페이지 **접근 권한** (없으면 403 `FINANCE_ACCESS_DENIED`) |
+| **편집**      | 등록 · 수정 · 삭제 · 제외 · 매칭은 **편집 권한** (403 `FINANCE_EDIT_ACCESS_DENIED`) |
+
+### 경로
+
+| Method   | Path                                          | 용도                       |
+| -------- | --------------------------------------------- | -------------------------- |
+| `GET`    | `/finance/summary`                            | 허브 3개 항목 수치         |
+| `GET`    | `/finance/cash-flows`                         | 목록 (**페이징 없음**)     |
+| `GET`    | `/finance/cash-flows/filters`                 | 프로젝트 필터 옵션         |
+| `POST`   | `/finance/cash-flows`                         | 직접 등록                  |
+| `PATCH`  | `/finance/cash-flows/{cashFlowId}`            | 수정                       |
+| `DELETE` | `/finance/cash-flows`                         | 다건 삭제 (body: `cashFlowIds`) |
+| `PATCH`  | `/finance/cash-flows/exclude`                 | 연결 제외 · 취소           |
+| `GET`    | `/finance/cash-flows/{cashFlowId}/match-candidates` | 매칭 추천 (최대 5건) |
+| `PATCH`  | `/finance/cash-flows/{cashFlowId}/match`      | 정산 블록 연결             |
+| `PATCH`  | `/finance/cash-flows/{cashFlowId}/unmatch`    | 연결 해제                  |
+| `POST`   | `/finance/cash-flows/csv/preview` · `/csv`    | CSV 미리보기 · 업로드 (#14) |
+
+### 요약 응답 (`GET /finance/summary`)
+
+```json
+{
+  "cashFlow":   { "unlinkedCount": 3, "totalCount": 7 },
+  "taxInvoice": { "unlinkedCount": 2, "totalCount": 5 },
+  "settlement": { "unlinkedCount": 5, "inProgressCount": 3 }
+}
+```
+
+> ❗ **정산 현황만 두 번째 값이 `inProgressCount`** 다 (`totalCount` 가 아니다).
+
+### 목록 응답 (`GET /finance/cash-flows`)
+
+| 필드                                          | 타입             | 설명                                     |
+| --------------------------------------------- | ---------------- | ---------------------------------------- |
+| `cashFlowId`                                  | `number`         |                                          |
+| `tradedAt`                                    | `string`         | `2026-07-15T10:30:00`                    |
+| `bankTxnId`                                   | `string`         | 거래고유번호 — **은행명 + 거래일시**로 자동 생성 |
+| `type`                                        | `INCOME`·`OUTCOME` | 구분                                   |
+| `amount`                                      | `number`         | 항상 양수                                |
+| `depositorName` · `bankMemo`                  | `string`         | 입금자명 · 적요                          |
+| `sourceType`                                  | `MANUAL`·`CSV`·`API` | **수정 가능 범위를 가르는 값**       |
+| `projectId` · `projectName` · `settleId` · `roundName` | `… \| null` | 연결 정보. 미연결이면 `null`     |
+| `linkedBy` · `linkedByName` · `linkedAt`      | `… \| null`      | 매칭 처리자 · 일시                       |
+| `isExcluded`                                  | `boolean`        | 연결 대상 제외                           |
+| `linkStatus`                                  | `UNLINKED`·`LINKED`·`LINK_BLOCK_DELETED` | 2026-08-10 추가  |
+
+**요청 Query** — `startDate` · `endDate` · `unlinked` · `projectId` · `keyword`
+
+> ❗ **페이징이 없다.** `{ "cashFlows": [...] }` 배열 하나가 통째로 온다 — 화면에 페이지네이션을 붙이지 않는다.
+> ❗ **구분 · 출처 필터는 서버에 없다.** 화면에서 거른다.
+> ❗ **`bankName` 이 목록에 없다** (단건 조회 API 도 없다). 수정 폼은 `bankTxnId` 앞부분으로 되읽는다 — 필드가 추가되면 `display.ts` 의 `bankNameFromTxnId` 를 지운다.
+
+### 수정 (`PATCH /finance/cash-flows/{cashFlowId}`)
+
+body 는 등록과 같은 모양이고 전부 선택이다.
+
+> ❗ **적요(`memo`) 외의 필드는 `MANUAL` + 미연결 건에만 반영된다.** 나머지는 서버가 조용히 무시하므로 화면에서 먼저 막는다 (`canEditAll()`).
+
+### 다건 처리 (삭제 · 제외)
+
+| API      | body                                  | 응답                                  |
+| -------- | ------------------------------------- | ------------------------------------- |
+| 삭제     | `{ cashFlowIds }`                     | `{ deletedCount, skippedItems[] }`    |
+| 제외     | `{ cashFlowIds, isExcluded }`         | `{ updatedCount, skippedItems[] }`    |
+
+> ❗ **부분 성공이 정상 동작이다.** 매칭된 건은 막혀 `skippedItems`(`{ cashFlowId, reason }`)로 빠진다. 사유는 서버 문구를 그대로 띄운다.
+> ❗ 제외는 토글이 아니라 **값 지정**이다.
+
+### 매칭
+
+| 상황                              | 코드                                        |
+| --------------------------------- | ------------------------------------------- |
+| 이미 매칭된 입출금                | 400 `FINANCE_CASH_FLOW_ALREADY_MATCHED`     |
+| **구분과 블록 타입 불일치**       | 400 `FINANCE_MATCH_TYPE_MISMATCH`           |
+| 이미 매칭된 정산 블록             | 400 `FINANCE_SETTLEMENT_BLOCK_ALREADY_MATCHED` |
+| 매칭 안 된 건의 해제              | 400 `FINANCE_CASH_FLOW_NOT_MATCHED`         |
+| 대상 없음                         | 404 `FINANCE_MATCH_TARGET_NOT_FOUND`        |
+
+추천 후보(`match-candidates`)는 **정산 블록** 단위이고 `matchTags`(`["금액 일치", "상호명 일치"]`)로 추천 이유가 함께 온다.
+
+### ⚠️ 백엔드 대기
+
+| 내용                                                                    |
+| ----------------------------------------------------------------------- |
+| `PATCH /blocks/settlements/{id}/items` — `?type=` 을 실어 보내도 컨트롤러에서 null 이라 **500 NPE** (파라미터 바인딩) |
+| 목록 응답에 `bankName` 추가 (또는 단건 조회 API)                        |
+| 정산 블록 `detail` 에 **연결 여부 플래그** — 지금은 정산 상태로 추정한다 |
+| 세금계산서(`tax-invoices`)는 **필터 옵션만 구현**, 나머지는 개발 전     |
