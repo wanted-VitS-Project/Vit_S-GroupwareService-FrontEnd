@@ -50,6 +50,12 @@ export const PAGE_ROUTES: Record<string, PageRoute> = {
   BIDDING: { href: '/notices', icon: 'search', requiresPermission: true },
   PROJECT_CREATE: { href: '/projects/new', icon: 'plus', exact: true },
   MY_PROJECT: { href: '/projects', icon: 'folder' },
+  /**
+   * ⚠️ **이 코드는 아직 응답에 없다** — 사이드바는 `FIXED_BY_ROLE`(MASTER · MEMBER)이 그리고,
+   *    이 매핑은 코드가 생겼을 때를 위한 것이다 (실리는 순간 고정 항목이 걷힌다).
+   *    이름이 `MY_FILE` 이 아닐 수 있으니 개발 모드 콘솔의 `처음 보는 pageCode` 경고를 보고 고친다.
+   */
+  MY_FILE: { href: '/files', icon: 'file' },
   // 하위 화면(입출금 내역 · 세금계산서 · 정산 현황)은 이 허브에서 타고 들어간다
   FINANCE: {
     href: '/finance',

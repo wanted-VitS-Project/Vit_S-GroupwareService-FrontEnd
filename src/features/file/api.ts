@@ -7,6 +7,8 @@ import type {
   DownloadUrlResponse,
   FileVersionDetail,
   FileVersionsResponse,
+  MyFile,
+  MyFileQuery,
   PermanentDeleteResponse,
   ProjectFile,
   ProjectFileVersion,
@@ -99,6 +101,31 @@ export function getProjectFiles(
 ) {
   return api
     .get<{ files: ProjectFile[] }>(ENDPOINTS.projects.files(projectId), signal)
+    .then((data) => data.files);
+}
+
+/**
+ * 내 프로젝트 파일 모아보기 — 내가 멤버인 모든 프로젝트를 가로지른 평면 목록.
+ *
+ * 프로젝트 문서함(105번)과 달리 **페이징이 없고** 필터를 쿼리로 넘긴다.
+ * 응답이 `{ files: [...] }` 로 감싸져 있어 여기서 벗겨 반환한다.
+ */
+export function getMyFiles(query: MyFileQuery = {}, signal?: AbortSignal) {
+  const params = new URLSearchParams();
+
+  if (query.keyword) params.set('keyword', query.keyword);
+  if (query.projectId !== undefined) {
+    params.set('projectId', String(query.projectId));
+  }
+  if (query.extension) params.set('extension', query.extension);
+
+  const search = params.toString();
+
+  return api
+    .get<{ files: MyFile[] }>(
+      search ? `${ENDPOINTS.files.my}?${search}` : ENDPOINTS.files.my,
+      signal,
+    )
     .then((data) => data.files);
 }
 
