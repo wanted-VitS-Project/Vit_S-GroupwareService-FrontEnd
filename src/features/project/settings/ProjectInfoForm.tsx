@@ -300,7 +300,11 @@ export default function ProjectInfoForm({
             <button
               type="submit"
               disabled={isDisabled}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-2 text-label font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              /*
+               * 최소 폭을 잡아 둔다 — `과업 정보 저장 → 저장 중…` 으로 라벨이 짧아지면
+               * 오른쪽 정렬이라 버튼이 줄어들며 자리가 흔들린다.
+               */
+              className="min-w-[132px] cursor-pointer rounded-lg bg-btn-primary px-4 py-2 text-label font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
             >
               {isSaving ? '저장 중…' : '과업 정보 저장'}
             </button>

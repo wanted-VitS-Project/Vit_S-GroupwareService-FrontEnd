@@ -405,7 +405,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
                 type="submit"
                 disabled={!isDirty || isSubmitting}
                 title={isDirty ? undefined : '변경한 항목이 없습니다'}
-                className="btn btn-sm btn-primary"
+                className="btn btn-sm btn-primary min-w-[88px]"
               >
                 {isSubmitting ? '저장 중…' : '저장'}
               </button>

@@ -401,7 +401,7 @@ function PreviewPane({
       <button
         type="button"
         onClick={onDownload}
-        className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover"
+        className="min-w-[104px] cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover"
       >
         다운로드
       </button>

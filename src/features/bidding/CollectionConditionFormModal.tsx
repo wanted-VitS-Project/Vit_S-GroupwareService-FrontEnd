@@ -444,7 +444,7 @@ export default function CollectionConditionFormModal({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="btn btn-md btn-primary"
+            className="btn btn-md btn-primary min-w-[104px]"
           >
             {isSubmitting ? '저장 중…' : isCreate ? '등록' : '저장'}
           </button>

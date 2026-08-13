@@ -406,7 +406,7 @@ export default function EmployeeCreateForm() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="btn btn-sm btn-primary"
+              className="btn btn-sm btn-primary min-w-[88px]"
             >
               {isSubmitting ? '등록 중…' : '등록'}
             </button>

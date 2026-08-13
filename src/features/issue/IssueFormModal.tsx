@@ -800,7 +800,7 @@ export default function IssueFormModal({
               type="button"
               onClick={submit}
               disabled={isSaving || values === null || loadFailure !== null}
-              className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="min-w-[104px] cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
             >
               {isSaving ? '저장 중…' : isEdit ? '수정 완료' : '이슈 생성'}
             </button>
