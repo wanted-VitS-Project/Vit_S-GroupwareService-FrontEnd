@@ -12,11 +12,11 @@ import { Skeleton } from '@/components/Skeleton';
  *    여백 · 헤더 배경 · 테두리가 어긋날 여지를 없앤다. 맞춰야 할 값은 폭뿐이다.
  */
 const COLUMNS: DataTableSkeletonColumn[] = [
-  { key: 'noticeName', header: '공고명', width: '37%', skeletonWidth: 'w-64' },
+  { key: 'noticeName', header: '공고명', width: '30%', skeletonWidth: 'w-64' },
   {
     key: 'noticeAgency',
     header: '발주처',
-    width: '14%',
+    width: '16%',
     skeletonWidth: 'w-28',
   },
   {
@@ -33,19 +33,15 @@ const COLUMNS: DataTableSkeletonColumn[] = [
     align: 'right',
     skeletonWidth: 'w-16',
   },
-  { key: 'announcedAt', header: '공고일', width: '6%', skeletonWidth: 'w-20' },
+  { key: 'announcedAt', header: '공고일', width: '10%', skeletonWidth: 'w-20' },
   {
     key: 'bidDeadlineAt',
     header: '투찰 마감',
-    width: '12%',
+    width: '18%',
     skeletonWidth: 'w-24',
   },
-  { key: 'noticeStatus', header: '상태', width: '5%', skeletonWidth: 'w-12' },
-  { key: 'projectId', header: '전환', width: '10%', skeletonWidth: 'w-20' },
+  { key: 'noticeStatus', header: '상태', width: '10%', skeletonWidth: 'w-12' },
 ];
-
-/** ⚠️ `NoticeList` 의 `minWidth` 와 같은 값이어야 한다 */
-const MIN_WIDTH = 960;
 
 export function NoticeListSkeleton({ rows = 10 }: { rows?: number }) {
   return (
@@ -53,7 +49,7 @@ export function NoticeListSkeleton({ rows = 10 }: { rows?: number }) {
       caption="입찰 공고"
       columns={COLUMNS}
       rows={null}
-      minWidth={MIN_WIDTH}
+      dense
       skeletonRows={rows}
     />
   );

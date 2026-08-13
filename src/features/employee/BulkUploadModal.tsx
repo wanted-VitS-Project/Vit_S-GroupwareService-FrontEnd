@@ -225,7 +225,7 @@ export default function BulkUploadModal({
               type="button"
               onClick={handleValidate}
               disabled={!file || isBusy}
-              className="btn btn-md btn-primary"
+              className="btn btn-md btn-primary min-w-[104px]"
             >
               {busy === 'validate' ? '검증 중…' : '검증'}
             </button>
@@ -251,7 +251,7 @@ export default function BulkUploadModal({
                 validation.validCount === 0 ||
                 (validation.errorCount > 0 && !skipErrors)
               }
-              className="btn btn-md btn-primary"
+              className="btn btn-md btn-primary min-w-[104px]"
             >
               {busy === 'register'
                 ? '등록 중…'
@@ -264,7 +264,7 @@ export default function BulkUploadModal({
           <button
             type="button"
             onClick={onClose}
-            className="btn btn-md btn-primary"
+            className="btn btn-md btn-primary min-w-[104px]"
           >
             닫기
           </button>

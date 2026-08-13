@@ -43,6 +43,11 @@ export function formatDateTime(value?: string | null) {
   return parsed?.time ? `${parsed.date} ${parsed.time}` : '';
 }
 
+/** '2026-08-07 14:30:00' → '14:30' (시각이 없으면 빈 문자열) */
+export function formatTime(value?: string | null) {
+  return parseDate(value)?.time ?? '';
+}
+
 /**
  * 시작일 · 종료일 → '2026.03.01 ~ 2026.12.31'
  * 한쪽만 유효하면 그 쪽만, 둘 다 없으면 빈 문자열.

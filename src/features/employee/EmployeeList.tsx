@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+
+import Breadcrumb from '@/components/Breadcrumb';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -189,15 +191,12 @@ export default function EmployeeList() {
 
   return (
     <>
-      <p className="text-label text-text-secondary">
-        <Link
-          href="/settings"
-          className="hover:text-text-primary hover:underline"
-        >
-          전사 관리
-        </Link>{' '}
-        &gt; 사원 관리
-      </p>
+      <Breadcrumb
+        items={[
+          { label: '전사 관리', href: '/settings' },
+          { label: '사원 관리' },
+        ]}
+      />
 
       <div className="mt-2 mb-6 flex items-start justify-between gap-4">
         <div className="min-w-0">
@@ -346,7 +345,7 @@ export default function EmployeeList() {
                 className="size-3.5 cursor-pointer accent-btn-primary"
               />
             ),
-            width: '3rem',
+            width: '5%',
             skeletonWidth: 'w-4',
             // 체크박스는 그 자체가 동작이라 행 이동으로 새면 안 된다
             stopRowClick: true,
@@ -363,7 +362,7 @@ export default function EmployeeList() {
           {
             key: 'name',
             header: '이름 · 사번',
-            width: '11rem',
+            width: '22%',
             skeletonWidth: 'w-24',
             /*
               행 클릭과 별개로 링크를 남긴다 — 키보드 이동 · 새 탭 열기가 되어야 한다.
@@ -387,6 +386,7 @@ export default function EmployeeList() {
           {
             key: 'department',
             header: '부서 · 직급',
+            width: '20%',
             skeletonWidth: 'w-40',
             cell: (employee) => (
               <>
@@ -402,7 +402,7 @@ export default function EmployeeList() {
           {
             key: 'role',
             header: '권한',
-            width: '6rem',
+            width: '11%',
             skeletonWidth: 'w-14',
             cell: (employee) => (
               <span className="text-text-secondary">
@@ -413,7 +413,7 @@ export default function EmployeeList() {
           {
             key: 'email',
             header: '이메일',
-            width: '14rem',
+            width: '25%',
             skeletonWidth: 'w-40',
             cell: (employee) =>
               employee.emailRegistered ? (
@@ -429,7 +429,7 @@ export default function EmployeeList() {
           {
             key: 'status',
             header: '상태',
-            width: '6rem',
+            width: '11%',
             skeletonWidth: 'w-12',
             cell: (employee) => (
               <EmployeeStatusBadge status={employeeStatusOf(employee)} />
@@ -438,7 +438,7 @@ export default function EmployeeList() {
           {
             key: 'menu',
             header: <span className="sr-only">관리</span>,
-            width: '3.5rem',
+            width: '6%',
             align: 'right',
             skeletonWidth: 'w-6',
             stopRowClick: true,
@@ -464,7 +464,7 @@ export default function EmployeeList() {
         rows={hasFailed ? [] : rows}
         rowKey={(employee) => employee.userId}
         // 열이 7개라 좁은 화면에서만 표가 가로로 흐른다
-        minWidth={960}
+        dense
         skeletonRows={PAGE_SIZE}
         errorMessage={hasFailed ? '사원을 불러오지 못했습니다.' : undefined}
         onRetry={reload}

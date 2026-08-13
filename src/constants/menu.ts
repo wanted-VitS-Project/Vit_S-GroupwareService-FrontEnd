@@ -34,7 +34,7 @@ export const MENU_ORDER = [
   '/notices',
   '/projects/new',
   '/projects',
-  '/finance/invoices',
+  '/finance',
   '/settings',
 ];
 

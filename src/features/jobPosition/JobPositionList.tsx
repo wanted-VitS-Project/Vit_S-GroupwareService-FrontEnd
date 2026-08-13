@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Breadcrumb from '@/components/Breadcrumb';
 import { useEffect, useState } from 'react';
 
 import DataTable from '@/components/DataTable';
@@ -98,15 +98,12 @@ export default function JobPositionList() {
 
   return (
     <>
-      <p className="text-label text-text-secondary">
-        <Link
-          href="/settings"
-          className="hover:text-text-primary hover:underline"
-        >
-          전사 관리
-        </Link>{' '}
-        &gt; 직급 관리
-      </p>
+      <Breadcrumb
+        items={[
+          { label: '전사 관리', href: '/settings' },
+          { label: '직급 관리' },
+        ]}
+      />
 
       <div className="mt-2 mb-6 flex items-start justify-between gap-4">
         <div className="min-w-0">

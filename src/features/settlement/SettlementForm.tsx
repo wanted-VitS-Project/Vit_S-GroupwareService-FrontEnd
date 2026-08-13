@@ -8,6 +8,7 @@ import { ApiError, messageOf } from '@/lib/api';
 import { getSettlementDraft, saveSettlement } from './api';
 import {
   isSettlementGone,
+  isSettlementLocked,
   isSettlementVersionConflict,
   SETTLEMENT_CODES,
   SETTLEMENT_NO_VERSION_MESSAGE,
@@ -16,7 +17,6 @@ import {
   findBlocker,
   SETTLEMENT_TYPE_LABELS,
   traderLabel,
-  type SettlementDraft,
   type SettlementFields,
   type SettlementFormValues,
   type SettlementItem,
@@ -76,12 +76,17 @@ export default function SettlementForm({
   /**
    * 화면이 든 값이 더 이상 맞지 않아 **목록을 다시 읽어야** 할 때.
    * (남이 먼저 저장 → 새로고침 선택 · 블록 삭제됨 · 연결돼 잠김)
+   *
+   * `isLocked` 는 **연결돼 잠긴 경우**(`SETL-007`)다 — 블록이 그대로 남으므로
+   * 요약 화면이 `수정하기` 를 막아야 한다. 삭제는 목록에서 사라져 그럴 필요가 없다.
    */
-  onStale: (reason: string) => void;
+  onStale: (reason: string, isLocked: boolean) => void;
 }) {
+  /** 이미 작성된 블록인지 — 추천값을 채울지 가르는 기준이다 */
+  const isWritten = item !== null;
+
   const [type, setType] = useState<SettlementType | null>(initialType);
   const [form, setForm] = useState<SettlementFormValues>(() => toForm(item));
-  const [draft, setDraft] = useState<SettlementDraft | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState('');
   /**
@@ -97,8 +102,15 @@ export default function SettlementForm({
   /**
    * 타입을 고르면 추천값과 원본 계좌번호를 받는다.
    *
+   * 받은 값은 **안내가 아니라 폼에 그대로 채운다** (명세: 추천값은 블록 생성 직후에 입력된다).
+   * 칸마다 보라색 안내를 띄우면 정작 봐야 할 것이 묻히고, 사용자는 어차피 그 값을 옮겨 적는다.
+   *
+   * ⚠️ **이미 작성된 블록에는 채우지 않는다** (`item !== null`) — 저장된 값 위에 추천을 덮으면
+   *    수정하러 들어온 사람의 값이 사라진다.
+   * ⚠️ **사용자가 이미 친 칸도 건드리지 않는다** — 타입 탭을 다시 눌러 응답이 늦게 와도
+   *    입력 중이던 값이 튀지 않아야 한다.
    * ⚠️ 응답의 계좌번호는 마스킹된 값(`100******444`)이라 폼에 쓸 수 없다.
-   * 여기서 받는 `originalAccountNumber` 만 폼에 채운다.
+   *    여기서 받는 `originalAccountNumber` 만 폼에 채운다.
    */
   useEffect(() => {
     if (type === null) return;
@@ -108,20 +120,24 @@ export default function SettlementForm({
 
     getSettlementDraft(settleId, type, signal)
       .then((received) => {
-        setDraft(received);
         setError('');
-        if (received.originalAccountNumber) {
-          setForm((prev) => ({
-            ...prev,
-            accountNumber: received.originalAccountNumber ?? '',
-          }));
-        }
+
+        setForm((prev) => ({
+          ...prev,
+          ...(isWritten
+            ? null
+            : {
+                roundNo: prev.roundNo || numberText(received.recommendRoundNo),
+                totalAmount:
+                  prev.totalAmount || numberText(received.recommendTotalAmount),
+              }),
+          accountNumber:
+            received.originalAccountNumber ?? prev.accountNumber ?? '',
+        }));
       })
       .catch((caught: unknown) => {
         // 취소는 실패가 아니다 — 새 요청이 이미 떠 있다는 뜻이다
         if (signal.aborted) return;
-
-        setDraft(null);
 
         /**
          * 409 는 **출금 → 입금으로 바꿀 수 없다**는 뜻이다 (`SETL-006`).
@@ -153,8 +169,8 @@ export default function SettlementForm({
       });
 
     return () => controller.abort();
-    // `initialType` 은 폼이 열릴 때 정해지고 그대로다 — 넣어도 재조회가 늘지 않는다
-  }, [settleId, type, initialType]);
+    // `initialType` · `isWritten` 은 폼이 열릴 때 정해지고 그대로다 — 재조회가 늘지 않는다
+  }, [settleId, type, initialType, isWritten]);
 
   function change(field: keyof SettlementFormValues, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -210,6 +226,7 @@ export default function SettlementForm({
       if (isSettlementGone(caught)) {
         onStale(
           messageOf(caught, '이 정산 블록은 더 이상 수정할 수 없습니다.'),
+          isSettlementLocked(caught),
         );
         return;
       }
@@ -219,9 +236,6 @@ export default function SettlementForm({
       setIsBusy(false);
     }
   }
-
-  /** 추천값은 아직 작성 전일 때만 뜻이 있다 — 이미 쓴 값 위에 다른 수를 권하면 헷갈린다 */
-  const hint = item === null ? draft : null;
 
   return (
     <div className="flex flex-col gap-3">
@@ -264,31 +278,26 @@ export default function SettlementForm({
         </p>
       )}
 
+      {/**
+       * 회차에는 추천 안내를 붙이지 않는다 — 다음 회차 번호는 사람이 이미 알고,
+       * 안내가 칸마다 붙으면 정작 봐야 할 `맞출 금액` 이 묻힌다.
+       */}
       <Field
         label="정산 회차"
-        hint={hintOf(hint?.recommendRoundNo, '추천')}
         value={form.roundNo}
         onChange={(value) => change('roundNo', value)}
       />
+      {/**
+       * ⚠️ 이 값은 **같은 프로젝트의 다른 정산 블록과 일치해야 한다** — 어긋나면 저장이
+       * 409(`SETL-008`)로 막힌다. 그래서 추천값을 안내로 띄우는 대신 **미리 채워** 둔다.
+       */}
       <Field
-        label="정산 예정 총 금액"
-        /**
-         * '추천'이라 부르지만 **다른 정산 블록과 같아야 하는 값**이다 —
-         * 어긋나면 저장이 409(`SETL-008`)로 막힌다.
-         *
-         * 첫 블록이면 기준 삼을 블록이 없어 `null` 이다. 그때 줄을 그냥 접으면
-         * **왜 안 뜨는지 알 수 없어** 안내 문구로 바꿔 둔다.
-         */
-        hint={
-          hint &&
-          (hintOf(hint.recommendTotalAmount, '맞출 금액') ??
-            '첫 정산이에요 — 여기 넣는 금액이 다음 회차의 기준이 됩니다')
-        }
+        label="예정 총 금액"
         value={form.totalAmount}
         onChange={(value) => change('totalAmount', value)}
       />
       <Field
-        label="이번 회차 예정 금액"
+        label="회차 예정 금액"
         value={form.plannedAmount}
         onChange={(value) => change('plannedAmount', value)}
       />
@@ -364,7 +373,11 @@ export default function SettlementForm({
           onConfirm={() => void submit(true)}
           onCancel={() => {
             setIsConflicting(false);
-            onStale('다른 사람이 먼저 저장해 최신 값을 다시 불러왔습니다.');
+            // 버전 충돌은 잠긴 것이 아니다 — 최신 값으로 다시 열면 저장할 수 있다
+            onStale(
+              '다른 사람이 먼저 저장해 최신 값을 다시 불러왔습니다.',
+              false,
+            );
           }}
         />
       )}
@@ -397,23 +410,14 @@ export default function SettlementForm({
  * ⚠️ 첫 정산 블록이면 기준 삼을 다른 블록이 없어 `null` 로 온다 —
  * 그대로 `toLocaleString()` 을 부르면 화면이 통째로 죽는다.
  */
-function hintOf(value: number | null | undefined, label: string) {
-  if (typeof value !== 'number') return null;
-
-  return `${label}: ${value.toLocaleString('ko-KR')}`;
-}
-
 function Field({
   label,
-  hint,
   type = 'number',
   placeholder,
   value,
   onChange,
 }: {
   label: string;
-  /** 컬럼 옆 안내 — `추천: 2` 처럼 **입력값이 아니라 참고**다 */
-  hint?: string | null;
   type?: 'number' | 'text' | 'date';
   placeholder?: string;
   value: string;
@@ -421,7 +425,11 @@ function Field({
 }) {
   return (
     <label className="flex items-center gap-2">
-      <span className="w-20 shrink-0 text-caption text-text-secondary">
+      {/**
+       * ⚠️ 라벨 자리를 넉넉하게 잡는다 — `w-20`(80px) 이던 때는 `예정 총 금액` 이
+       * 두 줄로 접혀 입력 칸과 어긋났다. 블록은 1칸이라 입력 칸을 줄이는 편이 낫다.
+       */}
+      <span className="w-24 shrink-0 text-caption break-keep text-text-secondary">
         {label}
       </span>
       <span className="min-w-0 flex-1">
@@ -432,13 +440,14 @@ function Field({
           onChange={(event) => onChange(event.target.value)}
           className={FIELD_CLASS}
         />
-        {/* 값이 없을 때만 접힌다 */}
-        <span className="mt-0.5 block text-micro text-purple-text empty:hidden">
-          {hint ?? ''}
-        </span>
       </span>
     </label>
   );
+}
+
+/** 추천값을 입력 칸 문자열로. 값이 없으면 빈 칸을 유지한다 */
+function numberText(value: number | null | undefined) {
+  return typeof value === 'number' ? String(value) : '';
 }
 
 function toForm(item: SettlementItem | null): SettlementFormValues {

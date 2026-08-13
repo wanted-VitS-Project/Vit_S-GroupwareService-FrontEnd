@@ -2,10 +2,18 @@
 
 import Modal from '@/components/Modal';
 
-/** 하단 버튼 줄 — 본문과 구분선으로 나뉜다 */
+/**
+ * 하단 버튼 줄 — 본문과 구분선으로 나뉜다.
+ *
+ * ⚠️ **마지막 버튼(실행 버튼)에 최소 폭을 준다.** 이 줄은 오른쪽 정렬이라,
+ *    라벨이 `삭제 → 삭제 중…` 처럼 길어지면 왼쪽의 `취소` 가 밀려 버튼이 흔들린다.
+ *    폼마다 고치지 않도록 여기 한 곳에서 자리를 잡아 둔다 —
+ *    지금 쓰는 라벨은 `메일 재발송`(가장 김)까지 전부 이 폭 안에 들어온다.
+ *    (버튼 두 개를 `div` 로 묶어 넘기는 모달이 있어 **자손 선택자**로 잡는다)
+ */
 export function ModalFooter({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-end gap-4 border-t border-border-default bg-bg-surface px-5 py-3.5">
+    <div className="flex items-center justify-end gap-4 border-t border-border-default bg-bg-surface px-5 py-3.5 [&_button:last-of-type]:min-w-[104px]">
       {children}
     </div>
   );

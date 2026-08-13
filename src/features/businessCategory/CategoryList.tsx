@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Breadcrumb from '@/components/Breadcrumb';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -73,15 +73,12 @@ export default function CategoryList() {
 
   return (
     <>
-      <p className="text-label text-text-secondary">
-        <Link
-          href="/settings"
-          className="hover:text-text-primary hover:underline"
-        >
-          전사 관리
-        </Link>{' '}
-        &gt; 사업 카테고리
-      </p>
+      <Breadcrumb
+        items={[
+          { label: '전사 관리', href: '/settings' },
+          { label: '사업 카테고리' },
+        ]}
+      />
 
       <div className="mt-2 mb-6 flex items-start justify-between gap-4">
         <div className="min-w-0">

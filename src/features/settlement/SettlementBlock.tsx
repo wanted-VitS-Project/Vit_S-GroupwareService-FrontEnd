@@ -9,6 +9,7 @@ import { formatDate, formatDateTime } from '@/lib/format';
 
 import SettlementForm from './SettlementForm';
 import {
+  isLockedSettlement,
   readSettlementBlockDetail,
   SETTLEMENT_STATUS_LABELS,
   traderLabel,
@@ -69,6 +70,23 @@ function Loaded({
    * 폼이 닫히면서 폼 안의 오류 문구가 함께 사라지므로 요약 화면에서 이어 말해 준다.
    */
   const [staleNotice, setStaleNotice] = useState('');
+  /**
+   * 저장이 `SETL-007` 로 막혔다는 사실 (이번 화면에서 확인한 것).
+   * 상태만으로 못 걸러낸 경우를 받아 주는 **보조 수단**이다 — 새로고침하면 사라진다.
+   */
+  const [wasRejected, setWasRejected] = useState(false);
+  /**
+   * `wasRejected` 가 어느 블록 값의 것인지.
+   *
+   * ⚠️ 목록을 다시 읽어 **새 값이 오면 지난 거절은 무효**다 — 재무에서 연결을 해제했는데도
+   *    `수정하기` 가 계속 잠겨 있으면 안 된다. 판정은 새 `detail` 로 다시 한다.
+   */
+  const [rejectedFor, setRejectedFor] = useState('');
+  const detailKey = `${detail.version ?? ''} ${detail.item?.status ?? detail.status ?? ''} ${detail.item?.actualDate ?? ''}`;
+
+  if (wasRejected && rejectedFor !== detailKey) {
+    setWasRejected(false);
+  }
 
   const item = saved?.item ?? detail.item;
   const type = saved?.type ?? detail.type;
@@ -80,6 +98,20 @@ function Loaded({
    *    `detail.version` 은 옛 값에 머문다. 연달아 두 번 저장할 때 두 번째가 409 가 되지 않게.
    */
   const version = saved?.item.version ?? detail.version;
+
+  /**
+   * 수정이 막힌 블록인지.
+   *
+   * ⚠️ 블록 응답에 **연결 여부 플래그가 없다.** 그래서 정산 상태로 가늠한다 —
+   *    `부분 정산` · `정산 완료` 는 실제 입출금이 잡혔다는 뜻이라 서버가 `SETL-007` 로 막는다.
+   * ⚠️ 판정은 `isLockedSettlement()` 한 곳에 있다 — 실제 정산 금액 · 일자(입출금이 붙으면
+   *    채워진다)와 정산 상태를 함께 본다. 그래도 못 걸러지는 경우(세금계산서만 연결)는
+   *    저장이 한 번 막힌 뒤 `wasRejected` 가 받아 준다.
+   *
+   * 🔧 백엔드가 `detail` 에 연결 여부를 내려주면 이 추정은 통째로 지운다.
+   */
+  const isLocked =
+    wasRejected || isLockedSettlement(item?.status ?? status, item);
 
   if (isEditing) {
     return (
@@ -95,7 +127,7 @@ function Loaded({
             setSaved({ item: next, type: savedType });
             setIsEditing(false);
           }}
-          onStale={(reason) => {
+          onStale={(reason, locked) => {
             /*
              * 화면이 든 값이 더 이상 맞지 않다 — 폼을 닫고 **블록 목록을 다시 읽는다.**
              * 저장 응답으로 갈아끼운 값(`saved`)도 버려야 새 목록이 화면에 드러난다.
@@ -103,6 +135,8 @@ function Loaded({
             setSaved(null);
             setIsEditing(false);
             setStaleNotice(reason);
+            setWasRejected(locked);
+            setRejectedFor(detailKey);
             notifyBlockChanged();
           }}
         />
@@ -158,14 +192,36 @@ function Loaded({
         </p>
       )}
 
+      {/**
+       * ⚠️ 사유를 `title` 에만 두지 않는다 — 비활성 버튼은 포커스를 받지 못해
+       *    키보드 · 스크린리더 사용자에게 툴팁이 닿지 않는다. 화면에 적고 버튼과 잇는다.
+       */}
+      {isLocked && (
+        <p
+          id={`settlementLock-${detail.settleId}`}
+          className="mt-2 rounded-lg bg-bg-surface px-2.5 py-2 text-caption break-keep text-text-secondary"
+        >
+          세금계산서 · 입출금 내역이 연결돼 있어 수정할 수 없습니다. 연결을
+          해제하면 다시 수정할 수 있어요.
+        </p>
+      )}
+
       <button
         type="button"
+        disabled={isLocked}
+        aria-describedby={
+          isLocked ? `settlementLock-${detail.settleId}` : undefined
+        }
         onClick={() => {
           // 다시 열 때 지난 안내는 역할을 다했다
           setStaleNotice('');
           setIsEditing(true);
         }}
-        className="mt-3 w-full cursor-pointer rounded-lg border border-border-primary py-2 text-detail font-semibold text-text-primary-blue hover:bg-bg-hover"
+        className={`mt-3 w-full rounded-lg border py-2 text-detail font-semibold ${
+          isLocked
+            ? 'cursor-not-allowed border-border-default text-text-muted'
+            : 'cursor-pointer border-border-primary text-text-primary-blue hover:bg-bg-hover'
+        }`}
       >
         수정하기
       </button>
