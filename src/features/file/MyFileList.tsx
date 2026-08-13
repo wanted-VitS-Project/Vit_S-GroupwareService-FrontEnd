@@ -396,7 +396,7 @@ const FileRow = memo(function FileRow({
           : undefined
       }
       onPointerLeave={file.previewable ? cancelPreviewPrefetch : undefined}
-      className="group/file border-b border-border-default last:border-b-0 hover:bg-bg-surface"
+      className="border-b border-border-default last:border-b-0 hover:bg-bg-surface"
     >
       <td className="px-3 py-2.5">
         <div className="flex min-w-0 items-center gap-2">
@@ -457,8 +457,11 @@ const FileRow = memo(function FileRow({
       </td>
 
       <td className="px-3 py-2.5">
-        {/* 호버 · 포커스 전에는 자리만 차지한다 — 나타날 때 레이아웃이 밀리지 않는다 */}
-        <div className="flex items-center justify-end gap-0.5 opacity-0 group-focus-within/file:opacity-100 group-hover/file:opacity-100">
+        {/*
+          호버로 감추지 않는다 — 터치 기기에는 hover 가 없어 버튼을 영영 못 찾는다.
+          목록을 훑다 바로 열고 받는 화면이라 상시 노출이 목업과도 맞는다.
+        */}
+        <div className="flex items-center justify-end gap-0.5">
           {file.previewable && (
             <button
               type="button"
