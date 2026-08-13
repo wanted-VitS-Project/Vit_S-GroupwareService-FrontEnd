@@ -6,6 +6,58 @@
 
 ---
 
+## [2026-08-14] 결재 참여 불가 · 블록 삭제 · 알림 SSE · 권한 에러 ✅
+
+브랜치: `fix/approval-notification-access`
+
+5개 요청을 한 브랜치에 묶었다. 서로 독립적이라 **항목별로 커밋을 끊었다.**
+
+### 변경 파일
+
+| 파일                                                | 변경                                                    |
+| --------------------------------------------------- | ------------------------------------------------------- |
+| `src/features/approval/unavailable.ts`              | **생성** (참여 불가 판정 · 결재선 재구성)               |
+| `src/features/approval/ApproverReplaceModal.tsx`    | **생성** (결재자 교체 · 제외 전용 모달)                 |
+| `src/features/notification/stream.ts`               | **생성** (SSE 구독)                                     |
+| `src/features/notification/NotificationStreamProvider.tsx` | **생성** (셸에 연결 하나만)                      |
+| `src/features/approval/ApprovalBlock.tsx`           | 수정 (참여 불가 배너 2종 · 첨부 문서 목록 · 상세보기 제거) |
+| `src/features/approval/types.ts`                    | 수정 (참여 불가 필드 4종 — 전부 선택)                   |
+| `src/features/block/api.ts` · `errorCodes.ts` · `BlockDeleteModal.tsx` | 수정 (삭제 2단계 · 409 되물음)       |
+| `src/features/pagePermission/PageAccessGate.tsx`    | 수정 (`/forbidden` 이동 → 본문 자리에 표시)             |
+| `src/features/notification/NotificationBell.tsx`    | 수정 (폴링 5초 → 2분)                                   |
+| `src/features/notification/display.ts`              | 수정 (이슈 알림에 `targetId` 를 쿼리로)                 |
+| `src/features/issue/IssueBoard.tsx`                 | 수정 (`?issue=` 딥링크로 상세 모달 개방)                |
+| `src/features/project/routes.ts`                    | 수정 (`stepIssues()` 에 `issueId` · `ISSUE_PARAM`)      |
+| `src/components/AppShell.tsx` · `src/constants/endpoints.ts` | 수정 (스트림 구독 위치 · 엔드포인트)           |
+| `.ai/API.md`                                        | 수정 (141번 신설 · 47번 2단계 · 결재 참여 불가 절)      |
+
+### 주요 작업 내용
+
+- **권한 에러를 본문 자리에** — 사이드바에서 누른 결과가 전체 화면 오류라 길을 잃던 문제
+- **결재 블록 삭제 2단계** — 409 를 되물음으로 처리하고 서버 `message` 를 그대로 표시
+- **알림 SSE** — 셸에 연결 하나, 폴링은 안전망으로 남기고 간격만 늘림
+- **알림 → 이슈 상세 모달** — 보드까지만 가던 것을 그 이슈까지
+- **결재 참여 불가 대응** — 기안자는 재상신, 결재자는 교체 · 제외 전용 모달
+- 결재 블록의 죽은 `결재 상세 보기` 버튼을 **첨부 문서 목록**으로 교체
+
+### 부수 결정
+
+- **밀려온 알림을 목록에 끼워 넣지 않는다** — 신호만 받고 기존 조회를 다시 태운다. 배지는 `totalElements` 라 서버만 정확히 알고, 폴링이 남아 있어 `notificationId` dedupe 문제가 생긴다. 알림은 드물게 오므로 요청 한 번이 더 나가는 편이 싸다
+- **폴링을 지우지 않았다** — `SSE = 즉시성` · `폴링 = 정합성`. 대신 5초 → 2분이라 **사용자당 분당 12회 → 0.5회**로 줄었다
+- **401 을 스트림에서 처리하지 않는다** — `lib/api.ts` 에 전역 401 처리가 이미 있어 남은 주기 조회가 대신 태운다. 인증 로직을 두 곳에 두지 않는다
+- **`/forbidden` 라우트는 남겼다** — 셸 밖에서 403 을 받는 경로가 계속 쓴다
+- **참여 불가 필드를 전부 선택으로** — 응답 내 위치를 실측하지 못해, 값이 안 오면 배너가 안 뜰 뿐 기존 화면이 그대로 동작하게 했다. 판정은 `unavailable.ts` 한 곳에 모아 화면이 필드를 직접 보지 않는다
+- **교체 · 제외에 전용 모달** — `ApprovalDraftForm` 은 초안용이라 진행 중 결재에 열면 승인 완료된 결재선까지 건드린다
+
+### 트러블슈팅
+
+- **딥링크 모달을 이펙트로 열려다 린트에 두 번 막혔다.** `react-hooks/set-state-in-effect`(이펙트 내 setState) → ref 우회 시도 → `react-hooks/refs`(렌더 중 ref 접근). 결국 **상태에 파라미터를 동봉해 렌더 중에 파생**하는 방식으로 갔다. 규칙이 더 나은 코드로 밀어준 경우다 — 이펙트 방식은 보드가 먼저 그려진 뒤 모달이 뒤늦게 뜨는 깜빡임이 있었다
+- **결재자 처리 후에도 배너가 남았다.** 배너를 켜는 `requiresApproverReplacement` 는 **블록 목록**이 주는 값이라 회차만 다시 받으면 안 사라진다 → `notifyBlockChanged()` 를 함께 쏜다
+- **`결재 상세 보기` 가 안 눌렸다.** 화면(`/approvals/[approvalId]`)은 이미 있는데 버튼이 화면 없던 시절의 죽은 `span` 으로 남아 있었다. 사용자 요청으로 버튼 자체를 없애고 첨부 문서 목록으로 대체
+- **SSE 재연결과 장애를 구분해야 한다.** 서버가 30분마다 정상 종료하고 브라우저가 다시 붙는데 그 재연결도 `onerror` 를 거친다 — `readyState` 가 `CLOSED` 일 때만 정리한다
+
+---
+
 ## [2026-08-13] 내 프로젝트 파일 모아보기 ✅
 
 브랜치: `feat/my-files` · API: `GET /files/my` (FILE-Q-03)

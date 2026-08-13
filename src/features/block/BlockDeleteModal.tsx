@@ -3,9 +3,10 @@
 import { useState } from 'react';
 
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
-import { messageOf } from '@/lib/api';
+import { ApiError, messageOf } from '@/lib/api';
 
 import { deleteBlock } from './api';
+import { BLOCK_CODES } from './errorCodes';
 
 export default function BlockDeleteModal({
   blockId,
@@ -29,35 +30,73 @@ export default function BlockDeleteModal({
 }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  /**
+   * 결재 블록이라 서버가 되물은 문구. 비어 있지 않으면 **2단계**다.
+   *
+   * ⚠️ 이 문구를 프론트에서 만들지 않는다 — 결재 상태(진행 중 · 반려 · 완료)마다
+   *    무엇을 잃는지가 다르고, 그 판단은 서버만 할 수 있다.
+   *    **분기는 `code` 로, 표시는 `message` 로** 한다.
+   */
+  const [approvalWarning, setApprovalWarning] = useState('');
 
   async function remove() {
     if (isDeleting) return;
     setIsDeleting(true);
     setErrorMessage('');
+
     try {
-      await deleteBlock(blockId);
+      // 되물음을 이미 확인했으면 그 뜻을 실어 다시 부른다
+      await deleteBlock(blockId, {
+        confirmApprovalCancel: approvalWarning !== '',
+      });
       onDeleted(blockId);
       onClose();
     } catch (caught) {
+      const code = caught instanceof ApiError ? caught.code : undefined;
+
+      /*
+        409 는 실패가 아니라 되물음이다. 여기서 끝내면 이 블록은 영영 지울 수 없다 —
+        서버 문구를 그대로 띄우고 한 번 더 누르게 한다.
+      */
+      if (code === BLOCK_CODES.approvalDeleteConfirmRequired) {
+        setApprovalWarning(
+          messageOf(caught, '결재가 함께 취소됩니다. 계속할까요?'),
+        );
+        setIsDeleting(false);
+        return;
+      }
+
       setErrorMessage(messageOf(caught, '블록을 삭제하지 못했습니다.'));
       setIsDeleting(false);
     }
   }
 
+  const needsApprovalConfirm = approvalWarning !== '';
+
   return (
     <AlertDialogTwoButton
       icon={DialogIcons.danger}
-      title="블록을 삭제할까요?"
+      title={needsApprovalConfirm ? '정말 삭제할까요?' : '블록을 삭제할까요?'}
       description={
-        <>
-          <strong className="text-text-primary">{blockTitle}</strong> 블록은
-          삭제 후 복구할 수 없습니다.
-          {isLinkedSettlement &&
-            ' 연결된 세금계산서 · 입출금 내역은 재무 관리에서 블록 삭제됨 으로 남습니다.'}
-        </>
+        needsApprovalConfirm ? (
+          approvalWarning
+        ) : (
+          <>
+            <strong className="text-text-primary">{blockTitle}</strong> 블록은
+            삭제 후 복구할 수 없습니다.
+            {isLinkedSettlement &&
+              ' 연결된 세금계산서 · 입출금 내역은 재무 관리에서 블록 삭제됨 으로 남습니다.'}
+          </>
+        )
       }
       errorMessage={errorMessage}
-      confirmLabel={isDeleting ? '삭제 중…' : '삭제'}
+      confirmLabel={
+        isDeleting
+          ? '삭제 중…'
+          : needsApprovalConfirm
+            ? '확인했습니다, 삭제'
+            : '삭제'
+      }
       isDanger
       isBusy={isDeleting}
       onConfirm={remove}

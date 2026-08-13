@@ -60,8 +60,24 @@ export function updateBlock(
   );
 }
 
-export function deleteBlock(blockId: number | string, signal?: AbortSignal) {
-  return api.delete<null>(ENDPOINTS.blocks.detail(blockId), signal);
+/**
+ * 블록 삭제. **결재 블록은 2단계다.**
+ *
+ * 상신 이후의 결재가 붙어 있으면 첫 호출이 409 `APPROVAL_DELETE_CONFIRM_REQUIRED` 로 막힌다 —
+ * 무엇을 잃는지(결재 취소 · 재상신 불가 · 이력 소실) 사용자에게 확인받고
+ * `confirmApprovalCancel` 로 다시 부른다. `DRAFT` · `CANCELED` 결재는 409 없이 바로 지워진다.
+ *
+ * ⚠️ 409 를 실패로 끝내면 **그 블록은 영영 삭제할 수 없다.** 확인 다이얼로그가 필수다.
+ */
+export function deleteBlock(
+  blockId: number | string,
+  options: { confirmApprovalCancel?: boolean; signal?: AbortSignal } = {},
+) {
+  const path = options.confirmApprovalCancel
+    ? `${ENDPOINTS.blocks.detail(blockId)}?confirmApprovalCancel=true`
+    : ENDPOINTS.blocks.detail(blockId);
+
+  return api.delete<null>(path, options.signal);
 }
 
 /**
