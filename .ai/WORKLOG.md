@@ -6,6 +6,52 @@
 
 ---
 
+## [2026-08-13] 내 프로젝트 파일 모아보기 ✅
+
+브랜치: `feat/my-files` · API: `GET /files/my` (FILE-Q-03)
+
+### 변경 파일
+
+| 파일                                            | 변경                                                    |
+| ----------------------------------------------- | ------------------------------------------------------- |
+| `src/features/file/MyFileList.tsx`              | **생성** (목록 · 검색 · 필터 · 프로젝트별 접기)         |
+| `src/features/file/groupMyFiles.ts`             | **생성** (프로젝트 그룹핑 · 필터 선택지)                |
+| `src/features/file/LazyFileViewer.tsx`          | **생성** (뷰어 지연 로딩 — `ProjectFiles` 와 공용)      |
+| `src/app/files/page.tsx`                        | **생성** (`/files` 라우트)                              |
+| `src/features/file/types.ts`                    | 수정 (`MyFile` · `MyFileQuery`, `ViewerFile` nullable)  |
+| `src/features/file/api.ts`                      | 수정 (`getMyFiles()`)                                   |
+| `src/features/project/overview/ProjectFiles.tsx` | 수정 (중복 뷰어 블록 → `LazyFileViewer` 로 교체)       |
+| `src/constants/endpoints.ts`                    | 수정 (`files.my`)                                       |
+| `src/constants/menu.ts`                         | 수정 (`file` 아이콘 · `MENU_ORDER` · `FIXED_BY_ROLE`)   |
+| `src/components/MenuIcon.tsx`                   | 수정 (`file` 아이콘 SVG)                                |
+| `src/features/pagePermission/catalog.ts`        | 수정 (`MY_FILE` → `/files` 선반영)                      |
+| `.ai/API.md`                                    | 수정 (140번 신설 — 105번 옆에 배치)                     |
+
+### 주요 작업 내용
+
+- 내가 멤버인 모든 프로젝트의 파일을 **프로젝트별로 묶어** 보여주는 `/files` 화면 신설
+- 검색 · 프로젝트 · 확장자 필터를 **서버 쿼리**로 넘긴다 (페이징 없음 — 전체를 받아 스크롤)
+- 뷰어 · 미리보기 프리페치 · 다운로드 · 확장자 스타일은 `features/file/` 자산을 **그대로 재사용**
+- 사이드바 `내 파일` 항목 추가 (MASTER · MEMBER)
+
+### 부수 결정
+
+- **`MyFile` 이 `ProjectFile` 을 확장한다** — 응답이 105번 + 프로젝트 정보 모양이라, 뷰어(`ViewerFile`)와 문서 행을 **한 줄도 안 고치고** 재사용할 수 있다
+- **필터 선택지는 "필터 없는 응답"에서만 만든다** (`optionSource`) — 걸러진 목록으로 만들면 프로젝트 A 를 고른 순간 선택지도 A 하나가 되어 되돌아갈 수 없다
+- **사이드바는 `FIXED_BY_ROLE` 로 넣었다** — `/my/pages` 에 이 화면의 `pageCode` 가 아직 없다. `catalog.ts` 에 `MY_FILE` 매핑을 선반영해 두어, 코드가 응답에 실리면 `useMenuItems()` 가 고정 항목을 자동으로 걷어낸다
+- **ADMIN 에게는 노출하지 않는다** — 시스템 계정은 프로젝트 멤버가 될 수 없어 늘 빈 목록이다 (`MY_PROJECT` 와 같은 이유)
+- **미리보기 버튼은 `previewable` 일 때만** 그린다 — 눌러도 빈 화면인 버튼을 두지 않는다
+- **역할 배지(PM · 참여)는 뺐다** — 목업에는 있으나 응답에 필드가 없다
+
+### 트러블슈팅
+
+- **`ViewerFile` 타입이 좁아 `tsc` 가 막았다.** `uploaderDepartment?: string` 인데 이 API 는 시스템 계정에 **`null`** 을 보낸다. 뷰어 런타임은 이미 `?? ''` 로 처리하고 있었고 **타입만 틀린** 상태라 `string | null` 로 넓혔다
+- **뷰어 지연 로딩 블록이 `ProjectFiles` 와 통째로 중복**이었다(청크 분리 · 대기 자리 · 프리로드 40여 줄) → `LazyFileViewer.tsx` 로 빼고 두 화면이 함께 쓴다
+- **`updatedAt` 이 공백 구분(`2026-08-06 12:30:39`)** 으로 온다. `lib/format.ts` 의 `DATE_PATTERN` 이 `[ T]` 를 모두 받아 그대로 통과했다
+- ⚠️ **로그인이 필요해 브라우저 확인을 못 했다** — `/files` 는 인증 가드가 로그인 화면으로 돌린다. `tsc` · `eslint` 만 통과 확인
+
+---
+
 ## [2026-08-13] 삭제된 사업 카테고리 재등록 대응 ✅
 
 브랜치: `fix/business-category-deleted-reuse` · 백엔드: PR #337 (D-7)

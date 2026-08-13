@@ -11,7 +11,14 @@
 import type { Role } from '@/features/auth/types';
 
 export type MenuIcon =
-  'dashboard' | 'approval' | 'search' | 'plus' | 'folder' | 'card' | 'settings';
+  | 'dashboard'
+  | 'approval'
+  | 'search'
+  | 'plus'
+  | 'folder'
+  | 'file'
+  | 'card'
+  | 'settings';
 
 export interface MenuItem {
   label: string;
@@ -34,22 +41,32 @@ export const MENU_ORDER = [
   '/notices',
   '/projects/new',
   '/projects',
+  '/files',
   '/finance',
   '/settings',
 ];
 
+/** `내 파일` 은 두 역할이 같은 항목을 쓴다 — 라벨 · 경로를 두 벌 두지 않는다 */
+const MY_FILE_MENU: MenuItem = {
+  label: '내 파일',
+  href: '/files',
+  icon: 'file',
+};
+
 /**
- * `/my/pages` 로 대체되지 않는 고정 항목 (ADMIN 전용).
+ * `/my/pages` 로 대체되지 않는 고정 항목.
  *
  * `MY_PROJECT` 는 ADMIN 에게 내려오지 않는다 — 시스템 계정이라 프로젝트 참여자가
  * 될 수 없다. 전사 프로젝트 조회는 그와 별개 화면이라 고정으로 둔다.
+ * `내 파일` 은 반대로 **ADMIN 만 뺀다** — 멤버가 될 수 없어 늘 빈 목록이다.
+ * (`pageCode` 가 아직 응답에 없어 고정으로 둔 것이다 — `catalog.ts` 의 `MY_FILE` 참고)
  *
  * ⚠️ 같은 `href` 가 동적 메뉴에도 오면 `useMenuItems()` 가 이쪽을 걷어낸다 (중복 방지).
  */
 export const FIXED_BY_ROLE: Record<Role, MenuItem[]> = {
   ADMIN: [{ label: '프로젝트 조회', href: '/projects', icon: 'folder' }],
-  MASTER: [],
-  MEMBER: [],
+  MASTER: [MY_FILE_MENU],
+  MEMBER: [MY_FILE_MENU],
 };
 
 /** 공통 레이아웃(사이드바 · 헤더)을 씌우지 않는 경로 */

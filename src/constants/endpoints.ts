@@ -349,6 +349,11 @@ export const ENDPOINTS = {
       `${V1}/vitamate/analyses/${analysisId}`,
   },
   files: {
+    /**
+     * 내 프로젝트 파일 모아보기 — 내가 멤버인 **모든 프로젝트**를 가로지른다.
+     * 스텝 `VIEWER` 이상인 파일만 오고, 페이징이 없다 (`keyword` · `projectId` · `extension` 으로 거른다).
+     */
+    my: `${V1}/files/my`,
     /** 업로드 시작 — presigned PUT URL 발급 */
     uploads: `${V1}/files/uploads`,
     /** 업로드 완료 통보 — 서버가 저장소를 직접 확인한다 */
