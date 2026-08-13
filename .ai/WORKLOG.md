@@ -6,6 +6,80 @@
 
 ---
 
+## [2026-08-13] 프로젝트 설정 화면 · 인원 편집 ✅
+
+브랜치: `develop` · 이슈: #135
+근거: 신규 명세 125~137 (참여자 4종 · 프로젝트 수정/상태/종결 · 카테고리 연결/해제 · 스텝 권한 3종 · 스텝 상태)
+
+### 변경 파일
+
+| 파일                                                        | 변경                                                                    |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `.ai/API.md`                                                | 수정 (125~137 추가 · 45번 `deleted`·`NONE` 폐기 반영 · 확인 대기 1건 해소) |
+| `src/constants/endpoints.ts`                                | 수정 (`projects.member`·`status`·`close`·`businessCategor(y\|ies)` · `stages.stepPermissions` · `steps.status`·`permissions`·`permission`) |
+| `src/features/project/types.ts`                             | 수정 (참여자 · 프로젝트 수정/상태/종결 · 카테고리 연결 · 스텝 권한/상태 타입, `ProjectDetail.version`, `BusinessCategory.deleted`) |
+| `src/features/project/errorCodes.ts`                        | 수정 (`MEMBER_CODES`·`PROJECT_CODES`·`PROJECT_CATEGORY_CODES`·`STEP_PERMISSION_CODES`, `isVersionConflict` 확장) |
+| `src/features/project/api.ts`                               | 수정 (함수 13종 추가)                                                   |
+| `src/features/project/settings/ProjectSettings.tsx`         | **생성** (컨테이너 · `SettingsSection`)                                 |
+| `src/features/project/settings/ProjectInfoForm.tsx`         | **생성** (과업 정보 · 낙관적 락 409 처리)                               |
+| `src/features/project/settings/ProjectStatusSection.tsx`    | **생성** (상태 4값 · 종결 진입 · 사유 라벨)                             |
+| `src/features/project/settings/CloseProjectModal.tsx`       | **생성** (종결 사유 · 상세)                                             |
+| `src/features/project/settings/ProjectCategorySection.tsx`  | **생성** (연결 목록 · 해제)                                             |
+| `src/features/project/settings/LinkCategoryModal.tsx`       | **생성** (다중 선택 연결)                                               |
+| `src/features/project/member/ProjectMemberSection.tsx`      | **생성** (목록 · 권한 셀렉트 · 제거 진입)                               |
+| `src/features/project/member/AddMemberModal.tsx`            | **생성** (사원 검색 · 다중 선택 · 한 명씩 호출)                         |
+| `src/features/project/member/RemoveMemberModal.tsx`         | **생성** (제거 확인)                                                    |
+| `src/app/projects/[id]/settings/page.tsx`                   | 수정 (stub → 실제 화면 연결)                                            |
+| `src/features/issue/IssueFormModal.tsx`                     | 수정 (`permission !== 'NONE'` 필터 제거 → `!deleted` 로 교체)           |
+| `src/features/project/step/StepPermissionModal.tsx`         | **생성** (스텝 권한 목록 · 부여 · 상속으로 되돌리기 · `STEP_PERMISSION_LABELS`) |
+| `src/features/project/stage/StagePermissionModal.tsx`       | **생성** (새 스텝 권한 기본값 · 기존 스텝 일괄 적용)                    |
+| `src/features/project/step/StepStatusModal.tsx`             | **생성** (상태 변경 확인 · 완료 되돌리기 경고 · 409 처리)              |
+| `src/features/project/settings/StepPermissionSection.tsx`   | **생성** (설정 화면의 단계 · 스텝 목록 → 권한 모달 진입)               |
+| `src/components/ProjectSidebar.tsx`                         | 수정 (`⋯` 메뉴 항목 정리 · **포털 + `fixed`** 로 잘림 해소 · 모달 3종 동적 로드) |
+| `src/features/project/labels.ts`                            | **생성** (권한 · 상태 · 종결 사유 라벨 단일 소스 — 순환 참조 해소)      |
+| `src/features/project/settings/SettingsSection.tsx`         | **생성** (컨테이너에서 분리 — 순환 참조 해소)                          |
+| `src/features/project/member/MemberPicker.tsx`              | **생성** (블록 · 이슈와 같은 칩 + 후보 버튼 인원 선택)                  |
+| `src/features/project/member/MemberList.tsx`                | **생성** (목록 · 권한 변경 · 제거 · 추가 — 설정 화면 · 사이드바 공용)   |
+| `src/features/project/member/ProjectMembersModal.tsx`       | **생성** (사이드바 참여자 줄에서 여는 관리 모달)                        |
+
+### 주요 작업 내용
+
+- **`/projects/{id}/settings` 를 네 섹션 한 화면으로 구성** — 과업 정보 · 진행 상태 · 사업 카테고리 · 참여자. 전부 프로젝트 `EDITOR` 권한이라 화면을 나누지 않았다
+- **상세는 컨테이너가 한 번만 읽고 각 섹션에 나눠준다** — 낙관적 락 `version` 이 한 벌이어야 해서다. 저장한 섹션이 응답의 새 `version` 을 위로 올려(`syncVersion`) 함께 갈아끼운다
+- **과업 정보는 전체 덮어쓰기라 폼 전체를 매번 보낸다** — "바뀐 칸만 추려 보내기" 를 하지 않는다 (생략 = 해제)
+- **자기 자신 행은 권한 셀렉트 · 제거 버튼을 잠갔다** (INV-10) — 백엔드가 403 으로 막지만 눌러 보고 실패를 보게 두지 않는다
+- **삭제된 사원(`deleted`)은 권한 변경만 잠그고 제거는 남겼다** — 쓰기 검증을 통과하지 못하지만 정리는 할 수 있어야 한다
+- **참여자 추가는 일괄 API 가 없어 한 명씩 호출**하고, 중간 실패 시 "앞선 N명은 추가됨" 을 알린다
+- **스텝 권한 관리(134~136)** — 사이드바 스텝 `⋯` → `권한 관리`. 참여자 전원의 판정을 보여주고 `상속 / 직접 지정`을 구분한다. 줄 단위 즉시 저장이고, `상속으로` 버튼이 오버라이드 행을 회수한다
+- **스테이지 기본값(128)** — 사이드바 단계 `⋯` → `스텝 권한 기본값`. `기존 스텝에도 지금 적용` 체크박스를 항상 명시적으로 실어 보내고, 적용된 스텝 수를 토스트로 알린다
+- **스텝 `⋯` 메뉴가 권한별로 갈린다** — 수정 · 완료 · 삭제는 스텝 `EDITOR`, 권한 관리는 프로젝트 `EDITOR` 조건이다
+- **스텝 상태 변경(137)** — 같은 `⋯` 메뉴의 `진행중으로` · `진행 전으로`. 지금 상태인 항목은 숨기고, `DONE` 되돌리기는 완료 기록이 지워진다는 경고를 띄운다
+- **설정 화면에 `스텝 권한` 섹션 추가** — 단계별로 묶은 스텝 목록에서 바로 권한 모달 · 기본값 모달을 연다. 사이드바와 **같은 모달을 재사용**한다
+- **사이드바에서도 참여자 명단을 고친다** — 아바타 줄의 `관리`(VIEWER 는 `전체 보기`) · `+` 버튼이 `ProjectMembersModal` 을 연다. 목록은 사이드바가 이미 받아 둔 것을 넘겨 재조회하지 않는다
+- **상태 변경은 고른 즉시 저장하지 않는다** — 항상 확인 다이얼로그를 거친다 (완료 되돌리기는 잃는 것까지 함께 알린다)
+
+### 트러블슈팅
+
+| 문제                                            | 원인                                                              | 해결                                                        |
+| ----------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------- |
+| `IssueFormModal` 타입 오류 (`'NONE'` 비교 불가) | 명세 45번에서 `NONE` 이 폐기돼 `ProjectMember.permission` 이 2값   | 필터를 `!member.deleted` 로 교체 (삭제 사원 후보 제외가 목적) |
+| `react-hooks/set-state-in-effect` 린트 실패     | 효과 본문에서 실패 플래그를 초기화했다                            | `CategoryList` 와 같은 `{ key, data, hasFailed }` 패턴으로 교체 |
+| 런타임 `Cannot access 'MEMBER_PERMISSION_LABELS' before initialization` | 라벨 상수를 **화면 컴포넌트에서 export** 해 `ProjectMemberSection` ↔ `AddMemberModal` 순환 참조가 생겼다 | 라벨을 `labels.ts` 로, `SettingsSection` 을 자기 파일로 분리 — 잎(leaf) 모듈만 서로 참조하게 했다 |
+| 사이드바 `⋯` 메뉴가 잘린다                      | 메뉴가 `absolute` 인데 사이드바가 `overflow-y-auto` 다 — 항목이 늘자 아래쪽 행에서 가려졌다 | `createPortal` + `fixed` 로 `body` 에 띄우고 여는 순간 좌표 계산 · 스크롤/리사이즈 시 닫음 (`CategoryList` 와 같은 방식) |
+
+### 부수 결정
+
+- **`NONE` 은 스텝 권한에만 남긴다** — 참여자 권한(`ProjectPermission`)과 스텝 권한(`StepPermission`)을 **다른 타입으로 분리**했다. 한 타입으로 합치면 폐기된 값이 참여자 API 로 새어 나간다
+- **차단은 제거로 표현한다** — 참여자 목록에 `NONE` 선택지를 두지 않고, 제거 확인 문구에 "스텝 권한도 함께 사라진다" 를 명시했다 (권한 누수 방지 동작이 사용자에게는 놀라운 부작용이라서)
+- **종결은 낙관적 락을 걸지 않는다** — 명세대로 `version` 을 싣지 않고, 응답에 `version` 이 없어 상세를 다시 읽는다
+- **카테고리 연결은 이미 붙은 것을 후보에서 뺀다** — 하나라도 섞이면 요청 전체가 409 라 사전 필터가 필수다
+- **스텝 권한 진입점을 사이드바 `⋯` 메뉴에 뒀다** — 스텝 수정 · 완료 · 삭제와 같은 자리다. 스텝 상세 화면에 따로 두면 같은 대상의 조작이 두 곳으로 갈린다
+- **스테이지 기본값 모달은 현재 값을 보여주지 않는다** — 읽는 API 가 없어서다. 빈 화면을 그냥 두면 "설정 없음" 으로 오해하므로 문구로 밝히고 백로그에 조회 API 요청을 남겼다
+- **스텝 상태 변경은 목표 상태를 메뉴에서 정해 넘긴다** — 모달에서 다시 고르게 하면 두 번 선택하게 된다. 고를 값이 `NOT_STARTED` · `IN_PROGRESS` 둘뿐이라 항목으로 나누는 편이 짧다
+- **스텝 권한 진입점을 둘로 두되 모달은 하나** — 사이드바(스텝 하나) · 설정 화면(전체 훑어보기)로 쓰임이 다르다. 컴포넌트를 복제하면 한쪽만 고쳐지므로 `StepPermissionModal` · `StagePermissionModal` 을 그대로 재사용한다
+
+---
+
 ## [2026-08-12] 퇴사자 · 삭제 사원 표기 컨벤션 ✅
 
 브랜치: `user/project · 이슈: #129

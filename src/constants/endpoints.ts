@@ -35,8 +35,39 @@ export const ENDPOINTS = {
      */
     stepsOrder: (projectId: number | string) =>
       `${V1}/projects/${projectId}/steps/order`,
+    /** 참여자 목록 조회 · 추가 — 추가는 **한 명씩**이다 (일괄 파라미터 없음 · INV-07) */
     members: (projectId: number | string) =>
       `${V1}/projects/${projectId}/members`,
+    /**
+     * 참여자 권한 변경 · 제거. 대상은 사번이 아니라 **참여자 행 ID(`memberId`)** 다.
+     *
+     * ⛔ 자기 자신은 둘 다 403 `MEMBER_SELF_EDIT_DENIED` 다 (INV-10) — 화면에서도 막는다.
+     * ⚠️ 제거는 하드 삭제고, 그 프로젝트 스텝의 권한 오버라이드도 함께 지워진다.
+     */
+    member: (projectId: number | string, memberId: number | string) =>
+      `${V1}/projects/${projectId}/members/${memberId}`,
+    /**
+     * 프로젝트 상태 변경 — ⛔ `CLOSED` 는 여기가 아니라 `close` 소관이다.
+     * ⚠️ 낙관적 락 대상이다 (`version` 필수).
+     */
+    status: (projectId: number | string) =>
+      `${V1}/projects/${projectId}/status`,
+    /**
+     * 프로젝트 종결 — 사유가 필수다.
+     * ⛔ 낙관적 락 대상이 **아니다** (`version` 을 받지 않고 409 도 없다).
+     */
+    close: (projectId: number | string) => `${V1}/projects/${projectId}/close`,
+    /**
+     * 사업 카테고리 연결 — 응답은 **연결 후 전체 목록**이다.
+     * ⚠️ 이미 붙은 것이 하나라도 섞이면 요청 전체가 409 다.
+     */
+    businessCategories: (projectId: number | string) =>
+      `${V1}/projects/${projectId}/business-categories`,
+    /** 사업 카테고리 해제 — 연결 행을 지우는 하드 삭제다 */
+    businessCategory: (
+      projectId: number | string,
+      categoryId: number | string,
+    ) => `${V1}/projects/${projectId}/business-categories/${categoryId}`,
     /**
      * 프로젝트의 모든 파일 버전 — 비타메이트 분석 대상 선택에 쓴다.
      * ⚠️ 비타메이트가 아니라 **파일 도메인** API 다 (`features/file/api.ts`).
@@ -141,6 +172,15 @@ export const ENDPOINTS = {
      * ⛔ 순서 변경은 이 경로가 아니다 — `PATCH /projects/{projectId}/stages/order` 소관이다.
      */
     detail: (stageId: number | string) => `${V1}/stages/${stageId}`,
+    /**
+     * 이 스테이지에 **새로 생길 스텝**의 권한 기본값 저장 (`stage_permission_default`).
+     *
+     * ⚠️ `stage_permission` 테이블은 없다 — 기본값은 **권한 판정에 쓰이지 않고**,
+     *    스텝이 생성될 때 `step_permission` 행으로 복사될 뿐이다 (STG-004 · INV-01).
+     * ⚠️ 여기만 `NONE` 이 유효값이다 — 참여자 권한(`VIEWER`·`EDITOR`)과 다르다.
+     */
+    stepPermissions: (stageId: number | string) =>
+      `${V1}/stages/${stageId}/step-permissions`,
   },
   steps: {
     /**
@@ -152,6 +192,25 @@ export const ENDPOINTS = {
     detail: (stepId: number | string) => `${V1}/steps/${stepId}`,
     /** 스텝 완료 처리 — 미완료 이슈 처리 방식(`openIssueAction`)이 **필수**다 */
     complete: (stepId: number | string) => `${V1}/steps/${stepId}/complete`,
+    /**
+     * 스텝 상태 변경 — `NOT_STARTED` · `IN_PROGRESS` 둘뿐이다.
+     *
+     * ⛔ **`DONE` 은 여기가 아니다** — 미완료 이슈 처리 선택이 필요해 `complete` 소관이다 (STP-006).
+     * ⚠️ 낙관적 락 대상이고, `DONE` 에서 되돌리면 완료 기록(`completedAt`·`completedBy`)도 비워진다.
+     */
+    status: (stepId: number | string) => `${V1}/steps/${stepId}/status`,
+    /**
+     * 스텝 권한 목록 조회 — 참여자 **전원**의 최종 판정이 온다 (프로젝트 EDITOR 전용).
+     * ⚠️ `overridden: false` 는 차단이 아니라 **프로젝트 권한 상속**이다 (STP-011).
+     */
+    permissions: (stepId: number | string) =>
+      `${V1}/steps/${stepId}/permissions`,
+    /**
+     * 스텝 권한 부여 · 변경(`PUT`) · 회수(`DELETE`). 대상은 **사번**이다.
+     * ⚠️ 특정 스텝만 가리려면 `NONE` 행을 **명시적으로** 넣어야 한다 — 회수는 상속으로 되돌린다.
+     */
+    permission: (stepId: number | string, userId: string) =>
+      `${V1}/steps/${stepId}/permissions/${userId}`,
     blocks: (stepId: number | string) => `${V1}/steps/${stepId}/blocks`,
     /** 블록 배치 변경 — 스텝의 배치 전체를 한 번에 보낸다 */
     blocksLayout: (stepId: number | string) =>

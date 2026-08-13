@@ -1,9 +1,8 @@
 # 연동 API 명세서
 
+**최종 업데이트**: 2026-08-13 (프로젝트 인원 편집 · 설정 · 스텝 권한 — 125~~137 추가, 45번 `deleted` · `NONE` 폐기 반영)
 **최종 업데이트**: 2026-08-11 (입찰 — 공고 직접 등록 · 수정 본문, 수동 수집 호출 순서 추가)
 **최종 업데이트**: 2026-08-11 (스테이지 · 스텝 쓰기 — 112~~120 추가, 스테이지·스텝 공통 절 신설)
-**최종 업데이트**: 2026-08-11 (프로젝트 전체 화면 — 103~~111 추가, 파일·이미지 삭제·복구 공통 절 신설)
-**최종 업데이트**: 2026-08-09 (내 프로젝트 목록 — 84 추가)
 
 > 📌 이 파일은 **프론트가 연동하는 백엔드 API**를 정리하는 곳이에요. (내가 만드는 게 아니라 **호출하는** 입장)
 > AI는 API 연동 코드를 작성하기 전에 이 파일을 먼저 읽어요. (잘못된 경로/필드/타입으로 fetch 짜는 실수 방지)
@@ -139,9 +138,22 @@
 | [122](#122-입찰-공고-목록-조회)           | 입찰 공고 목록     | `GET /bidding/notices`                                       | ✅ `features/bidding/api.ts`          |
 | [123](#123-입찰-공고-상세-조회)           | 입찰 공고 상세     | `GET /bidding/notices/{noticeId}`                            | ✅ `features/bidding/api.ts`          |
 | [124](#124-스텝-상세-조회)                | 스텝 상세          | `GET /steps/{stepId}`                                        | ❌ 미연동                             |
+| [125](#125-참여자-추가)                   | 참여자 추가        | `POST /projects/{projectId}/members`                         | ✅ `features/project/api.ts`          |
+| [126](#126-참여자-권한-변경)              | 참여자 권한 변경   | `PATCH /projects/{projectId}/members/{memberId}`             | ✅ `features/project/api.ts`          |
+| [127](#127-참여자-제거)                   | 참여자 제거        | `DELETE /projects/{projectId}/members/{memberId}`            | ✅ `features/project/api.ts`          |
+| [128](#128-하위-스텝-권한-일괄-적용)      | 스텝 권한 기본값   | `POST /stages/{stageId}/step-permissions`                    | ✅ `features/project/api.ts`          |
+| [129](#129-프로젝트-수정)                 | 프로젝트 수정      | `PATCH /projects/{projectId}`                                | ✅ `features/project/api.ts`          |
+| [130](#130-프로젝트-상태-변경)            | 프로젝트 상태 변경 | `PATCH /projects/{projectId}/status`                         | ✅ `features/project/api.ts`          |
+| [131](#131-프로젝트-종결)                 | 프로젝트 종결      | `POST /projects/{projectId}/close`                           | ✅ `features/project/api.ts`          |
+| [132](#132-사업-카테고리-연결)            | 카테고리 연결      | `POST /projects/{projectId}/business-categories`             | ✅ `features/project/api.ts`          |
+| [133](#133-사업-카테고리-해제)            | 카테고리 해제      | `DELETE /projects/{projectId}/business-categories/{id}`      | ✅ `features/project/api.ts`          |
+| [134](#134-스텝-권한-목록-조회)           | 스텝 권한 목록     | `GET /steps/{stepId}/permissions`                            | ✅ `features/project/api.ts`          |
+| [135](#135-스텝-권한-부여--변경)          | 스텝 권한 부여     | `PUT /steps/{stepId}/permissions/{userId}`                   | ✅ `features/project/api.ts`          |
+| [136](#136-스텝-권한-회수)                | 스텝 권한 회수     | `DELETE /steps/{stepId}/permissions/{userId}`                | ✅ `features/project/api.ts`          |
+| [137](#137-스텝-상태-변경)                | 스텝 상태 변경     | `PATCH /steps/{stepId}/status`                               | ✅ `features/project/api.ts`          |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
-> 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통) · [이미지 도메인 — 공통](#이미지-도메인--공통) · [사원 그룹 도메인 — 공통](#사원-그룹-도메인--공통) · [페이지 권한 도메인 — 공통](#페이지-권한-도메인--공통) · [스테이지 · 스텝 도메인 — 공통](#스테이지--스텝-도메인--공통) · [이슈 도메인 — 공통](#이슈-도메인--공통) · [입찰 도메인 — 공통](#입찰-도메인--공통)
+> 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통) · [이미지 도메인 — 공통](#이미지-도메인--공통) · [사원 그룹 도메인 — 공통](#사원-그룹-도메인--공통) · [페이지 권한 도메인 — 공통](#페이지-권한-도메인--공통) · [스테이지 · 스텝 도메인 — 공통](#스테이지--스텝-도메인--공통) · [이슈 도메인 — 공통](#이슈-도메인--공통) · [입찰 도메인 — 공통](#입찰-도메인--공통) · [프로젝트 참여자 · 설정 도메인 — 공통](#프로젝트-참여자--설정-도메인--공통)
 
 ### ❗ 백엔드 확인 대기
 
@@ -156,7 +168,10 @@
 | 파일 API `PR #190` 머지 대기                       | 문서 블록 실동작 확인                                        | 36~43 |
 | 휴지통 화면 목업                                   | 복구 · 영구 삭제 API 연동                                    | —     |
 | 이슈 `version` 불일치 + 같은 상태 요청             | 200 인지 409 인지 명세가 갈라져 있다 (화면은 요청을 안 보냄) | 59    |
-| `PATCH /steps/{stepId}/status` 가 우리 문서에 없다 | 스텝 완료 처리(118)와 별개 API 인지 · `version` 필수         | 118   |
+
+#### ✅ 2026-08-13 해소 — `PATCH /steps/{stepId}/status` 명세 도착
+
+**137번**으로 추가했다. 완료 처리(118)와 **별개 API** 가 맞고 `version` 은 필수다 — `DONE` 은 이 API 로 보낼 수 없다 (미완료 이슈 처리 선택이 필요해 118 소관).
 
 #### ✅ 2026-08-12 해소 — `version` 조회 응답 실림 (실서버 스키마 확인)
 
@@ -1751,7 +1766,28 @@ interface UpdateBlockLayoutRequest {
 | **권한**      | 프로젝트 참여자                                       |
 | **사용 위치** | `src/features/project/api.ts` → `getProjectMembers()` |
 
-응답 `data` 는 `{ members: ProjectMember[] }` 이며 `memberId`, `userId`, `name`, nullable `department`, `permission`(`VIEWER`·`EDITOR`·`NONE`), `resigned` 를 담는다. 정렬은 이름 → 사번 오름차순이다.
+응답 `data` 는 `{ members: ProjectMember[] }` 이며 `memberId`, `userId`, `name`, nullable `department`, `permission`, `resigned`, **`deleted`** 를 담는다. 정렬은 이름 → 사번 오름차순이다.
+
+```ts
+data: {
+  members: {
+    memberId: number;
+    userId: string;             // 사원 사번
+    name: string;
+    department: string | null;  // 부서 미배정이면 null
+    permission: 'VIEWER' | 'EDITOR';
+    resigned: boolean;          // 퇴사자 배지
+    deleted: boolean;           // 사원 데이터 삭제 (D-6 · 2026-08-11 신설)
+  }[];
+}
+```
+
+> ⛔ **`permission` 은 `VIEWER` · `EDITOR` 2값이다** — `NONE` 은 폐기됐다 (2026-08-06). 화면에서 `permission !== 'NONE'` 로 거를 필요가 **없다.** 차단은 참여자 제거(127)로 표현한다.
+> ⭐ **`deleted` 는 `resigned` 와 다른 상태다** (2026-08-11 · D-6). 둘 다 `true` 일 수도, 하나만 `true` 일 수도 있다. `deleted: true` 여도 `name` 은 그대로 내려오니 **참여자에서 정리하라는 표시**로 쓴다.
+> 🗑️ **사원이 삭제돼도 참여자 행은 사라지지 않는다.** 예전엔 `INNER JOIN` 에 걸려 행이 통째로 소멸했는데 지금은 `LEFT JOIN` + `deleted` 플래그다.
+> ⚠️ **조회에는 보여도 쓰기는 받지 않는다** — 삭제된 사번으로 참여자 추가(125) · 권한 변경(126)을 부르면 `USER_NOT_FOUND` 404 다. 사원 선택 UI 에서 후보로 내보내지 않는다.
+
+**Status Code** — 200 · 401 `AUTH_UNAUTHENTICATED` · 403 `PROJECT_ACCESS_DENIED` · 404 `PROJECT_NOT_FOUND`(**다른 회사의 프로젝트도 여기로**)
 
 ## 46. 블록 수정
 
@@ -4791,6 +4827,346 @@ data: {
 > ⚠️ `version` 은 화면에 그리는 값이 아니라 **스텝 수정(116) · 완료(118) · 순서 변경(120)에 실어 보낼 값**이다.
 
 **Status Code** — 200 · 401 `AUTH_UNAUTHENTICATED` · 403 `STEP_ACCESS_DENIED`(`NONE` 권한) · 404 `STEP_NOT_FOUND`(**다른 회사의 스텝도 여기로**)
+
+---
+
+## 프로젝트 참여자 · 설정 도메인 — 공통
+
+| 항목            | 내용                                                                                                  |
+| --------------- | ----------------------------------------------------------------------------------------------------- |
+| **쓰기 권한**   | 전부 **프로젝트 `EDITOR`** — `VIEWER` 는 403 `PROJECT_EDIT_DENIED`                                     |
+| **권한 등급**   | `VIEWER` · `EDITOR` **2값**. ⛔ `NONE` · `MANAGER` 는 폐기 (2026-08-06)                                |
+| **자기 자신**   | ⛔ **권한 변경 · 제거 불가** — 403 `MEMBER_SELF_EDIT_DENIED` (PRJ-011 · INV-10). 프론트도 함께 막는다 |
+| **낙관적 락**   | 프로젝트 수정(129) · 상태 변경(130) **둘만**. 종결(131) · 참여자 · 카테고리는 대상이 아니다           |
+| **회사 격리**   | 다른 회사의 프로젝트 · 사원 · 카테고리는 403 이 아니라 **404** (2026-08-11)                            |
+
+> ⛔ **`NONE` 폐기의 뜻** — 참여하면 보거나 편집한다. 차단하고 싶으면 **참여자 제거(127)** 를 쓴다. `NONE` 을 보내면 400 `MEMBER_PERMISSION_INVALID` 다.
+> ⚠️ **권한 판정 체인은 프로젝트 참여자 → 스텝 오버라이드 2단이다.** 스테이지 기본값(128)은 **판정에 쓰이지 않는다.**
+
+---
+
+## 125. 참여자 추가
+
+| 항목          | 값                                                     |
+| ------------- | ------------------------------------------------------ |
+| **Method**    | `POST`                                                 |
+| **Path**      | `/api/v1/projects/{projectId}/members`                 |
+| **권한**      | 프로젝트 `EDITOR`                                      |
+| **요구사항**  | PRJ-009 · PRJ-010 · INV-07                             |
+| **사용 위치** | `src/features/project/api.ts` → `addProjectMember()`   |
+
+**Request Body**
+
+```ts
+{
+  userId: string;                    // 추가할 사원 사번 — **한 명씩**
+  permission: 'VIEWER' | 'EDITOR';   // NONE 폐기
+}
+```
+
+**Response (201 Created)**
+
+```ts
+data: { memberId: number; userId: string; name: string; permission: 'VIEWER' | 'EDITOR' }
+```
+
+> ⛔ **팀 · 부서 일괄 추가 파라미터를 만들지 않는다** (PRJ-009 · INV-07). 여러 명을 넣을 때도 한 명씩 호출한다.
+> 🗑️ **삭제된 사원은 추가할 수 없다** (D-6) — 조회(45)에는 `deleted: true` 로 남아 보이지만 쓰기 검증은 `deleted_at IS NULL` 만 통과시킨다. 사원 선택 UI 가 후보에서 빼야 한다.
+
+**Status Code** — 201 · 400 `MEMBER_PERMISSION_INVALID` · 401 `AUTH_UNAUTHENTICATED` · 403 `PROJECT_EDIT_DENIED` · 404 `PROJECT_NOT_FOUND` · 404 `USER_NOT_FOUND` · 409 `MEMBER_ALREADY_EXISTS`
+
+## 126. 참여자 권한 변경
+
+| 항목          | 값                                                            |
+| ------------- | ------------------------------------------------------------- |
+| **Method**    | `PATCH`                                                       |
+| **Path**      | `/api/v1/projects/{projectId}/members/{memberId}`              |
+| **권한**      | 프로젝트 `EDITOR`                                             |
+| **요구사항**  | PRJ-010 · PRJ-011 · PRJ-012 · INV-10                          |
+| **사용 위치** | `src/features/project/api.ts` → `updateProjectMemberPermission()` |
+
+**Request Body** — `{ permission: 'VIEWER' | 'EDITOR' }`
+
+**Response (200 OK)** — `data: { memberId, userId, permission }`
+
+> ⛔ **자기 자신의 권한 행은 수정할 수 없다.** `EDITOR` 여도 403 `MEMBER_SELF_EDIT_DENIED` 다 — 백엔드가 막지만 **프론트에서도 미리 막는다** (내 행의 권한 셀렉트를 비활성).
+> ⛔ `NONE` 을 보내면 400 이다. 차단은 제거(127)로 표현한다.
+
+**Status Code** — 200 · 400 `MEMBER_PERMISSION_INVALID` · 401 · 403 `MEMBER_SELF_EDIT_DENIED` · 403 `PROJECT_EDIT_DENIED` · 404 `MEMBER_NOT_FOUND`
+
+## 127. 참여자 제거
+
+| 항목          | 값                                                       |
+| ------------- | -------------------------------------------------------- |
+| **Method**    | `DELETE`                                                 |
+| **Path**      | `/api/v1/projects/{projectId}/members/{memberId}`         |
+| **권한**      | 프로젝트 `EDITOR`                                        |
+| **요구사항**  | USC-MEM-007                                              |
+| **사용 위치** | `src/features/project/api.ts` → `removeProjectMember()`  |
+
+응답 `data` 는 `null` 이다.
+
+> ⛔ **자기 자신은 제거할 수 없다** — 403 `MEMBER_SELF_EDIT_DENIED`.
+> ⚠️ **하드 삭제다.** `project_member` 에 soft delete 컬럼이 없어 행이 물리적으로 사라진다. `activity_log` 는 `target_name` 을 스냅샷으로 들고 있어 로그가 고아가 되지 않는다.
+> ⭐ **그 프로젝트 스텝의 `step_permission` 오버라이드도 함께 삭제된다** (2026-08-06). 안 지우면 참여자를 뺀 뒤에도 스텝 편집 권한이 살아남는다 (권한 누수).
+
+**Status Code** — 200 · 401 · 403 `MEMBER_SELF_EDIT_DENIED` · 403 `PROJECT_EDIT_DENIED` · 404 `MEMBER_NOT_FOUND` · 404 `PROJECT_NOT_FOUND`(**다른 회사 — 존재 확인이 권한 판정보다 먼저라 403 이 아니다**)
+
+## 128. 하위 스텝 권한 일괄 적용
+
+| 항목          | 값                                                        |
+| ------------- | --------------------------------------------------------- |
+| **Method**    | `POST`                                                    |
+| **Path**      | `/api/v1/stages/{stageId}/step-permissions`                |
+| **권한**      | 프로젝트 `EDITOR`                                         |
+| **요구사항**  | STG-004 · USC-STG-008                                     |
+| **사용 위치** | `src/features/project/api.ts` → `applyStepPermissions()`  |
+
+**Request Body**
+
+```ts
+{
+  userId: string;
+  permission: 'VIEWER' | 'EDITOR' | 'NONE';   // ⚠️ 여기만 NONE 이 살아 있다
+  applyToExistingSteps?: boolean;             // 생략하면 true
+}
+```
+
+**Response (201 Created)**
+
+```ts
+data: { stageId: number; userId: string; permission: string; appliedStepCount: number }
+```
+
+`appliedStepCount` 는 권한이 적용된 **기존** 스텝 수다. `applyToExistingSteps: false` 면 `0` 이다.
+
+> ⚠️ **`stage_permission` 테이블은 없다.** 이 API 는 `stage_permission_default`(2026-08-09 신설)에 **새 스텝 기본값**을 저장하고, 스텝이 생성될 때 `step_permission` 행으로 복사한다 (STG-004 · INV-01).
+> ⚠️ **기본값은 권한 판정에 쓰이지 않는다.** 판정 체인은 프로젝트 참여자 → 스텝 오버라이드 2단 그대로다 — 스텝을 다른 스테이지로 옮겨도 권한이 따라 바뀌지 않고, 기본값을 나중에 바꿔도 **이미 만들어진 스텝에 소급되지 않는다.**
+> ⚠️ 미소속(스테이지 없는) 스텝에는 기본값이 없어 프로젝트 권한을 그대로 상속한다.
+> ⛔ 자기 자신의 권한 행은 바꿀 수 없다 (INV-10).
+> ⚠️ **여기만 `NONE` 이 유효값이다** — 참여자 권한(125 · 126)의 폐기된 `NONE` 과 헷갈리지 말 것. 스텝 단위로는 "이 스텝은 보지 못하게" 가 성립한다.
+
+**Status Code** — 201 · 400 `STEP_PERMISSION_INVALID` · 401 · 403 `PROJECT_EDIT_DENIED` · 403 `MEMBER_SELF_EDIT_DENIED` · 404 `STAGE_NOT_FOUND` · 404 `USER_NOT_FOUND`
+
+## 129. 프로젝트 수정
+
+| 항목          | 값                                                |
+| ------------- | ------------------------------------------------- |
+| **Method**    | `PATCH`                                           |
+| **Path**      | `/api/v1/projects/{projectId}`                    |
+| **권한**      | 프로젝트 `EDITOR`                                 |
+| **요구사항**  | PRJ-006 · PRJ-008                                 |
+| **사용 위치** | `src/features/project/api.ts` → `updateProject()` |
+
+**Request Body**
+
+```ts
+{
+  name: string;              // 필수 · 최대 300자 · 빈 문자열 · 공백 불가
+  description?: string;
+  clientName?: string;       // 발주처 · 최대 200자
+  startedOn?: string;        // '2026-08-01'
+  endedOn?: string;          // '2027-01-31'
+  contractAmount?: number;
+  version: number;           // 필수 — 상세(6)에서 받은 값 그대로
+  overwrite?: boolean;       // true 면 충돌 무시하고 덮어쓴다. 생략하면 false
+}
+```
+
+**Response (200 OK)**
+
+```ts
+data: {
+  projectId: number; name: string; clientName: string;
+  startedOn: string; endedOn: string; contractAmount: number;
+  updatedAt: string; version: number;   // ⚠️ 저장 후의 새 값
+}
+```
+
+> ⚠️ **전체 덮어쓰기다. 생략한 필드는 유지가 아니라 해제.** 6필드가 전부 `N` 인 것은 *"안 보내도 요청이 통과한다"* 는 뜻이지 *"안 보내면 기존 값이 남는다"* 는 뜻이 아니다 — **폼 전체를 매번 보낸다.**
+> ⚠️ **낙관적 락** (2026-08-11 신설) — 늦으면 409 `PROJECT_VERSION_CONFLICT` 다. 409 면 **재조회 / 덮어쓰기(`overwrite: true`)** 중 무엇을 할지 사용자에게 묻는다 (스테이지 수정 113 과 같은 규칙).
+> ⚠️ 응답 `version` 은 **저장 후의 새 값**이다. 화면 상태를 이 값으로 교체하지 않으면 다음 저장이 또 409 다.
+> ⛔ **사업 카테고리는 이 API 로 바꾸지 않는다** — 연결(132) · 해제(133) 소관이다. 계약금액은 `project.contract_amount` 한 곳에만 저장한다 (INV-08). 기간은 자동 계산하지 않는다 (PRJ-006).
+
+**Status Code** — 200 · 400 `PROJECT_NAME_REQUIRED` · 400 `PROJECT_NAME_TOO_LONG` · 400 `PROJECT_DATE_RANGE_INVALID` · 400 `CLIENT_NAME_TOO_LONG` · 400 `CONTRACT_AMOUNT_INVALID` · 400 `PROJECT_VERSION_REQUIRED` · 400 `COMMON_INVALID_REQUEST` · 401 · 403 `PROJECT_EDIT_DENIED` · 404 `PROJECT_NOT_FOUND` · 409 `PROJECT_VERSION_CONFLICT`
+
+## 130. 프로젝트 상태 변경
+
+| 항목          | 값                                                      |
+| ------------- | ------------------------------------------------------- |
+| **Method**    | `PATCH`                                                 |
+| **Path**      | `/api/v1/projects/{projectId}/status`                   |
+| **권한**      | 프로젝트 `EDITOR`                                       |
+| **요구사항**  | PRJ-003                                                 |
+| **사용 위치** | `src/features/project/api.ts` → `updateProjectStatus()` |
+
+**Request Body** — `{ status: 'NOT_STARTED' | 'IN_PROGRESS' | 'SETTLEMENT' | 'COMPLETED', version: number, overwrite?: boolean }`
+
+**Response (200 OK)** — `data: { projectId, status, updatedAt, version }`
+
+> ⛔ **`CLOSED` 는 이 API 로 설정할 수 없다** — 종결(131)을 쓴다. 보내면 400 `PROJECT_STATUS_INVALID` 다.
+> ℹ️ **역방향 전이를 막지 않는다** (PRJ-003) — 완료에서 진행 중으로 되돌릴 수 있다.
+> ⚠️ 낙관적 락 대상이다 (129 와 같은 규칙).
+
+**Status Code** — 200 · 400 `PROJECT_STATUS_INVALID` · 400 `PROJECT_VERSION_REQUIRED` · 401 · 403 `PROJECT_EDIT_DENIED` · 404 `PROJECT_NOT_FOUND` · 409 `PROJECT_VERSION_CONFLICT`
+
+## 131. 프로젝트 종결
+
+| 항목          | 값                                               |
+| ------------- | ------------------------------------------------ |
+| **Method**    | `POST`                                           |
+| **Path**      | `/api/v1/projects/{projectId}/close`             |
+| **권한**      | 프로젝트 `EDITOR`                                |
+| **요구사항**  | PRJ-004 · PRJ-005                                |
+| **사용 위치** | `src/features/project/api.ts` → `closeProject()` |
+
+**Request Body**
+
+```ts
+{
+  closeReasonCode: 'NOT_PARTICIPATED' | 'FAILED_BID' | 'NOT_SELECTED' | 'CANCELED';
+  closeReasonNote?: string;   // 최대 500자
+}
+```
+
+**Response (200 OK)** — `data: { projectId, status: 'CLOSED', closeReasonCode, closeReasonNote, closedAt }`
+
+> ℹ️ **어느 상태에서든 종결할 수 있다.** 종결해도 목록 · 로그에서 사라지지 않는다 (PRJ-004) — **삭제와 다른 동작**이다.
+> ⛔ **낙관적 락을 걸지 않는다** (2026-08-11 · 백엔드 `CONCURRENCY.md` §9-4) — `version` · `overwrite` 를 받지 않고 409 도 없다. 사유가 필수라 두 번 눌러도 결과가 같고, 갱신 유실로 잃을 편집 내용이 없다. 상태만 바꾸는 130 과 다르다.
+> ⚠️ 사유 코드는 Bean Validation 이 아니라 **서비스가** 판정한다 — 비어 보내면 `CLOSE_REASON_REQUIRED`, 목록에 없는 값이면 `CLOSE_REASON_INVALID`.
+
+**Status Code** — 200 · 400 `CLOSE_REASON_REQUIRED` · 400 `CLOSE_REASON_INVALID` · 400 `CLOSE_REASON_NOTE_TOO_LONG` · 401 · 403 `PROJECT_EDIT_DENIED` · 404 `PROJECT_NOT_FOUND`(**다른 회사도 여기로 — 403 이 아니다**)
+
+## 132. 사업 카테고리 연결
+
+| 항목          | 값                                                          |
+| ------------- | ----------------------------------------------------------- |
+| **Method**    | `POST`                                                      |
+| **Path**      | `/api/v1/projects/{projectId}/business-categories`           |
+| **권한**      | 프로젝트 `EDITOR`                                           |
+| **요구사항**  | PRJ-007 · USC-PBC-001 · 002                                 |
+| **사용 위치** | `src/features/project/api.ts` → `linkBusinessCategories()`  |
+
+**Request Body** — `{ categoryIds: number[] }`
+
+**Response (201 Created)**
+
+```ts
+data: {
+  projectId: number;
+  businessCategories: { categoryId: number; name: string; code: string | null }[];
+}
+```
+
+> ℹ️ 응답은 **연결 후 전체 카테고리**다 — 방금 추가한 것만이 아니다. 화면 상태를 이 배열로 통째 교체한다.
+> ⚠️ 같은 카테고리 중복은 `UNIQUE` 로 차단된다 (PRJ-007). **하나라도 이미 연결된 게 섞이면 요청 전체가 409** 다 — 이미 붙은 것은 보내지 않게 화면에서 걸러야 한다.
+> 🗑️ 이 응답에는 `deleted` 필드가 **없다** — 방금 연결한 것은 살아 있는 것만 고를 수 있기 때문이다. 삭제 배지는 조회 응답(상세 6 · 목록 84)에만 있다 (D-6).
+
+**Status Code** — 201 · 400 `CATEGORY_IDS_REQUIRED` · 401 · 403 `PROJECT_EDIT_DENIED` · 404 `PROJECT_NOT_FOUND` · 404 `BUSINESS_CATEGORY_NOT_FOUND`(**다른 회사 · 삭제분도 여기로**) · 409 `BUSINESS_CATEGORY_DUPLICATED`
+
+## 133. 사업 카테고리 해제
+
+| 항목          | 값                                                                    |
+| ------------- | --------------------------------------------------------------------- |
+| **Method**    | `DELETE`                                                              |
+| **Path**      | `/api/v1/projects/{projectId}/business-categories/{categoryId}`        |
+| **권한**      | 프로젝트 `EDITOR`                                                     |
+| **요구사항**  | USC-PBC-003                                                           |
+| **사용 위치** | `src/features/project/api.ts` → `unlinkBusinessCategory()`            |
+
+응답 `data` 는 `null` 이다.
+
+> ⚠️ **연결 행 자체를 지우는 하드 삭제다** (2026-08-11 명시). 논리 삭제로 두면 `UNIQUE` 를 시체가 점유해 **같은 카테고리를 다시 못 붙인다.**
+> ℹ️ 마스터(`business_category`)가 삭제된 카테고리도 해제할 수 있다 — 연결 행은 그대로 남아 있기 때문이다 (D-3). 그래서 `deleted: true` 배지가 붙은 항목에도 해제 버튼을 살려 둔다.
+
+**Status Code** — 200 · 401 · 403 `PROJECT_EDIT_DENIED` · 404 `PROJECT_NOT_FOUND` · 404 `BUSINESS_CATEGORY_NOT_LINKED`
+
+## 134. 스텝 권한 목록 조회
+
+| 항목          | 값                                                     |
+| ------------- | ------------------------------------------------------ |
+| **Method**    | `GET`                                                  |
+| **Path**      | `/api/v1/steps/{stepId}/permissions`                    |
+| **권한**      | **프로젝트 `EDITOR`** (스텝 권한이 아니다)             |
+| **요구사항**  | STP-010 · STP-011 · USC-SPM-004                        |
+| **사용 위치** | `src/features/project/api.ts` → `getStepPermissions()` |
+
+**Response (200 OK)**
+
+```ts
+data: {
+  permissions: {
+    userId: string;
+    name: string;
+    permission: 'VIEWER' | 'EDITOR' | 'NONE';   // 최종 판정 등급
+    overridden: boolean;                        // step_permission 행 보유 여부
+  }[];
+}
+```
+
+> ℹ️ **참여자 전원**이 온다 — 오버라이드가 걸린 사람만이 아니다.
+> ⚠️ **`overridden: false` 는 차단이 아니라 프로젝트 권한 상속이다** (STP-011). 화면은 `상속` · `직접 지정` 을 구분해 보여주고, 회수(136)를 "상속으로 되돌리기" 로 읽히게 한다.
+
+**Status Code** — 200 · 401 · 403 `PROJECT_EDIT_DENIED` · 404 `STEP_NOT_FOUND`(**다른 회사의 스텝도 여기로**)
+
+## 135. 스텝 권한 부여 · 변경
+
+| 항목          | 값                                                    |
+| ------------- | ----------------------------------------------------- |
+| **Method**    | `PUT`                                                 |
+| **Path**      | `/api/v1/steps/{stepId}/permissions/{userId}`          |
+| **권한**      | 프로젝트 `EDITOR`                                     |
+| **요구사항**  | STP-010 · USC-SPM-001 · 002                           |
+| **사용 위치** | `src/features/project/api.ts` → `setStepPermission()` |
+
+**Request Body** — `{ permission: 'VIEWER' | 'EDITOR' | 'NONE' }`
+
+**Response (200 OK)** — `data: { stepId, userId, permission, overridden: true }`
+
+> ⚠️ **특정 스텝만 가리려면 `NONE` 행을 명시적으로 넣어야 한다** (STP-011) — 행이 없는 상태는 차단이 아니라 상속이다. **참여자 권한(125·126)의 폐기된 `NONE` 과 다르다.**
+> ⛔ 자기 자신의 권한 행은 수정할 수 없다 (INV-10).
+> ℹ️ 경로 대상이 `memberId`(행 ID)가 아니라 **사번(`userId`)** 이다 — 참여자 API 와 다르다.
+
+**Status Code** — 200 · 400 `STEP_PERMISSION_INVALID` · 401 · 403 `MEMBER_SELF_EDIT_DENIED` · 403 `PROJECT_EDIT_DENIED` · 404 `STEP_NOT_FOUND` · 404 `USER_NOT_FOUND`
+
+## 136. 스텝 권한 회수
+
+| 항목          | 값                                                       |
+| ------------- | -------------------------------------------------------- |
+| **Method**    | `DELETE`                                                 |
+| **Path**      | `/api/v1/steps/{stepId}/permissions/{userId}`             |
+| **권한**      | 프로젝트 `EDITOR`                                        |
+| **요구사항**  | USC-SPM-003 · STP-011                                    |
+| **사용 위치** | `src/features/project/api.ts` → `revokeStepPermission()` |
+
+**Response (200 OK)** — `data: { stepId, userId, permission, overridden: false }`
+
+> ⚠️ **오버라이드 행을 지워 프로젝트 권한 상속으로 되돌린다. 차단이 아니다.** 응답의 `permission` 은 회수 후 **상속된 등급**이라, 화면은 이 값으로 행을 갈아끼운다.
+> ⛔ 자기 자신의 행은 회수할 수 없다 (INV-10).
+> ℹ️ 404 `STEP_PERMISSION_NOT_FOUND` 는 "이미 상속 상태" 라는 뜻이다 — 실패로 보이지 않게 목록만 갱신하면 된다.
+
+**Status Code** — 200 · 401 · 403 `PROJECT_EDIT_DENIED` · 403 `MEMBER_SELF_EDIT_DENIED` · 404 `STEP_NOT_FOUND` · 404 `STEP_PERMISSION_NOT_FOUND`
+
+## 137. 스텝 상태 변경
+
+| 항목          | 값                                                  |
+| ------------- | --------------------------------------------------- |
+| **Method**    | `PATCH`                                             |
+| **Path**      | `/api/v1/steps/{stepId}/status`                      |
+| **권한**      | **스텝 `EDITOR`** (프로젝트가 아니다)               |
+| **요구사항**  | STP-004                                             |
+| **사용 위치** | `src/features/project/api.ts` → `updateStepStatus()` |
+
+**Request Body** — `{ status: 'NOT_STARTED' | 'IN_PROGRESS', version: number, overwrite?: boolean }`
+
+**Response (200 OK)** — `data: { stepId, status, updatedAt, version }`
+
+> ⛔ **`DONE` 은 이 API 로 설정하지 않는다** — 미완료 이슈 처리 선택이 필요해 **완료 처리(118)** 소관이다 (STP-006). 보내면 400 `STEP_STATUS_INVALID` 다.
+> ⚠️ 낙관적 락 (2026-08-11 신설) — 늦으면 409 `STEP_VERSION_CONFLICT` 다. 응답 `version` 으로 화면 상태를 교체해야 다음 저장이 통과한다.
+> ⚠️ **상태 변경은 완료정보(`completedAt` · `completedBy`)까지 함께 `SET` 한다** — `DONE` 에서 되돌리면 완료 기록도 함께 비워진다.
+> ℹ️ 스텝 상태는 **진척률과 별개 값**이다 (STP-004) — 이슈를 다 끝내도 상태가 저절로 바뀌지 않는다.
+
+**Status Code** — 200 · 400 `STEP_STATUS_INVALID` · 400 `STEP_VERSION_REQUIRED` · 401 · 403 `STEP_EDIT_DENIED` · 404 `STEP_NOT_FOUND` · 409 `STEP_VERSION_CONFLICT`
 
 ---
 

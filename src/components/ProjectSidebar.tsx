@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import MemberAvatar from '@/components/MemberAvatar';
 import ModalLoadingFallback from '@/components/ModalLoadingFallback';
@@ -63,6 +64,14 @@ const loadStepDeleteModal = () =>
   import('@/features/project/step/StepDeleteModal');
 const loadStepCompleteModal = () =>
   import('@/features/project/step/StepCompleteModal');
+const loadStepPermissionModal = () =>
+  import('@/features/project/step/StepPermissionModal');
+const loadStepStatusModal = () =>
+  import('@/features/project/step/StepStatusModal');
+const loadStagePermissionModal = () =>
+  import('@/features/project/stage/StagePermissionModal');
+const loadProjectMembersModal = () =>
+  import('@/features/project/member/ProjectMembersModal');
 
 /** `PanelModal` 과 같은 폭 — 청크가 도착할 때 패널이 흔들리지 않게 한다 */
 const PANEL_FALLBACK = 'w-full max-w-[420px] rounded-base p-6 shadow-2xl';
@@ -98,16 +107,45 @@ const StepCompleteModal = dynamic(loadStepCompleteModal, {
   ),
 });
 
+const StepPermissionModal = dynamic(loadStepPermissionModal, {
+  loading: () => (
+    <ModalLoadingFallback title="스텝 권한 관리" className={PANEL_FALLBACK} />
+  ),
+});
+const StagePermissionModal = dynamic(loadStagePermissionModal, {
+  loading: () => (
+    <ModalLoadingFallback
+      title="새 스텝 권한 기본값"
+      className={PANEL_FALLBACK}
+    />
+  ),
+});
+
+const ProjectMembersModal = dynamic(loadProjectMembersModal, {
+  loading: () => (
+    <ModalLoadingFallback title="참여자 관리" className={PANEL_FALLBACK} />
+  ),
+});
+
+const StepStatusModal = dynamic(loadStepStatusModal, {
+  loading: () => (
+    <ModalLoadingFallback title="스텝 상태 변경" className={PANEL_FALLBACK} />
+  ),
+});
+
 /** 메뉴를 여는 순간 받아 둔다 — 항목을 고를 때는 이미 도착해 있다 */
 function preloadStageChunks() {
   void loadStageManageModal();
   void loadStageFormModal();
   void loadStageDeleteModal();
+  void loadStagePermissionModal();
 }
 function preloadStepChunks() {
   void loadStepFormModal();
   void loadStepDeleteModal();
   void loadStepCompleteModal();
+  void loadStepPermissionModal();
+  void loadStepStatusModal();
 }
 
 /**
@@ -124,7 +162,15 @@ type SidebarModal =
   | { kind: 'stepCreate'; stageId?: number; stageName?: string }
   | { kind: 'stepEdit'; step: ProjectStep }
   | { kind: 'stepDelete'; step: ProjectStep }
-  | { kind: 'stepComplete'; step: ProjectStep };
+  | { kind: 'stepComplete'; step: ProjectStep }
+  /** 스텝 권한 오버라이드 — **프로젝트 EDITOR** 전용이다 (스텝 EDITOR 로는 못 부른다) */
+  | { kind: 'stepPermission'; step: ProjectStep }
+  /** 상태 변경 — 바꿀 상태는 **모달 안에서** 고른다 (`DONE` 은 완료 처리로 넘어간다) */
+  | { kind: 'stepStatus'; step: ProjectStep }
+  /** 이 단계에 새로 생길 스텝의 권한 기본값 */
+  | { kind: 'stagePermission'; stage: ProjectStage }
+  /** 참여자 명단 — 사이드바 아바타 줄에서 바로 연다 */
+  | { kind: 'members' };
 
 /** `stageId: null` 인 스텝을 모아 보여줄 가상 스테이지 */
 const UNASSIGNED_STAGE_ID = -1;
@@ -599,6 +645,15 @@ export default function ProjectSidebar() {
                                     modal.open({ kind: 'stageRename', stage }),
                                 },
                                 {
+                                  label: '스텝 권한 기본값',
+                                  icon: <KeyIcon />,
+                                  onSelect: () =>
+                                    modal.open({
+                                      kind: 'stagePermission',
+                                      stage,
+                                    }),
+                                },
+                                {
                                   label: '삭제',
                                   icon: <TrashIcon />,
                                   danger: true,
@@ -629,11 +684,15 @@ export default function ProjectSidebar() {
                               projectId={projectId}
                               step={step}
                               isActive={step.stepId === activeStepId}
+                              canManagePermissions={canEdit}
+                              onManagePermissions={() =>
+                                modal.open({ kind: 'stepPermission', step })
+                              }
+                              onChangeStatus={() =>
+                                modal.open({ kind: 'stepStatus', step })
+                              }
                               onEdit={() =>
                                 modal.open({ kind: 'stepEdit', step })
-                              }
-                              onComplete={() =>
-                                modal.open({ kind: 'stepComplete', step })
                               }
                               onDelete={() =>
                                 modal.open({ kind: 'stepDelete', step })
@@ -650,61 +709,98 @@ export default function ProjectSidebar() {
             </div>
 
             <div className="border-t border-border-default px-4 py-3">
-              <p className="flex items-center gap-1.5 text-label text-text-secondary">
-                <UsersIcon />
-                {members ? `참여자 (${members.length})` : '참여자'}
-              </p>
               {haveMembersFailed ? (
-                <div className="flex items-center justify-between gap-2 pt-2">
-                  <p role="alert" className="text-caption text-text-danger">
-                    참여자를 불러오지 못했습니다.
+                <>
+                  <p className="flex items-center gap-1.5 text-label text-text-secondary">
+                    <UsersIcon />
+                    참여자
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFailedMembersProjectId(null);
-                      setMembersReloadCount((count) => count + 1);
-                    }}
-                    className="shrink-0 cursor-pointer rounded-button-sm px-1.5 py-0.5 text-caption font-medium text-text-primary-blue hover:bg-blue-bg-soft"
-                  >
-                    다시 시도
-                  </button>
-                </div>
-              ) : !members ? (
-                <ProjectMembersSkeleton />
-              ) : members.length === 0 ? (
-                <p className="pt-2 text-caption text-text-secondary">
-                  등록된 참여자가 없습니다.
-                </p>
-              ) : (
-                <div className="flex items-center pt-2">
-                  {/*
-                  담당자 아바타는 `MemberAvatar` 하나로 모은다 — 사번 기준으로 색이 정해져
-                  이슈 · 블록 담당자와 **같은 사람이 같은 색**으로 나온다
-                */}
-                  {members.map((member, index) => (
-                    <span
-                      key={member.memberId}
-                      title={`${member.name}${member.department ? ` · ${member.department}` : ''}${member.resigned ? ' · 퇴사' : ''}`}
-                      style={{
-                        marginLeft: index === 0 ? 0 : -8,
-                        zIndex: index,
+                  <div className="flex items-center justify-between gap-2 pt-2">
+                    <p role="alert" className="text-caption text-text-danger">
+                      참여자를 불러오지 못했습니다.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFailedMembersProjectId(null);
+                        setMembersReloadCount((count) => count + 1);
                       }}
-                      className="flex"
+                      className="shrink-0 cursor-pointer rounded-button-sm px-1.5 py-0.5 text-caption font-medium text-text-primary-blue hover:bg-blue-bg-soft"
                     >
-                      <MemberAvatar userId={member.userId} name={member.name} />
+                      다시 시도
+                    </button>
+                  </div>
+                </>
+              ) : !members ? (
+                <>
+                  <p className="flex items-center gap-1.5 text-label text-text-secondary">
+                    <UsersIcon />
+                    참여자
+                  </p>
+                  <ProjectMembersSkeleton />
+                </>
+              ) : (
+                /*
+                 * 영역 전체가 버튼이다 — 아바타만 겹쳐 놓아서는 누가 무슨 권한인지 알 수 없어
+                 * 눌러서 명단을 연다. 편집 권한이 없으면 모달이 **읽기 전용**으로 열린다.
+                 * (`관리` · `+` 를 따로 두지 않는다 — 좁은 폭에서 누를 곳이 셋으로 갈린다)
+                 */
+                <button
+                  type="button"
+                  aria-label={canEdit ? '참여자 관리' : '참여자 명단 보기'}
+                  onClick={() => {
+                    void loadProjectMembersModal();
+                    modal.open({ kind: 'members' });
+                  }}
+                  className="-mx-2 block w-[calc(100%+1rem)] cursor-pointer rounded-lg px-2 py-1 text-left hover:bg-bg-hover"
+                >
+                  <span className="flex items-center gap-1.5 text-label text-text-secondary">
+                    <UsersIcon />
+                    참여자 ({members.length})
+                  </span>
+                  {members.length === 0 ? (
+                    <span className="block pt-2 text-caption text-text-secondary">
+                      등록된 참여자가 없습니다.
+                      {canEdit && ' 눌러서 추가하세요.'}
                     </span>
-                  ))}
-                  {/* TODO: 참여자 추가 모달 연결 */}
-                  <button
-                    type="button"
-                    aria-label="참여자 추가"
-                    style={{ marginLeft: -8, zIndex: members?.length ?? 0 }}
-                    className="flex size-6 cursor-pointer items-center justify-center rounded-pill border border-white bg-bg-hover hover:bg-bg-hover-secondary"
-                  >
-                    <PlusIcon />
-                  </button>
-                </div>
+                  ) : (
+                    <span className="flex items-center pt-2">
+                      {/*
+                        담당자 아바타는 `MemberAvatar` 하나로 모은다 — 사번 기준으로 색이 정해져
+                        이슈 · 블록 담당자와 **같은 사람이 같은 색**으로 나온다
+                      */}
+                      {members.map((member, index) => (
+                        <span
+                          key={member.memberId}
+                          title={`${member.name}${member.department ? ` · ${member.department}` : ''}${member.resigned ? ' · 퇴사' : ''}`}
+                          style={{
+                            marginLeft: index === 0 ? 0 : -8,
+                            zIndex: index,
+                          }}
+                          className="flex"
+                        >
+                          <MemberAvatar
+                            userId={member.userId}
+                            name={member.name}
+                          />
+                        </span>
+                      ))}
+                      {/*
+                        `+` 는 **버튼이 아니라 표시**다 — 영역 전체가 이미 버튼이라
+                        안에 버튼을 또 넣을 수 없다 (중첩 버튼은 유효하지 않다).
+                      */}
+                      {canEdit && (
+                        <span
+                          aria-hidden
+                          style={{ marginLeft: -8, zIndex: members.length }}
+                          className="flex size-6 items-center justify-center rounded-pill border border-white bg-bg-hover text-text-secondary"
+                        >
+                          <PlusIcon />
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </button>
               )}
             </div>
 
@@ -778,6 +874,53 @@ export default function ProjectSidebar() {
           step={openModal.step}
           onClose={modal.close}
           onCompleted={handleStepCompleted}
+        />
+      )}
+      {/*
+        권한만 바꾸면 목록에 보이는 값(이름 · 진척률 · 상태)은 그대로라 다시 읽지 않는다 —
+        내 권한이 바뀌는 경우는 없다 (자기 자신 행은 잠겨 있다).
+      */}
+      {openModal?.kind === 'stepPermission' && (
+        <StepPermissionModal
+          stepId={openModal.step.stepId}
+          stepName={openModal.step.name}
+          onClose={modal.close}
+        />
+      )}
+      {openModal?.kind === 'stepStatus' && (
+        <StepStatusModal
+          step={openModal.step}
+          onClose={modal.close}
+          // 새 `version` 과 상태가 목록에 반영돼야 다음 조작이 409 가 되지 않는다
+          onChanged={reload}
+          // 완료는 미완료 이슈 처리를 물어야 해서 전용 모달이 이어받는다
+          onRequestComplete={() =>
+            modal.open({ kind: 'stepComplete', step: openModal.step })
+          }
+        />
+      )}
+      {openModal?.kind === 'members' && (
+        <ProjectMembersModal
+          projectId={projectId}
+          members={members}
+          hasFailed={haveMembersFailed}
+          canEdit={canEdit}
+          onClose={modal.close}
+          // 권한 · 명단이 바뀌면 아바타 줄도 함께 맞춰야 한다
+          onChanged={() => {
+            setFailedMembersProjectId(null);
+            setMembersReloadCount((count) => count + 1);
+          }}
+        />
+      )}
+      {openModal?.kind === 'stagePermission' && (
+        <StagePermissionModal
+          projectId={projectId}
+          stageId={openModal.stage.stageId}
+          stageName={openModal.stage.name}
+          onClose={modal.close}
+          // 기존 스텝에 적용됐으면 내 스텝 권한(`myPermission`)도 달라질 수 있다
+          onApplied={reload}
         />
       )}
     </>
@@ -960,17 +1103,30 @@ function StepCard({
   projectId,
   step,
   isActive,
+  canManagePermissions,
   onEdit,
-  onComplete,
   onDelete,
+  onManagePermissions,
+  onChangeStatus,
 }: {
   projectId: string;
   step: ProjectStep;
   isActive: boolean;
+  /**
+   * 스텝 권한 관리 가능 여부 — **프로젝트 `EDITOR`** 다.
+   *
+   * ⚠️ 스텝 권한 API(134~136)는 스텝 권한이 아니라 프로젝트 권한을 본다.
+   *    그래서 아래 `step.myPermission` 과 **다른 값이며 함께 쓸 수 없다** —
+   *    남이 이 스텝에 `VIEWER` 오버라이드를 걸어 둔 프로젝트 편집자도 권한은 관리할 수 있다.
+   */
+  canManagePermissions: boolean;
   onEdit: () => void;
-  onComplete: () => void;
   onDelete: () => void;
+  onManagePermissions: () => void;
+  /** 바꿀 상태는 모달 안에서 고른다 — 메뉴는 열기만 한다 */
+  onChangeStatus: () => void;
 }) {
+  const canEditStep = step.myPermission === 'EDITOR';
   return (
     <div className="px-4">
       {/* 카드 전체가 링크. 메뉴 버튼만 링크 위로 올려 클릭을 가로챈다 */}
@@ -1007,34 +1163,56 @@ function StepCard({
           >
             {step.progressRate ?? 0}%
           </span>
-          {step.myPermission === 'EDITOR' ? (
+          {canEditStep || canManagePermissions ? (
             <span className="pointer-events-auto">
               <RowMenu
                 label={step.name}
                 revealClass="group-hover/step:opacity-100"
                 onOpen={preloadStepChunks}
                 items={[
-                  {
-                    label: '스텝 수정',
-                    icon: <PencilIcon />,
-                    onSelect: onEdit,
-                  },
-                  // 이미 끝난 스텝에 다시 걸어도 기록이 바뀌지 않지만, 할 일이 없는 항목은 숨긴다
-                  ...(step.status === 'DONE'
-                    ? []
-                    : [
+                  // 수정 · 완료 · 삭제는 **스텝** 권한, 권한 관리는 **프로젝트** 권한이다
+                  ...(canEditStep
+                    ? [
                         {
-                          label: '완료 처리',
-                          icon: <CheckIcon />,
-                          onSelect: onComplete,
+                          label: '스텝 수정',
+                          icon: <PencilIcon />,
+                          onSelect: onEdit,
                         },
-                      ]),
-                  {
-                    label: '삭제',
-                    icon: <TrashIcon />,
-                    danger: true,
-                    onSelect: onDelete,
-                  },
+                      ]
+                    : []),
+                  /*
+                   * 상태는 **항목 하나로 묶는다** — 진행 전 · 진행중 · 완료를 각각 두면
+                   * 메뉴가 스텝 상태에 따라 늘었다 줄었다 해서 매번 읽어야 한다.
+                   * 무엇으로 바꿀지는 모달 안에서 고른다 (완료만 완료 처리 모달로 넘어간다).
+                   */
+                  ...(canEditStep
+                    ? [
+                        {
+                          label: '상태 변경',
+                          icon: <PlayIcon />,
+                          onSelect: onChangeStatus,
+                        },
+                      ]
+                    : []),
+                  ...(canManagePermissions
+                    ? [
+                        {
+                          label: '권한 관리',
+                          icon: <KeyIcon />,
+                          onSelect: onManagePermissions,
+                        },
+                      ]
+                    : []),
+                  ...(canEditStep
+                    ? [
+                        {
+                          label: '삭제',
+                          icon: <TrashIcon />,
+                          danger: true,
+                          onSelect: onDelete,
+                        },
+                      ]
+                    : []),
                 ]}
               />
             </span>
@@ -1051,6 +1229,15 @@ function StepCard({
     </div>
   );
 }
+
+/**
+ * 메뉴 크기 — 열기 전에 위치를 계산해야 해서 값으로 들고 있다.
+ * `스텝 권한 기본값` 처럼 긴 항목이 줄바꿈되지 않도록 넉넉히 잡는다.
+ */
+const MENU_WIDTH = 156;
+/** 항목 하나 높이(`py-1.5` + 본문) · 위아래 `py-1` */
+const MENU_ITEM_HEIGHT = 30;
+const MENU_PADDING = 8;
 
 interface RowMenuItem {
   label: string;
@@ -1077,15 +1264,58 @@ function RowMenu({
   /** 열자마자 모달 청크를 받아 둔다 — 항목을 고를 때는 이미 도착해 있다 */
   onOpen?: () => void;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
+  /**
+   * 열린 위치. `null` 이면 닫혀 있다.
+   *
+   * ⚠️ **`absolute` 로는 안 된다** — 사이드바가 `overflow-y-auto` 라 메뉴가 목록 안에서
+   *    잘린다 (아래쪽 행일수록 심하다). `body` 로 빼서 `fixed` 로 띄우고 좌표는 열 때 잰다.
+   *    좌표가 굳으므로 스크롤 · 리사이즈가 생기면 닫는다. (`CategoryList` 의 `RowMenu` 와 같은 방식)
+   */
+  const [position, setPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLSpanElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const isOpen = position !== null;
 
   /** 메뉴를 닫고 트리거로 포커스를 돌려준다 — 키보드로 되돌아갈 곳이 필요하다 */
   function close() {
-    setIsOpen(false);
+    setPosition(null);
     triggerRef.current?.focus();
   }
+
+  /** 여는 순간의 트리거 위치에서 좌표를 잡는다 — 아래가 좁으면 위로 펼친다 */
+  function open() {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const height = items.length * MENU_ITEM_HEIGHT + MENU_PADDING;
+    const opensUp = window.innerHeight - rect.bottom < height + 8;
+
+    setPosition({
+      top: opensUp ? Math.max(8, rect.top - height - 4) : rect.bottom + 4,
+      // 오른쪽 끝을 트리거에 맞추되 화면 밖으로 나가지 않게 한다
+      left: Math.max(8, rect.right - MENU_WIDTH),
+    });
+  }
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    function dismiss() {
+      setPosition(null);
+    }
+    // 스크롤은 사이드바 안쪽에서도 일어나므로 캡처 단계에서 받는다
+    document.addEventListener('scroll', dismiss, true);
+    window.addEventListener('resize', dismiss);
+
+    return () => {
+      document.removeEventListener('scroll', dismiss, true);
+      window.removeEventListener('resize', dismiss);
+    };
+  }, [isOpen]);
 
   /**
    * 항목 사이를 화살표로 옮긴다 (WAI-ARIA 메뉴 패턴).
@@ -1139,8 +1369,12 @@ function RowMenu({
         aria-expanded={isOpen}
         onPointerEnter={onOpen}
         onClick={() => {
-          if (!isOpen) onOpen?.();
-          setIsOpen((wasOpen) => !wasOpen);
+          if (isOpen) {
+            setPosition(null);
+            return;
+          }
+          onOpen?.();
+          open();
         }}
         className={`flex size-5 cursor-pointer items-center justify-center rounded-button-sm hover:bg-black/5 focus-visible:opacity-100 ${
           isOpen ? 'opacity-100' : `opacity-0 ${revealClass}`
@@ -1149,43 +1383,50 @@ function RowMenu({
         <MoreIcon />
       </button>
 
-      {isOpen && (
-        <>
-          {/* 바깥을 누르면 닫히도록 덮개를 깐다 */}
-          <button
-            type="button"
-            tabIndex={-1}
-            aria-label="메뉴 닫기"
-            onClick={() => setIsOpen(false)}
-            className="fixed inset-0 z-10 cursor-default"
-          />
-          <span
-            ref={menuRef}
-            role="menu"
-            className="absolute top-full right-0 z-20 mt-1 flex w-32 flex-col overflow-hidden rounded-lg border border-border-default bg-bg-card shadow-lg"
-          >
-            {items.map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  close();
-                  item.onSelect();
-                }}
-                className={`flex cursor-pointer items-center gap-2 px-3 py-1.5 text-detail font-medium ${
-                  item.danger
-                    ? 'text-text-danger hover:bg-red-bg-soft'
-                    : 'text-text-primary hover:bg-bg-surface'
-                }`}
-              >
-                {item.icon}
-                {item.label}
-              </button>
-            ))}
-          </span>
-        </>
-      )}
+      {position &&
+        createPortal(
+          <>
+            {/* 바깥을 누르면 닫히도록 덮개를 깐다 */}
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-label="메뉴 닫기"
+              onClick={() => setPosition(null)}
+              className="fixed inset-0 z-40 cursor-default"
+            />
+            <div
+              ref={menuRef}
+              role="menu"
+              style={{
+                top: position.top,
+                left: position.left,
+                width: MENU_WIDTH,
+              }}
+              className="fixed z-50 flex flex-col overflow-hidden rounded-lg border border-border-default bg-bg-card py-1 shadow-lg"
+            >
+              {items.map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    close();
+                    item.onSelect();
+                  }}
+                  className={`flex cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-detail font-medium whitespace-nowrap ${
+                    item.danger
+                      ? 'text-text-danger hover:bg-red-bg-soft'
+                      : 'text-text-primary hover:bg-bg-surface'
+                  }`}
+                >
+                  {item.icon}
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </>,
+          document.body,
+        )}
     </span>
   );
 }
@@ -1372,10 +1613,21 @@ function PencilIcon() {
   );
 }
 
-function CheckIcon() {
+/** 진행중으로 — 재생 삼각형 */
+function PlayIcon() {
   return (
-    <Svg strokeWidth={2} className="size-3 shrink-0">
-      <path d="m5 12.5 4.5 4.5L19 7" />
+    <Svg className="size-3 shrink-0">
+      <path d="M8 5.5v13l10-6.5z" />
+    </Svg>
+  );
+}
+
+/** 권한 관리 — 열쇠. 자물쇠(잠금)와 달리 "누구에게 열어줄지" 를 정하는 자리다 */
+function KeyIcon() {
+  return (
+    <Svg className="size-3 shrink-0">
+      <circle cx="8" cy="15" r="4" />
+      <path d="m11 12 9-9M17.5 5.5l2 2M14.5 8.5l2 2" />
     </Svg>
   );
 }

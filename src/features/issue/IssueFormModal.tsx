@@ -206,12 +206,14 @@ export default function IssueFormModal({
     const { signal } = controller;
 
     getProjectMembers(projectId, signal)
-      // permission 이 NONE 이면 담당자 검증에서 거절된다 (명세 58번)
+      /*
+       * 퇴사자 · **삭제된 사원**은 후보에서 뺀다 — 담당자 검증에서 거절된다 (명세 58번).
+       * `permission !== 'NONE'` 필터는 걷어냈다: `NONE` 이 폐기돼(2026-08-06) 참여자는
+       * 항상 `VIEWER` · `EDITOR` 둘 중 하나다 (명세 45번). 차단은 참여자 제거로 표현된다.
+       */
       .then((loaded) =>
         setMembers(
-          loaded.filter(
-            (member) => !member.resigned && member.permission !== 'NONE',
-          ),
+          loaded.filter((member) => !member.resigned && !member.deleted),
         ),
       )
       .catch(() => undefined);
