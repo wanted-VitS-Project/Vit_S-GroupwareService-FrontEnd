@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import MemberAvatar from '@/components/MemberAvatar';
 import MenuIcon from '@/components/MenuIcon';
 import { findActiveMenu } from '@/constants/menu';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
@@ -34,8 +35,15 @@ export default function Sidebar() {
         href="/mypage"
         className="flex h-20 items-center gap-3 border-b border-bg-sidebar-hover px-6 hover:bg-bg-sidebar-hover"
       >
-        {/* TODO: 프로필 이미지 자리 */}
-        <div className="size-10 shrink-0 rounded-pill bg-bg-hover-secondary" />
+        {/* 이름이 바로 옆에 있으므로 장식으로 숨긴다 */}
+        <MemberAvatar
+          userId={user.userId}
+          name={user.name}
+          size="lg"
+          withRing={false}
+          decorative
+          imageUrl={user.profileImageUrl}
+        />
 
         <div className="min-w-0 flex-1">
           {/*

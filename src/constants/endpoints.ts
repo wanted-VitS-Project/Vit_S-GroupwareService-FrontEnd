@@ -10,6 +10,12 @@ export const ENDPOINTS = {
     login: `${V1}/auth/login`,
     logout: `${V1}/auth/logout`,
     me: `${V1}/auth/me`,
+    /**
+     * 내 프로필 사진 등록·변경(PUT, multipart) · 삭제(DELETE). 둘 다 **본인만** · 멱등이다.
+     *
+     * ⚠️ 경로는 `/auth` 지만 데이터는 사원 속성이라 **에러 코드가 `EMP_` 접두어**로 온다.
+     */
+    profileImage: `${V1}/auth/me/profile-image`,
     password: `${V1}/auth/password`,
     termsAgreements: `${V1}/auth/terms-agreements`,
   },
@@ -108,6 +114,13 @@ export const ENDPOINTS = {
     resignation: (userId: string) => `${V1}/employees/${userId}/resignation`,
     /** 결재선 지정용 이름 검색 — ADMIN 전용이 아니다 */
     search: `${V1}/employees/search`,
+    /**
+     * 아바타 서빙 — 로그인 사용자면 누구나. 응답이 JSON 이 아니라 **presigned 로 302** 다.
+     *
+     * ⚠️ 직접 부르지 않는다. `apiUrl()` 을 씌워 `<img src>` 에 넣고 브라우저가 따라가게 한다.
+     * ⚠️ `userId` 는 **접두어까지 포함한 사번 그대로**다 (`vitas-EMP001`). 잘라 쓰지 말 것.
+     */
+    profileImage: (userId: string) => `${V1}/employees/${userId}/profile-image`,
     /** 엑셀 템플릿 — 응답이 `.xlsx` 바이너리다 (봉투가 아니다) */
     bulkTemplate: `${V1}/employees/bulk-template`,
     /** 일괄 등록 검증 — 등록하지 않고 행 오류만 준다 */

@@ -5,6 +5,17 @@
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
 
+/**
+ * 서버가 준 상대 경로를 **브라우저가 직접 부를 수 있는 주소**로 바꾼다
+ * (`<img src>` · `<a href>` 처럼 fetch 를 거치지 않는 자리).
+ *
+ * ⚠️ 이걸 안 씌우면 프론트 오리진(3001)으로 나가서 404 가 된다 —
+ *    프로필 사진이 안 뜨던 원인이다 (2026-08-13).
+ */
+export function apiUrl(path: string) {
+  return /^https?:\/\//.test(path) ? path : `${BASE_URL}${path}`;
+}
+
 /** 성공 봉투. httpStatus 는 Response.status 와 같은 값이라 쓰지 않는다. */
 interface ApiEnvelope<T> {
   message: string;
@@ -135,11 +146,32 @@ export async function postForm<T>(
   form: FormData,
   signal?: AbortSignal,
 ) {
+  return sendForm<T>(path, 'POST', form, signal);
+}
+
+/**
+ * `multipart/form-data` **전체 치환** (예: 프로필 사진 등록·변경).
+ * 같은 경로에 다시 올리면 이전 사진을 덮어쓰는 멱등 교체라 `POST` 가 아니라 `PUT` 이다.
+ */
+export async function putForm<T>(
+  path: string,
+  form: FormData,
+  signal?: AbortSignal,
+) {
+  return sendForm<T>(path, 'PUT', form, signal);
+}
+
+async function sendForm<T>(
+  path: string,
+  method: 'POST' | 'PUT',
+  form: FormData,
+  signal?: AbortSignal,
+) {
   let response: Response;
 
   try {
     response = await fetch(`${BASE_URL}${path}`, {
-      method: 'POST',
+      method,
       credentials: 'include',
       body: form,
       signal,

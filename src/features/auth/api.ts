@@ -1,11 +1,12 @@
 import { ENDPOINTS } from '@/constants/endpoints';
-import { api } from '@/lib/api';
+import { api, putForm } from '@/lib/api';
 
 import type {
   ChangePasswordRequest,
   CurrentUser,
   LoginRequest,
   LoginResponse,
+  ProfileImageResponse,
 } from './types';
 
 /** 비밀번호 해시(Argon2id) 때문에 응답에 0.3~1.1초 걸리는 것이 정상이다. */
@@ -33,4 +34,25 @@ export function changePassword(body: ChangePasswordRequest) {
  */
 export function agreeToTerms() {
   return api.post<void>(ENDPOINTS.auth.termsAgreements);
+}
+
+/**
+ * 프로필 사진 등록 · 변경. 이미 있으면 덮어쓴다 (멱등).
+ *
+ * ⚠️ 파트 이름은 `file` 이다. `Content-Type` 을 직접 넣지 않는다 — `putForm` 참고.
+ */
+export function uploadProfileImage(file: File, signal?: AbortSignal) {
+  const form = new FormData();
+  form.append('file', file);
+
+  return putForm<ProfileImageResponse>(
+    ENDPOINTS.auth.profileImage,
+    form,
+    signal,
+  );
+}
+
+/** 프로필 사진 삭제 — 기본(이니셜) 아바타로 돌아간다. 사진이 없어도 성공한다 (멱등). */
+export function deleteProfileImage(signal?: AbortSignal) {
+  return api.delete<void>(ENDPOINTS.auth.profileImage, signal);
 }

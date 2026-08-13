@@ -6,6 +6,55 @@
 
 ---
 
+## [2026-08-13] 프로필 사진 · 연락처 자동 하이픈 🚧 진행 중
+
+브랜치: `feat/profile-image` · 이슈: #18
+
+### 변경 파일
+
+| 파일                                                                    | 변경                                                       |
+| ----------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `src/lib/api.ts`                                                        | 수정 (`putForm` 추가 — `postForm` 과 `sendForm` 으로 통합) |
+| `src/lib/format.ts`                                                     | 수정 (`formatPhone` 추가)                                  |
+| `src/constants/endpoints.ts`                                            | 수정 (`auth.profileImage` · `employees.profileImage`)      |
+| `src/features/auth/types.ts`                                            | 수정 (`profileImageUrl` · 업로드 제약 상수)                |
+| `src/features/auth/api.ts`                                              | 수정 (`uploadProfileImage` · `deleteProfileImage`)         |
+| `src/features/auth/errorCodes.ts`                                       | 수정 (`PROFILE_IMAGE_ERROR_MESSAGES`)                      |
+| `src/features/auth/CurrentUserProvider.tsx`                             | 수정 (`SetProfileImageContext`)                            |
+| `src/features/auth/useCurrentUser.ts`                                   | 수정 (`useSetProfileImage`)                                |
+| `src/features/auth/ProfileImageField.tsx`                               | **생성** (미리보기 · 변경 · 삭제)                          |
+| `src/components/MemberAvatar.tsx`                                       | 수정 (사진 렌더 · 이니셜 폴백 · 크기 5종)                  |
+| `src/components/ProfileMenu.tsx`                                        | 수정 (헤더 프로필 placeholder → `MemberAvatar`)            |
+| `src/components/Sidebar.tsx`                                            | 수정 (사이드바 프로필 placeholder → `MemberAvatar`)        |
+| `src/app/mypage/page.tsx`                                               | 수정 (`프로필 사진` 카드 · `Card` 에 `isPlain`)            |
+| `src/features/employee/EmployeeCreateForm.tsx` · `EmployeeEditForm.tsx` | 수정 (연락처 입력에 `formatPhone`)                         |
+| `.claude/launch.json`                                                   | 수정 (포트 3000 → 3001 — `npm run dev` 와 어긋나 있었다)   |
+
+### 주요 작업 내용
+
+- 마이페이지에서 프로필 사진 등록 · 변경 · 삭제 (`PUT` · `DELETE /auth/me/profile-image`)
+- `MemberAvatar` 가 사진을 그리고 실패하면 이니셜로 떨어진다 — **호출 15곳은 손대지 않았다** (사번으로 서빙 경로를 만들기 때문)
+- 헤더 · 사이드바의 `TODO: 프로필 이미지 자리` placeholder 2곳 제거
+- 사원 등록 · 수정 폼의 연락처 입력에 자동 하이픈 (`formatPhone`)
+
+### 부수 결정
+
+- **`MemberAvatar` 가 사번으로 서빙 경로를 만든다** — 목록 응답에 사진 URL 이 없어 호출 측을 15곳 고치는 대신 컴포넌트가 경로를 짓는다. **사번은 접두어까지 포함한 값(`vitas-EMP001`)이 그대로 경로에 들어간다** — 잠깐 `vitas-` 를 별도 접두어로 오해해 이 방식을 폐기했다가 되돌렸다. 사진이 없는 사번은 세션 캐시(`missingAvatars`)에 담아 404 반복 호출을 막는다 (목록 응답에 필드가 생기면 캐시째 제거 — STATE 백로그)
+- **본인 아바타만 `imageUrl` 로 직접 받는다** — 사진을 바꾼 직후 갱신돼야 하는 자리(마이페이지 · 헤더 · 사이드바)라 사번 경로가 아니라 `/auth/me` 값을 넘긴다
+- **`refetch` 대신 `SetProfileImageContext`** — `CurrentUserProvider.refetch` 는 `user` 를 `null` 로 돌려 children 을 통째로 다시 그린다. 사진 한 장에 앱 전체가 `불러오는 중…` 으로 깜빡여서 사진 필드만 갈아끼우는 경로를 따로 뒀다
+- **업로드는 `PUT`** — 멱등 교체라 `postForm` 을 재사용하지 않고 `putForm` 을 만들었다
+- `formatPhone` 은 **입력 중에도 쓰므로 자르지 않는다** — 친 만큼만 끊는다
+
+### 트러블슈팅
+
+- **업로드는 200 인데 사진이 안 바뀌었다.** 원인이 둘이었다.
+  1. `profileImageUrl` 이 `/api/v1/...` 상대 경로로 오는데 `<img src>` 에 그대로 넣어 **프론트 오리진(3001)** 으로 나갔다 → `lib/api.ts` 에 `apiUrl()` 을 만들어 API 오리진을 씌운다. `fetch` 를 거치지 않는 자리(`<img>` · `<a>`)는 앞으로 이걸 쓴다
+  2. 사진을 바꿔도 **서빙 경로가 그대로**라 같은 `src` 가 되어 브라우저가 다시 부르지 않는다 → 업로드 후 `?t={시각}` 을 붙여 갱신
+- `MemberAvatar` 의 실패 상태를 `boolean` 이 아니라 **실패한 주소**로 들고 있다 — `true` 로만 두면 사진을 지웠다 다시 올려도 이니셜에서 안 돌아온다
+- `.claude/launch.json` 의 포트가 3000 인데 `npm run dev` 는 3001 이라 preview 가 붙지 않았다 → 3001 로 맞춤
+
+---
+
 ## [2026-08-13] 상태 변경 시 화면 흔들림 제거 (설정 화면 · 모달 전반) ✅
 
 브랜치: `projects/new` · 이슈: #137
@@ -235,18 +284,18 @@
 
 ### 변경 파일
 
-| 파일                                          | 변경                                                     |
-| --------------------------------------------- | -------------------------------------------------------- |
-| `src/features/finance/CashFlowCsvImport.tsx`  | **생성** (3단 스텝퍼 · 파일 선택 · 결과)                 |
-| `src/features/finance/CashFlowCsvMapping.tsx` | **생성** (컬럼 매핑 · 미리보기)                          |
-| `src/features/finance/errorCodes.ts`          | **생성** (`FINANCE_*` — 비밀번호 · 형식 · 매칭 코드)     |
-| `src/components/Breadcrumb.tsx`               | **생성** (상단 경로 — 아래 `목록으로` 버튼을 대신한다)   |
-| `src/features/finance/types.ts` · `api.ts`    | 수정 (CSV 타입 · `previewCashFlowCsv` · `uploadCashFlowCsv`) |
-| `src/app/finance/payments/import/page.tsx`    | 수정 (stub → 화면 연결)                                   |
-| `src/features/finance/CashFlowList.tsx`       | 수정 (`CSV 등록` 진입점 · `외부 API 조회` 제거 · 브레드크럼 · 행 메뉴 제거 후 상세 링크) |
-| `src/features/finance/CashFlowDetail.tsx`     | **생성** (상세 — 거래고유번호 · 수정 · 연결 · 해제 · 삭제) |
-| `src/app/finance/payments/[cashFlowId]/page.tsx` | **생성** (상세 라우트)                                 |
-| `src/features/*/{7개 목록}`                   | 수정 (상단 경로를 공용 `Breadcrumb` 로 통일)              |
+| 파일                                             | 변경                                                                                     |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `src/features/finance/CashFlowCsvImport.tsx`     | **생성** (3단 스텝퍼 · 파일 선택 · 결과)                                                 |
+| `src/features/finance/CashFlowCsvMapping.tsx`    | **생성** (컬럼 매핑 · 미리보기)                                                          |
+| `src/features/finance/errorCodes.ts`             | **생성** (`FINANCE_*` — 비밀번호 · 형식 · 매칭 코드)                                     |
+| `src/components/Breadcrumb.tsx`                  | **생성** (상단 경로 — 아래 `목록으로` 버튼을 대신한다)                                   |
+| `src/features/finance/types.ts` · `api.ts`       | 수정 (CSV 타입 · `previewCashFlowCsv` · `uploadCashFlowCsv`)                             |
+| `src/app/finance/payments/import/page.tsx`       | 수정 (stub → 화면 연결)                                                                  |
+| `src/features/finance/CashFlowList.tsx`          | 수정 (`CSV 등록` 진입점 · `외부 API 조회` 제거 · 브레드크럼 · 행 메뉴 제거 후 상세 링크) |
+| `src/features/finance/CashFlowDetail.tsx`        | **생성** (상세 — 거래고유번호 · 수정 · 연결 · 해제 · 삭제)                               |
+| `src/app/finance/payments/[cashFlowId]/page.tsx` | **생성** (상세 라우트)                                                                   |
+| `src/features/*/{7개 목록}`                      | 수정 (상단 경로를 공용 `Breadcrumb` 로 통일)                                             |
 
 ### 주요 작업 내용
 
