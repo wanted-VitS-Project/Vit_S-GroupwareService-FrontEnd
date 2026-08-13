@@ -7,6 +7,7 @@ import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
 import RowMenu from '@/components/RowMenu';
 import { notifyToast } from '@/components/Toast';
+import { notifyBlockChanged } from '@/features/block/events';
 import { messageOf } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import { useModalTarget } from '@/lib/useModal';
@@ -71,16 +72,21 @@ export default function CashFlowList() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  /** URL 이 필터의 원본이다. 같은 쿼리면 같은 객체를 유지해 효과가 헛돌지 않게 한다 */
+  /**
+   * URL 이 필터의 원본이다. **서버 조건은 값 하나하나로 풀어 둔다** —
+   * `searchParams` 에 묶어 두면 구분 · 출처(화면 필터)만 바꿔도 객체가 새로 만들어져
+   * 같은 목록을 다시 요청하게 된다.
+   */
+  const startDate = pickDate(searchParams.get('startDate'));
+  const endDate = pickDate(searchParams.get('endDate'));
+  const unlinked = searchParams.get('unlinked') === 'true' || undefined;
+  const projectId = pickInt(searchParams.get('projectId'), 1);
+  const keyword = searchParams.get('keyword') ?? undefined;
+
+  /** 값이 그대로면 같은 객체를 유지한다 — 조회 효과가 헛돌지 않게 */
   const query = useMemo<CashFlowListQuery>(
-    () => ({
-      startDate: pickDate(searchParams.get('startDate')),
-      endDate: pickDate(searchParams.get('endDate')),
-      unlinked: searchParams.get('unlinked') === 'true' || undefined,
-      projectId: pickInt(searchParams.get('projectId'), 1),
-      keyword: searchParams.get('keyword') ?? undefined,
-    }),
-    [searchParams],
+    () => ({ startDate, endDate, unlinked, projectId, keyword }),
+    [startDate, endDate, unlinked, projectId, keyword],
   );
 
   /** 화면에서만 거르는 조건 — 서버에 없다 */
@@ -88,13 +94,13 @@ export default function CashFlowList() {
   const clientSource = pickOption(searchParams.get('source'), SOURCE_OPTIONS);
 
   /** 입력 중인 검색어 — 제출해야 URL 에 반영된다 */
-  const [keywordInput, setKeywordInput] = useState(query.keyword ?? '');
-  const [syncedKeyword, setSyncedKeyword] = useState(query.keyword ?? '');
+  const [keywordInput, setKeywordInput] = useState(keyword ?? '');
+  const [syncedKeyword, setSyncedKeyword] = useState(keyword ?? '');
 
   // 뒤로가기나 검색어가 담긴 링크로 들어오면 URL 만 바뀌고 입력값은 옛것이 남는다
-  if (syncedKeyword !== (query.keyword ?? '')) {
-    setSyncedKeyword(query.keyword ?? '');
-    setKeywordInput(query.keyword ?? '');
+  if (syncedKeyword !== (keyword ?? '')) {
+    setSyncedKeyword(keyword ?? '');
+    setKeywordInput(keyword ?? '');
   }
 
   const [reloadCount, setReloadCount] = useState(0);
@@ -131,11 +137,11 @@ export default function CashFlowList() {
    */
   const requestKey = [
     reloadCount,
-    query.startDate,
-    query.endDate,
-    query.unlinked,
-    query.projectId,
-    query.keyword,
+    startDate,
+    endDate,
+    unlinked,
+    projectId,
+    keyword,
   ].join(' ');
 
   const current = result?.key === requestKey ? result : null;
@@ -156,6 +162,7 @@ export default function CashFlowList() {
       });
 
     return () => controller.abort();
+    // `query` 는 서버 조건이 그대로면 같은 객체다 — 화면 필터로는 다시 돌지 않는다
   }, [requestKey, query]);
 
   /** 프로젝트 셀렉트 — 목록과 달리 한 번만 받는다. 실패해도 화면은 그대로 쓴다 */
@@ -212,8 +219,13 @@ export default function CashFlowList() {
     }
 
     // 사유는 서버 문구가 가장 정확하다. 여러 건이면 첫 사유만 대표로 싣는다
+    const reason = result.skippedItems[0].reason;
+
+    // 한 건도 처리되지 않았으면 성공 문구를 붙이지 않는다 (`0건을 …했습니다` 는 어색하다)
     notifyToast(
-      `${result.count}건을 ${done}했습니다. ${skipped}건은 처리하지 못했습니다 — ${result.skippedItems[0].reason}`,
+      result.count === 0
+        ? `${skipped}건을 처리하지 못했습니다 — ${reason}`
+        : `${result.count}건을 ${done}했습니다. ${skipped}건은 처리하지 못했습니다 — ${reason}`,
       'error',
     );
   }
@@ -246,6 +258,8 @@ export default function CashFlowList() {
       await unmatchCashFlow(row.cashFlowId);
       notifyToast('정산 블록 연결을 해제했습니다.');
       setReloadCount((count) => count + 1);
+      // 열려 있는 프로젝트 보드의 정산 블록도 잠금이 풀려야 한다
+      notifyBlockChanged();
     } catch (caught) {
       notifyToast(messageOf(caught, '연결을 해제하지 못했습니다.'), 'error');
     } finally {

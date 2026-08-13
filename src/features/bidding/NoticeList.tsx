@@ -153,7 +153,7 @@ export default function NoticeList() {
       <div className="mb-6">
         <h2 className="text-heading-m font-bold">공고 조회</h2>
         <p className="mt-1.5 text-caption break-keep text-text-secondary">
-          수집된 입찰 공고를 확인하고 프로젝트로 전환합니다.
+          수집된 입찰 공고를 확인합니다.
         </p>
       </div>
 

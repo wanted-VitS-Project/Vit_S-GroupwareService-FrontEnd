@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import Modal from '@/components/Modal';
+import { notifyBlockChanged } from '@/features/block/events';
 import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
 import { messageOf } from '@/lib/api';
 import { formatDate, formatDateTime } from '@/lib/format';
@@ -65,6 +66,8 @@ export default function CashFlowMatchModal({
 
     try {
       await matchCashFlow(cashFlow.cashFlowId, selectedId);
+      // 연결되면 그 정산 블록은 수정이 막힌다 — 열려 있는 보드도 다시 읽는다
+      notifyBlockChanged();
       onMatched();
     } catch (caught) {
       /**
@@ -87,7 +90,10 @@ export default function CashFlowMatchModal({
     >
       <CashFlowSummary cashFlow={cashFlow} />
 
-      <p className="mt-5 mb-2 text-caption font-semibold text-text-primary">
+      <p
+        id="matchCandidateLabel"
+        className="mt-5 mb-2 text-caption font-semibold text-text-primary"
+      >
         추천 정산 블록
       </p>
 
@@ -192,7 +198,12 @@ function CandidateList({
   }
 
   return (
-    <ul className="flex flex-col gap-2">
+    // 그룹 이름을 라디오들과 연결한다 — 이름 없이 읽히면 무엇을 고르는지 알 수 없다
+    <ul
+      role="radiogroup"
+      aria-labelledby="matchCandidateLabel"
+      className="flex flex-col gap-2"
+    >
       {candidates.map((candidate) => (
         <li key={candidate.settleId}>
           <CandidateOption

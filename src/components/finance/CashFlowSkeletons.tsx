@@ -22,9 +22,15 @@ export function CashFlowListSkeleton() {
 
       {/* 필터 바 — 날짜 2개 · 셀렉트 3개 · 토글 · 검색 · 버튼 2개 자리 */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        {['w-36', 'w-36', 'w-32', 'w-32', 'w-44', 'w-24'].map((width) => (
-          <Skeleton key={width} className={`h-9 ${width} rounded-lg`} />
-        ))}
+        {/* 같은 폭이 두 번 나오므로 key 에 자리(index)를 함께 쓴다 */}
+        {['w-36', 'w-36', 'w-32', 'w-32', 'w-44', 'w-24'].map(
+          (width, index) => (
+            <Skeleton
+              key={`${width}-${index}`}
+              className={`h-9 ${width} rounded-lg`}
+            />
+          ),
+        )}
         <Skeleton className="h-9 w-56 rounded-lg" />
         <div className="ml-auto flex gap-2">
           <Skeleton className="h-8 w-28 rounded-lg" />

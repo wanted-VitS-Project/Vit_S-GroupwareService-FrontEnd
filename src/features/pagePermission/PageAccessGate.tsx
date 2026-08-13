@@ -33,8 +33,10 @@ const ROUTE_SKELETONS: { prefix: string; render: () => React.ReactNode }[] = [
  * 그린다. 실제 표 스켈레톤은 화면이 그려진 뒤 `DataTable` 이 맡는다.
  */
 function GateLoading({ pathname }: { pathname: string }) {
-  const matched = ROUTE_SKELETONS.find((route) =>
-    pathname.startsWith(route.prefix),
+  // `/finance/payments-archive` 같은 다른 경로가 걸리지 않게 경계까지 본다
+  const matched = ROUTE_SKELETONS.find(
+    (route) =>
+      pathname === route.prefix || pathname.startsWith(`${route.prefix}/`),
   );
 
   if (matched) return <>{matched.render()}</>;

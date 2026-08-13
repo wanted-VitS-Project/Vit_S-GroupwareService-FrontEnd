@@ -75,6 +75,18 @@ function Loaded({
    * 상태만으로 못 걸러낸 경우를 받아 주는 **보조 수단**이다 — 새로고침하면 사라진다.
    */
   const [wasRejected, setWasRejected] = useState(false);
+  /**
+   * `wasRejected` 가 어느 블록 값의 것인지.
+   *
+   * ⚠️ 목록을 다시 읽어 **새 값이 오면 지난 거절은 무효**다 — 재무에서 연결을 해제했는데도
+   *    `수정하기` 가 계속 잠겨 있으면 안 된다. 판정은 새 `detail` 로 다시 한다.
+   */
+  const [rejectedFor, setRejectedFor] = useState('');
+  const detailKey = `${detail.version ?? ''} ${detail.item?.status ?? detail.status ?? ''} ${detail.item?.actualDate ?? ''}`;
+
+  if (wasRejected && rejectedFor !== detailKey) {
+    setWasRejected(false);
+  }
 
   const item = saved?.item ?? detail.item;
   const type = saved?.type ?? detail.type;
@@ -124,6 +136,7 @@ function Loaded({
             setIsEditing(false);
             setStaleNotice(reason);
             setWasRejected(locked);
+            setRejectedFor(detailKey);
             notifyBlockChanged();
           }}
         />
@@ -179,13 +192,25 @@ function Loaded({
         </p>
       )}
 
+      {/**
+       * ⚠️ 사유를 `title` 에만 두지 않는다 — 비활성 버튼은 포커스를 받지 못해
+       *    키보드 · 스크린리더 사용자에게 툴팁이 닿지 않는다. 화면에 적고 버튼과 잇는다.
+       */}
+      {isLocked && (
+        <p
+          id={`settlementLock-${detail.settleId}`}
+          className="mt-2 rounded-lg bg-bg-surface px-2.5 py-2 text-caption break-keep text-text-secondary"
+        >
+          세금계산서 · 입출금 내역이 연결돼 있어 수정할 수 없습니다. 연결을
+          해제하면 다시 수정할 수 있어요.
+        </p>
+      )}
+
       <button
         type="button"
         disabled={isLocked}
-        title={
-          isLocked
-            ? '세금계산서 · 입출금 내역이 연결돼 있어 수정할 수 없습니다. 연결을 해제하면 다시 수정할 수 있어요'
-            : undefined
+        aria-describedby={
+          isLocked ? `settlementLock-${detail.settleId}` : undefined
         }
         onClick={() => {
           // 다시 열 때 지난 안내는 역할을 다했다

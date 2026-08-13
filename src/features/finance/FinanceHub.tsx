@@ -28,6 +28,8 @@ interface FinanceItem {
   label: string;
   description: string;
   href: string;
+  /** 화면이 아직 없는 항목 — 눌러도 갈 곳이 없어 링크를 걸지 않는다 */
+  isComingSoon?: boolean;
   /** 요약 응답에서 이 항목의 수치를 꺼낸다 */
   pick: (summary: FinanceSummary) => SummaryNumbers;
   /** 우측 두 번째 수치의 이름 — 정산 현황만 '전체' 가 아니라 '진행 중' 이다 */
@@ -51,6 +53,8 @@ const ITEMS: FinanceItem[] = [
     description:
       '홈택스 또는 CSV 로 수집한 세금계산서를 정산 블록에 연결합니다.',
     href: FINANCE_ROUTES.taxInvoices,
+    // ⛔ 백엔드가 필터 옵션만 구현돼 있다 (#16 · #17 대기)
+    isComingSoon: true,
     pick: (summary) => summary.taxInvoice,
     totalLabel: '전체',
   },
@@ -60,6 +64,8 @@ const ITEMS: FinanceItem[] = [
     description:
       '정산이 끝나지 않은 프로젝트를 한눈에 확인합니다. 미연결 경고를 제공합니다.',
     href: FINANCE_ROUTES.settlements,
+    // ⛔ 화면 미구현 (#18)
+    isComingSoon: true,
     // 정산 현황만 두 번째 수치가 '진행 중 프로젝트' 다
     pick: (summary) => ({
       unlinkedCount: summary.settlement.unlinkedCount,
@@ -128,18 +134,20 @@ function FinanceRow({
   count: SummaryNumbers | null;
   hasFailed: boolean;
 }) {
-  return (
-    <Link
-      href={item.href}
-      className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-bg-surface"
-    >
+  const body = (
+    <>
       <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-bg-surface text-text-secondary">
         <FinanceIconMark icon={item.icon} />
       </span>
 
       <span className="min-w-0 flex-1">
-        <span className="block text-body-m font-bold text-text-primary">
-          {item.label}
+        <span className="flex items-center gap-2">
+          <span className="text-body-m font-bold text-text-primary">
+            {item.label}
+          </span>
+          {item.isComingSoon && (
+            <span className="badge badge-gray">준비 중</span>
+          )}
         </span>
         <span className="mt-0.5 block text-label break-keep text-text-secondary">
           {item.description}
@@ -147,6 +155,25 @@ function FinanceRow({
       </span>
 
       <SummaryCount item={item} count={count} hasFailed={hasFailed} />
+    </>
+  );
+
+  /**
+   * ⚠️ 화면이 없는 항목은 **링크를 걸지 않는다** — 눌러서 빈 화면을 만나는 것보다
+   *    `준비 중` 을 보고 안 누르는 편이 낫다. 수치는 그대로 보여준다.
+   */
+  if (item.isComingSoon) {
+    return (
+      <div className="flex items-center gap-4 px-5 py-4 opacity-60">{body}</div>
+    );
+  }
+
+  return (
+    <Link
+      href={item.href}
+      className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-bg-surface"
+    >
+      {body}
       <ChevronIcon />
     </Link>
   );

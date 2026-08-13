@@ -12,21 +12,26 @@ import { Skeleton, SkeletonField, SkeletonGroup } from '@/components/Skeleton';
  *    폴백이 실제 표로 바뀌는 순간 열이 튀었다. 맞춰야 할 값은 폭뿐이다.
  */
 const EMPLOYEE_COLUMNS: DataTableSkeletonColumn[] = [
-  { key: 'select', header: '', width: '3rem', skeletonWidth: 'w-4' },
+  { key: 'select', header: '', width: '5%', skeletonWidth: 'w-4' },
   {
     key: 'name',
     header: '이름 · 사번',
-    width: '11rem',
+    width: '22%',
     skeletonWidth: 'w-24',
   },
-  { key: 'department', header: '부서 · 직급', skeletonWidth: 'w-40' },
-  { key: 'role', header: '권한', width: '6rem', skeletonWidth: 'w-14' },
-  { key: 'email', header: '이메일', width: '14rem', skeletonWidth: 'w-40' },
-  { key: 'status', header: '상태', width: '6rem', skeletonWidth: 'w-12' },
+  {
+    key: 'department',
+    header: '부서 · 직급',
+    width: '20%',
+    skeletonWidth: 'w-40',
+  },
+  { key: 'role', header: '권한', width: '11%', skeletonWidth: 'w-14' },
+  { key: 'email', header: '이메일', width: '25%', skeletonWidth: 'w-40' },
+  { key: 'status', header: '상태', width: '11%', skeletonWidth: 'w-12' },
   {
     key: 'menu',
     header: '',
-    width: '3.5rem',
+    width: '6%',
     align: 'right',
     skeletonWidth: 'w-6',
   },
