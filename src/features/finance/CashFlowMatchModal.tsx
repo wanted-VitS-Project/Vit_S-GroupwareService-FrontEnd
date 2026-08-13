@@ -21,7 +21,7 @@ import {
 } from './types';
 
 /**
- * 입출금 내역을 정산 블록에 연결하는 모달. (#15)
+ * 입출금 내역을 정산 블록에 연결하는 모달. (#14)
  *
  * ⚠️ 연결 대상은 프로젝트가 아니라 **정산 블록(회차)** 이다.
  * ⚠️ 추천은 최대 5건뿐이라 **후보에 없으면 여기서는 연결할 수 없다** —
@@ -244,10 +244,10 @@ function CandidateOption({
       />
 
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-label font-semibold text-text-primary">
+        <span className="block text-label font-semibold [overflow-wrap:anywhere] break-keep text-text-primary">
           {candidate.projectName}
         </span>
-        <span className="mt-0.5 block truncate text-caption text-text-secondary">
+        <span className="mt-0.5 block text-caption break-keep text-text-secondary">
           {candidate.roundName} · {candidate.traderName}
         </span>
 

@@ -1,13 +1,13 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
+import Breadcrumb from '@/components/Breadcrumb';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
-import RowMenu from '@/components/RowMenu';
 import { notifyToast } from '@/components/Toast';
-import { notifyBlockChanged } from '@/features/block/events';
 import { messageOf } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import { useModalTarget } from '@/lib/useModal';
@@ -16,13 +16,12 @@ import {
   deleteCashFlows,
   getCashFlowFilterOptions,
   getCashFlows,
-  unmatchCashFlow,
   updateCashFlowExclusion,
 } from './api';
 import CashFlowFormModal, {
   type CashFlowFormTarget,
 } from './CashFlowFormModal';
-import CashFlowMatchModal from './CashFlowMatchModal';
+import { FINANCE_ROUTES } from './routes';
 import {
   CASH_FLOW_AMOUNT_COLOR,
   CASH_FLOW_LINK_BADGE,
@@ -125,10 +124,6 @@ export default function CashFlowList() {
   const [selectedKey, setSelectedKey] = useState('');
   /** 삭제 확인 — 대상이 있어야 열린다 */
   const deleteConfirm = useModalTarget<number[]>();
-  /** 연결 해제 확인 */
-  const unmatchConfirm = useModalTarget<CashFlowItem>();
-  /** 정산 블록 매칭 모달 */
-  const matchModal = useModalTarget<CashFlowItem>();
   const [isBusy, setIsBusy] = useState(false);
 
   /**
@@ -250,24 +245,6 @@ export default function CashFlowList() {
     }
   }
 
-  async function unmatch(row: CashFlowItem) {
-    if (isBusy) return;
-    setIsBusy(true);
-
-    try {
-      await unmatchCashFlow(row.cashFlowId);
-      notifyToast('정산 블록 연결을 해제했습니다.');
-      setReloadCount((count) => count + 1);
-      // 열려 있는 프로젝트 보드의 정산 블록도 잠금이 풀려야 한다
-      notifyBlockChanged();
-    } catch (caught) {
-      notifyToast(messageOf(caught, '연결을 해제하지 못했습니다.'), 'error');
-    } finally {
-      setIsBusy(false);
-      unmatchConfirm.close();
-    }
-  }
-
   const visibleIds = rows?.map((row) => row.cashFlowId) ?? [];
   const isAllSelected =
     visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
@@ -284,22 +261,11 @@ export default function CashFlowList() {
               : [...prev, id],
           ),
         onToggleAll: () => setSelectedIds(isAllSelected ? [] : visibleIds),
-        onEdit: (row) => formModal.open(row),
-        onMatch: (row) => matchModal.open(row),
-        onUnmatch: (row) => unmatchConfirm.open(row),
-        onDelete: (row) => deleteConfirm.open([row.cashFlowId]),
       }),
     // `visibleIds` 는 매 렌더 새 배열이라 넣으면 열이 매번 다시 만들어진다.
     // 값이 바뀌는 순간은 `rows` 가 바뀔 때뿐이므로 그것만 본다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      selectedIds,
-      isAllSelected,
-      rows,
-      formModal,
-      unmatchConfirm,
-      deleteConfirm,
-    ],
+    [selectedIds, isAllSelected, rows],
   );
 
   /** 필터를 바꾸면 URL 만 갈아끼운다 (페이징이 없어 되돌릴 페이지도 없다) */
@@ -324,7 +290,12 @@ export default function CashFlowList() {
        */}
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-caption text-text-secondary">재무 관리</p>
+          <Breadcrumb
+            items={[
+              { label: '재무 관리', href: FINANCE_ROUTES.hub },
+              { label: '입출금 내역' },
+            ]}
+          />
           <h2 className="mt-1 text-heading-m font-bold">입출금 내역</h2>
           <p className="mt-1.5 text-caption break-keep text-text-secondary">
             입출금을 등록·조회하고 정산 블록에 연결합니다.
@@ -332,15 +303,12 @@ export default function CashFlowList() {
         </div>
 
         <div className="flex shrink-0 gap-2">
-          {/* ⚠️ 외부 API 조회는 백엔드가 아직 없다 — 사유를 남기고 막아 둔다 */}
-          <button
-            type="button"
-            disabled
-            title="외부 API 조회 기능은 준비 중입니다"
-            className="btn btn-sm btn-gray-outlined"
+          <Link
+            href={FINANCE_ROUTES.cashFlowImport}
+            className="btn btn-sm btn-primary-outlined"
           >
-            외부 API 조회
-          </button>
+            CSV 등록
+          </Link>
           <button
             type="button"
             onClick={() => formModal.open('create')}
@@ -419,6 +387,9 @@ export default function CashFlowList() {
           columns={columns}
           rows={hasFailed ? [] : (rows ?? [])}
           rowKey={(row) => row.cashFlowId}
+          onRowClick={(row) =>
+            router.push(FINANCE_ROUTES.cashFlowDetail(row.cashFlowId))
+          }
           // 열이 10개다 — 여백을 줄여(`dense`) 가로 스크롤 없이 담는다
           dense
           skeletonRows={10}
@@ -462,33 +433,6 @@ export default function CashFlowList() {
         />
       )}
 
-      {unmatchConfirm.target && (
-        <AlertDialogTwoButton
-          icon={DialogIcons.warning}
-          title="정산 블록 연결을 해제할까요?"
-          description="해제하면 이 내역은 미연결 상태로 돌아갑니다. 다시 연결할 수 있습니다."
-          confirmLabel="연결 해제"
-          isBusy={isBusy}
-          onConfirm={() => {
-            const target = unmatchConfirm.target;
-            if (target) void unmatch(target);
-          }}
-          onCancel={unmatchConfirm.close}
-        />
-      )}
-
-      {matchModal.target && (
-        <CashFlowMatchModal
-          cashFlow={matchModal.target}
-          onClose={matchModal.close}
-          onMatched={() => {
-            matchModal.close();
-            notifyToast('정산 블록에 연결했습니다.');
-            setReloadCount((count) => count + 1);
-          }}
-        />
-      )}
-
       {formModal.target && (
         <CashFlowFormModal
           target={formModal.target}
@@ -520,19 +464,11 @@ function buildColumns({
   isAllSelected,
   onToggle,
   onToggleAll,
-  onEdit,
-  onMatch,
-  onUnmatch,
-  onDelete,
 }: {
   selectedIds: number[];
   isAllSelected: boolean;
   onToggle: (cashFlowId: number) => void;
   onToggleAll: () => void;
-  onEdit: (row: CashFlowItem) => void;
-  onMatch: (row: CashFlowItem) => void;
-  onUnmatch: (row: CashFlowItem) => void;
-  onDelete: (row: CashFlowItem) => void;
 }): DataTableColumn<CashFlowItem>[] {
   return [
     {
@@ -563,7 +499,7 @@ function buildColumns({
     {
       key: 'tradedAt',
       header: '거래일시',
-      width: '11%',
+      width: '12%',
       skeletonWidth: 'w-28',
       // 날짜 · 시각을 한 줄에 둔다 — 행 높이를 한 줄로 못 박아 헤더와 어긋나지 않게 한다
       cell: (row) => (
@@ -588,14 +524,16 @@ function buildColumns({
       header: '금액',
       width: '10%',
       /**
-       * ⚠️ 오른쪽 정렬하지 않는다 — 자릿수를 맞춰 읽는 회계 표가 아니라 **한 건씩 확인하는
-       *    목록**이고, 오른쪽에 붙으면 옆 열(입금자명)과 붙어 보인다. 왼쪽으로 통일한다.
+       * 금액은 **오른쪽 정렬**이다 — 자릿수가 세로로 맞아 크기를 눈으로 비교할 수 있다.
+       * 열을 1%p 넉넉히 잡아 옆 열(입금자명)과 붙어 보이지 않게 한다.
        */
+      align: 'right',
       skeletonWidth: 'w-20',
       // 출금은 금액도 빨갛게 — 통장처럼 나가는 돈이 바로 보여야 한다
       cell: (row) => (
         <span
-          className={`block font-semibold ${CASH_FLOW_AMOUNT_COLOR[row.type]}`}
+          // `tabular-nums` — 숫자 폭이 같아져 자릿수가 반듯하게 맞는다
+          className={`block font-semibold tabular-nums ${CASH_FLOW_AMOUNT_COLOR[row.type]}`}
         >
           {formatAmount(row.amount)}
         </span>
@@ -603,13 +541,26 @@ function buildColumns({
     },
     {
       key: 'depositorName',
-      header: '입금자명',
-      width: '12%',
+      /**
+       * ⚠️ 헤더와 칸에 **같은 왼쪽 여백**(`pl-3`)을 준다 — 앞 열(금액)이 오른쪽 정렬이라
+       *    숫자 끝과 이름 시작이 붙어 보인다. 한쪽에만 주면 헤더와 값이 어긋난다.
+       */
+      header: <span className="block pl-3">입금자명</span>,
+      width: '13%',
       skeletonWidth: 'w-24',
+      /**
+       * 링크 클릭이 행 클릭으로 번지면 **같은 이동이 두 번** 일어난다.
+       * 칸 자체에 동작이 있으므로 행 클릭에서 떼어 낸다.
+       */
+      stopRowClick: true,
+      /** 행 클릭만으로는 키보드로 갈 수 없다 — 칸 안에 링크를 함께 둔다 */
       cell: (row) => (
-        <span className="block [overflow-wrap:anywhere] break-keep text-text-primary">
+        <Link
+          href={FINANCE_ROUTES.cashFlowDetail(row.cashFlowId)}
+          className="block pl-3 font-semibold [overflow-wrap:anywhere] break-keep text-text-primary hover:underline"
+        >
           {row.depositorName || '-'}
-        </span>
+        </Link>
       ),
     },
     {
@@ -655,39 +606,9 @@ function buildColumns({
        */
       key: 'linkDetail',
       header: '연결 정보',
-      width: '21%',
+      width: '24%',
       skeletonWidth: 'w-40',
       cell: (row) => <LinkDetailCell row={row} />,
-    },
-    {
-      key: 'actions',
-      header: '',
-      width: '5%',
-      align: 'right',
-      skeletonWidth: 'w-6',
-      // 칸 자체에 동작이 있어 행 클릭으로 새지 않게 막는다
-      stopRowClick: true,
-      cell: (row) => (
-        <RowMenu
-          label={`${row.depositorName} 내역`}
-          width={116}
-          items={[
-            { label: '수정', onSelect: () => onEdit(row) },
-            /**
-             * 연결 · 해제는 **상태에 따라 하나만** 둔다 — 이미 연결된 건에 매칭을 부르면
-             * 400(`FINANCE_CASH_FLOW_ALREADY_MATCHED`), 미연결 건에 해제를 부르면
-             * 400(`FINANCE_CASH_FLOW_NOT_MATCHED`) 이다. 누를 수 없게 하는 편이 낫다.
-             *
-             * ⚠️ **블록이 삭제된 건(`LINK_BLOCK_DELETED`)도 해제 쪽이다** — 서버는 여전히
-             *    매칭된 것으로 보므로, 먼저 끊어야 다른 블록에 다시 붙일 수 있다.
-             */
-            ...(row.linkStatus === 'UNLINKED'
-              ? [{ label: '정산 블록 연결', onSelect: () => onMatch(row) }]
-              : [{ label: '연결 해제', onSelect: () => onUnmatch(row) }]),
-            { label: '삭제', danger: true, onSelect: () => onDelete(row) },
-          ]}
-        />
-      ),
     },
   ];
 }

@@ -312,10 +312,10 @@ const NOTICE_COLUMNS: DataTableColumn<BidNoticeListItem>[] = [
     cell: (row) => (
       <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
         {/**
-         * 배지는 **칸 오른쪽 끝**에 붙인다 (`ml-auto`) — 날짜 · 시각 길이가 행마다 달라도
-         * 배지는 같은 자리에 서서 세로로 훑어 읽힌다.
+         * ⚠️ 배지를 칸 오른쪽 끝(`ml-auto`)으로 밀지 않는다 — 날짜와 멀어져 한 덩어리로
+         *    읽히지 않는다. 날짜 칸에 **고정 폭**을 줘서 배지 위치만 세로로 맞춘다.
          */}
-        <span className="text-text-secondary">
+        <span className="w-32 shrink-0 text-text-secondary">
           {formatDate(row.bidDeadlineAt) || '-'}
           {formatTime(row.bidDeadlineAt) && (
             <span className="ml-1 text-detail text-text-muted">
@@ -323,9 +323,7 @@ const NOTICE_COLUMNS: DataTableColumn<BidNoticeListItem>[] = [
             </span>
           )}
         </span>
-        <span className="ml-auto">
-          <DeadlineBadge dDay={row.dDay} />
-        </span>
+        <DeadlineBadge dDay={row.dDay} />
       </span>
     ),
   },

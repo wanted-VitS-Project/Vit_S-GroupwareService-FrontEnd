@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+
+import Breadcrumb from '@/components/Breadcrumb';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -189,15 +191,12 @@ export default function EmployeeList() {
 
   return (
     <>
-      <p className="text-label text-text-secondary">
-        <Link
-          href="/settings"
-          className="hover:text-text-primary hover:underline"
-        >
-          전사 관리
-        </Link>{' '}
-        &gt; 사원 관리
-      </p>
+      <Breadcrumb
+        items={[
+          { label: '전사 관리', href: '/settings' },
+          { label: '사원 관리' },
+        ]}
+      />
 
       <div className="mt-2 mb-6 flex items-start justify-between gap-4">
         <div className="min-w-0">

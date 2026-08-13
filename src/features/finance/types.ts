@@ -58,11 +58,12 @@ export const CASH_FLOW_SOURCE_LABELS: Record<CashFlowSource, string> = {
  */
 export type CashFlowLinkStatus = 'UNLINKED' | 'LINKED' | 'LINK_BLOCK_DELETED';
 
-export const CASH_FLOW_LINK_STATUS_LABELS: Record<CashFlowLinkStatus, string> = {
-  UNLINKED: '미연결',
-  LINKED: '연결됨',
-  LINK_BLOCK_DELETED: '블록 삭제됨',
-};
+export const CASH_FLOW_LINK_STATUS_LABELS: Record<CashFlowLinkStatus, string> =
+  {
+    UNLINKED: '미연결',
+    LINKED: '연결됨',
+    LINK_BLOCK_DELETED: '블록 삭제됨',
+  };
 
 /**
  * 입출금 내역 목록 행 (`GET /finance/cash-flows`, 2026-08-12 스웨거 실측).
@@ -192,4 +193,83 @@ export interface CashFlowFilterOptions {
 export interface ProjectOption {
   projectId: number;
   projectName: string;
+}
+
+/* ────────────────────────── CSV 업로드 (#13) ────────────────────────── */
+
+/**
+ * 일시 입력 방식.
+ * `SINGLE` 은 `2026-07-15 10:30` 한 칸, `SEPARATE` 는 날짜 칸과 시간 칸이 나뉜 파일이다.
+ */
+export type CsvDateTimeMode = 'SINGLE' | 'SEPARATE';
+
+/**
+ * 금액 입력 방식.
+ * `SINGLE_WITH_TYPE` 은 `금액` + `입출금 구분` 두 칸, `SEPARATE` 는 `입금액` · `출금액` 두 칸이다.
+ */
+export type CsvAmountMode = 'SINGLE_WITH_TYPE' | 'SEPARATE';
+
+/**
+ * 컬럼 매핑. **CSV 의 컬럼명**을 담는다 (값이 아니다).
+ * 쓰지 않는 칸은 `null` — 방식(`mode`)에 따라 필요한 칸이 갈린다.
+ */
+export interface CsvColumnMapping {
+  /** `SINGLE` 일 때 */
+  tradedDateTimeColumn: string | null;
+  /** `SEPARATE` 일 때 */
+  tradedDateColumn: string | null;
+  tradedTimeColumn: string | null;
+  /** `SINGLE_WITH_TYPE` 일 때 */
+  amountColumn: string | null;
+  typeColumn: string | null;
+  /** `SEPARATE` 일 때 */
+  incomeAmountColumn: string | null;
+  outcomeAmountColumn: string | null;
+  /** 적요 · 입금자명 · 잔액은 있으면 좋고 없어도 된다 */
+  memoColumn: string | null;
+  depositorColumn: string | null;
+  balanceColumn: string | null;
+}
+
+/** 미리보기 응답 (`POST /finance/cash-flows/csv/preview`) */
+export interface CsvPreview {
+  /** 파일에 있는 전체 컬럼명 */
+  columns: string[];
+  /** 은행명 셀렉트에 채울 목록 — 비어 있을 수 있어 직접 입력도 함께 둔다 */
+  bankOptions: string[];
+  /** 상위 5행 (컬럼명 → 값) */
+  sampleRows: Record<string, string>[];
+  recommendedDateTimeMode: CsvDateTimeMode;
+  recommendedAmountMode: CsvAmountMode;
+  recommendedMapping: CsvColumnMapping;
+}
+
+/**
+ * 업로드 요청의 `request` 파트 — **JSON 문자열로 담아 보낸다** (파일과 함께 multipart).
+ *
+ * ⚠️ 이 모양은 **스웨거에 스키마가 없다** (`request: string` 으로만 적혀 있다).
+ *    미리보기 응답의 키와 같은 이름을 쓴다고 보고 맞췄다 — 400 이 나면 여기부터 본다.
+ */
+export interface CsvUploadRequest extends CsvColumnMapping {
+  bankName: string;
+  dateTimeMode: CsvDateTimeMode;
+  amountMode: CsvAmountMode;
+  /** 비밀번호가 걸린 엑셀만 */
+  password?: string;
+}
+
+/** 업로드 결과 (`POST /finance/cash-flows/csv`) */
+export interface CsvUploadResult {
+  totalRows: number;
+  savedCount: number;
+  /** 이미 등록된 거래라 건너뛴 건수 */
+  duplicateCount: number;
+  duplicateRows: CsvDuplicateRow[];
+}
+
+export interface CsvDuplicateRow {
+  tradedAt: string;
+  amount: number;
+  /** 서버가 준 사유 문구를 그대로 보여준다 */
+  reason: string;
 }

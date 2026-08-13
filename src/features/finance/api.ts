@@ -5,7 +5,7 @@
  *    두 가지가 이 도메인의 다른 화면들과 가장 다른 점이다.
  */
 import { ENDPOINTS } from '@/constants/endpoints';
-import { api } from '@/lib/api';
+import { api, postForm } from '@/lib/api';
 
 import type {
   CashFlowFilterOptions,
@@ -14,6 +14,9 @@ import type {
   CashFlowListResponse,
   CashFlowSkippedItem,
   CreateCashFlowRequest,
+  CsvPreview,
+  CsvUploadRequest,
+  CsvUploadResult,
   FinanceSummary,
   MatchCandidateResponse,
   UpdateCashFlowRequest,
@@ -150,4 +153,49 @@ export function matchCashFlow(cashFlowId: number, settleId: number) {
  */
 export function unmatchCashFlow(cashFlowId: number) {
   return api.patch<unknown>(ENDPOINTS.finance.cashFlows.unmatch(cashFlowId));
+}
+
+/**
+ * CSV · 엑셀 컬럼 추천 조회 — **파일은 저장되지 않는다.**
+ *
+ * ⚠️ 비밀번호가 걸린 엑셀이면 400(`FINANCE_CSV_PASSWORD_REQUIRED`) 이 온다.
+ *    비밀번호를 받아 같은 파일로 다시 부른다 (`FINANCE_CSV_PASSWORD_INVALID` 는 틀린 경우).
+ * ⚠️ 형식이 아니면 **404**(`FINANCE_INVALID_CSV_FILE`) 다 — 400 이 아니다.
+ */
+export function previewCashFlowCsv(
+  file: File,
+  password?: string,
+  signal?: AbortSignal,
+) {
+  const form = new FormData();
+  form.append('file', file);
+  if (password) form.append('password', password);
+
+  return postForm<CsvPreview>(
+    ENDPOINTS.finance.cashFlows.csvPreview,
+    form,
+    signal,
+  );
+}
+
+/**
+ * 매핑을 확정해 저장한다.
+ *
+ * ⚠️ 매핑은 **JSON 문자열**로 `request` 파트에 담는다 (파일과 같은 multipart).
+ * ⚠️ 이미 등록된 거래는 저장되지 않고 `duplicateRows` 로 돌아온다 — 실패가 아니다.
+ */
+export function uploadCashFlowCsv(
+  file: File,
+  request: CsvUploadRequest,
+  signal?: AbortSignal,
+) {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('request', JSON.stringify(request));
+
+  return postForm<CsvUploadResult>(
+    ENDPOINTS.finance.cashFlows.csv,
+    form,
+    signal,
+  );
 }

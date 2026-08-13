@@ -5269,7 +5269,7 @@ data: {
 | `GET`    | `/finance/cash-flows/{cashFlowId}/match-candidates` | 매칭 추천 (최대 5건) |
 | `PATCH`  | `/finance/cash-flows/{cashFlowId}/match`      | 정산 블록 연결             |
 | `PATCH`  | `/finance/cash-flows/{cashFlowId}/unmatch`    | 연결 해제                  |
-| `POST`   | `/finance/cash-flows/csv/preview` · `/csv`    | CSV 미리보기 · 업로드 (#14) |
+| `POST`   | `/finance/cash-flows/csv/preview` · `/csv`    | CSV 미리보기 · 업로드 (#13) |
 
 ### 요약 응답 (`GET /finance/summary`)
 
@@ -5333,6 +5333,33 @@ body 는 등록과 같은 모양이고 전부 선택이다.
 
 추천 후보(`match-candidates`)는 **정산 블록** 단위이고 `matchTags`(`["금액 일치", "상호명 일치"]`)로 추천 이유가 함께 온다.
 
+
+### CSV · 엑셀 일괄 등록 (#13)
+
+| Method | Path                              | 요청                                        |
+| ------ | --------------------------------- | ------------------------------------------- |
+| `POST` | `/finance/cash-flows/csv/preview` | `multipart` — `file` (+ `password` 선택)     |
+| `POST` | `/finance/cash-flows/csv`         | `multipart` — `file` + `request`(**JSON 문자열**) |
+
+**미리보기 응답** — `columns[]` · `bankOptions[]` · `sampleRows[]`(상위 5행) ·
+`recommendedDateTimeMode`(`SINGLE`·`SEPARATE`) · `recommendedAmountMode`(`SINGLE_WITH_TYPE`·`SEPARATE`) ·
+`recommendedMapping`(각 컬럼 추천값, 없으면 `null`)
+
+**업로드 응답** — `totalRows` · `savedCount` · `duplicateCount` · `duplicateRows[]`(`tradedAt` · `amount` · `reason`)
+
+| status | code                            | 화면 처리                                   |
+| ------ | ------------------------------- | ------------------------------------------- |
+| 400    | `FINANCE_CSV_PASSWORD_REQUIRED` | **실패가 아니다** — 비밀번호 칸을 열고 재시도 |
+| 400    | `FINANCE_CSV_PASSWORD_INVALID`  | 같은 자리에서 다시 입력                      |
+| 400    | `FINANCE_CSV_MAPPING_REQUIRED`  | 필수 컬럼 매핑 누락                          |
+| **404** | `FINANCE_INVALID_CSV_FILE`     | ❗ **형식 오류가 404 다** — '없는 리소스' 가 아니다 |
+
+> ❗ **`request` 파트의 JSON 스키마가 스웨거에 없다.** 미리보기 응답의 키에 `bankName` ·
+> `dateTimeMode` · `amountMode` 를 더한 모양으로 보내고 있다 (`types.ts` 의 `CsvUploadRequest`).
+> ❗ **엑셀 시간 전용 셀이 `1899-12-31 HH:mm:ss` 로 파싱된다** — 엑셀이 시각만 있는 셀을
+> "0일차 + 시각" 으로 저장하기 때문이다. 시간 컬럼은 **시각만** 취해야 한다 (백엔드 대기).
+> ❗ **단건 조회 API 가 없다** — 상세 화면은 목록을 받아 그 안에서 찾는다.
+
 ### ⚠️ 백엔드 대기
 
 | 내용                                                                    |
@@ -5341,3 +5368,6 @@ body 는 등록과 같은 모양이고 전부 선택이다.
 | 목록 응답에 `bankName` 추가 (또는 단건 조회 API)                        |
 | 정산 블록 `detail` 에 **연결 여부 플래그** — 지금은 정산 상태로 추정한다 |
 | 세금계산서(`tax-invoices`)는 **필터 옵션만 구현**, 나머지는 개발 전     |
+| 엑셀 시간 전용 셀 파싱 (`1899-12-31 …`) — CSV 업로드가 막혀 있다        |
+| `request` 파트 JSON 스키마 공개                                         |
+| `GET /finance/cash-flows/{cashFlowId}` 단건 조회                        |
