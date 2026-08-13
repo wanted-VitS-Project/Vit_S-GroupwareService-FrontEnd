@@ -95,6 +95,8 @@ export default function ProjectSettings({ projectId }: { projectId: string }) {
   const haveMembersFailed =
     membersResult?.key === membersRequestKey &&
     Boolean(membersResult.hasFailed);
+  const hasBoardFailed =
+    boardResult?.key === requestKey && Boolean(boardResult.hasFailed);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -264,7 +266,7 @@ export default function ProjectSettings({ projectId }: { projectId: string }) {
           projectId={projectId}
           stages={currentBoard?.stages ?? null}
           steps={currentBoard?.steps ?? null}
-          hasFailed={currentBoard?.hasFailed ?? false}
+          hasFailed={hasBoardFailed}
           canEdit={canEdit}
           onChanged={reloadProject}
         />

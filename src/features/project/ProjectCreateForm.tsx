@@ -187,16 +187,21 @@ export default function ProjectCreateForm() {
    */
   async function addMembers(projectId: number) {
     let addedCount = 0;
+    let failedCount = 0;
 
     for (const member of members) {
-      await addProjectMember(projectId, {
-        userId: member.userId,
-        permission: member.permission,
-      });
-      addedCount += 1;
+      try {
+        await addProjectMember(projectId, {
+          userId: member.userId,
+          permission: member.permission,
+        });
+        addedCount += 1;
+      } catch {
+        failedCount += 1;
+      }
     }
 
-    return addedCount;
+    return { addedCount, failedCount };
   }
 
   async function submit(event: React.FormEvent) {
@@ -228,23 +233,15 @@ export default function ProjectCreateForm() {
       return;
     }
 
-    try {
-      const addedCount = await addMembers(created.projectId);
+    const { addedCount, failedCount } = await addMembers(created.projectId);
 
-      notifyToast(
-        addedCount > 0
+    notifyToast(
+      failedCount > 0
+        ? `프로젝트를 생성하고 참여자 ${addedCount}명을 추가했습니다. ${failedCount}명은 추가하지 못했으니 설정 화면에서 다시 추가해주세요.`
+        : addedCount > 0
           ? `프로젝트를 생성하고 참여자 ${addedCount}명을 추가했습니다.`
           : '프로젝트를 생성했습니다.',
-      );
-    } catch (caught) {
-      // 프로젝트는 이미 만들어졌다 — 남은 참여자는 설정 화면에서 이어서 추가한다
-      notifyToast(
-        messageOf(
-          caught,
-          '프로젝트는 생성했지만 일부 참여자를 추가하지 못했습니다. 설정 화면에서 추가해주세요.',
-        ),
-      );
-    }
+    );
 
     // 뒤로 가기로 빈 폼에 돌아오지 않게 `replace` 로 상세를 연다
     router.replace(PROJECT_ROUTES.detail(created.projectId));

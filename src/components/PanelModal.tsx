@@ -13,7 +13,7 @@ import Modal from '@/components/Modal';
  */
 export function ModalFooter({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-end gap-4 border-t border-border-default bg-bg-surface px-5 py-3.5 [&_button:last-child]:min-w-[104px]">
+    <div className="flex items-center justify-end gap-4 border-t border-border-default bg-bg-surface px-5 py-3.5 [&_button:last-of-type]:min-w-[104px]">
       {children}
     </div>
   );

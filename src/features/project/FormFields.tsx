@@ -111,7 +111,7 @@ export function TextField({
         aria-required={required || undefined}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy(id, error, hint)}
-        className={controlClass(error !== undefined)}
+        className={controlClass(Boolean(error))}
       />
     </FieldShell>
   );
@@ -167,7 +167,7 @@ export function AmountField({
           aria-required={required || undefined}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy(id, error, hint)}
-          className={`${controlClass(error !== undefined)} pr-8`}
+          className={`${controlClass(Boolean(error))} pr-8`}
         />
         <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-micro text-text-secondary">
           원
@@ -203,7 +203,7 @@ export function TextareaField({
         aria-required={required || undefined}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy(id, error, hint)}
-        className={`${controlClass(error !== undefined)} textarea`}
+        className={`${controlClass(Boolean(error))} textarea`}
       />
     </FieldShell>
   );
