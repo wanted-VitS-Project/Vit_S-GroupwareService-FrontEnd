@@ -905,6 +905,7 @@ data: {
 
 > ℹ️ **이름 오름차순 고정**이고 **페이징 · 정렬 파라미터가 없다** — 화면은 전체를 받아 스크롤로 보여준다.
 > ℹ️ 0건이면 빈 배열. `data.categories` 로 한 겹 감싸져 있어 `api.ts` 에서 벗겨 반환한다.
+> 🗑️ **`includeDeleted=true` 면 같은 `name` · `code` 가 두 줄 나올 수 있다** (D-7 · 2026-08-13) — 삭제분과 같은 이름의 활성 행이 공존한다. 정상이다. `deletedAt` 으로 갈라 **삭제 행을 흐리게 처리하고 하단으로 내린다**. `categoryId` 가 달라 행 key 는 충돌하지 않는다.
 
 | status | code                           | 화면 처리         |
 | ------ | ------------------------------ | ----------------- |
@@ -939,6 +940,9 @@ data: {
 | 403    | `BUSINESS_CATEGORY_ADMIN_ONLY`                                            | `/forbidden` 이동 |
 | 409    | `BUSINESS_CATEGORY_NAME_DUPLICATED` · `BUSINESS_CATEGORY_CODE_DUPLICATED` | 해당 입력에 표시  |
 
+> 🗑️ **중복 판정은 활성 행(`deletedAt == null`)만 대상이다** (D-7 · 2026-08-13) — 삭제했던 이름 · 업무코드를 그대로 다시 보내면 **201 로 생성된다**. 복구(restore) 엔드포인트는 없고 **재등록이 곧 재사용 경로**다. 옛 행은 이력으로 남는다.
+> ⚠️ 삭제분을 알리던 `"삭제된 카테고리에 같은 이름이…"` 문구는 **더 이상 오지 않는다** — 409 는 `message` 가 아니라 `code` 로 가른다.
+
 ---
 
 ## 17. 사업 카테고리 수정
@@ -969,6 +973,8 @@ data: {
 | 403    | `BUSINESS_CATEGORY_ADMIN_ONLY`                                                                  | `/forbidden` 이동 |
 | 404    | `BUSINESS_CATEGORY_NOT_FOUND`                                                                   | 목록 재조회       |
 | 409    | `BUSINESS_CATEGORY_NAME_DUPLICATED` · `BUSINESS_CATEGORY_CODE_DUPLICATED`                       | 해당 입력에 표시  |
+
+> 🗑️ 생성과 같이 **삭제분과는 이름 · 업무코드가 충돌하지 않는다** (D-7 · 2026-08-13) — 409 는 활성 행끼리만 난다.
 
 ---
 
