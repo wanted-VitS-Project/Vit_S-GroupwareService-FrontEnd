@@ -1,9 +1,9 @@
 /** 사업 카테고리 응답 코드 단일 소스. (.ai/API.md 15~18) */
 
 export const CATEGORY_CODES = {
-  /** 409 — 이름 중복 */
+  /** 409 — 이름 중복. 활성 행끼리만 난다 — 삭제분은 충돌로 보지 않는다 */
   nameDuplicated: 'BUSINESS_CATEGORY_NAME_DUPLICATED',
-  /** 409 — 업무코드 중복 */
+  /** 409 — 업무코드 중복. 이름과 같이 활성 행만 대상이다 */
   codeDuplicated: 'BUSINESS_CATEGORY_CODE_DUPLICATED',
   /** 409 — 연결된 프로젝트가 있어 삭제 불가 (건수는 message 문구에 포함) */
   inUse: 'BUSINESS_CATEGORY_IN_USE',

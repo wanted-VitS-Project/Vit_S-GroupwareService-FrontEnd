@@ -50,7 +50,16 @@ export default function CategoryList() {
   const requestKey = `${reloadCount} ${includeDeleted} ${search}`;
   /** 지금 조건의 결과만 화면에 쓴다 — 이전 요청 결과는 로딩으로 본다 */
   const current = result?.key === requestKey ? result : null;
-  const categories = current?.list ?? null;
+  /**
+   * 🗑️ 삭제분은 이력일 뿐이라 활성 행 아래로 내린다 — 삭제한 이름을 다시 등록할 수 있어
+   * 같은 이름이 두 줄 보일 수 있고, 그때 위쪽이 지금 쓰는 행이어야 한다.
+   * `sort` 는 안정 정렬이라 백엔드의 이름 오름차순은 각 묶음 안에서 유지된다.
+   */
+  const categories = current?.list
+    ? [...current.list].sort(
+        (a, b) => Number(Boolean(a.deletedAt)) - Number(Boolean(b.deletedAt)),
+      )
+    : null;
   const hasFailed = current?.hasFailed ?? false;
 
   useEffect(() => {
@@ -207,6 +216,8 @@ export default function CategoryList() {
         ]}
         rows={hasFailed ? [] : categories}
         rowKey={(category) => category.categoryId}
+        // 삭제 행은 흐리게 — 이름이 겹치면 배지만으론 덜 띈다
+        rowClassName={(category) => (category.deletedAt ? 'opacity-60' : '')}
         // 목록이 길어지면 표 영역만 스크롤된다
         maxHeight="60vh"
         errorMessage={hasFailed ? '카테고리를 불러오지 못했습니다.' : undefined}
