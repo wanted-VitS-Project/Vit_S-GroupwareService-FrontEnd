@@ -58,6 +58,40 @@
 
 ---
 
+## [2026-08-13] 재무 — 입출금 CSV 일괄 등록 🚧 진행 중
+
+브랜치: `feat/finance` · 이슈: #14
+근거: 스웨거 실측 (`/csv/preview` · `/csv`)
+
+### 변경 파일
+
+| 파일                                          | 변경                                                     |
+| --------------------------------------------- | -------------------------------------------------------- |
+| `src/features/finance/CashFlowCsvImport.tsx`  | **생성** (3단 스텝퍼 · 파일 선택 · 결과)                 |
+| `src/features/finance/CashFlowCsvMapping.tsx` | **생성** (컬럼 매핑 · 미리보기)                          |
+| `src/features/finance/errorCodes.ts`          | **생성** (`FINANCE_*` — 비밀번호 · 형식 · 매칭 코드)     |
+| `src/components/Breadcrumb.tsx`               | **생성** (상단 경로 — 아래 `목록으로` 버튼을 대신한다)   |
+| `src/features/finance/types.ts` · `api.ts`    | 수정 (CSV 타입 · `previewCashFlowCsv` · `uploadCashFlowCsv`) |
+| `src/app/finance/payments/import/page.tsx`    | 수정 (stub → 화면 연결)                                   |
+| `src/features/finance/CashFlowList.tsx`       | 수정 (`CSV 등록` 진입점 · `외부 API 조회` 제거 · 브레드크럼 · 행 메뉴 제거 후 상세 링크) |
+| `src/features/finance/CashFlowDetail.tsx`     | **생성** (상세 — 거래고유번호 · 수정 · 연결 · 해제 · 삭제) |
+| `src/app/finance/payments/[cashFlowId]/page.tsx` | **생성** (상세 라우트)                                 |
+| `src/features/*/{7개 목록}`                   | 수정 (상단 경로를 공용 `Breadcrumb` 로 통일)              |
+
+### 주요 작업 내용
+
+- **3단 스텝퍼** — 파일 선택 → 컬럼 맞추기 → 결과. 1단계 파일은 저장되지 않는다(추천용 미리보기)
+- **비밀번호 걸린 엑셀** — 400 을 실패로 다루지 않고 비밀번호 칸을 열어 같은 파일로 다시 부른다
+- **컬럼 매핑** — 일시 · 금액 두 방식을 라디오로 고르고 방식에 맞는 칸만 그린다. 모든 셀렉트에 `직접 입력`, 적요 · 거래 후 잔액에 `선택 안 함`
+- **결과** — 전체 · 등록 · 중복 제외 건수와 중복 목록(사유 포함). **중복은 실패가 아니다**
+
+### 남은 것 (동작 확인 전)
+
+- 🔴 **백엔드** — 엑셀 시간 전용 셀이 `1899-12-31 HH:mm:ss` 로 파싱돼 업로드가 실패한다. 시간 컬럼은 시각만 취해야 한다
+- ⏳ 업로드 `request` 파트 JSON 스키마가 스웨거에 없어 필드명을 추정했다 (`CsvUploadRequest`)
+
+---
+
 ## [2026-08-13] 재무 — 입출금 내역 · 정산 블록 매칭 ✅
 
 브랜치: `feat/finance` · 이슈: #12 #15

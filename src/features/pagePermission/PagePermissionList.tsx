@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Breadcrumb from '@/components/Breadcrumb';
 import { useEffect, useState } from 'react';
 
 import DataTable from '@/components/DataTable';
@@ -114,15 +114,12 @@ export default function PagePermissionList() {
 
   return (
     <>
-      <p className="text-label text-text-secondary">
-        <Link
-          href="/settings"
-          className="hover:text-text-primary hover:underline"
-        >
-          전사 관리
-        </Link>{' '}
-        &gt; 페이지 권한
-      </p>
+      <Breadcrumb
+        items={[
+          { label: '전사 관리', href: '/settings' },
+          { label: '페이지 권한' },
+        ]}
+      />
 
       <div className="mt-2 mb-6">
         <h2 className="text-heading-m font-bold">페이지 권한</h2>

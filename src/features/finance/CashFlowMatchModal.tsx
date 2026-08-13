@@ -244,10 +244,10 @@ function CandidateOption({
       />
 
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-label font-semibold text-text-primary">
+        <span className="block text-label font-semibold [overflow-wrap:anywhere] break-keep text-text-primary">
           {candidate.projectName}
         </span>
-        <span className="mt-0.5 block truncate text-caption text-text-secondary">
+        <span className="mt-0.5 block text-caption break-keep text-text-secondary">
           {candidate.roundName} · {candidate.traderName}
         </span>
 
