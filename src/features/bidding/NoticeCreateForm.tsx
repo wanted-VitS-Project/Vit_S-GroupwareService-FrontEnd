@@ -585,7 +585,7 @@ export default function NoticeCreateForm() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="btn btn-md btn-primary"
+            className="btn btn-md btn-primary min-w-[104px]"
           >
             {isSubmitting ? '등록 중…' : '등록'}
           </button>

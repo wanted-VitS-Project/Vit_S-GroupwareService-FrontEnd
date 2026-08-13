@@ -127,7 +127,7 @@ export default function CashFlowMatchModal({
           type="button"
           onClick={submit}
           disabled={selectedId === null || isSubmitting}
-          className="btn btn-md btn-primary"
+          className="btn btn-md btn-primary min-w-[104px]"
         >
           {isSubmitting ? '연결 중…' : '연결'}
         </button>

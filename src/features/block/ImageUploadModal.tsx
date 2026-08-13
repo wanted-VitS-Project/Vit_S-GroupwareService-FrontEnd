@@ -352,7 +352,7 @@ export default function ImageUploadModal({
             type="button"
             onClick={upload}
             disabled={queued.length === 0 || isUploading}
-            className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+            className="min-w-[128px] cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
           >
             {isUploading ? '올리는 중…' : `등록하기 (${queued.length})`}
           </button>

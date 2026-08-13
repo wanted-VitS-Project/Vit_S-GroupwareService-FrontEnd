@@ -15,6 +15,7 @@ import type {
   ProjectStage,
   ProjectStep,
 } from '../types';
+import DeleteProjectSection from './DeleteProjectSection';
 import ProjectCategorySection from './ProjectCategorySection';
 import ProjectInfoForm from './ProjectInfoForm';
 import ProjectStatusSection from './ProjectStatusSection';
@@ -39,20 +40,25 @@ export default function ProjectSettings({ projectId }: { projectId: string }) {
    * 어떤 요청의 결과인지 `key` 로 들고 있는다.
    * 조건이 바뀌면 key 가 어긋나 저절로 로딩 상태가 되므로,
    * 효과 본문에서 상태를 되돌릴 필요가 없다 (`react-hooks/set-state-in-effect`).
+   *
+   * `projectId` 를 함께 들고 있는 이유는 아래 `keepLastSeen` 주석 참고.
    */
   const [result, setResult] = useState<{
     key: string;
+    projectId: string;
     project?: ProjectDetail;
     hasFailed?: boolean;
   } | null>(null);
   const [membersResult, setMembersResult] = useState<{
     key: string;
+    projectId: string;
     members?: ProjectMember[];
     hasFailed?: boolean;
   } | null>(null);
   /** 스텝 권한 섹션의 목록 — 스텝 이름만 쓰므로 상세와 따로 읽는다 */
   const [boardResult, setBoardResult] = useState<{
     key: string;
+    projectId: string;
     stages?: ProjectStage[];
     steps?: ProjectStep[];
     hasFailed?: boolean;
@@ -61,25 +67,50 @@ export default function ProjectSettings({ projectId }: { projectId: string }) {
   const requestKey = `${projectId}#${reloadCount}`;
   const membersRequestKey = `${projectId}#${membersReloadCount}`;
 
-  const current = result?.key === requestKey ? result : null;
-  const currentMembers =
-    membersResult?.key === membersRequestKey ? membersResult : null;
-  const currentBoard = boardResult?.key === requestKey ? boardResult : null;
+  /**
+   * **다시 읽는 동안에도 직전 값을 그대로 보여준다** (stale-while-revalidate).
+   *
+   * ⚠️ 열쇠가 어긋난 순간 `null` 로 떨어뜨리면, 상태 변경 한 번에 네 섹션이 전부
+   *    `불러오는 중…` 으로 접혔다가 다시 펴진다 — 화면 높이가 크게 출렁이고
+   *    스크롤 위치까지 밀린다. 값이 바뀌지 않은 재조회가 대부분이라 손해가 크다.
+   * ⛔ **다른 프로젝트의 값은 절대 보여주지 않는다** — 열쇠가 아니라 `projectId` 로
+   *    한 번 더 거른다 (사이드바로 다른 프로젝트에 들어가면 즉시 비운다).
+   */
+  function keepLastSeen<T extends { projectId: string }>(value: T | null) {
+    return value?.projectId === projectId ? value : null;
+  }
+
+  const current = keepLastSeen(result);
+  const currentMembers = keepLastSeen(membersResult);
+  const currentBoard = keepLastSeen(boardResult);
 
   const project = current?.project ?? null;
-  const hasFailed = current?.hasFailed ?? false;
   const members = currentMembers?.members ?? null;
-  const haveMembersFailed = currentMembers?.hasFailed ?? false;
+
+  /*
+   * 실패 화면은 **이번 요청이 실패했을 때만** 띄운다.
+   * 낡은 값이 남아 있어도 방금 조회가 깨졌으면 그대로 알린다 (조용히 옛 값을 보여주지 않는다).
+   */
+  const hasFailed = result?.key === requestKey && Boolean(result.hasFailed);
+  const haveMembersFailed =
+    membersResult?.key === membersRequestKey &&
+    Boolean(membersResult.hasFailed);
+  const hasBoardFailed =
+    boardResult?.key === requestKey && Boolean(boardResult.hasFailed);
 
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
 
     getProject(projectId, signal)
-      .then((loaded) => setResult({ key: requestKey, project: loaded }))
+      .then((loaded) =>
+        setResult({ key: requestKey, projectId, project: loaded }),
+      )
       .catch(() => {
         // 취소는 실패가 아니다
-        if (!signal.aborted) setResult({ key: requestKey, hasFailed: true });
+        if (!signal.aborted) {
+          setResult({ key: requestKey, projectId, hasFailed: true });
+        }
       });
 
     return () => controller.abort();
@@ -98,11 +129,11 @@ export default function ProjectSettings({ projectId }: { projectId: string }) {
       getProjectSteps(projectId, signal),
     ])
       .then(([stages, steps]) =>
-        setBoardResult({ key: requestKey, stages, steps }),
+        setBoardResult({ key: requestKey, projectId, stages, steps }),
       )
       .catch(() => {
         if (!signal.aborted) {
-          setBoardResult({ key: requestKey, hasFailed: true });
+          setBoardResult({ key: requestKey, projectId, hasFailed: true });
         }
       });
 
@@ -116,11 +147,19 @@ export default function ProjectSettings({ projectId }: { projectId: string }) {
 
     getProjectMembers(projectId, signal)
       .then((loaded) =>
-        setMembersResult({ key: membersRequestKey, members: loaded }),
+        setMembersResult({
+          key: membersRequestKey,
+          projectId,
+          members: loaded,
+        }),
       )
       .catch(() => {
         if (!signal.aborted) {
-          setMembersResult({ key: membersRequestKey, hasFailed: true });
+          setMembersResult({
+            key: membersRequestKey,
+            projectId,
+            hasFailed: true,
+          });
         }
       });
 
@@ -227,10 +266,19 @@ export default function ProjectSettings({ projectId }: { projectId: string }) {
           projectId={projectId}
           stages={currentBoard?.stages ?? null}
           steps={currentBoard?.steps ?? null}
-          hasFailed={currentBoard?.hasFailed ?? false}
+          hasFailed={hasBoardFailed}
           canEdit={canEdit}
           onChanged={reloadProject}
         />
+
+        {/* 되돌릴 수 없는 조작이라 맨 아래 — `EDITOR` 에게만 보인다 */}
+        {canEdit && (
+          <DeleteProjectSection
+            projectId={projectId}
+            project={project}
+            canEdit={canEdit}
+          />
+        )}
       </div>
     </div>
   );

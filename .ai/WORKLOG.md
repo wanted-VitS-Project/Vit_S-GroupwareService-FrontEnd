@@ -6,41 +6,137 @@
 
 ---
 
+## [2026-08-13] 상태 변경 시 화면 흔들림 제거 (설정 화면 · 모달 전반) ✅
+
+브랜치: `projects/new` · 이슈: #137
+
+### 변경 파일
+
+| 파일                                                                                                                                                                        | 변경                                                         |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `src/app/projects/[id]/layout.tsx`                                                                                                                                          | 수정 (스크롤 컨테이너에 `scrollbar-gutter: stable`)          |
+| `src/features/project/settings/ProjectSettings.tsx`                                                                                                                         | 수정 (재조회 중 직전 값 유지 — stale-while-revalidate)       |
+| `src/components/PanelModal.tsx`                                                                                                                                             | 수정 (`ModalFooter` 마지막 버튼 최소 폭 — 모달 30여 개 공통) |
+| 모달 실행 버튼 24곳                                                                                                                                                         | 수정 (`min-w-[104px]` · 긴 라벨 2곳은 128 · 136px)           |
+| `ProjectInfoForm` · `BulkUploadModal` · `CashFlow*` · `CollectionConditionFormModal` · `NoticeCreateForm` · `EmployeeCreateForm` · `EmployeeEditForm` · `ProjectCreateForm` | 수정 (같은 이유로 최소 폭)                                   |
+
+### 주요 작업 내용
+
+- **가로 흔들림** — 프로젝트 상세 레이아웃의 스크롤 컨테이너에 `scrollbar-gutter: stable` 이 없었다. 내용 높이가 줄면 스크롤바가 사라지며 본문 폭이 바뀐다 (`AppShell` 의 `main` 에는 이미 있던 규칙)
+- **세로 흔들림** — 상태 변경 후 재조회에서 `requestKey` 가 어긋나는 순간 상세 · 단계/스텝이 `null` 이 돼 네 섹션이 통째로 `불러오는 중…` 으로 접혔다 펴졌다. **직전 값을 유지**하고 새 값이 오면 갈아끼우도록 바꿨다 (`projectId` 로 한 번 더 걸러 다른 프로젝트 값은 절대 안 보여준다)
+- **모달 버튼 흔들림** — `삭제 → 삭제 중…` 처럼 라벨이 바뀌면 폭이 변해 옆 `취소` 버튼이 밀렸다. `ModalFooter` 에서 마지막(실행) 버튼의 최소 폭을 잡고, 푸터를 안 쓰는 모달은 버튼에 직접 최소 폭을 줬다
+- 확인 다이얼로그(`AlertDialogTwoButton`)는 버튼이 `flex-1` 이라 원래 흔들리지 않는다 — 손대지 않았다
+
+### 부수 결정
+
+| 결정                                           | 이유                                                                            |
+| ---------------------------------------------- | ------------------------------------------------------------------------------- |
+| 실패 화면은 **이번 요청이 실패했을 때만** 노출 | 낡은 값을 들고 조용히 성공한 척하지 않는다                                      |
+| `.btn-md` 전역에 최소 폭을 주지 않음           | 필터 토글(`PagePermissionList`)까지 넓어져 디자인이 바뀐다 — 실행 버튼에만 준다 |
+| 최소 폭 104px                                  | 지금 쓰는 라벨 중 가장 긴 `메일 재발송` · `처리 중…` 이 모두 들어간다           |
+
+---
+
+## [2026-08-13] 프로젝트 삭제 (설정 화면 최하단) ✅
+
+브랜치: `projects/new` · 이슈: #137
+근거: 신규 명세 139 (프로젝트 삭제 · PRJ-014)
+
+### 변경 파일
+
+| 파일                                                     | 변경                                              |
+| -------------------------------------------------------- | ------------------------------------------------- |
+| `.ai/API.md`                                             | 수정 (139 추가 · 목차 1행)                        |
+| `src/features/project/errorCodes.ts`                     | 수정 (`PROJECT_CODES.deleteNotAllowed`)           |
+| `src/features/project/api.ts`                            | 수정 (`deleteProject()`)                          |
+| `src/features/project/settings/DeleteProjectSection.tsx` | **생성** (삭제 가능 조건 판정 · 안내 · 모달 진입) |
+| `src/features/project/settings/DeleteProjectModal.tsx`   | **생성** (확인 · 409 · 404 문구 분기)             |
+| `src/features/project/settings/ProjectSettings.tsx`      | 수정 (맨 아래에 삭제 섹션 연결 — `EDITOR` 에게만) |
+
+### 주요 작업 내용
+
+- **설정 화면 맨 아래에 `프로젝트 삭제` 섹션** — 되돌릴 수 없는 조작이라 다른 섹션과 떨어뜨리고 확인 모달을 거친다
+- **`진행 전` + 스텝 0개일 때만 버튼이 열린다** — 안 되는 이유(이미 시작함 / 스텝 N개 남음)를 버튼 옆 문구로 알려 눌러 보고 409 를 보게 두지 않는다
+- **그래도 409 는 처리한다** — 그 사이 남이 스텝을 만들거나 상태를 바꿀 수 있어, 모달에서 "새로고침 후 종결로 처리" 를 안내한다
+- 삭제 성공 시 **`router.replace('/projects')`** — 방금 지운 상세로 뒤로 가기가 되지 않게 한다
+- 연결된 공고가 함께 풀린다는 사실을 모달에서 알린다 (그 공고로 다시 만들 수 있다)
+
+---
+
+## [2026-08-13] 프로젝트 직접 생성 화면 (`/projects/new`) ✅
+
+브랜치: `projects/new` · 이슈: #10
+근거: 신규 명세 138 (프로젝트 직접 생성 · PRJ-001)
+
+### 변경 파일
+
+| 파일                                         | 변경                                                                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `.ai/API.md`                                 | 수정 (138 추가 · 목차 1행)                                                            |
+| `src/features/project/types.ts`              | 수정 (`CreateProjectRequest` · `CreatedProject` · `ProjectCreator`)                   |
+| `src/features/project/errorCodes.ts`         | 수정 (`PROJECT_CODES.bidNoticeAlreadyLinked`)                                         |
+| `src/features/project/api.ts`                | 수정 (`createProject()`)                                                              |
+| `src/features/project/FormFields.tsx`        | **생성** (`TextField` · `AmountField` · `TextareaField` · `AlertBanner` · `FormCard`) |
+| `src/features/project/ProjectCreateForm.tsx` | **생성** (생성 폼 · 카테고리 칩 선택 · 참여자 지정 · 검증 · 오류 처리)                |
+| `src/app/projects/new/page.tsx`              | 수정 (stub → 실제 화면 연결 · `metadata.title`)                                       |
+
+### 주요 작업 내용
+
+- **시안(Figma) 배치를 따라 카드 2장으로 구성** — `기본 정보`(과업명 · 발주처 / 사업 카테고리 · 시작일 / 종료일 · 계약금액 · 설명) + `참여자`. 머리말은 breadcrumb · 제목 · 한 줄 설명이고 하단 버튼은 `생성` → `취소` 순서다
+- **공고와 연결되지 않은 건만 만든다** — 같은 엔드포인트지만 이 화면은 `bidNoticeId` 를 아예 보내지 않는다 (공고에서 시작하는 생성은 입찰 화면 소관)
+- **사업 카테고리는 마스터 목록(15)을 받아 칩 토글로 다중 선택**, 삭제분은 후보에서 빼고 고른 게 없으면 필드 자체를 생략한다
+- **참여자는 한 화면에서 받되 저장은 두 단계** — 생성(138) 응답의 `projectId` 로 참여자 추가(125)를 **한 명씩** 부른다. 권한은 줄마다 `열람 / 편집` 셀렉트다
+- **과업명 300자 · 발주처 200자 · 기간 역전**을 화면에서 먼저 잡고 첫 오류 항목으로 포커스를 옮긴다
+- 생성 성공 시 토스트 후 **`router.replace`** 로 상세로 이동한다 — 뒤로 가기로 빈 폼에 돌아오지 않게 했다
+
+### 부수 결정
+
+| 결정                                                           | 이유                                                                                |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `features/project/FormFields.tsx` 를 따로 만듦                 | 도메인끼리 import 하지 않는 기존 규칙 — 공고 · 사원 폼과 모양만 맞춘다              |
+| 시안의 `발주처` · `사업 카테고리` 필수 표시(`*`)를 따르지 않음 | 명세상 선택 필드다 — 화면만 막으면 만들 수 있는 프로젝트를 못 만든다 (**API 우선**) |
+| 시안에 없는 `설명` 필드를 남김                                 | 생성 요청 본문(138)에 있는 값이라 화면에서 받아야 채울 수 있다                      |
+| 참여자 추가가 실패해도 상세로 이동                             | 프로젝트는 이미 만들어졌다 — 폼에 머무르면 같은 프로젝트를 또 만들게 된다           |
+| 카테고리 목록 실패는 폼을 막지 않고 안내 문구만 노출           | 카테고리는 선택 항목이고, 생성 후 설정 화면에서 연결할 수 있다                      |
+| 생성 응답의 `version` 부재를 화면이 쓰지 않음                  | 상세로 이동해 다시 조회하므로 `1` 을 가정할 필요가 없다                             |
+
+---
+
 ## [2026-08-13] 프로젝트 설정 화면 · 인원 편집 ✅
 
-브랜치: `develop` · 이슈: #135
+브랜치: `project/setting` · 이슈: #135
 근거: 신규 명세 125~137 (참여자 4종 · 프로젝트 수정/상태/종결 · 카테고리 연결/해제 · 스텝 권한 3종 · 스텝 상태)
 
 ### 변경 파일
 
-| 파일                                                        | 변경                                                                    |
-| ----------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `.ai/API.md`                                                | 수정 (125~137 추가 · 45번 `deleted`·`NONE` 폐기 반영 · 확인 대기 1건 해소) |
-| `src/constants/endpoints.ts`                                | 수정 (`projects.member`·`status`·`close`·`businessCategor(y\|ies)` · `stages.stepPermissions` · `steps.status`·`permissions`·`permission`) |
-| `src/features/project/types.ts`                             | 수정 (참여자 · 프로젝트 수정/상태/종결 · 카테고리 연결 · 스텝 권한/상태 타입, `ProjectDetail.version`, `BusinessCategory.deleted`) |
-| `src/features/project/errorCodes.ts`                        | 수정 (`MEMBER_CODES`·`PROJECT_CODES`·`PROJECT_CATEGORY_CODES`·`STEP_PERMISSION_CODES`, `isVersionConflict` 확장) |
-| `src/features/project/api.ts`                               | 수정 (함수 13종 추가)                                                   |
-| `src/features/project/settings/ProjectSettings.tsx`         | **생성** (컨테이너 · `SettingsSection`)                                 |
-| `src/features/project/settings/ProjectInfoForm.tsx`         | **생성** (과업 정보 · 낙관적 락 409 처리)                               |
-| `src/features/project/settings/ProjectStatusSection.tsx`    | **생성** (상태 4값 · 종결 진입 · 사유 라벨)                             |
-| `src/features/project/settings/CloseProjectModal.tsx`       | **생성** (종결 사유 · 상세)                                             |
-| `src/features/project/settings/ProjectCategorySection.tsx`  | **생성** (연결 목록 · 해제)                                             |
-| `src/features/project/settings/LinkCategoryModal.tsx`       | **생성** (다중 선택 연결)                                               |
-| `src/features/project/member/ProjectMemberSection.tsx`      | **생성** (목록 · 권한 셀렉트 · 제거 진입)                               |
-| `src/features/project/member/AddMemberModal.tsx`            | **생성** (사원 검색 · 다중 선택 · 한 명씩 호출)                         |
-| `src/features/project/member/RemoveMemberModal.tsx`         | **생성** (제거 확인)                                                    |
-| `src/app/projects/[id]/settings/page.tsx`                   | 수정 (stub → 실제 화면 연결)                                            |
-| `src/features/issue/IssueFormModal.tsx`                     | 수정 (`permission !== 'NONE'` 필터 제거 → `!deleted` 로 교체)           |
-| `src/features/project/step/StepPermissionModal.tsx`         | **생성** (스텝 권한 목록 · 부여 · 상속으로 되돌리기 · `STEP_PERMISSION_LABELS`) |
-| `src/features/project/stage/StagePermissionModal.tsx`       | **생성** (새 스텝 권한 기본값 · 기존 스텝 일괄 적용)                    |
-| `src/features/project/step/StepStatusModal.tsx`             | **생성** (상태 변경 확인 · 완료 되돌리기 경고 · 409 처리)              |
-| `src/features/project/settings/StepPermissionSection.tsx`   | **생성** (설정 화면의 단계 · 스텝 목록 → 권한 모달 진입)               |
-| `src/components/ProjectSidebar.tsx`                         | 수정 (`⋯` 메뉴 항목 정리 · **포털 + `fixed`** 로 잘림 해소 · 모달 3종 동적 로드) |
-| `src/features/project/labels.ts`                            | **생성** (권한 · 상태 · 종결 사유 라벨 단일 소스 — 순환 참조 해소)      |
-| `src/features/project/settings/SettingsSection.tsx`         | **생성** (컨테이너에서 분리 — 순환 참조 해소)                          |
-| `src/features/project/member/MemberPicker.tsx`              | **생성** (블록 · 이슈와 같은 칩 + 후보 버튼 인원 선택)                  |
-| `src/features/project/member/MemberList.tsx`                | **생성** (목록 · 권한 변경 · 제거 · 추가 — 설정 화면 · 사이드바 공용)   |
-| `src/features/project/member/ProjectMembersModal.tsx`       | **생성** (사이드바 참여자 줄에서 여는 관리 모달)                        |
+| 파일                                                       | 변경                                                                                                                                       |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `.ai/API.md`                                               | 수정 (125~137 추가 · 45번 `deleted`·`NONE` 폐기 반영 · 확인 대기 1건 해소)                                                                 |
+| `src/constants/endpoints.ts`                               | 수정 (`projects.member`·`status`·`close`·`businessCategor(y\|ies)` · `stages.stepPermissions` · `steps.status`·`permissions`·`permission`) |
+| `src/features/project/types.ts`                            | 수정 (참여자 · 프로젝트 수정/상태/종결 · 카테고리 연결 · 스텝 권한/상태 타입, `ProjectDetail.version`, `BusinessCategory.deleted`)         |
+| `src/features/project/errorCodes.ts`                       | 수정 (`MEMBER_CODES`·`PROJECT_CODES`·`PROJECT_CATEGORY_CODES`·`STEP_PERMISSION_CODES`, `isVersionConflict` 확장)                           |
+| `src/features/project/api.ts`                              | 수정 (함수 13종 추가)                                                                                                                      |
+| `src/features/project/settings/ProjectSettings.tsx`        | **생성** (컨테이너 · `SettingsSection`)                                                                                                    |
+| `src/features/project/settings/ProjectInfoForm.tsx`        | **생성** (과업 정보 · 낙관적 락 409 처리)                                                                                                  |
+| `src/features/project/settings/ProjectStatusSection.tsx`   | **생성** (상태 4값 · 종결 진입 · 사유 라벨)                                                                                                |
+| `src/features/project/settings/CloseProjectModal.tsx`      | **생성** (종결 사유 · 상세)                                                                                                                |
+| `src/features/project/settings/ProjectCategorySection.tsx` | **생성** (연결 목록 · 해제)                                                                                                                |
+| `src/features/project/settings/LinkCategoryModal.tsx`      | **생성** (다중 선택 연결)                                                                                                                  |
+| `src/features/project/member/ProjectMemberSection.tsx`     | **생성** (목록 · 권한 셀렉트 · 제거 진입)                                                                                                  |
+| `src/features/project/member/AddMemberModal.tsx`           | **생성** (사원 검색 · 다중 선택 · 한 명씩 호출)                                                                                            |
+| `src/features/project/member/RemoveMemberModal.tsx`        | **생성** (제거 확인)                                                                                                                       |
+| `src/app/projects/[id]/settings/page.tsx`                  | 수정 (stub → 실제 화면 연결)                                                                                                               |
+| `src/features/issue/IssueFormModal.tsx`                    | 수정 (`permission !== 'NONE'` 필터 제거 → `!deleted` 로 교체)                                                                              |
+| `src/features/project/step/StepPermissionModal.tsx`        | **생성** (스텝 권한 목록 · 부여 · 상속으로 되돌리기 · `STEP_PERMISSION_LABELS`)                                                            |
+| `src/features/project/stage/StagePermissionModal.tsx`      | **생성** (새 스텝 권한 기본값 · 기존 스텝 일괄 적용)                                                                                       |
+| `src/features/project/step/StepStatusModal.tsx`            | **생성** (상태 변경 확인 · 완료 되돌리기 경고 · 409 처리)                                                                                  |
+| `src/features/project/settings/StepPermissionSection.tsx`  | **생성** (설정 화면의 단계 · 스텝 목록 → 권한 모달 진입)                                                                                   |
+| `src/components/ProjectSidebar.tsx`                        | 수정 (`⋯` 메뉴 항목 정리 · **포털 + `fixed`** 로 잘림 해소 · 모달 3종 동적 로드)                                                           |
+| `src/features/project/labels.ts`                           | **생성** (권한 · 상태 · 종결 사유 라벨 단일 소스 — 순환 참조 해소)                                                                         |
+| `src/features/project/settings/SettingsSection.tsx`        | **생성** (컨테이너에서 분리 — 순환 참조 해소)                                                                                              |
+| `src/features/project/member/MemberPicker.tsx`             | **생성** (블록 · 이슈와 같은 칩 + 후보 버튼 인원 선택)                                                                                     |
+| `src/features/project/member/MemberList.tsx`               | **생성** (목록 · 권한 변경 · 제거 · 추가 — 설정 화면 · 사이드바 공용)                                                                      |
+| `src/features/project/member/ProjectMembersModal.tsx`      | **생성** (사이드바 참여자 줄에서 여는 관리 모달)                                                                                           |
 
 ### 주요 작업 내용
 
@@ -60,12 +156,12 @@
 
 ### 트러블슈팅
 
-| 문제                                            | 원인                                                              | 해결                                                        |
-| ----------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------- |
-| `IssueFormModal` 타입 오류 (`'NONE'` 비교 불가) | 명세 45번에서 `NONE` 이 폐기돼 `ProjectMember.permission` 이 2값   | 필터를 `!member.deleted` 로 교체 (삭제 사원 후보 제외가 목적) |
-| `react-hooks/set-state-in-effect` 린트 실패     | 효과 본문에서 실패 플래그를 초기화했다                            | `CategoryList` 와 같은 `{ key, data, hasFailed }` 패턴으로 교체 |
-| 런타임 `Cannot access 'MEMBER_PERMISSION_LABELS' before initialization` | 라벨 상수를 **화면 컴포넌트에서 export** 해 `ProjectMemberSection` ↔ `AddMemberModal` 순환 참조가 생겼다 | 라벨을 `labels.ts` 로, `SettingsSection` 을 자기 파일로 분리 — 잎(leaf) 모듈만 서로 참조하게 했다 |
-| 사이드바 `⋯` 메뉴가 잘린다                      | 메뉴가 `absolute` 인데 사이드바가 `overflow-y-auto` 다 — 항목이 늘자 아래쪽 행에서 가려졌다 | `createPortal` + `fixed` 로 `body` 에 띄우고 여는 순간 좌표 계산 · 스크롤/리사이즈 시 닫음 (`CategoryList` 와 같은 방식) |
+| 문제                                                                    | 원인                                                                                                     | 해결                                                                                                                     |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `IssueFormModal` 타입 오류 (`'NONE'` 비교 불가)                         | 명세 45번에서 `NONE` 이 폐기돼 `ProjectMember.permission` 이 2값                                         | 필터를 `!member.deleted` 로 교체 (삭제 사원 후보 제외가 목적)                                                            |
+| `react-hooks/set-state-in-effect` 린트 실패                             | 효과 본문에서 실패 플래그를 초기화했다                                                                   | `CategoryList` 와 같은 `{ key, data, hasFailed }` 패턴으로 교체                                                          |
+| 런타임 `Cannot access 'MEMBER_PERMISSION_LABELS' before initialization` | 라벨 상수를 **화면 컴포넌트에서 export** 해 `ProjectMemberSection` ↔ `AddMemberModal` 순환 참조가 생겼다 | 라벨을 `labels.ts` 로, `SettingsSection` 을 자기 파일로 분리 — 잎(leaf) 모듈만 서로 참조하게 했다                        |
+| 사이드바 `⋯` 메뉴가 잘린다                                              | 메뉴가 `absolute` 인데 사이드바가 `overflow-y-auto` 다 — 항목이 늘자 아래쪽 행에서 가려졌다              | `createPortal` + `fixed` 로 `body` 에 띄우고 여는 순간 좌표 계산 · 스크롤/리사이즈 시 닫음 (`CategoryList` 와 같은 방식) |
 
 ### 부수 결정
 
@@ -139,27 +235,27 @@
 
 ### 변경 파일
 
-| 파일                                            | 변경                                                                     |
-| ----------------------------------------------- | ------------------------------------------------------------------------ |
-| `src/features/finance/types.ts`                 | **생성** (요약 · 목록 · 등록/수정 · 매칭 후보 · 다건 처리 결과)          |
-| `src/features/finance/api.ts`                   | **생성** (요약 · 목록 · 필터 · 등록 · 수정 · 삭제 · 제외 · 매칭 · 해제)  |
-| `src/features/finance/display.ts`               | **생성** (금액 표기 · 배지 색 · `bankNameFromTxnId`)                     |
-| `src/features/finance/routes.ts`                | **생성** (재무 화면 경로 단일 소스)                                       |
-| `src/features/finance/FinanceHub.tsx`           | **생성** (허브 — 항목별 미연결 건수)                                     |
-| `src/features/finance/CashFlowList.tsx`         | **생성** (필터 · 표 · 다건 선택 · 행 메뉴)                               |
-| `src/features/finance/CashFlowFormModal.tsx`    | **생성** (직접 등록 · 수정 — 출처/연결 상태로 입력 잠금)                 |
-| `src/features/finance/CashFlowMatchModal.tsx`   | **생성** (정산 블록 추천 후보 선택 · 연결)                               |
-| `src/components/finance/CashFlowSkeletons.tsx`  | **생성** (게이트 · `Suspense` 공용 골격)                                 |
-| `src/app/finance/page.tsx`                      | **생성** (`/finance` 허브 라우트)                                        |
-| `src/app/finance/payments/page.tsx`             | 수정 (stub → 목록 화면 연결)                                             |
-| `src/constants/endpoints.ts`                    | 수정 (`finance` 블록 — 요약 + 입출금 10개 경로)                          |
-| `src/constants/menu.ts` · `pagePermission/catalog.ts` | 수정 (사이드바 `재무 관리` → `/finance/invoices` → **`/finance`**) |
-| `src/features/auth/errorCodes.ts`               | 수정 (`FINANCE_ACCESS_DENIED` 를 권한 코드로 등록)                       |
-| `src/features/pagePermission/PageAccessGate.tsx` | 수정 (경로별 로딩 골격 `ROUTE_SKELETONS`)                               |
-| `src/components/DataTable.tsx`                  | 수정 (로딩 행 높이 정합 · `dense` 여백 옵션)                             |
-| `src/features/bidding/NoticeList.tsx` · `NoticeSkeletons.tsx` | 수정 (열 폭 재조정 · 가로 스크롤 제거 · `전환` 열 제거 · 공고명 `text-balance`) |
-| `src/features/employee/EmployeeList.tsx` · `SettingsSkeletons.tsx` | 수정 (가로 스크롤 제거)                                |
-| `src/features/settlement/errorCodes.ts` · `SettlementForm.tsx` · `SettlementBlock.tsx` | 수정 (`SETL-007` 잠김 → `수정하기` 비활성) |
+| 파일                                                                                   | 변경                                                                            |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `src/features/finance/types.ts`                                                        | **생성** (요약 · 목록 · 등록/수정 · 매칭 후보 · 다건 처리 결과)                 |
+| `src/features/finance/api.ts`                                                          | **생성** (요약 · 목록 · 필터 · 등록 · 수정 · 삭제 · 제외 · 매칭 · 해제)         |
+| `src/features/finance/display.ts`                                                      | **생성** (금액 표기 · 배지 색 · `bankNameFromTxnId`)                            |
+| `src/features/finance/routes.ts`                                                       | **생성** (재무 화면 경로 단일 소스)                                             |
+| `src/features/finance/FinanceHub.tsx`                                                  | **생성** (허브 — 항목별 미연결 건수)                                            |
+| `src/features/finance/CashFlowList.tsx`                                                | **생성** (필터 · 표 · 다건 선택 · 행 메뉴)                                      |
+| `src/features/finance/CashFlowFormModal.tsx`                                           | **생성** (직접 등록 · 수정 — 출처/연결 상태로 입력 잠금)                        |
+| `src/features/finance/CashFlowMatchModal.tsx`                                          | **생성** (정산 블록 추천 후보 선택 · 연결)                                      |
+| `src/components/finance/CashFlowSkeletons.tsx`                                         | **생성** (게이트 · `Suspense` 공용 골격)                                        |
+| `src/app/finance/page.tsx`                                                             | **생성** (`/finance` 허브 라우트)                                               |
+| `src/app/finance/payments/page.tsx`                                                    | 수정 (stub → 목록 화면 연결)                                                    |
+| `src/constants/endpoints.ts`                                                           | 수정 (`finance` 블록 — 요약 + 입출금 10개 경로)                                 |
+| `src/constants/menu.ts` · `pagePermission/catalog.ts`                                  | 수정 (사이드바 `재무 관리` → `/finance/invoices` → **`/finance`**)              |
+| `src/features/auth/errorCodes.ts`                                                      | 수정 (`FINANCE_ACCESS_DENIED` 를 권한 코드로 등록)                              |
+| `src/features/pagePermission/PageAccessGate.tsx`                                       | 수정 (경로별 로딩 골격 `ROUTE_SKELETONS`)                                       |
+| `src/components/DataTable.tsx`                                                         | 수정 (로딩 행 높이 정합 · `dense` 여백 옵션)                                    |
+| `src/features/bidding/NoticeList.tsx` · `NoticeSkeletons.tsx`                          | 수정 (열 폭 재조정 · 가로 스크롤 제거 · `전환` 열 제거 · 공고명 `text-balance`) |
+| `src/features/employee/EmployeeList.tsx` · `SettingsSkeletons.tsx`                     | 수정 (가로 스크롤 제거)                                                         |
+| `src/features/settlement/errorCodes.ts` · `SettlementForm.tsx` · `SettlementBlock.tsx` | 수정 (`SETL-007` 잠김 → `수정하기` 비활성)                                      |
 
 ### 주요 작업 내용
 
@@ -171,15 +267,15 @@
 
 ### 트러블슈팅
 
-| 문제                                        | 원인                                                                  | 해결                                                       |
-| ------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------- |
-| 재무 목록이 `불러오지 못했습니다` 로 떨어짐 | `FINANCE_ACCESS_DENIED` 가 권한 코드 목록에 없어 전역 403 처리에서 샜다 | `PERMISSION_CODES` 에 추가 → `/forbidden` 으로 보낸다       |
-| 수정 폼의 은행명이 빈칸                     | **목록 응답에 `bankName` 이 없고 단건 조회 API 도 없다**              | `bankTxnId`(은행명+거래일시) 앞부분을 되읽는다. 임시방편이라 백엔드에 필드 추가 요청 |
-| 표가 로딩 → 데이터에서 늘어남               | 로딩 막대(12px)가 글자 한 줄(21px)보다 낮아 행 높이가 달랐다          | 막대를 `h-[1.5em]` 상자에 담아 행 높이를 맞췄다            |
-| 표가 떴다가 줄어듦                          | 스켈레톤 10줄 뒤에 결과가 1~2건                                       | **첫 조회 중에는 표를 그리지 않는다** (안내 문구만)        |
-| 공고 목록 날짜가 겹쳐 보임                  | 공용화로 본문이 12px → 14px 가 됐는데 열 폭은 12px 기준 그대로였다     | 폭 재조정 + `dense`(여백 40 → 24px) + 마감일 두 줄          |
-| `수정할 수 없습니다` 안내 옆에서 폼이 열림  | 블록 응답에 연결 여부 플래그가 없어 화면이 잠금을 몰랐다              | 정산 상태로 판정(`PARTIAL`·`COMPLETED`) + 409 를 보조로 기억 |
-| 잠금이 새로고침하면 풀림                    | 409 를 화면 상태로만 기억해 새로고침에 날아갔다                       | **데이터(정산 상태)에서 판정**하도록 바꿔 새로고침에도 유지 |
+| 문제                                        | 원인                                                                    | 해결                                                                                 |
+| ------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| 재무 목록이 `불러오지 못했습니다` 로 떨어짐 | `FINANCE_ACCESS_DENIED` 가 권한 코드 목록에 없어 전역 403 처리에서 샜다 | `PERMISSION_CODES` 에 추가 → `/forbidden` 으로 보낸다                                |
+| 수정 폼의 은행명이 빈칸                     | **목록 응답에 `bankName` 이 없고 단건 조회 API 도 없다**                | `bankTxnId`(은행명+거래일시) 앞부분을 되읽는다. 임시방편이라 백엔드에 필드 추가 요청 |
+| 표가 로딩 → 데이터에서 늘어남               | 로딩 막대(12px)가 글자 한 줄(21px)보다 낮아 행 높이가 달랐다            | 막대를 `h-[1.5em]` 상자에 담아 행 높이를 맞췄다                                      |
+| 표가 떴다가 줄어듦                          | 스켈레톤 10줄 뒤에 결과가 1~2건                                         | **첫 조회 중에는 표를 그리지 않는다** (안내 문구만)                                  |
+| 공고 목록 날짜가 겹쳐 보임                  | 공용화로 본문이 12px → 14px 가 됐는데 열 폭은 12px 기준 그대로였다      | 폭 재조정 + `dense`(여백 40 → 24px) + 마감일 두 줄                                   |
+| `수정할 수 없습니다` 안내 옆에서 폼이 열림  | 블록 응답에 연결 여부 플래그가 없어 화면이 잠금을 몰랐다                | 정산 상태로 판정(`PARTIAL`·`COMPLETED`) + 409 를 보조로 기억                         |
+| 잠금이 새로고침하면 풀림                    | 409 를 화면 상태로만 기억해 새로고침에 날아갔다                         | **데이터(정산 상태)에서 판정**하도록 바꿔 새로고침에도 유지                          |
 
 ### 부수 결정
 

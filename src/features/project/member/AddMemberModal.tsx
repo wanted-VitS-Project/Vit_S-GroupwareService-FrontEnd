@@ -198,7 +198,7 @@ export default function AddMemberModal({
           type="button"
           onClick={() => void submit()}
           disabled={isSubmitting || selected.length === 0}
-          className="cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+          className="min-w-[104px] cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
         >
           {isSubmitting ? '추가 중…' : `추가 (${selected.length})`}
         </button>

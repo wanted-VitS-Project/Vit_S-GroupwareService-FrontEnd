@@ -85,6 +85,13 @@ export const PROJECT_CODES = {
   closeReasonNoteTooLong: 'CLOSE_REASON_NOTE_TOO_LONG',
   /** 404 — 없거나 삭제됨 · **다른 회사의 프로젝트** */
   notFound: 'PROJECT_NOT_FOUND',
+  /** 409 — `진행 전` 이 아니거나 스텝이 남아 있다 (삭제 · .ai/API.md 139). 종결로 처리해야 한다 */
+  deleteNotAllowed: 'PROJECT_DELETE_NOT_ALLOWED',
+  /**
+   * 409 — 이미 다른 프로젝트가 연결된 공고다 (생성 · .ai/API.md 138).
+   * **같은 회사 안에서만** 본다 — 다른 회사가 같은 공고를 쓴 것은 충돌이 아니다.
+   */
+  bidNoticeAlreadyLinked: 'PROJECT_BID_NOTICE_ALREADY_LINKED',
 } as const;
 
 export const PROJECT_CATEGORY_CODES = {

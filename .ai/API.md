@@ -151,6 +151,8 @@
 | [135](#135-스텝-권한-부여--변경)          | 스텝 권한 부여     | `PUT /steps/{stepId}/permissions/{userId}`                   | ✅ `features/project/api.ts`          |
 | [136](#136-스텝-권한-회수)                | 스텝 권한 회수     | `DELETE /steps/{stepId}/permissions/{userId}`                | ✅ `features/project/api.ts`          |
 | [137](#137-스텝-상태-변경)                | 스텝 상태 변경     | `PATCH /steps/{stepId}/status`                               | ✅ `features/project/api.ts`          |
+| [138](#138-프로젝트-직접-생성)            | 프로젝트 생성      | `POST /projects`                                             | ✅ `features/project/api.ts`          |
+| [139](#139-프로젝트-삭제)                 | 프로젝트 삭제      | `DELETE /projects/{projectId}`                               | ✅ `features/project/api.ts`          |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
 > 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통) · [이미지 도메인 — 공통](#이미지-도메인--공통) · [사원 그룹 도메인 — 공통](#사원-그룹-도메인--공통) · [페이지 권한 도메인 — 공통](#페이지-권한-도메인--공통) · [스테이지 · 스텝 도메인 — 공통](#스테이지--스텝-도메인--공통) · [이슈 도메인 — 공통](#이슈-도메인--공통) · [입찰 도메인 — 공통](#입찰-도메인--공통) · [프로젝트 참여자 · 설정 도메인 — 공통](#프로젝트-참여자--설정-도메인--공통)
@@ -5167,6 +5169,74 @@ data: {
 > ℹ️ 스텝 상태는 **진척률과 별개 값**이다 (STP-004) — 이슈를 다 끝내도 상태가 저절로 바뀌지 않는다.
 
 **Status Code** — 200 · 400 `STEP_STATUS_INVALID` · 400 `STEP_VERSION_REQUIRED` · 401 · 403 `STEP_EDIT_DENIED` · 404 `STEP_NOT_FOUND` · 409 `STEP_VERSION_CONFLICT`
+
+## 138. 프로젝트 직접 생성
+
+| 항목          | 값                                                |
+| ------------- | ------------------------------------------------- |
+| **Method**    | `POST`                                            |
+| **Path**      | `/api/v1/projects`                                |
+| **권한**      | 전체 사용자                                       |
+| **요구사항**  | PRJ-001                                           |
+| **사용 위치** | `src/features/project/api.ts` → `createProject()` |
+
+**Request Body**
+
+```ts
+{
+  name: string;                   // 필수 · 최대 300자
+  description?: string;
+  clientName?: string;            // 발주처 · 최대 200자
+  startedOn?: string;             // '2026-08-01'
+  endedOn?: string;               // '2026-12-31'
+  contractAmount?: number;
+  businessCategoryIds?: number[]; // 복수 연결
+  bidNoticeId?: number;           // 생략하면 공고 없이 생성
+}
+```
+
+**Response (201 Created)**
+
+```ts
+data: {
+  projectId: number; name: string; clientName: string | null;
+  status: 'NOT_STARTED'; startedOn: string | null; endedOn: string | null;
+  contractAmount: number | null;
+  businessCategories: { categoryId: number; name: string; code: string | null; deleted: boolean }[];
+  bidNoticeId: number | null;              // 직접 생성이면 null
+  createdBy: { userId: string; name: string };   // userId 는 사번
+  createdAt: string;
+}
+```
+
+> ⭐ **공고 있음 / 없음을 엔드포인트로 나누지 않는다** (2026-08-04) — `bidNoticeId` 선택 필드 하나로 통합했다. `/projects/new` 화면은 **공고와 연결되지 않은 건만** 만들어 이 필드를 보내지 않는다.
+> ℹ️ 상태는 시스템이 `NOT_STARTED` 로 정하고, `created_by` 에 요청자 **사번**이 들어간다. 생성자는 자동으로 `EDITOR` 참여자가 된다.
+> 🏢 **회사 격리** (2026-08-11) — 로그인 사용자의 `company_id` 가 자동으로 박힌다(요청으로 지정 불가). `businessCategoryIds` 는 **내 회사의 살아있는 카테고리**만 통과하고 아니면 404 다. `bidNoticeId` 중복 검사도 **같은 회사 안에서만** 본다.
+> 🗑️ 응답 `businessCategories[].deleted` 는 쓰기 경로라 **항상 `false`** 다 (D-6) — 삭제된 카테고리는 애초에 연결되지 않는다.
+> ⚠️ **생성 응답에는 `version` 이 없다** (2026-08-11). 새 프로젝트의 `version` 은 `1` 이다 — 생성 직후 수정하려면 상세(6)를 다시 조회하거나 `1` 을 실어 보낸다.
+
+**Status Code** — 201 · 400 `PROJECT_NAME_REQUIRED` · 400 `PROJECT_NAME_TOO_LONG` · 400 `PROJECT_DATE_RANGE_INVALID` · 401 `AUTH_UNAUTHENTICATED` · 404 `BUSINESS_CATEGORY_NOT_FOUND` · 409 `PROJECT_BID_NOTICE_ALREADY_LINKED`
+
+## 139. 프로젝트 삭제
+
+| 항목          | 값                                                |
+| ------------- | ------------------------------------------------- |
+| **Method**    | `DELETE`                                          |
+| **Path**      | `/api/v1/projects/{projectId}`                    |
+| **권한**      | 프로젝트 `EDITOR`                                 |
+| **요구사항**  | PRJ-014                                           |
+| **사용 위치** | `src/features/project/api.ts` → `deleteProject()` |
+
+**Request Body** — 없음 (`DELETE /api/v1/projects/12`)
+
+**Response (200 OK)** — `data: null`
+
+> ⛔ **`진행 전` 이고 스텝이 0개일 때만 삭제된다.** 아니면 409 `PROJECT_DELETE_NOT_ALLOWED` — 이미 굴러간 프로젝트는 삭제가 아니라 **종결(131)** 로 남긴다.
+> ℹ️ **블록 수는 따로 보지 않는다** (2026-08-11 정정) — 블록은 스텝에만 붙으므로 스텝이 0개면 블록도 0개다.
+> ⚠️ 삭제는 `deleted_at` **논리 삭제**이고, **연결된 공고(`bid_notice_id`)를 비운다** — 그렇게 하지 않으면 `UNIQUE` 를 시체가 점유해 그 공고로 프로젝트를 다시 못 만든다.
+> 🏢 **회사 격리** (2026-08-11) — 다른 회사의 프로젝트는 404 다.
+
+**Status Code** — 200 · 401 `AUTH_UNAUTHENTICATED` · 403 `PROJECT_EDIT_DENIED` · 404 `PROJECT_NOT_FOUND` · 409 `PROJECT_DELETE_NOT_ALLOWED`
 
 ---
 
