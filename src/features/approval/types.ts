@@ -45,6 +45,17 @@ export interface ApprovalDetailLine extends ApprovalLine {
   status: ApprovalLineStatus;
   opinion: string | null;
   processedAt: string | null;
+  /**
+   * 이 결재자가 **더는 결재할 수 없는 상태**인지 (퇴사 · 프로젝트 이탈 등).
+   *
+   * `ACTIVE` · `WAITING` 인 결재선이 이 값이면 결재가 멈춰 있어 교체 · 제외가 필요하다
+   * (`ApproverReplaceModal` 의 대상 판정).
+   *
+   * ⚠️ **선택 필드다** — 응답에서의 정확한 위치를 아직 실측하지 못했다(2026-08-13).
+   *    값이 안 오면 배너 · 모달이 뜨지 않을 뿐 기존 화면은 그대로 동작한다.
+   *    위치가 확인되면 여기와 `unavailableLines()` 만 고치면 된다.
+   */
+  approverUnavailable?: boolean;
 }
 
 /** 결재가 만들어진 원본 위치. `원본 블록 보기` 이동에 쓴다 (AP-079) */
@@ -106,6 +117,17 @@ export interface ApprovalRevision {
   finishedAt: string | null;
   documents: ApprovalDocument[];
   lines: ApprovalDetailLine[];
+  /**
+   * 기안자가 **더는 상신할 수 없는 상태**인지 (퇴사 · 프로젝트 이탈 등).
+   * 반려된 회차에서 이 값이 참이면 누군가 대신 재상신해야 결재가 다시 굴러간다.
+   */
+  drafterUnavailable?: boolean;
+  /**
+   * 대행 기안자. **지정 절차가 따로 없다** — 가장 먼저 재상신에 성공한 스텝 `EDITOR` 가 된다.
+   * 아직 없으면 `null` 이고, 그때만 재상신 버튼을 연다.
+   */
+  actingDrafterId?: string | null;
+  actingDrafterName?: string | null;
 }
 
 /**
@@ -304,6 +326,13 @@ export interface ApprovalBlockDetail {
   /** 블록 목록 응답이 직접 내려준다 — 회차를 받기 전에도 요약을 그릴 수 있다 */
   title?: string | null;
   content?: string | null;
+  /**
+   * 참여 불가한 결재자가 있어 **교체 · 제외가 필요한** 상태인지.
+   *
+   * 블록이 회차 상세를 받기 전에도 배너를 띄울 수 있게 목록 응답이 함께 내려준다.
+   * 실제 대상 결재선은 회차 상세의 `approverUnavailable` 로 고른다.
+   */
+  requiresApproverReplacement?: boolean;
 }
 
 /** 문자열 또는 null 만 통과시킨다. 숫자 · 객체가 오면 없는 것으로 본다 */
@@ -317,12 +346,14 @@ export function readApprovalBlockDetail(
 ): ApprovalBlockDetail | null {
   if (typeof detail !== 'object' || detail === null) return null;
 
-  const { approvalId, revisionId, title, content } = detail as {
-    approvalId?: unknown;
-    revisionId?: unknown;
-    title?: unknown;
-    content?: unknown;
-  };
+  const { approvalId, revisionId, title, content, requiresApproverReplacement } =
+    detail as {
+      approvalId?: unknown;
+      revisionId?: unknown;
+      title?: unknown;
+      content?: unknown;
+      requiresApproverReplacement?: unknown;
+    };
 
   // 둘 중 하나라도 없으면 어떤 결재의 어느 회차인지 특정할 수 없다
   if (typeof approvalId !== 'number' || typeof revisionId !== 'number') {
@@ -334,5 +365,7 @@ export function readApprovalBlockDetail(
     revisionId,
     title: readText(title),
     content: readText(content),
+    // 참이라고 확실할 때만 배너를 띄운다 — 모르는 값으로 경고를 만들지 않는다
+    requiresApproverReplacement: requiresApproverReplacement === true,
   };
 }

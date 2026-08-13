@@ -447,6 +447,14 @@ export const ENDPOINTS = {
   notifications: {
     /** 알림 목록 — `category` · `isRead` · `page` · `size` 로 거른다 */
     root: `${V1}/notifications`,
+    /**
+     * 실시간 수신 (SSE · `text/event-stream`).
+     *
+     * ⚠️ `lib/api.ts` 로 부르지 않는다 — **응답이 닫히지 않는** 연결이라
+     *    `EventSource` 가 직접 연다 (`apiUrl()` 로 오리진을 씌운다).
+     *    구독 시점 **이후에 생기는 알림만** 오고, 과거 · 개수는 계속 목록 API 다.
+     */
+    stream: `${V1}/notifications/stream`,
     /** 개별 삭제(논리 삭제) */
     detail: (notificationId: number | string) =>
       `${V1}/notifications/${notificationId}`,

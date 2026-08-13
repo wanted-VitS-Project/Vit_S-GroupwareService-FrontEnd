@@ -17,6 +17,13 @@ export const BLOCK_CODES = {
   versionRequired: 'BLOCK_VERSION_REQUIRED',
   /** 수정 요청에 `title` · `owner` 가 **둘 다** 없음 */
   updateFieldRequired: 'BLOCK_UPDATE_FIELD_REQUIRED',
+  /**
+   * 409 — 상신 이후의 결재가 붙은 블록이라 **확인이 필요**하다.
+   *
+   * 실패가 아니라 되물음이다. `message` 에 무엇을 잃는지가 상태별(진행 중 · 반려 · 완료)로
+   * 담겨 오므로 **그 문구를 그대로 띄우고** `confirmApprovalCancel` 로 다시 부른다.
+   */
+  approvalDeleteConfirmRequired: 'APPROVAL_DELETE_CONFIRM_REQUIRED',
 } as const;
 
 /**

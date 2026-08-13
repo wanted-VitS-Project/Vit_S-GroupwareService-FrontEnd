@@ -3,17 +3,23 @@
 import { useEffect, useState } from 'react';
 
 import BlockCard from '@/features/block/BlockCard';
+import { notifyBlockChanged } from '@/features/block/events';
 import type { StepBlock } from '@/features/block/types';
 import { ApiError, messageOf } from '@/lib/api';
 
 import { createRevision, getRevision, submitRevision } from './api';
+import ApprovalDocumentModal from './ApprovalDocumentModal';
 import ApprovalDraftForm from './ApprovalDraftForm';
 import ApprovalProgress from './ApprovalProgress';
+import ApproverReplaceModal from './ApproverReplaceModal';
+import { APPROVAL_CODES } from './errorCodes';
 import ErrorText from './ErrorText';
 import { formatDateTime } from './format';
 import { findSubmitBlocker, submitBlockerLabel } from './submitCheck';
+import { needsActingDrafter } from './unavailable';
 import {
   type ApprovalBlockDetail,
+  type ApprovalDocument,
   type ApprovalRevision,
   readApprovalBlockDetail,
 } from './types';
@@ -25,6 +31,9 @@ import {
  * - `DRAFT` — 초안 편집 폼. 상신 전까지 자유롭게 고친다
  * - `IN_PROGRESS` · `COMPLETED` — 진행 현황 요약. **수정할 수 없다**
  * - `REJECTED` — 반려 안내 + `수정`(재상신 회차 생성) 진입점
+ *
+ * 여기에 더해 **참여 불가로 결재가 멈춘 경우** 배너가 붙는다 (`unavailable.ts`) —
+ * 기안자 쪽은 재상신으로, 결재자 쪽은 교체 · 제외 모달로 푼다.
  */
 export default function ApprovalBlock({ block }: { block: StepBlock }) {
   const detail = readApprovalBlockDetail(block.detail);
@@ -66,6 +75,11 @@ function Loaded({
   const [rejectionNote, setRejectionNote] = useState<RejectionNote | null>(
     null,
   );
+  /** 참여 불가 결재자 교체 · 제외 모달 */
+  const [isReplacingApprover, setIsReplacingApprover] = useState(false);
+  /** 열어 본 첨부 문서 — 뷰어는 문서 하나만 받는다 */
+  const [viewingDocument, setViewingDocument] =
+    useState<ApprovalDocument | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -121,6 +135,19 @@ function Loaded({
       setReloadKey((key) => key + 1);
       setIsEditing(true);
     } catch (caught) {
+      const code = caught instanceof ApiError ? caught.code : undefined;
+
+      /**
+       * 대행 기안자는 **먼저 성공한 사람이 가져간다** — 거의 동시에 누르면 진 쪽이 이 코드다.
+       * 서버 문구("기안자 아님")로는 왜 막혔는지 알 수 없어 사정을 알리고, 회차를 다시 받아
+       * **대행자 이름이 붙은 화면**으로 바꿔 준다.
+       */
+      if (code === APPROVAL_CODES.notDrafter) {
+        setError('다른 분이 먼저 재상신해 대행 기안자가 되었습니다.');
+        setReloadKey((key) => key + 1);
+        return;
+      }
+
       setError(messageOf(caught, '수정을 시작하지 못했습니다.'));
     } finally {
       setIsBusy(false);
@@ -209,6 +236,38 @@ function Loaded({
           />
         )}
 
+        {/**
+         * 기안자가 참여 불가라 결재가 멈춘 경우. 반려 회차에서만 의미가 있다 —
+         * 재상신이 유일한 진행 수단이기 때문이다.
+         */}
+        {isRejected && revision.drafterUnavailable && (
+          <DrafterUnavailableBanner
+            actingDrafterName={revision.actingDrafterName ?? null}
+            canRevise={needsActingDrafter(revision)}
+            isBusy={isBusy}
+            onRevise={startRevise}
+          />
+        )}
+
+        {/**
+         * 결재자가 참여 불가라 진행이 멈춘 경우. 배너 노출은 블록 목록이 내려준
+         * `requiresApproverReplacement` 로 판단하고, 실제 대상은 회차 상세에서 고른다.
+         */}
+        {detail.requiresApproverReplacement && (
+          <div className="rounded-lg border border-yellow-border bg-yellow-bg-soft px-2.5 py-2">
+            <p className="text-caption font-semibold break-keep text-yellow-text">
+              ⚠ 결재할 수 없는 결재자가 있어 결재가 멈췄습니다.
+            </p>
+            <button
+              type="button"
+              onClick={() => setIsReplacingApprover(true)}
+              className="mt-2 cursor-pointer rounded-lg bg-yellow-text px-3 py-1.5 text-caption font-semibold text-text-white hover:opacity-90"
+            >
+              결재자 처리
+            </button>
+          </div>
+        )}
+
         {isCompleted && (
           <p className="rounded-lg border border-[#12B76A]/20 bg-[#12B76A]/5 px-2.5 py-2 text-caption font-semibold text-[#12B76A]">
             ✓ 최종 승인 완료
@@ -240,29 +299,57 @@ function Loaded({
               </p>
             </div>
 
-            <div className="flex gap-1.5">
-              {/* 결재 상세 화면은 아직 없다 — 만들어지면 링크로 바꾼다 */}
-              <span
-                title="결재 관리 페이지는 준비 중입니다"
-                className="flex flex-1 cursor-not-allowed items-center justify-center rounded-lg border border-border-default py-1.5 text-caption font-medium text-text-muted"
+            {/**
+             * 첨부 문서는 블록에서 바로 연다 — 무엇을 결재하는지가 핵심이라 파일을 보려고
+             * 다른 화면으로 나갔다 오게 하지 않는다.
+             * ⚠️ 회차 상세에는 `fileName` 이 없어(AP-013) 버전 번호로 대신 적는다.
+             */}
+            {revision.documents.length > 0 && (
+              <div>
+                <p className="text-caption font-semibold text-text-primary">
+                  첨부 문서
+                </p>
+                <ul className="mt-1 flex flex-col gap-1">
+                  {revision.documents.map((document) => (
+                    <li key={document.documentId}>
+                      <button
+                        type="button"
+                        onClick={() => setViewingDocument(document)}
+                        className="flex w-full cursor-pointer items-center gap-2 rounded-lg border border-border-default px-2 py-1.5 text-left hover:bg-bg-hover"
+                      >
+                        <DocumentIcon />
+                        <span className="min-w-0 flex-1 truncate text-caption text-text-primary">
+                          {document.fileName ??
+                            `파일 버전 #${document.fileVersionId}`}
+                        </span>
+                        <span className="shrink-0 text-caption font-semibold text-text-primary-blue">
+                          보기
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/**
+             * 상신 전에는 언제든 다시 고칠 수 있어야 한다 (AP-006).
+             * 반려된 결재는 새 회차를 먼저 만들어야 해서 `startRevise` 로 간다 (AP-062).
+             *
+             * ⛔ 기안자가 참여 불가인 반려 회차에서는 **배너가 유일한 경로**다.
+             *    여기 버튼도 `startRevise` 를 부르는데, 대행자가 이미 정해졌다면
+             *    그 사람이 아닌 모두가 403 을 받는다 — 눌리지 않을 버튼을 두지 않는다.
+             */}
+            {(isDraft || (isRejected && !revision.drafterUnavailable)) && (
+              <button
+                type="button"
+                onClick={isRejected ? startRevise : () => setIsEditing(true)}
+                disabled={isBusy}
+                className="w-full cursor-pointer rounded-lg border border-border-default py-1.5 text-caption font-semibold text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
               >
-                결재 상세 보기
-              </span>
-              {/**
-               * 상신 전에는 언제든 다시 고칠 수 있어야 한다 (AP-006).
-               * 반려된 결재는 새 회차를 먼저 만들어야 해서 `startRevise` 로 간다 (AP-062).
-               */}
-              {(isDraft || isRejected) && (
-                <button
-                  type="button"
-                  onClick={isRejected ? startRevise : () => setIsEditing(true)}
-                  disabled={isBusy}
-                  className="shrink-0 cursor-pointer rounded-lg border border-border-default px-3 py-1.5 text-caption font-semibold text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
-                >
-                  {isBusy ? '준비 중…' : '수정'}
-                </button>
-              )}
-            </div>
+                {isBusy ? '준비 중…' : '수정'}
+              </button>
+            )}
 
             {/* 완료 표시용 버튼. 누를 일이 없어 동작을 달지 않는다 */}
             {isCompleted && (
@@ -300,7 +387,101 @@ function Loaded({
 
         <ErrorText message={error} />
       </div>
+
+      {viewingDocument && (
+        <ApprovalDocumentModal
+          document={viewingDocument}
+          onClose={() => setViewingDocument(null)}
+        />
+      )}
+
+      {isReplacingApprover && (
+        <ApproverReplaceModal
+          approvalId={detail.approvalId}
+          revisionId={revisionId}
+          lines={revision.lines}
+          onClose={() => setIsReplacingApprover(false)}
+          /*
+            회차(진행 현황 · 차수)와 블록 목록을 **둘 다** 다시 받아야 한다 —
+            배너를 켜는 `requiresApproverReplacement` 는 블록 목록이 내려주는 값이라
+            회차만 갱신하면 처리를 끝냈는데도 경고가 그대로 남는다.
+          */
+          onChanged={() => {
+            setReloadKey((key) => key + 1);
+            notifyBlockChanged();
+          }}
+        />
+      )}
     </BlockCard>
+  );
+}
+
+function DocumentIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className="size-3.5 shrink-0 text-text-secondary"
+    >
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <path d="M14 3v5h5" />
+    </svg>
+  );
+}
+
+/**
+ * 기안자가 참여 불가일 때의 안내.
+ *
+ * **대행자 지정 절차가 따로 없다** — 스텝 `EDITOR` 중 가장 먼저 재상신에 성공한 사람이
+ * 대행 기안자가 된다. 그래서 아직 아무도 없을 때만 버튼을 열고, 정해진 뒤에는
+ * 누구인지 이름으로 알린다 (다른 사람이 눌러도 403 이라 눌리게 두지 않는다).
+ *
+ * ℹ️ 버튼은 `EDITOR` 가 아닌 사람에게도 보인다 — 스텝 권한을 블록이 알지 못한다.
+ *    권한이 없으면 서버가 403 으로 막고 그 문구를 그대로 띄운다.
+ */
+function DrafterUnavailableBanner({
+  actingDrafterName,
+  canRevise,
+  isBusy,
+  onRevise,
+}: {
+  actingDrafterName: string | null;
+  canRevise: boolean;
+  isBusy: boolean;
+  onRevise: () => void;
+}) {
+  return (
+    <div className="rounded-lg border border-yellow-border bg-yellow-bg-soft px-2.5 py-2">
+      <p className="text-caption font-semibold break-keep text-yellow-text">
+        ⚠ 기안자가 참여할 수 없어 결재가 멈췄습니다.
+      </p>
+
+      {canRevise ? (
+        <>
+          <p className="mt-0.5 text-caption break-keep text-yellow-text">
+            재상신하면 대행 기안자가 되어 이 결재를 이어서 진행합니다.
+          </p>
+          <button
+            type="button"
+            onClick={onRevise}
+            disabled={isBusy}
+            className="mt-2 cursor-pointer rounded-lg bg-yellow-text px-3 py-1.5 text-caption font-semibold text-text-white hover:opacity-90 disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+          >
+            {isBusy ? '준비 중…' : '재상신'}
+          </button>
+        </>
+      ) : (
+        <p className="mt-0.5 text-caption break-keep text-yellow-text">
+          <strong>{actingDrafterName ?? '다른 담당자'}</strong> 님이 대행
+          기안자로 이어받았습니다.
+        </p>
+      )}
+    </div>
   );
 }
 

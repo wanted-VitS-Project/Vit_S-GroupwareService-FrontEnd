@@ -75,6 +75,9 @@ export function routeOf(target: NotificationTarget) {
      * 이슈 알림. **`targetId`(이슈 ID)만으로는 갈 곳을 못 만든다** —
      * 이슈 단독 화면이 없고 `프로젝트 > 스텝 > 이슈` 안에 있어서다.
      * 그래서 `extra` 의 `projectId` · `stepId` 를 함께 본다 (2026-08-12 실측 확인).
+     *
+     * 보드까지만 데려가면 **어느 이슈였는지는 사용자가 다시 찾아야 한다** —
+     * `targetId` 를 쿼리로 넘겨 그 이슈의 상세 모달이 열린 채로 도착하게 한다.
      */
     case 'ISSUE': {
       const projectId = pickId(target.extra, 'projectId');
@@ -83,9 +86,12 @@ export function routeOf(target: NotificationTarget) {
       const stepId = pickId(target.extra, 'stepId');
 
       // 스텝을 모르면 프로젝트까지만 데려간다 — 아무 데도 못 가는 것보다 낫다
-      return stepId === null
-        ? PROJECT_ROUTES.detail(projectId)
-        : PROJECT_ROUTES.stepIssues(projectId, stepId);
+      if (stepId === null) return PROJECT_ROUTES.detail(projectId);
+
+      // 이슈 ID 를 못 믿으면 보드까지만 — 없는 이슈로 빈 모달을 띄우지 않는다
+      const issueId = toPositiveId(target.targetId);
+
+      return PROJECT_ROUTES.stepIssues(projectId, stepId, issueId ?? undefined);
     }
 
     default:
@@ -104,7 +110,24 @@ function pickId(
   extra: NotificationTarget['extra'],
   key: string,
 ): string | null {
-  const parsed = Number(extra?.[key]);
+  return toPositiveId(extra?.[key]);
+}
+
+/**
+ * 경로에 넣어도 되는 ID 인지 확인하고 문자열로 정규화한다.
+ * 통과하지 못하면 `null` — 부르는 쪽이 한 단계 위 화면으로 떨어뜨린다.
+ *
+ * ⚠️ **`Number()` 에 곧바로 넘기지 않는다.** `true` · `[1]` 은 `1` 이 되고
+ *    `'0x10'` 은 `16` 이 되어, 잘못된 응답이 **엉뚱한 프로젝트 · 스텝 · 이슈**를 연다.
+ *    숫자이거나 **10진수 숫자만으로 된 문자열**일 때만 통과시킨다.
+ */
+function toPositiveId(value: unknown): string | null {
+  const parsed =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && /^\d+$/.test(value)
+        ? Number(value)
+        : Number.NaN;
 
   if (!Number.isSafeInteger(parsed) || parsed <= 0) return null;
   return String(parsed);

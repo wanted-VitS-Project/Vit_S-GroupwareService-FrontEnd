@@ -7,6 +7,7 @@ import Sidebar from '@/components/Sidebar';
 import ToastHost from '@/components/Toast';
 import { BARE_LAYOUT_PATHS, isProjectScope, isUnder } from '@/constants/menu';
 import CurrentUserProvider from '@/features/auth/CurrentUserProvider';
+import NotificationStreamProvider from '@/features/notification/NotificationStreamProvider';
 import MyPagesProvider from '@/features/pagePermission/MyPagesProvider';
 import PageAccessGate from '@/features/pagePermission/PageAccessGate';
 import { ProjectSidebarCollapseProvider } from '@/features/project/SidebarCollapse';
@@ -38,6 +39,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         메뉴 노출 근거(`GET /my/pages`)는 세션이 확인된 뒤에만 의미가 있어
         `CurrentUserProvider` **안쪽**에 둔다. 게이트 화면에서는 호출되지 않는다.
       */}
+      {/*
+        알림 스트림은 **셸에 하나만** 연다 — 화면을 옮길 때마다 끊겼다 붙지 않게.
+        세션이 확인된 뒤여야 하므로 `CurrentUserProvider` 안쪽이다
+      */}
+      <NotificationStreamProvider />
       <MyPagesProvider>
         {/*
           사이드바 접힘 상태는 `ProjectSidebar` 와 `Header`(로고 칸)가 함께 읽는다 —
