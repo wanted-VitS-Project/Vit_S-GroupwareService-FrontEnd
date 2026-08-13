@@ -194,7 +194,7 @@ export default function CashFlowDetail({ cashFlowId }: { cashFlowId: number }) {
             </h2>
           </span>
           <p className="mt-1.5 text-caption text-text-secondary">
-            {formatDateTime(row.tradedAt) || '-'} · {row.depositorName}
+            {formatDateTime(row.tradedAt) || '-'} · {row.depositorName || '-'}
           </p>
         </div>
 

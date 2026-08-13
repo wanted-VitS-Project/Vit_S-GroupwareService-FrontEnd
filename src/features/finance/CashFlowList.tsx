@@ -548,6 +548,11 @@ function buildColumns({
       header: <span className="block pl-3">입금자명</span>,
       width: '13%',
       skeletonWidth: 'w-24',
+      /**
+       * 링크 클릭이 행 클릭으로 번지면 **같은 이동이 두 번** 일어난다.
+       * 칸 자체에 동작이 있으므로 행 클릭에서 떼어 낸다.
+       */
+      stopRowClick: true,
       /** 행 클릭만으로는 키보드로 갈 수 없다 — 칸 안에 링크를 함께 둔다 */
       cell: (row) => (
         <Link

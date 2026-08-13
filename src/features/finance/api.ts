@@ -162,12 +162,20 @@ export function unmatchCashFlow(cashFlowId: number) {
  *    비밀번호를 받아 같은 파일로 다시 부른다 (`FINANCE_CSV_PASSWORD_INVALID` 는 틀린 경우).
  * ⚠️ 형식이 아니면 **404**(`FINANCE_INVALID_CSV_FILE`) 다 — 400 이 아니다.
  */
-export function previewCashFlowCsv(file: File, password?: string) {
+export function previewCashFlowCsv(
+  file: File,
+  password?: string,
+  signal?: AbortSignal,
+) {
   const form = new FormData();
   form.append('file', file);
   if (password) form.append('password', password);
 
-  return postForm<CsvPreview>(ENDPOINTS.finance.cashFlows.csvPreview, form);
+  return postForm<CsvPreview>(
+    ENDPOINTS.finance.cashFlows.csvPreview,
+    form,
+    signal,
+  );
 }
 
 /**
@@ -176,10 +184,18 @@ export function previewCashFlowCsv(file: File, password?: string) {
  * ⚠️ 매핑은 **JSON 문자열**로 `request` 파트에 담는다 (파일과 같은 multipart).
  * ⚠️ 이미 등록된 거래는 저장되지 않고 `duplicateRows` 로 돌아온다 — 실패가 아니다.
  */
-export function uploadCashFlowCsv(file: File, request: CsvUploadRequest) {
+export function uploadCashFlowCsv(
+  file: File,
+  request: CsvUploadRequest,
+  signal?: AbortSignal,
+) {
   const form = new FormData();
   form.append('file', file);
   form.append('request', JSON.stringify(request));
 
-  return postForm<CsvUploadResult>(ENDPOINTS.finance.cashFlows.csv, form);
+  return postForm<CsvUploadResult>(
+    ENDPOINTS.finance.cashFlows.csv,
+    form,
+    signal,
+  );
 }

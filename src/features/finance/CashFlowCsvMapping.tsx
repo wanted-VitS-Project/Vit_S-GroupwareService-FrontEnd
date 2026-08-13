@@ -190,19 +190,28 @@ export default function CashFlowCsvMapping({
           <div className="flex flex-col gap-5">
             {/* 은행명은 파일에 없는 정보다 — 사람이 고르거나 적는다 */}
             {isBankCustom ? (
-              <TextField
-                id="csvBankName"
-                label="은행명"
-                required
-                value={bankName}
-                placeholder="신한은행"
-                hint={
-                  preview.bankOptions.length > 0
-                    ? '목록에서 고르려면 아래 선택지를 다시 여세요.'
-                    : undefined
-                }
-                onChange={setBankName}
-              />
+              <div>
+                <TextField
+                  id="csvBankName"
+                  label="은행명"
+                  required
+                  value={bankName}
+                  placeholder="신한은행"
+                  onChange={setBankName}
+                />
+                {preview.bankOptions.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsBankCustom(false);
+                      setBankName(preview.bankOptions[0] ?? '');
+                    }}
+                    className="mt-1 cursor-pointer text-micro text-text-primary-blue hover:underline"
+                  >
+                    목록에서 고르기
+                  </button>
+                )}
+              </div>
             ) : (
               <SelectField
                 id="csvBankName"
@@ -228,6 +237,7 @@ export default function CashFlowCsvMapping({
             )}
 
             <ModeGroup
+              name="csvDateTimeMode"
               label="일시 입력 방식"
               value={dateTimeMode}
               options={DATE_TIME_MODES}
@@ -259,6 +269,7 @@ export default function CashFlowCsvMapping({
             )}
 
             <ModeGroup
+              name="csvAmountMode"
               label="금액 입력 방식"
               value={amountMode}
               options={AMOUNT_MODES}
@@ -340,9 +351,11 @@ export default function CashFlowCsvMapping({
         >
           이전
         </button>
+        {/* 필수 칸이 비면 **누를 수 없게** 한다 — 눌러서 오류를 보는 것보다 낫다 */}
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || validate() !== null}
+          title={validate() ?? undefined}
           className="btn btn-md btn-primary"
         >
           {isSubmitting ? '등록 중…' : '등록하기'}
@@ -359,11 +372,14 @@ function isOptional(field: MappingField) {
 
 /** 두 방식 중 하나를 고르는 라디오 묶음 */
 function ModeGroup<T extends string>({
+  name,
   label,
   value,
   options,
   onChange,
 }: {
+  /** ⚠️ 같은 그룹의 라디오는 `name` 이 같아야 방향키로 옮겨 다닐 수 있다 */
+  name: string;
   label: string;
   value: T;
   options: { value: T; label: string }[];
@@ -386,6 +402,7 @@ function ModeGroup<T extends string>({
           >
             <input
               type="radio"
+              name={name}
               checked={option.value === value}
               onChange={() => onChange(option.value)}
               className="size-3.5 cursor-pointer accent-btn-primary"
@@ -430,15 +447,25 @@ function ColumnField({
 
   if (customFields.includes(field)) {
     return (
-      <TextField
-        id={id}
-        label={label}
-        required={required}
-        value={value}
-        placeholder="파일의 컬럼명을 그대로 적어주세요"
-        hint={hint}
-        onChange={(next) => onChange(field, next)}
-      />
+      <div>
+        <TextField
+          id={id}
+          label={label}
+          required={required}
+          value={value}
+          placeholder="파일의 컬럼명을 그대로 적어주세요"
+          hint={hint}
+          onChange={(next) => onChange(field, next)}
+        />
+        {/* ⚠️ 되돌릴 길이 없으면 잘못 골랐을 때 파일부터 다시 올려야 한다 */}
+        <button
+          type="button"
+          onClick={() => onCustomChange(field, false)}
+          className="mt-1 cursor-pointer text-micro text-text-primary-blue hover:underline"
+        >
+          목록에서 고르기
+        </button>
+      </div>
     );
   }
 
@@ -465,11 +492,7 @@ function ColumnField({
   );
 }
 
-/**
- * 상위 5행 미리보기.
- *
- * ⚠️ 열이 파일마다 다르므로 폭을 균등하게 나눈다 (합계 100%). 값이 길면 줄바꿈으로 흐른다.
- */
+/** 상위 5행 미리보기 */
 function SamplePreview({ preview }: { preview: CsvPreview }) {
   /**
    * ⚠️ 여기서는 **가로 스크롤을 허용한다** (`minWidth`) — 목록 표와 달리 컬럼 수가

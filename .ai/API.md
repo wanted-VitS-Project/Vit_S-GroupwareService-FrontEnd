@@ -4823,7 +4823,7 @@ data: {
 | `GET`    | `/finance/cash-flows/{cashFlowId}/match-candidates` | 매칭 추천 (최대 5건) |
 | `PATCH`  | `/finance/cash-flows/{cashFlowId}/match`      | 정산 블록 연결             |
 | `PATCH`  | `/finance/cash-flows/{cashFlowId}/unmatch`    | 연결 해제                  |
-| `POST`   | `/finance/cash-flows/csv/preview` · `/csv`    | CSV 미리보기 · 업로드 (#14) |
+| `POST`   | `/finance/cash-flows/csv/preview` · `/csv`    | CSV 미리보기 · 업로드 (#13) |
 
 ### 요약 응답 (`GET /finance/summary`)
 
@@ -4888,7 +4888,7 @@ body 는 등록과 같은 모양이고 전부 선택이다.
 추천 후보(`match-candidates`)는 **정산 블록** 단위이고 `matchTags`(`["금액 일치", "상호명 일치"]`)로 추천 이유가 함께 온다.
 
 
-### CSV · 엑셀 일괄 등록 (#14)
+### CSV · 엑셀 일괄 등록 (#13)
 
 | Method | Path                              | 요청                                        |
 | ------ | --------------------------------- | ------------------------------------------- |

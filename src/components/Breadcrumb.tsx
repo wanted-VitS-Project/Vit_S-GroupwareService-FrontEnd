@@ -14,23 +14,33 @@ export default function Breadcrumb({
   return (
     <nav aria-label="현재 위치">
       <ol className="flex flex-wrap items-center gap-1.5 text-caption text-text-secondary">
-        {items.map((item, index) => (
-          <li key={item.label} className="flex items-center gap-1.5">
-            {item.href ? (
-              <Link href={item.href} className="hover:underline">
-                {item.label}
-              </Link>
-            ) : (
-              <span className="text-text-primary">{item.label}</span>
-            )}
+        {items.map((item, index) => {
+          /**
+           * ⚠️ **마지막 항목은 `href` 가 있어도 링크로 만들지 않는다** — 지금 보고 있는
+           *    화면이라 눌러 봐야 같은 자리다. `aria-current` 로 현재 위치를 알린다.
+           */
+          const isCurrent = index === items.length - 1;
 
-            {index < items.length - 1 && (
-              <span aria-hidden className="text-text-muted">
-                ›
-              </span>
-            )}
-          </li>
-        ))}
+          return (
+            <li key={item.label} className="flex items-center gap-1.5">
+              {item.href && !isCurrent ? (
+                <Link href={item.href} className="hover:underline">
+                  {item.label}
+                </Link>
+              ) : (
+                <span aria-current="page" className="text-text-primary">
+                  {item.label}
+                </span>
+              )}
+
+              {!isCurrent && (
+                <span aria-hidden className="text-text-muted">
+                  ›
+                </span>
+              )}
+            </li>
+          );
+        })}
       </ol>
     </nav>
   );

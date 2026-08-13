@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
+import { useRef, useState } from 'react';
 
 import Breadcrumb from '@/components/Breadcrumb';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
@@ -25,7 +26,7 @@ const ACCEPT = '.csv,.xlsx,.xls';
 const STEPS = ['파일 선택', '컬럼 맞추기', '결과 확인'] as const;
 
 /**
- * 입출금 내역 CSV · 엑셀 일괄 등록. (#14)
+ * 입출금 내역 CSV · 엑셀 일괄 등록. (#13)
  *
  * 세 단계다 — **파일을 고르면 컬럼 추천을 받고**, 사람이 매핑을 확정하면 저장한다.
  * 1단계에서 올린 파일은 저장되지 않는다 (추천을 받기 위한 미리보기다).
@@ -34,6 +35,14 @@ const STEPS = ['파일 선택', '컬럼 맞추기', '결과 확인'] as const;
  *    입출금 전용 문구를 컴포넌트 안에 박아 두지 않는다.
  */
 export default function CashFlowCsvImport() {
+  /**
+   * 진행 중인 미리보기 요청.
+   *
+   * ⚠️ 로딩 중이라고 새 선택을 무시하면, 파일명만 바뀌고 **아무 반응도 없는 화면**이 된다
+   *    (드래그 앤 드롭은 `disabled` 로 막히지도 않는다). 앞 요청을 끊고 새로 부른다.
+   */
+  const pendingRef = useRef<AbortController | null>(null);
+
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<CsvPreview | null>(null);
 
@@ -62,15 +71,22 @@ export default function CashFlowCsvImport() {
   }
 
   async function load(target: File, secret: string | undefined) {
-    if (isLoading) return;
+    // 앞 요청이 남아 있으면 끊는다 — 늦게 온 응답이 새 파일의 추천을 덮으면 안 된다
+    pendingRef.current?.abort();
+
+    const controller = new AbortController();
+    pendingRef.current = controller;
 
     setIsLoading(true);
     setError('');
 
     try {
-      setPreview(await previewCashFlowCsv(target, secret));
+      setPreview(await previewCashFlowCsv(target, secret, controller.signal));
       setNeedsPassword(false);
     } catch (caught) {
+      // 취소는 실패가 아니다 — 새 요청이 이미 떠 있다는 뜻이다
+      if (controller.signal.aborted) return;
+
       /**
        * ⚠️ 비밀번호 요구는 **실패가 아니라 다음 단계**다 — 칸을 열고 기다린다.
        *    틀린 경우도 같은 자리에서 다시 받는다 (문구만 다르다).
@@ -93,7 +109,8 @@ export default function CashFlowCsvImport() {
 
       setError(messageOf(caught, '파일을 읽지 못했습니다.'));
     } finally {
-      setIsLoading(false);
+      // 뒤늦게 끝난 앞 요청이 로딩 표시를 끄지 않게 한다
+      if (pendingRef.current === controller) setIsLoading(false);
     }
   }
 
@@ -187,6 +204,15 @@ function UploadResult({ result }: { result: CsvUploadResult }) {
           <Figure label="중복 제외" value={result.duplicateCount} />
         </dl>
 
+        {/**
+         * ⚠️ 등록된 건은 **아직 어디에도 연결되지 않았다** — 여기서 끝난 줄 알고 나가면
+         *    미연결 건이 쌓인다. 다음 할 일(연결)을 결과 화면에서 알려 준다.
+         */}
+        <p className="mt-4 rounded-lg bg-bg-surface px-4 py-3 text-caption break-keep text-text-secondary">
+          등록된 입출금은 <b>미연결 상태</b>입니다. 목록에서 정산 블록에
+          연결해주세요.
+        </p>
+
         {result.duplicateRows.length > 0 && (
           <div className="mt-6">
             <p className="mb-2 text-caption font-semibold text-text-primary">
@@ -200,6 +226,16 @@ function UploadResult({ result }: { result: CsvUploadResult }) {
             />
           </div>
         )}
+      </div>
+
+      {/* 끝난 뒤의 다음 행동 — 완료 화면에서는 목록으로 가는 길을 눈에 띄게 둔다 */}
+      <div className="mt-4 flex justify-end">
+        <Link
+          href={FINANCE_ROUTES.cashFlows}
+          className="btn btn-md btn-primary"
+        >
+          입출금 내역으로
+        </Link>
       </div>
     </div>
   );
@@ -324,7 +360,8 @@ function FilePicker({
         setIsOver(false);
         onPick(event.dataTransfer.files[0] ?? null);
       }}
-      className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-5 py-10 text-center transition-colors ${
+      /** `<input>` 이 `sr-only` 라 포커스가 보이지 않는다 — 라벨에 `focus-within` 으로 드러낸다 */
+      className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-5 py-10 text-center transition-colors focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-border-primary ${
         isOver
           ? 'border-border-primary bg-blue-bg-soft'
           : 'border-border-default hover:bg-bg-surface'
