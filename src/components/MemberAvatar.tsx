@@ -43,18 +43,37 @@ const SIZES = {
 } as const;
 
 /**
- * 사진이 없는 사번. 서빙 API 는 사진이 없으면 404 를 주는데, 목록에는 같은 사람이
- * 수십 번 나오므로 그대로 두면 **한 화면에서 같은 404 를 반복해서 부른다**.
- * 한 번 실패한 사번은 여기 담아 두고 그 세션 동안 다시 부르지 않는다.
+ * 사진을 못 받은 사번과 그 시각. 서빙 API 는 사진이 없으면 404 를 주는데, 목록에는
+ * 같은 사람이 수십 번 나오므로 그대로 두면 **한 화면에서 같은 404 를 반복해서 부른다**.
+ *
+ * ⚠️ `<img>` 의 `onError` 는 **상태 코드를 주지 않는다** — 사진 없음(404)인지
+ *    네트워크 순단 · 5xx 인지 구분할 수가 없다. 그래서 영구히 기억하지 않고
+ *    `RETRY_AFTER_MS` 가 지나면 다시 시도한다. 순단은 알아서 풀리고, 사진이 없는
+ *    사번은 그 간격으로만 404 를 낸다.
+ *    상태 코드를 알자고 따로 요청을 보내면 아바타마다 왕복이 하나 더 늘어
+ *    이 캐시가 막으려던 문제로 되돌아간다.
  *
  * ⚠️ 목록 응답에 `profileImageUrl` 이 생기면 이 캐시째 걷어낸다 (STATE 백로그).
  */
-const missingAvatars = new Set<string>();
+const missingAvatars = new Map<string, number>();
+
+const RETRY_AFTER_MS = 5 * 60 * 1000;
+
+function isKnownMissing(userId: string) {
+  const failedAt = missingAvatars.get(userId);
+
+  if (failedAt === undefined) return false;
+
+  if (Date.now() - failedAt < RETRY_AFTER_MS) return true;
+
+  missingAvatars.delete(userId);
+  return false;
+}
 
 /**
  * 프로필 사진을 바꾼 뒤 호출 — 다음 렌더에서 서빙을 다시 시도한다.
  * 마이페이지 아바타는 `imageUrl` 로 직접 받지만, **다른 화면의 내 아바타**는
- * 사번으로 부르므로 이걸 비워주지 않으면 세션 내내 이니셜로 남는다.
+ * 사번으로 부르므로 이걸 비워주지 않으면 재시도 간격만큼 이니셜로 남는다.
  */
 export function forgetMissingAvatar(userId: string) {
   missingAvatars.delete(userId);
@@ -127,8 +146,8 @@ export default function MemberAvatar({
         alt={decorative ? '' : label}
         title={decorative ? undefined : label}
         onError={() => {
-          // 사진 없음(404) — 이 사번은 이 세션 동안 다시 부르지 않는다
-          missingAvatars.add(userId);
+          // 사진 없음이거나 일시 장애 — 잠시 쉬었다 다시 시도한다 (위 주석 참고)
+          missingAvatars.set(userId, Date.now());
           setFailedSource(source);
         }}
         className={`${shape} object-cover`}
@@ -160,7 +179,7 @@ function sourceOf(userId: string, imageUrl?: string | null) {
   const path =
     imageUrl !== undefined
       ? imageUrl
-      : missingAvatars.has(userId)
+      : isKnownMissing(userId)
         ? null
         : ENDPOINTS.employees.profileImage(userId);
 
