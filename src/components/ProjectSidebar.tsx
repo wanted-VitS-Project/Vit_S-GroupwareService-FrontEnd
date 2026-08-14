@@ -12,6 +12,10 @@ import { notifyToast } from '@/components/Toast';
 import { projectScopeUpLink } from '@/constants/menu';
 import { notifyBlockChanged } from '@/features/block/events';
 import {
+  useProjectSteps,
+  useRefreshProjectSteps,
+} from '@/features/project/useProjectSteps';
+import {
   ISSUE_CHANGED_EVENT,
   notifyIssueChanged,
 } from '@/features/issue/events';
@@ -19,7 +23,6 @@ import {
   getProject,
   getProjectMembers,
   getProjectStages,
-  getProjectSteps,
 } from '@/features/project/api';
 import {
   SIDEBAR_COLLAPSED_WIDTH,
@@ -224,17 +227,31 @@ export default function ProjectSidebar() {
   /** 단계 · 스텝을 고친 뒤 목록을 다시 읽는 신호 */
   const [reloadCount, setReloadCount] = useState(0);
   const modal = useModalTarget<SidebarModal>();
+  /** 스텝 이름을 캐시에서 꺼내 쓰는 화면(스텝 헤더)에도 변경을 알린다 */
+  const refreshSteps = useRefreshProjectSteps(projectId);
 
+  /**
+   * 스텝 · 단계를 고친 직후 부르는 단일 창구.
+   * 사이드바 자신의 목록과 **캐시에 담긴 스텝 목록**을 함께 갱신한다 —
+   * 여기를 빼먹으면 이름을 바꿔도 스텝 화면 헤더가 옛 이름을 들고 있다.
+   */
   function reload() {
     setReloadCount((count) => count + 1);
+    void refreshSteps();
   }
+
+  /**
+   * 스텝 목록은 **스텝 화면 헤더와 같은 캐시**를 본다 (`['project-steps', projectId]`).
+   * 나란히 떠 있는 두 화면이 같은 목록을 두 번 받지 않는다.
+   */
+  const { data: steps = null, isError: haveStepsFailed } =
+    useProjectSteps(projectId);
 
   /** 어느 프로젝트의 응답인지 함께 담는다 — 경로가 바뀌면 즉시 무효가 된다 */
   const [loaded, setLoaded] = useState<{
     projectId: string;
     project: ProjectDetail;
     stages: ProjectStage[];
-    steps: ProjectStep[];
   } | null>(null);
   const [failedProjectId, setFailedProjectId] = useState<string | null>(null);
   const [loadedMembers, setLoadedMembers] = useState<{
@@ -254,18 +271,15 @@ export default function ProjectSidebar() {
     Promise.all([
       getProject(projectId, signal),
       getProjectStages(projectId, signal),
-      getProjectSteps(projectId, signal),
     ])
-      .then(([project, stages, steps]) =>
-        setLoaded({ projectId, project, stages, steps }),
-      )
+      .then(([project, stages]) => setLoaded({ projectId, project, stages }))
       .catch(() => {
         // 취소는 실패가 아니다
         if (!signal.aborted) setFailedProjectId(projectId);
       });
 
     return () => controller.abort();
-    // 단계 · 스텝을 고치면 `reloadCount` 가 올라 같은 조회를 다시 태운다
+    // 단계를 고치면 `reloadCount` 가 올라 같은 조회를 다시 태운다 (스텝은 캐시가 맡는다)
   }, [projectId, reloadCount]);
 
   /**
@@ -285,15 +299,13 @@ export default function ProjectSidebar() {
       controller = new AbortController();
       const { signal } = controller;
 
-      Promise.all([
-        getProject(projectId, signal),
-        getProjectSteps(projectId, signal),
-      ])
-        .then(([project, steps]) =>
+      // 스텝 진척률은 캐시를 무효화해 받는다 — 헤더도 같은 값을 함께 받는다
+      void refreshSteps();
+
+      getProject(projectId, signal)
+        .then((project) =>
           setLoaded((prev) =>
-            prev && prev.projectId === projectId
-              ? { ...prev, project, steps }
-              : prev,
+            prev && prev.projectId === projectId ? { ...prev, project } : prev,
           ),
         )
         // 갱신 실패는 조용히 넘긴다 — 이미 보이는 값이 있다
@@ -312,7 +324,7 @@ export default function ProjectSidebar() {
       if (timer) clearTimeout(timer);
       controller?.abort();
     };
-  }, [projectId]);
+  }, [projectId, refreshSteps]);
 
   // 참여자는 보조 정보다. 지연·실패해도 프로젝트 개요와 단계 탐색을 막지 않는다.
   useEffect(() => {
@@ -337,10 +349,10 @@ export default function ProjectSidebar() {
   const current = loaded?.projectId === projectId ? loaded : null;
   const project = current?.project ?? null;
   const stages = current?.stages ?? null;
-  const steps = current?.steps ?? null;
   const members =
     loadedMembers?.projectId === projectId ? loadedMembers.members : null;
-  const hasFailed = failedProjectId === projectId;
+  // 스텝만 실패해도 단계 탐색이 통째로 비어 이전과 같은 오류 화면을 띄운다
+  const hasFailed = failedProjectId === projectId || haveStepsFailed;
   const haveMembersFailed = failedMembersProjectId === projectId;
 
   /**
