@@ -121,6 +121,14 @@ export default function ImageBlock({
     hasSeedImages(detail) ? 0 : 1,
   );
   const [isResyncing, setIsResyncing] = useState(() => !hasSeedImages(detail));
+  /**
+   * 지금 유효한 재동기화가 몇 번째인지.
+   *
+   * ⚠️ 목록 요청이 날아가 있는 동안 **업로드가 끝날 수 있다.** 그대로 두면 늦게 도착한
+   *    목록(업로드 **전**의 것)이 `applyImages` 로 캐시를 통째로 갈아엎어 방금 올린
+   *    이미지가 카드에서 사라진다. 세대가 어긋난 응답은 버린다.
+   */
+  const resyncEpoch = useRef(0);
   const [hasFailed, setHasFailed] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -178,15 +186,21 @@ export default function ImageBlock({
 
     const controller = new AbortController();
     const { signal } = controller;
+    // 이 요청이 몇 번째 세대인지 붙들어 둔다 — 도착했을 때 아직 유효한지 가리는 표다
+    const epoch = resyncEpoch.current + 1;
+    resyncEpoch.current = epoch;
 
     getImageItems(imgBlockId, signal)
       .then((data) => {
+        // 기다리는 사이 업로드가 끝났다 — 이 목록은 그때보다 옛것이라 쓰지 않는다
+        if (resyncEpoch.current !== epoch) return;
+
         applyImages(data.images);
         setIsResyncing(false);
       })
       .catch(() => {
         // 취소는 실패가 아니다
-        if (signal.aborted) return;
+        if (signal.aborted || resyncEpoch.current !== epoch) return;
         setHasFailed(true);
         setIsResyncing(false);
       });
@@ -229,7 +243,7 @@ export default function ImageBlock({
   }
 
   /**
-   * 방금 올린 이미지를 카드에 얹는다 (업로드 직후 — **재조회 없음**).
+   * 방금 올린 이미지를 카드에 얹는다 (업로드 직후 — 보통 **재조회 없음**).
    *
    * 생성 응답(67번)에는 **새로 올린 것만** 담기므로 기존 캐시를 비우지 않고 합친다.
    * 장수도 알던 값에 더한다 — 몰랐으면(`null`) 계속 모르는 채로 둔다.
@@ -238,12 +252,29 @@ export default function ImageBlock({
   function applyCreated(created: BlockImage[]) {
     if (created.length === 0) return;
 
+    /*
+     * 목록 요청이 날아가 있었다면 **그 응답을 버린다** — 업로드 전의 목록이라
+     * 그대로 적용되면 방금 올린 이미지가 사라진다.
+     */
+    const wasResyncing = isResyncing;
+    resyncEpoch.current += 1;
+
     created.forEach((image) => cacheRef.current.set(image.orderIndex, image));
+    setCurrent(created[0]);
+    setHasFailed(false);
+
+    if (wasResyncing) {
+      /*
+       * 버린 목록이 들고 있던 장수를 우리는 모른다 (삭제 직후였을 수도 있다).
+       * 이때만 목록을 다시 받아 확정한다 — 평상시 업로드는 아래 덧셈으로 끝난다.
+       */
+      resync();
+      return;
+    }
+
     setTotalCount((previous) =>
       previous === null ? null : previous + created.length,
     );
-    setCurrent(created[0]);
-    setHasFailed(false);
   }
 
   /**
@@ -322,6 +353,16 @@ export default function ImageBlock({
        *
        * 비었으면 `applyImages([])` 가 0장으로 정리해 `이미지 추가` 판이 뜬다.
        */
+
+      /*
+       * ⚠️ 재동기화 **전에** 지워진 자리를 비운다. 그대로 두면 목록 조회가 실패했을 때
+       *    `showRetry` 가 `current` 를 보고 거짓이 되어, 사용자는 **이미 지운 이미지를
+       *    계속 보면서 다시 시도할 방법도 없다.** (같은 이미지에 삭제를 또 걸 수도 있다)
+       */
+      cacheRef.current.clear();
+      setCurrent(null);
+      setTotalCount(null);
+
       resync();
     } catch (caught) {
       setErrorMessage(messageOf(caught, '이미지를 삭제하지 못했습니다.'));

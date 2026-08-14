@@ -3,6 +3,7 @@
 import { PROJECT_STATUS_LABELS } from '@/constants/status';
 
 import { PROJECT_SUMMARY_STATUSES } from './projectStatus';
+import type { ProjectStatus } from './types';
 import { useProjectCounts } from './useProjectCounts';
 
 /**
@@ -21,6 +22,22 @@ const ICON_STYLE = {
   CLOSED: 'bg-purple-bg-soft text-purple-text-deep',
 } as const;
 
+/**
+ * 상태별 아이콘.
+ *
+ * ⚠️ **자리(배열 순서)가 아니라 상태를 키로 고른다.** 배열로 두면
+ *    `PROJECT_SUMMARY_STATUSES` 에 상태를 하나 더 넣는 순간 아이콘이 `undefined` 가 되어
+ *    아이콘 없는 카드가 조용히 그려진다 — 타입 검사로도 안 잡힌다.
+ *    `Record` 로 두면 상태를 추가할 때 여기서 컴파일이 막힌다 (`ICON_STYLE` 과 같은 방식).
+ */
+const ICON: Record<ProjectStatus, React.ReactNode> = {
+  NOT_STARTED: <ClockIcon />,
+  IN_PROGRESS: <PlayIcon />,
+  SETTLEMENT: <CoinIcon />,
+  COMPLETED: <CheckIcon />,
+  CLOSED: <CheckIcon />,
+};
+
 export default function ProjectSummaryCards({
   /** 화면마다 부르는 이름이 조금 다르다 (`프로젝트 요약` · `프로젝트 상태 요약`) */
   label,
@@ -34,15 +51,10 @@ export default function ProjectSummaryCards({
 
   const cards = [
     { label: '전체 프로젝트', iconStyle: ICON_STYLE.ALL, icon: <FolderIcon /> },
-    ...PROJECT_SUMMARY_STATUSES.map((status, index) => ({
+    ...PROJECT_SUMMARY_STATUSES.map((status) => ({
       label: `${PROJECT_STATUS_LABELS[status]} 프로젝트`,
       iconStyle: ICON_STYLE[status],
-      icon: [
-        <ClockIcon key="c" />,
-        <PlayIcon key="p" />,
-        <CoinIcon key="s" />,
-        <CheckIcon key="d" />,
-      ][index],
+      icon: ICON[status],
     })),
   ];
 
@@ -74,6 +86,11 @@ export default function ProjectSummaryCards({
     /* 좁은 화면에서 5열을 유지하면 카드 폭이 좁아져 숫자가 아이콘과 겹친다 */
     <section
       aria-label={label}
+      /*
+       * 세는 동안은 카드가 `–` 를 보인다. 눈으로 보는 사용자는 아직 값이 없다고 읽지만
+       * 스크린리더에는 `–` 가 **확정된 값**처럼 전해진다 — 진행 중임을 함께 알린다.
+       */
+      aria-busy={values === null}
       className={`grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5 ${wideGapClassName}`}
     >
       {cards.map((card, index) => (
