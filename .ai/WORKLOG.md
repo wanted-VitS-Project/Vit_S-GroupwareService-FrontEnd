@@ -6,6 +6,65 @@
 
 ---
 
+## [2026-08-14] 스텝 블록 목록 react-query 전환 + 새로고침 버튼 ✅
+
+브랜치: `ref-ys` · API 변경 없음 · 이슈: #154
+
+스텝 블록 목록의 조회·캐시·재조회를 `@tanstack/react-query` 로 옮기고, 스텝 이름 왼쪽에 **블록 영역만** 다시 읽는 새로고침 버튼을 달았다.
+
+### 변경 파일
+
+| 파일                                         | 변경                                                                     |
+| -------------------------------------------- | ------------------------------------------------------------------------ |
+| `package.json`                               | 수정 (`@tanstack/react-query@^5.101.4` 추가)                             |
+| `src/app/providers.tsx`                      | **생성** (`QueryClientProvider` · 전역 기본 옵션)                        |
+| `src/app/layout.tsx`                         | 수정 (`Providers` 로 `AppShell` 감쌈)                                    |
+| `src/features/block/useStepBlocks.ts`        | **생성** (`useStepBlocks` · `useSetStepBlocks` · `useRefreshStepBlocks`) |
+| `src/features/block/RefreshBlocksButton.tsx` | **생성** (아이콘 버튼 · 회전 표시 · 편집 중 잠금)                        |
+| `src/features/block/api.ts`                  | 수정 (`getStepBlocksResponse` 신설 — 원본 응답 반환)                     |
+| `src/features/project/useProjectSteps.ts`    | **생성** (`useProjectSteps` · `useStepName` · `useRefreshProjectSteps`)  |
+| `src/components/ProjectSidebar.tsx`          | 수정 (스텝 목록을 공용 캐시로 · `reload()` · 이슈 갱신이 무효화)         |
+| `src/features/block/StepBlocks.tsx`          | 수정 (수동 패칭 제거 → 훅 사용 · 새로고침 버튼 배치 · `bodyGeneration`)  |
+| `src/features/block/BlockBoard.tsx`          | 수정 (`bodyGeneration` prop — 본문 key 에 실어 재마운트)                 |
+| `src/features/block/ChecklistBlock.tsx`      | 수정 (`detail` 참조 변경 시 항목 목록 재동기화)                          |
+
+### 주요 작업 내용
+
+- **`useQuery` 전환** — `queryKey: ['step-blocks', stepId]` 로 스텝별 캐시 분리. `staleTime` 30초 · `gcTime` 5분이라 스텝 탭을 오가도 스켈레톤이 다시 뜨지 않는다
+- **`select` 로 껍질 벗기기** — 캐시에는 응답 원본(`{ blocks }`)을 담고 컴포넌트에는 배열만 준다. 서버가 형제 필드를 얹어도 캐시 형태를 안 바꿔도 된다
+- **재조회 트리거 일원화** — `block:changed` 이벤트 · 화면 복귀 · 블록 생성 · 재시도 4곳이 모두 `useRefreshStepBlocks()`(= `invalidateQueries`) 하나를 부른다. 기존 `reloadCount` state 삭제
+- **스텝 이름도 캐시로** — 매 진입마다 `getProjectSteps()` 를 새로 부르던 `useEffect` 를 `useStepName()` 으로 바꿨다. 목록은 `['project-steps', projectId]` 에 한 벌만 담기고 `select` 가 이름 한 줄만 꺼낸다. 이름은 좀처럼 안 바뀌므로 `staleTime` 5분, 대신 **바뀌는 순간**(`ProjectSidebar.reload` — 생성 · 이름 · 순서 · 상태 · 삭제가 모두 지나가는 단일 창구)에 무효화한다
+- **사이드바도 같은 스텝 캐시를 본다** — `ProjectSidebar` 가 `Promise.all` 로 직접 받던 스텝 목록을 `useProjectSteps()` 로 바꿨다. 스텝 화면에서는 사이드바와 블록 헤더가 나란히 떠 있어 **같은 목록을 두 번 받던 것이 한 번**이 된다. 이슈 변경(진척률) 갱신도 직접 조회 대신 캐시 무효화로 바꿔, 사이드바 진척률과 헤더 이름이 항상 같은 응답에서 나온다
+- **새로고침 버튼** — 스텝 이름 왼쪽. 누르면 미뤄둔 배치를 먼저 보내고(`flushLayout`) 재조회한다. 최소 500ms 회전 + 완료 토스트로 결과를 알리고, 배치 편집 중에는 잠근다. 재조회 대상이 블록 목록 하나라 페이지 나머지는 그대로다
+
+### 트러블슈팅
+
+- **새로고침이 "안 눌린 것처럼" 보인다.** 블록이 적으면 응답이 100ms 안에 와서 아이콘이 깜빡이지도 않고 끝난다. 게다가 바뀐 게 없으면 화면도 그대로라 **"변경 없음" 과 "동작 안 함" 이 구별되지 않는다** → 최소 회전 시간(`MIN_SPIN_MS` 500)과 완료 토스트를 함께 넣었다. 한 번 "안 되는 버튼" 으로 학습되면 다시 눌리지 않는다
+- **새로고침해도 블록 본문이 그대로다.** 목록만 새로 받아서는 본문이 따라오지 않는다. 두 가지 원인이 섞여 있었다 — ① `detail` 을 첫 렌더에 **베껴 두고 화면이 주인이 되는** 유형(`ChecklistBlock` · `ImageBlock` · `ApprovalBlock` · `AiBlock`), ② 목록과 무관하게 **자기 API 를 직접 부르는** 유형(`FileBlock` · `ApprovalBlock` · `AiBlock`). `TextBlock` 만 렌더 중 상태 조정으로 ①을 이미 처리하고 있었다 → 새로고침 성공 시 `bodyGeneration` 을 올려 **본문만 다시 마운트**하는 것으로 열 유형을 한 번에 맞췄다. 겸해서 `ChecklistBlock` 에도 `TextBlock` 과 같은 `detail` 동기화를 넣어 자동 재조회 경로까지 따라가게 했다
+- **새로고침이 대기 중인 배치를 삼킨다.** 드래그 직후(디바운스 0.5초) 새로고침을 누르면 새 목록이 도착 → 보드가 로컬 순서를 버리고 `saver.reset()` → `pending` 이 `null` 로 지워져 **방금 옮긴 배치가 조용히 사라진다.** 화면을 떠날 때 · 블록을 만들 때처럼 `flushLayout.current?.()` 를 먼저 부르는 것으로 맞췄다
+- **`select` 로 "수정된 블록만" 가져올 수 없다.** `select` 는 이미 받아온 캐시 데이터를 가공하는 옵션이지 네트워크를 나누는 장치가 아니다. 블록 목록 API(`GET /steps/{stepId}/blocks`)에 증분 파라미터가 없어 요청은 언제나 스텝 전체다 — 얻는 것은 "부분 패칭"이 아니라 **캐시 · 요청 중복 제거 · 재조회 지점 단일화**다
+
+### 부수 결정
+
+- **`select` 에서 정렬하지 않는다.** 드래그로 바뀐 순서를 캐시에 꽂는 경로(`useSetStepBlocks`)가 있는데, 그 시점의 `rowIndex` · `sortOrder` 는 아직 저장 전 옛 값이다. 여기서 좌표순으로 다시 세우면 방금 옮긴 배치가 튕겨 돌아간다 (2026-08-11 기록과 같은 함정). 정렬은 `BlockBoard` 의 `toFlatOrder()` 가 계속 맡는다
+- **`QueryClient` 는 `useState` 초기화로 만든다** — 모듈 최상단에 두면 서버에서 요청 간 캐시가 공유된다
+- **`refetchOnWindowFocus: false`** — 블록은 이미 `visibilitychange` 로 복귀 시 재조회 중이라 중복이다
+- **`getStepBlocks` 는 시그니처 그대로 남겼다** — 활동 기록 · 이슈 폼 · 스텝 삭제 모달 등 5곳이 쓰고 있어 원본 반환 함수를 따로 뺐다
+- **적용 범위는 블록 목록만** — 다른 화면은 기존 `useEffect` + `lib/api.ts` 방식 유지. 한 번에 갈아엎지 않는다
+- **새로고침 버튼은 처음 불러오는 중에도 잠그지 않는다** — 첫 화면부터 회색 버튼이 놓여 있으면 "고장 난 버튼" 으로 학습된다. 중복 요청은 react-query 가 합쳐 준다
+- **회전은 `isFetching` 이 아니라 버튼이 만든 상태로 돌린다** — 화면 복귀 · 블록 생성처럼 사용자가 부르지 않은 재조회까지 아이콘이 돌면 설명되지 않는 움직임이 된다
+- **버튼은 `refetch()`, 나머지 트리거는 `invalidateQueries()`** — 토스트를 띄우려면 성공/실패를 알아야 하는데 `invalidateQueries` 는 결과를 돌려주지 않는다. 네트워크 동작은 같다
+- **실패해도 토스트를 띄우지 않는다** — 오류 화면(`ErrorStateTwoButton`)이 이미 자리를 차지하고 말한다. 겹치면 같은 말을 두 번 한다
+- **스텝 이름 무효화는 사이드바 `reload()` 한 곳에서만 건다** — 스텝을 고치는 모달(생성 · 수정 · 삭제 · 상태 · 순서)이 전부 `ProjectSidebar` 안에 있고 저장 후 `reload()` 로 모인다. 모달마다 무효화를 심으면 새 모달이 생길 때 빠뜨리기 쉽다
+- **스텝 목록만 캐시로 옮기고 프로젝트 · 스테이지는 그대로 뒀다** — 사이드바에서 그 둘을 함께 보는 화면이 없어 캐시를 나눌 이득이 없다. 스텝은 헤더와 **실제로 공유되는 유일한 값**이다
+- **스켈레톤 조건은 손대지 않았다** — 스텝과 스테이지가 이제 따로 도착하지만, 원래 `!stages || !steps` 로 둘 다 기다리게 되어 있어 중간 상태가 화면에 새지 않는다
+- **`select` 로 이름 한 줄만 꺼낸다** — 스텝 20개짜리 프로젝트에서 다른 스텝이 바뀌어도 반환값(문자열)이 그대로면 헤더는 다시 그리지 않는다. `useQuery` 결과를 그대로 받아 컴포넌트에서 `find()` 하면 목록이 바뀔 때마다 렌더가 돈다
+- **본문 재마운트는 새로고침 버튼에서만 한다** — 화면 복귀 · 블록 생성 같은 자동 재조회에서 본문이 통째로 리셋되면(캐러셀 첫 장으로 · 열어둔 메뉴 닫힘) 설명되지 않는 움직임이 된다. 사용자가 누른 새로고침에서는 리셋이 오히려 기대되는 결과다
+- **블록마다 `detail` 동기화를 넣는 대신 재마운트를 골랐다** — 유형이 10종이고 각각 진행 중인 낙관적 갱신 · 자체 조회와 경합을 따로 따져야 한다. 자동 경로까지 정확히 따라가게 하려면 결국 유형별 동기화가 필요하지만(백로그), 새로고침 한정으로는 재마운트가 같은 결과를 훨씬 적은 위험으로 낸다
+- **자동 갱신(`refetchOnWindowFocus`)은 넣지 않았다** — 읽는 중에 목록이 갈리면 쫓던 카드가 움직이고 남이 지운 블록이 눈앞에서 사라진다. 사용자는 자기가 만들지 않은 변화를 버그로 인식한다. 같은 변화라도 **본인이 버튼을 누른 뒤**면 납득한다
+
+---
+
 ## [2026-08-14] 네비게이션 이탈 경로 · 로고 · 헤더 제목 정리 (#152) ✅
 
 브랜치: `style`
@@ -14,16 +73,16 @@
 
 ### 변경 파일
 
-| 파일                                              | 변경                                                          |
-| ------------------------------------------------- | ------------------------------------------------------------- |
-| `src/components/Logo.tsx`                         | **생성** (`logo-vitaS.svg` · `logo-S.svg` 워드마크)           |
-| `src/constants/menu.ts`                           | 수정 (`projectScopeUpLink()` 신설)                            |
-| `src/components/Header.tsx`                       | 수정 (제목 `sr-only` · 로고 교체 · 이탈 링크)                 |
-| `src/components/Sidebar.tsx`                      | 수정 (로고 교체 + 홈 링크)                                    |
-| `src/components/ProjectSidebar.tsx`               | 수정 (이탈 링크 펼침·접힘 · 진척률 `%` 줄바꿈)                |
-| `src/features/project/ProjectCard.tsx`            | 수정 (진척률 `%` 줄바꿈)                                      |
-| `src/features/project/overview/ProjectIssues.tsx` | 수정 (진척률 `%` 줄바꿈 · 칸 폭 확보)                         |
-| `src/features/settlement/SettlementBlock.tsx`     | 수정 (수급 진행률 `%` 줄바꿈)                                 |
+| 파일                                              | 변경                                                |
+| ------------------------------------------------- | --------------------------------------------------- |
+| `src/components/Logo.tsx`                         | **생성** (`logo-vitaS.svg` · `logo-S.svg` 워드마크) |
+| `src/constants/menu.ts`                           | 수정 (`projectScopeUpLink()` 신설)                  |
+| `src/components/Header.tsx`                       | 수정 (제목 `sr-only` · 로고 교체 · 이탈 링크)       |
+| `src/components/Sidebar.tsx`                      | 수정 (로고 교체 + 홈 링크)                          |
+| `src/components/ProjectSidebar.tsx`               | 수정 (이탈 링크 펼침·접힘 · 진척률 `%` 줄바꿈)      |
+| `src/features/project/ProjectCard.tsx`            | 수정 (진척률 `%` 줄바꿈)                            |
+| `src/features/project/overview/ProjectIssues.tsx` | 수정 (진척률 `%` 줄바꿈 · 칸 폭 확보)               |
+| `src/features/settlement/SettlementBlock.tsx`     | 수정 (수급 진행률 `%` 줄바꿈)                       |
 
 ### 주요 작업 내용
 
@@ -34,7 +93,7 @@
 
 ### 트러블슈팅
 
-- **`100` 과 `%` 가 두 줄로 갈렸다.** JSX `{rate}%` 는 숫자·`%` 를 **다른 텍스트 노드**로 그려서, 세 자릿수가 되어 칸이 빠듯해지면 브라우저가 그 사이를 줄바꿈 지점으로 잡는다 → `` {`${rate}%`} `` + `whitespace-nowrap`. `ProjectIssues` 는 칸 폭(`w-8`)이 `100%` 보다 좁아 폭도 함께 넓혔다
+- **`100` 과 `%` 가 두 줄로 갈렸다.** JSX `{rate}%` 는 숫자·`%` 를 **다른 텍스트 노드**로 그려서, 세 자릿수가 되어 칸이 빠듯해지면 브라우저가 그 사이를 줄바꿈 지점으로 잡는다 → ``{`${rate}%`}`` + `whitespace-nowrap`. `ProjectIssues` 는 칸 폭(`w-8`)이 `100%` 보다 좁아 폭도 함께 넓혔다
 - **이탈 경로 규칙을 두 번 고쳤다.** 처음엔 프로젝트 화면 → `/projects`(목록)로 잡았는데, 실제로 원한 것은 **스텝 → 프로젝트**, **프로젝트 → 홈** 이었다. 규칙이 세 곳(펼침·접힘·헤더)에 흩어져 있어 함수로 모은 뒤 한 곳만 고치게 만들었다
 
 ### 부수 결정
@@ -53,17 +112,17 @@
 
 ### 변경 파일
 
-| 파일                                                | 변경                                                    |
-| --------------------------------------------------- | ------------------------------------------------------- |
-| `src/features/dashboard/DashboardSummary.tsx`       | **생성** (상태별 통계 카드 5장)                         |
-| `src/features/dashboard/DashboardProjects.tsx`      | **생성** (내 프로젝트 최대 3건 + 전체보기)              |
-| `src/features/dashboard/DashboardNotifications.tsx` | **생성** (알림 — 미확인 우선 · 유형 배지)               |
-| `src/features/dashboard/DashboardSchedule.tsx`      | **생성** (캘린더 + 고른 날짜의 이슈, 한 상자 2분할)     |
-| `src/app/page.tsx`                                  | 수정 (`PageTitle` 껍데기 → 4구역 조립 · `metadata`)     |
-| `src/features/issue/types.ts`                       | 수정 (`CalendarIssue`)                                  |
-| `src/features/issue/api.ts`                         | 수정 (`getIssueCalendar()`)                             |
-| `src/constants/endpoints.ts`                        | 수정 (`issues.calendar`)                                |
-| `.ai/API.md`                                        | 수정 (142번 신설 — 캘린더 조회)                         |
+| 파일                                                | 변경                                                |
+| --------------------------------------------------- | --------------------------------------------------- |
+| `src/features/dashboard/DashboardSummary.tsx`       | **생성** (상태별 통계 카드 5장)                     |
+| `src/features/dashboard/DashboardProjects.tsx`      | **생성** (내 프로젝트 최대 3건 + 전체보기)          |
+| `src/features/dashboard/DashboardNotifications.tsx` | **생성** (알림 — 미확인 우선 · 유형 배지)           |
+| `src/features/dashboard/DashboardSchedule.tsx`      | **생성** (캘린더 + 고른 날짜의 이슈, 한 상자 2분할) |
+| `src/app/page.tsx`                                  | 수정 (`PageTitle` 껍데기 → 4구역 조립 · `metadata`) |
+| `src/features/issue/types.ts`                       | 수정 (`CalendarIssue`)                              |
+| `src/features/issue/api.ts`                         | 수정 (`getIssueCalendar()`)                         |
+| `src/constants/endpoints.ts`                        | 수정 (`issues.calendar`)                            |
+| `.ai/API.md`                                        | 수정 (142번 신설 — 캘린더 조회)                     |
 
 ### 주요 작업 내용
 
@@ -99,22 +158,22 @@
 
 ### 변경 파일
 
-| 파일                                                | 변경                                                    |
-| --------------------------------------------------- | ------------------------------------------------------- |
-| `src/features/approval/unavailable.ts`              | **생성** (참여 불가 판정 · 결재선 재구성)               |
-| `src/features/approval/ApproverReplaceModal.tsx`    | **생성** (결재자 교체 · 제외 전용 모달)                 |
-| `src/features/notification/stream.ts`               | **생성** (SSE 구독)                                     |
-| `src/features/notification/NotificationStreamProvider.tsx` | **생성** (셸에 연결 하나만)                      |
-| `src/features/approval/ApprovalBlock.tsx`           | 수정 (참여 불가 배너 2종 · 첨부 문서 목록 · 상세보기 제거) |
-| `src/features/approval/types.ts`                    | 수정 (참여 불가 필드 4종 — 전부 선택)                   |
-| `src/features/block/api.ts` · `errorCodes.ts` · `BlockDeleteModal.tsx` | 수정 (삭제 2단계 · 409 되물음)       |
-| `src/features/pagePermission/PageAccessGate.tsx`    | 수정 (`/forbidden` 이동 → 본문 자리에 표시)             |
-| `src/features/notification/NotificationBell.tsx`    | 수정 (폴링 5초 → 2분)                                   |
-| `src/features/notification/display.ts`              | 수정 (이슈 알림에 `targetId` 를 쿼리로)                 |
-| `src/features/issue/IssueBoard.tsx`                 | 수정 (`?issue=` 딥링크로 상세 모달 개방)                |
-| `src/features/project/routes.ts`                    | 수정 (`stepIssues()` 에 `issueId` · `ISSUE_PARAM`)      |
-| `src/components/AppShell.tsx` · `src/constants/endpoints.ts` | 수정 (스트림 구독 위치 · 엔드포인트)           |
-| `.ai/API.md`                                        | 수정 (141번 신설 · 47번 2단계 · 결재 참여 불가 절)      |
+| 파일                                                                   | 변경                                                       |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `src/features/approval/unavailable.ts`                                 | **생성** (참여 불가 판정 · 결재선 재구성)                  |
+| `src/features/approval/ApproverReplaceModal.tsx`                       | **생성** (결재자 교체 · 제외 전용 모달)                    |
+| `src/features/notification/stream.ts`                                  | **생성** (SSE 구독)                                        |
+| `src/features/notification/NotificationStreamProvider.tsx`             | **생성** (셸에 연결 하나만)                                |
+| `src/features/approval/ApprovalBlock.tsx`                              | 수정 (참여 불가 배너 2종 · 첨부 문서 목록 · 상세보기 제거) |
+| `src/features/approval/types.ts`                                       | 수정 (참여 불가 필드 4종 — 전부 선택)                      |
+| `src/features/block/api.ts` · `errorCodes.ts` · `BlockDeleteModal.tsx` | 수정 (삭제 2단계 · 409 되물음)                             |
+| `src/features/pagePermission/PageAccessGate.tsx`                       | 수정 (`/forbidden` 이동 → 본문 자리에 표시)                |
+| `src/features/notification/NotificationBell.tsx`                       | 수정 (폴링 5초 → 2분)                                      |
+| `src/features/notification/display.ts`                                 | 수정 (이슈 알림에 `targetId` 를 쿼리로)                    |
+| `src/features/issue/IssueBoard.tsx`                                    | 수정 (`?issue=` 딥링크로 상세 모달 개방)                   |
+| `src/features/project/routes.ts`                                       | 수정 (`stepIssues()` 에 `issueId` · `ISSUE_PARAM`)         |
+| `src/components/AppShell.tsx` · `src/constants/endpoints.ts`           | 수정 (스트림 구독 위치 · 엔드포인트)                       |
+| `.ai/API.md`                                                           | 수정 (141번 신설 · 47번 2단계 · 결재 참여 불가 절)         |
 
 ### 주요 작업 내용
 
@@ -149,20 +208,20 @@
 
 ### 변경 파일
 
-| 파일                                            | 변경                                                    |
-| ----------------------------------------------- | ------------------------------------------------------- |
-| `src/features/file/MyFileList.tsx`              | **생성** (목록 · 검색 · 필터 · 프로젝트별 접기)         |
-| `src/features/file/groupMyFiles.ts`             | **생성** (프로젝트 그룹핑 · 필터 선택지)                |
-| `src/features/file/LazyFileViewer.tsx`          | **생성** (뷰어 지연 로딩 — `ProjectFiles` 와 공용)      |
-| `src/app/files/page.tsx`                        | **생성** (`/files` 라우트)                              |
-| `src/features/file/types.ts`                    | 수정 (`MyFile` · `MyFileQuery`, `ViewerFile` nullable)  |
-| `src/features/file/api.ts`                      | 수정 (`getMyFiles()`)                                   |
+| 파일                                             | 변경                                                   |
+| ------------------------------------------------ | ------------------------------------------------------ |
+| `src/features/file/MyFileList.tsx`               | **생성** (목록 · 검색 · 필터 · 프로젝트별 접기)        |
+| `src/features/file/groupMyFiles.ts`              | **생성** (프로젝트 그룹핑 · 필터 선택지)               |
+| `src/features/file/LazyFileViewer.tsx`           | **생성** (뷰어 지연 로딩 — `ProjectFiles` 와 공용)     |
+| `src/app/files/page.tsx`                         | **생성** (`/files` 라우트)                             |
+| `src/features/file/types.ts`                     | 수정 (`MyFile` · `MyFileQuery`, `ViewerFile` nullable) |
+| `src/features/file/api.ts`                       | 수정 (`getMyFiles()`)                                  |
 | `src/features/project/overview/ProjectFiles.tsx` | 수정 (중복 뷰어 블록 → `LazyFileViewer` 로 교체)       |
-| `src/constants/endpoints.ts`                    | 수정 (`files.my`)                                       |
-| `src/constants/menu.ts`                         | 수정 (`file` 아이콘 · `MENU_ORDER` · `FIXED_BY_ROLE`)   |
-| `src/components/MenuIcon.tsx`                   | 수정 (`file` 아이콘 SVG)                                |
-| `src/features/pagePermission/catalog.ts`        | 수정 (`MY_FILE` → `/files` 선반영)                      |
-| `.ai/API.md`                                    | 수정 (140번 신설 — 105번 옆에 배치)                     |
+| `src/constants/endpoints.ts`                     | 수정 (`files.my`)                                      |
+| `src/constants/menu.ts`                          | 수정 (`file` 아이콘 · `MENU_ORDER` · `FIXED_BY_ROLE`)  |
+| `src/components/MenuIcon.tsx`                    | 수정 (`file` 아이콘 SVG)                               |
+| `src/features/pagePermission/catalog.ts`         | 수정 (`MY_FILE` → `/files` 선반영)                     |
+| `.ai/API.md`                                     | 수정 (140번 신설 — 105번 옆에 배치)                    |
 
 ### 주요 작업 내용
 
