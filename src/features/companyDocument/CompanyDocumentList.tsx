@@ -125,6 +125,8 @@ export default function CompanyDocumentList() {
   const current = result?.key === requestKey ? result : null;
   const documentPage = current?.page ?? null;
   const documents = documentPage?.content ?? null;
+  /** 지역 상수로 받아야 JSX 안에서 `null` 이 아님이 좁혀진다 (단언을 쓰지 않는다) */
+  const deletePending = deleteDialog.target;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -216,13 +218,13 @@ export default function CompanyDocumentList() {
       );
   }
 
-  async function remove(document: CompanyDocument) {
+  async function remove(target: CompanyDocument) {
     setIsDeleting(true);
 
     try {
-      await deleteCompanyDocument(document.companyDocumentId);
+      await deleteCompanyDocument(target.companyDocumentId);
       deleteDialog.close();
-      setJustDeleted(document);
+      setJustDeleted(target);
       setErrorMessage('');
       reload();
     } catch (caught) {
@@ -233,8 +235,8 @@ export default function CompanyDocumentList() {
     }
   }
 
-  function restore(document: CompanyDocument) {
-    restoreCompanyDocument(document.companyDocumentId)
+  function restore(target: CompanyDocument) {
+    restoreCompanyDocument(target.companyDocumentId)
       .then(() => {
         setJustDeleted(null);
         reload();
@@ -443,7 +445,7 @@ export default function CompanyDocumentList() {
                 key: 'name',
                 header: '문서명',
                 width: '30%',
-                cell: (item) => <NameCell document={item} />,
+                cell: (item) => <NameCell item={item} />,
               },
               {
                 key: 'category',
@@ -527,6 +529,8 @@ export default function CompanyDocumentList() {
                     <IconButton
                       label={`${item.name} 새 버전 올리기`}
                       onClick={() => pickFile(item.companyDocumentId)}
+                      // 업로드 중에 누르면 대상이 덮여 두 요청이 겹친다
+                      disabled={isUploading}
                     >
                       <UploadIcon />
                     </IconButton>
@@ -563,16 +567,16 @@ export default function CompanyDocumentList() {
         </div>
       </div>
 
-      {deleteDialog.target && (
+      {deletePending && (
         <AlertDialogTwoButton
           icon={DialogIcons.warning}
           title="이 문서를 삭제할까요?"
-          description={`${deleteDialog.target.name} 을(를) 목록에서 감춥니다. 삭제 직후 되돌릴 수 있습니다.`}
+          description={`${deletePending.name} 을(를) 목록에서 감춥니다. 삭제 직후 되돌릴 수 있습니다.`}
           confirmLabel="삭제"
           isDanger
           isBusy={isDeleting}
           onConfirm={() => {
-            void remove(deleteDialog.target as CompanyDocument);
+            void remove(deletePending);
           }}
           onCancel={deleteDialog.close}
         />
@@ -580,7 +584,7 @@ export default function CompanyDocumentList() {
 
       {editModal.target && (
         <EditCompanyDocumentModal
-          document={editModal.target}
+          item={editModal.target}
           onClose={editModal.close}
           onSaved={reload}
         />
@@ -588,7 +592,7 @@ export default function CompanyDocumentList() {
 
       {viewerModal.target && (
         <CompanyDocumentViewerModal
-          document={viewerModal.target}
+          item={viewerModal.target}
           onClose={viewerModal.close}
           onDownload={download}
         />
@@ -597,8 +601,9 @@ export default function CompanyDocumentList() {
   );
 }
 
-function NameCell({ document }: { document: CompanyDocument }) {
-  const style = extensionStyle(document.extension);
+/** ⚠️ prop 이름을 `document` 로 두지 않는다 — 브라우저 전역 `document` 를 가린다 */
+function NameCell({ item }: { item: CompanyDocument }) {
+  const style = extensionStyle(item.extension);
 
   return (
     <div className="flex min-w-0 items-center gap-2.5">
@@ -610,16 +615,16 @@ function NameCell({ document }: { document: CompanyDocument }) {
         <DocumentIcon />
       </span>
       <span
-        title={document.originalFileName}
+        title={item.originalFileName}
         className="min-w-0 truncate text-label font-semibold text-text-primary"
       >
-        {document.name}
+        {item.name}
       </span>
       <span
         style={{ color: style.text, backgroundColor: style.background }}
         className="shrink-0 rounded-button-sm px-1 py-0.5 font-mono text-micro font-semibold"
       >
-        {extensionLabel(document.extension)}
+        {extensionLabel(item.extension)}
       </span>
     </div>
   );
@@ -629,10 +634,12 @@ function NameCell({ document }: { document: CompanyDocument }) {
 function IconButton({
   label,
   onClick,
+  disabled = false,
   children,
 }: {
   label: string;
   onClick: () => void;
+  disabled?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -641,7 +648,8 @@ function IconButton({
       title={label}
       aria-label={label}
       onClick={onClick}
-      className="flex size-7 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-surface hover:text-text-primary-blue"
+      disabled={disabled}
+      className="flex size-7 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-surface hover:text-text-primary-blue disabled:cursor-not-allowed disabled:opacity-40"
     >
       {children}
     </button>

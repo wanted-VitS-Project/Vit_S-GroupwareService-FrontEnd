@@ -21,17 +21,18 @@ import {
  * 원본 파일명은 바뀌지 않는다 (버전마다 저장된 값이다).
  */
 export default function EditCompanyDocumentModal({
-  document,
+  // ⚠️ prop 이름을 `document` 로 두지 않는다 — 브라우저 전역 `document` 를 가린다
+  item,
   onClose,
   onSaved,
 }: {
-  document: CompanyDocument;
+  item: CompanyDocument;
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [name, setName] = useState(document.name);
+  const [name, setName] = useState(item.name);
   const [category, setCategory] = useState<CompanyDocumentCategory>(
-    document.category,
+    item.category,
   );
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,8 +41,8 @@ export default function EditCompanyDocumentModal({
   function changedFields(): UpdateCompanyDocumentRequest {
     const patch: UpdateCompanyDocumentRequest = {};
 
-    if (name.trim() !== document.name) patch.name = name.trim();
-    if (category !== document.category) patch.category = category;
+    if (name.trim() !== item.name) patch.name = name.trim();
+    if (category !== item.category) patch.category = category;
 
     return patch;
   }
@@ -58,7 +59,7 @@ export default function EditCompanyDocumentModal({
     setIsSubmitting(true);
 
     try {
-      await updateCompanyDocument(document.companyDocumentId, patch);
+      await updateCompanyDocument(item.companyDocumentId, patch);
       onSaved();
       onClose();
     } catch (caught) {
@@ -88,7 +89,7 @@ export default function EditCompanyDocumentModal({
               className="w-full rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-detail text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
             />
             <span className="mt-1 block text-caption text-text-secondary">
-              원본 파일명({document.originalFileName})은 그대로 남습니다.
+              원본 파일명({item.originalFileName})은 그대로 남습니다.
             </span>
           </label>
 

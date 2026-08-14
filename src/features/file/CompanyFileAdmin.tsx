@@ -16,6 +16,39 @@ const TABS = [
 
 type TabKey = (typeof TABS)[number]['key'];
 
+/** 탭 ↔ 패널을 잇는 id. 두 곳이 같은 규칙을 써야 연결이 끊기지 않는다 */
+const tabId = (key: TabKey) => `company-file-tab-${key}`;
+const panelId = (key: TabKey) => `company-file-panel-${key}`;
+
+/**
+ * 화살표 · Home · End 로 탭을 옮긴다 (WAI-ARIA tabs 패턴).
+ * 옮긴 탭으로 **포커스까지 따라가야** 키보드만 쓰는 사람이 현재 위치를 잃지 않는다.
+ */
+function moveByKey(
+  event: React.KeyboardEvent,
+  index: number,
+  select: (key: TabKey) => void,
+) {
+  const last = TABS.length - 1;
+  const next =
+    event.key === 'ArrowRight'
+      ? (index + 1) % TABS.length
+      : event.key === 'ArrowLeft'
+        ? (index - 1 + TABS.length) % TABS.length
+        : event.key === 'Home'
+          ? 0
+          : event.key === 'End'
+            ? last
+            : null;
+
+  if (next === null) return;
+
+  event.preventDefault();
+  const target = TABS[next];
+  select(target.key);
+  document.getElementById(tabId(target.key))?.focus();
+}
+
 /**
  * 전사 파일 관리. 전사 관리 허브(`/settings`)의 `파일 › 전사 파일 관리` 로 들어온다.
  *
@@ -54,7 +87,7 @@ export default function CompanyFileAdmin() {
         aria-label="전사 파일 관리 범위"
         className="mb-4 flex gap-1 border-b border-border-default"
       >
-        {TABS.map((item) => {
+        {TABS.map((item, index) => {
           const isActive = item.key === tab;
 
           return (
@@ -62,8 +95,16 @@ export default function CompanyFileAdmin() {
               key={item.key}
               type="button"
               role="tab"
+              id={tabId(item.key)}
               aria-selected={isActive}
+              aria-controls={panelId(item.key)}
+              /**
+               * 탭 묶음은 **한 번만 탭키로 들어온다** (WAI-ARIA tabs 패턴) —
+               * 안에서는 화살표로 옮기고, 다음 Tab 은 본문으로 나간다.
+               */
+              tabIndex={isActive ? 0 : -1}
               onClick={() => setTab(item.key)}
+              onKeyDown={(event) => moveByKey(event, index, setTab)}
               className={`-mb-px cursor-pointer border-b-2 px-4 py-2 text-label ${
                 isActive
                   ? 'border-border-primary font-semibold text-text-primary-blue'
@@ -76,7 +117,15 @@ export default function CompanyFileAdmin() {
         })}
       </div>
 
-      {tab === 'project' ? <AdminFileList /> : <CompanyDocumentList />}
+      {/* 패널은 **선택된 하나만** 그린다 — 나머지는 조회까지 돌 이유가 없다 */}
+      <div
+        role="tabpanel"
+        id={panelId(tab)}
+        aria-labelledby={tabId(tab)}
+        tabIndex={0}
+      >
+        {tab === 'project' ? <AdminFileList /> : <CompanyDocumentList />}
+      </div>
     </>
   );
 }

@@ -191,6 +191,12 @@ export default function FileBlock({ block }: { block: StepBlock }) {
   }
 
   async function upload(file: File, allowDuplicateName?: boolean) {
+    /**
+     * ⚠️ 대상은 **시작할 때 고정한다.** `await` 뒤에 `versionTargetId.current` 를 다시 읽으면,
+     *    업로드 중 다른 문서의 `새 버전` 을 누른 경우 요청과 안내가 서로 다른 것을 가리킨다.
+     */
+    const targetFileId = versionTargetId.current;
+
     setIsUploading(true);
     setErrorMessage('');
 
@@ -198,12 +204,12 @@ export default function FileBlock({ block }: { block: StepBlock }) {
       await uploadFile({
         blockId: block.blockId,
         file,
-        fileId: versionTargetId.current,
+        fileId: targetFileId,
         allowDuplicateName,
       });
       reload();
       notifyToast(
-        versionTargetId.current === undefined
+        targetFileId === undefined
           ? `${file.name} 을(를) 올렸습니다.`
           : `${file.name} 을(를) 새 버전으로 올렸습니다.`,
       );
@@ -338,6 +344,7 @@ export default function FileBlock({ block }: { block: StepBlock }) {
                     )
                   }
                   onAddVersion={() => pickFile(file.fileId)}
+                  isUploading={isUploading}
                   onTrash={() => trashModal.open(file)}
                 />
               ))}
@@ -434,6 +441,8 @@ interface FileRowProps {
   onOpen: () => void;
   onDownload: () => void;
   onAddVersion: () => void;
+  /** 업로드가 도는 동안은 새 버전 올리기를 막는다 — 대상이 덮여 두 요청이 겹친다 */
+  isUploading: boolean;
   onTrash: () => void;
 }
 
@@ -449,6 +458,7 @@ function FileRow({
   onOpen,
   onDownload,
   onAddVersion,
+  isUploading,
   onTrash,
 }: FileRowProps) {
   const style = extensionStyle(file.extension);
@@ -540,6 +550,7 @@ function FileRow({
             <IconButton
               label={`${file.name} 새 버전 올리기`}
               onClick={onAddVersion}
+              disabled={isUploading}
             >
               <UploadIcon />
             </IconButton>
@@ -565,10 +576,12 @@ const ICON_BUTTON_CLASS =
 function IconButton({
   label,
   onClick,
+  disabled = false,
   children,
 }: {
   label: string;
   onClick: () => void;
+  disabled?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -577,7 +590,8 @@ function IconButton({
       title={label}
       aria-label={label}
       onClick={onClick}
-      className={ICON_BUTTON_CLASS}
+      disabled={disabled}
+      className={`${ICON_BUTTON_CLASS} disabled:cursor-not-allowed disabled:opacity-40`}
     >
       {children}
     </button>

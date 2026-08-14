@@ -47,6 +47,15 @@
 - **`table-fixed` 열 폭 깨짐** — `%` 합이 100을 넘거나 `minWidth` 가 좁으면 날짜 · 아이콘 버튼이 눌려 줄바꿈됐다. 합계를 100으로 맞추고 `minWidth` 를 실제 필요 폭(1000 · 880)으로 올렸다
 - **develop 최신화 충돌** — `CashFlowCsvMapping.tsx` 가 develop 에서 `CsvImportParts` 로 쪼개지며 `DataTable` import 가 빠졌다. 토스트 import 만 남기고 위쪽 정리를 그대로 받았다
 
+### 코드 리뷰 반영 (CodeRabbit)
+
+- **업로드 대상을 `await` 전에 고정** — `versionTargetId.current` 를 응답 후 다시 읽으면, 업로드 중 다른 문서의 `새 버전` 을 누른 경우 요청과 토스트가 서로 다른 것을 가리킨다 (문서 블록 · 사내 문서함 공통)
+- **업로드 중 행의 `새 버전 올리기` 비활성화** — 대상이 덮여 두 업로드가 겹치면 `isUploading` · 오류 문구가 서로를 덮는다
+- **다운로드 팝업 차단 대응** — `window.open` 을 `await` 뒤에 부르면 사용자 클릭과 끊긴 것으로 보여 차단된다. 창을 먼저 열고 URL 발급 후 이동시키며, 실패하면 빈 창을 닫는다
+- **삭제 확인 다이얼로그의 타입 단언 제거** — 조건부 렌더 시점의 값을 지역 상수로 고정한다
+- **`document` prop 이름 제거** — 브라우저 전역 `document` 를 가려 나중에 DOM API 를 쓰면 조용히 잘못된 값을 참조한다 (`item` 으로 통일)
+- **탭 ARIA 완성** — `aria-controls` · `role="tabpanel"` 연결, 화살표 · Home · End 이동과 로빙 `tabIndex` 추가
+
 ### 부수 결정
 
 - **사내 문서는 별도 feature 폴더** — 경로 · 에러코드(`CDOC_*`) · 저장소가 모두 달라 `features/file` 에 섞지 않았다. 업로드의 `putToStorage` 만 재사용한다

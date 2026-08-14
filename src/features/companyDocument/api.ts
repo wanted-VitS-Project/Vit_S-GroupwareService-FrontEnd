@@ -128,10 +128,26 @@ export function getCompanyDownloadUrl(
   );
 }
 
-/** 다운로드 URL 을 받아 새 탭으로 넘긴다 */
+/**
+ * 다운로드 URL 을 받아 새 탭으로 넘긴다.
+ *
+ * ⚠️ **창을 먼저 열고 나중에 주소를 넣는다** — URL 발급(`await`)이 끝난 뒤에 여는
+ *    `window.open` 은 사용자 클릭과 끊긴 것으로 보여 팝업 차단에 걸린다.
+ *    발급이 실패하면 열어 둔 빈 창을 닫는다.
+ */
 export async function downloadCompanyVersion(versionId: number) {
-  const { downloadUrl } = await getCompanyDownloadUrl(versionId);
-  window.open(downloadUrl, '_blank', 'noopener,noreferrer');
+  const opened = window.open('', '_blank', 'noopener,noreferrer');
+
+  try {
+    const { downloadUrl } = await getCompanyDownloadUrl(versionId);
+
+    // 차단돼 창을 못 얻었으면 같은 탭에서라도 받게 한다
+    if (opened) opened.location.href = downloadUrl;
+    else window.location.href = downloadUrl;
+  } catch (caught) {
+    opened?.close();
+    throw caught;
+  }
 }
 
 /**

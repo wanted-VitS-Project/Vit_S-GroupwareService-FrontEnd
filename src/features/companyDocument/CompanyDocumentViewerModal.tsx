@@ -28,15 +28,16 @@ type Preview =
  * 이력은 **append-only** 라 버전을 고르면 미리보기 · 내려받기 대상만 바뀐다.
  */
 export default function CompanyDocumentViewerModal({
-  document,
+  // ⚠️ prop 이름을 `document` 로 두지 않는다 — 브라우저 전역 `document` 를 가린다
+  item,
   onClose,
   onDownload,
 }: {
-  document: CompanyDocument;
+  item: CompanyDocument;
   onClose: () => void;
   onDownload: (versionId: number) => void;
 }) {
-  const [versionId, setVersionId] = useState(document.latestVersionId);
+  const [versionId, setVersionId] = useState(item.latestVersionId);
   const [versions, setVersions] =
     useState<CompanyDocumentVersionsResponse | null>(null);
   /** 이력 실패는 로딩과 구분해야 한다 — null 로 두면 스켈레톤이 계속 돈다 */
@@ -54,7 +55,7 @@ export default function CompanyDocumentViewerModal({
     const controller = new AbortController();
     const { signal } = controller;
 
-    getCompanyDocumentVersions(document.companyDocumentId, signal)
+    getCompanyDocumentVersions(item.companyDocumentId, signal)
       .then(setVersions)
       .catch((caught) => {
         if (signal.aborted) return;
@@ -62,7 +63,7 @@ export default function CompanyDocumentViewerModal({
       });
 
     return () => controller.abort();
-  }, [document.companyDocumentId]);
+  }, [item.companyDocumentId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -105,8 +106,10 @@ export default function CompanyDocumentViewerModal({
   }, [versionId]);
 
   /** 목록이 준 값으로 시작하고, 이력이 도착하면 고른 버전의 값으로 바뀐다 */
-  const current = versions?.content.find((item) => item.versionId === versionId);
-  const extension = current?.extension ?? document.extension;
+  const current = versions?.content.find(
+    (version) => version.versionId === versionId,
+  );
+  const extension = current?.extension ?? item.extension;
   const style = extensionStyle(extension);
   const preview: Preview =
     previewOf?.versionId === versionId
@@ -115,7 +118,7 @@ export default function CompanyDocumentViewerModal({
 
   return (
     <Modal
-      title={`${document.name} 문서 보기`}
+      title={`${item.name} 문서 보기`}
       onClose={onClose}
       className="flex h-[85vh] w-full max-w-[860px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
       header={
@@ -129,23 +132,23 @@ export default function CompanyDocumentViewerModal({
 
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-detail font-semibold text-text-primary">
-              {document.name}
+              {item.name}
             </h2>
             <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-caption text-text-secondary">
               <span className="font-mono text-text-primary-blue">
-                v{current?.versionNo ?? document.latestVersionNo}
+                v{current?.versionNo ?? item.latestVersionNo}
                 {(current?.latest ?? true) && ' (최신)'}
               </span>
               <span aria-hidden>·</span>
               {/* 업로더가 ADMIN 이면 이름이 오지 않는다 */}
-              <span>{current?.uploaderName ?? document.uploaderName ?? '—'}</span>
+              <span>{current?.uploaderName ?? item.uploaderName ?? '—'}</span>
               <span aria-hidden>·</span>
               <span>
-                {formatDate(current?.completedAt ?? document.updatedAt)}
+                {formatDate(current?.completedAt ?? item.updatedAt)}
               </span>
               <span aria-hidden>·</span>
               <span>
-                {formatFileSize(current?.sizeBytes ?? document.sizeBytes)}
+                {formatFileSize(current?.sizeBytes ?? item.sizeBytes)}
               </span>
             </p>
           </div>
@@ -174,7 +177,7 @@ export default function CompanyDocumentViewerModal({
         {/* 버전 이력 — 고르면 오른쪽 미리보기가 그 버전으로 바뀐다 */}
         <div className="no-scrollbar w-60 shrink-0 overflow-y-auto border-r border-border-default p-3">
           <p className="mb-2 px-1 text-caption font-semibold text-text-secondary">
-            버전 이력 ({versions?.versionCount ?? document.versionCount})
+            버전 이력 ({versions?.versionCount ?? item.versionCount})
           </p>
 
           {versionsError && (
