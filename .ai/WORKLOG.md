@@ -6,6 +6,66 @@
 
 ---
 
+## [2026-08-14] 전사 파일 관리 화면 신설 · 파일 업로드 결과 토스트 ✅
+
+브랜치: `ref-ys` · API: 142(전사 파일 목록) · 143~150(사내 문서함) 신규 연동 · 이슈: #TBD
+
+전사 관리 허브에 **전사 파일 관리** 를 새로 붙였다. `프로젝트 파일` · `사내 문서함` 두 탭이고, 사내 문서함은 프로젝트 파일과 저장소가 다른 별도 도메인이라 `features/companyDocument/` 로 갈라 두었다. 겸해서 **파일이 올라가는 모든 화면**에 완료 · 실패 토스트를 붙였다.
+
+### 변경 파일
+
+| 파일 | 변경 |
+| ---- | ---- |
+| `src/app/settings/files/page.tsx` | **생성** (라우트 진입점) |
+| `src/features/file/CompanyFileAdmin.tsx` | **생성** (두 탭 껍데기) |
+| `src/features/file/AdminFileList.tsx` | **생성** (전사 파일 목록 · 요약 · 필터 · 페이징) |
+| `src/features/companyDocument/{types,api,upload}.ts` | **생성** (사내 문서 도메인) |
+| `src/features/companyDocument/CompanyDocumentList.tsx` | **생성** (목록 · 업로드 · 삭제 · 복구) |
+| `src/features/companyDocument/CompanyDocumentViewerModal.tsx` | **생성** (미리보기 + 버전 이력) |
+| `src/features/companyDocument/EditCompanyDocumentModal.tsx` | **생성** (표시명 · 분류 수정) |
+| `src/app/settings/page.tsx` | 수정 (`파일` 섹션 카드 추가) |
+| `src/constants/endpoints.ts` | 수정 (`files.admin` · `companyDocuments`) |
+| `src/features/file/{api,types}.ts` | 수정 (`getAdminFiles` · `AdminFile` · `FilePage<T>`) |
+| `src/features/block/FileBlock.tsx` · `ImageUploadModal.tsx` | 수정 (업로드 토스트) |
+| `src/features/approval/ApprovalDraftForm.tsx` | 수정 (첨부 토스트) |
+| `src/features/auth/ProfileImageField.tsx` | 수정 (프로필 사진 토스트) |
+| `src/features/employee/BulkUploadModal.tsx` | 수정 (일괄 등록 토스트) |
+| `src/features/finance/CashFlowCsvMapping.tsx` | 수정 (CSV 업로드 토스트) |
+| `src/features/approval/ApprovalDocumentModal.tsx` | 수정 (다운로드 버튼 모양 통일) |
+| `.ai/API.md` | 수정 (142 · 143~150 명세 추가) |
+
+### 주요 작업 내용
+
+- **전사 파일 관리 진입** — 전사 관리 허브의 `파일 › 전사 파일 관리` 카드 → `/settings/files`. 화면은 두 탭 전환만 하고 조회는 각 탭이 한다
+- **프로젝트 파일 탭** — 142번으로 전사 모든 프로젝트의 문서를 문서 단위 최신 완료 버전 1행씩 페이지 조회. 검색 · 프로젝트 · 확장자 필터 · 행 클릭 뷰어
+- **사내 문서함 탭** — 143~150번 전부 연동. 목록 · 2단계 업로드 · 새 버전 · 표시명/분류 수정 · soft delete · 복구 · 미리보기 + 버전 이력
+- **업로드 결과 토스트** — 문서 블록 · 사내 문서 · 결재 첨부 · 이미지 등록 · 프로필 사진 · 사원 일괄 · 입출금 CSV 7곳. 성공은 `notifyToast()`, 실패는 `'error'` 톤이며 **화면 안 오류 문구는 그대로 남긴다**(토스트는 사라지므로)
+
+### 트러블슈팅
+
+- **`react-hooks/set-state-in-effect`** — 문서를 바꿀 때 패널 상태를 효과에서 되돌리다 걸렸다. 부모가 `key` 로 새로 마운트하게 두어 되돌릴 일 자체를 없앴다
+- **`table-fixed` 열 폭 깨짐** — `%` 합이 100을 넘거나 `minWidth` 가 좁으면 날짜 · 아이콘 버튼이 눌려 줄바꿈됐다. 합계를 100으로 맞추고 `minWidth` 를 실제 필요 폭(1000 · 880)으로 올렸다
+- **develop 최신화 충돌** — `CashFlowCsvMapping.tsx` 가 develop 에서 `CsvImportParts` 로 쪼개지며 `DataTable` import 가 빠졌다. 토스트 import 만 남기고 위쪽 정리를 그대로 받았다
+
+### 코드 리뷰 반영 (CodeRabbit)
+
+- **업로드 대상을 `await` 전에 고정** — `versionTargetId.current` 를 응답 후 다시 읽으면, 업로드 중 다른 문서의 `새 버전` 을 누른 경우 요청과 토스트가 서로 다른 것을 가리킨다 (문서 블록 · 사내 문서함 공통)
+- **업로드 중 행의 `새 버전 올리기` 비활성화** — 대상이 덮여 두 업로드가 겹치면 `isUploading` · 오류 문구가 서로를 덮는다
+- **다운로드 팝업 차단 대응** — `window.open` 을 `await` 뒤에 부르면 사용자 클릭과 끊긴 것으로 보여 차단된다. 창을 먼저 열고 URL 발급 후 이동시키며, 실패하면 빈 창을 닫는다
+- **삭제 확인 다이얼로그의 타입 단언 제거** — 조건부 렌더 시점의 값을 지역 상수로 고정한다
+- **`document` prop 이름 제거** — 브라우저 전역 `document` 를 가려 나중에 DOM API 를 쓰면 조용히 잘못된 값을 참조한다 (`item` 으로 통일)
+- **탭 ARIA 완성** — `aria-controls` · `role="tabpanel"` 연결, 화살표 · Home · End 이동과 로빙 `tabIndex` 추가
+
+### 부수 결정
+
+- **사내 문서는 별도 feature 폴더** — 경로 · 에러코드(`CDOC_*`) · 저장소가 모두 달라 `features/file` 에 섞지 않았다. 업로드의 `putToStorage` 만 재사용한다
+- **AI 인덱싱 배지는 뺐다** — 목업에는 있으나 목록 응답에 상태 필드가 없다. 필드명이 정해지면 붙인다
+- **요약 카드는 2장만** — 총 용량 · 기간별 업로드는 집계 API 가 없어 한 페이지 20행으로는 셀 수 없다
+- **정렬 드롭다운 제거** — 142번에 정렬 파라미터가 없다
+- **복구는 삭제 직후에만** — 목록에 삭제분 조건이 없어 화면이 든 id 로만 되돌릴 수 있다 (`되돌리기` 줄)
+
+---
+
 ## [2026-08-14] 이미지 블록 정렬 번호 버그 수정 · 이미지 모아보기 N+1 선대응 ✅
 
 브랜치: `ref-ys` · API 변경 없음 (백엔드 필드 추가 요청 발송 완료)· 이슈: #158

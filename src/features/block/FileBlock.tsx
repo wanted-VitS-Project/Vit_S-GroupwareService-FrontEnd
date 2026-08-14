@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import Modal from '@/components/Modal';
 import ModalLoadingFallback from '@/components/ModalLoadingFallback';
+import { notifyToast } from '@/components/Toast';
 import {
   downloadVersion,
   getBlockFiles,
@@ -190,6 +191,12 @@ export default function FileBlock({ block }: { block: StepBlock }) {
   }
 
   async function upload(file: File, allowDuplicateName?: boolean) {
+    /**
+     * ⚠️ 대상은 **시작할 때 고정한다.** `await` 뒤에 `versionTargetId.current` 를 다시 읽으면,
+     *    업로드 중 다른 문서의 `새 버전` 을 누른 경우 요청과 안내가 서로 다른 것을 가리킨다.
+     */
+    const targetFileId = versionTargetId.current;
+
     setIsUploading(true);
     setErrorMessage('');
 
@@ -197,18 +204,31 @@ export default function FileBlock({ block }: { block: StepBlock }) {
       await uploadFile({
         blockId: block.blockId,
         file,
-        fileId: versionTargetId.current,
+        fileId: targetFileId,
         allowDuplicateName,
       });
       reload();
+      notifyToast(
+        targetFileId === undefined
+          ? `${file.name} 을(를) 올렸습니다.`
+          : `${file.name} 을(를) 새 버전으로 올렸습니다.`,
+      );
     } catch (caught) {
       if (caught instanceof DuplicateNameError) {
-        // 확인을 받은 뒤 같은 파일로 한 번만 다시 올린다
+        // 확인을 받은 뒤 같은 파일로 한 번만 다시 올린다. 아직 실패가 아니라 토스트를 띄우지 않는다
         duplicateModal.open({ file, message: caught.message });
-      } else if (caught instanceof Error) {
-        setErrorMessage(caught.message + stageHintOf(caught));
       } else {
-        setErrorMessage('업로드에 실패했습니다.');
+        const message =
+          caught instanceof Error
+            ? caught.message + stageHintOf(caught)
+            : '업로드에 실패했습니다.';
+
+        setErrorMessage(message);
+        /*
+          업로드는 오래 걸려 그 사이 다른 블록을 보고 있을 수 있다 —
+          카드 안 문구만으로는 결과가 닿지 않는다.
+        */
+        notifyToast(message, 'error');
       }
     } finally {
       setIsUploading(false);
@@ -324,6 +344,7 @@ export default function FileBlock({ block }: { block: StepBlock }) {
                     )
                   }
                   onAddVersion={() => pickFile(file.fileId)}
+                  isUploading={isUploading}
                   onTrash={() => trashModal.open(file)}
                 />
               ))}
@@ -420,6 +441,8 @@ interface FileRowProps {
   onOpen: () => void;
   onDownload: () => void;
   onAddVersion: () => void;
+  /** 업로드가 도는 동안은 새 버전 올리기를 막는다 — 대상이 덮여 두 요청이 겹친다 */
+  isUploading: boolean;
   onTrash: () => void;
 }
 
@@ -435,6 +458,7 @@ function FileRow({
   onOpen,
   onDownload,
   onAddVersion,
+  isUploading,
   onTrash,
 }: FileRowProps) {
   const style = extensionStyle(file.extension);
@@ -526,6 +550,7 @@ function FileRow({
             <IconButton
               label={`${file.name} 새 버전 올리기`}
               onClick={onAddVersion}
+              disabled={isUploading}
             >
               <UploadIcon />
             </IconButton>
@@ -551,10 +576,12 @@ const ICON_BUTTON_CLASS =
 function IconButton({
   label,
   onClick,
+  disabled = false,
   children,
 }: {
   label: string;
   onClick: () => void;
+  disabled?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -563,7 +590,8 @@ function IconButton({
       title={label}
       aria-label={label}
       onClick={onClick}
-      className={ICON_BUTTON_CLASS}
+      disabled={disabled}
+      className={`${ICON_BUTTON_CLASS} disabled:cursor-not-allowed disabled:opacity-40`}
     >
       {children}
     </button>

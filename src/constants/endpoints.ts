@@ -359,6 +359,11 @@ export const ENDPOINTS = {
      * 스텝 `VIEWER` 이상인 파일만 오고, 페이징이 없다 (`keyword` · `projectId` · `extension` 으로 거른다).
      */
     my: `${V1}/files/my`,
+    /**
+     * 전사 파일 목록 (ADMIN 전용 · FILE-Q-01) — 회사의 **모든 프로젝트**를 가로지른다.
+     * 경로만 `/admin` 아래에 있고 다루는 것은 파일이라 이 묶음에 둔다.
+     */
+    admin: `${V1}/admin/files`,
     /** 업로드 시작 — presigned PUT URL 발급 */
     uploads: `${V1}/files/uploads`,
     /** 업로드 완료 통보 — 서버가 저장소를 직접 확인한다 */
@@ -376,6 +381,36 @@ export const ENDPOINTS = {
      */
     permanentDeletion: (fileId: number | string) =>
       `${V1}/files/${fileId}/permanent-deletion`,
+  },
+  /**
+   * 사내 문서함 (ADMIN 전용 · `features/companyDocument/`).
+   *
+   * 프로젝트 파일과 **별도 도메인**이다 — 경로 · 에러코드(`CDOC_*`)가 모두 따로 있다.
+   * 다운로드 · 미리보기도 파일 도메인(`fileVersions`)이 아니라 이쪽 경로를 쓴다.
+   */
+  companyDocuments: {
+    /** 목록 — 분류 · 검색 · 페이징 */
+    root: `${V1}/admin/company-documents`,
+    /** 업로드 시작 — presigned PUT URL 발급 (10분) */
+    uploads: `${V1}/admin/company-documents/uploads`,
+    /** 업로드 완료 통보 — 서버가 저장소를 직접 확인한다 */
+    uploadComplete: (versionId: number | string) =>
+      `${V1}/admin/company-documents/uploads/${versionId}/complete`,
+    /** 표시명 · 분류 수정 · 삭제(soft) */
+    detail: (documentId: number | string) =>
+      `${V1}/admin/company-documents/${documentId}`,
+    /** 버전 이력 — 완료 버전만, 차수 내림차순 */
+    versions: (documentId: number | string) =>
+      `${V1}/admin/company-documents/${documentId}/versions`,
+    /** 삭제 복구 */
+    restore: (documentId: number | string) =>
+      `${V1}/admin/company-documents/${documentId}/restore`,
+    /** 다운로드 URL 발급 (presigned, 5분) */
+    download: (versionId: number | string) =>
+      `${V1}/admin/company-document-versions/${versionId}/download`,
+    /** 미리보기 — 응답이 JSON 이 아니라 앞 5페이지를 잘라낸 PDF 바이너리다 */
+    preview: (versionId: number | string) =>
+      `${V1}/admin/company-document-versions/${versionId}/preview`,
   },
   fileVersions: {
     /** 버전 단건 조회 (결재용) — 문서가 휴지통이어도 반환된다 */

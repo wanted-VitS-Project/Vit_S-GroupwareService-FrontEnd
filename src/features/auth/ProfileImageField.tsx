@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import MemberAvatar, { forgetMissingAvatar } from '@/components/MemberAvatar';
+import { notifyToast } from '@/components/Toast';
 import { ApiError, messageOf } from '@/lib/api';
 
 import { deleteProfileImage, uploadProfileImage } from './api';
@@ -69,8 +70,12 @@ export default function ProfileImageField() {
        * 아니라 이전 사진이 계속 보인다. 시각을 붙여 강제로 새로 부르게 한다.
        */
       setProfileImage(`${profileImageUrl}?t=${Date.now()}`);
+      notifyToast('프로필 사진을 올렸습니다.');
     } catch (caught) {
-      setError(profileMessageOf(caught, '사진을 올리지 못했습니다.'));
+      const message = profileMessageOf(caught, '사진을 올리지 못했습니다.');
+
+      setError(message);
+      notifyToast(message, 'error');
     } finally {
       setIsPending(false);
     }
