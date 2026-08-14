@@ -89,6 +89,31 @@ export function isProjectScope(pathname: string) {
 }
 
 /**
+ * 프로젝트 화면에서 **한 칸 위**로 나가는 길.
+ *
+ * - 스텝 화면(`/projects/{id}/steps/{stepId}`) → 그 프로젝트(`/projects/{id}`)
+ * - 그 밖의 프로젝트 화면 → 메인(`/`)
+ *
+ * 스텝에서 곧장 홈으로 튀면 스텝 사이를 오가던 사람이 매번 프로젝트를 다시 찾아 들어와야 한다.
+ * `label` 은 조사가 붙은 채로 돌려준다 — `홈으로` / `프로젝트로` 가 갈리기 때문이다.
+ */
+export function projectScopeUpLink(pathname: string): {
+  href: string;
+  label: '홈으로' | '프로젝트로';
+} {
+  const segments = pathname.split('/').filter(Boolean);
+  const isStepScope =
+    segments[0] === 'projects' &&
+    segments[1] !== undefined &&
+    segments[2] === 'steps' &&
+    segments[3] !== undefined;
+
+  return isStepScope
+    ? { href: `/projects/${segments[1]}`, label: '프로젝트로' }
+    : { href: '/', label: '홈으로' };
+}
+
+/**
  * 경로가 base 에 속하는지 판단한다.
  * `/login-help` 가 `/login` 에 걸리지 않도록 `/` 경계까지 확인한다.
  */

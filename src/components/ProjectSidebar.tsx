@@ -2,13 +2,14 @@
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import MemberAvatar from '@/components/MemberAvatar';
 import ModalLoadingFallback from '@/components/ModalLoadingFallback';
 import { notifyToast } from '@/components/Toast';
+import { projectScopeUpLink } from '@/constants/menu';
 import { notifyBlockChanged } from '@/features/block/events';
 import {
   ISSUE_CHANGED_EVENT,
@@ -214,6 +215,9 @@ export default function ProjectSidebar() {
   // 스텝 화면(`/projects/{id}/steps/{stepId}`)이면 stepId 도 함께 들어온다
   const params = useParams<{ id: string; stepId?: string }>();
   const projectId = params.id;
+  /** 이탈 경로 — 스텝 화면이면 그 프로젝트로, 프로젝트 화면이면 홈으로 */
+  const pathname = usePathname();
+  const upLink = projectScopeUpLink(pathname);
   const router = useRouter();
   const { isCollapsed, toggle, expand } = useProjectSidebarCollapse();
 
@@ -442,6 +446,7 @@ export default function ProjectSidebar() {
             hasFailed={hasFailed}
             activeStageId={activeStageId}
             projectId={projectId}
+            upLink={upLink}
             onExpandStage={(stageId) => {
               setOpenStageId(stageId);
               expand();
@@ -452,16 +457,19 @@ export default function ProjectSidebar() {
           <div
             className={`flex h-full ${SIDEBAR_WIDTH} animate-panel-in flex-col motion-reduce:animate-none`}
           >
-            {/* 이탈 경로는 항상 같은 자리에 있어야 한다 — 스크롤 영역 밖에 둔다 */}
+            {/*
+              이탈 경로는 항상 같은 자리에 있어야 한다 — 스크롤 영역 밖에 둔다.
+              나가는 곳은 **한 칸 위**다 — 스텝 화면이면 그 프로젝트로, 프로젝트 화면이면 홈으로.
+            */}
             <Link
-              href="/"
+              href={upLink.href}
               className="flex h-13 shrink-0 items-center gap-2 border-b border-border-default px-4 text-[15px] font-medium text-text-secondary hover:bg-bg-surface"
             >
               <ArrowLeftIcon />
-              홈으로 돌아가기
+              {`${upLink.label} 돌아가기`}
             </Link>
 
-            {/* 스크롤 영역 — 홈 · 참여자 · 설정은 위아래에 고정한다. 폭이 좁아 스크롤바는 숨긴다 */}
+            {/* 스크롤 영역 — 참여자 · 설정은 위아래에 고정한다. 폭이 좁아 스크롤바는 숨긴다 */}
             <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto">
               <div className="flex flex-col gap-2 border-b border-border-default px-4 py-3">
                 <div className="flex items-center gap-2">
@@ -513,8 +521,13 @@ export default function ProjectSidebar() {
                             style={{ width: `${progressRate}%` }}
                           />
                         </div>
-                        <span className="text-label font-medium text-text-primary-blue">
-                          {progressRate}%
+                        {/*
+                          ⚠️ `{progressRate}%` 로 적으면 숫자와 `%` 가 **다른 텍스트 노드**로
+                          그려져 칸이 좁을 때 그 사이에서 줄이 바뀐다 (`100` / `%`).
+                          한 문자열로 합치고 `whitespace-nowrap` 으로 못을 박는다.
+                        */}
+                        <span className="text-label font-medium whitespace-nowrap text-text-primary-blue">
+                          {`${progressRate}%`}
                         </span>
                       </div>
                     </div>
@@ -970,6 +983,7 @@ function CollapsedSidebar({
   hasFailed,
   activeStageId,
   projectId,
+  upLink,
   onExpandStage,
   onExpand,
 }: {
@@ -978,6 +992,8 @@ function CollapsedSidebar({
   hasFailed: boolean;
   activeStageId: number | null;
   projectId: string;
+  /** 펼친 쪽과 **같은 이탈 경로**여야 한다 — 접었다고 나가는 곳이 달라지면 안 된다 */
+  upLink: { href: string; label: string };
   onExpandStage: (stageId: number) => void;
   onExpand: () => void;
 }) {
@@ -986,9 +1002,9 @@ function CollapsedSidebar({
       className={`flex h-full ${SIDEBAR_COLLAPSED_WIDTH} animate-panel-in flex-col motion-reduce:animate-none`}
     >
       <Link
-        href="/"
-        aria-label="홈으로 돌아가기"
-        title="홈으로 돌아가기"
+        href={upLink.href}
+        aria-label={`${upLink.label} 돌아가기`}
+        title={`${upLink.label} 돌아가기`}
         className="flex h-13 shrink-0 items-center justify-center"
       >
         {/* 평소에는 흰 바탕이라 아이콘만 떠 보인다 — 호버할 때만 판이 드러난다 */}
@@ -1188,10 +1204,11 @@ function StepCard({
           >
             {step.name}
           </span>
+          {/* 숫자 · `%` 를 한 문자열로 — 나뉘면 좁은 칸에서 `100` / `%` 로 끊긴다 */}
           <span
-            className={`text-label ${isActive ? 'text-text-primary-blue' : 'text-text-secondary'}`}
+            className={`text-label whitespace-nowrap ${isActive ? 'text-text-primary-blue' : 'text-text-secondary'}`}
           >
-            {step.progressRate ?? 0}%
+            {`${step.progressRate ?? 0}%`}
           </span>
           {canEditStep || canManagePermissions ? (
             <span className="pointer-events-auto">

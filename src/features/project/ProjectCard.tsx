@@ -146,7 +146,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
                 className="block h-full rounded-l-pill bg-btn-primary"
               />
             </span>
-            <span className="w-9 text-right text-[13px] font-semibold text-gray-text-soft">
+            <span className="w-9 shrink-0 text-right text-[13px] font-semibold whitespace-nowrap text-gray-text-soft">
               {row.progressRate === undefined ? '–' : `${row.progressRate}%`}
             </span>
           </span>
