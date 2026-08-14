@@ -5,12 +5,7 @@ import { usePathname } from 'next/navigation';
 
 import Logo from '@/components/Logo';
 import ProfileMenu from '@/components/ProfileMenu';
-import {
-  findActiveMenu,
-  isProjectScope,
-  isUnder,
-  projectScopeUpLink,
-} from '@/constants/menu';
+import { findActiveMenu, isProjectScope, isUnder } from '@/constants/menu';
 import NotificationBell from '@/features/notification/NotificationBell';
 import {
   type ResolvedMenuItem,
@@ -55,8 +50,6 @@ export default function Header() {
    */
   const isDark = isProjectScope(pathname);
   const { isCollapsed } = useProjectSidebarCollapse();
-  /** 프로젝트 화면에서만 쓰인다 — 로고가 곧 이탈 경로다 */
-  const upLink = projectScopeUpLink(pathname);
 
   return (
     // 사이드바 로고 줄과 같은 52px — 두 영역의 밑줄이 한 선으로 이어진다
@@ -78,11 +71,13 @@ export default function Header() {
         {isDark && (
           <Link
             /*
-             * 나가는 곳은 **한 칸 위**다 — 스텝 화면이면 그 프로젝트로, 프로젝트 화면이면 홈으로.
-             * 왼쪽 `ProjectSidebar` 의 이탈 링크와 같은 규칙을 쓴다 (`projectScopeUpLink`).
+             * 로고는 **언제나 메인으로** 간다 — 어느 화면에서 눌러도 같은 곳에 닿는다.
+             *
+             * 한 칸 위로 보내는 이탈 경로(`projectScopeUpLink`)는 왼쪽 `ProjectSidebar` 가
+             * 계속 맡는다. 로고까지 자리마다 목적지가 달라지면 어디로 갈지 예측할 수 없다.
              */
-            href={upLink.href}
-            aria-label={`${upLink.label} 이동`}
+            href="/"
+            aria-label="VitaS 메인으로 이동"
             /*
              * 사이드바와 **같은 시간 · 같은 곡선**이어야 두 경계선이 나란히 움직인다.
              * `padding` 도 함께 전환한다 — 폭만 전환하면 좌우 여백이 첫 프레임에 툭 바뀌어
