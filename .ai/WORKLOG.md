@@ -6,6 +6,117 @@
 
 ---
 
+## [2026-08-14] 이미지 블록 정렬 번호 버그 수정 · 이미지 모아보기 N+1 선대응 ✅
+
+브랜치: `ref-ys` · API 변경 없음 (백엔드 필드 추가 요청 발송 완료)· 이슈: #158
+
+이미지 블록에서 **업로드·삭제 후 이미지가 안 뜨고 `다시 시도` 로도 복구되지 않던** 버그를 잡았다. 겸해서 107번에 요청해 둔 필드가 배포되면 N+1 조회가 저절로 사라지도록 미리 대비해 두었다.
+
+### 변경 파일
+
+| 파일                                                  | 변경                                                           |
+| ----------------------------------------------------- | -------------------------------------------------------------- |
+| `src/features/block/ImageBlock.tsx`                   | 수정 (정렬 번호 지어내기 제거 · `resync()` · `applyCreated()`) |
+| `src/features/block/types.ts`                         | 수정 (`ProjectImage` 에 선택 필드 3종 추가)                    |
+| `src/features/project/overview/useImageBlockNames.ts` | 수정 (`readImageBlockNames()` 신설)                            |
+| `src/features/project/overview/ProjectImages.tsx`     | 수정 (응답 필드 우선 · 없을 때만 N+1)                          |
+
+### 주요 작업 내용
+
+- **정렬 번호를 지어내지 않는다** — 세 곳이 값을 만들어 보내고 있었다. `FIRST_REQUEST({ from: 0 })` · `reloadFrom()` 의 `target - 1` · 순환 이동의 `target - 1`. 이제 정렬 번호는 **응답에서 받은 것만** 쓴다
+- **업로드 직후는 재조회 없음** — 생성 응답(67번)이 서버가 매긴 `orderIndex` 를 담아 주므로 `applyCreated()` 가 캐시에 합치고 새 첫 장으로 옮긴다. 기존 목록을 지우지 않고 장수만 더한다
+- **삭제 직후는 목록 재조회** — 삭제 응답이 `null` 이라 남은 이미지를 알 수 없고, 뒤 장들의 번호가 앞으로 당겨져 들고 있던 번호가 전부 옛것이 된다. 이때만 71번으로 받아 서버 번호로 통째로 맞춘다
+- **107번 필드 선대응** — `readImageBlockNames()` 가 응답에 `blockTitle` · `stepId` · `stepName` 이 실려 있으면 그것으로 표를 만들고, 그러면 `useImageBlockNames` 는 `enabled: false` 라 **아예 켜지지 않는다.** 백엔드 배포만으로 N+1 이 사라진다
+
+### 트러블슈팅
+
+- **업로드·삭제 후 이미지가 안 뜨고 `다시 시도` 도 안 먹혔다.** 첫 장을 받으려고 `GET /blocks/images/{id}/items/0?direction=next` 를 보내고 있었다 — "정렬 번호가 1부터니 0의 `next` 가 1번" 이라는 **프론트 자체 규약**이었는데 서버에 0번은 없는 자리라 그대로 실패했다. `다시 시도`(`reloadFrom(1)` → `1 - 1 = 0`) 도 같은 0 을 다시 보내 **몇 번을 눌러도 복구되지 않았다.** 새로고침만 되던 이유는 그때는 블록 조회(10번) `detail` 의 대표 이미지로 그렸기 때문 → 번호를 만들어 쓰는 경로를 전부 없앴다
+- **순환 이동(마지막 → 첫 장)도 같은 0 을 불렀다.** 방향으로 표현할 수 없어 `target - 1` 로 되짚던 자리다 → 캐시에 있을 때만 순환하게 좁혔다. 첫 장은 블록 응답으로 이미 받아 두고 목록 재조회 뒤에는 전부 캐시에 있어 실제로 막히는 경우는 거의 없다
+
+### 부수 결정
+
+- **71번(전체 목록)을 복구 수단으로 쓴다** — 편집 권한이 필요하지만 `다시 시도` · 삭제는 편집자만 하는 동작이라 걸리지 않는다. 진입 때는 대표 이미지가 실려 오는 것이 정상 경로라 여기까지 오지 않는다
+- **`ProjectImage` 의 새 필드 3종은 선택(`?`)으로 둔다** — 배포 전에는 안 오므로 필수로 조이면 타입이 거짓말이 된다. 백엔드 배포 확인 후 `?` 를 떼고 `readImageBlockNames()` 의 미배포 분기를 지운다
+- **판정 기준은 `stepName` · `stepId`** — `blockTitle` 은 미지정이면 정상적으로 `null` 이라 그것만 보면 "필드가 없다" 와 "제목이 안 붙은 블록" 을 가를 수 없다
+
+---
+
+## [2026-08-14] 프로젝트 상태별 건수 공유 · 요약 카드 공용화 ✅
+
+브랜치: `ref-ys` · API 변경 없음
+
+대시보드와 `내 프로젝트` 가 **같은 4콜을 각자** 쏘고 **같은 카드를 각자** 그리던 것을 하나로 합쳤다. 화면을 옮겨도 건수를 다시 부르지 않는다.
+
+### 변경 파일
+
+| 파일                                           | 변경                                                      |
+| ---------------------------------------------- | --------------------------------------------------------- |
+| `src/features/project/useProjectCounts.ts`     | **생성** (`useProjectCounts` · `useRefreshProjectCounts`) |
+| `src/features/project/ProjectSummaryCards.tsx` | **생성** (요약 카드 5장 + 아이콘 5종 · 실패 안내)         |
+| `src/features/dashboard/DashboardSummary.tsx`  | 수정 (186줄 → 14줄, 공용 카드 호출만 남김)                |
+| `src/features/project/MyProjectList.tsx`       | 수정 (`ProjectSummary` · 아이콘 5종 제거 · 재시도 연결)   |
+
+### 주요 작업 내용
+
+- **건수 조회를 캐시 한 칸으로** — `queryKey: ['project-counts']` 하나에 4콜 결과를 모은다. 두 화면이 같은 칸을 보므로 대시보드 → `내 프로젝트` 이동 때 **8콜이 4콜**이 되고, 60초 안에 돌아오면 0콜이다
+- **요약 카드 공용화** — 카드 5장 · 아이콘 5종 · 실패 안내가 두 파일에 통째로 두 벌이었다. `ProjectSummaryCards` 하나로 합치고 화면마다 다르던 값(`aria-label` · 넓은 화면 간격)만 prop 으로 뺐다
+- **목록 재시도가 건수도 함께 읽는다** — 예전에는 `reloadCount` prop 을 내려 다시 세게 했다. `useRefreshProjectCounts()`(= `invalidateQueries`) 로 바꿔 `useRefreshStepBlocks` 와 같은 방식으로 맞췄다
+
+### 트러블슈팅
+
+- 해당 없음 (동작 변경 없이 조회 경로만 합침)
+
+### 부수 결정
+
+- **집계 API 는 백엔드 몫으로 남긴다** — `API.md` 84번에 적힌 대로 상태별 집계 엔드포인트가 없어 `size=1` 로 4번 묻는 구조는 그대로다. 다만 **`useProjectCounts` 의 `queryFn` 한 곳**으로 모아 두어, 엔드포인트가 생기면 화면 코드를 건드리지 않고 갈아끼울 수 있다
+- **`staleTime` 은 전역 30초가 아니라 60초** — 건수는 화면을 오가는 사이에 좀처럼 바뀌지 않고, 한 번 읽는 값이 4콜이라 되도록 덜 부르는 편이 낫다
+- **`전체` 는 계속 네 상태의 합** — 상태 필터 없이 세면 종결(`CLOSED`)이 섞여 나머지 넷의 합과 어긋난다. 합산 규칙을 훅 안(`total`)으로 옮겨 두 화면이 같은 값을 쓴다
+
+---
+
+## [2026-08-14] 로딩 껍데기를 화면 골격에 맞춤 · 목록 재묶임 흔들림 제거 ✅
+
+브랜치: `ref-ys` · API 변경 없음
+
+`Suspense` 폴백이 **목록만** 그리던 화면 4곳을 화면 골격(머리글 · 필터 바)까지 잡도록 고쳤고, 카드 행 높이가 실제와 어긋나던 두 곳을 맞췄다. 겸해서 프로젝트 전체 화면이 **묶이지 않은 채 떴다가 스테이지별로 다시 묶이던** 흔들림을 없앴다.
+
+### 변경 파일
+
+| 파일                                                | 변경                                                            |
+| --------------------------------------------------- | --------------------------------------------------------------- |
+| `src/components/Skeleton.tsx`                       | 수정 (`SkeletonPageHeader` · `SkeletonFilterBar` 신설)          |
+| `src/components/project/ProjectListSkeleton.tsx`    | 수정 (행 높이 실측 반영 · `ProjectPageSkeleton` 신설)           |
+| `src/components/approval/ApprovalSkeletons.tsx`     | 수정 (행 높이 실측 반영 · `ApprovalPageSkeleton` 신설)          |
+| `src/components/bidding/NoticeSkeletons.tsx`        | 수정 (`NoticeTableSkeleton` 분리 · `NoticeListSkeleton` 골격화) |
+| `src/components/settings/SettingsSkeletons.tsx`     | 수정 (`EmployeeListSkeleton` 신설)                              |
+| `src/app/projects/page.tsx`                         | 수정 (폴백을 `ProjectPageSkeleton` 으로)                        |
+| `src/app/approvals/page.tsx`                        | 수정 (폴백을 `ApprovalPageSkeleton` 으로)                       |
+| `src/app/settings/employees/page.tsx`               | 수정 (폴백을 `EmployeeListSkeleton` 으로)                       |
+| `src/features/pagePermission/PageAccessGate.tsx`    | 수정 (`/notices` 등록 · `exact` 옵션 추가)                      |
+| `src/features/project/overview/useProjectStages.ts` | 수정 (`{ index, isSettled }` 반환 — 실패도 판정으로 기록)       |
+| `src/features/project/overview/ProjectIssues.tsx`   | 수정 (색인 판정 전까지 스켈레톤 유지)                           |
+| `src/features/project/overview/ProjectFiles.tsx`    | 수정 (색인 판정 전까지 스켈레톤 유지)                           |
+
+### 주요 작업 내용
+
+- **폴백을 화면 골격으로** — `/projects` · `/approvals` · `/settings/employees` · `/notices` 의 `Suspense` 폴백이 목록·표만 그리고 있었다. 실제 화면은 모두 `머리글 → 필터 바 → 목록` 이라, 폴백이 뜬 뒤 실제 화면으로 바뀌는 순간 목록이 통째로 아래로 내려앉았다. `SkeletonPageHeader` · `SkeletonFilterBar` 를 공용으로 만들고 화면마다 실제 값(글자 크기 · 컨트롤 높이 · 버튼 개수)을 옮겨 적었다
+- **행 높이 실측 반영** — `ProjectListSkeleton` 은 `h-[74px]` 고정이었는데 실제 접힌 카드는 ≈57px, `ApprovalListSkeleton` 은 글 두 줄을 30px 로 잡았는데 실제는 42.5px 이었다. 통짜 숫자를 버리고 **실제 카드의 여백 · 칸 너비를 그대로 옮겨** 적었다
+- **`/notices` 를 권한 대기 껍데기에 등록** — 폴백이 골격을 안 잡아 미뤄 두었던 `ROUTE_SKELETONS` 항목을 넣었다. 하위 경로(`/notices/new` · `/notices/{id}`)는 화면이 달라 `exact` 옵션을 새로 두어 물려주지 않는다
+- **스테이지 재묶임 제거** — `전체 일정` · `문서함` 이 스테이지 색인을 기다리지 않고 먼저 그려, 스텝이 한 덩어리로 늘어섰다가 색인이 도착하는 순간 스테이지별로 다시 묶였다. 제목이 끼어들고 높이가 바뀌어 화면이 한 번 들썩였다
+
+### 트러블슈팅
+
+- **색인 실패와 대기를 구분할 수 없었다.** `useProjectStages` 가 실패를 조용히 삼켜 `index` 가 계속 `null` 이라, 부르는 쪽이 `null` 을 보고 기다리면 **실패한 경우 영영 스켈레톤에 갇힌다** → 실패도 `{ index: null }` 로 **기록**하고 `isSettled` 를 따로 내보내, 성공·실패 모두 한 번에 판정이 끝나게 했다
+- **골격 껍데기를 `SkeletonGroup` 으로 감쌌더니 `role="status"` 가 겹쳤다.** 안쪽 `DataTable`(`rows={null}`)이 이미 상태 영역을 낸다 → 바깥은 조각(`<>`)으로 두었다. 머리글 · 필터 막대는 `Skeleton` 자체가 `aria-hidden` 이라 읽히지 않는다
+
+### 부수 결정
+
+- **`SkeletonPageHeader` 는 높이를 받아 쓴다** — 화면마다 제목 크기가 다르다(`text-heading-m` 26px vs `text-logo`+`leading-8` 32px). 기본값을 하나로 정하면 어느 화면이든 어긋나므로 **부르는 쪽이 실제 값을 적는** 방식으로 두고, 주석에 근거(글자 크기 × 줄높이)를 남겼다
+- **화면 안 로딩과 폴백은 서로 다른 껍데기다** — 화면 안에서는 머리글 · 필터가 이미 떠 있으므로 목록만 그려야 한다. 그래서 목록 전용(`ProjectListSkeleton` · `ApprovalListSkeleton` · `NoticeTableSkeleton` · `EmployeeTableSkeleton`)과 화면 전용(`*PageSkeleton` · `*ListSkeleton`)을 나눠 두었다
+- **`ProjectImages` 의 블록 이름은 그대로 둔다** — `블록 #3` → 실제 이름으로 글자만 바뀌고 묶음 순서는 그대로라 들썩임이 없다. 이름 조회는 사용자가 `블록별로 보기` 를 켠 뒤에야 시작하므로 기다리면 그 조작이 늦어진다
+
+---
+
 ## [2026-08-14] 대시보드 달력 조작 개선 · 헤더 로고 경로 고정 ✅
 
 브랜치: `ref-ys` · API 변경 없음
