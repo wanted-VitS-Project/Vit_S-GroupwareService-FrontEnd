@@ -1,6 +1,6 @@
 # 📦 라이브러리 인벤토리
 
-**최종 업데이트**: 2026-08-04 (이슈 #21 — 구조 단계에 불필요한 의존성 정리)
+**최종 업데이트**: 2026-08-14 (`@tanstack/react-query` 재도입 — 블록 목록 캐시)
 **기준 파일**: `package.json` · `package-lock.json`
 
 > 📌 이 문서는 **"어떤 라이브러리를, 어디에, 왜 쓰는가"** 를 한눈에 보기 위한 것이다.
@@ -23,22 +23,24 @@
 | 경로 별칭  | `@/*` → `src/*` (`tsconfig.json`)            |
 | 줄바꿈     | LF 고정 (`.gitattributes`)                   |
 
-> ⚠️ UI 컴포넌트 · 서버 상태 · 폼 검증 라이브러리는 **아직 정하지 않았다.** §4 참고.
+> ⚠️ UI 컴포넌트 · 폼 검증 라이브러리는 **아직 정하지 않았다.** §4 참고.
+> 서버 상태는 **`@tanstack/react-query`** 로 정했다 (2026-08-14). 지금은 스텝 블록 목록만 얹혀 있고, 나머지 화면은 `useEffect` + `lib/api.ts` 그대로다.
 
 ---
 
 ## 1. 런타임 의존성 (`dependencies`)
 
-| 라이브러리            | 버전      | 역할                                                         | 사용 위치                                                      |
-| --------------------- | --------- | ------------------------------------------------------------ | -------------------------------------------------------------- |
-| `next`                | `16.2.12` | 프레임워크. 라우팅(App Router), 렌더링(SSR/CSR), 빌드·번들링 | `src/app/**`, `next.config.ts`, `dev`/`build`/`start` 스크립트 |
-| `react`               | `19.2.4`  | UI 컴포넌트·상태·훅                                          | `src/app/**`, `src/components/**`                              |
-| `react-dom`           | `19.2.4`  | React를 브라우저 DOM에 렌더링                                | Next 내부에서 사용 (직접 import는 드묾)                        |
-| `@tiptap/react`       | `3.29.2`  | WYSIWYG 에디터 React 바인딩 (`useEditor` · `EditorContent`)  | `src/features/block/MarkdownEditor.tsx` · `MarkdownView.tsx`   |
-| `@tiptap/starter-kit` | `3.29.2`  | 기본 확장 묶음 (제목 · 목록 · 인용 · 코드 · 굵게/기울임)     | 위 두 파일                                                     |
-| `@tiptap/pm`          | `3.29.2`  | ProseMirror 코어 (TipTap 필수 peer)                          | TipTap 내부                                                    |
-| `tiptap-markdown`     | `0.9.0`   | 마크다운 ↔ 에디터 문서 양방향 변환                           | 위 두 파일                                                     |
-| `react-pdf`           | `10.4.1`  | PDF 를 페이지 단위로 직접 렌더 (`pdfjs-dist` 래퍼)           | `src/features/file/PdfPages.tsx`                               |
+| 라이브러리              | 버전      | 역할                                                         | 사용 위치                                                       |
+| ----------------------- | --------- | ------------------------------------------------------------ | --------------------------------------------------------------- |
+| `next`                  | `16.2.12` | 프레임워크. 라우팅(App Router), 렌더링(SSR/CSR), 빌드·번들링 | `src/app/**`, `next.config.ts`, `dev`/`build`/`start` 스크립트  |
+| `react`                 | `19.2.4`  | UI 컴포넌트·상태·훅                                          | `src/app/**`, `src/components/**`                               |
+| `react-dom`             | `19.2.4`  | React를 브라우저 DOM에 렌더링                                | Next 내부에서 사용 (직접 import는 드묾)                         |
+| `@tiptap/react`         | `3.29.2`  | WYSIWYG 에디터 React 바인딩 (`useEditor` · `EditorContent`)  | `src/features/block/MarkdownEditor.tsx` · `MarkdownView.tsx`    |
+| `@tiptap/starter-kit`   | `3.29.2`  | 기본 확장 묶음 (제목 · 목록 · 인용 · 코드 · 굵게/기울임)     | 위 두 파일                                                      |
+| `@tiptap/pm`            | `3.29.2`  | ProseMirror 코어 (TipTap 필수 peer)                          | TipTap 내부                                                     |
+| `tiptap-markdown`       | `0.9.0`   | 마크다운 ↔ 에디터 문서 양방향 변환                           | 위 두 파일                                                      |
+| `react-pdf`             | `10.4.1`  | PDF 를 페이지 단위로 직접 렌더 (`pdfjs-dist` 래퍼)           | `src/features/file/PdfPages.tsx`                                |
+| `@tanstack/react-query` | `5.101.4` | 서버 상태 캐시·재조회 (`useQuery` · `invalidateQueries`)     | `src/app/providers.tsx` · `src/features/block/useStepBlocks.ts` |
 
 > 📌 **텍스트 블록이 마크다운 원문을 화면에 노출하지 않는 WYSIWYG 여야** 해서 도입했다.
 > 본문은 마크다운 문자열로 주고받고(`PATCH /blocks/texts/{txtId}`), 화면에는 서식이 적용된 결과만 보인다.
@@ -86,7 +88,7 @@
 | 후보                                    | 용도                        | 언제 도입하나                              |
 | --------------------------------------- | --------------------------- | ------------------------------------------ |
 | UI 컴포넌트 (PrimeReact · shadcn/ui 등) | 버튼·테이블·배지 등 공용 UI | 공용 컴포넌트 구현 이슈                    |
-| 서버 상태 (`@tanstack/react-query` 등)  | API 데이터 패칭·캐싱        | 첫 API 연동 이슈                           |
+| ~~서버 상태 (`@tanstack/react-query`)~~ | ~~API 데이터 패칭·캐싱~~    | ✅ 2026-08-14 도입 (§1 참고)               |
 | 클라이언트 상태 (`zustand` 등)          | 전역 UI 상태                | 전역 상태가 실제로 필요해질 때             |
 | 폼 (`react-hook-form` + `zod`)          | 폼 입력·검증                | 로그인/등록 폼 구현 이슈                   |
 | 날짜 (`date-fns` 등)                    | 날짜 계산·표기              | `lib/format.ts` 작성 시                    |
@@ -106,10 +108,11 @@
 
 ## 6. 변경 이력
 
-| 날짜       | 변경 내용                                                                                                                                                                                                                                          | 담당   |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| 2026-07-29 | 초기 스캐폴드 기준 인벤토리 작성                                                                                                                                                                                                                   | 손윤서 |
-| 2026-08-04 | `prettier` · `prettier-plugin-tailwindcss` 추가 (포맷 규칙 확정)                                                                                                                                                                                   | 서민지 |
-| 2026-08-04 | 폴더 구조 단계에서 쓰지 않는 9종 제거 — `primereact` · `@primeuix/themes` · `primeicons` · `@tanstack/react-query` · `zustand` · `react-hook-form` · `@hookform/resolvers` · `zod` · `date-fns`. 각 라이브러리는 실제로 쓰는 이슈에서 재설치한다   | 서민지 |
-| 2026-08-05 | TipTap 4종 추가 — `@tiptap/react` · `@tiptap/starter-kit` · `@tiptap/pm` · `tiptap-markdown`. 텍스트 블록의 WYSIWYG 마크다운 에디터에 사용. `@uiw/react-md-editor`(분할 미리보기라 WYSIWYG 아님) · Lexical(툴바 상태를 직접 구현해야 함) 대비 채택 | 손윤서 |
-| 2026-08-06 | `react-pdf` 추가 (전이 의존 `pdfjs-dist`). 문서 뷰어에서 **툴바 제거 · 폭 맞춤 · 스크롤 위임**이 필요해 브라우저 내장 뷰어(`<iframe>`)를 대체. 번들 약 350KB 증가를 감수                                                                           | 손윤서 |
+| 날짜       | 변경 내용                                                                                                                                                                                                                                                            | 담당   |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 2026-07-29 | 초기 스캐폴드 기준 인벤토리 작성                                                                                                                                                                                                                                     | 손윤서 |
+| 2026-08-04 | `prettier` · `prettier-plugin-tailwindcss` 추가 (포맷 규칙 확정)                                                                                                                                                                                                     | 서민지 |
+| 2026-08-04 | 폴더 구조 단계에서 쓰지 않는 9종 제거 — `primereact` · `@primeuix/themes` · `primeicons` · `@tanstack/react-query` · `zustand` · `react-hook-form` · `@hookform/resolvers` · `zod` · `date-fns`. 각 라이브러리는 실제로 쓰는 이슈에서 재설치한다                     | 서민지 |
+| 2026-08-05 | TipTap 4종 추가 — `@tiptap/react` · `@tiptap/starter-kit` · `@tiptap/pm` · `tiptap-markdown`. 텍스트 블록의 WYSIWYG 마크다운 에디터에 사용. `@uiw/react-md-editor`(분할 미리보기라 WYSIWYG 아님) · Lexical(툴바 상태를 직접 구현해야 함) 대비 채택                   | 손윤서 |
+| 2026-08-06 | `react-pdf` 추가 (전이 의존 `pdfjs-dist`). 문서 뷰어에서 **툴바 제거 · 폭 맞춤 · 스크롤 위임**이 필요해 브라우저 내장 뷰어(`<iframe>`)를 대체. 번들 약 350KB 증가를 감수                                                                                             | 손윤서 |
+| 2026-08-14 | `@tanstack/react-query` 재도입. 스텝 블록 목록의 **캐시 · 재조회 지점 일원화**가 필요해서다 — 수동 `useState` + `reloadCount` 로는 스텝 이동마다 스켈레톤이 다시 뜨고, 재조회 트리거가 4곳에 흩어져 있었다. 우선 블록 영역에만 적용하고 나머지 화면은 기존 방식 유지 | 손윤서 |

@@ -27,13 +27,27 @@ import type {
 } from './types';
 
 /**
+ * 스텝 블록 조회 — **응답 원본** (`{ blocks: [...] }`) 그대로.
+ *
+ * 캐시에는 이 형태로 넣고 껍질은 `useStepBlocks` 의 `select` 가 벗긴다.
+ * 서버가 나중에 형제 필드를 얹어도 캐시를 갈아엎지 않아도 된다.
+ */
+export function getStepBlocksResponse(
+  stepId: number | string,
+  signal?: AbortSignal,
+) {
+  return api.get<{ blocks: StepBlock[] }>(
+    ENDPOINTS.steps.blocks(stepId),
+    signal,
+  );
+}
+
+/**
  * 스텝의 블록을 한 번에 조회한다.
  * 응답이 `{ blocks: [...] }` 로 한 겹 더 감싸져 있어 여기서 벗겨 반환한다.
  */
 export function getStepBlocks(stepId: number | string, signal?: AbortSignal) {
-  return api
-    .get<{ blocks: StepBlock[] }>(ENDPOINTS.steps.blocks(stepId), signal)
-    .then((data) => data.blocks);
+  return getStepBlocksResponse(stepId, signal).then((data) => data.blocks);
 }
 
 /**
