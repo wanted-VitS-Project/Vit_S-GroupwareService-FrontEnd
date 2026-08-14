@@ -61,7 +61,14 @@ export default function DashboardNotifications() {
       })
       .catch(() => {
         // 취소는 실패가 아니다
-        if (!signal.aborted) setHasFailed(true);
+        if (signal.aborted) return;
+
+        setHasFailed(true);
+        /*
+          배지도 함께 지운다 — 한 번 받아 둔 뒤 새로고침이 실패하면
+          본문은 실패를 알리는데 배지만 낡은 건수를 물고 있다.
+        */
+        setUnreadCount(null);
       });
 
     return () => controller.abort();
@@ -135,7 +142,11 @@ export default function DashboardNotifications() {
       )}
 
       {hasFailed ? (
-        <p className="flex flex-1 items-center justify-center px-6 py-16 text-[13px] text-text-secondary">
+        /* 조회가 끝난 뒤 바뀌는 상태라, 알리지 않으면 스크린리더가 실패를 못 읽는다 */
+        <p
+          role="alert"
+          className="flex flex-1 items-center justify-center px-6 py-16 text-[13px] text-text-secondary"
+        >
           알림을 불러오지 못했습니다.
         </p>
       ) : items === null ? (

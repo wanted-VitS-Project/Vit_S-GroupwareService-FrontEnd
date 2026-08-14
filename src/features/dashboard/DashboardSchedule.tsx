@@ -270,7 +270,18 @@ export default function DashboardSchedule() {
           {formatFullDate(selected)}
         </p>
 
-        {issues === null && !hasFailed ? (
+        {hasFailed ? (
+          /*
+            실패를 **빈 목록으로 보이지 않는다** — 요청이 깨졌을 때도 `issues` 는 `null` 이라
+            그냥 두면 "이 날짜엔 이슈가 없다" 로 읽혀 없는 사실을 알리게 된다.
+          */
+          <p
+            role="alert"
+            className="flex flex-1 items-center justify-center py-16 text-[13px] text-text-secondary"
+          >
+            이슈를 불러오지 못했어요.
+          </p>
+        ) : issues === null ? (
           <p
             aria-live="polite"
             className="flex flex-1 items-center justify-center py-16 text-[13px] text-text-muted"
