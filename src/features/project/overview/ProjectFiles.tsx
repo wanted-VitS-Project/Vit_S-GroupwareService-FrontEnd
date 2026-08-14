@@ -53,8 +53,14 @@ export default function ProjectFiles() {
   const [closedStepIds, setClosedStepIds] = useState<Set<number>>(new Set());
   const viewerModal = useModalTarget<ProjectFile>();
 
-  // 105번 응답에 `stageId` 가 없어 따로 읽는다. 실패해도 목록은 그대로 보인다
-  const stageIndex = useProjectStages(projectId);
+  /*
+   * 105번 응답에 `stageId` 가 없어 따로 읽는다. 실패해도 목록은 그대로 보인다.
+   * 다만 **판정이 끝나기 전에는 그리지 않는다** (`isSettled`) — 색인 없이 먼저 그리면
+   * 스텝이 한 덩어리로 늘어섰다가 색인이 도착하는 순간 스테이지별로 다시 묶여
+   * 제목이 끼어들고 높이가 바뀐다.
+   */
+  const { index: stageIndex, isSettled: isStageSettled } =
+    useProjectStages(projectId);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -123,7 +129,8 @@ export default function ProjectFiles() {
     );
   }
 
-  if (!files) return <ProjectFilesSkeleton />;
+  // 스테이지 색인까지 기다렸다가 **묶인 모습으로 한 번에** 그린다
+  if (!files || !isStageSettled) return <ProjectFilesSkeleton />;
 
   const areAllClosed = steps.every((step) => closedStepIds.has(step.stepId));
 
