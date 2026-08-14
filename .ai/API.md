@@ -155,6 +155,8 @@
 | [139](#139-프로젝트-삭제)                 | 프로젝트 삭제      | `DELETE /projects/{projectId}`                               | ✅ `features/project/api.ts`          |
 | [140](#140-내-프로젝트-파일-모아보기)     | 내 파일            | `GET /files/my`                                              | ✅ `features/file/api.ts`             |
 | [141](#141-알림-실시간-수신-sse)          | 알림 실시간 수신   | `GET /notifications/stream`                                  | ✅ `features/notification/stream.ts`  |
+| [142](#142-전사-파일-목록-admin)          | 전사 파일 목록     | `GET /admin/files`                                           | ✅ `features/file/api.ts`             |
+| [143~150](#143150-사내-문서함-admin)      | 사내 문서함        | `/admin/company-documents …`                                 | ✅ `features/companyDocument/api.ts`  |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
 > 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통) · [이미지 도메인 — 공통](#이미지-도메인--공통) · [사원 그룹 도메인 — 공통](#사원-그룹-도메인--공통) · [페이지 권한 도메인 — 공통](#페이지-권한-도메인--공통) · [스테이지 · 스텝 도메인 — 공통](#스테이지--스텝-도메인--공통) · [이슈 도메인 — 공통](#이슈-도메인--공통) · [입찰 도메인 — 공통](#입찰-도메인--공통) · [프로젝트 참여자 · 설정 도메인 — 공통](#프로젝트-참여자--설정-도메인--공통)
@@ -4005,6 +4007,93 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 > ⚠️ **`updatedAt` 이 `YYYY-MM-DD HH:mm:ss`(공백 구분) 로 온다** — 105번의 `T` 구분과 다르다. `lib/format.ts` 는 둘 다 받으므로 화면은 그대로 쓴다.
 > ⚠️ **역할 배지(PM · 참여) 값이 없다** — 목업에는 있으나 응답에 필드가 없어 화면에서 뺐다. 필요하면 백엔드에 요청한다.
 > ⛔ **조회 전용이다.** 업로드 · 이름 수정 · 삭제는 문서가 붙은 스텝 화면에서 한다.
+
+---
+
+## 142. 전사 파일 목록 (ADMIN)
+
+> 번호는 뒤지만 **105 · 140번과 형제 API** 라 여기에 둔다. (FILE-Q-01 · 2026-08-14 명세 수령)
+
+| 항목          | 내용                                       |
+| ------------- | ------------------------------------------ |
+| **Method**    | `GET`                                      |
+| **Path**      | `/api/v1/admin/files`                      |
+| **인증 필요** | ✅ **ADMIN 전용**                          |
+| **사용 위치** | `features/file/api.ts` → `getAdminFiles()` |
+
+**전사 모든 프로젝트**의 파일을 가로지른다. 105 · 140번과 달리 **문서 단위 최신 완료 버전 1행**이고 **페이징이 있다**.
+
+**Query**
+
+| 이름        | 타입     | 내용                        |
+| ----------- | -------- | --------------------------- |
+| `keyword`   | `string` | 파일명 · 원본명 · 업로더    |
+| `projectId` | `number` | 프로젝트 필터               |
+| `extension` | `string` | 확장자                      |
+| `page`      | `number` | 0-base                      |
+| `size`      | `number` | 기본 20 · 최대 100          |
+
+**응답 data** — 페이지 봉투(`content` · `page` · `size` · `totalElements` · `totalPages`)
+
+| 필드                                            | 설명                                    |
+| ----------------------------------------------- | --------------------------------------- |
+| `projectId` / `projectName`                     | 속한 프로젝트 (그룹핑 기준)             |
+| `stepName` / `blockTitle`                       | 위치 — **이름만** 온다 (id 가 없다)     |
+| `fileId` / `name` / `versionCount`              | 문서 정보                               |
+| `latestVersionId` / `latestVersionNo`           | 최신 완료 버전 — 다운로드 · 미리보기 대상 |
+| `originalFileName` / `extension` / `sizeBytes`  | 원본 정보                               |
+| `previewable` / `uploaderName?` / `updatedAt`   | 업로더는 시스템 계정이면 오지 않는다    |
+
+| status | code                   | 화면 처리        |
+| ------ | ---------------------- | ---------------- |
+| 200    | —                      | 없으면 빈 배열   |
+| 403    | `ACC_ADMIN_REQUIRED`   | 표 자리에 안내   |
+
+> ℹ️ 다운로드 · 미리보기는 행에서 **공용 파일 버전 API**(42번 `download` · `preview`)를 그대로 부른다.
+> ⚠️ **정렬 파라미터가 없다** — 목업의 `최근 수정순` 드롭다운은 화면에서 뺐다.
+> ⚠️ **집계가 없다** — 총 용량 · 기간별 업로드 수는 응답으로 알 수 없어 요약 카드에 넣지 않았다.
+
+---
+
+## 143~150. 사내 문서함 (ADMIN)
+
+> `CompanyDocument` 도메인 · 2026-08-14 명세 수령. **프로젝트 파일과 저장소 · 에러코드(`CDOC_*`)가 모두 다르다.**
+> 회사 재정 · 소개 · 실적 자료로 **AI 공고 검토의 비교 기준**이 되는 자료다. 전 API 가 ADMIN 전용(403 `ACC_ADMIN_REQUIRED`).
+> **사용 위치**: `features/companyDocument/api.ts` · `upload.ts`
+
+| 번호 | Method · Path                                              | 내용                     |
+| ---- | ---------------------------------------------------------- | ------------------------ |
+| 143  | `GET /admin/company-documents`                             | 목록 (분류 · 검색 · 페이징) |
+| 144  | `POST /admin/company-documents/uploads`                    | ① 업로드 시작 · presigned |
+| 145  | `POST /admin/company-documents/uploads/{versionId}/complete` | ③ 완료 통보            |
+| 146  | `GET /admin/company-documents/{documentId}/versions`       | 버전 이력                |
+| 147  | `GET /admin/company-document-versions/{versionId}/download` | 다운로드 URL (5분)      |
+| 148  | `GET /admin/company-document-versions/{versionId}/preview`  | 미리보기 (PDF 앞 5p)    |
+| 149  | `PATCH /admin/company-documents/{documentId}`              | 표시명 · 분류 수정       |
+| 150  | `DELETE …/{documentId}` · `POST …/restore`                 | 삭제(soft) · 복구        |
+
+**143 목록** — Query `category`(`FINANCE`·`COMPANY_INTRO`·`PERFORMANCE`·`CERTIFICATE`·`ETC`) · `keyword` · `page`/`size`(20·최대100)
+`data.content[]`: `companyDocumentId` · `category` · `name` · `latestVersionId` · `latestVersionNo` · `versionCount` · `originalFileName` · `extension` · `sizeBytes` · `previewable` · `uploaderName?` · `updatedAt`
+
+**144 업로드 시작** — Body `category`(새 문서 필수 · 새 버전이면 생략) · `originalFileName` · `sizeBytes`(≤50MB) · `name`/`comment`(opt) · `companyDocumentId`(주면 새 버전)
+201 `data`: `versionId`(UPLOADING 생성) · `uploadUrl`(여기로 클라가 PUT) · `expiresAt`(10분)
+에러: 400 `CDOC_SIZE_EXCEEDED` · 400 `CDOC_EXTENSION_BLOCKED` · 404 `CDOC_NOT_FOUND`
+
+**145 완료 통보** — Body `checksum`(opt) / 200 `data`: 버전 상세(`pageCount?` 포함)
+에러: 400 `CDOC_ALREADY_COMPLETED` · 409 `CDOC_OBJECT_NOT_FOUND` · 409 `CDOC_SIZE_MISMATCH`
+
+**146 버전 이력** — `data`: `companyDocumentId` · `name` · `category` · `versionCount` + `content[]`(`versionId` · `versionNo` · `latest` · `originalFileName` · `extension` · `sizeBytes` · `pageCount?` · `previewable` · `comment?` · `uploaderName?` · `completedAt`)
+
+**147 다운로드** — `downloadUrl` · `expiresAt` · `originalFileName` · `sizeBytes` / 409 `CDOC_UPLOAD_NOT_COMPLETED`
+**148 미리보기** — PDF 바이너리 · 헤더 `X-Preview-Page-Count` · `X-Total-Page-Count` / 409 `CDOC_PREVIEW_NOT_SUPPORTED` · 500 `CDOC_PREVIEW_FAILED`
+**149 수정** — `name` / `category` 중 최소 1개 / 400 `CDOC_INVALID_REQUEST` · 404 `CDOC_NOT_FOUND`
+**150 삭제 · 복구** — 삭제 응답 `deletedAt` / 400 `CDOC_ALREADY_DELETED` · 복구 400 `CDOC_NOT_DELETED`
+
+> ℹ️ 업로드는 **2단계 방식**(발급 → PUT → 완료 통보)이라 프로젝트 파일(37 · 38번)과 같은 흐름이다. 화면도 문서 블록(`FileBlock`)과 같은 방식이다 — 숨긴 `<input>` 하나를 `새 문서 추가` · 행의 `새 버전 올리기` 가 함께 쓰고, 대상은 `companyDocumentId` 유무로 갈린다.
+> ℹ️ **148번(미리보기)은 화면이 쓰지 않는다** — 사내 문서함은 최신본을 받아 쓰는 화면이라 미리보기 영역을 두지 않았다 (`api.ts` 에 창구만 남겨 둠).
+> ⚠️ **AI 인덱싱 상태 필드가 목록 응답에 없다** — 목업의 `완료` · `인덱싱중` 배지는 §6-2 AI 도메인 확정 후 필드명이 정해지면 붙인다. 지금은 화면에서 뺐다.
+> ⚠️ **목록에 삭제분을 부르는 조건이 없다** — 복구는 지운 직후 화면이 들고 있는 id 로만 가능하다. 화면은 삭제 후 `되돌리기` 줄을 띄운다.
+> ℹ️ 업로더가 `null` 이면 `—` 로 적는다 (ADMIN 은 사원 레코드가 없다).
 
 ---
 
