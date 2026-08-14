@@ -448,6 +448,38 @@ export const ENDPOINTS = {
       /** 매핑 확정 후 실제 저장 */
       csv: `${V1}/finance/cash-flows/csv`,
     },
+    /**
+     * 세금계산서. 홈택스에서 내려받은 파일을 올려 일괄 수집한다.
+     *
+     * ⚠️ 입출금과 **모양은 닮았지만 다른 리소스**다 — 중복 판정 기준이 승인번호이고,
+     *    매출(`INCOME`) · 매입(`OUTCOME`) 구분을 사람이 고른다.
+     */
+    taxInvoices: {
+      /**
+       * 목록 조회(GET) · 다건 삭제(DELETE — body 에 id 배열).
+       *
+       * ⚠️ 입출금 목록과 달리 **페이징이 있다** (`page` · `size`).
+       * ⚠️ 직접 등록(POST)은 없다 — CSV 로만 들어온다.
+       */
+      root: `${V1}/finance/tax-invoices`,
+      /** 필터 옵션 — 프로젝트 목록만 내려온다 */
+      filters: `${V1}/finance/tax-invoices/filters`,
+      /** 연결 대상 제외/포함 — 프로젝트와 무관한 건을 연결 후보에서 뺀다 */
+      exclude: `${V1}/finance/tax-invoices/exclude`,
+      /** ⚠️ 수정은 **메모만** 된다 (직접 등록이 없어 나머지는 파일이 원본이다) */
+      detail: (taxId: number | string) => `${V1}/finance/tax-invoices/${taxId}`,
+      /** 매칭 추천 — 프로젝트가 아니라 **정산 블록** 후보가 온다 */
+      matchCandidates: (taxId: number | string) =>
+        `${V1}/finance/tax-invoices/${taxId}/match-candidates`,
+      match: (taxId: number | string) =>
+        `${V1}/finance/tax-invoices/${taxId}/match`,
+      unmatch: (taxId: number | string) =>
+        `${V1}/finance/tax-invoices/${taxId}/unmatch`,
+      /** CSV 컬럼 추천 · 미리보기 — 파일 자체는 저장되지 않는다 */
+      csvPreview: `${V1}/finance/tax-invoices/csv/preview`,
+      /** 매핑 확정 후 실제 저장 */
+      csv: `${V1}/finance/tax-invoices/csv`,
+    },
   },
   notifications: {
     /** 알림 목록 — `category` · `isRead` · `page` · `size` 로 거른다 */

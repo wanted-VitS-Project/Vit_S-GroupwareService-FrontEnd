@@ -1,3 +1,5 @@
+import TaxInvoiceList from '@/features/finance/TaxInvoiceList';
+
 export default function Page() {
-  return <div>finance/invoices</div>;
+  return <TaxInvoiceList />;
 }

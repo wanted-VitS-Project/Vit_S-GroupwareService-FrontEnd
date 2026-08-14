@@ -273,3 +273,177 @@ export interface CsvDuplicateRow {
   /** 서버가 준 사유 문구를 그대로 보여준다 */
   reason: string;
 }
+
+/* ---------------------------------------------------------------------------
+ * 세금계산서 (#16 · #17) — `/finance/tax-invoices`
+ * ------------------------------------------------------------------------- */
+
+/** ⚠️ 입출금과 **같은 세 값**이라 라벨 · 배지를 그대로 쓴다 */
+export type TaxInvoiceLinkStatus = CashFlowLinkStatus;
+
+/**
+ * 세금계산서 목록 행 (`GET /finance/tax-invoices`, 2026-08-14 스웨거 실측).
+ *
+ * ⚠️ 입출금 목록과 달리 **페이징이 있다** (`page` · `size`).
+ * ⚠️ `issuedNo` 는 이름과 달리 **발행일**이다 (명세 설명 기준).
+ */
+export interface TaxInvoiceItem {
+  taxId: number;
+  /** 발행일 (이름이 `No` 지만 날짜다) */
+  issuedNo: string;
+  /** 중복 판정 기준 */
+  approvalNo: string;
+  type: TaxInvoiceType;
+  /** 공급받는자 상호명 */
+  buyerName: string;
+  buyerBizNo: string;
+  supplierBizNo: string | null;
+  subBizNo: string | null;
+  ceoName: string | null;
+  itemName: string | null;
+  supplyAmount: number;
+  taxAmount: number;
+  totalAmount: number;
+  memo: string | null;
+  /** 지금은 CSV 업로드로만 들어온다 */
+  sourceType: string;
+  /** ⚠️ 미연결이거나 **프로젝트가 삭제됐으면** null */
+  projectId: number | null;
+  projectName: string | null;
+  /** ⚠️ 블록이 삭제돼도 값은 남는다 — 상태는 `linkStatus` 로 본다 */
+  settleId: number | null;
+  roundName: string | null;
+  linkedBy: string | null;
+  linkedByName: string | null;
+  linkedAt: string | null;
+  /** 연결 대상에서 뺀 건 — 미연결 건수에 잡히지 않는다 */
+  isExcluded: boolean;
+  linkStatus: TaxInvoiceLinkStatus;
+}
+
+/** ⚠️ 페이지 번호는 **0부터**다 (서버 기준 그대로 쓴다) */
+export interface TaxInvoiceListQuery {
+  startDate?: string;
+  endDate?: string;
+  /** 켰을 때만 보낸다 — `false` 는 '연결된 것만' 이 아니다 */
+  unlinked?: boolean;
+  projectId?: number;
+  keyword?: string;
+  page?: number;
+  size?: number;
+}
+
+export interface TaxInvoiceListResponse {
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  taxInvoices: TaxInvoiceItem[];
+}
+
+/** 삭제 · 제외에서 빠진 건 — **부분 성공이 정상**이다 */
+export interface TaxInvoiceSkippedItem {
+  taxId: number;
+  reason: string;
+}
+
+/** 필터 옵션 — 세금계산서가 연결된 정산 블록을 가진 프로젝트만 내려온다 */
+export interface TaxInvoiceFilterOptions {
+  projects: ProjectOption[];
+}
+
+/* ---------------------------------------------------------------------------
+ * 세금계산서 CSV 수집 (#16) — `POST /finance/tax-invoices/csv{,/preview}`
+ * ------------------------------------------------------------------------- */
+
+/**
+ * 세금계산서 구분.
+ *
+ * ⚠️ 입출금(`CashFlowType`)과 **글자만 같고 뜻이 다르다** — 여기서는
+ *    `INCOME` 이 **매출**(우리가 발행), `OUTCOME` 이 **매입**(우리가 수취)이다.
+ *    한 타입으로 묶으면 라벨이 뒤섞이므로 따로 둔다.
+ */
+export type TaxInvoiceType = 'INCOME' | 'OUTCOME';
+
+export const TAX_INVOICE_TYPE_LABELS: Record<TaxInvoiceType, string> = {
+  INCOME: '매출',
+  OUTCOME: '매입',
+};
+
+/**
+ * 구분 배지 색.
+ *
+ * ⚠️ 입출금(`CASH_FLOW_TYPE_BADGE`)의 **파랑 · 빨강을 쓰지 않는다** — 거기서 빨강은
+ *    '돈이 나간다' 는 뜻인데, 매입은 나가는 돈이 아니라 받은 계산서다. 색을 그대로
+ *    가져오면 같은 빨강을 다른 뜻으로 읽게 된다.
+ */
+export const TAX_INVOICE_TYPE_BADGE: Record<TaxInvoiceType, string> = {
+  INCOME: 'badge badge-blue',
+  OUTCOME: 'badge badge-gray',
+};
+
+/**
+ * 세금계산서 컬럼 매핑. **파일의 컬럼명**을 담는다 (값이 아니다).
+ *
+ * 앞의 8개는 필수, 뒤의 4개는 없어도 저장된다.
+ * 쓰지 않는 칸은 `null` 로 정리해 보낸다.
+ */
+export interface TaxInvoiceCsvMapping {
+  /** 중복 판정 기준 — 같은 승인번호는 다시 저장되지 않는다 */
+  approvalNoColumn: string | null;
+  issuedDateColumn: string | null;
+  supplierBizNoColumn: string | null;
+  buyerBizNoColumn: string | null;
+  buyerNameColumn: string | null;
+  supplyAmountColumn: string | null;
+  taxAmountColumn: string | null;
+  totalAmountColumn: string | null;
+  /** 여기부터 선택 */
+  itemNameColumn: string | null;
+  ceoNameColumn: string | null;
+  subBizNoColumn: string | null;
+  memoColumn: string | null;
+}
+
+/** 미리보기 응답 (`POST /finance/tax-invoices/csv/preview`) */
+export interface TaxInvoiceCsvPreview {
+  /** 파일에 있는 전체 컬럼명 */
+  columns: string[];
+  /** 상위 5행 (컬럼명 → 값) */
+  sampleRows: Record<string, string>[];
+  /**
+   * 파일을 보고 서버가 추측한 구분.
+   *
+   * ⚠️ `null` 로 온다 — 못 알아본 것이라 화면이 **매출로 단정하지 않고** 사람이 고르게 둔다.
+   */
+  recommendedType: TaxInvoiceType | null;
+  recommendedMapping: TaxInvoiceCsvMapping;
+}
+
+/**
+ * 업로드 요청의 `request` 파트 — **JSON 문자열로 담아 보낸다** (파일과 함께 multipart).
+ *
+ * ⚠️ 입출금과 마찬가지로 **스웨거에 스키마가 없다** (`request: string`).
+ *    미리보기 응답의 키에 `type` 을 더한 모양으로 맞췄다 — 400 이 나면 여기부터 본다.
+ */
+export interface TaxInvoiceCsvUploadRequest extends TaxInvoiceCsvMapping {
+  type: TaxInvoiceType;
+  /** 비밀번호가 걸린 엑셀만 */
+  password?: string;
+}
+
+/** 업로드 결과 (`POST /finance/tax-invoices/csv`) */
+export interface TaxInvoiceCsvUploadResult {
+  totalRows: number;
+  savedCount: number;
+  /** 이미 등록된 승인번호라 건너뛴 건수 */
+  duplicateCount: number;
+  duplicateRows: TaxInvoiceCsvDuplicateRow[];
+}
+
+/** ⚠️ 입출금(`거래일시` · `금액`)과 달리 **승인번호**로 어느 건인지 가린다 */
+export interface TaxInvoiceCsvDuplicateRow {
+  approvalNo: string;
+  /** 서버가 준 사유 문구를 그대로 보여준다 */
+  reason: string;
+}

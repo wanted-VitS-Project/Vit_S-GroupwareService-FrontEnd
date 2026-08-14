@@ -51,10 +51,8 @@ const ITEMS: FinanceItem[] = [
     icon: 'taxInvoice',
     label: '세금계산서',
     description:
-      '홈택스 또는 CSV 로 수집한 세금계산서를 정산 블록에 연결합니다.',
+      'CSV 로 수집한 세금계산서를 조회하고 정산 블록에 연결합니다.',
     href: FINANCE_ROUTES.taxInvoices,
-    // ⛔ 백엔드가 필터 옵션만 구현돼 있다 (#16 · #17 대기)
-    isComingSoon: true,
     pick: (summary) => summary.taxInvoice,
     totalLabel: '전체',
   },

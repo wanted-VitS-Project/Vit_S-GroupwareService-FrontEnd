@@ -16,7 +16,7 @@ import {
 import {
   findBlocker,
   SETTLEMENT_TYPE_LABELS,
-  traderLabel,
+  TRADER_LABEL,
   type SettlementFields,
   type SettlementFormValues,
   type SettlementItem,
@@ -307,13 +307,13 @@ export default function SettlementForm({
         onChange={(value) => change('plannedTaxAmount', value)}
       />
       <Field
-        label="정산 예정일"
+        label="입출금 기한"
         type="date"
         value={form.plannedDate}
         onChange={(value) => change('plannedDate', value)}
       />
       <Field
-        label={traderLabel(type)}
+        label={TRADER_LABEL}
         type="text"
         value={form.traderName}
         onChange={(value) => change('traderName', value)}

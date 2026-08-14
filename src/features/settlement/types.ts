@@ -114,7 +114,11 @@ export interface SettlementItem extends SettlementFields {
   actualAmount: number | null;
   actualDate: string | null;
   status: SettlementStatus;
-  /** 금액 기준 진행률. 작성 직후 `0.0` */
+  /**
+   * 금액 기준 진행률. 작성 직후 `0.0`.
+   *
+   * ⚠️ **비율(0~1)이다** — 전액 정산이 `1.0` 이다. 화면에 쓸 때 100 을 곱한다.
+   */
   paidAmountRatio: number;
   createdAt: string;
 }
@@ -276,13 +280,13 @@ export interface SettlementFormValues {
 }
 
 /**
- * `traderName` 을 부르는 이름. **돈을 보내는 쪽**이라 방향에 따라 달라진다 —
- * 받을 때(`INCOME`)는 상대 클라이언트, 보낼 때(`OUTCOME`)는 우리 회사다.
- * 폼 라벨 · 요약 카드 · 검증 문구가 같은 말을 쓰도록 한 곳에서 만든다.
+ * `traderName` 을 부르는 이름.
+ *
+ * ⚠️ 방향에 따라 `입금 거래처` · `출금 주체` 로 갈랐으나 **`거래처명` 으로 통일했다**
+ *    (2026-08-14 재무팀 요청). 부르는 이름이 화면마다 달라 같은 칸을 다른 값으로 오해했다.
+ *    폼 라벨 · 요약 카드 · 검증 문구가 같은 말을 쓰도록 한 곳에 둔다.
  */
-export function traderLabel(type: SettlementType | null) {
-  return type === 'OUTCOME' ? '출금 주체' : '입금 거래처';
-}
+export const TRADER_LABEL = '거래처명';
 
 /** 금액 칸 — 0 이상이면 된다 (`roundNo` 는 규칙이 달라 따로 본다) */
 const AMOUNT_FIELDS = [
@@ -319,11 +323,11 @@ export function findBlocker(
     if (Number(value) < 0) return `${label}은(는) 0보다 작을 수 없습니다.`;
   }
 
-  if (form.plannedDate.trim() === '') return '정산 예정일을 입력해주세요.';
+  if (form.plannedDate.trim() === '') return '입출금 기한을 입력해주세요.';
 
-  // 거래처명은 방향에 따라 부르는 이름이 다르다 — 폼 라벨과 문구를 맞춘다
+  // 폼 라벨과 같은 말을 쓴다 (`TRADER_LABEL` 한 곳에서 온다)
   if (form.traderName.trim() === '') {
-    return `${traderLabel(type)}을(를) 입력해주세요.`;
+    return `${TRADER_LABEL}을(를) 입력해주세요.`;
   }
 
   // 출금이면 계좌 3종이 모두 있어야 한다 (서버도 400 으로 막는다)
