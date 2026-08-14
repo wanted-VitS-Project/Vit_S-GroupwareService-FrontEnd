@@ -1,7 +1,11 @@
 import DataTable, {
   type DataTableSkeletonColumn,
 } from '@/components/DataTable';
-import { Skeleton } from '@/components/Skeleton';
+import {
+  Skeleton,
+  SkeletonFilterBar,
+  SkeletonPageHeader,
+} from '@/components/Skeleton';
 
 /**
  * 목록 로딩 껍데기 — **`Suspense` 폴백 전용**이다.
@@ -43,7 +47,8 @@ const COLUMNS: DataTableSkeletonColumn[] = [
   { key: 'noticeStatus', header: '상태', width: '10%', skeletonWidth: 'w-12' },
 ];
 
-export function NoticeListSkeleton({ rows = 10 }: { rows?: number }) {
+/** 표만 그리는 껍데기. 머리글 · 필터 바가 이미 있는 자리에서 쓴다 */
+export function NoticeTableSkeleton({ rows = 10 }: { rows?: number }) {
   return (
     <DataTable
       caption="입찰 공고"
@@ -52,6 +57,48 @@ export function NoticeListSkeleton({ rows = 10 }: { rows?: number }) {
       dense
       skeletonRows={rows}
     />
+  );
+}
+
+/**
+ * 화면 전체 껍데기 — `Suspense` 폴백 · 권한 판단 대기(`PageAccessGate`)가 쓴다.
+ *
+ * ⚠️ 표만 그리면 안 된다 — 실제 화면(`NoticeList`)은 `머리글(mb-6) → 필터 바(mb-4) → 표`
+ *    순서라, 표만 그린 폴백은 표가 맨 위에 붙었다가 실제 화면이 뜨는 순간
+ *    **머리글 + 필터 바 높이만큼 아래로 내려앉는다.** 아래 값은 전부 `NoticeList` ·
+ *    `NoticeFilterBar` 에서 그대로 가져온 것이다.
+ *
+ * | 자리        | 실제 값                                     |
+ * | ----------- | ------------------------------------------- |
+ * | 제목        | `text-heading-m`(18px × 1.45 ≈ 26px)         |
+ * | 설명        | `text-caption`(12px × 1.5 = 18px), `mt-1.5`  |
+ * | 필터 컨트롤 | 전부 `h-9` — 날짜 `w-36` 2개 · 발주처 `w-28` · 마감 임박 · 검색 `w-56` |
+ * | 오른쪽 버튼 | `btn-sm`(28px) 2개 — `수집 조건` · `공고 등록` |
+ *
+ * ⚠️ 바깥을 `SkeletonGroup` 으로 또 감싸지 않는다 — 안쪽 표가 이미
+ *    `role="status"` 를 내고 있어, 겹치면 스크린리더가 같은 안내를 두 번 읽는다.
+ *    머리글 · 필터 바 막대는 `Skeleton` 자체가 `aria-hidden` 이라 읽히지 않는다.
+ */
+export function NoticeListSkeleton({ rows = 10 }: { rows?: number }) {
+  return (
+    <>
+      <SkeletonPageHeader
+        titleClassName="h-[26px] w-32"
+        descriptionClassName="h-[18px] w-52"
+      />
+
+      <SkeletonFilterBar
+        widths={['w-36', 'w-4', 'w-36', 'w-28', 'w-20', 'w-56']}
+        trailing={
+          <>
+            <Skeleton className="h-7 w-20 rounded-button-sm" />
+            <Skeleton className="h-7 w-20 rounded-button-sm" />
+          </>
+        }
+      />
+
+      <NoticeTableSkeleton rows={rows} />
+    </>
   );
 }
 

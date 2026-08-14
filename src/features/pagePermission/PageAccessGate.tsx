@@ -6,6 +6,7 @@ import {
   ErrorStateOneButton,
   ErrorStateTwoButton,
 } from '@/components/ErrorState';
+import { NoticeListSkeleton } from '@/components/bidding/NoticeSkeletons';
 import { CashFlowListSkeleton } from '@/components/finance/CashFlowSkeletons';
 
 import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
@@ -20,12 +21,25 @@ import { useMyPages } from './useMyPages';
  * `회색 상자 → 표` 로 모양이 한 번 갈아엎힌다. 화면의 `Suspense` 폴백과 **같은 것**을
  * 쓰는 경로만 등록한다 — 다르면 깜빡임을 옮기기만 할 뿐이다.
  *
- * ⚠️ 입찰(`/notices`)은 아직 넣지 않았다. 그쪽 스켈레톤은 표만 그리고 제목 · 필터 바
- *    자리를 잡지 않아, 지금 넣으면 표가 위로 붙었다가 내려앉는다. 폴백을 화면 골격으로
- *    맞춘 뒤에 함께 등록한다.
+ * ⚠️ **목록만 그리는 껍데기는 여기 넣지 않는다.** 표가 화면 맨 위에 붙었다가
+ *    실제 화면이 뜨면서 머리글 · 필터 바 높이만큼 내려앉는다.
+ *    `SkeletonPageHeader` · `SkeletonFilterBar` 로 화면 골격까지 잡은 뒤에 등록한다.
+ *    (입찰 `/notices` 는 2026-08-14 에 골격을 맞추고 함께 등록했다)
  */
-const ROUTE_SKELETONS: { prefix: string; render: () => React.ReactNode }[] = [
+const ROUTE_SKELETONS: {
+  prefix: string;
+  /**
+   * 하위 경로에는 쓰지 않는다.
+   *
+   * 목록 껍데기는 **목록 화면에만** 맞는다 — `/notices/new`(등록 폼) ·
+   * `/notices/{id}`(상세)는 머리글도 본문도 달라, 하위까지 물려주면
+   * 껍데기와 실제 화면이 어긋나 깜빡임을 되살린다.
+   */
+  exact?: boolean;
+  render: () => React.ReactNode;
+}[] = [
   { prefix: '/finance/payments', render: () => <CashFlowListSkeleton /> },
+  { prefix: '/notices', exact: true, render: () => <NoticeListSkeleton /> },
 ];
 
 /**
@@ -36,9 +50,10 @@ const ROUTE_SKELETONS: { prefix: string; render: () => React.ReactNode }[] = [
  */
 function GateLoading({ pathname }: { pathname: string }) {
   // `/finance/payments-archive` 같은 다른 경로가 걸리지 않게 경계까지 본다
-  const matched = ROUTE_SKELETONS.find(
-    (route) =>
-      pathname === route.prefix || pathname.startsWith(`${route.prefix}/`),
+  const matched = ROUTE_SKELETONS.find((route) =>
+    route.exact
+      ? pathname === route.prefix
+      : pathname === route.prefix || pathname.startsWith(`${route.prefix}/`),
   );
 
   if (matched) return <>{matched.render()}</>;
