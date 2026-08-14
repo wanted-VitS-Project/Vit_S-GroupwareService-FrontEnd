@@ -262,8 +262,9 @@ function Progress({ ratio }: { ratio: number }) {
     <div className="mt-3">
       <div className="flex items-baseline justify-between">
         <span className="text-caption text-text-secondary">수급 진행률</span>
-        <span className="text-caption text-text-secondary">
-          {percent.toFixed(1)}%
+        {/* 숫자 · `%` 를 한 문자열로 — 나뉘면 좁은 칸에서 `100.0` / `%` 로 끊긴다 */}
+        <span className="text-caption whitespace-nowrap text-text-secondary">
+          {`${percent.toFixed(1)}%`}
         </span>
       </div>
       <div className="mt-1 h-1.5 overflow-hidden rounded-pill bg-bg-surface">

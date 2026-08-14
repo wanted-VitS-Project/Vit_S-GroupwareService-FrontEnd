@@ -180,7 +180,7 @@ export default function ProjectIssues() {
 
         <div className="flex items-center gap-2.5">
           <IssueProgressBar progress={progress} className="h-2 flex-1" />
-          <span className="w-9 shrink-0 text-right text-label font-medium text-text-primary-blue">
+          <span className="w-10 shrink-0 text-right text-label font-medium whitespace-nowrap text-text-primary-blue">
             {/* 이슈가 없으면 `null` 이 온다 — 0% 로 그리면 '다 못 끝냈다' 로 읽힌다 */}
             {progress.progressRate === null ? '—' : `${progress.progressRate}%`}
           </span>
@@ -311,7 +311,8 @@ const StepAccordion = memo(function StepAccordion({
         <div className="hidden w-40 shrink-0 items-center gap-2 sm:flex">
           <IssueProgressBar progress={step} className="h-1.5 flex-1" />
           <span
-            className={`w-8 shrink-0 text-right text-detail font-medium ${
+            /* `100%` 가 들어갈 만큼은 넓혀 둔다 — 좁으면 숫자와 `%` 가 두 줄로 갈린다 */
+            className={`w-9 shrink-0 text-right text-detail font-medium whitespace-nowrap ${
               step.progressRate === null
                 ? 'text-text-muted'
                 : 'text-text-primary-blue'
