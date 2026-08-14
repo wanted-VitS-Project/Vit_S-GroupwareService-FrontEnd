@@ -152,6 +152,7 @@ export default function BlockBoard({
   stepId,
   blocks,
   autoEditBlockId,
+  bodyGeneration = 0,
   isArranging = false,
   arrangeRef,
   onOrderChanged,
@@ -161,6 +162,11 @@ export default function BlockBoard({
   blocks: StepBlock[];
   /** 방금 만든 블록 — 편집 입력창을 곧바로 띄운다 */
   autoEditBlockId?: number | null;
+  /**
+   * 값이 바뀌면 블록 **본문만** 다시 마운트한다 (카드 자리 · 드래그 배선은 그대로).
+   * 새로고침 버튼이 올린다 — 자기 상태를 따로 든 본문까지 서버 값으로 되돌리려고.
+   */
+  bodyGeneration?: number;
   /** 배치 편집 모드 — 이때만 블록을 끌어 옮길 수 있다 */
   isArranging?: boolean;
   /** 배치 편집 손잡이를 헤더 버튼에 넘겨준다 */
@@ -692,6 +698,18 @@ export default function BlockBoard({
                     }`}
                   >
                     <BlockBody
+                      /*
+                       * 새로고침 때마다 바뀌는 key — 본문을 **다시 마운트**한다.
+                       *
+                       * 블록 본문은 저마다 서버 상태를 따로 들고 있다. `detail` 을 첫 렌더에
+                       * 베껴 두는 유형(체크리스트 · 이미지 · 결재 · AI)도 있고, 자기 API 를
+                       * 직접 부르는 유형(문서 · 결재 · AI)도 있어 **목록만 새로 받아서는
+                       * 어느 쪽도 갱신되지 않는다.**
+                       *
+                       * 사용자가 새로고침을 눌렀을 때만 바뀐다 — 화면 복귀 · 블록 생성 같은
+                       * 자동 재조회에서 본문이 통째로 리셋되면 설명되지 않는 움직임이 된다.
+                       */
+                      key={`${block.blockId}:${bodyGeneration}`}
                       block={block}
                       autoEdit={block.blockId === autoEditBlockId}
                     />
