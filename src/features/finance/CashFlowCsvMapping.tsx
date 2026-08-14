@@ -2,7 +2,12 @@
 
 import { useState } from 'react';
 
-import { AlertBanner, SelectField, TextField } from '@/features/bidding/FormFields';
+import { notifyToast } from '@/components/Toast';
+import {
+  AlertBanner,
+  SelectField,
+  TextField,
+} from '@/features/bidding/FormFields';
 import { messageOf } from '@/lib/api';
 
 import { uploadCashFlowCsv } from './api';
@@ -146,17 +151,22 @@ export default function CashFlowCsvMapping({
         balanceColumn: keep('balanceColumn'),
       };
 
-      onUploaded(
-        await uploadCashFlowCsv(file, {
-          ...cleaned,
-          bankName: bankName.trim(),
-          dateTimeMode,
-          amountMode,
-          ...(password ? { password } : {}),
-        }),
-      );
+      const uploaded = await uploadCashFlowCsv(file, {
+        ...cleaned,
+        bankName: bankName.trim(),
+        dateTimeMode,
+        amountMode,
+        ...(password ? { password } : {}),
+      });
+
+      onUploaded(uploaded);
+      notifyToast('CSV 업로드를 마쳤습니다.');
     } catch (caught) {
-      setError(messageOf(caught, '업로드하지 못했습니다.'));
+      const message = messageOf(caught, '업로드하지 못했습니다.');
+
+      setError(message);
+      // 파싱 · 저장이 오래 걸려 그 사이 화면을 옮겼을 수 있다
+      notifyToast(message, 'error');
     } finally {
       setIsSubmitting(false);
     }

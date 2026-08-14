@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import Modal from '@/components/Modal';
 import ModalLoadingFallback from '@/components/ModalLoadingFallback';
+import { notifyToast } from '@/components/Toast';
 import {
   downloadVersion,
   getBlockFiles,
@@ -201,14 +202,27 @@ export default function FileBlock({ block }: { block: StepBlock }) {
         allowDuplicateName,
       });
       reload();
+      notifyToast(
+        versionTargetId.current === undefined
+          ? `${file.name} 을(를) 올렸습니다.`
+          : `${file.name} 을(를) 새 버전으로 올렸습니다.`,
+      );
     } catch (caught) {
       if (caught instanceof DuplicateNameError) {
-        // 확인을 받은 뒤 같은 파일로 한 번만 다시 올린다
+        // 확인을 받은 뒤 같은 파일로 한 번만 다시 올린다. 아직 실패가 아니라 토스트를 띄우지 않는다
         duplicateModal.open({ file, message: caught.message });
-      } else if (caught instanceof Error) {
-        setErrorMessage(caught.message + stageHintOf(caught));
       } else {
-        setErrorMessage('업로드에 실패했습니다.');
+        const message =
+          caught instanceof Error
+            ? caught.message + stageHintOf(caught)
+            : '업로드에 실패했습니다.';
+
+        setErrorMessage(message);
+        /*
+          업로드는 오래 걸려 그 사이 다른 블록을 보고 있을 수 있다 —
+          카드 안 문구만으로는 결과가 닿지 않는다.
+        */
+        notifyToast(message, 'error');
       }
     } finally {
       setIsUploading(false);

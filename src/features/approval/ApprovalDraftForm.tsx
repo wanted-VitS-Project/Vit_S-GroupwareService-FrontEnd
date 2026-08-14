@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { notifyToast } from '@/components/Toast';
 import EmployeeSearchInput from '@/features/employee/EmployeeSearchInput';
 import { uploadFile } from '@/features/file/upload';
 import { messageOf } from '@/lib/api';
@@ -202,8 +203,13 @@ function DocumentSection({
       });
 
       onChanged([...documents, added]);
+      notifyToast(`${file.name} 을(를) 첨부했습니다.`);
     } catch (caught) {
-      setError(messageOf(caught, '문서를 추가하지 못했습니다.'));
+      const message = messageOf(caught, '문서를 추가하지 못했습니다.');
+
+      setError(message);
+      // 업로드가 오래 걸려 폼 위쪽을 보고 있을 수 있다 — 결과는 어디서든 닿아야 한다
+      notifyToast(message, 'error');
     } finally {
       setIsBusy(false);
     }

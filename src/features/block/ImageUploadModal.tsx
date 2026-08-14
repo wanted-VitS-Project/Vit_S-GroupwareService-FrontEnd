@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import Modal from '@/components/Modal';
+import { notifyToast } from '@/components/Toast';
 import { messageOf } from '@/lib/api';
 import { useFlipReorder } from '@/lib/useFlipReorder';
 
@@ -166,8 +167,13 @@ export default function ImageUploadModal({
           (left, right) => left.orderIndex - right.orderIndex,
         ),
       );
+      // 성공하면 모달이 닫히므로 결과를 알릴 곳이 토스트뿐이다
+      notifyToast(`이미지 ${created.images.length}장을 올렸습니다.`);
     } catch (caught) {
-      setErrorMessage(messageOf(caught, '이미지를 올리지 못했습니다.'));
+      const message = messageOf(caught, '이미지를 올리지 못했습니다.');
+
+      setErrorMessage(message);
+      notifyToast(message, 'error');
       setIsUploading(false);
     }
   }
