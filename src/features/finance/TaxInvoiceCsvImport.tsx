@@ -7,32 +7,33 @@ import Breadcrumb from '@/components/Breadcrumb';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
 import { AlertBanner, TextField } from '@/features/bidding/FormFields';
 import { messageOf } from '@/lib/api';
-import { formatDateTime } from '@/lib/format';
 
-import { previewCashFlowCsv } from './api';
-import CashFlowCsvMapping from './CashFlowCsvMapping';
+import { previewTaxInvoiceCsv } from './api';
 import { Figure, FilePicker, StepBar } from './CsvImportParts';
 import {
   isCsvInvalidFile,
   isCsvPasswordInvalid,
   isCsvPasswordIssue,
 } from './errorCodes';
-import { formatAmount } from './display';
 import { FINANCE_ROUTES } from './routes';
-import type { CsvDuplicateRow, CsvPreview, CsvUploadResult } from './types';
+import TaxInvoiceCsvMapping from './TaxInvoiceCsvMapping';
+import type {
+  TaxInvoiceCsvDuplicateRow,
+  TaxInvoiceCsvPreview,
+  TaxInvoiceCsvUploadResult,
+} from './types';
 
 const STEPS = ['파일 선택', '컬럼 맞추기', '결과 확인'] as const;
 
 /**
- * 입출금 내역 CSV · 엑셀 일괄 등록. (#13)
+ * 세금계산서 CSV · 엑셀 일괄 수집. (#16)
  *
- * 세 단계다 — **파일을 고르면 컬럼 추천을 받고**, 사람이 매핑을 확정하면 저장한다.
- * 1단계에서 올린 파일은 저장되지 않는다 (추천을 받기 위한 미리보기다).
+ * 입출금(#13)과 **같은 세 단계**를 걷는다 — 껍데기는 `CsvImportParts` 에서 가져다 쓰고
+ * 여기에는 세금계산서에만 있는 것(구분 · 승인번호 중복)만 둔다.
  *
- * ⚠️ 스텝퍼 · 매핑 UI 는 **세금계산서 CSV 수집(#17)이 그대로 쓴다** —
- *    입출금 전용 문구를 컴포넌트 안에 박아 두지 않는다.
+ * ⚠️ 1단계에서 올린 파일은 저장되지 않는다 (추천을 받기 위한 미리보기다).
  */
-export default function CashFlowCsvImport() {
+export default function TaxInvoiceCsvImport() {
   /**
    * 진행 중인 미리보기 요청.
    *
@@ -42,14 +43,14 @@ export default function CashFlowCsvImport() {
   const pendingRef = useRef<AbortController | null>(null);
 
   const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<CsvPreview | null>(null);
+  const [preview, setPreview] = useState<TaxInvoiceCsvPreview | null>(null);
 
   /** 비밀번호가 걸린 엑셀일 때만 칸이 열린다 */
   const [needsPassword, setNeedsPassword] = useState(false);
   const [password, setPassword] = useState('');
 
   /** 저장까지 끝난 결과 — 있으면 3단계다 */
-  const [result, setResult] = useState<CsvUploadResult | null>(null);
+  const [result, setResult] = useState<TaxInvoiceCsvUploadResult | null>(null);
 
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -79,7 +80,7 @@ export default function CashFlowCsvImport() {
     setError('');
 
     try {
-      setPreview(await previewCashFlowCsv(target, secret, controller.signal));
+      setPreview(await previewTaxInvoiceCsv(target, secret, controller.signal));
       setNeedsPassword(false);
     } catch (caught) {
       // 취소는 실패가 아니다 — 새 요청이 이미 떠 있다는 뜻이다
@@ -118,13 +119,13 @@ export default function CashFlowCsvImport() {
         <Breadcrumb
           items={[
             { label: '재무 관리', href: FINANCE_ROUTES.hub },
-            { label: '입출금 내역', href: FINANCE_ROUTES.cashFlows },
-            { label: 'CSV 일괄 등록' },
+            { label: '세금계산서', href: FINANCE_ROUTES.taxInvoices },
+            { label: 'CSV 일괄 수집' },
           ]}
         />
-        <h2 className="mt-1 text-heading-m font-bold">CSV 일괄 등록</h2>
+        <h2 className="mt-1 text-heading-m font-bold">CSV 일괄 수집</h2>
         <p className="mt-1.5 text-caption break-keep text-text-secondary">
-          은행에서 내려받은 거래 내역 파일을 올려 한 번에 등록합니다.
+          홈택스에서 내려받은 세금계산서 파일을 올려 한 번에 수집합니다.
         </p>
       </div>
 
@@ -133,7 +134,7 @@ export default function CashFlowCsvImport() {
       {result !== null ? (
         <UploadResult result={result} />
       ) : preview !== null && file !== null ? (
-        <CashFlowCsvMapping
+        <TaxInvoiceCsvMapping
           file={file}
           preview={preview}
           password={password || undefined}
@@ -142,72 +143,98 @@ export default function CashFlowCsvImport() {
           onBack={() => setPreview(null)}
         />
       ) : (
-        <>
-          <div className="mt-4 rounded-base border border-border-default bg-bg-card p-6">
-            <FilePicker file={file} isLoading={isLoading} onPick={pick} />
+        <div className="mt-4 rounded-base border border-border-default bg-bg-card p-6">
+          <FilePicker file={file} isLoading={isLoading} onPick={pick} />
 
-            {needsPassword && (
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  if (file) void load(file, password);
-                }}
-                className="mt-4 flex items-end gap-2"
+          {needsPassword && (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (file) void load(file, password);
+              }}
+              className="mt-4 flex items-end gap-2"
+            >
+              <div className="flex-1">
+                <TextField
+                  id="taxCsvPassword"
+                  label="파일 비밀번호"
+                  type="password"
+                  value={password}
+                  placeholder="엑셀 파일에 걸린 비밀번호"
+                  onChange={setPassword}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={password === '' || isLoading}
+                className="btn btn-md btn-primary"
               >
-                <div className="flex-1">
-                  <TextField
-                    id="csvPassword"
-                    label="파일 비밀번호"
-                    type="password"
-                    value={password}
-                    placeholder="엑셀 파일에 걸린 비밀번호"
-                    onChange={setPassword}
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={password === '' || isLoading}
-                  className="btn btn-md btn-primary"
-                >
-                  확인
-                </button>
-              </form>
-            )}
+                확인
+              </button>
+            </form>
+          )}
 
-            {error && (
-              <AlertBanner tone="danger" className="mt-4">
-                {error}
-              </AlertBanner>
-            )}
-          </div>
-        </>
+          {error && (
+            <AlertBanner tone="danger" className="mt-4">
+              {error}
+            </AlertBanner>
+          )}
+
+          <HometaxNotice />
+        </div>
       )}
     </>
   );
 }
 
 /**
+ * 홈택스 직접 조회 안내.
+ *
+ * ⚠️ **누를 수 없는 버튼을 두고 사유를 밝힌다** — 없는 것처럼 감추면 "그 기능은 언제
+ *    나오냐" 는 질문이 반복되고, 눌리게 두면 아무 일도 안 일어나 고장으로 읽힌다.
+ *    지금은 CSV 가 유일한 길이라는 것도 함께 알린다.
+ */
+function HometaxNotice() {
+  return (
+    <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border-default pt-5">
+      <p className="text-caption break-keep text-text-secondary">
+        홈택스에서 바로 불러오는 기능은 준비 중입니다. 지금은 내려받은 파일로
+        수집해주세요.
+      </p>
+      <button
+        type="button"
+        disabled
+        title="홈택스 연동은 준비 중입니다"
+        className="btn btn-sm btn-gray-outlined shrink-0"
+      >
+        홈택스에서 조회
+      </button>
+    </div>
+  );
+}
+
+/**
  * 결과 (3단계).
  *
- * ⚠️ **중복은 실패가 아니다** — 이미 등록된 거래라 건너뛴 것이다. 실패처럼 붉게 칠하지 않고,
- *    어떤 건이 왜 빠졌는지 사유와 함께 보여준다.
+ * ⚠️ **중복은 실패가 아니다** — 이미 등록된 승인번호라 건너뛴 것이다. 실패처럼 붉게
+ *    칠하지 않고, 어떤 건이 왜 빠졌는지 사유와 함께 보여준다.
  */
-function UploadResult({ result }: { result: CsvUploadResult }) {
+function UploadResult({ result }: { result: TaxInvoiceCsvUploadResult }) {
   return (
     <div className="mt-4">
       <div className="rounded-base border border-border-default bg-bg-card p-6">
         <dl className="flex flex-wrap gap-x-10 gap-y-3">
           <Figure label="전체" value={result.totalRows} />
-          <Figure label="등록" value={result.savedCount} isStrong />
+          <Figure label="수집" value={result.savedCount} isStrong />
           <Figure label="중복 제외" value={result.duplicateCount} />
         </dl>
 
         {/**
-         * ⚠️ 등록된 건은 **아직 어디에도 연결되지 않았다** — 여기서 끝난 줄 알고 나가면
+         * ⚠️ 수집된 건은 **아직 어디에도 연결되지 않았다** — 여기서 끝난 줄 알고 나가면
          *    미연결 건이 쌓인다. 다음 할 일(연결)을 결과 화면에서 알려 준다.
          */}
         <p className="mt-4 rounded-lg bg-bg-surface px-4 py-3 text-caption break-keep text-text-secondary">
-          등록된 입출금은 <b>미연결 상태</b>입니다. 목록에서 정산 블록에
+          수집된 세금계산서는 <b>미연결 상태</b>입니다. 목록에서 정산 블록에
           연결해주세요.
         </p>
 
@@ -217,7 +244,7 @@ function UploadResult({ result }: { result: CsvUploadResult }) {
               중복으로 제외된 건
             </p>
             <DataTable
-              caption="중복으로 제외된 거래"
+              caption="중복으로 제외된 세금계산서"
               columns={DUPLICATE_COLUMNS}
               rows={result.duplicateRows}
               dense
@@ -229,41 +256,31 @@ function UploadResult({ result }: { result: CsvUploadResult }) {
       {/* 끝난 뒤의 다음 행동 — 완료 화면에서는 목록으로 가는 길을 눈에 띄게 둔다 */}
       <div className="mt-4 flex justify-end">
         <Link
-          href={FINANCE_ROUTES.cashFlows}
+          href={FINANCE_ROUTES.taxInvoices}
           className="btn btn-md btn-primary"
         >
-          입출금 내역으로
+          세금계산서로
         </Link>
       </div>
     </div>
   );
 }
 
-const DUPLICATE_COLUMNS: DataTableColumn<CsvDuplicateRow>[] = [
+const DUPLICATE_COLUMNS: DataTableColumn<TaxInvoiceCsvDuplicateRow>[] = [
   {
-    key: 'tradedAt',
-    header: '거래일시',
-    width: '25%',
+    key: 'approvalNo',
+    header: '승인번호',
+    width: '40%',
     cell: (row) => (
-      <span className="block text-text-secondary">
-        {formatDateTime(row.tradedAt) || '-'}
-      </span>
-    ),
-  },
-  {
-    key: 'amount',
-    header: '금액',
-    width: '20%',
-    cell: (row) => (
-      <span className="block font-semibold text-text-primary">
-        {formatAmount(row.amount)}
+      <span className="block [overflow-wrap:anywhere] font-semibold text-text-primary">
+        {row.approvalNo || '-'}
       </span>
     ),
   },
   {
     key: 'reason',
     header: '사유',
-    width: '55%',
+    width: '60%',
     // 사유는 서버 문구가 가장 정확하다 — 화면이 다시 풀어 쓰지 않는다
     cell: (row) => (
       <span className="block break-keep text-text-secondary">{row.reason}</span>

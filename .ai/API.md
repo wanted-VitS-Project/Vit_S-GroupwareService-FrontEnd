@@ -5480,7 +5480,41 @@ body 는 등록과 같은 모양이고 전부 선택이다.
 | `PATCH /blocks/settlements/{id}/items` — `?type=` 을 실어 보내도 컨트롤러에서 null 이라 **500 NPE** (파라미터 바인딩) |
 | 목록 응답에 `bankName` 추가 (또는 단건 조회 API)                        |
 | 정산 블록 `detail` 에 **연결 여부 플래그** — 지금은 정산 상태로 추정한다 |
-| 세금계산서(`tax-invoices`)는 **필터 옵션만 구현**, 나머지는 개발 전     |
 | 엑셀 시간 전용 셀 파싱 (`1899-12-31 …`) — CSV 업로드가 막혀 있다        |
-| `request` 파트 JSON 스키마 공개                                         |
+| `request` 파트 JSON 스키마 공개 (입출금 · 세금계산서 둘 다)             |
 | `GET /finance/cash-flows/{cashFlowId}` 단건 조회                        |
+| `GET /finance/tax-invoices/{taxId}` 단건 조회 — 지금은 **목록을 넘겨 가며 찾는다** |
+
+### 세금계산서 — `/finance/tax-invoices` (2026-08-14 스웨거 실측 · 연동 완료)
+
+> ⚠️ 변경사항 (2026-08-14) — 이전 기록의 "필터 옵션만 구현" 은 **낡았다.** 전부 배포됐다.
+
+| 메서드   | 경로                                            | 설명                                             |
+| -------- | ----------------------------------------------- | ------------------------------------------------ |
+| `GET`    | `/finance/tax-invoices`                         | 목록 — ⚠️ **페이징 있음** (`page`·`size`·`sort`) |
+| `DELETE` | `/finance/tax-invoices`                         | 다건 삭제 (body 에 `taxIds`)                     |
+| `GET`    | `/finance/tax-invoices/filters`                 | 프로젝트 옵션                                    |
+| `PATCH`  | `/finance/tax-invoices/exclude`                 | 연결 대상 제외/포함 (`taxIds` · `isExcluded`)    |
+| `PATCH`  | `/finance/tax-invoices/{taxId}`                 | ⚠️ **메모만** 수정된다                           |
+| `GET`    | `/finance/tax-invoices/{taxId}/match-candidates` | 정산 블록 추천 (최대 5건)                        |
+| `PATCH`  | `/finance/tax-invoices/{taxId}/match`           | 정산 블록 연결 (`settleId`)                      |
+| `PATCH`  | `/finance/tax-invoices/{taxId}/unmatch`         | 연결 해제                                        |
+| `POST`   | `/finance/tax-invoices/csv/preview`             | 컬럼 추천 — 파일은 저장되지 않는다               |
+| `POST`   | `/finance/tax-invoices/csv`                     | 매핑 확정 후 저장                                |
+
+**입출금과 다른 점**
+
+| 항목        | 입출금                | 세금계산서               |
+| ----------- | --------------------- | ------------------------ |
+| 목록 페이징 | 없음 (배열 통째로)    | **있음**                 |
+| 직접 등록   | 있음 (`POST`)         | **없음** — CSV 가 유일   |
+| 수정 범위   | 미연결 · 직접등록이면 전체 | **메모만**          |
+| 중복 기준   | 거래일시 + 금액       | **승인번호**             |
+
+**CSV 미리보기 응답** — `columns` · `sampleRows` · `recommendedType`(⚠️ `null` 로 올 수 있다) ·
+`recommendedMapping`(필수 8 + 선택 4: `approvalNo` · `issuedDate` · `supplierBizNo` ·
+`buyerBizNo` · `buyerName` · `supplyAmount` · `taxAmount` · `totalAmount` /
+`itemName` · `ceoName` · `subBizNo` · `memo`, 각 `…Column`)
+
+**CSV 업로드 응답** — `totalRows` · `savedCount` · `duplicateCount` ·
+`duplicateRows[]`(⚠️ 입출금과 달리 **`approvalNo` · `reason`** 이다)

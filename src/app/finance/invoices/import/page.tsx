@@ -1,3 +1,5 @@
+import TaxInvoiceCsvImport from '@/features/finance/TaxInvoiceCsvImport';
+
 export default function Page() {
-  return <div>finance/invoices/import</div>;
+  return <TaxInvoiceCsvImport />;
 }

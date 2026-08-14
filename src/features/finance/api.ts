@@ -19,6 +19,13 @@ import type {
   CsvUploadResult,
   FinanceSummary,
   MatchCandidateResponse,
+  TaxInvoiceCsvPreview,
+  TaxInvoiceCsvUploadRequest,
+  TaxInvoiceCsvUploadResult,
+  TaxInvoiceFilterOptions,
+  TaxInvoiceListQuery,
+  TaxInvoiceListResponse,
+  TaxInvoiceSkippedItem,
   UpdateCashFlowRequest,
 } from './types';
 
@@ -195,6 +202,173 @@ export function uploadCashFlowCsv(
 
   return postForm<CsvUploadResult>(
     ENDPOINTS.finance.cashFlows.csv,
+    form,
+    signal,
+  );
+}
+
+/**
+ * 세금계산서 목록 — ⚠️ 입출금과 달리 **페이징이 있다** (`page` 는 0부터).
+ */
+export function getTaxInvoices(
+  query: TaxInvoiceListQuery,
+  signal?: AbortSignal,
+) {
+  const params = new URLSearchParams();
+
+  const { startDate, endDate, unlinked, projectId, keyword, page, size } =
+    query;
+
+  if (startDate) params.set('startDate', startDate);
+  if (endDate) params.set('endDate', endDate);
+  if (unlinked) params.set('unlinked', 'true');
+  if (projectId !== undefined) params.set('projectId', String(projectId));
+  if (keyword) params.set('keyword', keyword);
+  if (page !== undefined) params.set('page', String(page));
+  if (size !== undefined) params.set('size', String(size));
+
+  const search = params.toString();
+
+  return api.get<TaxInvoiceListResponse>(
+    `${ENDPOINTS.finance.taxInvoices.root}${search ? `?${search}` : ''}`,
+    signal,
+  );
+}
+
+/**
+ * 세금계산서 한 건을 찾는다.
+ *
+ * ⚠️ **단건 조회 API 가 없다** (2026-08-14 스웨거 실측). 목록에서 찾는 수밖에 없는데
+ *    목록은 페이징이라 한 번에 다 오지 않아, 찾을 때까지 페이지를 넘긴다.
+ * ⚠️ 페이지 수에 **상한을 둔다** — 없는 ID 를 열면 끝없이 요청하게 된다.
+ *    상한을 넘기면 못 찾은 것으로 보고 화면이 안내한다.
+ */
+export async function findTaxInvoice(
+  taxId: number,
+  signal?: AbortSignal,
+  maxPages = 10,
+) {
+  const size = 100;
+
+  for (let page = 0; page < maxPages; page++) {
+    const data = await getTaxInvoices({ page, size }, signal);
+
+    const found = data.taxInvoices.find((item) => item.taxId === taxId);
+    if (found) return found;
+
+    if (page >= data.totalPages - 1) break;
+  }
+
+  return null;
+}
+
+/** 필터 옵션 — 프로젝트 목록만 내려온다 */
+export function getTaxInvoiceFilterOptions(signal?: AbortSignal) {
+  return api.get<TaxInvoiceFilterOptions>(
+    ENDPOINTS.finance.taxInvoices.filters,
+    signal,
+  );
+}
+
+/**
+ * 다건 삭제 — 본문에 ID 배열을 싣는다.
+ *
+ * ⚠️ 매칭된 건은 삭제되지 않고 `skippedItems` 로 빠진다 (**부분 성공이 정상**).
+ */
+export async function deleteTaxInvoices(taxIds: number[]) {
+  const data = await api.deleteWithBody<{
+    deletedCount: number;
+    skippedItems: TaxInvoiceSkippedItem[];
+  }>(ENDPOINTS.finance.taxInvoices.root, { taxIds });
+
+  return { count: data.deletedCount, skippedItems: data.skippedItems };
+}
+
+/**
+ * 연결 대상 제외 · 제외 취소.
+ *
+ * ⚠️ 토글이 아니라 **값 지정**이다 — `isExcluded` 를 그대로 보낸다.
+ */
+export async function updateTaxInvoiceExclusion(
+  taxIds: number[],
+  isExcluded: boolean,
+) {
+  const data = await api.patch<{
+    updatedCount: number;
+    skippedItems: TaxInvoiceSkippedItem[];
+  }>(ENDPOINTS.finance.taxInvoices.exclude, { taxIds, isExcluded });
+
+  return { count: data.updatedCount, skippedItems: data.skippedItems };
+}
+
+/** ⚠️ 세금계산서는 **메모만** 고칠 수 있다 — 직접 등록이 없어 나머지는 파일이 원본이다 */
+export function updateTaxInvoiceMemo(taxId: number, memo: string) {
+  return api.patch<{ taxId: number; memo: string | null; updatedAt: string }>(
+    ENDPOINTS.finance.taxInvoices.detail(taxId),
+    { memo },
+  );
+}
+
+/** 매칭 추천 후보 — 최대 5건이 추천 순으로 온다 (정산 블록 후보다) */
+export function getTaxInvoiceMatchCandidates(
+  taxId: number,
+  signal?: AbortSignal,
+) {
+  return api.get<MatchCandidateResponse>(
+    ENDPOINTS.finance.taxInvoices.matchCandidates(taxId),
+    signal,
+  );
+}
+
+/** 정산 블록에 연결 */
+export function matchTaxInvoice(taxId: number, settleId: number) {
+  return api.patch<unknown>(ENDPOINTS.finance.taxInvoices.match(taxId), {
+    settleId,
+  });
+}
+
+/** 정산 블록 연결 해제 */
+export function unmatchTaxInvoice(taxId: number) {
+  return api.patch<unknown>(ENDPOINTS.finance.taxInvoices.unmatch(taxId));
+}
+
+/**
+ * 세금계산서 CSV · 엑셀 컬럼 추천 조회 — **파일은 저장되지 않는다.**
+ *
+ * 오류 코드는 입출금과 같은 계열을 쓴다 (`errorCodes.ts` 의 `isCsv*`).
+ */
+export function previewTaxInvoiceCsv(
+  file: File,
+  password?: string,
+  signal?: AbortSignal,
+) {
+  const form = new FormData();
+  form.append('file', file);
+  if (password) form.append('password', password);
+
+  return postForm<TaxInvoiceCsvPreview>(
+    ENDPOINTS.finance.taxInvoices.csvPreview,
+    form,
+    signal,
+  );
+}
+
+/**
+ * 매핑을 확정해 저장한다.
+ *
+ * ⚠️ 이미 등록된 **승인번호**는 저장되지 않고 `duplicateRows` 로 돌아온다 — 실패가 아니다.
+ */
+export function uploadTaxInvoiceCsv(
+  file: File,
+  request: TaxInvoiceCsvUploadRequest,
+  signal?: AbortSignal,
+) {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('request', JSON.stringify(request));
+
+  return postForm<TaxInvoiceCsvUploadResult>(
+    ENDPOINTS.finance.taxInvoices.csv,
     form,
     signal,
   );

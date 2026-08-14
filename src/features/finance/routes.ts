@@ -14,6 +14,8 @@ export const FINANCE_ROUTES = {
     `${FINANCE}/payments/${cashFlowId}`,
   cashFlowImport: `${FINANCE}/payments/import`,
   taxInvoices: `${FINANCE}/invoices`,
+  /** 세금계산서 상세 — 목록에 담기 어려운 값(사업자번호 · 품목 · 메모)을 여기서 본다 */
+  taxInvoiceDetail: (taxId: number | string) => `${FINANCE}/invoices/${taxId}`,
   taxInvoiceImport: `${FINANCE}/invoices/import`,
   settlements: `${FINANCE}/settlements`,
 } as const;
