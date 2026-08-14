@@ -126,6 +126,52 @@ export function useImageBlockNames(projectId: string, enabled: boolean) {
   return loaded?.projectId === projectId ? loaded.names : null;
 }
 
+/**
+ * 107번 응답이 **블록 · 스텝 정보를 직접 실어 준 경우** 그걸로 표를 만든다.
+ *
+ * 백엔드에 `blockTitle` · `stepId` · `stepName` 추가를 요청해 둔 상태다 (2026-08-14).
+ * 배포되면 위 `useImageBlockNames` 의 N+1 조회가 **한 줄도 안 고치고 사라진다** —
+ * 아래에서 표를 만들어 돌려주면 훅이 아예 켜지지 않는다.
+ * 필드가 없는 동안에는 `null` 을 돌려 예전 경로(스텝마다 블록 목록 조회)로 떨어진다.
+ *
+ * ⚠️ 판정 기준은 **`stepName` · `stepId`** 다. `blockTitle` 은 미지정이면 정상적으로
+ *    `null` 이라, 그것만 보면 "필드가 없다" 와 "제목이 안 붙은 블록" 을 가를 수 없다.
+ *
+ * ❗ 이 함수를 지울 때가 이 파일을 통째로 지울 때다 — 그때 `mapWithLimit` ·
+ *    `NAME_FETCH_CONCURRENCY` · `loadImageBlockNames` 도 함께 나간다.
+ */
+export function readImageBlockNames(
+  images: {
+    imgBlockId: number;
+    blockTitle?: string | null;
+    stepId?: number;
+    stepName?: string;
+  }[],
+): Map<number, ImageBlockName> | null {
+  // 이미지가 없으면 이름 붙일 블록도 없다 — 괜히 N+1 을 켜지 않는다
+  if (images.length === 0) return new Map();
+
+  const names = new Map<number, ImageBlockName>();
+
+  for (const image of images) {
+    if (
+      typeof image.stepName !== 'string' ||
+      typeof image.stepId !== 'number'
+    ) {
+      // 한 장이라도 위치 정보가 없으면 아직 배포 전이다 — 예전 경로로 넘긴다
+      return null;
+    }
+
+    names.set(image.imgBlockId, {
+      title: image.blockTitle ?? null,
+      stepId: image.stepId,
+      stepName: image.stepName,
+    });
+  }
+
+  return names;
+}
+
 /** 화면에 적을 블록 이름. 못 찾으면 ID 로 떨어진다 */
 export function imageBlockLabel(
   imgBlockId: number,

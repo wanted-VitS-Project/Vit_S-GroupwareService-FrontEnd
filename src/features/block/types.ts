@@ -447,6 +447,19 @@ export interface ProjectImage {
   /** 없으면 빈 문자열 */
   caption: string;
   createdAt: string;
+  /**
+   * 아래 셋은 **아직 백엔드 계약에 없다** (2026-08-14 요청함).
+   *
+   * 없는 동안에는 화면이 스텝마다 블록 목록(10번)을 부르는 **N+1** 로 이름을 모은다
+   * (`useImageBlockNames`). 형제 API 인 문서함(105번)은 이미 같은 필드를 주고 있어
+   * 107번만 맞추면 그 우회가 통째로 사라진다.
+   *
+   * 값이 오면 `readImageBlockNames()` 가 알아서 이 필드를 쓰고 N+1 은 켜지지 않는다 —
+   * **프론트 수정 없이** 배포되는 순간 바뀐다.
+   */
+  blockTitle?: string | null;
+  stepId?: number;
+  stepName?: string;
 }
 
 /**

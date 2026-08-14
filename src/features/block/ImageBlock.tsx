@@ -7,7 +7,12 @@ import ModalLoadingFallback from '@/components/ModalLoadingFallback';
 import { messageOf } from '@/lib/api';
 import { useModal, useModalRouter } from '@/lib/useModal';
 
-import { deleteImageItem, downloadBlockImages, getImageItem } from './api';
+import {
+  deleteImageItem,
+  downloadBlockImages,
+  getImageItem,
+  getImageItems,
+} from './api';
 import BlockCard from './BlockCard';
 import {
   imageAltText,
@@ -43,14 +48,30 @@ function preloadImageModals() {
   void loadImageLightbox();
 }
 
-/** 어느 이미지를 받아 올지 — 현재 정렬 번호와 방향으로 지정한다 */
+/**
+ * 어느 이미지를 받아 올지 — **서버가 준 정렬 번호**와 방향으로 지정한다.
+ *
+ * ❗ `from` 에 **지어낸 값을 넣지 않는다.** 예전에는 첫 장을 받으려고 `{ from: 0 }` 을
+ *    보냈는데(정렬 번호가 1부터니 0의 `next` 가 1번이라는 자체 규약), 서버에 0 번은
+ *    없는 자리라 요청이 그대로 실패했다. `다시 시도` 도 같은 0 을 다시 보내
+ *    **몇 번을 눌러도 복구되지 않았다.** 지금은 정렬 번호를 늘 응답에서만 받아 쓴다.
+ */
 interface ImageRequest {
   from: number;
   direction: 'prev' | 'next';
 }
 
-/** 첫 장 예비 요청. 정렬 번호가 1부터라 0 의 `next` 가 1번이다 */
-const FIRST_REQUEST: ImageRequest = { from: 0, direction: 'next' };
+/**
+ * 카드를 그릴 밑천이 `detail` 에 실려 왔는지.
+ * 대표 이미지가 있거나 "0장" 이라고 확정해 주면 목록을 따로 받을 이유가 없다.
+ */
+function hasSeedImages(
+  detail: { images: unknown[]; totalCount: number | null } | null,
+) {
+  return Boolean(
+    detail && (detail.images.length > 0 || detail.totalCount === 0),
+  );
+}
 
 /**
  * 이미지 블록.
@@ -85,14 +106,21 @@ export default function ImageBlock({
   const [totalCount, setTotalCount] = useState<number | null>(
     detail?.totalCount ?? null,
   );
-  const [request, setRequest] = useState<ImageRequest | null>(() => {
-    // 정상 경로 — 첫 장이나 "0장" 이 detail 에 실려 오면 여기서 부를 게 없다
-    if (detail && (detail.images.length > 0 || detail.totalCount === 0)) {
-      return null;
-    }
-    // 예비 경로 — detail 이 비어 있을 때만 첫 장을 직접 받아 본다
-    return FIRST_REQUEST;
-  });
+  const [request, setRequest] = useState<ImageRequest | null>(null);
+  /**
+   * 목록을 통째로 다시 받아야 하는 자리 (71번).
+   *
+   * 정렬 번호를 **모르는** 상황이 셋 있다 — 화면 진입 때 대표 이미지가 안 실려 온 경우 ·
+   * `다시 시도` · 이미지 삭제 직후(삭제 응답이 남은 이미지를 알려 주지 않는다).
+   * 셋 다 번호를 지어내는 대신 목록을 받아 **서버가 준 번호로** 다시 맞춘다.
+   *
+   * ⚠️ 71번은 **편집 권한**이 필요하다. 열람 전용 사용자는 여기까지 오지 않는다 —
+   *    삭제 · 재시도는 편집자만 하고, 진입 때는 대표 이미지가 실려 오는 것이 정상 경로다.
+   */
+  const [resyncCount, setResyncCount] = useState(() =>
+    hasSeedImages(detail) ? 0 : 1,
+  );
+  const [isResyncing, setIsResyncing] = useState(() => !hasSeedImages(detail));
   const [hasFailed, setHasFailed] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -141,7 +169,32 @@ export default function ImageBlock({
     return () => controller.abort();
   }, [imgBlockId, request]);
 
-  const isLoading = request !== null;
+  /**
+   * 목록을 통째로 다시 받아 카드를 맞춘다.
+   * 정렬 번호를 지어내지 않는 유일한 복구 수단이다 — 서버가 준 번호만 쓴다.
+   */
+  useEffect(() => {
+    if (imgBlockId === null || resyncCount === 0) return;
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    getImageItems(imgBlockId, signal)
+      .then((data) => {
+        applyImages(data.images);
+        setIsResyncing(false);
+      })
+      .catch(() => {
+        // 취소는 실패가 아니다
+        if (signal.aborted) return;
+        setHasFailed(true);
+        setIsResyncing(false);
+      });
+
+    return () => controller.abort();
+  }, [imgBlockId, resyncCount]);
+
+  const isLoading = request !== null || isResyncing;
   const orderIndex = current?.orderIndex ?? 0;
   const canGoPrev = current !== null && orderIndex > 1;
   // 장수를 모르면(detail 이 안 실어 준 경우) 막지 않는다 — 서버 응답으로 채워진다
@@ -153,23 +206,13 @@ export default function ImageBlock({
    */
   const canLoop = current !== null && totalCount !== null && totalCount > 1;
 
-  /** 캐시를 버리고 `orderIndex` 장으로 다시 맞춘다 (업로드 · 삭제 후) */
-  function reloadFrom(target: number) {
-    cacheRef.current.clear();
-    setCurrent(null);
+  /** 목록을 다시 받아 카드를 맞춘다 (`다시 시도` · 삭제 후) */
+  function resync() {
     setHasFailed(false);
-    setRequest({
-      from: isPositiveInteger(target) ? target - 1 : 0,
-      direction: 'next',
-    });
+    setIsResyncing(true);
+    setResyncCount((count) => count + 1);
   }
 
-  /**
-   * 좌우 이동.
-   *
-   * `wrap` 이면 마지막 → 첫 장, 첫 장 → 마지막으로 넘어간다.
-   * 카드 · 전체보기 모두 켜 두고, 장수를 모를 때만 순환하지 않는다.
-   */
   /** 서버가 확정해 준 목록으로 카드를 통째로 맞춘다 (수정 저장 · 재동기화) */
   function applyImages(images: BlockImage[]) {
     cacheRef.current.clear();
@@ -185,6 +228,30 @@ export default function ImageBlock({
     setHasFailed(false);
   }
 
+  /**
+   * 방금 올린 이미지를 카드에 얹는다 (업로드 직후 — **재조회 없음**).
+   *
+   * 생성 응답(67번)에는 **새로 올린 것만** 담기므로 기존 캐시를 비우지 않고 합친다.
+   * 장수도 알던 값에 더한다 — 몰랐으면(`null`) 계속 모르는 채로 둔다.
+   * 화면은 새로 올린 첫 장으로 옮긴다.
+   */
+  function applyCreated(created: BlockImage[]) {
+    if (created.length === 0) return;
+
+    created.forEach((image) => cacheRef.current.set(image.orderIndex, image));
+    setTotalCount((previous) =>
+      previous === null ? null : previous + created.length,
+    );
+    setCurrent(created[0]);
+    setHasFailed(false);
+  }
+
+  /**
+   * 좌우 이동.
+   *
+   * `wrap` 이면 마지막 → 첫 장, 첫 장 → 마지막으로 넘어간다.
+   * 카드 · 전체보기 모두 켜 두고, 장수를 모를 때만 순환하지 않는다.
+   */
   function go(step: 1 | -1, wrap = false) {
     if (!current || isLoading) return;
 
@@ -205,21 +272,20 @@ export default function ImageBlock({
     }
 
     /*
-     * 이웃 장은 방향 그대로 부른다.
-     * 양 끝을 건너뛰는 순환 이동은 방향으로 표현할 수 없어 **"앞 장의 다음"** 으로 집어 온다 —
-     * 정렬 번호가 1..N 로 이어져 있어 `target - 1` 은 항상 실재하는 장이다
-     * (1번으로 갈 때만 0 이 되고, 이는 첫 장 예비 경로와 같은 규약이다).
+     * 이웃 장만 서버에 부른다 — `from` 이 **지금 보고 있는 장의 진짜 정렬 번호**라 안전하다.
+     *
+     * ❗ 양 끝을 건너뛰는 순환 이동은 방향으로 표현할 수 없다. 예전에는 `target - 1` 을
+     *    지어내 "앞 장의 다음" 으로 집어 왔는데, 1번으로 갈 때 `0` 이 되어 없는 자리를 불렀다.
+     *    지금은 **캐시에 있을 때만** 순환한다 — 첫 장은 블록 응답(10번)으로 이미 받아 두었고
+     *    목록을 다시 받은 뒤에는 전부 캐시에 있어, 실제로 막히는 경우는 거의 없다.
      */
     const isNeighbor = Math.abs(target - current.orderIndex) === 1;
+    if (!isNeighbor) return;
 
-    setRequest(
-      isNeighbor
-        ? {
-            from: current.orderIndex,
-            direction: step === 1 ? 'next' : 'prev',
-          }
-        : { from: target - 1, direction: 'next' },
-    );
+    setRequest({
+      from: current.orderIndex,
+      direction: step === 1 ? 'next' : 'prev',
+    });
   }
 
   async function download(imgId?: number) {
@@ -248,29 +314,15 @@ export default function ImageBlock({
     try {
       await deleteImageItem(current.imgId);
 
-      if (totalCount === null) {
-        /*
-         * 권위 있는 장수를 모른다 (삭제 응답이 `null` 이라 여기서도 안 준다).
-         * 마음대로 "0장" 으로 단정하면 남아 있는 이미지를 화면에서 지워 버린다 —
-         * **앞 장**을 다시 받아 서버가 주는 `totalCount` 로 확정한다.
-         * (앞 장은 정렬 번호가 당겨져도 반드시 존재한다. 정말 비었으면 조회가 실패하고
-         *  아래 재시도 UI 가 뜬다 — 빈 상태로 속이지 않는다)
-         */
-        reloadFrom(Math.max(1, current.orderIndex - 1));
-        return;
-      }
-
-      const remaining = totalCount - 1;
-      setTotalCount(remaining);
-
-      if (remaining <= 0) {
-        cacheRef.current.clear();
-        setCurrent(null);
-        setTotalCount(0);
-      } else {
-        // 뒤 장들의 정렬 번호가 당겨진다 — 지운 자리(마지막이면 앞 장)로 옮긴다
-        reloadFrom(Math.min(current.orderIndex, remaining));
-      }
+      /*
+       * 삭제 응답은 `null` 이라 **남은 이미지를 알려 주지 않는다.**
+       * 게다가 뒤 장들의 정렬 번호가 앞으로 당겨져, 화면이 들고 있던 번호는 전부 옛것이 된다.
+       * 번호를 계산해 맞히려다 없는 자리(0)를 부르던 것이 이 화면의 버그였다 —
+       * 이때만은 목록을 다시 받아 **서버가 준 번호로** 통째로 맞춘다.
+       *
+       * 비었으면 `applyImages([])` 가 0장으로 정리해 `이미지 추가` 판이 뜬다.
+       */
+      resync();
     } catch (caught) {
       setErrorMessage(messageOf(caught, '이미지를 삭제하지 못했습니다.'));
     } finally {
@@ -320,7 +372,7 @@ export default function ImageBlock({
             </p>
             <button
               type="button"
-              onClick={() => reloadFrom(1)}
+              onClick={resync}
               className="cursor-pointer rounded-button-md border border-border-default bg-bg-card px-2.5 py-1 text-caption font-medium text-text-primary-blue hover:bg-blue-bg-soft"
             >
               다시 시도
@@ -452,8 +504,11 @@ export default function ImageBlock({
           onClose={modal.close}
           onUploaded={(created) => {
             modal.close();
-            // 새로 올린 첫 장으로 옮기고 전체 장수를 다시 받는다
-            reloadFrom(created[0]?.orderIndex ?? 1);
+            /*
+             * 생성 응답이 **서버가 매긴 정렬 번호까지 담아** 준다 — 따로 조회하지 않는다.
+             * (예전에는 `orderIndex - 1` 로 되짚어 받으려다 첫 장에서 0 을 불러 실패했다)
+             */
+            applyCreated(created);
           }}
         />
       )}
