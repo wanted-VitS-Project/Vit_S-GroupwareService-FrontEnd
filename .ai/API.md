@@ -5353,6 +5353,59 @@ data: {
 
 ---
 
+## 142. 담당 이슈 캘린더 조회
+
+| 항목          | 값                                                |
+| ------------- | ------------------------------------------------- |
+| **Method**    | `GET`                                             |
+| **Path**      | `/api/v1/issues/calendar`                         |
+| **권한**      | 없음 (본인 담당 이슈만 오므로 스텝 권한 검사 없음) |
+| **사용 위치** | `src/features/issue/api.ts` → `getIssueCalendar()` |
+
+**Query Parameter** — 없다. 로그인 사용자가 담당인 **미완료 이슈 전체**가 한 번에 온다.
+
+**Response (200 OK)**
+
+```json
+{
+  "issues": [
+    {
+      "issueId": 101,
+      "title": "제안서 1차 초안 작성",
+      "status": "IN_PROGRESS",
+      "priority": "HIGH",
+      "dueDate": "2026-08-11",
+      "stepId": 10,
+      "stepName": "입찰 진행",
+      "projectId": 3,
+      "projectName": "OO시 스마트도로 구축"
+    }
+  ]
+}
+```
+
+| 필드          | 타입   | 설명                                     |
+| ------------- | ------ | ---------------------------------------- |
+| `issueId`     | number | 이슈 ID                                  |
+| `title`       | string | 이슈 제목                                |
+| `status`      | string | `TODO` · `IN_PROGRESS` (**`DONE` 없음**) |
+| `priority`    | string | `LOW` · `MEDIUM` · `HIGH`                |
+| `dueDate`     | string | `yyyy-MM-dd` — **항상 값이 있다**        |
+| `stepId`      | number | 소속 스텝 ID                             |
+| `stepName`    | string | 소속 스텝명                              |
+| `projectId`   | number | 소속 프로젝트 ID                         |
+| `projectName` | string | 소속 프로젝트명                          |
+
+> ⛔ **`DONE` 이슈 · 마감일 없는 이슈는 응답에서 빠진다** — 화면이 다시 거르지 않는다.
+> ⛔ **색은 응답하지 않는다** — `projectId` 기준으로 프론트가 매긴다.
+> ⚠️ **기간 파라미터가 없다.** 화면 진입 때 한 번만 부르고, 월 이동은 받아 둔 목록에서 걸러 그린다.
+> ℹ️ 목록 이슈(55 · 108)와 **모양이 다르다** — 담당자 · 연결 블록 · `version` 이 없고 대신 프로젝트 · 스텝이 실려 온다. 이슈를 누르면 상세(57)를 그대로 부른다.
+> ℹ️ 결과가 없으면 `issues` 는 빈 배열이다.
+
+**Status Code** — 200 · 401 `AUTH_UNAUTHENTICATED`
+
+---
+
 > ✏️ 새 API를 연동할 때 위 양식대로 계속 추가하세요.
 > 핵심은 **백엔드 응답 타입을 정확히** 적어두는 것 — AI가 타입 안전하게 연동 코드를 짜줘요.
 
