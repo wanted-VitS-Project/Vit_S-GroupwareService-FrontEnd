@@ -2,10 +2,13 @@ import { ENDPOINTS } from '@/constants/endpoints';
 import { api, ApiError, isAbortError, requestRaw } from '@/lib/api';
 
 import type {
+  AdminFile,
+  AdminFileQuery,
   BlockFilesResponse,
   CompleteUploadResponse,
   DownloadUrlResponse,
   FileVersionDetail,
+  FilePage,
   FileVersionsResponse,
   MyFile,
   MyFileQuery,
@@ -127,6 +130,34 @@ export function getMyFiles(query: MyFileQuery = {}, signal?: AbortSignal) {
       signal,
     )
     .then((data) => data.files);
+}
+
+/**
+ * 전사 파일 목록 (ADMIN 전용 · FILE-Q-01).
+ *
+ * 내 파일(140번)과 달리 **페이징이 있고** 문서 단위 최신 완료 버전 1행만 온다.
+ * 응답이 페이지 봉투 그대로라 벗기지 않는다.
+ *
+ * ⚠️ ADMIN 이 아니면 403 `ACC_ADMIN_REQUIRED` 다 — 화면이 안내 문구로 받는다.
+ */
+export function getAdminFiles(query: AdminFileQuery = {}, signal?: AbortSignal) {
+  const params = new URLSearchParams();
+
+  if (query.keyword) params.set('keyword', query.keyword);
+  if (query.projectId !== undefined) {
+    params.set('projectId', String(query.projectId));
+  }
+  if (query.extension) params.set('extension', query.extension);
+  // 0 도 유효한 페이지라 값 유무로 판단한다
+  if (query.page !== undefined) params.set('page', String(query.page));
+  if (query.size !== undefined) params.set('size', String(query.size));
+
+  const search = params.toString();
+
+  return api.get<FilePage<AdminFile>>(
+    search ? `${ENDPOINTS.files.admin}?${search}` : ENDPOINTS.files.admin,
+    signal,
+  );
 }
 
 /** 프로젝트 휴지통 — 블록이 지워진 고아 파일도 여기서만 보인다 */

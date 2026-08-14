@@ -3,7 +3,13 @@ import Link from 'next/link';
 import PageTitle from '@/components/PageTitle';
 
 type SettingIcon =
-  'employee' | 'department' | 'badge' | 'category' | 'group' | 'lock';
+  | 'employee'
+  | 'department'
+  | 'badge'
+  | 'category'
+  | 'file'
+  | 'group'
+  | 'lock';
 
 interface SettingItem {
   icon: SettingIcon;
@@ -46,6 +52,17 @@ const SECTIONS: { title: string; items: SettingItem[] }[] = [
         label: '카테고리 관리',
         description: '프로젝트에 지정할 사업 카테고리 관리',
         href: '/settings/categories',
+      },
+    ],
+  },
+  {
+    title: '파일',
+    items: [
+      {
+        icon: 'file',
+        label: '전사 파일 관리',
+        description: '전사 모든 프로젝트의 파일 · 사내 문서함 관리',
+        href: '/settings/files',
       },
     ],
   },
@@ -159,6 +176,13 @@ const ICON_PATHS: Record<SettingIcon, React.ReactNode> = {
   ),
   category: (
     <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
+  ),
+  // 모서리 접힌 문서 — 프로젝트 화면 `문서함` 탭과 같은 그림이다
+  file: (
+    <>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <path d="M14 3v5h5" />
+    </>
   ),
   group: (
     <>

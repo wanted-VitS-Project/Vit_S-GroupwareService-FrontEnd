@@ -202,6 +202,55 @@ export interface MyFileQuery {
 }
 
 /**
+ * GET /admin/files 의 한 줄 — **전사 모든 프로젝트**를 가로지른 문서 목록. (FILE-Q-01 · ADMIN)
+ *
+ * 내 파일(140번)과 달리 **문서 단위 최신 완료 버전 1행**이고 페이징이 있다.
+ * 스텝 · 블록은 **이름만** 온다 (`stepId` · `blockId` 가 없어 `FileLocation` 을 쓰지 못한다) —
+ * 전사 목록은 위치를 표시만 하고 거기로 들어가지 않는다.
+ *
+ * ⚠️ 업로더가 시스템 계정이면 `uploaderName` 이 오지 않는다.
+ */
+export interface AdminFile {
+  projectId: number;
+  projectName: string;
+  stepName: string;
+  blockTitle: string | null;
+  fileId: number;
+  name: string;
+  latestVersionId: number;
+  latestVersionNo: number;
+  versionCount: number;
+  originalFileName: string;
+  extension: string;
+  sizeBytes: number;
+  previewable: boolean;
+  uploaderName?: string | null;
+  updatedAt: string;
+}
+
+export interface AdminFileQuery {
+  /** 파일명 · 원본명 · 업로더 부분 일치 */
+  keyword?: string;
+  /** 특정 프로젝트만 */
+  projectId?: number;
+  /** 확장자 (`pdf` · `hwp` …) */
+  extension?: string;
+  /** 0-base */
+  page?: number;
+  /** 기본 20 · 최대 100 */
+  size?: number;
+}
+
+/** 페이지 봉투 — 백엔드 공통 모양이다 (프로젝트 목록 등과 같다) */
+export interface FilePage<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+/**
  * GET /projects/{projectId}/files/trash 의 한 줄.
  * 휴지통은 미리보기 · 다운로드가 없어 `latestVersionId` · `previewable` 이 오지 않는다.
  */
