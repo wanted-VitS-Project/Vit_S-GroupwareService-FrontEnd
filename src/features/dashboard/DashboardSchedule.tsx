@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { getIssueCalendar } from '@/features/issue/api';
 import type { CalendarIssue } from '@/features/issue/types';
 import { PROJECT_ROUTES } from '@/features/project/routes';
+import { useModal } from '@/lib/useModal';
 
 /**
  * 프로젝트 색. **`projectId` 기준으로 화면이 매긴다** — 응답에 색이 없다.
@@ -24,6 +25,19 @@ const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'] as const;
 
 /** 한 날짜에 세우는 점의 수. 넘치면 마지막을 `+` 로 접는다 */
 const DOT_LIMIT = 3;
+
+/**
+ * 달력 판은 **언제나 6주**다 (7 × 6 = 42칸).
+ *
+ * 달마다 주 수가 5~6으로 갈리는데, 실제 주 수만큼만 그리면 달을 넘길 때 판 높이가
+ * 한 줄(52px)씩 오르내려 카드와 아래 범례가 통째로 흔들린다. 남는 줄은 빈 칸으로 채운다.
+ *
+ * 42는 넉넉하다 — 1일이 토요일(6칸 밀림)이고 31일까지 있어도 37칸이면 끝난다.
+ */
+const CALENDAR_CELLS = 42;
+
+/** 월 선택 패널에 세우는 12달 */
+const MONTH_LABELS = Array.from({ length: 12 }, (_, index) => `${index + 1}월`);
 
 /** 로컬 날짜를 `yyyy-MM-dd` 로. `toISOString()` 은 UTC 라 날짜가 하루 밀린다 */
 function toDateKey(date: Date) {
@@ -82,6 +96,24 @@ export default function DashboardSchedule() {
     month: now.getMonth(),
   }));
   const [selected, setSelected] = useState(() => toDateKey(now));
+
+  /**
+   * 이미 오늘을 보고 있는지 — **달과 고른 날짜가 둘 다** 오늘이어야 한다.
+   * 8월을 보다가 9월로 넘겼다 돌아와도 고른 날짜가 그대로면 아직 갈 곳이 남아 있다.
+   */
+  const isOnToday =
+    month.year === now.getFullYear() &&
+    month.month === now.getMonth() &&
+    selected === today;
+
+  /** 년 · 월 선택 패널 */
+  const picker = useModal();
+
+  /** 달과 고른 날짜를 한 번에 오늘로 되돌린다 */
+  function goToToday() {
+    setMonth({ year: now.getFullYear(), month: now.getMonth() });
+    setSelected(today);
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -170,24 +202,87 @@ export default function DashboardSchedule() {
           일정
         </h2>
 
-        {/* 달 이동은 제목 아래 **가운데**에 둔다 — 달력 판의 머리글 역할이다 */}
-        <div className="mt-4 flex items-center justify-center gap-3">
-          <MonthButton
-            label="이전 달"
-            onClick={() => setMonth(shiftMonth(month, -1))}
+        {/*
+          달 이동은 제목 아래 **가운데**에 둔다 — 달력 판의 머리글 역할이다.
+
+          `오늘` 은 오른쪽 끝으로 뺀다. 화살표 옆에 붙이면 묶음이 한쪽으로 길어져
+          `2026년 8월` 이 판 가운데에서 밀리고, 성격도 다르다 —
+          화살표 · 제목은 **둘러보는** 조작이고 `오늘` 은 **제자리로 돌아오는** 조작이다.
+          3칸 그리드라 왼쪽 빈 칸이 오른쪽 버튼과 폭을 나눠 가운데가 실제 가운데에 선다.
+        */}
+        <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center">
+          <span aria-hidden />
+
+          <div className="flex items-center justify-center gap-3">
+            <MonthButton
+              label="이전 달"
+              onClick={() => setMonth(shiftMonth(month, -1))}
+            >
+              <ChevronIcon className="rotate-180" />
+            </MonthButton>
+            {/*
+              제목을 눌러 **년 · 월을 한 번에** 고른다 — 반년 뒤로 가려고 화살표를 여섯 번
+              누르지 않게 한다. 패널은 이 자리를 기준으로 뜨므로 감싸는 상자가 기준점이다.
+            */}
+            <span
+              className="relative"
+              // 패널 밖으로 초점이 나가면 닫는다 (다른 곳을 누르면 초점이 body 로 빠진다)
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  picker.close();
+                }
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') picker.close();
+              }}
+            >
+              {/* 폭을 고정한다 — `2026년 8월` 과 `2026년 12월` 의 폭이 달라 화살표가 흔들린다 */}
+              <button
+                type="button"
+                aria-haspopup="dialog"
+                aria-expanded={picker.isOpen}
+                onClick={() => (picker.isOpen ? picker.close() : picker.open())}
+                className="flex w-32 cursor-pointer items-center justify-center gap-1 rounded-lg py-0.5 text-[19px] font-semibold text-gray-text-soft hover:bg-bg-hover"
+              >
+                {month.year}년 {month.month + 1}월
+                {/* 열리면 위를 가리킨다 — 아래에 뜬 패널을 다시 접는다는 뜻 */}
+                <ChevronIcon
+                  className={picker.isOpen ? '-rotate-90' : 'rotate-90'}
+                />
+              </button>
+
+              {picker.isOpen && (
+                <MonthPicker
+                  year={month.year}
+                  month={month.month}
+                  onPick={(picked) => {
+                    setMonth(picked);
+                    picker.close();
+                  }}
+                />
+              )}
+            </span>
+            <MonthButton
+              label="다음 달"
+              onClick={() => setMonth(shiftMonth(month, 1))}
+            >
+              <ChevronIcon />
+            </MonthButton>
+          </div>
+
+          {/*
+            달을 넘기다 보면 오늘이 몇 번째 달이었는지 헷갈린다 — 화살표를 세어 돌아가지
+            않게 한 번에 되돌린다. 이미 오늘이면 누를 것이 없어 잠근다.
+          */}
+          <button
+            type="button"
+            onClick={goToToday}
+            disabled={isOnToday}
+            title={isOnToday ? '이미 오늘을 보고 있어요' : '오늘로 이동'}
+            className="cursor-pointer justify-self-end rounded-lg border border-border-default px-2.5 py-1.5 text-[13px] font-semibold text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted disabled:hover:bg-transparent"
           >
-            <ChevronIcon className="rotate-180" />
-          </MonthButton>
-          {/* 폭을 고정한다 — `2026년 8월` 과 `2026년 12월` 의 폭이 달라 화살표가 흔들린다 */}
-          <p className="w-32 text-center text-[19px] font-semibold text-gray-text-soft">
-            {month.year}년 {month.month + 1}월
-          </p>
-          <MonthButton
-            label="다음 달"
-            onClick={() => setMonth(shiftMonth(month, 1))}
-          >
-            <ChevronIcon />
-          </MonthButton>
+            오늘
+          </button>
         </div>
 
         {hasFailed ? (
@@ -406,7 +501,14 @@ function monthCells({ year, month }: { year: number; month: number }): Cell[] {
     return { key: dateKey, dateKey, day };
   });
 
-  return [...blanks, ...days];
+  // 남는 줄까지 빈 칸으로 채워 **판 높이를 고정**한다 (달마다 5주 · 6주로 갈리지 않게)
+  const filled = [...blanks, ...days];
+  const trailing: Cell[] = Array.from(
+    { length: CALENDAR_CELLS - filled.length },
+    (_, index) => ({ key: `trail-${index}`, dateKey: null, day: null }),
+  );
+
+  return [...filled, ...trailing];
 }
 
 function DayCell({
@@ -472,6 +574,79 @@ function DayCell({
         )}
       </span>
     </button>
+  );
+}
+
+/**
+ * 년 · 월 선택 패널.
+ *
+ * 년도는 **패널 안에서만** 움직인다 — 년도를 넘길 때마다 뒤 달력이 따라 바뀌면
+ * 무엇을 고르는 중인지 알 수 없다. 달을 눌러야 비로소 확정된다.
+ *
+ * 열릴 때마다 새로 마운트되므로 초안 년도는 항상 보고 있던 달의 년도에서 시작한다.
+ */
+function MonthPicker({
+  year,
+  month,
+  onPick,
+}: {
+  /** 지금 보고 있는 달 — 초안 년도의 출발점이자 선택 표시 기준 */
+  year: number;
+  month: number;
+  onPick: (picked: { year: number; month: number }) => void;
+}) {
+  const [draftYear, setDraftYear] = useState(year);
+
+  return (
+    <div
+      role="dialog"
+      aria-label="년 · 월 선택"
+      /*
+        제목 아래 가운데에 띄운다. `z-20` 은 아래 달력 칸(버튼)보다 위에 서기 위한 것이다.
+        `left-1/2 -translate-x-1/2` — 제목 폭(w-32)보다 패널이 넓어 그대로 두면 오른쪽으로 쏠린다.
+      */
+      className="absolute top-full left-1/2 z-20 mt-2 w-60 -translate-x-1/2 rounded-base border border-border-default bg-bg-card p-3 shadow-lg"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <MonthButton
+          label="이전 해"
+          onClick={() => setDraftYear((current) => current - 1)}
+        >
+          <ChevronIcon className="rotate-180" />
+        </MonthButton>
+        <p className="text-[15px] font-semibold text-text-primary">
+          {draftYear}년
+        </p>
+        <MonthButton
+          label="다음 해"
+          onClick={() => setDraftYear((current) => current + 1)}
+        >
+          <ChevronIcon />
+        </MonthButton>
+      </div>
+
+      <div className="mt-3 grid grid-cols-4 gap-1">
+        {MONTH_LABELS.map((label, index) => {
+          const isPicked = draftYear === year && index === month;
+
+          return (
+            <button
+              key={label}
+              type="button"
+              aria-pressed={isPicked}
+              onClick={() => onPick({ year: draftYear, month: index })}
+              className={`cursor-pointer rounded-lg py-1.5 text-[13px] ${
+                isPicked
+                  ? 'bg-blue-bg-soft font-semibold text-text-primary-blue'
+                  : 'text-text-primary hover:bg-bg-hover'
+              }`}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
