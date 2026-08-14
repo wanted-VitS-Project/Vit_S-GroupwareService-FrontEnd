@@ -59,7 +59,6 @@ export default function TaxInvoiceDetail({ taxId }: { taxId: number }) {
   const current = result?.key === requestKey ? result : null;
   const row = current?.row ?? result?.row ?? null;
   const hasFailed = current?.hasFailed ?? false;
-  const isLoading = current === null && !hasFailed;
 
   const matchModal = useModal();
   const unmatchConfirm = useModal();
@@ -179,7 +178,12 @@ export default function TaxInvoiceDetail({ taxId }: { taxId: number }) {
     );
   }
 
-  if (isLoading || row === null) {
+  /**
+   * ⚠️ **직전 값이 있으면 스켈레톤으로 덮지 않는다.** 메모 저장 · 연결 해제 · 제외를
+   *    누를 때마다 다시 읽는데, 그때마다 화면이 통째로 사라졌다 나타나면 자리를 잃는다.
+   *    처음 열 때(값이 아직 없을 때)만 스켈레톤을 그린다.
+   */
+  if (row === null) {
     return (
       <>
         {crumbs}

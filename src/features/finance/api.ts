@@ -243,20 +243,22 @@ export function getTaxInvoices(
  * ⚠️ 페이지 수에 **상한을 둔다** — 없는 ID 를 열면 끝없이 요청하게 된다.
  *    상한을 넘기면 못 찾은 것으로 보고 화면이 안내한다.
  */
-export async function findTaxInvoice(
-  taxId: number,
-  signal?: AbortSignal,
-  maxPages = 10,
-) {
+export async function findTaxInvoice(taxId: number, signal?: AbortSignal) {
   const size = 100;
 
-  for (let page = 0; page < maxPages; page++) {
+  /**
+   * ⚠️ 페이지 수에 **임의 상한을 두지 않는다.** 예전에는 10페이지에서 끊었는데,
+   *    그 뒤에 있는 건은 멀쩡히 존재하는데도 `없음` 으로 보여 상세가 열리지 않았다.
+   *    끝은 서버가 준 `totalPages` 로만 정한다.
+   */
+  let totalPages = 1;
+
+  for (let page = 0; page < totalPages; page++) {
     const data = await getTaxInvoices({ page, size }, signal);
+    totalPages = data.totalPages;
 
     const found = data.taxInvoices.find((item) => item.taxId === taxId);
     if (found) return found;
-
-    if (page >= data.totalPages - 1) break;
   }
 
   return null;

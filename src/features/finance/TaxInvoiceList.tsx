@@ -56,7 +56,8 @@ export default function TaxInvoiceList() {
   const [picked, setPicked] = useState<Set<number>>(new Set());
   /** 검색어는 **누를 때만** 반영한다 — 글자마다 요청하면 목록이 깜빡인다 */
   const [keywordInput, setKeywordInput] = useState('');
-  const [isDeleting, setIsDeleting] = useState(false);
+  /** 삭제 · 제외가 함께 쓰는 잠금 — 다건 처리는 겹쳐 나가면 결과가 뒤집힌다 */
+  const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState('');
   /** 목록을 다시 읽게 만드는 값 — 삭제 · 제외 뒤에 올린다 */
   const [reloadKey, setReloadKey] = useState(0);
@@ -121,33 +122,54 @@ export default function TaxInvoiceList() {
         : `${count}건 ${done}`,
     );
     setPicked(new Set());
+
+    /**
+     * ⚠️ **첫 페이지로 되돌린다.** 마지막 페이지의 항목을 모두 지우면 `totalPages` 가
+     *    줄어 지금 `page` 가 범위를 벗어난다 — 빈 목록만 남고 `totalPages <= 1` 이면
+     *    페이저마저 사라져 되돌아갈 길이 없다.
+     */
+    setQuery((prev) => ({ ...prev, page: 0 }));
     setReloadKey((key) => key + 1);
   }
 
   async function remove() {
-    if (isDeleting) return;
+    if (isBusy) return;
 
-    setIsDeleting(true);
+    setIsBusy(true);
 
     try {
       const { count, skippedItems } = await deleteTaxInvoices([...picked]);
       report('삭제했어요', count, skippedItems);
     } catch (caught) {
-      notifyToast(messageOf(caught, '삭제하지 못했습니다.'));
+      notifyToast(messageOf(caught, '삭제하지 못했습니다.'), 'error');
     } finally {
-      setIsDeleting(false);
+      setIsBusy(false);
     }
   }
 
+  /**
+   * ⚠️ 삭제와 **같은 잠금**을 쓴다 — 가드가 없으면 버튼을 연달아 눌러 같은 요청이
+   *    여러 번 나가고, 응답 순서에 따라 제외 상태가 뒤집힌다.
+   */
   async function exclude(isExcluded: boolean) {
+    if (isBusy) return;
+
+    setIsBusy(true);
+
     try {
       const { count, skippedItems } = await updateTaxInvoiceExclusion(
         [...picked],
         isExcluded,
       );
-      report(isExcluded ? '연결 대상에서 뺐어요' : '연결 대상에 넣었어요', count, skippedItems);
+      report(
+        isExcluded ? '연결 대상에서 뺐어요' : '연결 대상에 넣었어요',
+        count,
+        skippedItems,
+      );
     } catch (caught) {
-      notifyToast(messageOf(caught, '처리하지 못했습니다.'));
+      notifyToast(messageOf(caught, '처리하지 못했습니다.'), 'error');
+    } finally {
+      setIsBusy(false);
     }
   }
 
@@ -198,6 +220,7 @@ export default function TaxInvoiceList() {
           <div className="ml-auto flex flex-wrap gap-2">
             <button
               type="button"
+              disabled={isBusy}
               onClick={() => exclude(true)}
               className="btn btn-sm btn-gray-outlined"
             >
@@ -205,12 +228,17 @@ export default function TaxInvoiceList() {
             </button>
             <button
               type="button"
+              disabled={isBusy}
               onClick={() => exclude(false)}
               className="btn btn-sm btn-gray-outlined"
             >
               제외 취소
             </button>
-            <DeleteButton count={picked.size} onConfirm={remove} />
+            <DeleteButton
+              count={picked.size}
+              isBusy={isBusy}
+              onConfirm={remove}
+            />
           </div>
         </div>
       )}
@@ -428,9 +456,11 @@ function SearchIcon() {
 /** ⚠️ 삭제는 되돌릴 수 없다 — 한 번 묻는다 */
 function DeleteButton({
   count,
+  isBusy,
   onConfirm,
 }: {
   count: number;
+  isBusy: boolean;
   onConfirm: () => void;
 }) {
   const [isAsking, setIsAsking] = useState(false);
@@ -439,6 +469,7 @@ function DeleteButton({
     <>
       <button
         type="button"
+        disabled={isBusy}
         onClick={() => setIsAsking(true)}
         className="btn btn-sm btn-danger"
       >

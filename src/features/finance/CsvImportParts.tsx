@@ -33,7 +33,15 @@ export function StepBar({
   return (
     <ol className="flex flex-wrap items-center gap-2">
       {steps.map((label, index) => (
-        <li key={label} className="flex items-center gap-2">
+        /**
+         * ⚠️ 지금 단계를 **색과 굵기로만** 알리지 않는다 —
+         *    스크린리더로는 셋 다 똑같이 읽혀 어디쯤인지 알 수 없다.
+         */
+        <li
+          key={label}
+          aria-current={index === current ? 'step' : undefined}
+          className="flex items-center gap-2"
+        >
           <span
             className={`flex size-5 items-center justify-center rounded-pill text-detail font-bold ${
               index <= current

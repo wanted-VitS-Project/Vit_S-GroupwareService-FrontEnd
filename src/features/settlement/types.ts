@@ -325,7 +325,7 @@ export function findBlocker(
 
   if (form.plannedDate.trim() === '') return '입출금 기한을 입력해주세요.';
 
-  // 거래처명은 방향에 따라 부르는 이름이 다르다 — 폼 라벨과 문구를 맞춘다
+  // 폼 라벨과 같은 말을 쓴다 (`TRADER_LABEL` 한 곳에서 온다)
   if (form.traderName.trim() === '') {
     return `${TRADER_LABEL}을(를) 입력해주세요.`;
   }
