@@ -235,6 +235,11 @@ export const ENDPOINTS = {
       `${V1}/steps/${stepId}/activity-logs`,
   },
   issues: {
+    /**
+     * 담당 이슈 캘린더 — 로그인 사용자가 담당인 **미완료 이슈 전체**가 한 번에 온다.
+     * 기간 파라미터가 없다 — 월 이동은 받아 둔 데이터를 화면에서 거른다.
+     */
+    calendar: `${V1}/issues/calendar`,
     /** 상세 조회 · 부분 수정 · 삭제 */
     detail: (issueId: number | string) => `${V1}/issues/${issueId}`,
     /** 상태 변경 — 부분 수정과 엔드포인트가 다르다 */
