@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import Logo from '@/components/Logo';
+import MemberAvatar from '@/components/MemberAvatar';
 import MenuIcon from '@/components/MenuIcon';
 import { findActiveMenu } from '@/constants/menu';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
@@ -25,17 +27,25 @@ export default function Sidebar() {
         모양을 바꿀 때는 두 곳을 함께 고친다.
       */}
       <div className="flex h-13 items-center border-b border-bg-sidebar-hover px-6">
-        <span className="text-logo font-bold tracking-tight text-text-white">
-          Vita<span className="text-text-primary-blue">S</span>
-        </span>
+        {/* 로고는 어느 화면에서나 **홈으로 가는 길**이다 (프로젝트 화면은 `Header` 참고) */}
+        <Link href="/" aria-label="홈으로 이동" className="flex items-center">
+          <Logo />
+        </Link>
       </div>
 
       <Link
         href="/mypage"
         className="flex h-20 items-center gap-3 border-b border-bg-sidebar-hover px-6 hover:bg-bg-sidebar-hover"
       >
-        {/* TODO: 프로필 이미지 자리 */}
-        <div className="size-10 shrink-0 rounded-pill bg-bg-hover-secondary" />
+        {/* 이름이 바로 옆에 있으므로 장식으로 숨긴다 */}
+        <MemberAvatar
+          userId={user.userId}
+          name={user.name}
+          size="lg"
+          withRing={false}
+          decorative
+          imageUrl={user.profileImageUrl}
+        />
 
         <div className="min-w-0 flex-1">
           {/*

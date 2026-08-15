@@ -11,7 +11,11 @@ import { formatDate } from '@/lib/format';
 import { useModalTarget } from '@/lib/useModal';
 
 import { ProjectImagesSkeleton } from './ProjectOverviewSkeletons';
-import { imageBlockLabel, useImageBlockNames } from './useImageBlockNames';
+import {
+  imageBlockLabel,
+  readImageBlockNames,
+  useImageBlockNames,
+} from './useImageBlockNames';
 
 /**
  * 크게 보기는 별도 청크로 뺀다 — 목록만 훑고 나가는 사용자가 `Modal` 까지 받을 이유가 없다.
@@ -44,15 +48,6 @@ export default function ProjectImages() {
 
   const lightbox = useModalTarget<ProjectImage>();
 
-  /*
-   * 블록 이름은 107번 응답에 없어 스텝 블록 목록에서 따로 모은다 — 요청이 스텝 수만큼 늘어난다.
-   * 그래서 **이름을 실제로 쓰는 순간**(블록별 보기 · 크게 보기)에만 켠다.
-   */
-  const blockNames = useImageBlockNames(
-    projectId,
-    groupByBlock || lightbox.target !== null,
-  );
-
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
@@ -71,6 +66,24 @@ export default function ProjectImages() {
 
   const images = loaded?.projectId === projectId ? loaded.images : null;
   const hasFailed = failedProjectId === projectId;
+
+  /*
+   * 블록 이름은 두 갈래로 얻는다.
+   *
+   * 1. **응답에 실려 오면 그대로 쓴다** — 백엔드에 요청해 둔 `blockTitle` · `stepId` ·
+   *    `stepName` 이 배포되면 이 길로 붙고, 아래 N+1 조회는 **켜지지 않는다.**
+   * 2. 아직 안 오면 스텝마다 블록 목록을 불러 모은다 (요청이 스텝 수만큼 늘어난다).
+   *    그래서 **이름을 실제로 쓰는 순간**(블록별 보기 · 크게 보기)에만 켠다.
+   */
+  const embeddedNames = useMemo(
+    () => (images ? readImageBlockNames(images) : null),
+    [images],
+  );
+  const fetchedNames = useImageBlockNames(
+    projectId,
+    embeddedNames === null && (groupByBlock || lightbox.target !== null),
+  );
+  const blockNames = embeddedNames ?? fetchedNames;
 
   // 블록 묶음은 이름이 늦게 도착해도 그대로다 — 목록이 바뀔 때만 다시 만든다
   const blocks = useMemo(

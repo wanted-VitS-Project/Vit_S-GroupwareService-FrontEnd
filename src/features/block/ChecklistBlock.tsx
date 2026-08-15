@@ -42,6 +42,10 @@ interface DraftableItem extends ChecklistItem {
  *
  * 진척률(`n / m 완료`)은 화면의 항목 목록에서 계산한다.
  * 응답의 `completedCount` · `totalCount` 를 쓰면 목록과 숫자가 어긋날 수 있다.
+ *
+ * ⚠️ 항목 목록은 첫 렌더에 `block.detail` 에서 **베껴 온 뒤 화면이 주인이 된다.**
+ *    그래서 재조회 결과를 따라가려면 아래 렌더 중 상태 조정이 반드시 있어야 한다 —
+ *    없으면 새로고침해도 남이 바꾼 항목이 영영 보이지 않는다.
  */
 export default function ChecklistBlock({ block }: { block: StepBlock }) {
   const [items, setItems] = useState<DraftableItem[]>(() =>
@@ -53,6 +57,24 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
    */
   const chkBlockId = readChecklistBlockId(block.detail);
   const [isEditing, setIsEditing] = useState(false);
+
+  // effect 가 아니라 렌더 중 상태 조정이다 (`TextBlock` 과 같은 방식)
+  /**
+   * 재조회로 서버 항목이 바뀌면 화면도 따라간다.
+   *
+   * ⚠️ **편집 중에는 따라가지 않는다.** 모든 변경이 낙관적 갱신이라 아직 응답을 못 받은
+   *    항목이 화면에 있고, 그 사이 도착한 목록으로 덮으면 방금 누른 체크가 풀린다.
+   *    편집을 끝내는 순간 이 조정이 돌아 서버 값을 받는다.
+   *
+   * `detail` **참조**로 비교한다 — react-query 가 구조 공유로 내용이 같으면 같은 참조를 준다.
+   * 이름 · 담당자 수정(`BlockActions.patch`)은 `detail` 을 건드리지 않아 여기 걸리지 않는다.
+   */
+  const [syncedDetail, setSyncedDetail] = useState(block.detail);
+  if (!isEditing && syncedDetail !== block.detail) {
+    setSyncedDetail(block.detail);
+    setItems(readChecklistItems(block.detail));
+  }
+
   const [draft, setDraft] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingText, setEditingText] = useState('');

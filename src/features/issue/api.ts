@@ -2,6 +2,7 @@ import { ENDPOINTS } from '@/constants/endpoints';
 import { api } from '@/lib/api';
 
 import type {
+  CalendarIssue,
   CreateIssueRequest,
   IssueDetail,
   IssueStatus,
@@ -43,6 +44,19 @@ export function getProjectIssues(
     ENDPOINTS.projects.issues(projectId),
     signal,
   );
+}
+
+/**
+ * 담당 이슈 캘린더 — 로그인 사용자가 담당인 **미완료 이슈 전체**.
+ * 응답이 `{ issues: [...] }` 로 한 겹 감싸져 있어 여기서 벗겨 반환한다.
+ *
+ * ⚠️ **기간 파라미터가 없다.** 한 번에 다 받아 두고 월 이동은 화면에서 거른다 —
+ *    달을 넘길 때마다 다시 부르지 않는다.
+ */
+export function getIssueCalendar(signal?: AbortSignal) {
+  return api
+    .get<{ issues: CalendarIssue[] }>(ENDPOINTS.issues.calendar, signal)
+    .then((data) => data.issues);
 }
 
 export function getIssue(issueId: number | string, signal?: AbortSignal) {

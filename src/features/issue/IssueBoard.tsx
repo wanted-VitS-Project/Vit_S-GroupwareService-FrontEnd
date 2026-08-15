@@ -1,11 +1,12 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import ModalLoadingFallback from '@/components/ModalLoadingFallback';
 import { getProjectSteps } from '@/features/project/api';
+import { ISSUE_PARAM, PROJECT_ROUTES } from '@/features/project/routes';
 import { isAbortError, messageOf } from '@/lib/api';
 
 import DeleteIssueModal from './DeleteIssueModal';
@@ -60,6 +61,21 @@ type OpenModal =
   | null;
 
 /**
+ * 알림 딥링크(`?issue=`)를 상세 모달로 바꾼다.
+ *
+ * 이슈는 단독 화면이 없어 보드까지만 데려가면 어느 이슈였는지 사용자가 다시 찾아야 한다.
+ * 못 믿을 값(빈 값 · 음수 · 소수)이면 열지 않는다 — 없는 이슈로 빈 모달을 띄우지 않는다.
+ */
+function deepLinkModal(issueParam: string | null): OpenModal {
+  if (issueParam === null) return null;
+
+  const issueId = Number(issueParam);
+  if (!Number.isSafeInteger(issueId) || issueId <= 0) return null;
+
+  return { kind: 'detail', issueId };
+}
+
+/**
  * 스텝 이슈(일정) 보드 — 상태 3열 칸반. (.ai/API.md 55~60번)
  *
  * 서버는 필터 · 정렬을 하지 않는다. **첫 조회만 마감일 순(미지정 마지막)** 으로 세우고,
@@ -73,6 +89,11 @@ export default function IssueBoard() {
   const params = useParams<{ id: string; stepId: string }>();
   const projectId = params.id;
   const stepId = params.stepId;
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  /** 알림에서 넘어온 이슈 — 있으면 그 상세 모달을 열고 온다 */
+  const requestedIssueId = searchParams.get(ISSUE_PARAM);
 
   /** 어느 스텝의 응답인지 함께 담는다 — 경로가 바뀌면 즉시 무효가 된다 */
   const [loaded, setLoaded] = useState<{
@@ -97,7 +118,50 @@ export default function IssueBoard() {
     stepName: string;
   } | null>(null);
 
-  const [openModal, setOpenModal] = useState<OpenModal>(null);
+  /**
+   * 열린 모달 + **그 값을 만들어 낸 `?issue=` 파라미터**를 함께 들고 있다.
+   *
+   * 딥링크를 이펙트에서 반영하면 보드가 한 번 그려진 뒤 모달이 뒤늦게 떠 화면이 튄다
+   * (`react-hooks/set-state-in-effect` 도 막는다). 파라미터를 함께 기억해 두고
+   * **렌더 중에** 어긋남을 맞추면, 같은 화면에 머문 채 다른 알림을 눌러도 바로 잡힌다.
+   */
+  const [modal, setModal] = useState<{
+    fromParam: string | null;
+    open: OpenModal;
+  }>(() => ({
+    fromParam: requestedIssueId,
+    open: deepLinkModal(requestedIssueId),
+  }));
+
+  if (modal.fromParam !== requestedIssueId) {
+    setModal({
+      fromParam: requestedIssueId,
+      open: deepLinkModal(requestedIssueId),
+    });
+  }
+
+  const openModal = modal.open;
+
+  /**
+   * `requestedIssueId` 가 의존성이라 **딥링크로 들어온 순간에만** 정체성이 바뀐다 —
+   * 평소에는 고정이라 아래 `openDetail` 등을 통해 `IssueCard` 의 memo 를 깨지 않는다.
+   */
+  const setOpenModal = useCallback(
+    (open: OpenModal) => {
+      setModal((prev) => ({ ...prev, open }));
+
+      /*
+        딥링크로 열린 모달을 닫으면 주소도 정리한다 —
+        `?issue=` 를 남겨두면 새로고침 · 뒤로 가기에 같은 모달이 계속 되살아난다.
+      */
+      if (open === null && requestedIssueId !== null) {
+        router.replace(PROJECT_ROUTES.stepIssues(projectId, stepId), {
+          scroll: false,
+        });
+      }
+    },
+    [router, projectId, stepId, requestedIssueId],
+  );
 
   // 드래그 상태
   const [draggingId, setDraggingId] = useState<number | null>(null);
@@ -340,19 +404,28 @@ export default function IssueBoard() {
   }, []);
 
   /** 카드마다 새 함수를 만들지 않도록 대상 ID 를 인자로 받는다 (`IssueCard` 는 memo) */
-  const openDetail = useCallback((issueId: number) => {
-    // 드래그를 끝낸 직후의 클릭은 무시한다
-    if (didDragRef.current) return;
-    setOpenModal({ kind: 'detail', issueId });
-  }, []);
+  const openDetail = useCallback(
+    (issueId: number) => {
+      // 드래그를 끝낸 직후의 클릭은 무시한다
+      if (didDragRef.current) return;
+      setOpenModal({ kind: 'detail', issueId });
+    },
+    [setOpenModal],
+  );
 
-  const openEdit = useCallback((issueId: number) => {
-    setOpenModal({ kind: 'edit', issueId });
-  }, []);
+  const openEdit = useCallback(
+    (issueId: number) => {
+      setOpenModal({ kind: 'edit', issueId });
+    },
+    [setOpenModal],
+  );
 
-  const openDelete = useCallback((issueId: number) => {
-    setOpenModal({ kind: 'delete', issueId });
-  }, []);
+  const openDelete = useCallback(
+    (issueId: number) => {
+      setOpenModal({ kind: 'delete', issueId });
+    },
+    [setOpenModal],
+  );
 
   const draggingIssue = issues?.find((issue) => issue.issueId === draggingId);
 

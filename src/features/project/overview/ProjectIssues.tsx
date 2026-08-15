@@ -65,8 +65,14 @@ export default function ProjectIssues() {
   const [openStepIds, setOpenStepIds] = useState<Set<number>>(new Set());
   const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);
 
-  // 108번 응답에 `stageId` 가 없어 따로 읽는다. 실패해도 목록은 그대로 보인다
-  const stageIndex = useProjectStages(projectId);
+  /*
+   * 108번 응답에 `stageId` 가 없어 따로 읽는다. 실패해도 목록은 그대로 보인다.
+   * 다만 **판정이 끝나기 전에는 그리지 않는다** (`isSettled`) — 색인 없이 먼저 그리면
+   * 스텝이 한 덩어리로 늘어섰다가 색인이 도착하는 순간 스테이지별로 다시 묶여
+   * 제목이 끼어들고 높이가 바뀐다.
+   */
+  const { index: stageIndex, isSettled: isStageSettled } =
+    useProjectStages(projectId);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -155,7 +161,8 @@ export default function ProjectIssues() {
     );
   }
 
-  if (!data || !steps) return <ProjectIssuesSkeleton />;
+  // 스테이지 색인까지 기다렸다가 **묶인 모습으로 한 번에** 그린다
+  if (!data || !steps || !isStageSettled) return <ProjectIssuesSkeleton />;
 
   const { progress } = data;
   const areAllOpen = steps.every((step) => openStepIds.has(step.stepId));
@@ -180,7 +187,7 @@ export default function ProjectIssues() {
 
         <div className="flex items-center gap-2.5">
           <IssueProgressBar progress={progress} className="h-2 flex-1" />
-          <span className="w-9 shrink-0 text-right text-label font-medium text-text-primary-blue">
+          <span className="w-10 shrink-0 text-right text-label font-medium whitespace-nowrap text-text-primary-blue">
             {/* 이슈가 없으면 `null` 이 온다 — 0% 로 그리면 '다 못 끝냈다' 로 읽힌다 */}
             {progress.progressRate === null ? '—' : `${progress.progressRate}%`}
           </span>
@@ -311,7 +318,8 @@ const StepAccordion = memo(function StepAccordion({
         <div className="hidden w-40 shrink-0 items-center gap-2 sm:flex">
           <IssueProgressBar progress={step} className="h-1.5 flex-1" />
           <span
-            className={`w-8 shrink-0 text-right text-detail font-medium ${
+            /* `100%` 가 들어갈 만큼은 넓혀 둔다 — 좁으면 숫자와 `%` 가 두 줄로 갈린다 */
+            className={`w-9 shrink-0 text-right text-detail font-medium whitespace-nowrap ${
               step.progressRate === null
                 ? 'text-text-muted'
                 : 'text-text-primary-blue'

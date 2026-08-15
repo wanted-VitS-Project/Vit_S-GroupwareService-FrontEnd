@@ -3,6 +3,7 @@
 import PageTitle from '@/components/PageTitle';
 import { ROLE_LABELS } from '@/constants/status';
 import ChangePasswordButton from '@/features/auth/ChangePasswordButton';
+import ProfileImageField from '@/features/auth/ProfileImageField';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { formatDate, formatDateTime } from '@/lib/format';
 
@@ -15,6 +16,10 @@ export default function MyPage() {
       <PageTitle title="내 정보" />
 
       <div className="space-y-6">
+        <Card title="프로필 사진" isPlain>
+          <ProfileImageField />
+        </Card>
+
         <Card title="인사 정보">
           <Field label="사번" value={user.userId} />
           <Field label="이름" value={user.name} />
@@ -44,10 +49,14 @@ export default function MyPage() {
 interface CardProps {
   title: string;
   action?: React.ReactNode;
+  /** `Field` 가 아닌 내용을 담는 카드 — `<dl>` 대신 평범한 `<div>` 로 감싼다 */
+  isPlain?: boolean;
   children: React.ReactNode;
 }
 
-function Card({ title, action, children }: CardProps) {
+function Card({ title, action, isPlain = false, children }: CardProps) {
+  const Body = isPlain ? 'div' : 'dl';
+
   return (
     <section className="rounded-base bg-bg-card p-6">
       <div className="flex items-center justify-between gap-4">
@@ -55,7 +64,13 @@ function Card({ title, action, children }: CardProps) {
         {action}
       </div>
 
-      <dl className="mt-6 grid gap-x-10 gap-y-5 sm:grid-cols-2">{children}</dl>
+      <Body
+        className={
+          isPlain ? 'mt-6' : 'mt-6 grid gap-x-10 gap-y-5 sm:grid-cols-2'
+        }
+      >
+        {children}
+      </Body>
     </section>
   );
 }

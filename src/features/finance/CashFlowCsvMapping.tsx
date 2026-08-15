@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import DataTable, { type DataTableColumn } from '@/components/DataTable';
+import { notifyToast } from '@/components/Toast';
 import {
   AlertBanner,
   SelectField,
@@ -11,6 +11,12 @@ import {
 import { messageOf } from '@/lib/api';
 
 import { uploadCashFlowCsv } from './api';
+import {
+  ColumnField,
+  CUSTOM,
+  ModeGroup,
+  SamplePreview,
+} from './CsvImportParts';
 import type {
   CsvAmountMode,
   CsvColumnMapping,
@@ -18,10 +24,6 @@ import type {
   CsvPreview,
   CsvUploadResult,
 } from './types';
-
-/** 셀렉트의 특별한 두 값 — 컬럼명과 겹치지 않게 화살괄호를 쓴다 */
-const NONE = '';
-const CUSTOM = '<직접 입력>';
 
 type MappingField = keyof CsvColumnMapping;
 
@@ -149,17 +151,22 @@ export default function CashFlowCsvMapping({
         balanceColumn: keep('balanceColumn'),
       };
 
-      onUploaded(
-        await uploadCashFlowCsv(file, {
-          ...cleaned,
-          bankName: bankName.trim(),
-          dateTimeMode,
-          amountMode,
-          ...(password ? { password } : {}),
-        }),
-      );
+      const uploaded = await uploadCashFlowCsv(file, {
+        ...cleaned,
+        bankName: bankName.trim(),
+        dateTimeMode,
+        amountMode,
+        ...(password ? { password } : {}),
+      });
+
+      onUploaded(uploaded);
+      notifyToast('CSV 업로드를 마쳤습니다.');
     } catch (caught) {
-      setError(messageOf(caught, '업로드하지 못했습니다.'));
+      const message = messageOf(caught, '업로드하지 못했습니다.');
+
+      setError(message);
+      // 파싱 · 저장이 오래 걸려 그 사이 화면을 옮겼을 수 있다
+      notifyToast(message, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -180,7 +187,7 @@ export default function CashFlowCsvMapping({
        * 좌우로 나누면 표가 화면 절반으로 좁아져 값이 잘려 읽힌다.
        */}
       <div className="mt-4 flex flex-col gap-4">
-        <SamplePreview preview={preview} />
+        <SamplePreview columns={preview.columns} rows={preview.sampleRows} />
 
         <div className="rounded-base border border-border-default bg-bg-card p-6">
           <p className="mb-4 text-label font-bold text-text-primary">
@@ -368,165 +375,4 @@ export default function CashFlowCsvMapping({
 /** 선택하지 않아도 되는 칸 */
 function isOptional(field: MappingField) {
   return field === 'memoColumn' || field === 'balanceColumn';
-}
-
-/** 두 방식 중 하나를 고르는 라디오 묶음 */
-function ModeGroup<T extends string>({
-  name,
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  /** ⚠️ 같은 그룹의 라디오는 `name` 이 같아야 방향키로 옮겨 다닐 수 있다 */
-  name: string;
-  label: string;
-  value: T;
-  options: { value: T; label: string }[];
-  onChange: (value: T) => void;
-}) {
-  return (
-    <fieldset>
-      <legend className="pb-1.5 text-caption font-semibold text-text-primary">
-        {label}
-      </legend>
-      <div className="flex flex-wrap gap-2">
-        {options.map((option) => (
-          <label
-            key={option.value}
-            className={`flex flex-1 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-caption ${
-              option.value === value
-                ? 'border-border-primary bg-blue-bg-soft font-semibold text-text-primary'
-                : 'border-border-default text-text-secondary hover:bg-bg-surface'
-            }`}
-          >
-            <input
-              type="radio"
-              name={name}
-              checked={option.value === value}
-              onChange={() => onChange(option.value)}
-              className="size-3.5 cursor-pointer accent-btn-primary"
-            />
-            {option.label}
-          </label>
-        ))}
-      </div>
-    </fieldset>
-  );
-}
-
-/**
- * 컬럼 한 칸.
- *
- * 셀렉트에는 파일의 컬럼 목록에 더해 `직접 입력` 이 있고, 필수가 아닌 칸에는
- * `선택 안 함` 이 함께 있다. `직접 입력` 을 고르면 글자 칸으로 바뀐다.
- */
-function ColumnField({
-  field,
-  label,
-  hint,
-  required,
-  columns,
-  customFields,
-  mapping,
-  onChange,
-  onCustomChange,
-}: {
-  field: MappingField;
-  label: string;
-  hint?: string;
-  required?: boolean;
-  columns: string[];
-  customFields: MappingField[];
-  mapping: CsvColumnMapping;
-  onChange: (field: MappingField, value: string | null) => void;
-  onCustomChange: (field: MappingField, isCustom: boolean) => void;
-}) {
-  const id = `csv-${field}`;
-  const value = mapping[field] ?? '';
-
-  if (customFields.includes(field)) {
-    return (
-      <div>
-        <TextField
-          id={id}
-          label={label}
-          required={required}
-          value={value}
-          placeholder="파일의 컬럼명을 그대로 적어주세요"
-          hint={hint}
-          onChange={(next) => onChange(field, next)}
-        />
-        {/* ⚠️ 되돌릴 길이 없으면 잘못 골랐을 때 파일부터 다시 올려야 한다 */}
-        <button
-          type="button"
-          onClick={() => onCustomChange(field, false)}
-          className="mt-1 cursor-pointer text-micro text-text-primary-blue hover:underline"
-        >
-          목록에서 고르기
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <SelectField
-      id={id}
-      label={label}
-      required={required}
-      value={value}
-      hint={hint}
-      emptyLabel={required ? '선택해주세요' : '선택 안 함'}
-      options={[
-        ...columns.map((column) => ({ value: column, label: column })),
-        { value: CUSTOM, label: '직접 입력' },
-      ]}
-      onChange={(next) => {
-        if (next === CUSTOM) {
-          onCustomChange(field, true);
-          return;
-        }
-        onChange(field, next === NONE ? null : next);
-      }}
-    />
-  );
-}
-
-/** 상위 5행 미리보기 */
-function SamplePreview({ preview }: { preview: CsvPreview }) {
-  /**
-   * ⚠️ 여기서는 **가로 스크롤을 허용한다** (`minWidth`) — 목록 표와 달리 컬럼 수가
-   *    파일마다 다르고 화면 절반만 쓰기 때문에, 나눠 담으면 값이 읽히지 않는다.
-   *    한 열에 최소 8rem 을 준다.
-   */
-  const columns: DataTableColumn<Record<string, string>>[] =
-    preview.columns.map((column) => ({
-      key: column,
-      header: column,
-      width: '8rem',
-      cell: (row) => (
-        <span className="block [overflow-wrap:anywhere] break-keep text-text-secondary">
-          {row[column] || '-'}
-        </span>
-      ),
-    }));
-
-  return (
-    <div className="rounded-base border border-border-default bg-bg-card p-6">
-      <p className="mb-4 text-label font-bold text-text-primary">
-        파일 미리보기{' '}
-        <span className="text-caption font-medium text-text-secondary">
-          (상위 {preview.sampleRows.length}행)
-        </span>
-      </p>
-
-      <DataTable
-        caption="업로드한 파일의 상위 행"
-        columns={columns}
-        rows={preview.sampleRows}
-        minWidth={preview.columns.length * 128}
-        dense
-      />
-    </div>
-  );
 }

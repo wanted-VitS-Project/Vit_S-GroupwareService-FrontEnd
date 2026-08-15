@@ -12,7 +12,7 @@ import {
   isLockedSettlement,
   readSettlementBlockDetail,
   SETTLEMENT_STATUS_LABELS,
-  traderLabel,
+  TRADER_LABEL,
   type SettlementBlockDetail,
   type SettlementItem,
   type SettlementStatus,
@@ -152,9 +152,9 @@ function Loaded({
         <Row label="정산 예정 총 금액" value={money(item?.totalAmount)} />
         <Row label="이번 회차 예정 금액" value={money(item?.plannedAmount)} />
         <Row label="예정 세금" value={money(item?.plannedTaxAmount)} />
-        <Row label="정산 예정일" value={formatDate(item?.plannedDate) || '—'} />
+        <Row label="입출금 기한" value={formatDate(item?.plannedDate) || '—'} />
         {/* 돈을 보내는 쪽 — 받을 때는 상대 클라이언트, 보낼 때는 우리 회사다 */}
-        <Row label={traderLabel(type)} value={item?.traderName ?? '—'} />
+        <Row label={TRADER_LABEL} value={item?.traderName ?? '—'} />
 
         {/* 계좌는 출금일 때만 쓴다 — 입금 블록에 빈 줄 셋을 남기지 않는다 */}
         {type === 'OUTCOME' && (
@@ -243,8 +243,8 @@ function Row({ label, value }: { label: string; value: string }) {
 /**
  * 수급 진행률. 작성 직후에는 0% 라 막대가 비어 있다.
  *
- * ❗ **`paidAmountRatio` 단위가 확정되지 않았다** — 명세에 작성 직후 값(`0.0`)만 있다.
- * 여기서는 **0~100** 으로 본다. 0~1 이면 절반 정산이 `0.5%` 로 보이므로 바로 드러난다.
+ * ⚠️ **`paidAmountRatio` 는 비율(0~1)이다** — 백분율이 아니다 (2026-08-14 확인).
+ *    전액 정산이 `1.0` 으로 와서 `1.0%` 로 보이던 것을 100 을 곱해 바로잡았다.
  */
 function Progress({ ratio }: { ratio: number }) {
   /**
@@ -255,15 +255,16 @@ function Progress({ ratio }: { ratio: number }) {
    * 그러면 `NaN%` 라고 적히고 막대 폭도 깨진다.
    */
   const percent = Number.isFinite(ratio)
-    ? Math.min(Math.max(ratio, 0), 100)
+    ? Math.min(Math.max(ratio * 100, 0), 100)
     : 0;
 
   return (
     <div className="mt-3">
       <div className="flex items-baseline justify-between">
         <span className="text-caption text-text-secondary">수급 진행률</span>
-        <span className="text-caption text-text-secondary">
-          {percent.toFixed(1)}%
+        {/* 숫자 · `%` 를 한 문자열로 — 나뉘면 좁은 칸에서 `100.0` / `%` 로 끊긴다 */}
+        <span className="text-caption whitespace-nowrap text-text-secondary">
+          {`${percent.toFixed(1)}%`}
         </span>
       </div>
       <div className="mt-1 h-1.5 overflow-hidden rounded-pill bg-bg-surface">

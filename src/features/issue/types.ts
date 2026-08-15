@@ -151,6 +151,29 @@ export interface IssueStatusChanged {
 }
 
 /**
+ * 담당 이슈 캘린더 한 줄. (GET /issues/calendar)
+ *
+ * ⚠️ **목록 이슈(`IssueSummary`)와 모양이 다르다** — 담당자 · 연결 블록 · `version` 이 없고,
+ *    대신 어느 프로젝트 · 스텝의 이슈인지가 실려 온다 (캘린더는 도메인을 가로지른다).
+ * ⛔ `DONE` 이슈와 마감일 없는 이슈는 **응답에서 빠진다** — 화면이 다시 거를 필요가 없다.
+ *    그래서 `dueDate` 도 `null` 이 아니다.
+ * ⛔ 색은 응답에 없다 — `projectId` 기준으로 화면이 매긴다.
+ */
+export interface CalendarIssue {
+  issueId: number;
+  title: string;
+  /** `DONE` 은 오지 않는다 */
+  status: Exclude<IssueStatus, 'DONE'>;
+  priority: IssuePriority;
+  /** YYYY-MM-DD — 캘린더 조회에서는 **항상 값이 있다** */
+  dueDate: string;
+  stepId: number;
+  stepName: string;
+  projectId: number;
+  projectName: string;
+}
+
+/**
  * 생성 · 수정 모달이 다루는 입력값.
  *
  * `status` 는 없다 — 생성은 항상 `TODO` 이고 이후 변경은 보드 드래그로만 한다.

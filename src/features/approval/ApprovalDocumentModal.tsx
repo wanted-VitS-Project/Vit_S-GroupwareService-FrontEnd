@@ -160,11 +160,13 @@ export default function ApprovalDocumentModal({
             </p>
           </div>
 
+          {/* 문서 뷰어(`FileViewerModal`)와 같은 모양 — 아이콘 + `다운로드` */}
           <button
             type="button"
             onClick={download}
-            className="shrink-0 cursor-pointer rounded-lg border border-border-default px-3 py-1.5 text-label font-semibold text-text-primary hover:bg-bg-hover"
+            className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-button-md px-2.5 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover"
           >
+            <DownloadIcon />
             다운로드
           </button>
           <button
@@ -250,5 +252,25 @@ export default function ApprovalDocumentModal({
         {downloadError}
       </p>
     </Modal>
+  );
+}
+
+/** 문서 뷰어(`FileViewerModal`)와 같은 벡터 · 크기다 */
+function DownloadIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className="size-3 shrink-0"
+    >
+      <path d="M4 20h16" />
+      <path d="M12 4v11" />
+      <path d="m7.5 10.5 4.5 4.5 4.5-4.5" />
+    </svg>
   );
 }

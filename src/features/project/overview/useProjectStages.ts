@@ -55,10 +55,20 @@ function loadStageIndex(projectId: string) {
   });
 }
 
+/**
+ * 스테이지 색인과 **판정이 끝났는지**를 함께 돌려준다.
+ *
+ * ⚠️ `index` 만으로는 `아직 오는 중`과 `실패해서 영영 안 옴`을 구분할 수 없다.
+ *    이 훅은 실패를 조용히 삼키므로 실패해도 `index` 는 계속 `null` 이다.
+ *    부르는 쪽이 둘을 구분하지 못하면 **먼저 묶지 않은 채 그렸다가**
+ *    색인이 뒤늦게 도착하는 순간 목록이 스테이지별로 다시 묶이면서
+ *    제목이 끼어들고 높이가 바뀐다 — 화면이 한 번 들썩인다.
+ *    `isSettled` 가 참이 될 때까지 첫 그림을 미루면 묶인 모습으로 한 번에 나온다.
+ */
 export function useProjectStages(projectId: string) {
   const [loaded, setLoaded] = useState<{
     projectId: string;
-    index: StageIndex;
+    index: StageIndex | null;
   } | null>(null);
 
   useEffect(() => {
@@ -72,15 +82,24 @@ export function useProjectStages(projectId: string) {
       .then((index) => {
         if (!isStale) setLoaded({ projectId, index });
       })
-      // 묶기에 실패해도 목록은 보여야 한다 — 조용히 넘긴다
-      .catch(() => undefined);
+      /*
+       * 묶기에 실패해도 목록은 보여야 한다 — 색인을 `null` 로 두고 **판정은 끝났다고**
+       * 기록한다. 기록하지 않으면 부르는 쪽이 영영 오지 않을 값을 기다리며
+       * 로딩 껍데기에 갇힌다.
+       */
+      .catch(() => {
+        if (!isStale) setLoaded({ projectId, index: null });
+      });
 
     return () => {
       isStale = true;
     };
   }, [projectId]);
 
-  return loaded?.projectId === projectId ? loaded.index : null;
+  // 다른 프로젝트의 값은 쓰지 않는다 — 경로가 바뀌면 다시 기다리는 상태로 돌아간다
+  const current = loaded?.projectId === projectId ? loaded : null;
+
+  return { index: current?.index ?? null, isSettled: current !== null };
 }
 
 export interface StageGroup<T> {

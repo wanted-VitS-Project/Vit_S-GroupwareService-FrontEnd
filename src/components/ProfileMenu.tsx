@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
+import MemberAvatar from '@/components/MemberAvatar';
 import { logout } from '@/features/auth/api';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { ApiError } from '@/lib/api';
@@ -101,11 +102,14 @@ export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
           isDark ? 'hover:bg-bg-sidebar-hover' : 'hover:bg-bg-hover'
         }`}
       >
-        {/* TODO: 프로필 이미지 자리 */}
-        <span
-          className={`size-9 shrink-0 rounded-pill ${
-            isDark ? 'bg-bg-sidebar-hover' : 'bg-bg-hover-secondary'
-          }`}
+        {/* 이름이 바로 옆에 있으므로 장식으로 숨긴다 */}
+        <MemberAvatar
+          userId={user.userId}
+          name={user.name}
+          size="md"
+          withRing={false}
+          decorative
+          imageUrl={user.profileImageUrl}
         />
 
         <span className="min-w-0 text-left">

@@ -6,6 +6,528 @@
 
 ---
 
+## [2026-08-14] 전사 파일 관리 화면 신설 · 파일 업로드 결과 토스트 ✅
+
+브랜치: `ref-ys` · API: 142(전사 파일 목록) · 143~150(사내 문서함) 신규 연동 · 이슈: #TBD
+
+전사 관리 허브에 **전사 파일 관리** 를 새로 붙였다. `프로젝트 파일` · `사내 문서함` 두 탭이고, 사내 문서함은 프로젝트 파일과 저장소가 다른 별도 도메인이라 `features/companyDocument/` 로 갈라 두었다. 겸해서 **파일이 올라가는 모든 화면**에 완료 · 실패 토스트를 붙였다.
+
+### 변경 파일
+
+| 파일 | 변경 |
+| ---- | ---- |
+| `src/app/settings/files/page.tsx` | **생성** (라우트 진입점) |
+| `src/features/file/CompanyFileAdmin.tsx` | **생성** (두 탭 껍데기) |
+| `src/features/file/AdminFileList.tsx` | **생성** (전사 파일 목록 · 요약 · 필터 · 페이징) |
+| `src/features/companyDocument/{types,api,upload}.ts` | **생성** (사내 문서 도메인) |
+| `src/features/companyDocument/CompanyDocumentList.tsx` | **생성** (목록 · 업로드 · 삭제 · 복구) |
+| `src/features/companyDocument/CompanyDocumentViewerModal.tsx` | **생성** (미리보기 + 버전 이력) |
+| `src/features/companyDocument/EditCompanyDocumentModal.tsx` | **생성** (표시명 · 분류 수정) |
+| `src/app/settings/page.tsx` | 수정 (`파일` 섹션 카드 추가) |
+| `src/constants/endpoints.ts` | 수정 (`files.admin` · `companyDocuments`) |
+| `src/features/file/{api,types}.ts` | 수정 (`getAdminFiles` · `AdminFile` · `FilePage<T>`) |
+| `src/features/block/FileBlock.tsx` · `ImageUploadModal.tsx` | 수정 (업로드 토스트) |
+| `src/features/approval/ApprovalDraftForm.tsx` | 수정 (첨부 토스트) |
+| `src/features/auth/ProfileImageField.tsx` | 수정 (프로필 사진 토스트) |
+| `src/features/employee/BulkUploadModal.tsx` | 수정 (일괄 등록 토스트) |
+| `src/features/finance/CashFlowCsvMapping.tsx` | 수정 (CSV 업로드 토스트) |
+| `src/features/approval/ApprovalDocumentModal.tsx` | 수정 (다운로드 버튼 모양 통일) |
+| `.ai/API.md` | 수정 (142 · 143~150 명세 추가) |
+
+### 주요 작업 내용
+
+- **전사 파일 관리 진입** — 전사 관리 허브의 `파일 › 전사 파일 관리` 카드 → `/settings/files`. 화면은 두 탭 전환만 하고 조회는 각 탭이 한다
+- **프로젝트 파일 탭** — 142번으로 전사 모든 프로젝트의 문서를 문서 단위 최신 완료 버전 1행씩 페이지 조회. 검색 · 프로젝트 · 확장자 필터 · 행 클릭 뷰어
+- **사내 문서함 탭** — 143~150번 전부 연동. 목록 · 2단계 업로드 · 새 버전 · 표시명/분류 수정 · soft delete · 복구 · 미리보기 + 버전 이력
+- **업로드 결과 토스트** — 문서 블록 · 사내 문서 · 결재 첨부 · 이미지 등록 · 프로필 사진 · 사원 일괄 · 입출금 CSV 7곳. 성공은 `notifyToast()`, 실패는 `'error'` 톤이며 **화면 안 오류 문구는 그대로 남긴다**(토스트는 사라지므로)
+
+### 트러블슈팅
+
+- **`react-hooks/set-state-in-effect`** — 문서를 바꿀 때 패널 상태를 효과에서 되돌리다 걸렸다. 부모가 `key` 로 새로 마운트하게 두어 되돌릴 일 자체를 없앴다
+- **`table-fixed` 열 폭 깨짐** — `%` 합이 100을 넘거나 `minWidth` 가 좁으면 날짜 · 아이콘 버튼이 눌려 줄바꿈됐다. 합계를 100으로 맞추고 `minWidth` 를 실제 필요 폭(1000 · 880)으로 올렸다
+- **develop 최신화 충돌** — `CashFlowCsvMapping.tsx` 가 develop 에서 `CsvImportParts` 로 쪼개지며 `DataTable` import 가 빠졌다. 토스트 import 만 남기고 위쪽 정리를 그대로 받았다
+
+### 코드 리뷰 반영 (CodeRabbit)
+
+- **업로드 대상을 `await` 전에 고정** — `versionTargetId.current` 를 응답 후 다시 읽으면, 업로드 중 다른 문서의 `새 버전` 을 누른 경우 요청과 토스트가 서로 다른 것을 가리킨다 (문서 블록 · 사내 문서함 공통)
+- **업로드 중 행의 `새 버전 올리기` 비활성화** — 대상이 덮여 두 업로드가 겹치면 `isUploading` · 오류 문구가 서로를 덮는다
+- **다운로드 팝업 차단 대응** — `window.open` 을 `await` 뒤에 부르면 사용자 클릭과 끊긴 것으로 보여 차단된다. 창을 먼저 열고 URL 발급 후 이동시키며, 실패하면 빈 창을 닫는다
+- **삭제 확인 다이얼로그의 타입 단언 제거** — 조건부 렌더 시점의 값을 지역 상수로 고정한다
+- **`document` prop 이름 제거** — 브라우저 전역 `document` 를 가려 나중에 DOM API 를 쓰면 조용히 잘못된 값을 참조한다 (`item` 으로 통일)
+- **탭 ARIA 완성** — `aria-controls` · `role="tabpanel"` 연결, 화살표 · Home · End 이동과 로빙 `tabIndex` 추가
+
+### 부수 결정
+
+- **사내 문서는 별도 feature 폴더** — 경로 · 에러코드(`CDOC_*`) · 저장소가 모두 달라 `features/file` 에 섞지 않았다. 업로드의 `putToStorage` 만 재사용한다
+- **AI 인덱싱 배지는 뺐다** — 목업에는 있으나 목록 응답에 상태 필드가 없다. 필드명이 정해지면 붙인다
+- **요약 카드는 2장만** — 총 용량 · 기간별 업로드는 집계 API 가 없어 한 페이지 20행으로는 셀 수 없다
+- **정렬 드롭다운 제거** — 142번에 정렬 파라미터가 없다
+- **복구는 삭제 직후에만** — 목록에 삭제분 조건이 없어 화면이 든 id 로만 되돌릴 수 있다 (`되돌리기` 줄)
+
+---
+
+## [2026-08-14] 이미지 블록 정렬 번호 버그 수정 · 이미지 모아보기 N+1 선대응 ✅
+
+브랜치: `ref-ys` · API 변경 없음 (백엔드 필드 추가 요청 발송 완료)· 이슈: #158
+
+이미지 블록에서 **업로드·삭제 후 이미지가 안 뜨고 `다시 시도` 로도 복구되지 않던** 버그를 잡았다. 겸해서 107번에 요청해 둔 필드가 배포되면 N+1 조회가 저절로 사라지도록 미리 대비해 두었다.
+
+### 변경 파일
+
+| 파일                                                  | 변경                                                           |
+| ----------------------------------------------------- | -------------------------------------------------------------- |
+| `src/features/block/ImageBlock.tsx`                   | 수정 (정렬 번호 지어내기 제거 · `resync()` · `applyCreated()`) |
+| `src/features/block/types.ts`                         | 수정 (`ProjectImage` 에 선택 필드 3종 추가)                    |
+| `src/features/project/overview/useImageBlockNames.ts` | 수정 (`readImageBlockNames()` 신설)                            |
+| `src/features/project/overview/ProjectImages.tsx`     | 수정 (응답 필드 우선 · 없을 때만 N+1)                          |
+
+### 주요 작업 내용
+
+- **정렬 번호를 지어내지 않는다** — 세 곳이 값을 만들어 보내고 있었다. `FIRST_REQUEST({ from: 0 })` · `reloadFrom()` 의 `target - 1` · 순환 이동의 `target - 1`. 이제 정렬 번호는 **응답에서 받은 것만** 쓴다
+- **업로드 직후는 재조회 없음** — 생성 응답(67번)이 서버가 매긴 `orderIndex` 를 담아 주므로 `applyCreated()` 가 캐시에 합치고 새 첫 장으로 옮긴다. 기존 목록을 지우지 않고 장수만 더한다
+- **삭제 직후는 목록 재조회** — 삭제 응답이 `null` 이라 남은 이미지를 알 수 없고, 뒤 장들의 번호가 앞으로 당겨져 들고 있던 번호가 전부 옛것이 된다. 이때만 71번으로 받아 서버 번호로 통째로 맞춘다
+- **107번 필드 선대응** — `readImageBlockNames()` 가 응답에 `blockTitle` · `stepId` · `stepName` 이 실려 있으면 그것으로 표를 만들고, 그러면 `useImageBlockNames` 는 `enabled: false` 라 **아예 켜지지 않는다.** 백엔드 배포만으로 N+1 이 사라진다
+
+### 트러블슈팅
+
+- **업로드·삭제 후 이미지가 안 뜨고 `다시 시도` 도 안 먹혔다.** 첫 장을 받으려고 `GET /blocks/images/{id}/items/0?direction=next` 를 보내고 있었다 — "정렬 번호가 1부터니 0의 `next` 가 1번" 이라는 **프론트 자체 규약**이었는데 서버에 0번은 없는 자리라 그대로 실패했다. `다시 시도`(`reloadFrom(1)` → `1 - 1 = 0`) 도 같은 0 을 다시 보내 **몇 번을 눌러도 복구되지 않았다.** 새로고침만 되던 이유는 그때는 블록 조회(10번) `detail` 의 대표 이미지로 그렸기 때문 → 번호를 만들어 쓰는 경로를 전부 없앴다
+- **순환 이동(마지막 → 첫 장)도 같은 0 을 불렀다.** 방향으로 표현할 수 없어 `target - 1` 로 되짚던 자리다 → 캐시에 있을 때만 순환하게 좁혔다. 첫 장은 블록 응답으로 이미 받아 두고 목록 재조회 뒤에는 전부 캐시에 있어 실제로 막히는 경우는 거의 없다
+
+### 부수 결정
+
+- **71번(전체 목록)을 복구 수단으로 쓴다** — 편집 권한이 필요하지만 `다시 시도` · 삭제는 편집자만 하는 동작이라 걸리지 않는다. 진입 때는 대표 이미지가 실려 오는 것이 정상 경로라 여기까지 오지 않는다
+- **`ProjectImage` 의 새 필드 3종은 선택(`?`)으로 둔다** — 배포 전에는 안 오므로 필수로 조이면 타입이 거짓말이 된다. 백엔드 배포 확인 후 `?` 를 떼고 `readImageBlockNames()` 의 미배포 분기를 지운다
+- **판정 기준은 `stepName` · `stepId`** — `blockTitle` 은 미지정이면 정상적으로 `null` 이라 그것만 보면 "필드가 없다" 와 "제목이 안 붙은 블록" 을 가를 수 없다
+
+---
+
+## [2026-08-14] 프로젝트 상태별 건수 공유 · 요약 카드 공용화 ✅
+
+브랜치: `ref-ys` · API 변경 없음
+
+대시보드와 `내 프로젝트` 가 **같은 4콜을 각자** 쏘고 **같은 카드를 각자** 그리던 것을 하나로 합쳤다. 화면을 옮겨도 건수를 다시 부르지 않는다.
+
+### 변경 파일
+
+| 파일                                           | 변경                                                      |
+| ---------------------------------------------- | --------------------------------------------------------- |
+| `src/features/project/useProjectCounts.ts`     | **생성** (`useProjectCounts` · `useRefreshProjectCounts`) |
+| `src/features/project/ProjectSummaryCards.tsx` | **생성** (요약 카드 5장 + 아이콘 5종 · 실패 안내)         |
+| `src/features/dashboard/DashboardSummary.tsx`  | 수정 (186줄 → 14줄, 공용 카드 호출만 남김)                |
+| `src/features/project/MyProjectList.tsx`       | 수정 (`ProjectSummary` · 아이콘 5종 제거 · 재시도 연결)   |
+
+### 주요 작업 내용
+
+- **건수 조회를 캐시 한 칸으로** — `queryKey: ['project-counts']` 하나에 4콜 결과를 모은다. 두 화면이 같은 칸을 보므로 대시보드 → `내 프로젝트` 이동 때 **8콜이 4콜**이 되고, 60초 안에 돌아오면 0콜이다
+- **요약 카드 공용화** — 카드 5장 · 아이콘 5종 · 실패 안내가 두 파일에 통째로 두 벌이었다. `ProjectSummaryCards` 하나로 합치고 화면마다 다르던 값(`aria-label` · 넓은 화면 간격)만 prop 으로 뺐다
+- **목록 재시도가 건수도 함께 읽는다** — 예전에는 `reloadCount` prop 을 내려 다시 세게 했다. `useRefreshProjectCounts()`(= `invalidateQueries`) 로 바꿔 `useRefreshStepBlocks` 와 같은 방식으로 맞췄다
+
+### 트러블슈팅
+
+- 해당 없음 (동작 변경 없이 조회 경로만 합침)
+
+### 부수 결정
+
+- **집계 API 는 백엔드 몫으로 남긴다** — `API.md` 84번에 적힌 대로 상태별 집계 엔드포인트가 없어 `size=1` 로 4번 묻는 구조는 그대로다. 다만 **`useProjectCounts` 의 `queryFn` 한 곳**으로 모아 두어, 엔드포인트가 생기면 화면 코드를 건드리지 않고 갈아끼울 수 있다
+- **`staleTime` 은 전역 30초가 아니라 60초** — 건수는 화면을 오가는 사이에 좀처럼 바뀌지 않고, 한 번 읽는 값이 4콜이라 되도록 덜 부르는 편이 낫다
+- **`전체` 는 계속 네 상태의 합** — 상태 필터 없이 세면 종결(`CLOSED`)이 섞여 나머지 넷의 합과 어긋난다. 합산 규칙을 훅 안(`total`)으로 옮겨 두 화면이 같은 값을 쓴다
+
+---
+
+## [2026-08-14] 로딩 껍데기를 화면 골격에 맞춤 · 목록 재묶임 흔들림 제거 ✅
+
+브랜치: `ref-ys` · API 변경 없음
+
+`Suspense` 폴백이 **목록만** 그리던 화면 4곳을 화면 골격(머리글 · 필터 바)까지 잡도록 고쳤고, 카드 행 높이가 실제와 어긋나던 두 곳을 맞췄다. 겸해서 프로젝트 전체 화면이 **묶이지 않은 채 떴다가 스테이지별로 다시 묶이던** 흔들림을 없앴다.
+
+### 변경 파일
+
+| 파일                                                | 변경                                                            |
+| --------------------------------------------------- | --------------------------------------------------------------- |
+| `src/components/Skeleton.tsx`                       | 수정 (`SkeletonPageHeader` · `SkeletonFilterBar` 신설)          |
+| `src/components/project/ProjectListSkeleton.tsx`    | 수정 (행 높이 실측 반영 · `ProjectPageSkeleton` 신설)           |
+| `src/components/approval/ApprovalSkeletons.tsx`     | 수정 (행 높이 실측 반영 · `ApprovalPageSkeleton` 신설)          |
+| `src/components/bidding/NoticeSkeletons.tsx`        | 수정 (`NoticeTableSkeleton` 분리 · `NoticeListSkeleton` 골격화) |
+| `src/components/settings/SettingsSkeletons.tsx`     | 수정 (`EmployeeListSkeleton` 신설)                              |
+| `src/app/projects/page.tsx`                         | 수정 (폴백을 `ProjectPageSkeleton` 으로)                        |
+| `src/app/approvals/page.tsx`                        | 수정 (폴백을 `ApprovalPageSkeleton` 으로)                       |
+| `src/app/settings/employees/page.tsx`               | 수정 (폴백을 `EmployeeListSkeleton` 으로)                       |
+| `src/features/pagePermission/PageAccessGate.tsx`    | 수정 (`/notices` 등록 · `exact` 옵션 추가)                      |
+| `src/features/project/overview/useProjectStages.ts` | 수정 (`{ index, isSettled }` 반환 — 실패도 판정으로 기록)       |
+| `src/features/project/overview/ProjectIssues.tsx`   | 수정 (색인 판정 전까지 스켈레톤 유지)                           |
+| `src/features/project/overview/ProjectFiles.tsx`    | 수정 (색인 판정 전까지 스켈레톤 유지)                           |
+
+### 주요 작업 내용
+
+- **폴백을 화면 골격으로** — `/projects` · `/approvals` · `/settings/employees` · `/notices` 의 `Suspense` 폴백이 목록·표만 그리고 있었다. 실제 화면은 모두 `머리글 → 필터 바 → 목록` 이라, 폴백이 뜬 뒤 실제 화면으로 바뀌는 순간 목록이 통째로 아래로 내려앉았다. `SkeletonPageHeader` · `SkeletonFilterBar` 를 공용으로 만들고 화면마다 실제 값(글자 크기 · 컨트롤 높이 · 버튼 개수)을 옮겨 적었다
+- **행 높이 실측 반영** — `ProjectListSkeleton` 은 `h-[74px]` 고정이었는데 실제 접힌 카드는 ≈57px, `ApprovalListSkeleton` 은 글 두 줄을 30px 로 잡았는데 실제는 42.5px 이었다. 통짜 숫자를 버리고 **실제 카드의 여백 · 칸 너비를 그대로 옮겨** 적었다
+- **`/notices` 를 권한 대기 껍데기에 등록** — 폴백이 골격을 안 잡아 미뤄 두었던 `ROUTE_SKELETONS` 항목을 넣었다. 하위 경로(`/notices/new` · `/notices/{id}`)는 화면이 달라 `exact` 옵션을 새로 두어 물려주지 않는다
+- **스테이지 재묶임 제거** — `전체 일정` · `문서함` 이 스테이지 색인을 기다리지 않고 먼저 그려, 스텝이 한 덩어리로 늘어섰다가 색인이 도착하는 순간 스테이지별로 다시 묶였다. 제목이 끼어들고 높이가 바뀌어 화면이 한 번 들썩였다
+
+### 트러블슈팅
+
+- **색인 실패와 대기를 구분할 수 없었다.** `useProjectStages` 가 실패를 조용히 삼켜 `index` 가 계속 `null` 이라, 부르는 쪽이 `null` 을 보고 기다리면 **실패한 경우 영영 스켈레톤에 갇힌다** → 실패도 `{ index: null }` 로 **기록**하고 `isSettled` 를 따로 내보내, 성공·실패 모두 한 번에 판정이 끝나게 했다
+- **골격 껍데기를 `SkeletonGroup` 으로 감쌌더니 `role="status"` 가 겹쳤다.** 안쪽 `DataTable`(`rows={null}`)이 이미 상태 영역을 낸다 → 바깥은 조각(`<>`)으로 두었다. 머리글 · 필터 막대는 `Skeleton` 자체가 `aria-hidden` 이라 읽히지 않는다
+
+### 부수 결정
+
+- **`SkeletonPageHeader` 는 높이를 받아 쓴다** — 화면마다 제목 크기가 다르다(`text-heading-m` 26px vs `text-logo`+`leading-8` 32px). 기본값을 하나로 정하면 어느 화면이든 어긋나므로 **부르는 쪽이 실제 값을 적는** 방식으로 두고, 주석에 근거(글자 크기 × 줄높이)를 남겼다
+- **화면 안 로딩과 폴백은 서로 다른 껍데기다** — 화면 안에서는 머리글 · 필터가 이미 떠 있으므로 목록만 그려야 한다. 그래서 목록 전용(`ProjectListSkeleton` · `ApprovalListSkeleton` · `NoticeTableSkeleton` · `EmployeeTableSkeleton`)과 화면 전용(`*PageSkeleton` · `*ListSkeleton`)을 나눠 두었다
+- **`ProjectImages` 의 블록 이름은 그대로 둔다** — `블록 #3` → 실제 이름으로 글자만 바뀌고 묶음 순서는 그대로라 들썩임이 없다. 이름 조회는 사용자가 `블록별로 보기` 를 켠 뒤에야 시작하므로 기다리면 그 조작이 늦어진다
+
+---
+
+## [2026-08-14] 대시보드 달력 조작 개선 · 헤더 로고 경로 고정 ✅
+
+브랜치: `ref-ys` · API 변경 없음
+
+대시보드 `일정` 달력에 **년 · 월 한 번에 고르기**와 **오늘로 이동**을 넣고, 달을 넘길 때 카드가 흔들리던 문제를 잡았다. 겸해서 헤더 로고를 언제나 메인으로 보내도록 바꿨다.
+
+### 변경 파일
+
+| 파일                                           | 변경                                                       |
+| ---------------------------------------------- | ---------------------------------------------------------- |
+| `src/features/dashboard/DashboardSchedule.tsx` | 수정 (`MonthPicker` 신설 · `오늘` 버튼 · 판 높이 6주 고정) |
+| `src/components/Header.tsx`                    | 수정 (로고 링크를 `/` 고정 · `projectScopeUpLink` 제거)    |
+
+### 주요 작업 내용
+
+- **년 · 월 선택 패널** — 제목(`2026년 8월`)이 버튼이 되어 누르면 년도 스테퍼 + 12달 격자가 뜬다. 반년 뒤로 가려고 화살표를 여섯 번 누르지 않아도 된다. 년도는 패널 안에서만 움직이고 달을 눌러야 확정된다
+- **`오늘` 버튼** — 달과 고른 날짜를 한 번에 되돌린다. 이미 오늘이면 잠그고 이유를 툴팁으로 알린다. 자리는 달 이동 묶음과 **같은 줄 오른쪽 끝**
+- **판 높이 6주 고정** — 달마다 5주 · 6주로 갈리던 것을 빈 칸으로 채워 42칸으로 맞췄다
+- **헤더 로고는 언제나 메인(`/`)** — 자리마다 목적지가 달라지지 않게 했다
+
+### 트러블슈팅
+
+- **달을 넘길 때 카드가 통째로 흔들렸다.** `monthCells()` 가 **앞쪽 빈 칸만** 만들고 뒤를 채우지 않아 판이 5줄 · 6줄로 갈렸다. 한 줄이 52px 이고 대시보드 행이 내용 높이로 늘어나는 구조라(`items-stretch`), 옆 `알림` 카드까지 같이 오르내렸다 → 남는 줄을 빈 칸으로 채워 42칸 고정
+
+### 부수 결정
+
+- **`오늘` 은 화살표 옆이 아니라 오른쪽 끝** — 묶음이 한쪽으로 길어져 `2026년 8월` 이 판 가운데에서 밀린다. 성격도 다르다 (화살표 · 제목은 둘러보는 조작, `오늘` 은 제자리로 돌아오는 조작). `grid-cols-[1fr_auto_1fr]` 로 왼쪽 빈 칸이 균형을 맞춘다
+- **패널 닫기는 `onBlur` + `Escape`** — document 리스너 없이 자기 안에서 끝낸다. 바깥을 누르면 초점이 `body` 로 빠져 `relatedTarget` 검사에 걸린다
+- **`오늘` 의 기준 시각은 기존 `now`(마운트 시각)를 그대로 쓴다** — 클릭 때 새 `Date` 를 만들면 자정을 넘겼을 때 오늘 강조(옛 `now` 기준)와 어긋난다. 한계는 같지만 화면 안에서 **일관**된다
+- **헤더 로고만 예외로 두고 사이드바 이탈 링크는 유지** — 한 칸 위로 가는 수단은 `ProjectSidebar` 가 계속 든다 (2026-08-14 이탈 경로 규칙)
+
+---
+
+## [2026-08-14] 스텝 블록 목록 react-query 전환 + 새로고침 버튼 ✅
+
+브랜치: `ref-ys` · API 변경 없음 · 이슈: #154
+
+스텝 블록 목록의 조회·캐시·재조회를 `@tanstack/react-query` 로 옮기고, 스텝 이름 왼쪽에 **블록 영역만** 다시 읽는 새로고침 버튼을 달았다.
+
+### 변경 파일
+
+| 파일                                         | 변경                                                                     |
+| -------------------------------------------- | ------------------------------------------------------------------------ |
+| `package.json`                               | 수정 (`@tanstack/react-query@^5.101.4` 추가)                             |
+| `src/app/providers.tsx`                      | **생성** (`QueryClientProvider` · 전역 기본 옵션)                        |
+| `src/app/layout.tsx`                         | 수정 (`Providers` 로 `AppShell` 감쌈)                                    |
+| `src/features/block/useStepBlocks.ts`        | **생성** (`useStepBlocks` · `useSetStepBlocks` · `useRefreshStepBlocks`) |
+| `src/features/block/RefreshBlocksButton.tsx` | **생성** (아이콘 버튼 · 회전 표시 · 편집 중 잠금)                        |
+| `src/features/block/api.ts`                  | 수정 (`getStepBlocksResponse` 신설 — 원본 응답 반환)                     |
+| `src/features/project/useProjectSteps.ts`    | **생성** (`useProjectSteps` · `useStepName` · `useRefreshProjectSteps`)  |
+| `src/components/ProjectSidebar.tsx`          | 수정 (스텝 목록을 공용 캐시로 · `reload()` · 이슈 갱신이 무효화)         |
+| `src/features/block/StepBlocks.tsx`          | 수정 (수동 패칭 제거 → 훅 사용 · 새로고침 버튼 배치 · `bodyGeneration`)  |
+| `src/features/block/BlockBoard.tsx`          | 수정 (`bodyGeneration` prop — 본문 key 에 실어 재마운트)                 |
+| `src/features/block/ChecklistBlock.tsx`      | 수정 (`detail` 참조 변경 시 항목 목록 재동기화)                          |
+
+### 주요 작업 내용
+
+- **`useQuery` 전환** — `queryKey: ['step-blocks', stepId]` 로 스텝별 캐시 분리. `staleTime` 30초 · `gcTime` 5분이라 스텝 탭을 오가도 스켈레톤이 다시 뜨지 않는다
+- **`select` 로 껍질 벗기기** — 캐시에는 응답 원본(`{ blocks }`)을 담고 컴포넌트에는 배열만 준다. 서버가 형제 필드를 얹어도 캐시 형태를 안 바꿔도 된다
+- **재조회 트리거 일원화** — `block:changed` 이벤트 · 화면 복귀 · 블록 생성 · 재시도 4곳이 모두 `useRefreshStepBlocks()`(= `invalidateQueries`) 하나를 부른다. 기존 `reloadCount` state 삭제
+- **스텝 이름도 캐시로** — 매 진입마다 `getProjectSteps()` 를 새로 부르던 `useEffect` 를 `useStepName()` 으로 바꿨다. 목록은 `['project-steps', projectId]` 에 한 벌만 담기고 `select` 가 이름 한 줄만 꺼낸다. 이름은 좀처럼 안 바뀌므로 `staleTime` 5분, 대신 **바뀌는 순간**(`ProjectSidebar.reload` — 생성 · 이름 · 순서 · 상태 · 삭제가 모두 지나가는 단일 창구)에 무효화한다
+- **사이드바도 같은 스텝 캐시를 본다** — `ProjectSidebar` 가 `Promise.all` 로 직접 받던 스텝 목록을 `useProjectSteps()` 로 바꿨다. 스텝 화면에서는 사이드바와 블록 헤더가 나란히 떠 있어 **같은 목록을 두 번 받던 것이 한 번**이 된다. 이슈 변경(진척률) 갱신도 직접 조회 대신 캐시 무효화로 바꿔, 사이드바 진척률과 헤더 이름이 항상 같은 응답에서 나온다
+- **새로고침 버튼** — 스텝 이름 왼쪽. 누르면 미뤄둔 배치를 먼저 보내고(`flushLayout`) 재조회한다. 최소 500ms 회전 + 완료 토스트로 결과를 알리고, 배치 편집 중에는 잠근다. 재조회 대상이 블록 목록 하나라 페이지 나머지는 그대로다
+
+### 트러블슈팅
+
+- **새로고침이 "안 눌린 것처럼" 보인다.** 블록이 적으면 응답이 100ms 안에 와서 아이콘이 깜빡이지도 않고 끝난다. 게다가 바뀐 게 없으면 화면도 그대로라 **"변경 없음" 과 "동작 안 함" 이 구별되지 않는다** → 최소 회전 시간(`MIN_SPIN_MS` 500)과 완료 토스트를 함께 넣었다. 한 번 "안 되는 버튼" 으로 학습되면 다시 눌리지 않는다
+- **새로고침해도 블록 본문이 그대로다.** 목록만 새로 받아서는 본문이 따라오지 않는다. 두 가지 원인이 섞여 있었다 — ① `detail` 을 첫 렌더에 **베껴 두고 화면이 주인이 되는** 유형(`ChecklistBlock` · `ImageBlock` · `ApprovalBlock` · `AiBlock`), ② 목록과 무관하게 **자기 API 를 직접 부르는** 유형(`FileBlock` · `ApprovalBlock` · `AiBlock`). `TextBlock` 만 렌더 중 상태 조정으로 ①을 이미 처리하고 있었다 → 새로고침 성공 시 `bodyGeneration` 을 올려 **본문만 다시 마운트**하는 것으로 열 유형을 한 번에 맞췄다. 겸해서 `ChecklistBlock` 에도 `TextBlock` 과 같은 `detail` 동기화를 넣어 자동 재조회 경로까지 따라가게 했다
+- **새로고침이 대기 중인 배치를 삼킨다.** 드래그 직후(디바운스 0.5초) 새로고침을 누르면 새 목록이 도착 → 보드가 로컬 순서를 버리고 `saver.reset()` → `pending` 이 `null` 로 지워져 **방금 옮긴 배치가 조용히 사라진다.** 화면을 떠날 때 · 블록을 만들 때처럼 `flushLayout.current?.()` 를 먼저 부르는 것으로 맞췄다
+- **`select` 로 "수정된 블록만" 가져올 수 없다.** `select` 는 이미 받아온 캐시 데이터를 가공하는 옵션이지 네트워크를 나누는 장치가 아니다. 블록 목록 API(`GET /steps/{stepId}/blocks`)에 증분 파라미터가 없어 요청은 언제나 스텝 전체다 — 얻는 것은 "부분 패칭"이 아니라 **캐시 · 요청 중복 제거 · 재조회 지점 단일화**다
+
+### 부수 결정
+
+- **`select` 에서 정렬하지 않는다.** 드래그로 바뀐 순서를 캐시에 꽂는 경로(`useSetStepBlocks`)가 있는데, 그 시점의 `rowIndex` · `sortOrder` 는 아직 저장 전 옛 값이다. 여기서 좌표순으로 다시 세우면 방금 옮긴 배치가 튕겨 돌아간다 (2026-08-11 기록과 같은 함정). 정렬은 `BlockBoard` 의 `toFlatOrder()` 가 계속 맡는다
+- **`QueryClient` 는 `useState` 초기화로 만든다** — 모듈 최상단에 두면 서버에서 요청 간 캐시가 공유된다
+- **`refetchOnWindowFocus: false`** — 블록은 이미 `visibilitychange` 로 복귀 시 재조회 중이라 중복이다
+- **`getStepBlocks` 는 시그니처 그대로 남겼다** — 활동 기록 · 이슈 폼 · 스텝 삭제 모달 등 5곳이 쓰고 있어 원본 반환 함수를 따로 뺐다
+- **적용 범위는 블록 목록만** — 다른 화면은 기존 `useEffect` + `lib/api.ts` 방식 유지. 한 번에 갈아엎지 않는다
+- **새로고침 버튼은 처음 불러오는 중에도 잠그지 않는다** — 첫 화면부터 회색 버튼이 놓여 있으면 "고장 난 버튼" 으로 학습된다. 중복 요청은 react-query 가 합쳐 준다
+- **회전은 `isFetching` 이 아니라 버튼이 만든 상태로 돌린다** — 화면 복귀 · 블록 생성처럼 사용자가 부르지 않은 재조회까지 아이콘이 돌면 설명되지 않는 움직임이 된다
+- **버튼은 `refetch()`, 나머지 트리거는 `invalidateQueries()`** — 토스트를 띄우려면 성공/실패를 알아야 하는데 `invalidateQueries` 는 결과를 돌려주지 않는다. 네트워크 동작은 같다
+- **실패해도 토스트를 띄우지 않는다** — 오류 화면(`ErrorStateTwoButton`)이 이미 자리를 차지하고 말한다. 겹치면 같은 말을 두 번 한다
+- **스텝 이름 무효화는 사이드바 `reload()` 한 곳에서만 건다** — 스텝을 고치는 모달(생성 · 수정 · 삭제 · 상태 · 순서)이 전부 `ProjectSidebar` 안에 있고 저장 후 `reload()` 로 모인다. 모달마다 무효화를 심으면 새 모달이 생길 때 빠뜨리기 쉽다
+- **스텝 목록만 캐시로 옮기고 프로젝트 · 스테이지는 그대로 뒀다** — 사이드바에서 그 둘을 함께 보는 화면이 없어 캐시를 나눌 이득이 없다. 스텝은 헤더와 **실제로 공유되는 유일한 값**이다
+- **스켈레톤 조건은 손대지 않았다** — 스텝과 스테이지가 이제 따로 도착하지만, 원래 `!stages || !steps` 로 둘 다 기다리게 되어 있어 중간 상태가 화면에 새지 않는다
+- **`select` 로 이름 한 줄만 꺼낸다** — 스텝 20개짜리 프로젝트에서 다른 스텝이 바뀌어도 반환값(문자열)이 그대로면 헤더는 다시 그리지 않는다. `useQuery` 결과를 그대로 받아 컴포넌트에서 `find()` 하면 목록이 바뀔 때마다 렌더가 돈다
+- **본문 재마운트는 새로고침 버튼에서만 한다** — 화면 복귀 · 블록 생성 같은 자동 재조회에서 본문이 통째로 리셋되면(캐러셀 첫 장으로 · 열어둔 메뉴 닫힘) 설명되지 않는 움직임이 된다. 사용자가 누른 새로고침에서는 리셋이 오히려 기대되는 결과다
+- **블록마다 `detail` 동기화를 넣는 대신 재마운트를 골랐다** — 유형이 10종이고 각각 진행 중인 낙관적 갱신 · 자체 조회와 경합을 따로 따져야 한다. 자동 경로까지 정확히 따라가게 하려면 결국 유형별 동기화가 필요하지만(백로그), 새로고침 한정으로는 재마운트가 같은 결과를 훨씬 적은 위험으로 낸다
+- **자동 갱신(`refetchOnWindowFocus`)은 넣지 않았다** — 읽는 중에 목록이 갈리면 쫓던 카드가 움직이고 남이 지운 블록이 눈앞에서 사라진다. 사용자는 자기가 만들지 않은 변화를 버그로 인식한다. 같은 변화라도 **본인이 버튼을 누른 뒤**면 납득한다
+
+---
+
+## [2026-08-14] 네비게이션 이탈 경로 · 로고 · 헤더 제목 정리 (#152) ✅
+
+브랜치: `style`
+
+이탈 경로 · 로고 · 헤더 제목 · 진척률 표기 네 가지를 한 번에 정리했다. 전부 화면 표기 문제라 API 변경은 없다.
+
+### 변경 파일
+
+| 파일                                              | 변경                                                |
+| ------------------------------------------------- | --------------------------------------------------- |
+| `src/components/Logo.tsx`                         | **생성** (`logo-vitaS.svg` · `logo-S.svg` 워드마크) |
+| `src/constants/menu.ts`                           | 수정 (`projectScopeUpLink()` 신설)                  |
+| `src/components/Header.tsx`                       | 수정 (제목 `sr-only` · 로고 교체 · 이탈 링크)       |
+| `src/components/Sidebar.tsx`                      | 수정 (로고 교체 + 홈 링크)                          |
+| `src/components/ProjectSidebar.tsx`               | 수정 (이탈 링크 펼침·접힘 · 진척률 `%` 줄바꿈)      |
+| `src/features/project/ProjectCard.tsx`            | 수정 (진척률 `%` 줄바꿈)                            |
+| `src/features/project/overview/ProjectIssues.tsx` | 수정 (진척률 `%` 줄바꿈 · 칸 폭 확보)               |
+| `src/features/settlement/SettlementBlock.tsx`     | 수정 (수급 진행률 `%` 줄바꿈)                       |
+
+### 주요 작업 내용
+
+- **이탈 경로를 한 칸 위로** — 스텝 화면(`/projects/{id}/steps/{stepId}`)은 그 프로젝트로, 나머지 프로젝트 화면은 메인(`/`)으로. 판단은 `projectScopeUpLink()` 하나가 하고 `ProjectSidebar`(펼침·접힘) · `Header` 로고가 함께 쓴다
+- **헤더 제목 삭제** — 사이드바가 이미 현재 위치를 말해 중복이었다. 다만 지우기만 하면 `h1` 이 사라져 `sr-only` 로 남겼다
+- **로고 에셋 적용** — 텍스트 워드마크(`VitaS`)를 실제 SVG 로 교체, 사이드바 접힘(58px)에서는 `S` 마크
+- **진척률 `100%` 줄바꿈 수정** — 숫자와 `%` 를 한 문자열로 합치고 `whitespace-nowrap` 적용
+
+### 트러블슈팅
+
+- **`100` 과 `%` 가 두 줄로 갈렸다.** JSX `{rate}%` 는 숫자·`%` 를 **다른 텍스트 노드**로 그려서, 세 자릿수가 되어 칸이 빠듯해지면 브라우저가 그 사이를 줄바꿈 지점으로 잡는다 → ``{`${rate}%`}`` + `whitespace-nowrap`. `ProjectIssues` 는 칸 폭(`w-8`)이 `100%` 보다 좁아 폭도 함께 넓혔다
+- **이탈 경로 규칙을 두 번 고쳤다.** 처음엔 프로젝트 화면 → `/projects`(목록)로 잡았는데, 실제로 원한 것은 **스텝 → 프로젝트**, **프로젝트 → 홈** 이었다. 규칙이 세 곳(펼침·접힘·헤더)에 흩어져 있어 함수로 모은 뒤 한 곳만 고치게 만들었다
+
+### 부수 결정
+
+- **로고는 `alt=""` 장식**이고 이름 · 목적지는 감싸는 링크의 `aria-label` 이 든다 — 둘 다 읽으면 "VitaS 홈으로 이동" 처럼 겹친다
+- **`titleOf()` 의 빈 문자열 fallback 을 `VitaS` 로** — 제목이 화면에 없던 때는 빈 자리로 끝났지만, 이제는 `h1` 이 통째로 비어 스크린리더가 제목을 못 읽는다
+- **접힌 사이드바도 같은 이탈 경로를 쓴다** — 접었다고 나가는 곳이 달라지면 같은 버튼이 아니게 된다. `upLink` 를 props 로 내려 한 값에서 갈라지게 했다
+
+---
+
+## [2026-08-14] 메인 대시보드 화면 (#150) ✅
+
+브랜치: `page/main` · API: `GET /issues/calendar` (142번 신설)
+
+빈 껍데기였던 `/` 를 시안대로 채웠다. **프로젝트 요약 · 내 프로젝트 · 알림 · 일정 + 이슈** 네 구역이고, 목데이터 없이 **전부 실 API** 로 붙었다.
+
+### 변경 파일
+
+| 파일                                                | 변경                                                |
+| --------------------------------------------------- | --------------------------------------------------- |
+| `src/features/dashboard/DashboardSummary.tsx`       | **생성** (상태별 통계 카드 5장)                     |
+| `src/features/dashboard/DashboardProjects.tsx`      | **생성** (내 프로젝트 최대 3건 + 전체보기)          |
+| `src/features/dashboard/DashboardNotifications.tsx` | **생성** (알림 — 미확인 우선 · 유형 배지)           |
+| `src/features/dashboard/DashboardSchedule.tsx`      | **생성** (캘린더 + 고른 날짜의 이슈, 한 상자 2분할) |
+| `src/app/page.tsx`                                  | 수정 (`PageTitle` 껍데기 → 4구역 조립 · `metadata`) |
+| `src/features/issue/types.ts`                       | 수정 (`CalendarIssue`)                              |
+| `src/features/issue/api.ts`                         | 수정 (`getIssueCalendar()`)                         |
+| `src/constants/endpoints.ts`                        | 수정 (`issues.calendar`)                            |
+| `.ai/API.md`                                        | 수정 (142번 신설 — 캘린더 조회)                     |
+
+### 주요 작업 내용
+
+- **프로젝트 요약** — `내 프로젝트` 화면과 같은 집계 방식(`getProjectCount`) · 같은 팔레트
+- **내 프로젝트 3건** — `ProjectCard` 를 그대로 재사용하고 서버에 `size=3` 으로 물어 필요 없는 건은 안 받는다
+- **알림** — 미확인이 항상 위, 남은 자리만 확인 알림으로 채움. 줄은 `점 + 유형 배지 + 내용` 한 줄
+- **일정 캘린더** — 진입 시 1회 조회 후 월 이동은 받아 둔 데이터에서 필터링, `projectId` 기준 색 매핑 + 범례
+- **이슈 패널** — 고른 날짜의 담당 이슈를 프로젝트별로 묶고, 누르면 그 이슈의 상세 모달이 열린 채로 이슈 보드에 도착
+
+### 부수 결정
+
+- **`MyProjectList` · `ProjectCard` 를 수정하지 않았다** — `STATE.md` 상 보호 중인 파일이라 **import 만** 했다. 요약 카드는 같은 API · 같은 팔레트로 대시보드 쪽에 따로 세웠다
+- **캘린더는 한 번만 부른다** — `GET /issues/calendar` 에 기간 파라미터가 없다. 달을 넘길 때마다 부르면 같은 응답을 계속 받는다
+- **프로젝트 색은 화면이 매긴다** — 응답에 색이 없어 `projectId` 등장 순서로 6색을 돌린다. 색이 모자라면 겹칠 수 있지만, 범례가 이름을 함께 보여주므로 구분이 막히지 않는다
+- **알림 줄에서 `title` · 날짜를 뺐다** — `title` 은 `결재 요청` 처럼 유형 배지와 같은 말이고, 대시보드는 훑는 자리라 시각은 알림 화면 몫이다
+- **캘린더 + 이슈는 한 상자** — 날짜를 고르는 곳과 그 결과라 테두리로 가르면 상관없는 상자로 읽힌다. 대신 `알림(1) : 캘린더+이슈(2)` 로 폭을 나눴다
+- **알림 목록을 두 번 부른다** — 서버가 읽음 여부와 무관하게 최신순으로만 줘서, 그대로 쓰면 오래된 미확인이 새 알림에 밀려 내려간다. `isRead=false` · `isRead=true` 를 따로 받아 잇는다 (호출 수는 배지용 조회를 겸해 이전과 같은 2건)
+
+### 트러블슈팅
+
+- **캘린더에 `new Date()` 를 그대로 쓰면 하이드레이션이 깨진다.** 서버(대개 UTC)와 브라우저의 '오늘' 이 다르면 SSR HTML 과 어긋난다 → `useSyncExternalStore(subscribe, () => true, () => false)` 로 **하이드레이션 이후에만** 달력을 그린다
+- **이펙트에서 오늘 날짜를 `setState` 하려다 린트에 막혔다** (`react-hooks/set-state-in-effect`). 위 방식으로 바꾸면서 setState 자체가 사라졌다 — 규칙이 더 나은 코드로 밀어준 경우다
+- **API 번호가 겹쳤다.** 프로젝트 절 끝이 139 라 140 으로 적었는데, 140(`GET /files/my`) · 141(알림 SSE)이 다른 절에서 이미 쓰이고 있었다 → **142** 로 정정
+- **100% 배율에서 알림과 일정이 세로로 떨어졌다.** 나란히 서는 기준을 `2xl`(1536px)로 잡았는데 사이드바 280px 를 빼면 본문이 그 폭을 못 넘긴다 → `xl`(1280px)로 낮춤
+
+---
+
+## [2026-08-14] 결재 참여 불가 · 블록 삭제 · 알림 SSE · 권한 에러 ✅
+
+브랜치: `fix/approval-notification-access`
+
+5개 요청을 한 브랜치에 묶었다. 서로 독립적이라 **항목별로 커밋을 끊었다.**
+
+### 변경 파일
+
+| 파일                                                                   | 변경                                                       |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `src/features/approval/unavailable.ts`                                 | **생성** (참여 불가 판정 · 결재선 재구성)                  |
+| `src/features/approval/ApproverReplaceModal.tsx`                       | **생성** (결재자 교체 · 제외 전용 모달)                    |
+| `src/features/notification/stream.ts`                                  | **생성** (SSE 구독)                                        |
+| `src/features/notification/NotificationStreamProvider.tsx`             | **생성** (셸에 연결 하나만)                                |
+| `src/features/approval/ApprovalBlock.tsx`                              | 수정 (참여 불가 배너 2종 · 첨부 문서 목록 · 상세보기 제거) |
+| `src/features/approval/types.ts`                                       | 수정 (참여 불가 필드 4종 — 전부 선택)                      |
+| `src/features/block/api.ts` · `errorCodes.ts` · `BlockDeleteModal.tsx` | 수정 (삭제 2단계 · 409 되물음)                             |
+| `src/features/pagePermission/PageAccessGate.tsx`                       | 수정 (`/forbidden` 이동 → 본문 자리에 표시)                |
+| `src/features/notification/NotificationBell.tsx`                       | 수정 (폴링 5초 → 2분)                                      |
+| `src/features/notification/display.ts`                                 | 수정 (이슈 알림에 `targetId` 를 쿼리로)                    |
+| `src/features/issue/IssueBoard.tsx`                                    | 수정 (`?issue=` 딥링크로 상세 모달 개방)                   |
+| `src/features/project/routes.ts`                                       | 수정 (`stepIssues()` 에 `issueId` · `ISSUE_PARAM`)         |
+| `src/components/AppShell.tsx` · `src/constants/endpoints.ts`           | 수정 (스트림 구독 위치 · 엔드포인트)                       |
+| `.ai/API.md`                                                           | 수정 (141번 신설 · 47번 2단계 · 결재 참여 불가 절)         |
+
+### 주요 작업 내용
+
+- **권한 에러를 본문 자리에** — 사이드바에서 누른 결과가 전체 화면 오류라 길을 잃던 문제
+- **결재 블록 삭제 2단계** — 409 를 되물음으로 처리하고 서버 `message` 를 그대로 표시
+- **알림 SSE** — 셸에 연결 하나, 폴링은 안전망으로 남기고 간격만 늘림
+- **알림 → 이슈 상세 모달** — 보드까지만 가던 것을 그 이슈까지
+- **결재 참여 불가 대응** — 기안자는 재상신, 결재자는 교체 · 제외 전용 모달
+- 결재 블록의 죽은 `결재 상세 보기` 버튼을 **첨부 문서 목록**으로 교체
+
+### 부수 결정
+
+- **밀려온 알림을 목록에 끼워 넣지 않는다** — 신호만 받고 기존 조회를 다시 태운다. 배지는 `totalElements` 라 서버만 정확히 알고, 폴링이 남아 있어 `notificationId` dedupe 문제가 생긴다. 알림은 드물게 오므로 요청 한 번이 더 나가는 편이 싸다
+- **폴링을 지우지 않았다** — `SSE = 즉시성` · `폴링 = 정합성`. 대신 5초 → 2분이라 **사용자당 분당 12회 → 0.5회**로 줄었다
+- **401 을 스트림에서 처리하지 않는다** — `lib/api.ts` 에 전역 401 처리가 이미 있어 남은 주기 조회가 대신 태운다. 인증 로직을 두 곳에 두지 않는다
+- **`/forbidden` 라우트는 남겼다** — 셸 밖에서 403 을 받는 경로가 계속 쓴다
+- **참여 불가 필드를 전부 선택으로** — 응답 내 위치를 실측하지 못해, 값이 안 오면 배너가 안 뜰 뿐 기존 화면이 그대로 동작하게 했다. 판정은 `unavailable.ts` 한 곳에 모아 화면이 필드를 직접 보지 않는다
+- **교체 · 제외에 전용 모달** — `ApprovalDraftForm` 은 초안용이라 진행 중 결재에 열면 승인 완료된 결재선까지 건드린다
+
+### 트러블슈팅
+
+- **딥링크 모달을 이펙트로 열려다 린트에 두 번 막혔다.** `react-hooks/set-state-in-effect`(이펙트 내 setState) → ref 우회 시도 → `react-hooks/refs`(렌더 중 ref 접근). 결국 **상태에 파라미터를 동봉해 렌더 중에 파생**하는 방식으로 갔다. 규칙이 더 나은 코드로 밀어준 경우다 — 이펙트 방식은 보드가 먼저 그려진 뒤 모달이 뒤늦게 뜨는 깜빡임이 있었다
+- **결재자 처리 후에도 배너가 남았다.** 배너를 켜는 `requiresApproverReplacement` 는 **블록 목록**이 주는 값이라 회차만 다시 받으면 안 사라진다 → `notifyBlockChanged()` 를 함께 쏜다
+- **`결재 상세 보기` 가 안 눌렸다.** 화면(`/approvals/[approvalId]`)은 이미 있는데 버튼이 화면 없던 시절의 죽은 `span` 으로 남아 있었다. 사용자 요청으로 버튼 자체를 없애고 첨부 문서 목록으로 대체
+- **SSE 재연결과 장애를 구분해야 한다.** 서버가 30분마다 정상 종료하고 브라우저가 다시 붙는데 그 재연결도 `onerror` 를 거친다 — `readyState` 가 `CLOSED` 일 때만 정리한다
+
+---
+
+## [2026-08-13] 내 프로젝트 파일 모아보기 ✅
+
+브랜치: `feat/my-files` · API: `GET /files/my` (FILE-Q-03)
+
+### 변경 파일
+
+| 파일                                             | 변경                                                   |
+| ------------------------------------------------ | ------------------------------------------------------ |
+| `src/features/file/MyFileList.tsx`               | **생성** (목록 · 검색 · 필터 · 프로젝트별 접기)        |
+| `src/features/file/groupMyFiles.ts`              | **생성** (프로젝트 그룹핑 · 필터 선택지)               |
+| `src/features/file/LazyFileViewer.tsx`           | **생성** (뷰어 지연 로딩 — `ProjectFiles` 와 공용)     |
+| `src/app/files/page.tsx`                         | **생성** (`/files` 라우트)                             |
+| `src/features/file/types.ts`                     | 수정 (`MyFile` · `MyFileQuery`, `ViewerFile` nullable) |
+| `src/features/file/api.ts`                       | 수정 (`getMyFiles()`)                                  |
+| `src/features/project/overview/ProjectFiles.tsx` | 수정 (중복 뷰어 블록 → `LazyFileViewer` 로 교체)       |
+| `src/constants/endpoints.ts`                     | 수정 (`files.my`)                                      |
+| `src/constants/menu.ts`                          | 수정 (`file` 아이콘 · `MENU_ORDER` · `FIXED_BY_ROLE`)  |
+| `src/components/MenuIcon.tsx`                    | 수정 (`file` 아이콘 SVG)                               |
+| `src/features/pagePermission/catalog.ts`         | 수정 (`MY_FILE` → `/files` 선반영)                     |
+| `.ai/API.md`                                     | 수정 (140번 신설 — 105번 옆에 배치)                    |
+
+### 주요 작업 내용
+
+- 내가 멤버인 모든 프로젝트의 파일을 **프로젝트별로 묶어** 보여주는 `/files` 화면 신설
+- 검색 · 프로젝트 · 확장자 필터를 **서버 쿼리**로 넘긴다 (페이징 없음 — 전체를 받아 스크롤)
+- 뷰어 · 미리보기 프리페치 · 다운로드 · 확장자 스타일은 `features/file/` 자산을 **그대로 재사용**
+- 사이드바 `내 파일` 항목 추가 (MASTER · MEMBER)
+
+### 부수 결정
+
+- **`MyFile` 이 `ProjectFile` 을 확장한다** — 응답이 105번 + 프로젝트 정보 모양이라, 뷰어(`ViewerFile`)와 문서 행을 **한 줄도 안 고치고** 재사용할 수 있다
+- **필터 선택지는 "필터 없는 응답"에서만 만든다** (`optionSource`) — 걸러진 목록으로 만들면 프로젝트 A 를 고른 순간 선택지도 A 하나가 되어 되돌아갈 수 없다
+- **사이드바는 `FIXED_BY_ROLE` 로 넣었다** — `/my/pages` 에 이 화면의 `pageCode` 가 아직 없다. `catalog.ts` 에 `MY_FILE` 매핑을 선반영해 두어, 코드가 응답에 실리면 `useMenuItems()` 가 고정 항목을 자동으로 걷어낸다
+- **ADMIN 에게는 노출하지 않는다** — 시스템 계정은 프로젝트 멤버가 될 수 없어 늘 빈 목록이다 (`MY_PROJECT` 와 같은 이유)
+- **미리보기 버튼은 `previewable` 일 때만** 그린다 — 눌러도 빈 화면인 버튼을 두지 않는다
+- **역할 배지(PM · 참여)는 뺐다** — 목업에는 있으나 응답에 필드가 없다
+
+### 트러블슈팅
+
+- **`ViewerFile` 타입이 좁아 `tsc` 가 막았다.** `uploaderDepartment?: string` 인데 이 API 는 시스템 계정에 **`null`** 을 보낸다. 뷰어 런타임은 이미 `?? ''` 로 처리하고 있었고 **타입만 틀린** 상태라 `string | null` 로 넓혔다
+- **뷰어 지연 로딩 블록이 `ProjectFiles` 와 통째로 중복**이었다(청크 분리 · 대기 자리 · 프리로드 40여 줄) → `LazyFileViewer.tsx` 로 빼고 두 화면이 함께 쓴다
+- **`updatedAt` 이 공백 구분(`2026-08-06 12:30:39`)** 으로 온다. `lib/format.ts` 의 `DATE_PATTERN` 이 `[ T]` 를 모두 받아 그대로 통과했다
+- ⚠️ **로그인이 필요해 브라우저 확인을 못 했다** — `/files` 는 인증 가드가 로그인 화면으로 돌린다. `tsc` · `eslint` 만 통과 확인
+
+---
+
+## [2026-08-13] 삭제된 사업 카테고리 재등록 대응 ✅
+
+브랜치: `fix/business-category-deleted-reuse` · 백엔드: PR #337 (D-7)
+
+### 변경 파일
+
+| 파일                                                  | 변경                                                |
+| ----------------------------------------------------- | --------------------------------------------------- |
+| `src/features/businessCategory/CategoryList.tsx`      | 수정 (삭제 행 하단 정렬 · `opacity-60` 흐리게)      |
+| `src/features/businessCategory/errorCodes.ts`         | 수정 (409 두 코드 주석 — 활성 행만 대상)            |
+| `src/features/businessCategory/CategoryFormModal.tsx` | 수정 (JSDoc — 재등록 허용 · `code` 로만 분기 근거)  |
+| `.ai/API.md`                                          | 수정 (15 · 16 · 17 에 재등록 허용 · 중복 노출 노트) |
+
+### 주요 작업 내용
+
+- 백엔드가 중복 검사를 **활성 행(`deletedAt == null`)만** 대상으로 바꿔 삭제한 이름 · 업무코드를 다시 등록할 수 있게 됐다 — `includeDeleted=true` 목록에 **같은 이름 두 줄이 공존**할 수 있어 화면을 갈랐다
+- 삭제 행을 목록 하단으로 내리고 `opacity-60` 으로 흐리게 (`sort` 안정 정렬이라 백엔드의 이름 오름차순은 묶음 안에서 유지)
+- 409 분기가 이미 `code` 기준이라 **에러 문구 관련 코드 변경은 없었다** — 사라진 `"삭제된 카테고리에 같은 이름이…"` 문구에 의존하는 코드가 전무했음을 grep 으로 확인
+
+### 부수 결정
+
+- **정렬은 프론트에서** — 목록 API 에 정렬 파라미터가 없고 전체를 받아 스크롤로 보여주는 구조라, 받은 배열을 그대로 안정 정렬한다
+- **행 key 는 손대지 않았다** — 이름이 같아도 `categoryId` 가 달라 충돌하지 않는다
+- **삭제 행의 `⋯` 메뉴는 계속 숨긴다** — 수정 · 삭제가 여전히 404 다. 복구(restore) 엔드포인트는 백엔드가 추가하지 않았고 재등록이 곧 재사용 경로
+
+---
+
+## [2026-08-13] 프로필 사진 · 연락처 자동 하이픈 🚧 진행 중
+
+브랜치: `feat/profile-image` · 이슈: #18
+
+### 변경 파일
+
+| 파일                                                                    | 변경                                                       |
+| ----------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `src/lib/api.ts`                                                        | 수정 (`putForm` 추가 — `postForm` 과 `sendForm` 으로 통합) |
+| `src/lib/format.ts`                                                     | 수정 (`formatPhone` 추가)                                  |
+| `src/constants/endpoints.ts`                                            | 수정 (`auth.profileImage` · `employees.profileImage`)      |
+| `src/features/auth/types.ts`                                            | 수정 (`profileImageUrl` · 업로드 제약 상수)                |
+| `src/features/auth/api.ts`                                              | 수정 (`uploadProfileImage` · `deleteProfileImage`)         |
+| `src/features/auth/errorCodes.ts`                                       | 수정 (`PROFILE_IMAGE_ERROR_MESSAGES`)                      |
+| `src/features/auth/CurrentUserProvider.tsx`                             | 수정 (`SetProfileImageContext`)                            |
+| `src/features/auth/useCurrentUser.ts`                                   | 수정 (`useSetProfileImage`)                                |
+| `src/features/auth/ProfileImageField.tsx`                               | **생성** (미리보기 · 변경 · 삭제)                          |
+| `src/components/MemberAvatar.tsx`                                       | 수정 (사진 렌더 · 이니셜 폴백 · 크기 5종)                  |
+| `src/components/ProfileMenu.tsx`                                        | 수정 (헤더 프로필 placeholder → `MemberAvatar`)            |
+| `src/components/Sidebar.tsx`                                            | 수정 (사이드바 프로필 placeholder → `MemberAvatar`)        |
+| `src/app/mypage/page.tsx`                                               | 수정 (`프로필 사진` 카드 · `Card` 에 `isPlain`)            |
+| `src/features/employee/EmployeeCreateForm.tsx` · `EmployeeEditForm.tsx` | 수정 (연락처 입력에 `formatPhone`)                         |
+| `.claude/launch.json`                                                   | 수정 (포트 3000 → 3001 — `npm run dev` 와 어긋나 있었다)   |
+
+### 주요 작업 내용
+
+- 마이페이지에서 프로필 사진 등록 · 변경 · 삭제 (`PUT` · `DELETE /auth/me/profile-image`)
+- `MemberAvatar` 가 사진을 그리고 실패하면 이니셜로 떨어진다 — **호출 15곳은 손대지 않았다** (사번으로 서빙 경로를 만들기 때문)
+- 헤더 · 사이드바의 `TODO: 프로필 이미지 자리` placeholder 2곳 제거
+- 사원 등록 · 수정 폼의 연락처 입력에 자동 하이픈 (`formatPhone`)
+
+### 부수 결정
+
+- **`MemberAvatar` 가 사번으로 서빙 경로를 만든다** — 목록 응답에 사진 URL 이 없어 호출 측을 15곳 고치는 대신 컴포넌트가 경로를 짓는다. **사번은 접두어까지 포함한 값(`vitas-EMP001`)이 그대로 경로에 들어간다** — 잠깐 `vitas-` 를 별도 접두어로 오해해 이 방식을 폐기했다가 되돌렸다. 사진이 없는 사번은 세션 캐시(`missingAvatars`)에 담아 404 반복 호출을 막는다 (목록 응답에 필드가 생기면 캐시째 제거 — STATE 백로그)
+- **본인 아바타만 `imageUrl` 로 직접 받는다** — 사진을 바꾼 직후 갱신돼야 하는 자리(마이페이지 · 헤더 · 사이드바)라 사번 경로가 아니라 `/auth/me` 값을 넘긴다
+- **`refetch` 대신 `SetProfileImageContext`** — `CurrentUserProvider.refetch` 는 `user` 를 `null` 로 돌려 children 을 통째로 다시 그린다. 사진 한 장에 앱 전체가 `불러오는 중…` 으로 깜빡여서 사진 필드만 갈아끼우는 경로를 따로 뒀다
+- **업로드는 `PUT`** — 멱등 교체라 `postForm` 을 재사용하지 않고 `putForm` 을 만들었다
+- `formatPhone` 은 **입력 중에도 쓰므로 자르지 않는다** — 친 만큼만 끊는다
+
+### 트러블슈팅
+
+- **업로드는 200 인데 사진이 안 바뀌었다.** 원인이 둘이었다.
+  1. `profileImageUrl` 이 `/api/v1/...` 상대 경로로 오는데 `<img src>` 에 그대로 넣어 **프론트 오리진(3001)** 으로 나갔다 → `lib/api.ts` 에 `apiUrl()` 을 만들어 API 오리진을 씌운다. `fetch` 를 거치지 않는 자리(`<img>` · `<a>`)는 앞으로 이걸 쓴다
+  2. 사진을 바꿔도 **서빙 경로가 그대로**라 같은 `src` 가 되어 브라우저가 다시 부르지 않는다 → 업로드 후 `?t={시각}` 을 붙여 갱신
+- `MemberAvatar` 의 실패 상태를 `boolean` 이 아니라 **실패한 주소**로 들고 있다 — `true` 로만 두면 사진을 지웠다 다시 올려도 이니셜에서 안 돌아온다
+- `.claude/launch.json` 의 포트가 3000 인데 `npm run dev` 는 3001 이라 preview 가 붙지 않았다 → 3001 로 맞춤
+
+---
+
 ## [2026-08-13] 상태 변경 시 화면 흔들림 제거 (설정 화면 · 모달 전반) ✅
 
 브랜치: `projects/new` · 이슈: #137
@@ -235,18 +757,18 @@
 
 ### 변경 파일
 
-| 파일                                          | 변경                                                     |
-| --------------------------------------------- | -------------------------------------------------------- |
-| `src/features/finance/CashFlowCsvImport.tsx`  | **생성** (3단 스텝퍼 · 파일 선택 · 결과)                 |
-| `src/features/finance/CashFlowCsvMapping.tsx` | **생성** (컬럼 매핑 · 미리보기)                          |
-| `src/features/finance/errorCodes.ts`          | **생성** (`FINANCE_*` — 비밀번호 · 형식 · 매칭 코드)     |
-| `src/components/Breadcrumb.tsx`               | **생성** (상단 경로 — 아래 `목록으로` 버튼을 대신한다)   |
-| `src/features/finance/types.ts` · `api.ts`    | 수정 (CSV 타입 · `previewCashFlowCsv` · `uploadCashFlowCsv`) |
-| `src/app/finance/payments/import/page.tsx`    | 수정 (stub → 화면 연결)                                   |
-| `src/features/finance/CashFlowList.tsx`       | 수정 (`CSV 등록` 진입점 · `외부 API 조회` 제거 · 브레드크럼 · 행 메뉴 제거 후 상세 링크) |
-| `src/features/finance/CashFlowDetail.tsx`     | **생성** (상세 — 거래고유번호 · 수정 · 연결 · 해제 · 삭제) |
-| `src/app/finance/payments/[cashFlowId]/page.tsx` | **생성** (상세 라우트)                                 |
-| `src/features/*/{7개 목록}`                   | 수정 (상단 경로를 공용 `Breadcrumb` 로 통일)              |
+| 파일                                             | 변경                                                                                     |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `src/features/finance/CashFlowCsvImport.tsx`     | **생성** (3단 스텝퍼 · 파일 선택 · 결과)                                                 |
+| `src/features/finance/CashFlowCsvMapping.tsx`    | **생성** (컬럼 매핑 · 미리보기)                                                          |
+| `src/features/finance/errorCodes.ts`             | **생성** (`FINANCE_*` — 비밀번호 · 형식 · 매칭 코드)                                     |
+| `src/components/Breadcrumb.tsx`                  | **생성** (상단 경로 — 아래 `목록으로` 버튼을 대신한다)                                   |
+| `src/features/finance/types.ts` · `api.ts`       | 수정 (CSV 타입 · `previewCashFlowCsv` · `uploadCashFlowCsv`)                             |
+| `src/app/finance/payments/import/page.tsx`       | 수정 (stub → 화면 연결)                                                                  |
+| `src/features/finance/CashFlowList.tsx`          | 수정 (`CSV 등록` 진입점 · `외부 API 조회` 제거 · 브레드크럼 · 행 메뉴 제거 후 상세 링크) |
+| `src/features/finance/CashFlowDetail.tsx`        | **생성** (상세 — 거래고유번호 · 수정 · 연결 · 해제 · 삭제)                               |
+| `src/app/finance/payments/[cashFlowId]/page.tsx` | **생성** (상세 라우트)                                                                   |
+| `src/features/*/{7개 목록}`                      | 수정 (상단 경로를 공용 `Breadcrumb` 로 통일)                                             |
 
 ### 주요 작업 내용
 

@@ -1,7 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import Logo from '@/components/Logo';
 import ProfileMenu from '@/components/ProfileMenu';
 import { findActiveMenu, isProjectScope, isUnder } from '@/constants/menu';
 import NotificationBell from '@/features/notification/NotificationBell';
@@ -15,7 +17,10 @@ import {
   useProjectSidebarCollapse,
 } from '@/features/project/SidebarCollapse';
 
-/** 헤더 제목. 메뉴에 없는 화면은 별도로 적어둔다. */
+/**
+ * 화면 제목(`h1`). 눈에는 보이지 않고 **보조기술에만** 읽힌다.
+ * 메뉴에 없는 화면은 별도로 적어둔다.
+ */
 const EXTRA_TITLES: Record<string, string> = {
   '/notifications': '알림',
   '/mypage': '마이페이지',
@@ -29,7 +34,11 @@ function titleOf(pathname: string, items: ResolvedMenuItem[]) {
   const extra = Object.keys(EXTRA_TITLES).find((path) =>
     isUnder(pathname, path),
   );
-  return extra ? EXTRA_TITLES[extra] : '';
+  /*
+   * 제목이 화면에 없던 시절에는 빈 문자열이 그냥 빈 자리였지만, 이제는 `h1` 이 통째로
+   * 비어 스크린리더가 제목을 못 읽는다 — 못 찾으면 서비스 이름이라도 남긴다.
+   */
+  return extra ? EXTRA_TITLES[extra] : 'VitaS';
 }
 
 export default function Header() {
@@ -60,7 +69,15 @@ export default function Header() {
           접힌 폭(58px)에는 `VitaS` 가 안 들어가 `S` 한 글자만 남긴다.
         */}
         {isDark && (
-          <span
+          <Link
+            /*
+             * 로고는 **언제나 메인으로** 간다 — 어느 화면에서 눌러도 같은 곳에 닿는다.
+             *
+             * 한 칸 위로 보내는 이탈 경로(`projectScopeUpLink`)는 왼쪽 `ProjectSidebar` 가
+             * 계속 맡는다. 로고까지 자리마다 목적지가 달라지면 어디로 갈지 예측할 수 없다.
+             */
+            href="/"
+            aria-label="VitaS 메인으로 이동"
             /*
              * 사이드바와 **같은 시간 · 같은 곡선**이어야 두 경계선이 나란히 움직인다.
              * `padding` 도 함께 전환한다 — 폭만 전환하면 좌우 여백이 첫 프레임에 툭 바뀌어
@@ -72,35 +89,18 @@ export default function Header() {
                 : `${SIDEBAR_WIDTH} px-6`
             }`}
           >
-            {/*
-              접으면 보이는 글자가 `S` 한 글자로 줄지만 **서비스 이름은 그대로**여야 한다 —
-              읽히는 이름은 `aria-label` 로 고정하고, 안쪽 글자는 장식으로 숨긴다.
-            */}
-            <span
-              role="img"
-              aria-label="VitaS"
-              className="text-logo font-bold tracking-tight text-text-white"
-            >
-              <span aria-hidden>
-                {isCollapsed ? (
-                  <span className="text-text-primary-blue">S</span>
-                ) : (
-                  <>
-                    Vita<span className="text-text-primary-blue">S</span>
-                  </>
-                )}
-              </span>
-            </span>
-          </span>
+            {/* 접히면 `S` 한 글자짜리 로고로 바뀐다 — 서비스 이름은 위 `aria-label` 이 든다 */}
+            <Logo variant={isCollapsed ? 'mark' : 'full'} />
+          </Link>
         )}
 
-        <h1
-          className={`truncate text-heading-l font-semibold ${
-            isDark ? 'pl-8 text-text-white' : 'text-text-primary'
-          }`}
-        >
-          {titleOf(pathname, items)}
-        </h1>
+        {/*
+          제목은 **화면에 적지 않는다** — 왼쪽 메뉴 · 프로젝트 사이드바가 이미 현재 위치를
+          말해주고 있어, 헤더에 한 번 더 적으면 같은 말이 두 번 보인다.
+          다만 지우기만 하면 화면에 `h1` 이 없어져 스크린리더의 제목 탐색(H)으로
+          현재 화면을 짚을 수 없다 — 눈에만 안 보이게 남긴다.
+        */}
+        <h1 className="sr-only">{titleOf(pathname, items)}</h1>
       </div>
 
       <div className="flex items-center gap-3">

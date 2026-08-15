@@ -58,8 +58,12 @@ export interface ViewerFile {
   previewable: boolean;
   updatedAt: string;
   uploaderName: string;
-  uploaderDepartment?: string;
-  uploaderPosition?: string;
+  /**
+   * 없을 수 있다 — 응답에 필드가 아예 없거나(문서함), **`null` 로 온다**(내 파일).
+   * 시스템 계정에는 사원 레코드가 없어 부서 · 직급이 비어 있다.
+   */
+  uploaderDepartment?: string | null;
+  uploaderPosition?: string | null;
 }
 
 export interface BlockFilesResponse {
@@ -169,6 +173,81 @@ export interface ProjectFile extends FileLocation {
   previewable: boolean;
   uploaderName: string;
   updatedAt: string;
+}
+
+/**
+ * GET /files/my 의 한 줄 — **내가 멤버인 모든 프로젝트**를 가로지른 문서 목록.
+ *
+ * `ProjectFile` 에 소속 프로젝트와 업로더 부서 · 직급이 더 붙은 모양이라 그대로 확장한다 —
+ * 덕분에 뷰어 · 문서 행을 손대지 않고 재사용한다.
+ *
+ * ℹ️ 서버가 **프로젝트 → 스텝 → 블록 순으로 정렬**해 주므로 그룹핑은 순서만 지키면 된다.
+ * ℹ️ 권한은 스텝을 따라 걸러진 뒤 오므로 화면에서 다시 거르지 않는다.
+ * ⚠️ 업로더가 시스템 계정이면 **부서 · 직급이 `null`** 이다 (사원 레코드가 없다).
+ */
+export interface MyFile extends ProjectFile {
+  projectId: number;
+  projectName: string;
+  uploaderDepartment: string | null;
+  uploaderPosition: string | null;
+}
+
+export interface MyFileQuery {
+  /** 문서 표시명 · 원본 파일명 부분 일치 */
+  keyword?: string;
+  /** 특정 프로젝트만 */
+  projectId?: number;
+  /** 확장자 (`pdf` · `csv` …) */
+  extension?: string;
+}
+
+/**
+ * GET /admin/files 의 한 줄 — **전사 모든 프로젝트**를 가로지른 문서 목록. (FILE-Q-01 · ADMIN)
+ *
+ * 내 파일(140번)과 달리 **문서 단위 최신 완료 버전 1행**이고 페이징이 있다.
+ * 스텝 · 블록은 **이름만** 온다 (`stepId` · `blockId` 가 없어 `FileLocation` 을 쓰지 못한다) —
+ * 전사 목록은 위치를 표시만 하고 거기로 들어가지 않는다.
+ *
+ * ⚠️ 업로더가 시스템 계정이면 `uploaderName` 이 오지 않는다.
+ */
+export interface AdminFile {
+  projectId: number;
+  projectName: string;
+  stepName: string;
+  blockTitle: string | null;
+  fileId: number;
+  name: string;
+  latestVersionId: number;
+  latestVersionNo: number;
+  versionCount: number;
+  originalFileName: string;
+  extension: string;
+  sizeBytes: number;
+  previewable: boolean;
+  uploaderName?: string | null;
+  updatedAt: string;
+}
+
+export interface AdminFileQuery {
+  /** 파일명 · 원본명 · 업로더 부분 일치 */
+  keyword?: string;
+  /** 특정 프로젝트만 */
+  projectId?: number;
+  /** 확장자 (`pdf` · `hwp` …) */
+  extension?: string;
+  /** 0-base */
+  page?: number;
+  /** 기본 20 · 최대 100 */
+  size?: number;
+}
+
+/** 페이지 봉투 — 백엔드 공통 모양이다 (프로젝트 목록 등과 같다) */
+export interface FilePage<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
 }
 
 /**

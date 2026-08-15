@@ -25,6 +25,16 @@ import type { CurrentUser } from './types';
 export const CurrentUserContext = createContext<CurrentUser | null>(null);
 
 /**
+ * 프로필 사진만 갈아끼운다.
+ *
+ * ⚠️ `refetch` 를 쓰면 안 된다 — 그쪽은 `user` 를 `null` 로 돌려 **children 을 통째로
+ *    내렸다가 다시 그린다**. 사진 한 장 바꾸는데 앱 전체가 `불러오는 중…` 으로 깜빡인다.
+ */
+export const SetProfileImageContext = createContext<
+  ((profileImageUrl: string | null) => void) | null
+>(null);
+
+/**
  * 통과해야 하는 게이트. 두 게이트는 독립이다 —
  * 약관만 남은 계정, 비밀번호만 남은 계정(관리자 재설정)이 각각 있다.
  * /me 가 막혔으면 403 의 code 로, 열렸으면 응답 값으로 판단한다.
@@ -95,6 +105,10 @@ export default function CurrentUserProvider({
       isStale = true;
     };
   }, [router, retryCount]);
+
+  const setProfileImage = useCallback((profileImageUrl: string | null) => {
+    setUser((current) => (current ? { ...current, profileImageUrl } : current));
+  }, []);
 
   /** 재시도와 게이트 통과 후 상태 갱신에 함께 쓴다 */
   const refetch = useCallback(() => {
@@ -180,7 +194,9 @@ export default function CurrentUserProvider({
 
   return (
     <CurrentUserContext.Provider value={user}>
-      {children}
+      <SetProfileImageContext.Provider value={setProfileImage}>
+        {children}
+      </SetProfileImageContext.Provider>
     </CurrentUserContext.Provider>
   );
 }

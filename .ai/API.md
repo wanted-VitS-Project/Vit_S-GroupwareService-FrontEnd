@@ -153,6 +153,10 @@
 | [137](#137-스텝-상태-변경)                | 스텝 상태 변경     | `PATCH /steps/{stepId}/status`                               | ✅ `features/project/api.ts`          |
 | [138](#138-프로젝트-직접-생성)            | 프로젝트 생성      | `POST /projects`                                             | ✅ `features/project/api.ts`          |
 | [139](#139-프로젝트-삭제)                 | 프로젝트 삭제      | `DELETE /projects/{projectId}`                               | ✅ `features/project/api.ts`          |
+| [140](#140-내-프로젝트-파일-모아보기)     | 내 파일            | `GET /files/my`                                              | ✅ `features/file/api.ts`             |
+| [141](#141-알림-실시간-수신-sse)          | 알림 실시간 수신   | `GET /notifications/stream`                                  | ✅ `features/notification/stream.ts`  |
+| [142](#142-전사-파일-목록-admin)          | 전사 파일 목록     | `GET /admin/files`                                           | ✅ `features/file/api.ts`             |
+| [143~150](#143150-사내-문서함-admin)      | 사내 문서함        | `/admin/company-documents …`                                 | ✅ `features/companyDocument/api.ts`  |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
 > 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통) · [이미지 도메인 — 공통](#이미지-도메인--공통) · [사원 그룹 도메인 — 공통](#사원-그룹-도메인--공통) · [페이지 권한 도메인 — 공통](#페이지-권한-도메인--공통) · [스테이지 · 스텝 도메인 — 공통](#스테이지--스텝-도메인--공통) · [이슈 도메인 — 공통](#이슈-도메인--공통) · [입찰 도메인 — 공통](#입찰-도메인--공통) · [프로젝트 참여자 · 설정 도메인 — 공통](#프로젝트-참여자--설정-도메인--공통)
@@ -905,6 +909,7 @@ data: {
 
 > ℹ️ **이름 오름차순 고정**이고 **페이징 · 정렬 파라미터가 없다** — 화면은 전체를 받아 스크롤로 보여준다.
 > ℹ️ 0건이면 빈 배열. `data.categories` 로 한 겹 감싸져 있어 `api.ts` 에서 벗겨 반환한다.
+> 🗑️ **`includeDeleted=true` 면 같은 `name` · `code` 가 두 줄 나올 수 있다** (D-7 · 2026-08-13) — 삭제분과 같은 이름의 활성 행이 공존한다. 정상이다. `deletedAt` 으로 갈라 **삭제 행을 흐리게 처리하고 하단으로 내린다**. `categoryId` 가 달라 행 key 는 충돌하지 않는다.
 
 | status | code                           | 화면 처리         |
 | ------ | ------------------------------ | ----------------- |
@@ -939,6 +944,9 @@ data: {
 | 403    | `BUSINESS_CATEGORY_ADMIN_ONLY`                                            | `/forbidden` 이동 |
 | 409    | `BUSINESS_CATEGORY_NAME_DUPLICATED` · `BUSINESS_CATEGORY_CODE_DUPLICATED` | 해당 입력에 표시  |
 
+> 🗑️ **중복 판정은 활성 행(`deletedAt == null`)만 대상이다** (D-7 · 2026-08-13) — 삭제했던 이름 · 업무코드를 그대로 다시 보내면 **201 로 생성된다**. 복구(restore) 엔드포인트는 없고 **재등록이 곧 재사용 경로**다. 옛 행은 이력으로 남는다.
+> ⚠️ 삭제분을 알리던 `"삭제된 카테고리에 같은 이름이…"` 문구는 **더 이상 오지 않는다** — 409 는 `message` 가 아니라 `code` 로 가른다.
+
 ---
 
 ## 17. 사업 카테고리 수정
@@ -969,6 +977,8 @@ data: {
 | 403    | `BUSINESS_CATEGORY_ADMIN_ONLY`                                                                  | `/forbidden` 이동 |
 | 404    | `BUSINESS_CATEGORY_NOT_FOUND`                                                                   | 목록 재조회       |
 | 409    | `BUSINESS_CATEGORY_NAME_DUPLICATED` · `BUSINESS_CATEGORY_CODE_DUPLICATED`                       | 해당 입력에 표시  |
+
+> 🗑️ 생성과 같이 **삭제분과는 이름 · 업무코드가 충돌하지 않는다** (D-7 · 2026-08-13) — 409 는 활성 행끼리만 난다.
 
 ---
 
@@ -1823,7 +1833,21 @@ soft delete(`deleted_at` 플래그)만 지원하며 응답 `data` 는 `null` 이
 > ⚠️ 입금·계산서 **연결 해제(BLK-013)는 아직 미구현**이라, 연결이 남은 채로 블록이 삭제된다.
 > ⛔ **낙관적 락 대상이 아니다** — `version` 을 받지 않고 409 `BLOCK_VERSION_CONFLICT` 도 나지 않는다. 삭제는 멱등이라 두 번 눌러도 결과가 같고 유실될 편집 내용이 없다.
 
-**Status Code** — 200 · 401 `AUTH_UNAUTHENTICATED` · 403 `STEP_EDIT_DENIED` · 404 `BLOCK_NOT_FOUND`(**다른 회사의 블록도 여기로**)
+**Status Code** — 200 · 401 `AUTH_UNAUTHENTICATED` · 403 `STEP_EDIT_DENIED` · 404 `BLOCK_NOT_FOUND`(**다른 회사의 블록도 여기로**) · **409 `APPROVAL_DELETE_CONFIRM_REQUIRED`**
+
+### ⚠️ 결재 블록은 2단계다 (2026-08-13 신설)
+
+상신 이후의 결재가 붙어 있으면 첫 호출이 409 로 막힌다. **되물음이지 실패가 아니다.**
+
+| 단계 | 호출                                     | 결과                              |
+| ---- | ---------------------------------------- | --------------------------------- |
+| ①    | `DELETE /blocks/{blockId}`               | 409 `APPROVAL_DELETE_CONFIRM_REQUIRED` |
+| ②    | `DELETE /blocks/{blockId}?confirmApprovalCancel=true` | 200                   |
+
+> ⛔ **409 를 실패로 끝내면 그 블록은 영영 지울 수 없다.** 확인 다이얼로그가 필수다 (`BlockDeleteModal`).
+> ⚠️ **안내 문구를 프론트에서 만들지 않는다** — 결재 상태마다 무엇을 잃는지가 달라 서버 `message` 를 그대로 띄운다 (진행 중 → 결재 취소 / 반려 → 재상신 불가 / 완료 → 승인 이력 소실). **분기는 `code`, 표시는 `message`.**
+> ℹ️ `DRAFT` · `CANCELED` 결재는 409 없이 바로 200 이라 다이얼로그가 한 번만 뜬다.
+> ℹ️ 결재자 이름은 응답에 없다 — 의도된 결정이다(권한 · 퇴사자 · 시점 불일치).
 
 ---
 
@@ -1840,6 +1864,21 @@ soft delete(`deleted_at` 플래그)만 지원하며 응답 `data` 는 `null` 이
 | **코드 상수** | `src/features/approval/errorCodes.ts`. 분기는 status 가 아니라 **`code`** 로 한다               |
 
 > ℹ️ 결재 대상은 파일이 아니라 **파일 버전**(`fileVersionId`)이다 (AP-010). 업로드 자체는 파일 도메인 소관이고 결재 API 는 연결만 한다.
+
+### 🚫 참여 불가로 결재가 멈춘 경우 (2026-08-13 신설)
+
+기안자 · 결재자가 퇴사 · 프로젝트 이탈로 더는 진행할 수 없을 때다. **처리 주체와 방법이 다르다.**
+
+| 상황        | 조건                                              | 처리                                              |
+| ----------- | ------------------------------------------------- | ------------------------------------------------- |
+| 기안자 불가 | `drafterUnavailable && actingDrafterId === null`   | 스텝 `EDITOR` 가 **재상신**(`POST .../revisions`)  |
+| 결재자 불가 | `detail.requiresApproverReplacement`               | 기안자가 **교체 · 제외**(`PUT .../lines`)          |
+
+> ⭐ **대행 기안자는 지정 절차가 없다** — 가장 먼저 재상신에 성공한 `EDITOR` 가 된다. 그래서 동시에 누르면 **진 쪽이 403 `APPROVAL_NOT_DRAFTER`** 를 받는다. 서버 문구("기안자 아님")로는 이유를 알 수 없으니 화면이 사정을 알리고 회차를 다시 받는다. 이미 대행자가 있으면 `actingDrafterName` 을 띄우고 버튼을 닫는다.
+> ⚠️ 교체 · 제외 대상은 `approverUnavailable === true` 이면서 **`ACTIVE` · `WAITING`** 인 결재선뿐이다 — 이미 승인 · 반려한 결재선은 지나간 이력이라 건드리면 결재가 왜곡된다.
+> ⚠️ **제외하면 `order` 를 1부터 다시 매긴다.** 빠진 자리를 그대로 두면 순번에 구멍이 생겨 서버가 다음 결재자를 못 고른다 (`toLinesRequest`).
+> ⚠️ 기존 결재선 편집 화면(`ApprovalDraftForm`)을 쓰지 않고 **전용 모달**(`ApproverReplaceModal`)을 연다 — 그쪽은 상신 전 초안에서 결재선을 자유롭게 짜는 곳이라 진행 중인 결재에 열면 이미 승인한 결재선까지 건드리게 된다.
+> ❗ **판정 필드의 응답 내 위치를 아직 실측하지 못했다** (2026-08-13). `drafterUnavailable` · `actingDrafterId` · `actingDrafterName` 은 회차 상세에, `approverUnavailable` 은 결재선에, `requiresApproverReplacement` 는 블록 `detail` 에 있다고 **가정**했다. 전부 **선택 필드**라 값이 안 오면 배너가 뜨지 않을 뿐 기존 화면은 그대로 동작한다. 확인되면 `types.ts` 와 `unavailable.ts` 만 고치면 된다 — 화면은 `unavailable.ts` 함수만 본다.
 > ℹ️ 결재선 등록은 `PUT` 이라 **전체 치환**이다. 한 명만 바꿔도 목록 전체를 보내야 하고, 빠뜨린 사람은 삭제된다.
 > ⚠️ 일반 결재자는 프로젝트 `member` 여야 한다(AP-017). **MASTER · ADMIN 은 이 검증에서 제외**돼 프로젝트에 없어도 지정할 수 있다(AP-019).
 
@@ -3114,6 +3153,40 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 ---
 
+## 141. 알림 실시간 수신 (SSE)
+
+> 번호는 뒤지만 **알림 도메인**이라 여기에 둔다. (2026-08-13 신설)
+
+| 항목          | 내용                                                        |
+| ------------- | ----------------------------------------------------------- |
+| **Method**    | `GET` (`text/event-stream`)                                 |
+| **Path**      | `/api/v1/notifications/stream`                              |
+| **인증 필요** | ✅ **기존 세션 쿠키 그대로** (별도 토큰 없음)               |
+| **사용 위치** | `features/notification/stream.ts` → `subscribeNotificationStream()` |
+
+**응답이 닫히지 않는다.** 요청은 1건이고 그 열린 연결로 서버가 계속 써 보낸다 — 그래서 `lib/api.ts` 래퍼가 아니라 `EventSource` 로 직접 연다 (`apiUrl()` 로 오리진을 씌운다).
+
+**서버가 보내는 이벤트**
+
+| 이벤트         | 시점            | 내용                                             |
+| -------------- | --------------- | ------------------------------------------------ |
+| `connected`    | 구독 직후 1회   | `{ "userId": "EMP001" }`                         |
+| `notification` | 알림 1건        | **목록 항목과 같은 구조** (`readAt` 은 항상 null) |
+| `:ping`        | 15초마다        | SSE 주석이라 이벤트로 안 올라온다 — 처리 불필요   |
+
+| status | code                   | 화면 처리                    |
+| ------ | ---------------------- | ---------------------------- |
+| 401    | `AUTH_UNAUTHENTICATED` | 연결 자체가 열리지 않는다    |
+
+> ⚠️ **`withCredentials: true` 가 없으면 쿠키가 안 실려 401 이다** — 연결이 아예 안 열린다.
+> ⚠️ **서버가 30분마다 연결을 정상 종료**하고 브라우저가 자동 재연결한다. 장애가 아니다 — 재연결도 `onerror` 를 거치므로 **오류 문구를 띄우면 안 된다.** `readyState` 가 `CLOSED` 일 때만 정리한다(브라우저가 포기한 경우). 401 에도 `EventSource` 는 무한 재시도하므로 우리가 끊어야 한다.
+> ⭐ **밀려온 알림을 목록에 끼워 넣지 않는다** — 신호만 받고 기존 조회를 다시 태운다. 배지는 `?isRead=false` 의 `totalElements` 라 서버만 정확히 알고, 폴링이 안전망으로 남아 있어 `notificationId` dedupe 문제가 생기기 때문이다.
+> ℹ️ **구독 시점 이후에 생기는 알림만** 온다 — 과거 알림 · 페이징 · 개수는 계속 목록 API(79~80)다. 그래서 `connected` 마다 목록을 다시 받아 끊긴 사이를 메운다.
+> ℹ️ 구독은 셸(`AppShell`)에 **하나만** 둔다. 라우트마다 리마운트되는 자리에 두면 화면을 옮길 때마다 끊겼다 붙는다.
+> ℹ️ **주기 조회를 지우지 않았다** — `SSE = 즉시성` · `폴링 = 정합성` 으로 역할을 나눈다. 다만 즉시성이 스트림으로 넘어가 간격을 **5초 → 2분**으로 늘렸다 (`NotificationBell`).
+
+---
+
 ## 84. 프로젝트 목록 조회
 
 | 항목          | 내용                                            |
@@ -3892,6 +3965,135 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | 404    | `PROJECT_NOT_FOUND`               | 프로젝트 없음  |
 
 > ⚠️ **presigned 미임베드** — 다운로드는 클릭 시 42번(5분 URL)을 호출한다. 정렬은 `stepId` → `blockId` → 연결일.
+
+---
+
+## 140. 내 프로젝트 파일 모아보기
+
+> 번호는 뒤지만 **105번과 형제 API** 라 여기에 둔다. (FILE-Q-03 · 2026-08-13 스웨거 실측)
+
+| 항목          | 내용                                    |
+| ------------- | --------------------------------------- |
+| **Method**    | `GET`                                   |
+| **Path**      | `/api/v1/files/my`                      |
+| **인증 필요** | ✅ (로그인 사용자)                      |
+| **사용 위치** | `features/file/api.ts` → `getMyFiles()` |
+
+**내가 멤버인 모든 프로젝트**를 가로질러 문서를 모은다. 105번과 같은 평면 목록(`files[]`)이고 **프론트가 `projectId` 로 그룹핑**한다.
+
+**Query**
+
+| 이름        | 타입     | 내용                          |
+| ----------- | -------- | ----------------------------- |
+| `keyword`   | `string` | 문서명 · 원본 파일명 부분 일치 |
+| `projectId` | `number` | 특정 프로젝트만               |
+| `extension` | `string` | 확장자 (`pdf` · `csv` …)      |
+
+**응답 data — `files[]`** — 105번의 모든 필드에 아래가 더 붙는다
+
+| 필드                                     | 타입             | 설명                            |
+| ---------------------------------------- | ---------------- | ------------------------------- |
+| `projectId` / `projectName`              | `number`/`string` | 속한 프로젝트                   |
+| `uploaderDepartment` / `uploaderPosition` | `string \| null` | 시스템 계정이면 `null`          |
+
+| status | code                   | 화면 처리      |
+| ------ | ---------------------- | -------------- |
+| 200    | —                      | 없으면 빈 배열 |
+| 401    | `AUTH_UNAUTHENTICATED` | 전역 처리      |
+
+> ℹ️ **페이징이 없다** — 전체를 받아 스크롤로 본다. 정렬은 **프로젝트 → 스텝 → 블록** 이라 그룹핑은 순서만 지키면 된다.
+> ℹ️ 권한은 스텝을 따른다 — 스텝 override(`NONE`)로 강등된 파일은 **응답에서 빠진다.** 화면에서 다시 거르지 않는다.
+> ℹ️ 전역 `ADMIN` · `MASTER` 는 스텝 정책상 모든 스텝의 `EDITOR` 라 **자신이 멤버인 프로젝트의 전 파일**을 본다 (우회가 아니라 정책상 권한).
+> ⚠️ **`updatedAt` 이 `YYYY-MM-DD HH:mm:ss`(공백 구분) 로 온다** — 105번의 `T` 구분과 다르다. `lib/format.ts` 는 둘 다 받으므로 화면은 그대로 쓴다.
+> ⚠️ **역할 배지(PM · 참여) 값이 없다** — 목업에는 있으나 응답에 필드가 없어 화면에서 뺐다. 필요하면 백엔드에 요청한다.
+> ⛔ **조회 전용이다.** 업로드 · 이름 수정 · 삭제는 문서가 붙은 스텝 화면에서 한다.
+
+---
+
+## 142. 전사 파일 목록 (ADMIN)
+
+> 번호는 뒤지만 **105 · 140번과 형제 API** 라 여기에 둔다. (FILE-Q-01 · 2026-08-14 명세 수령)
+
+| 항목          | 내용                                       |
+| ------------- | ------------------------------------------ |
+| **Method**    | `GET`                                      |
+| **Path**      | `/api/v1/admin/files`                      |
+| **인증 필요** | ✅ **ADMIN 전용**                          |
+| **사용 위치** | `features/file/api.ts` → `getAdminFiles()` |
+
+**전사 모든 프로젝트**의 파일을 가로지른다. 105 · 140번과 달리 **문서 단위 최신 완료 버전 1행**이고 **페이징이 있다**.
+
+**Query**
+
+| 이름        | 타입     | 내용                        |
+| ----------- | -------- | --------------------------- |
+| `keyword`   | `string` | 파일명 · 원본명 · 업로더    |
+| `projectId` | `number` | 프로젝트 필터               |
+| `extension` | `string` | 확장자                      |
+| `page`      | `number` | 0-base                      |
+| `size`      | `number` | 기본 20 · 최대 100          |
+
+**응답 data** — 페이지 봉투(`content` · `page` · `size` · `totalElements` · `totalPages`)
+
+| 필드                                            | 설명                                    |
+| ----------------------------------------------- | --------------------------------------- |
+| `projectId` / `projectName`                     | 속한 프로젝트 (그룹핑 기준)             |
+| `stepName` / `blockTitle`                       | 위치 — **이름만** 온다 (id 가 없다)     |
+| `fileId` / `name` / `versionCount`              | 문서 정보                               |
+| `latestVersionId` / `latestVersionNo`           | 최신 완료 버전 — 다운로드 · 미리보기 대상 |
+| `originalFileName` / `extension` / `sizeBytes`  | 원본 정보                               |
+| `previewable` / `uploaderName?` / `updatedAt`   | 업로더는 시스템 계정이면 오지 않는다    |
+
+| status | code                   | 화면 처리        |
+| ------ | ---------------------- | ---------------- |
+| 200    | —                      | 없으면 빈 배열   |
+| 403    | `ACC_ADMIN_REQUIRED`   | 표 자리에 안내   |
+
+> ℹ️ 다운로드 · 미리보기는 행에서 **공용 파일 버전 API**(42번 `download` · `preview`)를 그대로 부른다.
+> ⚠️ **정렬 파라미터가 없다** — 목업의 `최근 수정순` 드롭다운은 화면에서 뺐다.
+> ⚠️ **집계가 없다** — 총 용량 · 기간별 업로드 수는 응답으로 알 수 없어 요약 카드에 넣지 않았다.
+
+---
+
+## 143~150. 사내 문서함 (ADMIN)
+
+> `CompanyDocument` 도메인 · 2026-08-14 명세 수령. **프로젝트 파일과 저장소 · 에러코드(`CDOC_*`)가 모두 다르다.**
+> 회사 재정 · 소개 · 실적 자료로 **AI 공고 검토의 비교 기준**이 되는 자료다. 전 API 가 ADMIN 전용(403 `ACC_ADMIN_REQUIRED`).
+> **사용 위치**: `features/companyDocument/api.ts` · `upload.ts`
+
+| 번호 | Method · Path                                              | 내용                     |
+| ---- | ---------------------------------------------------------- | ------------------------ |
+| 143  | `GET /admin/company-documents`                             | 목록 (분류 · 검색 · 페이징) |
+| 144  | `POST /admin/company-documents/uploads`                    | ① 업로드 시작 · presigned |
+| 145  | `POST /admin/company-documents/uploads/{versionId}/complete` | ③ 완료 통보            |
+| 146  | `GET /admin/company-documents/{documentId}/versions`       | 버전 이력                |
+| 147  | `GET /admin/company-document-versions/{versionId}/download` | 다운로드 URL (5분)      |
+| 148  | `GET /admin/company-document-versions/{versionId}/preview`  | 미리보기 (PDF 앞 5p)    |
+| 149  | `PATCH /admin/company-documents/{documentId}`              | 표시명 · 분류 수정       |
+| 150  | `DELETE …/{documentId}` · `POST …/restore`                 | 삭제(soft) · 복구        |
+
+**143 목록** — Query `category`(`FINANCE`·`COMPANY_INTRO`·`PERFORMANCE`·`CERTIFICATE`·`ETC`) · `keyword` · `page`/`size`(20·최대100)
+`data.content[]`: `companyDocumentId` · `category` · `name` · `latestVersionId` · `latestVersionNo` · `versionCount` · `originalFileName` · `extension` · `sizeBytes` · `previewable` · `uploaderName?` · `updatedAt`
+
+**144 업로드 시작** — Body `category`(새 문서 필수 · 새 버전이면 생략) · `originalFileName` · `sizeBytes`(≤50MB) · `name`/`comment`(opt) · `companyDocumentId`(주면 새 버전)
+201 `data`: `versionId`(UPLOADING 생성) · `uploadUrl`(여기로 클라가 PUT) · `expiresAt`(10분)
+에러: 400 `CDOC_SIZE_EXCEEDED` · 400 `CDOC_EXTENSION_BLOCKED` · 404 `CDOC_NOT_FOUND`
+
+**145 완료 통보** — Body `checksum`(opt) / 200 `data`: 버전 상세(`pageCount?` 포함)
+에러: 400 `CDOC_ALREADY_COMPLETED` · 409 `CDOC_OBJECT_NOT_FOUND` · 409 `CDOC_SIZE_MISMATCH`
+
+**146 버전 이력** — `data`: `companyDocumentId` · `name` · `category` · `versionCount` + `content[]`(`versionId` · `versionNo` · `latest` · `originalFileName` · `extension` · `sizeBytes` · `pageCount?` · `previewable` · `comment?` · `uploaderName?` · `completedAt`)
+
+**147 다운로드** — `downloadUrl` · `expiresAt` · `originalFileName` · `sizeBytes` / 409 `CDOC_UPLOAD_NOT_COMPLETED`
+**148 미리보기** — PDF 바이너리 · 헤더 `X-Preview-Page-Count` · `X-Total-Page-Count` / 409 `CDOC_PREVIEW_NOT_SUPPORTED` · 500 `CDOC_PREVIEW_FAILED`
+**149 수정** — `name` / `category` 중 최소 1개 / 400 `CDOC_INVALID_REQUEST` · 404 `CDOC_NOT_FOUND`
+**150 삭제 · 복구** — 삭제 응답 `deletedAt` / 400 `CDOC_ALREADY_DELETED` · 복구 400 `CDOC_NOT_DELETED`
+
+> ℹ️ 업로드는 **2단계 방식**(발급 → PUT → 완료 통보)이라 프로젝트 파일(37 · 38번)과 같은 흐름이다. 화면도 문서 블록(`FileBlock`)과 같은 방식이다 — 숨긴 `<input>` 하나를 `새 문서 추가` · 행의 `새 버전 올리기` 가 함께 쓰고, 대상은 `companyDocumentId` 유무로 갈린다.
+> ℹ️ **148번(미리보기)은 화면이 쓰지 않는다** — 사내 문서함은 최신본을 받아 쓰는 화면이라 미리보기 영역을 두지 않았다 (`api.ts` 에 창구만 남겨 둠).
+> ⚠️ **AI 인덱싱 상태 필드가 목록 응답에 없다** — 목업의 `완료` · `인덱싱중` 배지는 §6-2 AI 도메인 확정 후 필드명이 정해지면 붙인다. 지금은 화면에서 뺐다.
+> ⚠️ **목록에 삭제분을 부르는 조건이 없다** — 복구는 지운 직후 화면이 들고 있는 id 로만 가능하다. 화면은 삭제 후 `되돌리기` 줄을 띄운다.
+> ℹ️ 업로더가 `null` 이면 `—` 로 적는다 (ADMIN 은 사원 레코드가 없다).
 
 ---
 
@@ -5240,6 +5442,59 @@ data: {
 
 ---
 
+## 142. 담당 이슈 캘린더 조회
+
+| 항목          | 값                                                |
+| ------------- | ------------------------------------------------- |
+| **Method**    | `GET`                                             |
+| **Path**      | `/api/v1/issues/calendar`                         |
+| **권한**      | 없음 (본인 담당 이슈만 오므로 스텝 권한 검사 없음) |
+| **사용 위치** | `src/features/issue/api.ts` → `getIssueCalendar()` |
+
+**Query Parameter** — 없다. 로그인 사용자가 담당인 **미완료 이슈 전체**가 한 번에 온다.
+
+**Response (200 OK)**
+
+```json
+{
+  "issues": [
+    {
+      "issueId": 101,
+      "title": "제안서 1차 초안 작성",
+      "status": "IN_PROGRESS",
+      "priority": "HIGH",
+      "dueDate": "2026-08-11",
+      "stepId": 10,
+      "stepName": "입찰 진행",
+      "projectId": 3,
+      "projectName": "OO시 스마트도로 구축"
+    }
+  ]
+}
+```
+
+| 필드          | 타입   | 설명                                     |
+| ------------- | ------ | ---------------------------------------- |
+| `issueId`     | number | 이슈 ID                                  |
+| `title`       | string | 이슈 제목                                |
+| `status`      | string | `TODO` · `IN_PROGRESS` (**`DONE` 없음**) |
+| `priority`    | string | `LOW` · `MEDIUM` · `HIGH`                |
+| `dueDate`     | string | `yyyy-MM-dd` — **항상 값이 있다**        |
+| `stepId`      | number | 소속 스텝 ID                             |
+| `stepName`    | string | 소속 스텝명                              |
+| `projectId`   | number | 소속 프로젝트 ID                         |
+| `projectName` | string | 소속 프로젝트명                          |
+
+> ⛔ **`DONE` 이슈 · 마감일 없는 이슈는 응답에서 빠진다** — 화면이 다시 거르지 않는다.
+> ⛔ **색은 응답하지 않는다** — `projectId` 기준으로 프론트가 매긴다.
+> ⚠️ **기간 파라미터가 없다.** 화면 진입 때 한 번만 부르고, 월 이동은 받아 둔 목록에서 걸러 그린다.
+> ℹ️ 목록 이슈(55 · 108)와 **모양이 다르다** — 담당자 · 연결 블록 · `version` 이 없고 대신 프로젝트 · 스텝이 실려 온다. 이슈를 누르면 상세(57)를 그대로 부른다.
+> ℹ️ 결과가 없으면 `issues` 는 빈 배열이다.
+
+**Status Code** — 200 · 401 `AUTH_UNAUTHENTICATED`
+
+---
+
 > ✏️ 새 API를 연동할 때 위 양식대로 계속 추가하세요.
 > 핵심은 **백엔드 응답 타입을 정확히** 적어두는 것 — AI가 타입 안전하게 연동 코드를 짜줘요.
 
@@ -5367,7 +5622,41 @@ body 는 등록과 같은 모양이고 전부 선택이다.
 | `PATCH /blocks/settlements/{id}/items` — `?type=` 을 실어 보내도 컨트롤러에서 null 이라 **500 NPE** (파라미터 바인딩) |
 | 목록 응답에 `bankName` 추가 (또는 단건 조회 API)                        |
 | 정산 블록 `detail` 에 **연결 여부 플래그** — 지금은 정산 상태로 추정한다 |
-| 세금계산서(`tax-invoices`)는 **필터 옵션만 구현**, 나머지는 개발 전     |
 | 엑셀 시간 전용 셀 파싱 (`1899-12-31 …`) — CSV 업로드가 막혀 있다        |
-| `request` 파트 JSON 스키마 공개                                         |
+| `request` 파트 JSON 스키마 공개 (입출금 · 세금계산서 둘 다)             |
 | `GET /finance/cash-flows/{cashFlowId}` 단건 조회                        |
+| `GET /finance/tax-invoices/{taxId}` 단건 조회 — 지금은 **목록을 넘겨 가며 찾는다** |
+
+### 세금계산서 — `/finance/tax-invoices` (2026-08-14 스웨거 실측 · 연동 완료)
+
+> ⚠️ 변경사항 (2026-08-14) — 이전 기록의 "필터 옵션만 구현" 은 **낡았다.** 전부 배포됐다.
+
+| 메서드   | 경로                                            | 설명                                             |
+| -------- | ----------------------------------------------- | ------------------------------------------------ |
+| `GET`    | `/finance/tax-invoices`                         | 목록 — ⚠️ **페이징 있음** (`page`·`size`·`sort`) |
+| `DELETE` | `/finance/tax-invoices`                         | 다건 삭제 (body 에 `taxIds`)                     |
+| `GET`    | `/finance/tax-invoices/filters`                 | 프로젝트 옵션                                    |
+| `PATCH`  | `/finance/tax-invoices/exclude`                 | 연결 대상 제외/포함 (`taxIds` · `isExcluded`)    |
+| `PATCH`  | `/finance/tax-invoices/{taxId}`                 | ⚠️ **메모만** 수정된다                           |
+| `GET`    | `/finance/tax-invoices/{taxId}/match-candidates` | 정산 블록 추천 (최대 5건)                        |
+| `PATCH`  | `/finance/tax-invoices/{taxId}/match`           | 정산 블록 연결 (`settleId`)                      |
+| `PATCH`  | `/finance/tax-invoices/{taxId}/unmatch`         | 연결 해제                                        |
+| `POST`   | `/finance/tax-invoices/csv/preview`             | 컬럼 추천 — 파일은 저장되지 않는다               |
+| `POST`   | `/finance/tax-invoices/csv`                     | 매핑 확정 후 저장                                |
+
+**입출금과 다른 점**
+
+| 항목        | 입출금                | 세금계산서               |
+| ----------- | --------------------- | ------------------------ |
+| 목록 페이징 | 없음 (배열 통째로)    | **있음**                 |
+| 직접 등록   | 있음 (`POST`)         | **없음** — CSV 가 유일   |
+| 수정 범위   | 미연결 · 직접등록이면 전체 | **메모만**          |
+| 중복 기준   | 거래일시 + 금액       | **승인번호**             |
+
+**CSV 미리보기 응답** — `columns` · `sampleRows` · `recommendedType`(⚠️ `null` 로 올 수 있다) ·
+`recommendedMapping`(필수 8 + 선택 4: `approvalNo` · `issuedDate` · `supplierBizNo` ·
+`buyerBizNo` · `buyerName` · `supplyAmount` · `taxAmount` · `totalAmount` /
+`itemName` · `ceoName` · `subBizNo` · `memo`, 각 `…Column`)
+
+**CSV 업로드 응답** — `totalRows` · `savedCount` · `duplicateCount` ·
+`duplicateRows[]`(⚠️ 입출금과 달리 **`approvalNo` · `reason`** 이다)

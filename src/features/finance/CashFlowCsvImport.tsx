@@ -11,6 +11,7 @@ import { formatDateTime } from '@/lib/format';
 
 import { previewCashFlowCsv } from './api';
 import CashFlowCsvMapping from './CashFlowCsvMapping';
+import { Figure, FilePicker, StepBar } from './CsvImportParts';
 import {
   isCsvInvalidFile,
   isCsvPasswordInvalid,
@@ -19,9 +20,6 @@ import {
 import { formatAmount } from './display';
 import { FINANCE_ROUTES } from './routes';
 import type { CsvDuplicateRow, CsvPreview, CsvUploadResult } from './types';
-
-/** 받을 수 있는 파일 — 백엔드가 CSV · 엑셀 둘 다 파싱한다 */
-const ACCEPT = '.csv,.xlsx,.xls';
 
 const STEPS = ['파일 선택', '컬럼 맞추기', '결과 확인'] as const;
 
@@ -130,7 +128,7 @@ export default function CashFlowCsvImport() {
         </p>
       </div>
 
-      <StepBar current={step} />
+      <StepBar steps={STEPS} current={step} />
 
       {result !== null ? (
         <UploadResult result={result} />
@@ -241,29 +239,6 @@ function UploadResult({ result }: { result: CsvUploadResult }) {
   );
 }
 
-function Figure({
-  label,
-  value,
-  isStrong = false,
-}: {
-  label: string;
-  value: number;
-  isStrong?: boolean;
-}) {
-  return (
-    <div>
-      <dt className="text-caption text-text-secondary">{label}</dt>
-      <dd
-        className={`mt-0.5 text-heading-m font-bold ${
-          isStrong ? 'text-text-primary-blue' : 'text-text-primary'
-        }`}
-      >
-        {value.toLocaleString('ko-KR')}건
-      </dd>
-    </div>
-  );
-}
-
 const DUPLICATE_COLUMNS: DataTableColumn<CsvDuplicateRow>[] = [
   {
     key: 'tradedAt',
@@ -295,92 +270,3 @@ const DUPLICATE_COLUMNS: DataTableColumn<CsvDuplicateRow>[] = [
     ),
   },
 ];
-
-/** 지금 어디쯤인지 — 세 단계는 되돌아갈 수 있어 숫자만으로도 충분하다 */
-function StepBar({ current }: { current: number }) {
-  return (
-    <ol className="flex flex-wrap items-center gap-2">
-      {STEPS.map((label, index) => (
-        <li key={label} className="flex items-center gap-2">
-          <span
-            className={`flex size-5 items-center justify-center rounded-pill text-detail font-bold ${
-              index <= current
-                ? 'bg-btn-primary text-text-white'
-                : 'bg-bg-hover text-text-muted'
-            }`}
-          >
-            {index + 1}
-          </span>
-          <span
-            className={`text-caption ${
-              index === current
-                ? 'font-semibold text-text-primary'
-                : 'text-text-secondary'
-            }`}
-          >
-            {label}
-          </span>
-          {index < STEPS.length - 1 && (
-            <span aria-hidden className="mx-1 text-text-muted">
-              ›
-            </span>
-          )}
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-/**
- * 파일 선택 — 클릭과 드래그 앤 드롭을 함께 받는다.
- *
- * ⚠️ 라벨로 감싸 **영역 전체가 파일 선택 버튼**이 되게 한다. `<input>` 을 숨기고
- *    별도 버튼에 `click()` 을 흉내 내면 키보드 접근이 끊긴다.
- */
-function FilePicker({
-  file,
-  isLoading,
-  onPick,
-}: {
-  file: File | null;
-  isLoading: boolean;
-  onPick: (file: File | null) => void;
-}) {
-  const [isOver, setIsOver] = useState(false);
-
-  return (
-    <label
-      onDragOver={(event) => {
-        event.preventDefault();
-        setIsOver(true);
-      }}
-      onDragLeave={() => setIsOver(false)}
-      onDrop={(event) => {
-        event.preventDefault();
-        setIsOver(false);
-        onPick(event.dataTransfer.files[0] ?? null);
-      }}
-      /** `<input>` 이 `sr-only` 라 포커스가 보이지 않는다 — 라벨에 `focus-within` 으로 드러낸다 */
-      className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-5 py-10 text-center transition-colors focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-border-primary ${
-        isOver
-          ? 'border-border-primary bg-blue-bg-soft'
-          : 'border-border-default hover:bg-bg-surface'
-      }`}
-    >
-      <input
-        type="file"
-        accept={ACCEPT}
-        disabled={isLoading}
-        onChange={(event) => onPick(event.target.files?.[0] ?? null)}
-        className="sr-only"
-      />
-
-      <span className="text-label font-semibold text-text-primary">
-        {file ? file.name : '파일을 끌어다 놓거나 눌러서 선택하세요'}
-      </span>
-      <span className="mt-1 text-caption text-text-secondary">
-        {isLoading ? '파일을 읽는 중입니다…' : 'CSV · 엑셀(.xlsx · .xls)'}
-      </span>
-    </label>
-  );
-}

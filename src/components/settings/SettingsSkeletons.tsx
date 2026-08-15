@@ -1,7 +1,13 @@
 import DataTable, {
   type DataTableSkeletonColumn,
 } from '@/components/DataTable';
-import { Skeleton, SkeletonField, SkeletonGroup } from '@/components/Skeleton';
+import {
+  Skeleton,
+  SkeletonField,
+  SkeletonFilterBar,
+  SkeletonGroup,
+  SkeletonPageHeader,
+} from '@/components/Skeleton';
 
 /**
  * 사원 목록 로딩 껍데기 — **`Suspense` 폴백 전용**이다.
@@ -46,6 +52,55 @@ export function EmployeeTableSkeleton({ rows = 20 }: { rows?: number }) {
       dense
       skeletonRows={rows}
     />
+  );
+}
+
+/**
+ * 사원 관리 **화면 전체** 껍데기 — `Suspense` 폴백이 쓴다.
+ *
+ * ⚠️ 표만 그리면 안 된다 — 실제 화면(`EmployeeList`)은
+ *    `머리글(mt-2 mb-6) → 필터 바(mb-4) → 표` 순이라, 표만 그린 폴백은 표가 맨 위에
+ *    붙었다가 실제 화면이 뜨는 순간 **머리글 + 필터 바 높이만큼 아래로 내려앉는다.**
+ *
+ * | 자리        | 실제 값                                              |
+ * | ----------- | ---------------------------------------------------- |
+ * | 경로 표시   | `Breadcrumb` — `text-caption`(12px × 1.5 = 18px)      |
+ * | 제목        | `text-heading-m`(18px × 1.45 ≈ 26px)                  |
+ * | 설명        | `text-label`(14px × 1.5 = 21px), `mt-1.5` — **두 줄**  |
+ * | 오른쪽 버튼 | `btn-md`(34px) 2개 — `일괄 등록` · `+ 사원 등록`       |
+ * | 필터        | 검색 · 셀렉트 3개 · `퇴사자 포함` 체크                 |
+ *
+ * ⚠️ 필터 컨트롤은 `h-9`(36px) 가 **아니다** — `py-2` + `text-label`(21px) + 테두리 2px
+ *    = 39px 다. 36px 로 잡으면 줄마다 3px 씩 어긋난다.
+ *
+ * ⚠️ 바깥을 `SkeletonGroup` 으로 또 감싸지 않는다 — 안쪽 표가 이미 `role="status"` 다.
+ */
+export function EmployeeListSkeleton({ rows = 20 }: { rows?: number }) {
+  return (
+    <>
+      {/* `Breadcrumb` 자리 — 빼면 아래 전부가 18px 씩 위로 붙는다 */}
+      <Skeleton className="h-[18px] w-40" />
+
+      <SkeletonPageHeader
+        className="mt-2 mb-6"
+        titleClassName="h-[26px] w-28"
+        // 설명이 두 줄로 흐르는 화면이라 자리도 두 줄로 잡는다
+        descriptionClassName="h-[42px] w-full max-w-lg"
+        action={
+          <>
+            <Skeleton className="h-[34px] w-24 rounded-button-md" />
+            <Skeleton className="h-[34px] w-28 rounded-button-md" />
+          </>
+        }
+      />
+
+      <SkeletonFilterBar
+        controlClassName="h-[39px]"
+        widths={['w-64', 'w-28', 'w-28', 'w-28', 'w-24']}
+      />
+
+      <EmployeeTableSkeleton rows={rows} />
+    </>
   );
 }
 

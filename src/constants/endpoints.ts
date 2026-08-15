@@ -10,6 +10,12 @@ export const ENDPOINTS = {
     login: `${V1}/auth/login`,
     logout: `${V1}/auth/logout`,
     me: `${V1}/auth/me`,
+    /**
+     * 내 프로필 사진 등록·변경(PUT, multipart) · 삭제(DELETE). 둘 다 **본인만** · 멱등이다.
+     *
+     * ⚠️ 경로는 `/auth` 지만 데이터는 사원 속성이라 **에러 코드가 `EMP_` 접두어**로 온다.
+     */
+    profileImage: `${V1}/auth/me/profile-image`,
     password: `${V1}/auth/password`,
     termsAgreements: `${V1}/auth/terms-agreements`,
   },
@@ -108,6 +114,13 @@ export const ENDPOINTS = {
     resignation: (userId: string) => `${V1}/employees/${userId}/resignation`,
     /** 결재선 지정용 이름 검색 — ADMIN 전용이 아니다 */
     search: `${V1}/employees/search`,
+    /**
+     * 아바타 서빙 — 로그인 사용자면 누구나. 응답이 JSON 이 아니라 **presigned 로 302** 다.
+     *
+     * ⚠️ 직접 부르지 않는다. `apiUrl()` 을 씌워 `<img src>` 에 넣고 브라우저가 따라가게 한다.
+     * ⚠️ `userId` 는 **접두어까지 포함한 사번 그대로**다 (`vitas-EMP001`). 잘라 쓰지 말 것.
+     */
+    profileImage: (userId: string) => `${V1}/employees/${userId}/profile-image`,
     /** 엑셀 템플릿 — 응답이 `.xlsx` 바이너리다 (봉투가 아니다) */
     bulkTemplate: `${V1}/employees/bulk-template`,
     /** 일괄 등록 검증 — 등록하지 않고 행 오류만 준다 */
@@ -222,6 +235,11 @@ export const ENDPOINTS = {
       `${V1}/steps/${stepId}/activity-logs`,
   },
   issues: {
+    /**
+     * 담당 이슈 캘린더 — 로그인 사용자가 담당인 **미완료 이슈 전체**가 한 번에 온다.
+     * 기간 파라미터가 없다 — 월 이동은 받아 둔 데이터를 화면에서 거른다.
+     */
+    calendar: `${V1}/issues/calendar`,
     /** 상세 조회 · 부분 수정 · 삭제 */
     detail: (issueId: number | string) => `${V1}/issues/${issueId}`,
     /** 상태 변경 — 부분 수정과 엔드포인트가 다르다 */
@@ -336,6 +354,16 @@ export const ENDPOINTS = {
       `${V1}/vitamate/analyses/${analysisId}`,
   },
   files: {
+    /**
+     * 내 프로젝트 파일 모아보기 — 내가 멤버인 **모든 프로젝트**를 가로지른다.
+     * 스텝 `VIEWER` 이상인 파일만 오고, 페이징이 없다 (`keyword` · `projectId` · `extension` 으로 거른다).
+     */
+    my: `${V1}/files/my`,
+    /**
+     * 전사 파일 목록 (ADMIN 전용 · FILE-Q-01) — 회사의 **모든 프로젝트**를 가로지른다.
+     * 경로만 `/admin` 아래에 있고 다루는 것은 파일이라 이 묶음에 둔다.
+     */
+    admin: `${V1}/admin/files`,
     /** 업로드 시작 — presigned PUT URL 발급 */
     uploads: `${V1}/files/uploads`,
     /** 업로드 완료 통보 — 서버가 저장소를 직접 확인한다 */
@@ -353,6 +381,36 @@ export const ENDPOINTS = {
      */
     permanentDeletion: (fileId: number | string) =>
       `${V1}/files/${fileId}/permanent-deletion`,
+  },
+  /**
+   * 사내 문서함 (ADMIN 전용 · `features/companyDocument/`).
+   *
+   * 프로젝트 파일과 **별도 도메인**이다 — 경로 · 에러코드(`CDOC_*`)가 모두 따로 있다.
+   * 다운로드 · 미리보기도 파일 도메인(`fileVersions`)이 아니라 이쪽 경로를 쓴다.
+   */
+  companyDocuments: {
+    /** 목록 — 분류 · 검색 · 페이징 */
+    root: `${V1}/admin/company-documents`,
+    /** 업로드 시작 — presigned PUT URL 발급 (10분) */
+    uploads: `${V1}/admin/company-documents/uploads`,
+    /** 업로드 완료 통보 — 서버가 저장소를 직접 확인한다 */
+    uploadComplete: (versionId: number | string) =>
+      `${V1}/admin/company-documents/uploads/${versionId}/complete`,
+    /** 표시명 · 분류 수정 · 삭제(soft) */
+    detail: (documentId: number | string) =>
+      `${V1}/admin/company-documents/${documentId}`,
+    /** 버전 이력 — 완료 버전만, 차수 내림차순 */
+    versions: (documentId: number | string) =>
+      `${V1}/admin/company-documents/${documentId}/versions`,
+    /** 삭제 복구 */
+    restore: (documentId: number | string) =>
+      `${V1}/admin/company-documents/${documentId}/restore`,
+    /** 다운로드 URL 발급 (presigned, 5분) */
+    download: (versionId: number | string) =>
+      `${V1}/admin/company-document-versions/${versionId}/download`,
+    /** 미리보기 — 응답이 JSON 이 아니라 앞 5페이지를 잘라낸 PDF 바이너리다 */
+    preview: (versionId: number | string) =>
+      `${V1}/admin/company-document-versions/${versionId}/preview`,
   },
   fileVersions: {
     /** 버전 단건 조회 (결재용) — 문서가 휴지통이어도 반환된다 */
@@ -425,10 +483,50 @@ export const ENDPOINTS = {
       /** 매핑 확정 후 실제 저장 */
       csv: `${V1}/finance/cash-flows/csv`,
     },
+    /**
+     * 세금계산서. 홈택스에서 내려받은 파일을 올려 일괄 수집한다.
+     *
+     * ⚠️ 입출금과 **모양은 닮았지만 다른 리소스**다 — 중복 판정 기준이 승인번호이고,
+     *    매출(`INCOME`) · 매입(`OUTCOME`) 구분을 사람이 고른다.
+     */
+    taxInvoices: {
+      /**
+       * 목록 조회(GET) · 다건 삭제(DELETE — body 에 id 배열).
+       *
+       * ⚠️ 입출금 목록과 달리 **페이징이 있다** (`page` · `size`).
+       * ⚠️ 직접 등록(POST)은 없다 — CSV 로만 들어온다.
+       */
+      root: `${V1}/finance/tax-invoices`,
+      /** 필터 옵션 — 프로젝트 목록만 내려온다 */
+      filters: `${V1}/finance/tax-invoices/filters`,
+      /** 연결 대상 제외/포함 — 프로젝트와 무관한 건을 연결 후보에서 뺀다 */
+      exclude: `${V1}/finance/tax-invoices/exclude`,
+      /** ⚠️ 수정은 **메모만** 된다 (직접 등록이 없어 나머지는 파일이 원본이다) */
+      detail: (taxId: number | string) => `${V1}/finance/tax-invoices/${taxId}`,
+      /** 매칭 추천 — 프로젝트가 아니라 **정산 블록** 후보가 온다 */
+      matchCandidates: (taxId: number | string) =>
+        `${V1}/finance/tax-invoices/${taxId}/match-candidates`,
+      match: (taxId: number | string) =>
+        `${V1}/finance/tax-invoices/${taxId}/match`,
+      unmatch: (taxId: number | string) =>
+        `${V1}/finance/tax-invoices/${taxId}/unmatch`,
+      /** CSV 컬럼 추천 · 미리보기 — 파일 자체는 저장되지 않는다 */
+      csvPreview: `${V1}/finance/tax-invoices/csv/preview`,
+      /** 매핑 확정 후 실제 저장 */
+      csv: `${V1}/finance/tax-invoices/csv`,
+    },
   },
   notifications: {
     /** 알림 목록 — `category` · `isRead` · `page` · `size` 로 거른다 */
     root: `${V1}/notifications`,
+    /**
+     * 실시간 수신 (SSE · `text/event-stream`).
+     *
+     * ⚠️ `lib/api.ts` 로 부르지 않는다 — **응답이 닫히지 않는** 연결이라
+     *    `EventSource` 가 직접 연다 (`apiUrl()` 로 오리진을 씌운다).
+     *    구독 시점 **이후에 생기는 알림만** 오고, 과거 · 개수는 계속 목록 API 다.
+     */
+    stream: `${V1}/notifications/stream`,
     /** 개별 삭제(논리 삭제) */
     detail: (notificationId: number | string) =>
       `${V1}/notifications/${notificationId}`,

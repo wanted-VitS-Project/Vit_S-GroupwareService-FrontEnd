@@ -1,18 +1,19 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
-import Modal from '@/components/Modal';
 import { downloadVersion, getProjectFiles } from '@/features/file/api';
 import {
   extensionLabel,
   extensionStyle,
   formatFileSize,
 } from '@/features/file/format';
-import { preloadPdfViewer } from '@/features/file/pdfViewer';
+import {
+  LazyFileViewerModal,
+  preloadViewer,
+} from '@/features/file/LazyFileViewer';
 import {
   cancelPreviewPrefetch,
   schedulePreviewPrefetch,
@@ -26,48 +27,6 @@ import { groupFilesByStep, type FileBlockGroup } from './groupFiles';
 import { ProjectFilesSkeleton } from './ProjectOverviewSkeletons';
 import StageSection from './StageSection';
 import { groupByStage, useProjectStages } from './useProjectStages';
-
-/**
- * 뷰어는 pdfjs 를 끌고 오므로 초기 번들에서 분리한다.
- * 목록에 마우스를 올리는 순간 미리 받아 두기 때문에 실제로 열 때는 이미 캐시에 있다.
- * (문서 블록 `FileBlock` 과 같은 방식)
- */
-const FileViewerModal = dynamic(
-  () => import('@/features/file/FileViewerModal'),
-  { ssr: false, loading: () => <FileViewerFallback /> },
-);
-
-/** 청크가 아직 도착하지 않았을 때의 자리 — 없으면 눌러도 반응이 없는 것처럼 보인다 */
-function FileViewerFallback() {
-  return (
-    <Modal
-      title="문서 보기"
-      className="flex h-[85vh] w-full max-w-[820px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
-    >
-      <div
-        role="status"
-        aria-label="문서 뷰어를 불러오는 중입니다"
-        className="flex min-h-0 flex-1 justify-center bg-bg-surface p-6"
-      >
-        <div
-          aria-hidden
-          className="h-[600px] w-full max-w-[576px] animate-pulse rounded-button-sm border border-border-default bg-bg-card shadow-sm"
-        />
-      </div>
-    </Modal>
-  );
-}
-
-/** 프리로드는 한 번이면 된다 */
-let isViewerPreloaded = false;
-
-function preloadViewer() {
-  if (isViewerPreloaded) return;
-  isViewerPreloaded = true;
-
-  void import('@/features/file/FileViewerModal').catch(() => {});
-  preloadPdfViewer();
-}
 
 /**
  * 프로젝트 문서함 — 전체 문서를 스텝 → 블록 트리로 본다. (명세 105번)
@@ -94,8 +53,14 @@ export default function ProjectFiles() {
   const [closedStepIds, setClosedStepIds] = useState<Set<number>>(new Set());
   const viewerModal = useModalTarget<ProjectFile>();
 
-  // 105번 응답에 `stageId` 가 없어 따로 읽는다. 실패해도 목록은 그대로 보인다
-  const stageIndex = useProjectStages(projectId);
+  /*
+   * 105번 응답에 `stageId` 가 없어 따로 읽는다. 실패해도 목록은 그대로 보인다.
+   * 다만 **판정이 끝나기 전에는 그리지 않는다** (`isSettled`) — 색인 없이 먼저 그리면
+   * 스텝이 한 덩어리로 늘어섰다가 색인이 도착하는 순간 스테이지별로 다시 묶여
+   * 제목이 끼어들고 높이가 바뀐다.
+   */
+  const { index: stageIndex, isSettled: isStageSettled } =
+    useProjectStages(projectId);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -164,7 +129,8 @@ export default function ProjectFiles() {
     );
   }
 
-  if (!files) return <ProjectFilesSkeleton />;
+  // 스테이지 색인까지 기다렸다가 **묶인 모습으로 한 번에** 그린다
+  if (!files || !isStageSettled) return <ProjectFilesSkeleton />;
 
   const areAllClosed = steps.every((step) => closedStepIds.has(step.stepId));
 
@@ -285,7 +251,7 @@ export default function ProjectFiles() {
       )}
 
       {viewerModal.target && (
-        <FileViewerModal
+        <LazyFileViewerModal
           file={viewerModal.target}
           onClose={viewerModal.close}
         />

@@ -4,6 +4,7 @@ import { useId, useRef, useState } from 'react';
 
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import Modal from '@/components/Modal';
+import { notifyToast } from '@/components/Toast';
 import { ApiError, messageOf } from '@/lib/api';
 import { useModal } from '@/lib/useModal';
 
@@ -135,7 +136,10 @@ export default function BulkUploadModal({
       setSkipErrors(next.errorCount > 0);
       setStep('validated');
     } catch (caught) {
-      setErrorMessage(messageOf(caught, '파일을 검증하지 못했습니다.'));
+      const message = messageOf(caught, '파일을 검증하지 못했습니다.');
+
+      setErrorMessage(message);
+      notifyToast(message, 'error');
       // 파일 자체가 문제면 다시 고르는 것 말고 할 일이 없다
       if (
         caught instanceof ApiError &&
@@ -160,8 +164,12 @@ export default function BulkUploadModal({
       confirmModal.close();
       setStep('done');
       if (next.registeredCount > 0) onRegistered();
+      notifyToast(`사원 ${next.registeredCount}명을 등록했습니다.`);
     } catch (caught) {
-      setErrorMessage(messageOf(caught, '등록하지 못했습니다.'));
+      const message = messageOf(caught, '등록하지 못했습니다.');
+
+      setErrorMessage(message);
+      notifyToast(message, 'error');
       // 확인 창을 닫고 검증 화면으로 되돌린다 — 고칠 곳(건너뛰기 · 파일)이 거기 있다
       confirmModal.close();
     } finally {

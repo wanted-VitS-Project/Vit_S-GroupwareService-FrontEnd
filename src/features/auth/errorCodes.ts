@@ -49,6 +49,21 @@ export function isGateCode(code?: string): code is string {
   return code !== undefined && GATES.includes(code);
 }
 
+/**
+ * 프로필 사진 응답 코드. 경로는 `/auth/me/...` 지만 데이터가 사원 속성이라
+ * **소유 도메인이 employee** 여서 접두어가 `EMP_` 다.
+ *
+ * ⚠️ 404 두 개(`NOT_FOUND`)는 **서빙(`<img>`)에서만** 난다 — 화면이 잡을 수 없고
+ *    잡을 필요도 없다. `onError` 로 이니셜 아바타로 돌리면 끝이다.
+ */
+export const PROFILE_IMAGE_ERROR_MESSAGES: Record<string, string> = {
+  EMP_PROFILE_IMAGE_REQUIRED: '이미지 파일을 선택해주세요.',
+  // 형식 · 확장자 위장 · 손상 · 픽셀 과다가 전부 이 한 코드로 온다
+  EMP_PROFILE_IMAGE_TYPE_INVALID:
+    'jpg · jpeg · png · gif 형식의 이미지만 올릴 수 있어요.',
+  EMP_PROFILE_IMAGE_SIZE_EXCEEDED: '5MB 이하 이미지만 올릴 수 있어요.',
+};
+
 /** 로그인 실패 문구. 없는 코드는 백엔드 message 를 그대로 쓴다. */
 export const LOGIN_ERROR_MESSAGES: Record<string, string> = {
   AUTH_INVALID_REQUEST: '아이디와 비밀번호를 모두 입력해주세요.',
