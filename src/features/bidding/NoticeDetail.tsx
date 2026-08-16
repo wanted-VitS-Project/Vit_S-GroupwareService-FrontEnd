@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { NoticeDetailSkeleton } from '@/components/bidding/NoticeSkeletons';
@@ -17,6 +18,7 @@ import {
   DeadlineBadge,
   NoticeStatusBadge,
 } from './NoticeBadges';
+import NoticeProjectConvertModal from './NoticeProjectConvertModal';
 import NoticeReviewModal from './NoticeReviewModal';
 import NoticeSummaryCard from './NoticeSummaryCard';
 import { BIDDING_ROUTES } from './routes';
@@ -68,11 +70,15 @@ function formatJointContract(allowed: boolean | null) {
  * ⚠️ 상세는 목록과 달리 금액을 줄이지 않는다 — `3.4억` 이 아니라 `340,000,000원` 이다.
  */
 export default function NoticeDetail({ noticeId }: { noticeId: number }) {
+  const router = useRouter();
   const [notice, setNotice] = useState<BidNoticeDetail | null>(null);
   const [failure, setFailure] = useState<Failure | null>(null);
   const [failureMessage, setFailureMessage] = useState('');
   const [showsSummary, setShowsSummary] = useState(false);
   const [showsReview, setShowsReview] = useState(false);
+  const [showsConvert, setShowsConvert] = useState(false);
+  /** 전환의 근거가 될 검토 — 검토 결과 화면에서만 넘어온다 */
+  const [convertReviewId, setConvertReviewId] = useState<number | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -249,7 +255,7 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
               </a>
             ) : (
               <p className="text-caption text-text-secondary">
-                원문 링크가 없어요.
+                원문 링크가 없습니다.
               </p>
             )}
 
@@ -273,7 +279,7 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
 
             {/**
              * AI 검토는 요약과 **다른 기능**이다 — 공고 첨부와 사내 문서를 골라 비교하고
-             * 결과에 근거(인용)가 붙는다 (워커도 `bid_review_worker` 로 갈린다).
+             * 결과에 분석 자료(인용)가 붙는다 (워커도 `bid_review_worker` 로 갈린다).
              */}
             <button
               type="button"
@@ -284,15 +290,16 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
             </button>
 
             {/**
-             * ⚠️ **전환 버튼을 두지 않는다.**
+             * ⚠️ **여기에는 전환 버튼을 두지 않는다.**
              *
-             * 백엔드에는 `POST /bidding/notices/{id}/projects` 가 들어왔지만
-             * (근거 검토 · 사업 카테고리 · 기간 · 참여자를 받는 별도 흐름이라) 화면은 따로 만든다.
-             * 눌리지 않는 버튼을 남겨 두면 "고장 났나" 로 읽혀, 아예 빼고 상태만 알린다.
+             * 전환은 완료된 AI 검토가 근거로 필요하다. 상세에서 바로 열면 검토부터
+             * 고르게 되는데, 검토가 없으면 빈손으로 창만 열린다.
+             * 진입점을 **검토 결과 화면 한 곳**으로 두어 순서가 뒤집히지 않게 한다.
              */}
             {notice.projectId === null ? (
               <p className="mt-2 text-caption text-text-secondary">
-                아직 프로젝트로 전환되지 않았습니다.
+                아직 프로젝트로 전환되지 않았습니다. AI 검토를 마치면 결과에서
+                생성할 수 있습니다.
               </p>
             ) : (
               <Link
@@ -306,10 +313,29 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
         </div>
       </div>
 
+      {showsConvert && convertReviewId !== null && (
+        <NoticeProjectConvertModal
+          notice={notice}
+          reviewId={convertReviewId}
+          onClose={() => setShowsConvert(false)}
+          // 생성된 프로젝트로 곧장 보낸다 — 전환의 목적이 그 화면이다
+          onConverted={(projectId) => {
+            setShowsConvert(false);
+            router.push(PROJECT_ROUTES.detail(projectId));
+          }}
+        />
+      )}
+
       {showsReview && (
         <NoticeReviewModal
           noticeId={noticeId}
+          isConverted={notice.projectId !== null}
           onClose={() => setShowsReview(false)}
+          onConvert={(reviewId) => {
+            setShowsReview(false);
+            setConvertReviewId(reviewId);
+            setShowsConvert(true);
+          }}
         />
       )}
 
@@ -370,7 +396,7 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
 function AttachmentList({ attachments }: { attachments: NoticeAttachment[] }) {
   if (attachments.length === 0) {
     return (
-      <p className="mt-1.5 text-caption text-text-secondary">첨부가 없어요.</p>
+      <p className="mt-1.5 text-caption text-text-secondary">첨부가 없습니다.</p>
     );
   }
 

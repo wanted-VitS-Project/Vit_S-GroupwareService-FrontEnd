@@ -89,6 +89,13 @@ export const BIDDING_CODES = {
   reviewDocumentNotReady: 'BIDDING_REVIEW_DOCUMENT_NOT_READY',
   /** 409 — 이미 끝났거나 전환돼 종료할 수 없다 */
   reviewNotAbandonable: 'BIDDING_REVIEW_NOT_ABANDONABLE',
+
+  /* 프로젝트 전환 — 409 가 다섯 갈래라 화면에서 각각 다르게 안내한다 */
+  noticeAlreadyLinked: 'PROJECT_BID_NOTICE_ALREADY_LINKED',
+  reviewNotCompleted: 'BIDDING_REVIEW_NOT_COMPLETED',
+  reviewAlreadyLinkedToProject: 'BIDDING_REVIEW_ALREADY_LINKED_TO_PROJECT',
+  summaryNotConfirmed: 'BIDDING_SUMMARY_NOT_CONFIRMED',
+  summaryAlreadyLinked: 'BIDDING_SUMMARY_ALREADY_LINKED',
   /** 422 — AI 가 읽을 수 없는 형식 (`supported: false` 를 고른 경우) */
   reviewUnsupportedFile: 'BIDDING_REVIEW_UNSUPPORTED_FILE',
 } as const;

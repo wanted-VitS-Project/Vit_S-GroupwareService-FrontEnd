@@ -35,7 +35,7 @@ const PROMPT_PLACEHOLDER =
 /**
  * AI 문서 검토. (BID-V1 · `.ai/API.md` 입찰 문서 검토)
  *
- * 요약과 **다른 기능**이다 — 공고 첨부와 사내 문서를 골라 비교하고, 결과에 **근거(인용)** 가 붙는다.
+ * 요약과 **다른 기능**이다 — 공고 첨부와 사내 문서를 골라 비교하고, 결과에 **분석 자료(인용)** 가 붙는다.
  * 서버 쪽 워커도 갈린다 (`bid_review_worker`).
  *
  * ⚠️ 고른 파일은 검토를 위해 **임시 저장소에 올라간다.** 프로젝트로 전환하지 않으면
@@ -43,10 +43,16 @@ const PROMPT_PLACEHOLDER =
  */
 export default function NoticeReviewModal({
   noticeId,
+  isConverted,
   onClose,
+  onConvert,
 }: {
   noticeId: number;
+  /** 이미 프로젝트로 전환된 공고면 전환 버튼을 두지 않는다 */
+  isConverted: boolean;
   onClose: () => void;
+  /** 이 검토를 근거로 프로젝트를 만든다 — 전환 모달은 상위가 연다 */
+  onConvert: (reviewId: number) => void;
 }) {
   const [attachments, setAttachments] = useState<ReviewAttachment[] | null>(
     null,
@@ -316,6 +322,21 @@ export default function NoticeReviewModal({
    */
   const showsPicker = isLoaded && (!isDone || wantsNew);
 
+  /**
+   * 전환을 막는 이유. `null` 이면 지금 만들 수 있다.
+   *
+   * ⚠️ 막힌 경우에도 **버튼을 감추지 않고 비활성화**한다 — 버튼이 통째로 사라지면
+   *    "왜 없지" 를 사용자가 혼자 추측해야 한다. 이유를 옆에 적어 두는 편이 낫다.
+   * ℹ️ 툴팁(`title`)은 쓸 수 없다 — `.btn:disabled` 가 `pointer-events: none` 이라 뜨지 않는다.
+   */
+  const convertBlockedReason = isConverted
+    ? '이미 프로젝트로 전환된 공고예요.'
+    : review?.projectId != null
+      ? '이 검토는 이미 다른 프로젝트에 연결돼 있어요.'
+      : !isDone
+        ? '검토가 완료되지 않아 프로젝트로 생성할 수 없어요. 다시 검토해주세요.'
+        : null;
+
   return (
     <Modal
       title="AI 검토"
@@ -355,7 +376,6 @@ export default function NoticeReviewModal({
                 <PickRow
                   key={item.attachmentId}
                   label={item.fileName}
-                  tag={item.sourceType ?? undefined}
                   // AI 가 못 읽는 형식은 고를 수 없다 (보내면 422)
                   disabled={!item.supported || isWaiting}
                   disabledReason={
@@ -381,7 +401,6 @@ export default function NoticeReviewModal({
                 <PickRow
                   key={item.companyDocumentVersionId}
                   label={item.originalFileName}
-                  tag={item.category ?? undefined}
                   disabled={isWaiting}
                   isPicked={pickedDocuments.has(item.companyDocumentVersionId)}
                   onToggle={() =>
@@ -419,7 +438,8 @@ export default function NoticeReviewModal({
              */}
             <p className="mt-4 rounded-lg border border-blue-border-soft bg-blue-bg-soft px-4 py-3 text-caption leading-relaxed break-keep text-blue-text">
               선택한 파일은 검토를 위해 임시 저장소에 업로드됩니다. 프로젝트로
-              생성하지 않으면 자동 삭제되며, 생성하면 해당 프로젝트에 보존됩니다.
+              생성하지 않으면 자동 삭제되며, 생성하면 해당 프로젝트에
+              보존됩니다.
             </p>
           </>
         )}
@@ -430,21 +450,42 @@ export default function NoticeReviewModal({
           </AlertBanner>
         )}
 
-        {isDone && review && !wantsNew && (
-          <>
-            <ReviewResult review={review} />
+        {isDone && review && !wantsNew && <ReviewResult review={review} />}
 
-            {/* 프롬프트를 바꿔 다시 묻는 길 — 요약의 `이어서 요약` 과 같은 자리다 */}
-            <div className="mt-6 border-t border-border-default pt-5 text-right">
+        {/**
+         * 검토를 마친 뒤의 두 갈래 — 프롬프트를 바꿔 다시 묻거나, 이 검토를 근거로
+         * 프로젝트를 만들거나.
+         *
+         * ℹ️ **실패했을 때는 여기가 아니라 맨 아래 버튼 줄에** 잠긴 전환 버튼을 둔다 —
+         *    실패하면 고르는 자리가 다시 펼쳐져(`showsPicker`) `AI 검토하기` 가 살아나는데,
+         *    전환 버튼만 따로 위에 두면 눌러야 할 것이 두 군데로 흩어진다.
+         */}
+        {review && !wantsNew && isDone && (
+          <div className="mt-6 border-t border-border-default pt-5">
+            <p className="text-caption break-keep text-text-secondary">
+              {convertBlockedReason ??
+                '이 검토를 근거로 프로젝트를 만들면 검토에 쓰인 공고 첨부가 프로젝트 파일로 보존됩니다.'}
+            </p>
+            <div className="mt-3 flex justify-end gap-2">
+              {isDone && (
+                <button
+                  type="button"
+                  onClick={() => setWantsNew(true)}
+                  className="btn btn-sm btn-gray-outlined"
+                >
+                  다시 검토
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => setWantsNew(true)}
-                className="btn btn-sm btn-gray-outlined"
+                onClick={() => onConvert(review.reviewId)}
+                disabled={convertBlockedReason !== null}
+                className="btn btn-sm btn-primary"
               >
-                다시 검토
+                프로젝트 생성
               </button>
             </div>
-          </>
+          </div>
         )}
 
         {notice && (
@@ -483,11 +524,29 @@ export default function NoticeReviewModal({
               </p>
             )}
 
+            {/* 막힌 이유는 버튼 줄 위에 적는다 — 같은 줄에 두면 문장이 버튼에 밀려 잘린다 */}
+            {isFailed && review && convertBlockedReason !== null && (
+              <p className="mt-3 text-caption leading-relaxed break-keep text-text-secondary">
+                {convertBlockedReason}
+              </p>
+            )}
+
             <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
               {!isWaiting && pickedCount === 0 && (
                 <span className="text-caption text-text-secondary">
                   문서를 하나 이상 선택해주세요
                 </span>
+              )}
+
+              {isFailed && review && (
+                <button
+                  type="button"
+                  onClick={() => onConvert(review.reviewId)}
+                  disabled={convertBlockedReason !== null}
+                  className="btn btn-sm btn-primary shrink-0"
+                >
+                  프로젝트 생성
+                </button>
               )}
 
               {/**
@@ -577,7 +636,7 @@ function ReviewSkeleton() {
   );
 }
 
-/** 완료된 검토 — 본문과 **근거**를 함께 보여준다 */
+/** 완료된 검토 — 본문과 **분석 자료**(근거 인용)를 함께 보여준다 */
 function ReviewResult({ review }: { review: BidReview }) {
   return (
     <>
@@ -593,12 +652,14 @@ function ReviewResult({ review }: { review: BidReview }) {
       </p>
 
       {/**
-       * 근거는 **접지 않고 그대로 편다.** AI 판단만 있고 출처가 없으면 검증할 수 없어,
+       * 분석 자료는 **접지 않고 그대로 편다.** AI 판단만 있고 출처가 없으면 검증할 수 없어,
        * 한 번 더 눌러야 보이면 아무도 확인하지 않는다.
        */}
       {review.citations.length > 0 && (
         <div className="mt-6 border-t border-border-default pt-5">
-          <p className="text-caption font-semibold text-text-primary">근거</p>
+          <p className="text-caption font-semibold text-text-primary">
+            분석 자료
+          </p>
           <ol className="mt-3 flex flex-col gap-3">
             {review.citations.map((citation) => (
               <li
@@ -654,7 +715,8 @@ function PickSection({
   className?: string;
   children: React.ReactNode;
 }) {
-  const isEmpty = !isLoading && Array.isArray(children) && children.length === 0;
+  const isEmpty =
+    !isLoading && Array.isArray(children) && children.length === 0;
 
   return (
     <div className={className}>
@@ -680,14 +742,12 @@ function PickSection({
 /** 고르는 줄 하나. 라벨 전체가 눌리도록 `<label>` 로 감싼다 */
 function PickRow({
   label,
-  tag,
   disabled = false,
   disabledReason,
   isPicked,
   onToggle,
 }: {
   label: string;
-  tag?: string;
   disabled?: boolean;
   disabledReason?: string;
   isPicked: boolean;
@@ -720,16 +780,11 @@ function PickRow({
         <span className="min-w-0 flex-1 truncate text-caption text-text-primary">
           {label}
         </span>
-        {disabled && disabledReason ? (
+        {/* 출처 태그(`OPEN_API` · `CERTIFICATE`)는 두지 않는다 — 고르는 데 쓰이지 않고 파일명만 밀어낸다 */}
+        {disabled && disabledReason && (
           <span className="shrink-0 text-caption text-text-secondary">
             {disabledReason}
           </span>
-        ) : (
-          tag && (
-            <span className="shrink-0 rounded-button-sm bg-bg-hover px-1.5 py-0.5 text-caption text-text-secondary">
-              {tag}
-            </span>
-          )
         )}
       </label>
     </li>

@@ -491,6 +491,14 @@ export const ENDPOINTS = {
     /** 검토 종료 — 임시 파일 정리를 즉시 요청한다 */
     reviewAbandon: (reviewId: number | string) =>
       `${V1}/bidding/reviews/${reviewId}/abandon`,
+    /**
+     * 공고 → 프로젝트 전환.
+     *
+     * ⚠️ **완료된 AI 문서 검토가 근거로 필수**다 — 검토에서 내려받기에 성공한 공고 첨부가
+     *    정식 파일로 프로젝트에 귀속된다. 전환하지 않으면 임시 파일은 만료 시 삭제된다.
+     */
+    noticeProjects: (noticeId: number | string) =>
+      `${V1}/bidding/notices/${noticeId}/projects`,
   },
   finance: {
     /** 재무 관리 허브의 3개 항목 수치 (입출금 · 세금계산서 · 정산 현황) */

@@ -169,7 +169,7 @@ export default function CollectionConditionList() {
           patchRun(conditionId, {
             isBusy: false,
             notice:
-              '수집이 아직 끝나지 않았어요. 잠시 후 목록을 새로고침해 결과를 확인해주세요.',
+              '수집이 끝나지 않았습니다. 잠시 후 새로고침해 확인해주세요.',
           });
           return;
         }
@@ -181,7 +181,7 @@ export default function CollectionConditionList() {
 
         patchRun(conditionId, {
           isBusy: false,
-          notice: messageOf(error, '수집 결과를 가져오지 못했어요.'),
+          notice: messageOf(error, '수집 결과를 가져오지 못했습니다.'),
         });
       }
     }, POLL_MS);
@@ -208,10 +208,10 @@ export default function CollectionConditionList() {
       // 409 는 오류가 아니라 "이미 돌고 있다" 는 뜻이다
       const notice =
         code === BIDDING_CODES.collectionRunAlreadyProcessing
-          ? '이미 수집이 진행 중이에요. 끝난 뒤에 다시 시도해주세요.'
+          ? '이미 수집이 진행 중입니다. 끝난 뒤 다시 시도해주세요.'
           : code === BIDDING_CODES.inactiveCollectionCondition
-            ? '비활성 조건은 수집할 수 없어요. 조건을 활성화한 뒤 다시 시도해주세요.'
-            : messageOf(error, '수집 요청에 실패했어요.');
+            ? '비활성 조건은 수집할 수 없습니다. 조건을 활성화한 뒤 시도해주세요.'
+            : messageOf(error, '수집 요청에 실패했습니다.');
 
       patchRun(condition.conditionId, { isBusy: false, notice });
     }
@@ -253,7 +253,7 @@ export default function CollectionConditionList() {
     } catch (error) {
       setToggleErrors((prev) => ({
         ...prev,
-        [conditionId]: messageOf(error, '활성 여부를 바꾸지 못했어요.'),
+        [conditionId]: messageOf(error, '활성 여부를 변경하지 못했습니다.'),
       }));
     } finally {
       markToggling(conditionId, false);
@@ -339,7 +339,7 @@ export default function CollectionConditionList() {
 
       {hasFailed ? (
         <ErrorStateTwoButton
-          title="수집 조건을 불러오지 못했어요."
+          title="수집 조건을 불러오지 못했습니다."
           description="잠시 후 다시 시도해주세요."
           onRetry={() => {
             setHasFailed(false);
@@ -357,7 +357,7 @@ export default function CollectionConditionList() {
       ) : visible?.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border-default bg-bg-card px-6 py-12 text-center">
           <p className="text-caption text-text-secondary">
-            해당하는 조건이 없어요.
+            조건에 맞는 항목이 없습니다.
           </p>
         </div>
       ) : (
@@ -455,10 +455,10 @@ function EmptyState() {
   return (
     <div className="rounded-xl border border-dashed border-border-default bg-bg-card px-6 py-12 text-center">
       <p className="text-label font-bold text-text-primary">
-        등록된 수집 조건이 없어요.
+        등록된 수집 조건이 없습니다.
       </p>
       <p className="mt-1.5 text-caption break-keep text-text-secondary">
-        조건을 먼저 등록해야 공고를 가져올 수 있어요.
+        조건을 등록해야 공고를 수집할 수 있습니다.
       </p>
     </div>
   );

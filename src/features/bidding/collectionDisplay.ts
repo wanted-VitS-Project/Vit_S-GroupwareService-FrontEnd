@@ -60,6 +60,6 @@ export function formatSchedule(
  *    실패 문구와 섞이지 않게 따로 말한다.
  */
 export function summarizeRun(collectedCount: number, insertedCount: number) {
-  if (collectedCount === 0) return '조건에 맞는 공고가 없었어요.';
-  return `${collectedCount}건을 가져와 ${insertedCount}건을 새로 저장했어요.`;
+  if (collectedCount === 0) return '조건에 맞는 공고가 없습니다.';
+  return `${collectedCount}건을 수집해 ${insertedCount}건을 새로 저장했습니다.`;
 }
