@@ -197,10 +197,10 @@ export default function NoticeCreateForm() {
     }
 
     if (announcedAt && bidDeadlineAt && bidDeadlineAt < announcedAt) {
-      next.bidDeadlineAt = '마감일이 공고일보다 앞설 수 없어요.';
+      next.bidDeadlineAt = '마감일이 공고일보다 앞설 수 없습니다.';
     }
     if (bidDeadlineAt && openingAt && openingAt < bidDeadlineAt) {
-      next.openingAt = '개찰일이 마감일보다 앞설 수 없어요.';
+      next.openingAt = '개찰일이 마감일보다 앞설 수 없습니다.';
     }
 
     setErrors(next);
@@ -309,10 +309,10 @@ export default function NoticeCreateForm() {
 
       setFormError(
         isDuplicated
-          ? '같은 공고가 이미 등록돼 있어요. 목록에서 확인해주세요.'
+          ? '같은 공고가 이미 등록돼 있습니다. 목록에서 확인해주세요.'
           : messageOf(
               error,
-              '공고 등록에 실패했어요. 잠시 후 다시 시도해주세요.',
+              '공고 등록에 실패했습니다. 잠시 후 다시 시도해주세요.',
             ),
       );
       setIsSubmitting(false);
@@ -335,7 +335,7 @@ export default function NoticeCreateForm() {
       <form onSubmit={submit} className="space-y-4 pb-10">
         <FormSection
           title="기본 정보"
-          description="수집으로 가져오지 못한 공고를 직접 넣습니다. 등록 후에도 수정할 수 있어요."
+          description="수집으로 가져오지 못한 공고를 직접 등록합니다. 등록 후에도 수정할 수 있습니다."
         >
           <div className="sm:col-span-2">
             <TextField

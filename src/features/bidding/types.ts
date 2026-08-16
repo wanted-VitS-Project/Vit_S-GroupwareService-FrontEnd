@@ -613,3 +613,32 @@ export interface ReviewAbandoned {
   reviewStatus: ReviewStatus;
   abandonedAt: string;
 }
+
+/* ────────────────────── 공고 → 프로젝트 전환 (2026-08-16) ────────────────────── */
+
+/**
+ * 전환 요청 본문.
+ *
+ * ⭐ **`reviewId` 가 근거다** — 완료된 AI 문서 검토가 있어야 전환할 수 있고,
+ *    그 검토에서 내려받기에 성공한 공고 첨부가 정식 파일로 프로젝트에 귀속된다.
+ * ⚠️ 요청자는 서버가 편집 권한으로 자동 등록한다 — `memberIds` 에 자신을 넣지 않는다.
+ */
+export interface ConvertNoticeToProjectRequest {
+  /** 같은 공고 · 회사 · 요청자의 `COMPLETED` 검토 */
+  reviewId: number;
+  /** 확정된 요약. 지정하면 그 요약도 이 프로젝트에 연결된다 */
+  summaryId?: number | null;
+  name: string;
+  description?: string | null;
+  businessCategoryId: number;
+  /** `yyyy-MM-dd` */
+  startedOn: string;
+  endedOn: string;
+  /** 추가 참여자 사번 */
+  memberIds?: string[];
+}
+
+export interface ConvertNoticeToProjectResult {
+  projectId: number;
+}
+

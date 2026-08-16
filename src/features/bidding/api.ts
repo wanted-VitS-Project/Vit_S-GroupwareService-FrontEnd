@@ -4,6 +4,8 @@ import { api } from '@/lib/api';
 import type {
   BidNoticeDetail,
   BidNoticeListItem,
+  ConvertNoticeToProjectRequest,
+  ConvertNoticeToProjectResult,
   BidReview,
   BidSummary,
   CreateReviewRequest,
@@ -361,3 +363,20 @@ export function abandonReview(reviewId: number | string, signal?: AbortSignal) {
     signal,
   );
 }
+
+/**
+ * 공고를 프로젝트로 전환한다. (`201`)
+ *
+ * ⚠️ 409 가 다섯 갈래다 — 이미 전환된 공고 · 검토 미완료 · 검토가 다른 프로젝트에 연결됨 ·
+ *    요약 미확정 · 요약이 다른 프로젝트에 연결됨. 화면이 코드별로 다르게 안내한다.
+ */
+export function convertNoticeToProject(
+  noticeId: number | string,
+  body: ConvertNoticeToProjectRequest,
+) {
+  return api.post<ConvertNoticeToProjectResult>(
+    ENDPOINTS.bidding.noticeProjects(noticeId),
+    body,
+  );
+}
+

@@ -27,13 +27,6 @@ export type ConditionFormTarget = 'create' | CollectionCondition;
 /** 수집처. 지금은 나라장터뿐이고 등록 후에는 바꿀 수 없다 */
 const SOURCE_OPTIONS = [{ value: 'NARA', label: '나라장터' }];
 
-/** 공고 유형 — 수집 조건과 직접 등록 폼이 같은 축을 쓴다 */
-const NOTICE_TYPE_OPTIONS = [
-  { value: 'SERVICE', label: '용역' },
-  { value: 'CONSTRUCTION', label: '공사' },
-  { value: 'GOODS', label: '물품' },
-];
-
 const SCHEDULE_TYPE_OPTIONS = [
   { value: 'WEEKDAYS', label: '평일' },
   { value: 'DAILY', label: '매일' },
@@ -60,6 +53,10 @@ const DEFAULT_SCHEDULED_TIME = '09:00';
 interface FormState {
   sourceCode: string;
   conditionName: string;
+  /**
+   * 공고 유형. **입력 UI 는 없다** — `industryCodes` 와 같은 이유로 상태로만 들고 있다.
+   * 수정이 **전체 교체**라 빼고 보내면 서버에 저장된 값이 지워진다.
+   */
   noticeTypes: string[];
   keywords: string[];
   regionCodes: string[];
@@ -184,8 +181,6 @@ export default function CollectionConditionFormModal({
 
   function validate() {
     if (form.conditionName.trim() === '') return '조건명을 입력해주세요.';
-    if (form.noticeTypes.length === 0)
-      return '공고 유형을 하나 이상 선택해주세요.';
     if (form.keywords.length === 0)
       return '검색 키워드를 하나 이상 넣어주세요.';
 
@@ -200,7 +195,7 @@ export default function CollectionConditionFormModal({
       return '추정가격 최대가 너무 큽니다.';
     }
     if (form.minimumEstimatedPrice && form.maximumEstimatedPrice && min > max) {
-      return '추정가격 최소가 최대보다 클 수 없어요.';
+      return '추정가격 최소가 최대보다 클 수 없습니다.';
     }
     if (form.autoCollectionEnabled && form.scheduledTime === '') {
       return '자동 수집 시각을 입력해주세요.';
@@ -288,7 +283,7 @@ export default function CollectionConditionFormModal({
               value={form.sourceCode}
               // 수집처는 등록 때만 정한다 (수정 본문에 없다)
               disabled={!isCreate}
-              hint={isCreate ? undefined : '수집처는 변경할 수 없어요.'}
+              hint={isCreate ? undefined : '수집처는 변경할 수 없습니다.'}
               onChange={(value) => patch({ sourceCode: value })}
             />
             <SelectField
@@ -311,16 +306,6 @@ export default function CollectionConditionFormModal({
             </div>
           </div>
 
-          <CheckGroup
-            label="공고 유형"
-            required
-            options={NOTICE_TYPE_OPTIONS.map((option) => ({
-              value: option.value,
-              label: option.label,
-            }))}
-            selected={form.noticeTypes}
-            onToggle={toggle('noticeTypes')}
-          />
 
           <div>
             <p className="pb-1.5 text-detail font-semibold text-text-primary">
@@ -350,7 +335,7 @@ export default function CollectionConditionFormModal({
             </div>
 
             <p className="mt-1 text-caption break-keep text-text-secondary">
-              키워드가 없으면 조회 조합이 커져 수집 상한을 넘길 수 있어요.
+              키워드가 없으면 조회 조합이 커져 수집 상한을 넘길 수 있습니다.
             </p>
 
             {form.keywords.length > 0 && (
@@ -410,7 +395,7 @@ export default function CollectionConditionFormModal({
             <CheckboxField
               id="isActive"
               label="조건 활성화"
-              hint="비활성 조건은 수동 수집도 할 수 없어요."
+              hint="비활성 조건은 수동 수집도 할 수 없습니다."
               checked={form.isActive}
               onChange={(checked) => patch({ isActive: checked })}
             />
@@ -550,11 +535,11 @@ function toErrorMessage(error: unknown) {
     return '조건 조합이 너무 많아요. 키워드 · 지역 · 카테고리 수를 줄여주세요.';
   }
   if (code === BIDDING_CODES.unsupportedSource) {
-    return '지원하지 않는 수집처예요.';
+    return '지원하지 않는 수집처입니다.';
   }
   if (code === BIDDING_CODES.invalidCollectionCondition) {
     return messageOf(error, '입력값을 다시 확인해주세요.');
   }
 
-  return messageOf(error, '저장에 실패했어요. 잠시 후 다시 시도해주세요.');
+  return messageOf(error, '저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
 }
