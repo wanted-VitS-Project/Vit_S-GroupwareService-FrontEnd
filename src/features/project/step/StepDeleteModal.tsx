@@ -204,12 +204,18 @@ export default function StepDeleteModal({
               })}
             </ul>
             <p className="mt-1 text-caption break-keep text-text-secondary">
-              고르지 않은 블록 {deletingBlockCount}개는 스텝과 함께 삭제되고,
-              {/* 2026-08-16 D안 — 블록이 지워지면 그 파일도 함께 휴지통으로 간다 */}{' '}
-              블록에 올린 문서는 프로젝트 휴지통으로 이동합니다.
+              고르지 않은 블록 {deletingBlockCount}개는 스텝과 함께 삭제됩니다.
             </p>
           </div>
         )}
+
+        {/*
+          블록이 지워지면 그 문서도 함께 휴지통으로 간다 — 목록을 못 받은 경우에도
+          삭제는 진행되므로 **분기 바깥**에 둔다. 옮기기로 고른 블록의 문서는 남는다.
+        */}
+        <p className="text-caption break-keep text-text-secondary">
+          삭제되는 블록에 올린 문서는 프로젝트 휴지통으로 이동합니다.
+        </p>
 
         {hasMoveTarget && (
           <div>

@@ -29,6 +29,18 @@ import type {
 import { FILE_PERMANENT_DELETE_CONFIRM_TEXT } from './types';
 
 /**
+ * 페이징 쿼리 조립 — 목록 API 세 곳(전사 목록 · 탐색기 프로젝트 · 스텝 파일)이 함께 쓴다.
+ * ⚠️ `0` 도 유효한 페이지라 값의 **유무**로 판단한다 (falsy 검사를 쓰면 첫 장이 빠진다).
+ */
+function setPaging(
+  params: URLSearchParams,
+  { page, size }: { page?: number; size?: number },
+) {
+  if (page !== undefined) params.set('page', String(page));
+  if (size !== undefined) params.set('size', String(size));
+}
+
+/**
  * 블록에 붙은 문서 목록.
  * `deleted: true` 면 휴지통을 본다 — 휴지통 화면은 다음 작업 범위다.
  */
@@ -154,9 +166,7 @@ export function getAdminFiles(
     params.set('projectId', String(query.projectId));
   }
   if (query.extension) params.set('extension', query.extension);
-  // 0 도 유효한 페이지라 값 유무로 판단한다
-  if (query.page !== undefined) params.set('page', String(query.page));
-  if (query.size !== undefined) params.set('size', String(query.size));
+  setPaging(params, query);
 
   const search = params.toString();
 
@@ -177,10 +187,7 @@ export function getAdminTreeProjects(
   signal?: AbortSignal,
 ) {
   const params = new URLSearchParams();
-
-  // 0 도 유효한 페이지라 값 유무로 판단한다
-  if (query.page !== undefined) params.set('page', String(query.page));
-  if (query.size !== undefined) params.set('size', String(query.size));
+  setPaging(params, query);
 
   const search = params.toString();
   const path = ENDPOINTS.files.adminTree.projects;
@@ -242,9 +249,7 @@ export function getAdminStepFiles(
   signal?: AbortSignal,
 ) {
   const params = new URLSearchParams();
-
-  if (query.page !== undefined) params.set('page', String(query.page));
-  if (query.size !== undefined) params.set('size', String(query.size));
+  setPaging(params, query);
 
   const search = params.toString();
   const path = ENDPOINTS.files.adminTree.files(stepId);

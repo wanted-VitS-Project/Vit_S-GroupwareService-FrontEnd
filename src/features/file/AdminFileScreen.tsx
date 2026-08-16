@@ -84,7 +84,13 @@ export default function AdminFileScreen() {
        */}
       {path.projectId !== undefined && (
         <div className="mt-3">
+          {/*
+            ⚠️ `key` 로 **자리마다 새로 만든다.** 표가 들고 있는 페이지 번호 · 검색어는
+               그 자리에서만 뜻이 있는데, 그대로 이어지면 3페이지를 보다 옮긴 스텝에서
+               파일이 없다고 나온다 (파일이 세 장뿐이어도 3페이지를 부른다).
+          */}
           <AdminFileList
+            key={`${path.projectId}-${path.stepId ?? ''}`}
             lockedProjectId={path.projectId}
             lockedStepId={path.stepId}
           />

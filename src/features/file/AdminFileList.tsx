@@ -10,6 +10,7 @@ import { useModalTarget } from '@/lib/useModal';
 import { getProjects } from '@/features/project/api';
 
 import { downloadVersion, getAdminFiles, getAdminStepFiles } from './api';
+import { FILE_CODES } from './errorCodes';
 import { extensionLabel, extensionStyle, formatFileSize } from './format';
 import { LazyFileViewerModal, preloadViewer } from './LazyFileViewer';
 import { cancelPreviewPrefetch, schedulePreviewPrefetch } from './previewCache';
@@ -150,15 +151,18 @@ export default function AdminFileList({
          *    알리면 고장으로 읽혀 새로고침만 반복하게 된다. 할 일이 다르면 문구도 달라야 한다.
          */
         const status = caught instanceof ApiError ? caught.status : 0;
+        const code = caught instanceof ApiError ? caught.code : undefined;
+        // 트리를 띄워 둔 사이 남이 스텝을 지운 경우다 — 스텝을 부른 요청에만 해당한다
+        const isStepGone =
+          isStepLocked && (code === FILE_CODES.stepNotFound || status === 404);
 
         setResult({
           key: requestKey,
           errorMessage:
             status === 403
               ? '이 파일을 볼 권한이 없습니다.'
-              : status === 404
-                ? // 트리를 띄워 둔 사이 남이 스텝을 지운 경우다 (404 `FILE_STEP_NOT_FOUND`)
-                  '삭제되었거나 없는 스텝입니다. 목록을 다시 열어주세요.'
+              : isStepGone
+                ? '삭제되었거나 없는 스텝입니다. 목록을 다시 열어주세요.'
                 : messageOf(caught, '파일 목록을 불러오지 못했습니다.'),
         });
       });

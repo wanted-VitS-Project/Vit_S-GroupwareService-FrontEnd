@@ -65,6 +65,13 @@ export default function AdminFileExplorer({
   onChange: (next: ExplorerPath) => void;
 }) {
   const [projects, setProjects] = useState<AdminTreeProject[] | null>(null);
+  /**
+   * 상한에 걸려 **못 받은 프로젝트 수**. 0 이면 다 받았다.
+   *
+   * ⚠️ 잘린 사실을 적지 않으면 관리자는 그 프로젝트가 **없다고 읽는다** — 찾다 지칠 뿐
+   *    다음에 뭘 해야 하는지 알 수 없다. 검색이 되는 전사 목록으로 안내한다.
+   */
+  const [hiddenProjectCount, setHiddenProjectCount] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
 
   /* 1단계 — 전사 프로젝트 */
@@ -72,7 +79,12 @@ export default function AdminFileExplorer({
     const controller = new AbortController();
 
     getAdminTreeProjects({ page: 0, size: PROJECT_LIMIT }, controller.signal)
-      .then((data) => setProjects(data.content))
+      .then((data) => {
+        setProjects(data.content);
+        setHiddenProjectCount(
+          Math.max(data.totalElements - data.content.length, 0),
+        );
+      })
       .catch((caught) => {
         if (!controller.signal.aborted) {
           setErrorMessage(explorerErrorMessage(caught, '프로젝트'));
@@ -187,11 +199,17 @@ export default function AdminFileExplorer({
       />
 
       {errorMessage && (
-        <p className="mt-3 text-caption text-text-danger">{errorMessage}</p>
+        <p role="alert" className="mt-3 text-caption text-text-danger">
+          {errorMessage}
+        </p>
       )}
 
+      {/* 목록 대신 나오는 안내라 눈으로만 보이면 화면 낭독에서는 빈 목록으로 읽힌다 */}
       {levelBlockedReason && (
-        <p className="mt-3 rounded-lg border border-border-default bg-bg-surface px-4 py-6 text-center text-caption break-keep text-text-secondary">
+        <p
+          role="status"
+          className="mt-3 rounded-lg border border-border-default bg-bg-surface px-4 py-6 text-center text-caption break-keep text-text-secondary"
+        >
           {levelBlockedReason}
         </p>
       )}
@@ -238,6 +256,16 @@ export default function AdminFileExplorer({
                   onOpen={() => onChange({ ...path, stepId: step.stepId })}
                 />
               ))}
+
+        {path.projectId === undefined && hiddenProjectCount > 0 && (
+          <li
+            role="status"
+            className="rounded-lg border border-border-default bg-bg-surface px-4 py-3 text-caption break-keep text-text-secondary"
+          >
+            프로젝트 {hiddenProjectCount}개는 이 목록에 나오지 않습니다. 아직
+            목록 넘김이 없어 이름순 처음 {PROJECT_LIMIT}개까지만 보입니다.
+          </li>
+        )}
 
         {levelBlockedReason === undefined &&
           isEmptyLevel(path, projects, stages, steps) && (
