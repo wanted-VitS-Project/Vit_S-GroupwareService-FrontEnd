@@ -6,6 +6,7 @@ import { useState } from 'react';
 import ModalLoadingFallback from '@/components/ModalLoadingFallback';
 
 import BlockCard from './BlockCard';
+import { useBlockCanEdit } from './BlockPermissionContext';
 import { notifyBlockChanged } from './events';
 import { readTextBlockDetail, type StepBlock } from './types';
 
@@ -53,6 +54,11 @@ export default function TextBlock({
    *    블록 목록을 다시 읽지 않으므로 `detail.version` 은 옛 값에 머문다.
    */
   const [version, setVersion] = useState(serverVersion);
+  const canEdit = useBlockCanEdit();
+  /*
+   * `autoEdit` 는 **방금 만든 블록**에만 켜진다 — 만들 수 있었다는 것은 권한이 있다는 뜻이라
+   * 여기서 다시 막지 않는다. 아래 `편집` 버튼만 권한을 본다.
+   */
   const [isEditing, setIsEditing] = useState(autoEdit);
 
   // 아래 세 블록은 effect 가 아니라 렌더 중 상태 조정이다.
@@ -98,7 +104,12 @@ export default function TextBlock({
             {content.length}자
           </span>
 
-          {detail ? (
+          {/*
+            ⚠️ 두 가지를 구분한다 — **권한이 없으면 아무것도 적지 않고**(원래 못 하는 일이라
+               안내할 것이 없다), 권한은 있는데 `txtId` 가 없으면 `편집 불가` 로 알린다
+               (할 수 있어야 하는데 값이 없어 막힌 경우라 그냥 사라지면 고장으로 읽힌다).
+          */}
+          {!canEdit ? null : detail ? (
             <button
               type="button"
               onPointerEnter={() => void loadTextBlockModal()}
