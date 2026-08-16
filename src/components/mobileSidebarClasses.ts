@@ -4,6 +4,15 @@
  * - 여는 버튼은 왼쪽 아래 고정 · 판은 가운데 · 뒤는 어둡게 덮는다
  * ⚠️ 두 벌을 만들지 않고 **같은 `<aside>`** 에 클래스만 갈아 끼운다.
  */
+/**
+ * 기준선 **1024px** — 이 아래에서 사이드바가 떠 있는 판이 된다.
+ *
+ * ⚠️ 아래 클래스 문자열의 `max-[1023px]` · `min-[1024px]` 와 **같은 값이어야 한다.**
+ *    판이 모달로 동작해야 하는지(`useNarrowScreen`)를 JS 가 판정할 때 이 값을 쓴다 —
+ *    CSS 와 JS 가 서로 다른 폭을 보면, 화면은 판인데 초점은 갇히지 않는 상태가 생긴다.
+ */
+export const MOBILE_SIDEBAR_MAX_WIDTH = 1023;
+
 export const mobileSidebarClasses = {
   /**
    * 여는 버튼 — 화면 왼쪽 아래. `env(safe-area-inset-bottom)` 은 아이폰 홈 바를 피한다.

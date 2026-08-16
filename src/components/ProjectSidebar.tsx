@@ -9,6 +9,7 @@ import { createPortal } from 'react-dom';
 import MemberAvatar from '@/components/MemberAvatar';
 import { mobileSidebarClasses } from '@/components/mobileSidebarClasses';
 import MobileSidebarToggle from '@/components/MobileSidebarToggle';
+import { useNarrowScreen } from '@/components/useNarrowScreen';
 import ModalLoadingFallback from '@/components/ModalLoadingFallback';
 import { notifyToast } from '@/components/Toast';
 import { projectScopeUpLink } from '@/constants/menu';
@@ -233,6 +234,10 @@ export default function ProjectSidebar() {
    * 넓은 화면에서는 클래스가 통째로 꺼져 있어 이 값이 화면에 영향을 주지 않는다.
    */
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  /** 판이 실제로 떠 있는 상태 — 이때만 모달로 알린다 (넓은 화면에서는 제자리 사이드바다) */
+  const isNarrow = useNarrowScreen();
+  const isModal = isPanelOpen && isNarrow;
+  const panelRef = useRef<HTMLElement>(null);
 
   /**
    * 좁은 화면에서는 **언제나 펼친 모습**으로 연다.
@@ -488,9 +493,15 @@ export default function ProjectSidebar() {
         onToggle={() => (isPanelOpen ? setIsPanelOpen(false) : openPanel())}
         onClose={() => setIsPanelOpen(false)}
         label="프로젝트 메뉴"
+        panelRef={panelRef}
       />
 
       <aside
+        ref={panelRef}
+        /* 떠 있는 동안에는 모달로 알린다 (`Sidebar` 와 같은 규칙) */
+        role={isModal ? 'dialog' : undefined}
+        aria-modal={isModal || undefined}
+        aria-label={isModal ? '프로젝트 메뉴' : undefined}
         /*
           스텝을 고르면 판을 닫는다 — 떠 있는 판이 남아 있으면 도착한 스텝이 가려진다.
           `⋯` 메뉴 · 접기 버튼은 링크가 아니라 그대로 열려 있다.

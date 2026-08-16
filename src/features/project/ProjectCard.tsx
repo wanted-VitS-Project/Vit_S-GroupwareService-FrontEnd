@@ -75,6 +75,10 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
           className={`${PROJECT_ROW_GRID} min-w-0 flex-1 px-4 py-3.5 hover:bg-black/[0.03] xl:px-5 xl:py-4`}
         >
           {/*
+            ⭐ 값마다 **`sr-only` 칸 이름**을 붙인다. 머리글 줄(`ProjectListHeader`)은
+               `aria-hidden` 이고 접힌 폭에서는 아예 사라져, 그것만으로는 어느 값이
+               발주처이고 어느 것이 기간인지 알 방법이 없다.
+
             칸 너비는 `PROJECT_ROW_GRID` 가 정한다 — 여기서는 폭을 손대지 않는다.
             내용 길이(상태 라벨 · 카테고리 이름 · 참여자 수)로 폭이 정해지면
             카드마다 열이 어긋난다.
@@ -97,6 +101,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
           <span
             className={`flex justify-center justify-self-start rounded-pill px-2 py-0.5 text-label font-medium xl:justify-self-stretch ${style.badge}`}
           >
+            <span className="sr-only">상태 </span>
             {PROJECT_STATUS_LABELS[row.status]}
           </span>
 
@@ -109,6 +114,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
             title={row.businessCategories.map((item) => item.name).join(' · ')}
             className="flex min-w-0 items-center gap-1.5 max-xl:justify-self-end"
           >
+            <span className="sr-only">분류 </span>
             {categoryTags.map((category) => (
               <span
                 key={category.categoryId}
@@ -137,6 +143,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
             title={row.clientName}
             className="min-w-0 truncate text-detail text-gray-text-soft"
           >
+            <span className="sr-only">발주처 </span>
             {row.clientName}
           </span>
 
@@ -146,6 +153,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
             못을 박아 두면 카드가 가로로 넘쳐 목록에 가로 스크롤바가 생긴다.
           */}
           <span className="text-detail text-gray-text-soft max-xl:justify-self-end max-xl:text-right xl:whitespace-nowrap">
+            <span className="sr-only">기간 </span>
             {formatDateRange(row.startedOn, row.endedOn)}
           </span>
 
@@ -182,6 +190,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
               />
             </span>
             <span className="w-9 shrink-0 text-right text-detail font-semibold whitespace-nowrap text-gray-text-soft">
+              <span className="sr-only">진척률 </span>
               {row.progressRate === undefined ? '–' : `${row.progressRate}%`}
             </span>
           </span>

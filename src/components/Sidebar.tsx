@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import Logo from '@/components/Logo';
 import MemberAvatar from '@/components/MemberAvatar';
 import MenuIcon from '@/components/MenuIcon';
 import { mobileSidebarClasses } from '@/components/mobileSidebarClasses';
 import MobileSidebarToggle from '@/components/MobileSidebarToggle';
+import { useNarrowScreen } from '@/components/useNarrowScreen';
 import { findActiveMenu, MENU_ORDER } from '@/constants/menu';
 import { readShellCookie } from '@/features/auth/shellCache';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
@@ -33,6 +34,10 @@ export default function Sidebar() {
    * 넓은 화면에서는 클래스가 통째로 꺼져 있어 이 값이 화면에 영향을 주지 않는다.
    */
   const [isOpen, setIsOpen] = useState(false);
+  /** 판이 실제로 떠 있는 상태 — 이때만 모달로 알린다 (넓은 화면에서는 제자리 사이드바다) */
+  const isNarrow = useNarrowScreen();
+  const isModal = isOpen && isNarrow;
+  const panelRef = useRef<HTMLElement>(null);
 
   return (
     <>
@@ -42,10 +47,20 @@ export default function Sidebar() {
         onToggle={() => setIsOpen((open) => !open)}
         onClose={() => setIsOpen(false)}
         label="메뉴"
+        panelRef={panelRef}
       />
 
       {/* 셸이 화면 높이에 고정돼 있어, 메뉴가 길면 사이드바 안에서 굴러야 한다 */}
       <aside
+        ref={panelRef}
+        /*
+          떠 있는 동안에는 **모달로 알린다** — 뒤를 덮개로 가려 놓고 그냥 두면
+          보조기술은 여전히 배경을 훑을 수 있다. 초점 가두기 · Esc 는
+          `MobileSidebarToggle` 이 맡는다.
+        */
+        role={isModal ? 'dialog' : undefined}
+        aria-modal={isModal || undefined}
+        aria-label={isModal ? '주 메뉴' : undefined}
         /*
           좁은 화면의 판은 본문을 덮고 떠 있다 — 메뉴를 고른 뒤에도 남아 있으면
           도착한 화면이 가려진다. 링크를 누르면 함께 닫는다.

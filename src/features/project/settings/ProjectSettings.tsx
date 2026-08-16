@@ -26,6 +26,14 @@ import ProjectStatusSection from './ProjectStatusSection';
 import StepPermissionSection from './StepPermissionSection';
 
 /**
+ * 화면 껍데기 — **정상 · 실패 두 갈래가 함께 쓴다.**
+ *
+ * 이 화면은 자기 여백을 직접 잡는다 (`projects/[id]/layout` 의 오른쪽 칸에는 여백이 없다).
+ * 갈래마다 따로 적으면 한쪽만 고쳐져 실패 화면에서만 여백이 튄다 — 실제로 그랬다.
+ */
+const SETTINGS_CONTAINER = `mx-auto max-w-[880px] p-4 md:p-6 ${mobileSidebarClasses.contentBottomGap}`;
+
+/**
  * 프로젝트 설정 화면. (.ai/API.md 125~133)
  *
  * 한 화면에 **기본 정보 · 상태 · 사업 카테고리 · 참여자** 네 가지가 들어간다 —
@@ -197,7 +205,8 @@ export default function ProjectSettings({ projectId }: { projectId: string }) {
 
   if (hasFailed) {
     return (
-      <div className="p-6">
+      // 실패 화면도 **정상 화면과 같은 껍데기**를 쓴다 — 여백이 갈리면 폭이 튄다
+      <div className={SETTINGS_CONTAINER}>
         <p className="rounded-lg bg-red-bg-soft px-4 py-3 text-label break-keep text-text-danger">
           프로젝트를 불러오지 못했습니다. 삭제됐거나 접근 권한이 없을 수
           있습니다.
@@ -216,10 +225,7 @@ export default function ProjectSettings({ projectId }: { projectId: string }) {
   const canEdit = project?.myPermission === 'EDITOR';
 
   return (
-    /* 이 화면은 자기 여백을 직접 잡는다 (`projects/[id]/layout` 오른쪽 칸은 여백이 없다) */
-    <div
-      className={`mx-auto max-w-[880px] p-4 md:p-6 ${mobileSidebarClasses.contentBottomGap}`}
-    >
+    <div className={SETTINGS_CONTAINER}>
       {/*
         제목 줄에 **내 권한**을 함께 둔다 — 아래 섹션들이 통째로 잠겨 있을 때
         그 이유를 화면 맨 위에서 바로 짚을 수 있어야 한다. (사이드바와 같은 배지)

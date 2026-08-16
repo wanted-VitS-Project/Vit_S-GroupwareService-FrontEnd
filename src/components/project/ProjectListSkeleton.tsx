@@ -39,7 +39,14 @@ export default function ProjectListSkeleton({ rows = 6 }: { rows?: number }) {
         >
           {/* 실제 카드와 같은 머리글 구조 — 링크(`px-5 py-4`) + 펼침 버튼 */}
           <div className="flex items-center gap-2 pr-3">
-            <div className={`${PROJECT_ROW_GRID} min-w-0 flex-1 px-5 py-4`}>
+            {/*
+              ⚠️ 여백도 **실제 카드와 같은 분기**여야 한다 (`ProjectCard` 의 링크).
+                 여기만 `px-5 py-4` 로 두면 접힌 폭에서 로딩 행이 더 높아, 목록이
+                 도착하는 순간 줄마다 조금씩 내려앉는다.
+            */}
+            <div
+              className={`${PROJECT_ROW_GRID} min-w-0 flex-1 px-4 py-3.5 xl:px-5 xl:py-4`}
+            >
               <Skeleton className="h-[25px] rounded-pill" />
               {/*
                 분류 태그가 이 줄에서 가장 높다 — 카드 높이를 정하는 값이다.
