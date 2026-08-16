@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   createContext,
   useCallback,
@@ -52,6 +52,18 @@ export const CurrentUserContext = createContext<CurrentUser | null>(null);
  * 잠깐 노출된다.
  */
 const SessionConfirmedContext = createContext(false);
+
+/**
+ * 권한 부족 403 의 `code`. 값이 있으면 지금 화면의 본문을 그릴 수 없다.
+ *
+ * ⚠️ `/forbidden` 으로 보내지 않는다 — 그 경로는 셸이 벗겨져 사이드바까지 사라진다.
+ *    본문 자리(`PageAccessGate`)에서 그려 다른 메뉴로 옮겨갈 수 있게 한다.
+ */
+const PermissionDeniedContext = createContext<string | null>(null);
+
+export function usePermissionDenied() {
+  return useContext(PermissionDeniedContext);
+}
 
 /**
  * 세션이 확인된 뒤에만 자식을 그린다.
@@ -108,7 +120,13 @@ export default function CurrentUserProvider({
   initialShell?: ShellSnapshot | null;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<CurrentUser | null>(null);
+  /** 권한 403 을 받은 화면. 경로를 함께 담아 **옮기면 저절로 풀리게** 한다 */
+  const [denied, setDenied] = useState<{
+    pathname: string;
+    code: string;
+  } | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   /** /me 를 막은 게이트 403 의 code. 사용자 정보 없이도 어느 게이트인지 알 수 있다 */
@@ -210,9 +228,9 @@ export default function CurrentUserProvider({
     function handleForbidden(event: Event) {
       const code = (event as CustomEvent<string | undefined>).detail;
 
-      // 권한 부족은 다시 불러도 결과가 같다
-      if (isPermissionCode(code)) {
-        router.replace('/forbidden');
+      // 권한 부족은 다시 불러도 결과가 같다 — 화면을 옮기지 않고 본문에만 알린다
+      if (code !== undefined && isPermissionCode(code)) {
+        setDenied({ pathname, code });
         return;
       }
 
@@ -229,7 +247,7 @@ export default function CurrentUserProvider({
 
     window.addEventListener(FORBIDDEN_EVENT, handleForbidden);
     return () => window.removeEventListener(FORBIDDEN_EVENT, handleForbidden);
-  }, [router, refetch]);
+  }, [pathname, refetch]);
 
   // 어느 API 에서 401 이 오든 세션이 끊긴 것이다 — /me 만 처리하면 다른 요청은 조용히 실패한다
   useEffect(() => {
@@ -283,12 +301,16 @@ export default function CurrentUserProvider({
 
   if (!shownUser) return <AppShellSkeleton shell={initialShell} />;
 
+  const deniedCode = denied?.pathname === pathname ? denied.code : null;
+
   return (
     <CurrentUserContext.Provider value={shownUser}>
       <SessionConfirmedContext.Provider value={user !== null}>
-        <SetProfileImageContext.Provider value={setProfileImage}>
-          {children}
-        </SetProfileImageContext.Provider>
+        <PermissionDeniedContext.Provider value={deniedCode}>
+          <SetProfileImageContext.Provider value={setProfileImage}>
+            {children}
+          </SetProfileImageContext.Provider>
+        </PermissionDeniedContext.Provider>
       </SessionConfirmedContext.Provider>
     </CurrentUserContext.Provider>
   );

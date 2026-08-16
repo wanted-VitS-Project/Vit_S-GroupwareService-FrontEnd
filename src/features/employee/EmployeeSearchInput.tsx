@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useState } from 'react';
 
+import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { isAbortError, messageOf } from '@/lib/api';
 
 import { getEmployees, searchEmployees } from './api';
@@ -48,12 +49,23 @@ export default function EmployeeSearchInput({
    * ⭐ 검색어를 넣어야만 후보가 나오면, 이름을 모르는 사람은 사원 관리 화면을 다녀와야 한다.
    *    칸을 누르면 바로 목록이 펴지고 훑어 고를 수 있어야 한다.
    * ⚠️ 검색 API 는 이름이 비면 400 이라 **목록 API** 를 따로 쓴다.
+   * ⛔ 그 목록 API 는 ADMIN 전용이라 **관리자에게만 채워진다** (아래 효과 참고).
    */
   const [allEmployees, setAllEmployees] = useState<EmployeeSearchResult[]>([]);
 
   const name = keyword.trim();
 
+  const role = useCurrentUser().role;
+
+  /**
+   * ⛔ **ADMIN 이 아니면 부르지 않는다** — 403 을 `.catch` 로 삼켜도 늦다.
+   *    403 은 앱 전체가 반응하는 이벤트(`lib/api.ts`)라, 이 칸이 놓인 화면
+   *    (프로젝트 생성 · 결재 블록 …)이 통째로 권한 오류로 넘어갔다.
+   *    이름 검색은 전원 쓸 수 있어 빈 칸 목록만 관리자 한정이 된다.
+   */
   useEffect(() => {
+    if (role !== 'ADMIN') return;
+
     const controller = new AbortController();
 
     // 재직자만 · 한 번만 받는다. 실패해도 검색은 그대로 쓸 수 있다
@@ -71,7 +83,7 @@ export default function EmployeeSearchInput({
       .catch(() => {});
 
     return () => controller.abort();
-  }, []);
+  }, [role]);
 
   useEffect(() => {
     // 빈 입력은 400 이 확정이라 요청 자체를 만들지 않는다
