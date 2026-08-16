@@ -1,4 +1,5 @@
 import StepTabs from '@/components/StepTabs';
+import StepScopeGuard from '@/features/project/step/StepScopeGuard';
 
 /**
  * 스텝 상세 중첩 레이아웃.
@@ -17,7 +18,8 @@ export default function StepLayout({
     <div className="flex h-full flex-col">
       <StepTabs />
       <div className="min-h-0 flex-1 [scrollbar-gutter:stable] overflow-y-auto p-6">
-        {children}
+        {/* 세 탭(블록 · 이슈 · 활동 기록)이 모두 `stepId` 로만 조회한다 — 소속은 여기서 한 번만 본다 */}
+        <StepScopeGuard>{children}</StepScopeGuard>
       </div>
     </div>
   );

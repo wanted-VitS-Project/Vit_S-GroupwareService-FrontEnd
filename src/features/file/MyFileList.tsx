@@ -468,7 +468,7 @@ const FileRow = memo(function FileRow({
               title={`${file.name} 미리보기`}
               aria-label={`${file.name} 미리보기`}
               onClick={() => onOpen(file)}
-              className="flex size-6 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-card hover:text-text-primary-blue"
+              className="flex size-7 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-card hover:text-text-primary-blue"
             >
               <EyeIcon />
             </button>
@@ -478,7 +478,7 @@ const FileRow = memo(function FileRow({
             title={`${file.name} 다운로드`}
             aria-label={`${file.name} 다운로드`}
             onClick={() => onDownload(file)}
-            className="flex size-6 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-card hover:text-text-primary-blue"
+            className="flex size-7 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-card hover:text-text-primary-blue"
           >
             <DownloadIcon />
           </button>
@@ -638,7 +638,7 @@ function EyeIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className="size-3.5 shrink-0"
+      className="size-4 shrink-0"
     >
       <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z" />
       <circle cx="12" cy="12" r="2.5" />
@@ -656,7 +656,7 @@ function DownloadIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className="size-3.5 shrink-0"
+      className="size-4 shrink-0"
     >
       <path d="M4 20h16" />
       <path d="M12 4v11" />

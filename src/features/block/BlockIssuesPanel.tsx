@@ -85,7 +85,8 @@ export default function BlockIssuesPanel({
               #
             </span>
             <div className="min-w-0 flex-1">
-              <h2 className="text-label font-semibold text-text-primary">
+              {/* 배지 · 닫기 버튼에 밀려 `연결된 / 이슈` 로 접히지 않게 한 줄로 붙든다 */}
+              <h2 className="truncate text-label font-semibold text-text-primary">
                 연결된 이슈
               </h2>
               <p className="truncate text-caption text-text-secondary">

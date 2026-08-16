@@ -216,12 +216,16 @@ function FullValue({
       {/*
         자체 스크롤 영역이라 포커스를 받을 수 있어야 한다 —
         그렇지 않으면 키보드 사용자는 잘린 뒷부분을 볼 방법이 없다
+
+        ⚠️ `font-sans` 를 반드시 준다. `<pre>` 는 브라우저 기본값이 **고정폭 글꼴**이라
+           그냥 두면 본문(Pretendard)과 글씨체가 갈려, 텍스트 블록을 고친 기록만
+           다른 화면에서 가져온 것처럼 보인다. 줄바꿈 보존은 `whitespace-pre-wrap` 이 맡는다.
       */}
       <pre
         tabIndex={0}
         role="region"
         aria-label={label}
-        className={`max-h-40 overflow-auto rounded-button-sm border px-2 py-1.5 text-caption leading-relaxed whitespace-pre-wrap focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-border-primary ${
+        className={`max-h-40 overflow-auto rounded-button-sm border px-2 py-1.5 font-sans text-caption leading-relaxed whitespace-pre-wrap focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-border-primary ${
           tone === 'before'
             ? 'border-border-default bg-bg-card text-text-muted'
             : 'border-blue-border bg-blue-bg-soft text-text-primary'

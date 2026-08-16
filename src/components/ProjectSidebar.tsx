@@ -1171,8 +1171,9 @@ function StepCard({
    * 스텝 권한 관리 가능 여부 — **프로젝트 `EDITOR`** 다.
    *
    * ⚠️ 스텝 권한 API(134~136)는 스텝 권한이 아니라 프로젝트 권한을 본다.
-   *    그래서 아래 `step.myPermission` 과 **다른 값이며 함께 쓸 수 없다** —
-   *    남이 이 스텝에 `VIEWER` 오버라이드를 걸어 둔 프로젝트 편집자도 권한은 관리할 수 있다.
+   *    그래서 아래 `step.myPermission` 과 **다른 값이다** — 둘 다 참일 때만 항목을 넣는다.
+   *    이 스텝이 열람 전용인 프로젝트 편집자는 여기 대신 **프로젝트 설정**에서 관리한다
+   *    (메뉴 자체를 세우지 않기로 했다 — 아래 `canEditStep` 분기 주석 참고).
    */
   canManagePermissions: boolean;
   onEdit: () => void;
@@ -1219,37 +1220,35 @@ function StepCard({
           >
             {`${step.progressRate ?? 0}%`}
           </span>
-          {canEditStep || canManagePermissions ? (
+          {/*
+            ⭐ **이 스텝을 고칠 수 없으면 `⋯` 을 아예 세우지 않는다** (2026-08-16).
+               예전에는 프로젝트 편집자면 `권한 관리` 하나만 담아 메뉴를 열어 줬는데,
+               정작 스텝이 열람 전용인 사람에게 메뉴가 보여 "고칠 수 있다" 로 읽혔다.
+               그 사람의 권한 관리 진입로는 **프로젝트 설정 > 스테이지 · 스텝 권한**에
+               스텝 전체 목록으로 이미 있다 — 잃는 길이 없다.
+          */}
+          {canEditStep ? (
             <span className="pointer-events-auto">
               <RowMenu
                 label={step.name}
                 revealClass="group-hover/step:opacity-100"
                 onOpen={preloadStepChunks}
                 items={[
-                  // 수정 · 완료 · 삭제는 **스텝** 권한, 권한 관리는 **프로젝트** 권한이다
-                  ...(canEditStep
-                    ? [
-                        {
-                          label: '스텝 수정',
-                          icon: <PencilIcon />,
-                          onSelect: onEdit,
-                        },
-                      ]
-                    : []),
+                  {
+                    label: '스텝 수정',
+                    icon: <PencilIcon />,
+                    onSelect: onEdit,
+                  },
                   /*
                    * 상태는 **항목 하나로 묶는다** — 진행 전 · 진행중 · 완료를 각각 두면
                    * 메뉴가 스텝 상태에 따라 늘었다 줄었다 해서 매번 읽어야 한다.
                    * 무엇으로 바꿀지는 모달 안에서 고른다 (완료만 완료 처리 모달로 넘어간다).
                    */
-                  ...(canEditStep
-                    ? [
-                        {
-                          label: '상태 변경',
-                          icon: <PlayIcon />,
-                          onSelect: onChangeStatus,
-                        },
-                      ]
-                    : []),
+                  {
+                    label: '상태 변경',
+                    icon: <PlayIcon />,
+                    onSelect: onChangeStatus,
+                  },
                   ...(canManagePermissions
                     ? [
                         {
@@ -1259,16 +1258,12 @@ function StepCard({
                         },
                       ]
                     : []),
-                  ...(canEditStep
-                    ? [
-                        {
-                          label: '삭제',
-                          icon: <TrashIcon />,
-                          danger: true,
-                          onSelect: onDelete,
-                        },
-                      ]
-                    : []),
+                  {
+                    label: '삭제',
+                    icon: <TrashIcon />,
+                    danger: true,
+                    onSelect: onDelete,
+                  },
                 ]}
               />
             </span>
