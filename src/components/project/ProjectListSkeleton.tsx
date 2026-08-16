@@ -1,4 +1,5 @@
 import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
+import { PROJECT_ROW_GRID } from '@/features/project/ProjectCard';
 
 /**
  * 내 프로젝트 목록 로딩. 표가 아니라 **카드 행**이라 `SkeletonTable` 을 쓰지 않는다.
@@ -9,16 +10,8 @@ import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
  *    ≈ 57px 이라, 10줄이면 목록이 뜨는 순간 화면이 **170px 가까이 솟구쳤다.**
  *    카드 쪽 여백이 바뀌면 여기도 같이 바뀌어야 하므로 값을 나란히 적어 둔다.
  *
- * | 칸        | 실제 값 (`ProjectCard`)          |
- * | --------- | -------------------------------- |
- * | 상태 배지 | `w-16` · `rounded-pill`          |
- * | 카테고리  | `w-32`                           |
- * | 과업명    | `flex-1`                         |
- * | 발주처    | `w-32`                           |
- * | 기간      | `w-40`                           |
- * | 참여자    | `size-6` 아바타 · `-space-x-1.5` |
- * | 진척률    | `w-32` (막대 + 숫자)             |
- * | 펼침 버튼 | `size-9` — 링크 **바깥**이다     |
+ * ⚠️ 칸 너비는 **`PROJECT_ROW_GRID` 하나가 정한다** — 여기서 따로 적지 않는다.
+ *    예전에는 `w-16` · `w-32` 를 손으로 베껴 적었는데, 카드 쪽 폭이 바뀌면 조용히 어긋났다.
  */
 export default function ProjectListSkeleton({ rows = 6 }: { rows?: number }) {
   return (
@@ -33,15 +26,15 @@ export default function ProjectListSkeleton({ rows = 6 }: { rows?: number }) {
         >
           {/* 실제 카드와 같은 머리글 구조 — 링크(`px-5 py-4`) + 펼침 버튼 */}
           <div className="flex items-center gap-2 pr-3">
-            <div className="flex min-w-0 flex-1 items-center gap-4 px-5 py-4">
+            <div className={`${PROJECT_ROW_GRID} min-w-0 flex-1 px-5 py-4`}>
               {/* 배지가 이 줄에서 가장 높다 — 카드 높이를 정하는 값이다 */}
-              <Skeleton className="h-[25px] w-16 shrink-0 rounded-pill" />
-              <Skeleton className="h-[25px] w-32 shrink-0" />
-              <Skeleton className="h-[15px] min-w-0 flex-1" />
-              <Skeleton className="h-[15px] w-32 shrink-0" />
-              <Skeleton className="h-[15px] w-40 shrink-0" />
+              <Skeleton className="h-[25px] rounded-pill" />
+              <Skeleton className="h-[25px]" />
+              <Skeleton className="h-[15px] min-w-0" />
+              <Skeleton className="h-[15px]" />
+              <Skeleton className="h-[15px]" />
 
-              <span className="flex shrink-0 items-center -space-x-1.5">
+              <span className="flex items-center -space-x-1.5">
                 {[0, 1, 2].map((avatar) => (
                   <Skeleton
                     key={avatar}
@@ -51,7 +44,7 @@ export default function ProjectListSkeleton({ rows = 6 }: { rows?: number }) {
                 ))}
               </span>
 
-              <span className="flex w-32 shrink-0 items-center gap-3">
+              <span className="flex items-center gap-3">
                 <Skeleton className="h-2 flex-1 rounded-pill" />
                 <Skeleton className="h-[15px] w-9 shrink-0" />
               </span>

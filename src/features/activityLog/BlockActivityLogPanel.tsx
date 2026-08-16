@@ -63,7 +63,8 @@ export default function BlockActivityLogPanel({
             <ActivityIcon />
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="text-label font-semibold text-text-primary">
+            {/* 배지 · 닫기 버튼에 밀려 접히지 않게 한 줄로 붙든다 (`BlockIssuesPanel` 과 같은 규칙) */}
+            <h2 className="truncate text-label font-semibold text-text-primary">
               블록 활동 기록
             </h2>
             <p className="truncate text-caption text-text-secondary">

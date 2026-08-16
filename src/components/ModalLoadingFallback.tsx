@@ -20,7 +20,10 @@ export function SidePanelFallbackHeader({
     <div className="flex shrink-0 items-center gap-2 border-b border-border-default px-4 py-3">
       <Skeleton className="size-5 shrink-0 rounded-button-sm" />
       <div className="min-w-0 flex-1">
-        <h2 className="text-label font-semibold text-text-primary">{title}</h2>
+        {/* 배지가 붙으면 제목이 접힌다 — 실물 패널과 같이 한 줄로 붙든다 */}
+        <h2 className="truncate text-label font-semibold text-text-primary">
+          {title}
+        </h2>
         <Skeleton className="h-3 w-24" />
       </div>
       {hasBadge && <Skeleton className="h-5 w-10 shrink-0 rounded-pill" />}

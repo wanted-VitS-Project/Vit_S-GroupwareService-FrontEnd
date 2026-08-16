@@ -6,6 +6,60 @@
 
 ---
 
+## [2026-08-16] 결함 3건 수정 · 화면 정리 ✅
+
+브랜치: `style` · API: 변경 없음 (67번 제한값 명세만 확정) · 이슈: #170
+(용어 통일 #167 이후 이어진 QA 피드백 반영 건)
+
+QA 에서 나온 결함 3건 — **이슈 수정이 화면에 안 붙음 · 열람 권한자에게 `⋯` 노출 · 주소만 고치면 남의 프로젝트 블록이 보임** — 을 잡고, 함께 지적된 화면 문제(문서 블록 업로드 흐름 · 아이콘 크기 · 카드 정렬 · 이미지 제한 안내)를 정리했다.
+
+### 변경 파일
+
+| 파일 | 변경 |
+| ---- | ---- |
+| `src/features/project/step/StepScopeGuard.tsx` | **생성** (스텝의 프로젝트 소속 검증) |
+| `src/app/projects/[id]/steps/[stepId]/layout.tsx` | 수정 (세 탭을 문지기로 감쌈) |
+| `src/features/issue/IssueBoard.tsx` | 수정 (`refresh()` · `keepOrder()` — 저장 후 무깜빡임 재조회) |
+| `src/components/ProjectSidebar.tsx` | 수정 (스텝 `⋯` 를 `canEditStep` 일 때만 노출) |
+| `src/components/AlertDialog.tsx` | 수정 (`AlertDialogThreeButton` 추가 · `Shell` 세로 배치 옵션) |
+| `src/features/file/DuplicateNameModal.tsx` · `src/features/block/FileBlock.tsx` | 수정 (동명 파일 → 새 버전 / 새 문서 선택, 행 아이콘 확대) |
+| `src/features/block/ImageUploadModal.tsx` · `block/types.ts` | 수정 (장당 20MB · 요청당 15장 · 300MB) |
+| `src/features/project/ProjectCard.tsx` | 수정 (`PROJECT_ROW_GRID` · `ProjectListHeader` · 카드 아바타 이니셜) |
+| `src/features/project/MyProjectList.tsx` · `dashboard/DashboardProjects.tsx` · `components/project/ProjectListSkeleton.tsx` | 수정 (머리글 배치 · 같은 격자 공유) |
+| `src/components/MemberAvatar.tsx` | 수정 (`initialsOnly` 옵션) |
+| `src/features/activityLog/ActivityLogItem.tsx` | 수정 (`<pre>` 에 `font-sans`) |
+| `src/features/block/BlockIssuesPanel.tsx` · `activityLog/BlockActivityLogPanel.tsx` · `components/ModalLoadingFallback.tsx` | 수정 (패널 제목 `truncate`) |
+| `src/features/block/ImageBlock.tsx` · `file/MyFileList.tsx` | 수정 (아이콘 버튼 `size-7` + 아이콘 `size-4`) |
+| `.ai/API.md` | 수정 (67번 이미지 업로드 제한 확정) |
+
+### 주요 작업 내용
+
+- **이슈 저장 후 재조회** — 수정 응답만으로 카드를 병합하면 응답에 없는 필드(우선순위)가 옛값으로 남는다. 낙관적 반영은 유지하고 곧바로 목록을 다시 읽어 서버 값과 맞춘다. 직전 목록을 지우지 않아 깜빡이지 않고, `keepOrder()` 가 화면 순서를 그대로 지킨다
+- **스텝 `⋯` 노출 축소** — 이 스텝을 고칠 수 없으면 메뉴를 세우지 않는다. 자리는 빈 `span` 으로 남겨 진척률 `%` 위치가 흔들리지 않는다
+- **스텝 소속 검증** — 블록 · 이슈 · 활동 기록은 경로에 프로젝트가 없어 `stepId` 만으로 조회된다. 사이드바가 이미 받아 둔 스텝 목록 캐시로 소속을 확인하고, 아니면 안내 화면으로 돌린다 (추가 요청 없음)
+- **동명 파일 3갈래** — `새 버전으로 올리기` · `새 문서로 추가` · `취소`. 같은 이름이 여럿이면 얹을 대상을 특정할 수 없어 기존 2버튼으로 떨어진다
+- **프로젝트 카드 격자화** — 카드 · 머리글 · 스켈레톤이 `PROJECT_ROW_GRID` 하나를 공유하고, 컬럼명을 `sticky` 로 붙였다
+- **이미지 업로드 제한** — 넘친 장수를 버리지 않고 "남은 N장은 이어서" 로 안내한다 (블록 총 장수는 무제한, 요청 하나의 상한이다)
+
+### 트러블슈팅
+
+| 문제 | 원인 | 해결 |
+| ---- | ---- | ---- |
+| 우선순위를 바꿔도 카드가 그대로 | PATCH 응답을 `{...issue, ...next}` 로 병합 — 응답에 없는 필드는 옛값이 남는다 | 저장 후 목록 재조회. 순서 · 스크롤은 `keepOrder()` 로 보존 |
+| 프로젝트 번호만 바꿔도 이전 블록이 보임 | 캐시가 아니라 **소속을 확인하는 곳이 없었다** — 세 탭 모두 `stepId` 로만 조회한다 | `StepScopeGuard` 를 스텝 레이아웃에 한 겹 |
+| 활동 기록의 변경 내용만 글씨체가 다름 | `<pre>` 의 브라우저 기본값이 고정폭 글꼴이라 `body` 의 Pretendard 가 상속되지 않는다 | `font-sans` 추가 (줄바꿈은 `whitespace-pre-wrap` 이 유지) |
+| `연결된 이슈` 제목이 두 줄로 접힘 | 제목 `<h2>` 에만 줄바꿈 방지가 없어 배지 · 닫기 버튼에 밀렸다 | `truncate` 추가 — 로딩 껍데기도 같이 맞춰 청크 도착 때 안 튀게 |
+
+### 부수 결정
+
+- **문지기는 "모르는 동안" 막지 않는다** — 스텝 목록이 아직 없거나 실패했으면 통과시킨다. 판정 전에 가로막으면 정상 진입에도 오류 화면이 한 번 스친다
+- **열람 전용 스텝의 권한 관리는 설정 화면으로 몬다** — 사이드바 메뉴를 없애도 `프로젝트 설정 > 스테이지 · 스텝 권한` 에 스텝 전체 목록이 있어 잃는 길이 없다
+- **아바타 이니셜은 프로젝트 카드에만** — 처음엔 전역으로 바꿨다가 되돌렸다. 24px 아바타가 수십 개 서는 목록에서만 사진이 의미가 없고, 헤더 · 마이페이지는 사진이 제 역할을 한다. `initialsOnly` 기본값을 바꾸지 말 것
+- **카드 격자에서 과업명 · 발주처만 `fr`** — 카드마다 컨테이너 폭이 같아 `fr` 도 같은 값으로 풀려 열이 맞는다. 나머지를 고정하는 이유는 내용 길이가 제각각이기 때문이다 (상태 라벨 · 분류 이름 · 참여자 수)
+- **아이콘 크기 기준은 전사 파일 관리** — 거기가 이미 `size-7` + `size-4` 였다. 문서 블록 · 내 문서함 · 이미지 블록을 그쪽에 맞췄다
+
+---
+
 ## [2026-08-16] 화면 용어 통일 · 구어체 정리 ✅
 
 브랜치: `style` · API: 변경 없음 (문구 · 입력 표기만) · 이슈: #168
@@ -61,7 +115,7 @@
 - **주석 안의 도메인 용어까지 함께 바꾼다** — 코드를 읽는 사람이 화면 라벨과 주석을 대조하므로, 화면만 바꾸면 다음 사람이 다시 헷갈린다. 단 `업로드 3단계` · `캡처 단계` 처럼 stage 와 무관한 `단계` 는 그대로 둔다
 - **사이드바 버튼은 `수정` 한 단어로** — 헤더가 이미 `스테이지` 라 반복이고, `스테이지 수정` 은 옆 `+ 추가` 와 한 줄에 들어가기 빠듯하다
 - **`블록 이름` → `블록 제목`** — 필드가 `title` 이고 수정 모달이 이미 `블록 제목` 이었다. 생성 모달만 `이름` 이라 맞췄다
-- **범위 밖으로 남긴 해요체** — `features/businessCategory/CategoryList.tsx` · `features/employee/EmployeeList.tsx` 의 `바꿔보세요` 2곳. 전사 관리 화면이라 이번 범위에 없다
+- **전사 관리 화면은 건드리지 않는다** — 해요체 7곳(`businessCategory` · `department` · `employee` 2 · `jobPosition` · `pagePermission`)이 남아 있지만 **다른 작업자의 담당 파트**라 손대지 않는다. 결재 · 입찰공고 · 정산 · 세금계산서 도메인 20여 곳도 같은 이유로 제외
 
 ---
 

@@ -507,8 +507,17 @@ export function projectImageAltText(image: {
 /** 캡션 최대 길이 — ❗ 백엔드 확인 필요. 우선 블록 제목과 같은 200자로 막는다 */
 export const IMAGE_CAPTION_MAX_LENGTH = 200;
 
-/** 초안 안내 문구 기준 (JPG · PNG · GIF · WEBP · 최대 10MB) */
-export const IMAGE_MAX_SIZE_BYTES = 10 * 1024 * 1024;
+/** 한 장의 최대 용량 (2026-08-16 확정) */
+export const IMAGE_MAX_SIZE_BYTES = 20 * 1024 * 1024;
+
+/**
+ * 한 번의 업로드 요청에 실을 수 있는 장수 · 합계 용량 (2026-08-16 확정).
+ *
+ * ⚠️ **블록이 담을 수 있는 총 장수에는 제한이 없다** — 요청 한 번의 상한일 뿐이다.
+ *    넘치면 나눠 올리면 되므로, 초과분을 버리지 말고 "다음 번에 올리라" 고 안내한다.
+ */
+export const IMAGE_UPLOAD_MAX_COUNT = 15;
+export const IMAGE_UPLOAD_MAX_TOTAL_BYTES = 300 * 1024 * 1024;
 
 /**
  * 올릴 수 있는 형식. **화면 안내 문구(JPG · PNG · GIF · WEBP)와 같은 목록**이다.

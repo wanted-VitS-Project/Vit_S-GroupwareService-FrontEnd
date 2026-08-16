@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 
 import ProjectListSkeleton from '@/components/project/ProjectListSkeleton';
 import { getProjects } from '@/features/project/api';
-import ProjectCard from '@/features/project/ProjectCard';
+import ProjectCard, { ProjectListHeader } from '@/features/project/ProjectCard';
 import { PROJECT_ROUTES } from '@/features/project/routes';
 import type { ProjectListItem } from '@/features/project/types';
 
@@ -87,11 +87,20 @@ export default function DashboardProjects() {
           </p>
         </div>
       ) : (
-        <ul className="flex flex-col gap-3">
-          {rows.map((row) => (
-            <ProjectCard key={row.projectId} row={row} />
-          ))}
-        </ul>
+        <div className="flex flex-col gap-3">
+          {/*
+            대시보드는 아래로 알림 · 일정 구역이 더 이어져 목록을 지나며 굴리게 된다 —
+            `/projects` 와 같이 머리글을 붙들어 어느 칸이 무엇인지 계속 보이게 한다.
+            (구역을 벗어나면 sticky 가 자연히 풀려 따라 올라간다)
+          */}
+          <ProjectListHeader />
+
+          <ul className="flex flex-col gap-3">
+            {rows.map((row) => (
+              <ProjectCard key={row.projectId} row={row} />
+            ))}
+          </ul>
+        </div>
       )}
     </section>
   );
