@@ -122,11 +122,19 @@ export default function CurrentUserProvider({
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<CurrentUser | null>(null);
-  /** 권한 403 을 받은 화면. 경로를 함께 담아 **옮기면 저절로 풀리게** 한다 */
+  /** 권한 403 을 받은 화면. 어느 화면에서 받았는지를 함께 담는다 */
   const [denied, setDenied] = useState<{
     pathname: string;
     code: string;
   } | null>(null);
+
+  /*
+    화면을 옮기면 **지운다.** 가리기만 하면 A → B → A 로 돌아왔을 때 지난 거부가
+    되살아나고, 본문이 막혀 있어 그것을 풀 요청조차 나가지 않는다 — 권한을 새로 받아도
+    새로고침 전까지 영영 막힌 화면이 된다.
+    ℹ️ 효과가 아니라 **렌더 중에 되돌린다** — 한 번 더 그리는 대신 이번 렌더에서 바로 잡는다.
+  */
+  if (denied !== null && denied.pathname !== pathname) setDenied(null);
   const [hasFailed, setHasFailed] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   /** /me 를 막은 게이트 403 의 code. 사용자 정보 없이도 어느 게이트인지 알 수 있다 */
@@ -301,7 +309,7 @@ export default function CurrentUserProvider({
 
   if (!shownUser) return <AppShellSkeleton shell={initialShell} />;
 
-  const deniedCode = denied?.pathname === pathname ? denied.code : null;
+  const deniedCode = denied?.code ?? null;
 
   return (
     <CurrentUserContext.Provider value={shownUser}>

@@ -118,7 +118,12 @@ export default function EmployeeSearchInput({
    * 이미 결재선에 있는 사람은 **숨기지 않고 `이미 추가됨` 으로 보여준다** —
    * 목록에서 사라지면 "검색이 안 되는 것" 처럼 보인다.
    */
-  const options = (name === '' ? allEmployees : results).map((employee) => ({
+  /**
+   * ⚠️ 빈 칸 목록은 **ADMIN 일 때만** 쓴다 — 역할이 내려간 뒤에도 지난 목록이 남아
+   *    보이지 않게, 받아둔 값이 아니라 지금 역할로 판단한다.
+   */
+  const listed = name === '' ? (role === 'ADMIN' ? allEmployees : []) : results;
+  const options = listed.map((employee) => ({
     ...employee,
     isAdded: excludedIds.includes(employee.userId),
   }));
