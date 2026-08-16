@@ -55,6 +55,17 @@ export default function NoticeProjectConvertModal({
    */
   const [categories, setCategories] = useState<BusinessCategory[]>([]);
   const [hasCategoryFailed, setHasCategoryFailed] = useState(false);
+  /**
+   * ⚠️ 로딩 판정에 **카테고리도 넣어야 한다.** 예전에는 `summaries === null` 만 봐서,
+   *    요약이 먼저 도착하면 카테고리가 아직 오는 중인데도 폼이 열렸다 —
+   *    그 순간 `categories` 는 빈 배열이라 "고를 수 있는 사업 카테고리가 없습니다" 로
+   *    읽히고 생성 버튼도 잠긴다. 조회 중 · 실패 · 성공한 빈 목록은 서로 다른 상태다.
+   *
+   * **몇 번째 시도가 끝났는지**를 담는다 — 불리언으로 두면 `다시 시도` 때
+   * 효과 안에서 `false` 로 되돌려야 하는데, 그건 렌더를 한 번 더 부른다.
+   * (`DashboardProjects` 의 `failedAt` 과 같은 방식)
+   */
+  const [categoryLoadedAt, setCategoryLoadedAt] = useState<number | null>(null);
   /** 재시도 횟수 — 바뀔 때마다 아래 `useEffect` 가 다시 돈다 */
   const [reloadCount, setReloadCount] = useState(0);
 
@@ -89,9 +100,13 @@ export default function NoticeProjectConvertModal({
         .then((data) => {
           setCategories(data.filter((item) => !item.deletedAt));
           setHasCategoryFailed(false);
+          setCategoryLoadedAt(reloadCount);
         })
         .catch(() => {
-          if (!signal.aborted) setHasCategoryFailed(true);
+          if (signal.aborted) return;
+          setHasCategoryFailed(true);
+          // 실패도 "다 기다렸다" 다 — 안내는 `hasCategoryFailed` 자리가 맡는다
+          setCategoryLoadedAt(reloadCount);
         }),
     ]).catch(() => {});
 
@@ -146,7 +161,7 @@ export default function NoticeProjectConvertModal({
     }
   }
 
-  const isLoading = summaries === null;
+  const isLoading = summaries === null || categoryLoadedAt !== reloadCount;
   /** 채워 둔 종료일이 공고에서 온 것인지 — 사용자가 고치면 안내를 거둔다 */
   const hasDeadlineDefault =
     endedOn !== '' && endedOn === toDateInput(notice.bidDeadlineAt);

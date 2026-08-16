@@ -124,7 +124,15 @@ export default function TaxInvoiceMatchModal({
           {candidates === null && (
             <button
               type="button"
-              onClick={() => setRetryCount((count) => count + 1)}
+              /*
+                ⚠️ 오류를 **먼저 지운다** — 남겨 두면 `candidates === null && hasFailed`
+                   가 계속 참이라 다시 부르는 동안 목록 자리가 통째로 빈다.
+                   지워야 그 자리에 스피너가 선다.
+              */
+              onClick={() => {
+                setError('');
+                setRetryCount((count) => count + 1);
+              }}
               className="btn btn-sm btn-gray-outlined"
             >
               다시 시도
@@ -191,9 +199,7 @@ function CandidateList({
   if (candidates === null && hasFailed) return null;
 
   if (candidates === null) {
-    return (
-      <LoadingSpinner label="추천 후보 불러오는 중" />
-    );
+    return <LoadingSpinner label="추천 후보 불러오는 중" />;
   }
 
   if (candidates.length === 0) {

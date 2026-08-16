@@ -24,9 +24,11 @@
 | `src/features/bidding/NoticeReviewModal.tsx` | 수정 (`ReviewSkeleton` 삭제 → 스피너) |
 | `src/features/bidding/NoticeProjectConvertModal.tsx` | 수정 (전환 정보 뼈대 → 스피너) |
 | `src/features/block/BlockMoveStepModal.tsx` · `project/step/StepDeleteModal.tsx` | 수정 (목록 뼈대 → 스피너) |
-| `src/components/project/ProjectListSkeleton.tsx` | 수정 (머리글 포함 · 칸 높이 · 탭 폭 · 필터 · 페이지 이동 자리) |
-| `src/features/project/ProjectCard.tsx` | 수정 (`ProjectListHeader` 의 `sticky top-0 z-10` 제거) |
-| `src/features/project/MyProjectList.tsx` · `dashboard/DashboardProjects.tsx` | 수정 (`sticky` 설명 주석 정리) |
+| `src/components/project/ProjectListHeader.tsx` | **생성** (`PROJECT_ROW_GRID` · `PROJECT_ROW_TOGGLE_SLOT` · 머리글 — 리뷰 반영) |
+| `src/features/project/ProjectPageSkeleton.tsx` | **생성** (`/projects` 화면 껍데기 — `ProjectListSkeleton` 에서 분리, 리뷰 반영) |
+| `src/components/project/ProjectListSkeleton.tsx` | 수정 (머리글 포함 · 칸 높이 · 카드 행만 남김) |
+| `src/features/project/ProjectCard.tsx` | 수정 (`sticky top-0 z-10` 제거 · 격자/머리글을 공용 모듈에서 가져옴) |
+| `src/features/project/MyProjectList.tsx` · `dashboard/DashboardProjects.tsx` · `app/projects/page.tsx` | 수정 (import 경로 · `sticky` 주석 정리) |
 
 ### 주요 작업 내용
 
@@ -35,6 +37,12 @@
 - **목록 머리글을 스켈레톤에도** — 실물은 `머리글 → 카드` 인데 스켈레톤은 카드만 그려, 목록이 도착하면 약 37px 내려앉았다. 머리글은 데이터 없이 그릴 수 있는 정적 markup 이라 **실물 컴포넌트를 그대로** 가져다 쓴다
 - **`ProjectPageSkeleton` 실측 보정** — 분류 칸 `25px → 28px`(태그 `border-[1.5px]` 누락), 상태 탭 폭 하드코딩 제거, 기간 필터 · 페이지 이동 자리 추가
 - **컬럼 머리글 `sticky` 제거** — 목록을 굴릴 때 머리글 띠가 화면 위에 남아 다른 구역을 덮었다. 목록과 함께 올라가게 되돌렸다
+
+### 코드 리뷰 반영 (CodeRabbit, PR #172)
+
+- **공용 스켈레톤의 feature 의존 분리** — `components/project/ProjectListSkeleton` 이 `features/project/ProjectCard` · `projectStatus` 를 직접 참조해, 대시보드 로딩 UI 가 프로젝트 feature 구현에 묶여 있었다. 공용으로 쓰는 격자 · 머리글은 `components/project/ProjectListHeader` 로 내리고, feature 규칙(`PROJECT_STATUS_OPTIONS`)을 알아야 하는 화면 껍데기는 `features/project/ProjectPageSkeleton` 으로 올렸다. 결과적으로 `src/components/project/` 의 `@/features` 참조 0건
+- **전환 모달 로딩 판정에 카테고리 누락** (`NoticeProjectConvertModal`) — `Promise.all` 로 감쌌지만 `setSummaries` 는 개별 `.then` 에서 불려, 요약이 먼저 오면 카테고리가 오는 중인데 폼이 열렸다. 그 순간 `categories` 가 빈 배열이라 "고를 수 있는 사업 카테고리가 없습니다" 로 잠긴다. `categoryLoadedAt !== reloadCount` 를 로딩 조건에 더했다
+- **재시도 중 후보 자리가 빔** (`TaxInvoiceMatchModal`) — `다시 시도` 가 `retryCount` 만 올리고 `error` 를 남겨 `candidates === null && hasFailed` 가 계속 참이었다. 핸들러에서 `setError('')` 를 먼저 부른다
 
 ### 트러블슈팅
 
@@ -49,6 +57,8 @@
 - **스켈레톤 대 스피너의 기준은 "자리가 고정인가"** — 목록 · 표처럼 행 모양이 정해진 곳은 스켈레톤, 크기가 제각각인 모달은 스피너. 어긋난 뼈대는 딸깍거림을 없애려다 오히려 만든다
 - **머리글 `sticky` 는 되돌린다** (#170 에서 넣었던 것) — 스크롤 중 다른 구역을 덮는 쪽이 기준을 잃는 것보다 거슬린다
 - **폴백은 지연이지 제거가 아니다** — 청크가 정말 느릴 때는 무반응보다 스피너 창이 낫다. 300ms 는 미리받기가 대부분 끝나는 선
+- **`src/components/` 는 feature 를 참조하지 않는다** — 두 화면이 함께 쓰는 것(격자 · 머리글)만 공용으로 내리고, 한 화면의 규칙을 알아야 하는 껍데기는 그 feature 안에 둔다. 스켈레톤이라고 무조건 `components/` 가 아니다
+- **"조회 중" 을 불리언 대신 `…At === reloadCount` 로** — 재시도 때 효과 안에서 플래그를 되돌리면 `react-hooks/set-state-in-effect` 에 걸린다. `DashboardProjects` 의 `failedAt` 과 같은 방식으로 맞췄다
 
 ---
 

@@ -169,9 +169,7 @@ function CandidateList({
   onSelect: (settleId: number) => void;
 }) {
   if (candidates === null) {
-    return (
-      <LoadingSpinner label="추천 후보 불러오는 중" />
-    );
+    return <LoadingSpinner label="추천 후보 불러오는 중" />;
   }
 
   if (candidates.length === 0) {

@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
+import ProjectListHeader from '@/components/project/ProjectListHeader';
 import ProjectListSkeleton from '@/components/project/ProjectListSkeleton';
 import { getProjects } from '@/features/project/api';
-import ProjectCard, { ProjectListHeader } from '@/features/project/ProjectCard';
+import ProjectCard from '@/features/project/ProjectCard';
 import { PROJECT_ROUTES } from '@/features/project/routes';
 import type { ProjectListItem } from '@/features/project/types';
 

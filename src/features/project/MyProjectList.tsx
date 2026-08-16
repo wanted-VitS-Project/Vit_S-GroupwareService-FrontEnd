@@ -5,13 +5,14 @@ import { useEffect, useMemo, useState } from 'react';
 
 import Pagination from '@/components/Pagination';
 import { ErrorStateTwoButton } from '@/components/ErrorState';
+import ProjectListHeader from '@/components/project/ProjectListHeader';
 import ProjectListSkeleton from '@/components/project/ProjectListSkeleton';
 import { PROJECT_STATUS_LABELS } from '@/constants/status';
 import { getCategories } from '@/features/businessCategory/api';
 import type { BusinessCategory as CategoryOption } from '@/features/businessCategory/types';
 
 import { getProjects } from './api';
-import ProjectCard, { ProjectListHeader } from './ProjectCard';
+import ProjectCard from './ProjectCard';
 import ProjectSummaryCards from './ProjectSummaryCards';
 import { PROJECT_STATUS_OPTIONS } from './projectStatus';
 import type { ProjectListItem, ProjectListQuery, ProjectPage } from './types';
