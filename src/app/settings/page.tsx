@@ -3,13 +3,7 @@ import Link from 'next/link';
 import PageTitle from '@/components/PageTitle';
 
 type SettingIcon =
-  | 'employee'
-  | 'department'
-  | 'badge'
-  | 'category'
-  | 'file'
-  | 'group'
-  | 'lock';
+  'employee' | 'department' | 'badge' | 'category' | 'file' | 'group' | 'lock';
 
 interface SettingItem {
   icon: SettingIcon;
@@ -45,7 +39,7 @@ const SECTIONS: { title: string; items: SettingItem[] }[] = [
     ],
   },
   {
-    title: '사업 기준정보',
+    title: '프로젝트 관리',
     items: [
       {
         icon: 'category',
@@ -60,21 +54,21 @@ const SECTIONS: { title: string; items: SettingItem[] }[] = [
     items: [
       {
         icon: 'file',
-        label: '전사 파일 관리',
-        description: '전사 모든 프로젝트의 파일 · 사내 문서함 관리',
+        label: '프로젝트 파일',
+        description: '전사 모든 프로젝트의 파일 관리',
         href: '/settings/files',
+      },
+      {
+        icon: 'file',
+        label: '사내 문서함',
+        description: '회사 재정 · 소개 · 실적 자료 보관',
+        href: '/settings/company-documents',
       },
     ],
   },
   {
-    title: '권한 · 그룹',
+    title: '권한',
     items: [
-      {
-        icon: 'group',
-        label: '그룹 관리',
-        description: '사용자 그룹 생성 및 구성원 관리',
-        href: '/settings/employee-groups',
-      },
       {
         icon: 'lock',
         label: '페이지 권한',

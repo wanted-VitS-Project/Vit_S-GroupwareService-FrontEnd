@@ -30,7 +30,7 @@ function isRunning(status: string) {
 }
 
 const PROMPT_PLACEHOLDER =
-  '예) 우리 회사의 재정 상태와 보유 인력으로 수행 가능한지, 부족한 자격과 실적을 근거와 함께 검토해줘';
+  '예) 우리 회사의 재정 상태와 보유 인력으로 수행 가능한지, 부족한 자격과 실적을 근거와 함께 검토';
 
 /**
  * AI 문서 검토. (BID-V1 · `.ai/API.md` 입찰 문서 검토)
@@ -330,11 +330,11 @@ export default function NoticeReviewModal({
    * ℹ️ 툴팁(`title`)은 쓸 수 없다 — `.btn:disabled` 가 `pointer-events: none` 이라 뜨지 않는다.
    */
   const convertBlockedReason = isConverted
-    ? '이미 프로젝트로 전환된 공고예요.'
+    ? '이미 프로젝트로 전환된 공고입니다.'
     : review?.projectId != null
-      ? '이 검토는 이미 다른 프로젝트에 연결돼 있어요.'
+      ? '이 검토는 이미 다른 프로젝트에 연결되어 있습니다.'
       : !isDone
-        ? '검토가 완료되지 않아 프로젝트로 생성할 수 없어요. 다시 검토해주세요.'
+        ? '검토가 완료되지 않아 프로젝트로 생성할 수 없습니다. 다시 검토해주세요.'
         : null;
 
   return (
@@ -775,7 +775,7 @@ function PickRow({
           checked={isPicked}
           disabled={disabled}
           onChange={onToggle}
-          className="size-4 shrink-0 accent-[#4F39F6]"
+          className="size-4 shrink-0 accent-btn-primary"
         />
         <span className="min-w-0 flex-1 truncate text-caption text-text-primary">
           {label}

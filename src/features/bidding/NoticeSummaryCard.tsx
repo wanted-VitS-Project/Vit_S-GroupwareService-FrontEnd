@@ -337,7 +337,7 @@ export default function NoticeSummaryCard({
           </span>
         )}
         {summary?.confirmed && (
-          <span className="rounded-pill bg-green-bg px-2 py-0.5 text-caption font-semibold text-[#12B76A]">
+          <span className="rounded-pill bg-green-bg px-2 py-0.5 text-caption font-semibold text-green-text">
             확정됨
           </span>
         )}
@@ -475,7 +475,8 @@ export default function NoticeSummaryCard({
           />
           {baseSummaryId && !isWaiting && (
             <p className="mt-2 text-caption break-keep text-text-secondary">
-              지금 요약을 기준으로 새 차수를 만듭니다. 이전 차수는 이력으로 남습니다.
+              지금 요약을 기준으로 새 차수를 만듭니다. 이전 차수는 이력으로
+              남습니다.
             </p>
           )}
 

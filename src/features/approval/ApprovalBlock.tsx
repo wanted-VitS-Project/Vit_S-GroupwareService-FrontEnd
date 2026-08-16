@@ -270,7 +270,7 @@ function Loaded({
 
         {isCompleted && (
           <p className="rounded-lg border border-[#12B76A]/20 bg-[#12B76A]/5 px-2.5 py-2 text-caption font-semibold text-[#12B76A]">
-            ✓ 최종 승인 완료
+            최종 승인 완료
           </p>
         )}
 

@@ -145,7 +145,7 @@ export default function MyFileList() {
         <h2 className="text-heading-m font-bold">내 프로젝트 파일</h2>
         <p className="mt-1.5 text-label break-keep text-text-secondary">
           내가 속한 모든 프로젝트의 파일을 프로젝트별로 모아 봅니다. 업로드 ·
-          수정은 각 스텝 화면에서 할 수 있어요.
+          수정은 각 스텝 화면에서 할 수 있습니다.
         </p>
       </div>
 
@@ -227,7 +227,7 @@ export default function MyFileList() {
           </p>
           <p className="text-label break-keep text-text-secondary">
             {hasFilter
-              ? '검색어나 필터를 바꿔보세요'
+              ? '검색어나 필터를 바꿔 주세요'
               : '참여 중인 프로젝트의 스텝에 문서를 올리면 여기에 모입니다'}
           </p>
           {hasFilter && (

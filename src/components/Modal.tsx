@@ -29,8 +29,18 @@ interface ModalProps {
   children: React.ReactNode;
 }
 
-/** 모달 동작에 필요해 항상 적용한다 */
-const BASE_PANEL = 'm-auto bg-bg-card backdrop:bg-text-primary/50';
+/**
+ * 모달 동작에 필요해 항상 적용한다.
+ *
+ * ⚠️ **폭 상한(`max-w-…`)을 여기서 걸지 않는다.** 호출부가 이미 `max-w-[420px]` 처럼
+ *    자기 폭을 정하는데 여기서 `max-w-[calc(100dvw-2rem)]` 를 함께 걸면 같은 성질의
+ *    클래스가 둘이 되어 **어느 쪽이 이길지 CSS 순서에 달린다** — 넓은 화면에서 창이
+ *    화면 폭만큼 늘어나는 일이 실제로 있었다 (2026-08-16).
+ *    좁은 화면 보호는 브라우저가 이미 한다 — `<dialog>` 는 기본 스타일로 뷰포트를 넘지 않는다.
+ * ℹ️ 높이 상한만 남긴다. 이건 호출부가 잘 정하지 않고, 넘치면 닫기 버튼까지 화면 밖으로 나간다.
+ */
+const BASE_PANEL =
+  'm-auto max-h-[calc(100dvh-2rem)] bg-bg-card backdrop:bg-text-primary/50';
 /** className 을 넘기지 않을 때의 크기 · 여백 */
 const DEFAULT_PANEL = 'w-full max-w-sm rounded-base p-8 shadow-lg';
 

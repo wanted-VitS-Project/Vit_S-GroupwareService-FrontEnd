@@ -18,13 +18,22 @@ import logoFull from '@/assets/logo-vitaS.svg';
  */
 export default function Logo({
   variant = 'full',
+  onReady,
 }: {
   variant?: 'full' | 'mark';
+  /**
+   * 로고를 다 받았을 때(또는 못 받았을 때) 한 번 부른다.
+   * 로그인 화면이 **로고가 자리를 잡은 뒤** 내용을 펴는 데 쓴다.
+   * ⚠️ 실패해도 부른다 — 안 그러면 로고를 못 받은 순간 화면이 영영 비어 있는다.
+   */
+  onReady?: () => void;
 }) {
   return (
     <Image
       // 첫 화면 위쪽에 늘 보이는 이미지라 지연 로드하면 로고 자리가 한 번 빈다
       priority
+      onLoad={onReady}
+      onError={onReady}
       src={variant === 'mark' ? logoMark : logoFull}
       alt=""
       // 워드마크 높이(`--text-logo`, 22px)에 맞춘다 — 폭은 비율대로 따라온다

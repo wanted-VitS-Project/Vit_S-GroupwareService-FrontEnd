@@ -7,6 +7,9 @@ import DataTable from '@/components/DataTable';
 import RowMenu from '@/components/RowMenu';
 import { ROLE_LABELS } from '@/constants/status';
 
+import { getEmployees } from '@/features/employee/api';
+import type { EmployeeSummary } from '@/features/employee/types';
+
 import { getPageAccessors, getPages } from './api';
 import {
   NOT_REVOCABLE_REASON,
@@ -43,11 +46,34 @@ export default function PagePermissionList() {
     hasFailed?: boolean;
   } | null>(null);
 
+  /**
+   * 전 사원 목록.
+   *
+   * ⭐ 권한을 **가진 사람만** 보여주던 때에는, 누구에게 줄지 고르려면 사원 관리 화면을
+   *    한 번 들렀다 와야 했다. 권한 없는 사원도 `권한 없음` 으로 함께 세워 두면
+   *    이 화면 안에서 이름을 찾아 바로 줄 수 있다.
+   * ⚠️ 목록이 실패해도 화면은 그대로 쓴다 — 권한 가진 사람 목록은 이미 받아 왔다.
+   */
+  const [employees, setEmployees] = useState<EmployeeSummary[] | null>(null);
+  /** 권한 없는 사원까지 볼지 — 부여할 때만 필요해서 끌 수 있게 둔다 */
+  const [showsAll, setShowsAll] = useState(true);
+
   /** 부여 결과 요약 — 표만 갱신되면 뭐가 바뀌었는지 알 수 없다 */
   const [notice, setNotice] = useState('');
   const [isGranting, setIsGranting] = useState(false);
   const [editTarget, setEditTarget] = useState<PageAccessor | null>(null);
   const [revokeTarget, setRevokeTarget] = useState<PageAccessor | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    // 재직자만 · 한 번에 (`size` 상한 200). 권한 부여 대상이라 퇴사자는 뺀다
+    getEmployees({ page: 0, size: 200 }, controller.signal)
+      .then((data) => setEmployees(data.content))
+      .catch(() => {});
+
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -80,6 +106,13 @@ export default function PagePermissionList() {
     : undefined;
   const accessors = currentAccessors?.data ?? staleAccessors ?? null;
   const hasAccessorsFailed = currentAccessors?.hasFailed ?? false;
+
+  /**
+   * 표에 세울 줄. 권한을 가진 사람이 먼저 오고, 권한 없는 사원이 뒤에 붙는다.
+   * ⚠️ 없는 사람은 **`permission: 'NONE'` · `source: 'NONE'`** 으로 표시만 만든다 —
+   *    서버가 준 값이 아니라 화면이 만든 줄이라 회수(`revocable`)는 당연히 없다.
+   */
+  const rows = accessorRows(accessors, employees, showsAll);
 
   useEffect(() => {
     if (!selectedCode) return;
@@ -124,8 +157,7 @@ export default function PagePermissionList() {
       <div className="mt-2 mb-6">
         <h2 className="text-heading-m font-bold">페이지 권한</h2>
         <p className="mt-1.5 text-label break-keep text-text-secondary">
-          페이지별 접근 권한을 사원에게 부여합니다. 관리자 권한으로 열람하는
-          사원은 회수할 수 없습니다.
+          페이지별 접근 권한을 사원에게 부여합니다.
         </p>
       </div>
 
@@ -188,26 +220,12 @@ export default function PagePermissionList() {
             })}
           </div>
 
+          {/*
+            페이지 이름 · 설명 · 인원 태그는 두지 않는다 — 바로 위 탭이 이미 어느 페이지를
+            보고 있는지 말하고, 인원은 탭과 아래 표에 다시 나온다. 남길 것은 동작 하나다.
+          */}
           {selectedPage && (
-            <div className="mb-4 flex items-start justify-between gap-4 rounded-base border border-border-default bg-bg-card px-5 py-4">
-              <div className="min-w-0">
-                <p className="text-label font-bold text-text-primary">
-                  {selectedPage.name}
-                </p>
-                {selectedPage.description && (
-                  <p className="mt-1 text-label break-keep text-text-secondary">
-                    {selectedPage.description}
-                  </p>
-                )}
-                <p className="mt-2 flex flex-wrap items-center gap-1.5">
-                  <span className="tag tag-blue">
-                    명시 부여 {selectedPage.grantedCount}명
-                  </span>
-                  <span className="tag tag-gray">
-                    전역 권한 {selectedPage.globalRoleCount}명
-                  </span>
-                </p>
-              </div>
+            <div className="mb-4 flex justify-end">
               <button
                 type="button"
                 onClick={() => setIsGranting(true)}
@@ -224,6 +242,20 @@ export default function PagePermissionList() {
           >
             {notice}
           </p>
+
+          {/*
+            권한 없는 사원까지 세울지. 기본은 켜 둔다 — 누구에게 줄지 고르려면
+            이름이 보여야 하고, 그러자고 사원 관리 화면을 다녀오는 것이 이 화면의 불편이었다.
+          */}
+          <label className="mb-2 flex w-fit cursor-pointer items-center gap-1.5 text-detail text-text-secondary">
+            <input
+              type="checkbox"
+              checked={showsAll}
+              onChange={(event) => setShowsAll(event.target.checked)}
+              className="size-3.5 cursor-pointer accent-btn-primary"
+            />
+            권한 없는 사원도 보기
+          </label>
 
           {/*
             `overflow-hidden` 이 없으면 안쪽 표의 **각진 흰 배경**(sticky thead 포함)이
@@ -263,7 +295,7 @@ export default function PagePermissionList() {
                 },
                 {
                   key: 'role',
-                  header: '전역 권한',
+                  header: '역할',
                   width: '7rem',
                   skeletonWidth: 'w-16',
                   // 원값(`MASTER`)이 아니라 화면 이름으로 보여준다
@@ -288,7 +320,7 @@ export default function PagePermissionList() {
                 },
                 {
                   key: 'source',
-                  header: '권한 출처',
+                  header: '부여 방식',
                   width: '8rem',
                   skeletonWidth: 'w-20',
                   /*
@@ -325,7 +357,11 @@ export default function PagePermissionList() {
                         label={accessor.name}
                         items={[
                           {
-                            label: '등급 변경',
+                            // 아직 권한이 없는 사람에게는 `변경` 이 아니라 `부여` 다
+                            label:
+                              accessor.source === 'NONE'
+                                ? '권한 부여'
+                                : '등급 변경',
                             onSelect: () => setEditTarget(accessor),
                           },
                           ...(accessor.revocable
@@ -342,7 +378,7 @@ export default function PagePermissionList() {
                     ),
                 },
               ]}
-              rows={hasAccessorsFailed ? [] : (accessors?.content ?? null)}
+              rows={hasAccessorsFailed ? [] : rows}
               rowKey={(accessor) => accessor.userId}
               maxHeight="60vh"
               errorMessage={
@@ -358,7 +394,7 @@ export default function PagePermissionList() {
                     접근 가능한 사원이 없습니다
                   </p>
                   <p className="text-label break-keep text-text-secondary">
-                    권한을 부여하면 이 페이지의 메뉴로 들어갈 수 있어요
+                    권한을 부여하면 이 페이지의 메뉴로 들어갈 수 있습니다
                   </p>
                 </>
               }
@@ -454,4 +490,36 @@ function LockIcon() {
       <path d="M8 10V7a4 4 0 0 1 8 0v3" />
     </svg>
   );
+}
+
+/**
+ * 권한 가진 사람 + 권한 없는 사원을 한 목록으로 만든다.
+ *
+ * ⚠️ 서버 응답(`accessors`)을 **앞에** 둔다 — 지금 권한을 가진 사람이 먼저 보여야
+ *    "누가 볼 수 있나" 라는 이 화면의 첫 질문에 바로 답이 된다.
+ */
+function accessorRows(
+  accessors: PageAccessorList | undefined | null,
+  employees: EmployeeSummary[] | null,
+  showsAll: boolean,
+): PageAccessor[] | null {
+  if (!accessors) return null;
+  if (!showsAll || employees === null) return accessors.content;
+
+  const granted = new Set(accessors.content.map((accessor) => accessor.userId));
+
+  const rest: PageAccessor[] = employees
+    .filter((employee) => !granted.has(employee.userId))
+    .map((employee) => ({
+      userId: employee.userId,
+      name: employee.name,
+      departmentPath: employee.departmentPath,
+      jobPositionName: employee.jobPositionName,
+      role: employee.role,
+      permission: 'NONE',
+      source: 'NONE',
+      revocable: false,
+    }));
+
+  return [...accessors.content, ...rest];
 }

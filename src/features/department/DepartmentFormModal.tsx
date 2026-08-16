@@ -153,13 +153,7 @@ export default function DepartmentFormModal({
               >
                 {nameError}
               </p>
-            ) : (
-              <p className="mt-1 text-caption break-keep text-text-secondary">
-                {isEditing
-                  ? '이름을 바꿔도 소속 사원 배정은 그대로 유지됩니다.'
-                  : '같은 상위 부서 안에서는 같은 이름을 쓸 수 없습니다. (최상위 부서끼리는 전체 기준)'}
-              </p>
-            )}
+            ) : null}
           </div>
         </div>
 

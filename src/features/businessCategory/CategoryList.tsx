@@ -93,8 +93,7 @@ export default function CategoryList() {
         <div className="min-w-0">
           <h2 className="text-heading-m font-bold">사업 카테고리</h2>
           <p className="mt-1.5 text-label break-keep text-text-secondary">
-            프로젝트에 지정할 사업 분류를 관리합니다. 프로젝트 화면에서는 추가할
-            수 없습니다.
+            프로젝트에 지정할 사업 분류를 관리합니다.
           </p>
         </div>
         <AddButton onClick={() => formModal.open('create')} />
@@ -232,8 +231,8 @@ export default function CategoryList() {
             </p>
             <p className="text-label break-keep text-text-secondary">
               {search
-                ? '다른 이름이나 업무코드로 검색해보세요'
-                : '카테고리를 추가하면 프로젝트 생성 시 선택할 수 있어요'}
+                ? '다른 이름이나 업무코드로 검색해 주세요'
+                : '카테고리를 추가하면 프로젝트 생성 시 선택할 수 있습니다'}
             </p>
             {!search && (
               <AddButton subtle onClick={() => formModal.open('create')} />

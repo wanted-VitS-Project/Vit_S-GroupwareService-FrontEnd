@@ -1,11 +1,7 @@
 import DataTable, {
   type DataTableSkeletonColumn,
 } from '@/components/DataTable';
-import {
-  Skeleton,
-  SkeletonFilterBar,
-  SkeletonPageHeader,
-} from '@/components/Skeleton';
+import { Skeleton, SkeletonFilterBar } from '@/components/Skeleton';
 
 /**
  * 목록 로딩 껍데기 — **`Suspense` 폴백 전용**이다.
@@ -37,14 +33,24 @@ const COLUMNS: DataTableSkeletonColumn[] = [
     align: 'right',
     skeletonWidth: 'w-16',
   },
-  { key: 'announcedAt', header: '공고일', width: '10%', skeletonWidth: 'w-20' },
+  {
+    key: 'announcedAt',
+    header: '공고일',
+    width: '10%',
+    skeletonWidth: 'w-20',
+  },
   {
     key: 'bidDeadlineAt',
     header: '투찰 마감',
     width: '18%',
     skeletonWidth: 'w-24',
   },
-  { key: 'noticeStatus', header: '상태', width: '10%', skeletonWidth: 'w-12' },
+  {
+    key: 'noticeStatus',
+    header: '상태',
+    width: '10%',
+    skeletonWidth: 'w-12',
+  },
 ];
 
 /** 표만 그리는 껍데기. 머리글 · 필터 바가 이미 있는 자리에서 쓴다 */
@@ -82,10 +88,17 @@ export function NoticeTableSkeleton({ rows = 10 }: { rows?: number }) {
 export function NoticeListSkeleton({ rows = 10 }: { rows?: number }) {
   return (
     <>
-      <SkeletonPageHeader
-        titleClassName="h-[26px] w-32"
-        descriptionClassName="h-[18px] w-52"
-      />
+      {/*
+        제목 · 설명은 **회색 막대가 아니라 진짜 글자**다. 화면마다 정해진 문구라
+        기다릴 이유가 없고, 막대로 흉내 내면 실제 글자로 바뀌는 순간 한 번 깜빡인다.
+        ⚠️ `NoticeList` 의 머리글과 **같은 마크업**이어야 한다 — 다르면 높이가 튄다.
+      */}
+      <div className="mb-6">
+        <h2 className="text-heading-m font-bold">공고 조회</h2>
+        <p className="mt-1.5 text-caption break-keep text-text-secondary">
+          수집된 입찰 공고를 확인합니다.
+        </p>
+      </div>
 
       <SkeletonFilterBar
         widths={['w-36', 'w-4', 'w-36', 'w-28', 'w-20', 'w-56']}

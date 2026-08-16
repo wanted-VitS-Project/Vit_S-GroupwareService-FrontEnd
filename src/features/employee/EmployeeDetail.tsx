@@ -283,25 +283,6 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
           </FieldList>
         </Card>
 
-        <Card title="소속 그룹">
-          {employee.groups.length === 0 ? (
-            <p className="text-label text-text-secondary">
-              소속된 그룹이 없습니다.
-            </p>
-          ) : (
-            <ul className="flex flex-wrap gap-1.5">
-              {employee.groups.map((group) => (
-                <li
-                  key={group.groupId}
-                  className="rounded-pill border border-border-default bg-bg-surface px-2.5 py-1 text-detail text-text-primary"
-                >
-                  {group.name}
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-
         <section className="rounded-base border border-border-danger/20 bg-bg-card p-5">
           <h3 className="text-label font-semibold text-text-danger">
             퇴사 처리

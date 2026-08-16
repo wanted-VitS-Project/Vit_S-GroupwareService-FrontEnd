@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 
 import Modal from '@/components/Modal';
-import { notifyBlockChanged } from '@/features/block/events';
 import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
+import { notifyBlockChanged } from '@/features/block/events';
 import { messageOf } from '@/lib/api';
 import { formatDate, formatDateTime } from '@/lib/format';
 
@@ -192,7 +192,7 @@ function CandidateList({
       <p className="py-12 text-center text-caption break-keep text-text-secondary">
         연결할 만한 정산 블록이 없습니다.
         <br />
-        정산 블록이 먼저 작성돼 있어야 연결할 수 있어요.
+        정산 블록이 먼저 작성돼 있어야 연결할 수 있습니다.
       </p>
     );
   }

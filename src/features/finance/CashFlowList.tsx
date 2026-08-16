@@ -701,20 +701,23 @@ function CashFlowFilterBar({
         onChange={(value) => onApply({ source: value })}
       />
 
-      {/* 옵션이 오기 전에는 고를 게 없다 — 빈 셀렉트를 띄우지 않는다 */}
-      {projects.length > 0 && (
-        <SelectFilter
-          label="프로젝트"
-          value={searchParams.get('projectId') ?? ''}
-          options={projects.map((project) => ({
-            value: String(project.projectId),
-            label: project.projectName,
-          }))}
-          placeholder="프로젝트 전체"
-          width="w-44"
-          onChange={(value) => onApply({ projectId: value })}
-        />
-      )}
+      {/**
+       * ⚠️ **옵션이 온 뒤에 그리지 않는다.** 예전에는 목록이 도착해야 이 칸이 생겨서,
+       *    필터 바가 한 번 늘어나며 옆 칸들이 밀렸다(깜빡임). 자리를 처음부터 두고
+       *    고를 것이 없는 동안만 잠근다.
+       */}
+      <SelectFilter
+        label="프로젝트"
+        value={searchParams.get('projectId') ?? ''}
+        options={projects.map((project) => ({
+          value: String(project.projectId),
+          label: project.projectName,
+        }))}
+        placeholder="프로젝트 전체"
+        width="w-44"
+        disabled={projects.length === 0}
+        onChange={(value) => onApply({ projectId: value })}
+      />
 
       {/* 토글은 값이 하나뿐이라 켜면 `true`, 끄면 파라미터 자체를 뺀다 */}
       <button
@@ -727,7 +730,7 @@ function CashFlowFilterBar({
             : 'border-border-default text-text-secondary hover:bg-bg-hover'
         }`}
       >
-        미연결만
+        미연결
       </button>
 
       <div className="relative w-56 shrink-0">
@@ -761,6 +764,7 @@ function SelectFilter({
   options,
   placeholder,
   width = 'w-32',
+  disabled = false,
   onChange,
 }: {
   label: string;
@@ -768,6 +772,8 @@ function SelectFilter({
   options: { value: string; label: string }[];
   placeholder: string;
   width?: string;
+  /** 고를 것이 아직 없을 때 — 자리는 두고 잠근다 */
+  disabled?: boolean;
   onChange: (value: string | undefined) => void;
 }) {
   return (
@@ -775,8 +781,9 @@ function SelectFilter({
       <span className="sr-only">{label}</span>
       <select
         value={value}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.value || undefined)}
-        className={`h-9 ${width} cursor-pointer rounded-lg border border-border-default px-2 text-caption text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary`}
+        className={`h-9 ${width} rounded-lg border border-border-default px-2 text-caption text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary disabled:opacity-60`}
       >
         <option value="">{placeholder}</option>
         {options.map((option) => (

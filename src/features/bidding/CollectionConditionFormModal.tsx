@@ -306,7 +306,6 @@ export default function CollectionConditionFormModal({
             </div>
           </div>
 
-
           <div>
             <p className="pb-1.5 text-detail font-semibold text-text-primary">
               검색 키워드
@@ -325,10 +324,14 @@ export default function CollectionConditionFormModal({
                 }}
                 className="input flex-1"
               />
+              {/*
+                입력칸과 **같은 높이**여야 한다 — `btn-sm`(28px)은 입력칸(38px)보다 낮아
+                버튼만 떠 보였다. 글자도 잘리지 않게 최소 폭을 준다.
+              */}
               <button
                 type="button"
                 onClick={addKeyword}
-                className="btn btn-sm btn-gray"
+                className="btn btn-md btn-gray min-w-16 shrink-0"
               >
                 추가
               </button>
@@ -359,7 +362,7 @@ export default function CollectionConditionFormModal({
 
           <CheckGroup
             label="지역"
-            hint="선택하지 않으면 전국을 가져옵니다."
+            hint="선택하지 않으면 전국"
             options={REGION_OPTIONS.map((option) => ({
               value: option.code,
               label: option.name,
@@ -372,14 +375,15 @@ export default function CollectionConditionFormModal({
             <AmountField
               id="minimumEstimatedPrice"
               label="추정가격 최소"
-              placeholder="0"
+              // `0` 을 두면 **0원으로 지정한 것**처럼 읽힌다 — 제한 없음을 그대로 적는다
+              placeholder="제한 없음"
               value={form.minimumEstimatedPrice}
               onChange={(value) => patch({ minimumEstimatedPrice: value })}
             />
             <AmountField
               id="maximumEstimatedPrice"
               label="추정가격 최대"
-              placeholder="0"
+              placeholder="제한 없음"
               value={form.maximumEstimatedPrice}
               onChange={(value) => patch({ maximumEstimatedPrice: value })}
             />
@@ -395,7 +399,6 @@ export default function CollectionConditionFormModal({
             <CheckboxField
               id="isActive"
               label="조건 활성화"
-              hint="비활성 조건은 수동 수집도 할 수 없습니다."
               checked={form.isActive}
               onChange={(checked) => patch({ isActive: checked })}
             />
@@ -406,7 +409,7 @@ export default function CollectionConditionFormModal({
             <SelectField
               id="lookbackPeriod"
               label="조회 기간"
-              hint="실행할 때마다 이 기간만큼 거슬러 올라가 검색합니다. 매일 수집하면 1주, 가끔 확인하면 1개월을 권장합니다."
+              hint="실행할 때마다 이 기간만큼 거슬러 올라가 검색합니다."
               options={LOOKBACK_OPTIONS}
               value={form.lookbackPeriod}
               onChange={(value) => patch({ lookbackPeriod: value })}
@@ -415,7 +418,6 @@ export default function CollectionConditionFormModal({
             <CheckboxField
               id="autoCollectionEnabled"
               label="자동 수집"
-              hint="정해진 시각에 서버가 알아서 가져옵니다."
               checked={form.autoCollectionEnabled}
               onChange={(checked) => patch({ autoCollectionEnabled: checked })}
             />

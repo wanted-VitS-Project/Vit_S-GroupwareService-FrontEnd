@@ -89,6 +89,13 @@ interface DataTableProps<T> {
   /** 주면 세로 스크롤 + **헤더 고정** (예: `'60vh'`) */
   maxHeight?: string;
   skeletonRows?: number;
+  /**
+   * 불러오는 동안 **회색 막대를 그리지 않는다.**
+   *
+   * 몇 줄이 올지 모르는 표에서는 막대가 실제 결과와 어긋나, 응답이 오는 순간 표가
+   * 늘었다 줄며 화면이 튄다. 자리(높이)만 잡고 비워 두는 편이 조용하다.
+   */
+  showSkeleton?: boolean;
   /** 조회는 됐지만 결과가 없을 때 */
   emptyMessage?: string;
   /** 빈 상태 아래에 놓을 버튼 (필터 초기화 등) */
@@ -147,6 +154,7 @@ export default function DataTable<T>({
   minWidth,
   maxHeight,
   skeletonRows = 8,
+  showSkeleton = true,
   dense = false,
   emptyMessage = '표시할 내용이 없습니다.',
   emptyAction,
@@ -198,7 +206,7 @@ export default function DataTable<T>({
     );
   }
 
-  const body = (
+  const table = (
     <div
       /**
        * `maxHeight` 는 인라인으로 준다 — Tailwind 임의값(`max-h-[60vh]`)을 쓰면
@@ -255,15 +263,29 @@ export default function DataTable<T>({
                   className="border-b border-border-default text-label"
                 >
                   {columns.map((column) => (
-                    <td key={column.key} className={`${padX} py-3.5`}>
+                    <td
+                      key={column.key}
+                      className={`${padX} py-3.5 ${ALIGN_CLASS[column.align ?? 'left']}`}
+                    >
                       {/**
                        * 막대를 **글자 한 줄과 같은 높이의 상자**에 담는다.
                        *
                        * 그냥 두면 12px 막대가 21px 글자보다 낮아 로딩 행이 데이터 행보다
                        * 짧고, 응답이 오는 순간 표 전체가 아래로 늘어나 화면이 튄다.
                        * 틀을 먼저 고정하고 안의 내용만 바뀌게 한다.
+                       *
+                       * ⚠️ 막대도 **칸의 정렬을 따른다.** 오른쪽 · 가운데 정렬 열인데 막대만
+                       *    왼쪽에 붙어 있으면, 값이 도착하는 순간 글자가 반대쪽으로 건너뛴다.
                        */}
-                      <span className="flex h-[1.5em] items-center">
+                      <span
+                        className={`flex h-[1.5em] items-center ${
+                          column.align === 'right'
+                            ? 'justify-end'
+                            : column.align === 'center'
+                              ? 'justify-center'
+                              : ''
+                        }`}
+                      >
                         <Skeleton
                           className={`h-3 ${column.skeletonWidth ?? 'w-24'}`}
                         />
@@ -304,6 +326,87 @@ export default function DataTable<T>({
       </table>
     </div>
   );
+
+  /**
+   * ⭐ **좁은 화면에서는 표를 카드로 바꾼다.**
+   *
+   * 열이 6~8개인 표를 폰 폭에 밀어 넣으면 글자가 한 자씩 끊기거나 가로로 흘러 읽을 수 없다.
+   * 열 정의(`header` + `cell`)를 그대로 재사용해 **`이름: 값`** 으로 세로로 쌓으면
+   * 화면마다 따로 만들지 않아도 목록 전부가 함께 좁은 화면을 지원한다.
+   *
+   * ℹ️ 첫 열은 제목처럼 크게 놓는다 — 어느 줄인지 먼저 알아야 나머지 값이 의미를 갖는다.
+   * ℹ️ 이름이 없는 열(동작 버튼 · 체크박스)은 이름 없이 값만 놓는다.
+   */
+  const cards = (
+    <ul className="flex flex-col gap-2 p-3">
+      {rows === null
+        ? Array.from({ length: Math.min(skeletonRows, 4) }, (_, index) => (
+            <li
+              key={index}
+              className="rounded-lg border border-border-default p-4"
+            >
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="mt-3 h-3 w-full" />
+              <Skeleton className="mt-2 h-3 w-2/3" />
+            </li>
+          ))
+        : rows.map((row, index) => {
+            const [first, ...rest] = columns;
+
+            return (
+              <li key={rowKey?.(row) ?? index}>
+                <div
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  className={`rounded-lg border border-border-default p-4 ${
+                    onRowClick ? 'cursor-pointer' : ''
+                  } ${rowClassName?.(row) ?? ''}`}
+                >
+                  <div className="text-label font-semibold text-text-primary">
+                    {first.cell?.(row, index)}
+                  </div>
+
+                  <dl className="mt-2 flex flex-col gap-1.5">
+                    {rest.map((column) => (
+                      <div
+                        key={column.key}
+                        onClick={
+                          column.stopRowClick
+                            ? (event) => event.stopPropagation()
+                            : undefined
+                        }
+                        className="flex items-start justify-between gap-3 text-caption"
+                      >
+                        {column.header ? (
+                          <dt className="shrink-0 text-text-secondary">
+                            {column.header}
+                          </dt>
+                        ) : (
+                          <dt className="sr-only">동작</dt>
+                        )}
+                        <dd className="min-w-0 text-right text-text-primary">
+                          {column.cell?.(row, index)}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              </li>
+            );
+          })}
+    </ul>
+  );
+
+  const body =
+    rows === null && !showSkeleton ? (
+      // 자리만 남긴다 — 무엇이 몇 줄 올지 모르는 표에서는 막대가 오히려 화면을 흔든다
+      <div className="min-h-40" />
+    ) : (
+      <>
+        {/* 768px 미만은 카드, 이상은 표 — 한쪽만 그린다 */}
+        <div className="hidden md:block">{table}</div>
+        <div className="md:hidden">{cards}</div>
+      </>
+    );
 
   // 로딩 중에는 스크린리더가 "불러오는 중" 을 읽도록 묶어 준다
   return (

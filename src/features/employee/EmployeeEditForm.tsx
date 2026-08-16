@@ -12,6 +12,8 @@ import {
   toDepartmentOptions,
 } from '@/features/department/options';
 import { getJobPositions } from '@/features/jobPosition/api';
+
+import { writeCachedDepartments, writeCachedJobPositions } from './optionCache';
 import type { JobPosition } from '@/features/jobPosition/types';
 import { ApiError, messageOf } from '@/lib/api';
 import { formatPhone } from '@/lib/format';
@@ -134,6 +136,8 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
       .then(([departments, positions]) => {
         setDepartmentOptions(toDepartmentOptions(departments));
         setJobPositions(positions);
+        writeCachedDepartments(departments);
+        writeCachedJobPositions(positions);
         setHasOptionsFailed(false);
       })
       .catch(() => {
@@ -329,7 +333,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
                   hint={
                     employee.emailRegistered && values.email.trim() === ''
                       ? '⚠ 이메일을 지우면 이 사원은 로그인 · 비밀번호 재설정을 할 수 없습니다.'
-                      : '초기 비밀번호 · 재설정 메일이 이 주소로 갑니다.'
+                      : '비밀번호 재설정 메일 주소'
                   }
                   onChange={(value) => change('email', value)}
                 />

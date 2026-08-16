@@ -7,10 +7,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 import DataTable from '@/components/DataTable';
-import Pagination from '@/components/Pagination';
+import Pagination, { PaginationPlaceholder } from '@/components/Pagination';
 import RowMenu from '@/components/RowMenu';
 import { EMPLOYEE_STATUS_LABELS, ROLE_LABELS } from '@/constants/status';
 import { getDepartments } from '@/features/department/api';
+
+import { readCachedDepartments, writeCachedDepartments } from './optionCache';
 import { toDepartmentOptions } from '@/features/department/options';
 import type { Department } from '@/features/department/types';
 import { useModal, useModalTarget } from '@/lib/useModal';
@@ -84,7 +86,10 @@ export default function EmployeeList() {
     setSyncedKeyword(query.keyword ?? '');
     setKeywordInput(query.keyword ?? '');
   }
-  const [departments, setDepartments] = useState<Department[]>([]);
+  // 직전 값을 먼저 깔아 셀렉트가 빈 채로 떴다 채워지지 않게 한다
+  const [departments, setDepartments] = useState<Department[]>(
+    () => readCachedDepartments() ?? [],
+  );
   const [hasDepartmentFailed, setHasDepartmentFailed] = useState(false);
   const [reloadCount, setReloadCount] = useState(0);
   const [departmentReloadCount, setDepartmentReloadCount] = useState(0);
@@ -128,6 +133,7 @@ export default function EmployeeList() {
     getDepartments(signal)
       .then((list) => {
         setDepartments(list);
+        writeCachedDepartments(list);
         setHasDepartmentFailed(false);
       })
       .catch(() => {
@@ -290,7 +296,11 @@ export default function EmployeeList() {
             }
             className="size-3.5 cursor-pointer accent-btn-primary"
           />
-          퇴사자 포함
+          {/*
+            `퇴사자 포함` 은 재직자까지 함께 나오는 것처럼 읽혔다 —
+            실제 동작(퇴사자만 조회)을 그대로 적는다.
+          */}
+          퇴사자만 조회
         </label>
 
         {hasDepartmentFailed && (
@@ -476,11 +486,18 @@ export default function EmployeeList() {
               조건에 맞는 사원이 없습니다
             </p>
             <p className="text-label break-keep text-text-secondary">
-              검색어나 필터를 바꿔보세요
+              검색어나 필터를 바꿔 주세요
             </p>
           </>
         }
       />
+
+      {/* 받아오는 동안에도 같은 높이를 잡아 둔다 — 결과가 올 때 아래가 밀리지 않게 */}
+      {!hasFailed && !page && (
+        <div className="mt-3 overflow-hidden rounded-base border border-border-default bg-bg-card">
+          <PaginationPlaceholder />
+        </div>
+      )}
 
       {/* 표 바깥에 둔다 — 실패 · 빈 상태에서는 넘길 페이지가 없다 */}
       {!hasFailed && page && page.totalElements > 0 && (

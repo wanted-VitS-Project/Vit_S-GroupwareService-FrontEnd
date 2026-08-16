@@ -4,7 +4,7 @@ import { useEffect, useId, useState } from 'react';
 
 import { isAbortError, messageOf } from '@/lib/api';
 
-import { searchEmployees } from './api';
+import { getEmployees, searchEmployees } from './api';
 import type { EmployeeSearchResult } from './types';
 
 /** 타이핑마다 부르지 않기 위한 대기 시간 */
@@ -42,8 +42,36 @@ export default function EmployeeSearchInput({
   const [error, setError] = useState('');
   /** 키보드로 짚고 있는 후보. -1 이면 아무것도 안 짚은 상태 */
   const [activeIndex, setActiveIndex] = useState(-1);
+  /**
+   * 아무것도 치지 않았을 때 보여줄 **전 사원 목록**.
+   *
+   * ⭐ 검색어를 넣어야만 후보가 나오면, 이름을 모르는 사람은 사원 관리 화면을 다녀와야 한다.
+   *    칸을 누르면 바로 목록이 펴지고 훑어 고를 수 있어야 한다.
+   * ⚠️ 검색 API 는 이름이 비면 400 이라 **목록 API** 를 따로 쓴다.
+   */
+  const [allEmployees, setAllEmployees] = useState<EmployeeSearchResult[]>([]);
 
   const name = keyword.trim();
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    // 재직자만 · 한 번만 받는다. 실패해도 검색은 그대로 쓸 수 있다
+    getEmployees({ page: 0, size: 200 }, controller.signal)
+      .then((data) =>
+        setAllEmployees(
+          data.content.map((employee) => ({
+            userId: employee.userId,
+            name: employee.name,
+            department: employee.departmentName,
+            position: employee.jobPositionName,
+          })),
+        ),
+      )
+      .catch(() => {});
+
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     // 빈 입력은 400 이 확정이라 요청 자체를 만들지 않는다
@@ -78,15 +106,13 @@ export default function EmployeeSearchInput({
    * 이미 결재선에 있는 사람은 **숨기지 않고 `이미 추가됨` 으로 보여준다** —
    * 목록에서 사라지면 "검색이 안 되는 것" 처럼 보인다.
    */
-  const options =
-    name === ''
-      ? []
-      : results.map((employee) => ({
-          ...employee,
-          isAdded: excludedIds.includes(employee.userId),
-        }));
+  const options = (name === '' ? allEmployees : results).map((employee) => ({
+    ...employee,
+    isAdded: excludedIds.includes(employee.userId),
+  }));
   const selectableCount = options.filter((option) => !option.isAdded).length;
-  const isListVisible = isOpen && name !== '';
+  /** 칸을 누르면(`isOpen`) 아무것도 치지 않아도 목록이 펴진다 */
+  const isListVisible = isOpen && options.length > 0;
 
   function choose(employee: EmployeeSearchResult) {
     onSelect(employee);
@@ -179,7 +205,7 @@ export default function EmployeeSearchInput({
 
           {!isLoading && error === '' && options.length === 0 && (
             <li className="px-2.5 py-1.5 text-caption break-keep text-text-secondary">
-              검색 결과가 없습니다. 성만 입력해도 돼요 (예: 김)
+              검색 결과가 없습니다
             </li>
           )}
 

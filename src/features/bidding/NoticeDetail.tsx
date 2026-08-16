@@ -241,31 +241,38 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
         </div>
 
         <div className="flex w-full shrink-0 flex-col gap-4 lg:w-80">
-          <Card title="원문 · 첨부">
-            {notice.sourceUrl ? (
-              <a
-                href={notice.sourceUrl}
-                target="_blank"
-                rel="noreferrer noopener"
-                // 새 탭으로 열리는 것을 스크린리더에도 알린다 (↗ 는 눈으로만 보인다)
-                aria-label="원문 공고 보기 (새 창)"
-                className="btn btn-sm btn-primary-outlined w-full"
-              >
-                원문 공고 보기 <span aria-hidden>↗</span>
-              </a>
-            ) : (
-              <p className="text-caption text-text-secondary">
-                원문 링크가 없습니다.
-              </p>
-            )}
+          {/**
+           * ⚠️ **직접 등록한 공고에는 이 카드를 두지 않는다.**
+           *
+           * 원문 링크 · 첨부는 수집한 공고에만 딸려 온다. 직접 등록 건에서는 늘 비어 있어
+           * `원문 링크가 없습니다` · `첨부가 없어요` 두 줄만 남는데, 없는 것을 매번 알리면
+           * 화면이 무엇을 못 했다는 말로 채워진다. 링크도 첨부도 없으면 카드째 뺀다.
+           */}
+          {(notice.sourceUrl || notice.attachments.length > 0) && (
+            <Card title="원문 · 첨부">
+              {notice.sourceUrl && (
+                <a
+                  href={notice.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  // 새 탭으로 열리는 것을 스크린리더에도 알린다 (↗ 는 눈으로만 보인다)
+                  aria-label="원문 공고 보기 (새 창)"
+                  className="btn btn-sm btn-primary-outlined w-full"
+                >
+                  원문 공고 보기 <span aria-hidden>↗</span>
+                </a>
+              )}
 
-            <div className="mt-4">
-              <p className="text-detail font-semibold text-text-secondary">
-                첨부파일
-              </p>
-              <AttachmentList attachments={notice.attachments} />
-            </div>
-          </Card>
+              {notice.attachments.length > 0 && (
+                <div className={notice.sourceUrl ? 'mt-4' : ''}>
+                  <p className="text-detail font-semibold text-text-secondary">
+                    첨부파일
+                  </p>
+                  <AttachmentList attachments={notice.attachments} />
+                </div>
+              )}
+            </Card>
+          )}
 
           {/* 이 공고로 무엇을 할지 — AI 요약 · 프로젝트 전환을 한 카드에 모은다 */}
           <Card title="분석 · 전환">
@@ -396,7 +403,9 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
 function AttachmentList({ attachments }: { attachments: NoticeAttachment[] }) {
   if (attachments.length === 0) {
     return (
-      <p className="mt-1.5 text-caption text-text-secondary">첨부가 없습니다.</p>
+      <p className="mt-1.5 text-caption text-text-secondary">
+        첨부가 없습니다.
+      </p>
     );
   }
 

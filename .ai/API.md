@@ -4038,11 +4038,12 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | 필드                                            | 설명                                    |
 | ----------------------------------------------- | --------------------------------------- |
 | `projectId` / `projectName`                     | 속한 프로젝트 (그룹핑 기준)             |
-| `stepName` / `blockTitle`                       | 위치 — **이름만** 온다 (id 가 없다)     |
+| `stepId` / `stepName` / `blockId` / `blockTitle` | 위치 — **id 도 함께 온다** (2026-08-16 스웨거 실측. 예전 표에 이름만 적혀 있었다) |
 | `fileId` / `name` / `versionCount`              | 문서 정보                               |
 | `latestVersionId` / `latestVersionNo`           | 최신 완료 버전 — 다운로드 · 미리보기 대상 |
 | `originalFileName` / `extension` / `sizeBytes`  | 원본 정보                               |
-| `previewable` / `uploaderName?` / `updatedAt`   | 업로더는 시스템 계정이면 오지 않는다    |
+| `previewable` / `updatedAt`                     | —                                        |
+| `uploaderName?` / `uploaderDepartment?` / `uploaderPosition?` | 시스템 계정이면 오지 않는다 |
 
 | status | code                   | 화면 처리        |
 | ------ | ---------------------- | ---------------- |
@@ -4051,6 +4052,8 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 > ℹ️ 다운로드 · 미리보기는 행에서 **공용 파일 버전 API**(42번 `download` · `preview`)를 그대로 부른다.
 > ⚠️ **정렬 파라미터가 없다** — 목업의 `최근 수정순` 드롭다운은 화면에서 뺐다.
+> ⚠️ **스텝 단위 필터가 없다** — 탐색기(`AdminFileExplorer`)는 `projectId` 로 받아 화면에서 `stepId` 로 나눈다.
+>    한 프로젝트가 500건(100×5페이지)을 넘으면 뒤가 보이지 않는다 — 넘어가면 `?stepId=` 를 요청한다.
 > ⚠️ **집계가 없다** — 총 용량 · 기간별 업로드 수는 응답으로 알 수 없어 요약 카드에 넣지 않았다.
 
 ---

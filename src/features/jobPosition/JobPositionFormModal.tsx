@@ -128,13 +128,7 @@ export default function JobPositionFormModal({
               >
                 {nameError}
               </p>
-            ) : (
-              <p className="mt-1 text-caption break-keep text-text-secondary">
-                {isEditing
-                  ? '이름을 바꿔도 이 직급이 지정된 사원은 그대로 유지됩니다.'
-                  : '노출 순서는 추가 후 목록에서 바꿀 수 있습니다.'}
-              </p>
-            )}
+            ) : null}
           </div>
         </div>
 

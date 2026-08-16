@@ -1,3 +1,4 @@
+import Breadcrumb from '@/components/Breadcrumb';
 import DataTable, {
   type DataTableSkeletonColumn,
 } from '@/components/DataTable';
@@ -6,7 +7,6 @@ import {
   SkeletonField,
   SkeletonFilterBar,
   SkeletonGroup,
-  SkeletonPageHeader,
 } from '@/components/Skeleton';
 
 /**
@@ -31,9 +31,19 @@ const EMPLOYEE_COLUMNS: DataTableSkeletonColumn[] = [
     width: '20%',
     skeletonWidth: 'w-40',
   },
-  { key: 'role', header: '권한', width: '11%', skeletonWidth: 'w-14' },
+  {
+    key: 'role',
+    header: '권한',
+    width: '11%',
+    skeletonWidth: 'w-14',
+  },
   { key: 'email', header: '이메일', width: '25%', skeletonWidth: 'w-40' },
-  { key: 'status', header: '상태', width: '11%', skeletonWidth: 'w-12' },
+  {
+    key: 'status',
+    header: '상태',
+    width: '11%',
+    skeletonWidth: 'w-12',
+  },
   {
     key: 'menu',
     header: '',
@@ -78,21 +88,33 @@ export function EmployeeTableSkeleton({ rows = 20 }: { rows?: number }) {
 export function EmployeeListSkeleton({ rows = 20 }: { rows?: number }) {
   return (
     <>
-      {/* `Breadcrumb` 자리 — 빼면 아래 전부가 18px 씩 위로 붙는다 */}
-      <Skeleton className="h-[18px] w-40" />
-
-      <SkeletonPageHeader
-        className="mt-2 mb-6"
-        titleClassName="h-[26px] w-28"
-        // 설명이 두 줄로 흐르는 화면이라 자리도 두 줄로 잡는다
-        descriptionClassName="h-[42px] w-full max-w-lg"
-        action={
-          <>
-            <Skeleton className="h-[34px] w-24 rounded-button-md" />
-            <Skeleton className="h-[34px] w-28 rounded-button-md" />
-          </>
-        }
+      {/*
+        이동 경로 · 제목 · 설명은 **회색 막대가 아니라 진짜 글자**다. 화면마다 정해진
+        문구라 기다릴 이유가 없고, 막대로 흉내 내면 실제 글자로 바뀔 때 한 번 깜빡인다.
+        ⚠️ `EmployeeList` 의 머리글과 **같은 마크업**이어야 한다 — 다르면 높이가 튄다.
+        ℹ️ 오른쪽 버튼만 막대로 남긴다 — 눌러도 동작하지 않는 버튼을 그려 두면
+           기다리는 동안 눌러 보고 고장으로 읽는다.
+      */}
+      <Breadcrumb
+        items={[
+          { label: '전사 관리', href: '/settings' },
+          { label: '사원 관리' },
+        ]}
       />
+
+      <div className="mt-2 mb-6 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="text-heading-m font-bold">사원 관리</h2>
+          <p className="mt-1.5 text-label break-keep text-text-secondary">
+            사원 정보와 계정 상태를 관리합니다. 등록하면 로그인 계정이 함께
+            발급됩니다.
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Skeleton className="h-[34px] w-24 rounded-button-md" />
+          <Skeleton className="h-[34px] w-28 rounded-button-md" />
+        </div>
+      </div>
 
       <SkeletonFilterBar
         controlClassName="h-[39px]"

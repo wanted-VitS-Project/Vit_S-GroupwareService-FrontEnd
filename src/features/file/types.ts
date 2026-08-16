@@ -213,8 +213,13 @@ export interface MyFileQuery {
 export interface AdminFile {
   projectId: number;
   projectName: string;
+  /** ⚠️ 스웨거 실측(2026-08-16) — `.ai/API.md` 에는 이름만 적혀 있었으나 **id 도 온다** */
+  stepId: number;
   stepName: string;
+  blockId: number | null;
   blockTitle: string | null;
+  /** 블록이 지워진 고아 파일 */
+  blockDeleted?: boolean;
   fileId: number;
   name: string;
   latestVersionId: number;
@@ -225,6 +230,8 @@ export interface AdminFile {
   sizeBytes: number;
   previewable: boolean;
   uploaderName?: string | null;
+  uploaderDepartment?: string | null;
+  uploaderPosition?: string | null;
   updatedAt: string;
 }
 

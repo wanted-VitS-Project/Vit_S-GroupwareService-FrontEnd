@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ApprovalListSkeleton } from '@/components/approval/ApprovalSkeletons';
 import Pagination from '@/components/Pagination';
 import { APPROVAL_STATUS_LABELS } from '@/constants/status';
+import type { Role } from '@/features/auth/types';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 import { getApprovals } from './api';
@@ -55,18 +56,27 @@ function pickInt(value: string | null, min: number) {
   return Number.isInteger(parsed) && parsed >= min ? parsed : undefined;
 }
 
-/** 쓸 수 있는 탭. MASTER · ADMIN 이 아니면 `전체` 가 빠진다 */
-function scopesFor(canSeeAll: boolean) {
-  return canSeeAll
-    ? SCOPE_OPTIONS
-    : SCOPE_OPTIONS.filter((scope) => scope !== 'all');
+/**
+ * 쓸 수 있는 탭.
+ *
+ * ⭐ **시스템 관리자(`ADMIN`)는 `전체` 하나만 쓴다.** 관리자는 결재선에 들어가지 않아
+ *    `요청받음` · `내가 올린 결재` 가 **언제나 비어 있다** — 빈 탭 두 개를 먼저 보여주면
+ *    결재가 없는 것으로 읽혀 "관리자는 결재를 못 본다" 는 오해가 생긴다.
+ * ℹ️ `MASTER` 는 자기 결재도 있고 전사도 봐야 해서 셋을 다 쓴다.
+ * ℹ️ 나머지는 전사 조회가 403 이라 `전체` 를 감춘다.
+ */
+function scopesFor(role: Role) {
+  if (role === 'ADMIN') return SCOPE_OPTIONS.filter((scope) => scope === 'all');
+  if (role === 'MASTER') return SCOPE_OPTIONS;
+
+  return SCOPE_OPTIONS.filter((scope) => scope !== 'all');
 }
 
-/** 현재 탭. URL 값이 없거나 권한 밖이면 첫 탭(`pending`)으로 본다 */
-function readScope(searchParams: URLSearchParams, canSeeAll: boolean) {
-  return (
-    pickOption(searchParams.get('scope'), scopesFor(canSeeAll)) ?? 'pending'
-  );
+/** 현재 탭. URL 값이 없거나 권한 밖이면 **그 역할의 첫 탭**으로 본다 */
+function readScope(searchParams: URLSearchParams, role: Role) {
+  const scopes = scopesFor(role);
+
+  return pickOption(searchParams.get('scope'), scopes) ?? scopes[0];
 }
 
 /**
@@ -101,15 +111,13 @@ export default function ApprovalList() {
   const searchParams = useSearchParams();
   const user = useCurrentUser();
 
-  /** `전체` 탭은 MASTER · ADMIN 만 쓸 수 있다 — 나머지는 403 이라 탭 자체를 감춘다 */
-  const canSeeAll = user.role === 'MASTER' || user.role === 'ADMIN';
-  const scopes = scopesFor(canSeeAll);
-  const scope = readScope(searchParams, canSeeAll);
+  const scopes = scopesFor(user.role);
+  const scope = readScope(searchParams, user.role);
 
   /** URL 이 필터의 원본이다. 같은 쿼리면 같은 객체를 유지해 효과가 헛돌지 않게 한다 */
   const query = useMemo<ApprovalListQuery>(
     () => ({
-      scope: readScope(searchParams, canSeeAll),
+      scope: readScope(searchParams, user.role),
       status: pickOption(searchParams.get('status'), STATUS_OPTIONS),
       fromDate: toFromDate(searchParams.get('period')),
       keyword: searchParams.get('keyword') ?? undefined,
@@ -117,7 +125,7 @@ export default function ApprovalList() {
       page: pickInt(searchParams.get('page'), 0) ?? 0,
       size: PAGE_SIZE,
     }),
-    [searchParams, canSeeAll],
+    [searchParams, user.role],
   );
 
   /** 입력 중인 검색어 — 제출해야 URL 에 반영된다 */
@@ -144,6 +152,48 @@ export default function ApprovalList() {
   const page = current?.data ?? result?.data ?? null;
   const hasFailed = current?.hasFailed ?? false;
   const isLoading = current === null && !hasFailed;
+
+  /**
+   * 탭마다의 건수.
+   *
+   * ⭐ **누르지 않아도 보이게** 한다 — 어느 탭에 볼 것이 있는지 눌러 보고서야 아는 것은
+   *    탭을 하나씩 열어 보라는 말과 같다. 0 건도 숨기지 않는다. 비어 있다는 것도 정보다.
+   * ⚠️ 지금 필터(상태 · 기간 · 검색어)를 그대로 얹어 센다 — 탭 건수만 조건을 무시하면
+   *    `전체 (12)` 인데 목록은 2줄인 화면이 나온다.
+   * ℹ️ 건수 전용 API 가 없어 **가장 작은 페이지(1건)** 를 받아 `totalElements` 만 쓴다.
+   */
+  const [counts, setCounts] = useState<Partial<Record<ApprovalScope, number>>>(
+    {},
+  );
+  const countKey = `${reloadCount} ${searchParams.toString()}`;
+  const [countedKey, setCountedKey] = useState('');
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    Promise.all(
+      scopes.map((option) =>
+        getApprovals({ ...query, scope: option, page: 0, size: 1 }, signal)
+          .then((data) => [option, data.totalElements] as const)
+          // 한 탭을 못 받아도 나머지 숫자는 쓸 수 있다
+          .catch(() => [option, undefined] as const),
+      ),
+    ).then((pairs) => {
+      if (signal.aborted) return;
+
+      setCountedKey(countKey);
+      setCounts(
+        Object.fromEntries(
+          pairs.filter(([, count]) => count !== undefined),
+        ) as Partial<Record<ApprovalScope, number>>,
+      );
+    });
+
+    return () => controller.abort();
+    // `scopes` 는 역할에서 나오는 고정 값이라 의존성에 넣지 않는다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countKey]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -178,8 +228,11 @@ export default function ApprovalList() {
     <>
       <div className="mb-6">
         <h2 className="text-heading-m font-bold">결재 관리</h2>
+        {/* 관리자는 결재선에 들어가지 않아 `내가 올린 결재` 가 없다 — 설명도 그에 맞춘다 */}
         <p className="mt-1.5 text-label break-keep text-text-secondary">
-          내가 올린 결재와 처리할 결재를 한곳에서 확인합니다.
+          {user.role === 'ADMIN'
+            ? '전사에서 진행 중인 결재를 한곳에서 확인합니다.'
+            : '내가 올린 결재와 처리할 결재를 한곳에서 확인합니다.'}
         </p>
       </div>
 
@@ -200,13 +253,20 @@ export default function ApprovalList() {
               onClick={() => applyFilter({ scope: option })}
               className={`-mb-px cursor-pointer border-b-2 px-4 py-2 text-label ${
                 isActive
-                  ? 'border-[#4F39F6] font-semibold text-[#4F39F6]'
+                  ? 'border-btn-primary font-semibold text-text-primary-blue'
                   : 'border-transparent text-text-secondary hover:text-text-primary'
               }`}
             >
               {SCOPE_LABELS[option]}
-              {/* 지금 보고 있는 탭의 건수만 안다 — 다른 탭은 따로 조회해야 알 수 있다 */}
-              {isActive && page ? ` (${page.totalElements})` : ''}
+              {/**
+               * 건수 자리는 **비어 있어도 남겨 둔다.**
+               *
+               * 숫자가 나중에 붙으면서 글자가 늘면 탭 폭이 커지며 옆 탭이 밀린다.
+               * 자리를 미리 잡아 두면 숫자가 붙어도 아무것도 움직이지 않는다.
+               */}
+              <span className="ml-1 inline-block min-w-[3.5ch] text-left tabular-nums">
+                {countedKey === countKey ? `(${counts[option] ?? 0})` : ''}
+              </span>
             </button>
           );
         })}
@@ -276,8 +336,8 @@ export default function ApprovalList() {
         <Centered>
           <p className="text-label text-text-secondary">
             {scope === 'pending'
-              ? '처리할 결재가 없어요.'
-              : '조회된 결재가 없어요.'}
+              ? '처리할 결재가 없습니다.'
+              : '조회된 결재가 없습니다.'}
           </p>
         </Centered>
       ) : (

@@ -2,12 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import {
-  AlertDialogTwoButton,
-  DialogIcons,
-} from '@/components/AlertDialog';
+import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import DataTable from '@/components/DataTable';
-import Pagination from '@/components/Pagination';
+import Pagination, { PaginationPlaceholder } from '@/components/Pagination';
 import { notifyToast } from '@/components/Toast';
 import { messageOf } from '@/lib/api';
 import { formatDate } from '@/lib/format';
@@ -419,7 +416,6 @@ export default function CompanyDocumentList() {
           <DataTable
             caption="사내 문서 목록"
             dense
-            minWidth={880}
             rows={documents}
             rowKey={(item) => item.companyDocumentId}
             errorMessage={current?.errorMessage}
@@ -435,7 +431,7 @@ export default function CompanyDocumentList() {
                 </p>
                 <p className="text-label break-keep text-text-secondary">
                   {hasFilter
-                    ? '검색어나 분류를 바꿔보세요'
+                    ? '검색어나 분류를 바꿔 주세요'
                     : '위 새 문서 추가 버튼으로 파일을 올려 시작하세요'}
                 </p>
               </>
@@ -475,9 +471,8 @@ export default function CompanyDocumentList() {
                 key: 'size',
                 header: '크기',
                 width: '8%',
-                align: 'right',
                 cell: (item) => (
-                  <span className="whitespace-nowrap text-caption text-text-secondary">
+                  <span className="text-caption whitespace-nowrap text-text-secondary">
                     {formatFileSize(item.sizeBytes)}
                   </span>
                 ),
@@ -498,7 +493,7 @@ export default function CompanyDocumentList() {
                 header: '수정일',
                 width: '13%',
                 cell: (item) => (
-                  <span className="whitespace-nowrap text-caption text-text-secondary">
+                  <span className="text-caption whitespace-nowrap text-text-secondary">
                     {formatDate(item.updatedAt)}
                   </span>
                 ),
@@ -551,6 +546,13 @@ export default function CompanyDocumentList() {
               },
             ]}
           />
+
+          {/* 받아오는 동안에도 같은 높이를 잡아 둔다 — 결과가 올 때 아래가 밀리지 않게 */}
+          {!documentPage && (
+            <div className="mt-3 overflow-hidden rounded-base border border-border-default bg-bg-card">
+              <PaginationPlaceholder />
+            </div>
+          )}
 
           {/* 표 바깥에 둔다 — 실패 · 빈 상태에서는 넘길 페이지가 없다 */}
           {documentPage && documentPage.totalElements > 0 && (

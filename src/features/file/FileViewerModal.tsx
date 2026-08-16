@@ -178,7 +178,12 @@ export default function FileViewerModal({
     <Modal
       title={`${file.name} 문서 보기`}
       onClose={onClose}
-      className="flex h-[85vh] w-full max-w-[820px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
+      /**
+       * 창 크기 — **화면을 다 먹지 않는다.** 넓은 모니터에서 `85vh` · `860px` 로 두면
+       * 뒤 화면이 거의 가려져 창이 아니라 페이지처럼 보였다. 미리보기는 내용을 확인하는
+       * 자리이지 작업하는 자리가 아니라, 뒤가 비쳐 보이는 편이 낫다.
+       */
+      className="flex h-[min(72vh,680px)] w-full max-w-[720px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
       header={
         <div className="flex shrink-0 items-center gap-3 border-b border-border-default px-5 py-3">
           <span

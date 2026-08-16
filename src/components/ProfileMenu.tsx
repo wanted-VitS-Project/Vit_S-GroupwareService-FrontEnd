@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
 import { logout } from '@/features/auth/api';
+import { clearShellCookie, readShellCookie } from '@/features/auth/shellCache';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { ApiError } from '@/lib/api';
 
@@ -29,6 +30,8 @@ export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
 
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  /** 셸 자리표시가 쓰던 사진 사본 — 넘겨받지 않으면 교체 순간 사진이 한 번 비운다 */
+  const [thumbnail] = useState(() => readShellCookie()?.avatar ?? null);
   const [error, setError] = useState('');
 
   /**
@@ -80,6 +83,8 @@ export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
       }
     }
 
+    // 셸 캐시도 함께 비운다 — 다음 사람이 로그인할 때 내 이름 · 메뉴가 잠깐 비치면 안 된다
+    clearShellCookie();
     // refresh 로 라우터 캐시를 비워야 프록시가 쿠키를 다시 판단한다
     router.replace('/login');
     router.refresh();
@@ -110,6 +115,7 @@ export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
           withRing={false}
           decorative
           imageUrl={user.profileImageUrl}
+          thumbnail={thumbnail}
         />
 
         <span className="min-w-0 text-left">

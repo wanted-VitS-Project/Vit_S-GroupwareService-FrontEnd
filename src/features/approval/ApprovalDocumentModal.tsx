@@ -224,7 +224,7 @@ export default function ApprovalDocumentModal({
             </p>
             <p className="mt-1.5 text-label break-keep text-text-secondary">
               결재 문서는 원본 프로젝트의 스텝 열람 권한을 따릅니다. 해당
-              프로젝트 참여자로 초대되어야 볼 수 있어요.
+              프로젝트 참여자로 초대되어야 볼 수 있습니다.
             </p>
           </div>
         )}

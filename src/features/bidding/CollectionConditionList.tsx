@@ -578,7 +578,10 @@ function ConditionCard({
           value={filters.excludeClosed ? '제외' : '포함'}
         />
         {/* 실행할 때마다 얼마나 되돌아보는지 — 0건일 때 가장 먼저 확인하는 값이다 */}
-        <Row label="조회 기간" value={lookbackLabel(condition.lookbackPeriod)} />
+        <Row
+          label="조회 기간"
+          value={lookbackLabel(condition.lookbackPeriod)}
+        />
         <Row
           label="마지막 수집 성공"
           value={

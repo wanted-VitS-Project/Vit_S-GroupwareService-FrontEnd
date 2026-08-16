@@ -206,7 +206,7 @@ export default function CashFlowFormModal({
       <form onSubmit={submit} className="mt-6">
         {!isCreate && !isFullEdit && (
           <AlertBanner tone="warning" className="mb-4">
-            {lockReason(target)} <b>적요만 수정</b>할 수 있어요.
+            {lockReason(target)} <b>적요만 수정</b>할 수 있습니다.
           </AlertBanner>
         )}
 

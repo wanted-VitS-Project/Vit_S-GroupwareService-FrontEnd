@@ -402,7 +402,7 @@ function MemoCard({
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
         rows={3}
-        placeholder="확인해야 할 내용을 적어두세요"
+        placeholder="확인할 내용 입력"
         className="w-full resize-y rounded-lg border border-border-default bg-bg-surface px-3.5 py-2.5 text-caption leading-relaxed text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
       />
       <div className="mt-3 flex justify-end">
