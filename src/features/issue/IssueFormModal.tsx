@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import MemberAvatar from '@/components/MemberAvatar';
 import Modal from '@/components/Modal';
 import PersonNote from '@/components/PersonNote';
-import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
+import LoadingSpinner from '@/components/Spinner';
 import { notifyToast } from '@/components/Toast';
 import { getStepBlocks } from '@/features/block/api';
 import type { StepBlock } from '@/features/block/types';
@@ -549,14 +549,7 @@ export default function IssueFormModal({
             </div>
           </div>
         ) : values === null ? (
-          <SkeletonGroup
-            label="이슈를 불러오는 중"
-            className="flex flex-col gap-4 p-5"
-          >
-            <Skeleton className="h-[34px] w-full" />
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-[34px] w-1/2" />
-          </SkeletonGroup>
+          <LoadingSpinner label="이슈를 불러오는 중" className="py-16" />
         ) : (
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
             <label className="block">

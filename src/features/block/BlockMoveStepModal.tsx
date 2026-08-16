@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import PanelModal, { ModalFooter } from '@/components/PanelModal';
-import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
+import LoadingSpinner from '@/components/Spinner';
 import { getProjectSteps } from '@/features/project/api';
 import type { ProjectStep } from '@/features/project/types';
 import { ApiError, messageOf } from '@/lib/api';
@@ -145,13 +145,7 @@ export default function BlockMoveStepModal({
           </div>
 
           {isLoading ? (
-            <SkeletonGroup
-              label="스텝 목록 불러오는 중"
-              className="space-y-1.5"
-            >
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-9" />
-            </SkeletonGroup>
+            <LoadingSpinner label="스텝 목록 불러오는 중" className="py-8" />
           ) : haveStepsFailed ? (
             <p className="rounded-lg bg-red-bg-soft px-3 py-2.5 text-detail break-keep text-text-danger">
               스텝 목록을 불러오지 못했습니다. 닫고 다시 시도해주세요.

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import Modal from '@/components/Modal';
-import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
+import LoadingSpinner from '@/components/Spinner';
 import { notifyBlockChanged } from '@/features/block/events';
 import { messageOf } from '@/lib/api';
 import { formatDate } from '@/lib/format';
@@ -124,7 +124,15 @@ export default function TaxInvoiceMatchModal({
           {candidates === null && (
             <button
               type="button"
-              onClick={() => setRetryCount((count) => count + 1)}
+              /*
+                ⚠️ 오류를 **먼저 지운다** — 남겨 두면 `candidates === null && hasFailed`
+                   가 계속 참이라 다시 부르는 동안 목록 자리가 통째로 빈다.
+                   지워야 그 자리에 스피너가 선다.
+              */
+              onClick={() => {
+                setError('');
+                setRetryCount((count) => count + 1);
+              }}
               className="btn btn-sm btn-gray-outlined"
             >
               다시 시도
@@ -183,7 +191,7 @@ function CandidateList({
   onSelect,
 }: {
   candidates: MatchCandidate[] | null;
-  /** 조회가 실패했으면 스켈레톤을 계속 돌리지 않는다 — 안내는 오류 자리가 맡는다 */
+  /** 조회가 실패했으면 스피너를 계속 돌리지 않는다 — 안내는 오류 자리가 맡는다 */
   hasFailed: boolean;
   selectedId: number | null;
   onSelect: (settleId: number) => void;
@@ -191,22 +199,7 @@ function CandidateList({
   if (candidates === null && hasFailed) return null;
 
   if (candidates === null) {
-    return (
-      <SkeletonGroup
-        label="추천 후보 불러오는 중"
-        className="flex flex-col gap-2"
-      >
-        {[0, 1, 2].map((row) => (
-          <div
-            key={row}
-            className="rounded-lg border border-border-default px-4 py-3"
-          >
-            <Skeleton className="h-3 w-40" />
-            <Skeleton className="mt-2 h-3 w-56" />
-          </div>
-        ))}
-      </SkeletonGroup>
-    );
+    return <LoadingSpinner label="추천 후보 불러오는 중" />;
   }
 
   if (candidates.length === 0) {

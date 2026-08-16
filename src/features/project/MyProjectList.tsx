@@ -5,13 +5,14 @@ import { useEffect, useMemo, useState } from 'react';
 
 import Pagination from '@/components/Pagination';
 import { ErrorStateTwoButton } from '@/components/ErrorState';
+import ProjectListHeader from '@/components/project/ProjectListHeader';
 import ProjectListSkeleton from '@/components/project/ProjectListSkeleton';
 import { PROJECT_STATUS_LABELS } from '@/constants/status';
 import { getCategories } from '@/features/businessCategory/api';
 import type { BusinessCategory as CategoryOption } from '@/features/businessCategory/types';
 
 import { getProjects } from './api';
-import ProjectCard, { ProjectListHeader } from './ProjectCard';
+import ProjectCard from './ProjectCard';
 import ProjectSummaryCards from './ProjectSummaryCards';
 import { PROJECT_STATUS_OPTIONS } from './projectStatus';
 import type { ProjectListItem, ProjectListQuery, ProjectPage } from './types';
@@ -244,11 +245,6 @@ export default function MyProjectList() {
             isLoading ? 'opacity-60' : ''
           }`}
         >
-          {/*
-            머리글은 목록을 굴려도 따라온다 — 한 페이지 20건이라 아래로 내려가면
-            어느 칸이 발주처고 어느 칸이 기간인지 기준을 잃는다.
-            (스크롤은 `AppShell` 의 `main` 이 잡으므로 `top-0` 이 그 위쪽 가장자리다)
-          */}
           <ProjectListHeader />
 
           <ul className="flex flex-col gap-3">

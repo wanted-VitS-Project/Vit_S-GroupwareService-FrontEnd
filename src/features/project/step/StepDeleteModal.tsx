@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import PanelModal, { ModalFooter } from '@/components/PanelModal';
-import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
+import LoadingSpinner from '@/components/Spinner';
 import { getStepBlocks } from '@/features/block/api';
 import type { StepBlock } from '@/features/block/types';
 import { ApiError, messageOf } from '@/lib/api';
@@ -139,11 +139,7 @@ export default function StepDeleteModal({
         </div>
 
         {isLoading ? (
-          <SkeletonGroup label="블록 목록 불러오는 중" className="space-y-1.5">
-            {[0, 1, 2].map((row) => (
-              <Skeleton key={row} className="h-8" />
-            ))}
-          </SkeletonGroup>
+          <LoadingSpinner label="블록 목록 불러오는 중" className="py-8" />
         ) : haveBlocksFailed ? (
           <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-detail leading-relaxed break-keep text-yellow-text">
             블록 목록을 불러오지 못했습니다. 이대로 삭제하면 하위 블록을 골라

@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 
 import Modal from '@/components/Modal';
+import LoadingSpinner from '@/components/Spinner';
 import { notifyBlockChanged } from '@/features/block/events';
-import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
 import { messageOf } from '@/lib/api';
 import { formatDate, formatDateTime } from '@/lib/format';
 
@@ -169,22 +169,7 @@ function CandidateList({
   onSelect: (settleId: number) => void;
 }) {
   if (candidates === null) {
-    return (
-      <SkeletonGroup
-        label="추천 후보 불러오는 중"
-        className="flex flex-col gap-2"
-      >
-        {[0, 1, 2].map((row) => (
-          <div
-            key={row}
-            className="rounded-lg border border-border-default px-4 py-3"
-          >
-            <Skeleton className="h-3 w-40" />
-            <Skeleton className="mt-2 h-3 w-56" />
-          </div>
-        ))}
-      </SkeletonGroup>
-    );
+    return <LoadingSpinner label="추천 후보 불러오는 중" />;
   }
 
   if (candidates.length === 0) {
