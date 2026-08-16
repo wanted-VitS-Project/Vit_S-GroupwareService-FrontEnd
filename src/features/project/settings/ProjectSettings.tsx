@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
+import { mobileSidebarClasses } from '@/components/mobileSidebarClasses';
 import PageTitle from '@/components/PageTitle';
 
 import {
@@ -215,7 +216,10 @@ export default function ProjectSettings({ projectId }: { projectId: string }) {
   const canEdit = project?.myPermission === 'EDITOR';
 
   return (
-    <div className="mx-auto max-w-[880px] p-6">
+    /* 이 화면은 자기 여백을 직접 잡는다 (`projects/[id]/layout` 오른쪽 칸은 여백이 없다) */
+    <div
+      className={`mx-auto max-w-[880px] p-4 md:p-6 ${mobileSidebarClasses.contentBottomGap}`}
+    >
       {/*
         제목 줄에 **내 권한**을 함께 둔다 — 아래 섹션들이 통째로 잠겨 있을 때
         그 이유를 화면 맨 위에서 바로 짚을 수 있어야 한다. (사이드바와 같은 배지)

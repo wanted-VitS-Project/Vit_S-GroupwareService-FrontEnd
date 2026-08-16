@@ -7,6 +7,8 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import MemberAvatar from '@/components/MemberAvatar';
+import { mobileSidebarClasses } from '@/components/mobileSidebarClasses';
+import MobileSidebarToggle from '@/components/MobileSidebarToggle';
 import ModalLoadingFallback from '@/components/ModalLoadingFallback';
 import { notifyToast } from '@/components/Toast';
 import { projectScopeUpLink } from '@/constants/menu';
@@ -27,6 +29,7 @@ import {
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { canManageMembers } from '@/features/project/permissions';
 import PermissionBadge from '@/features/project/PermissionBadge';
+import { usePublishProjectPermission } from '@/features/project/useProjectPermission';
 import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_WIDTH,
@@ -225,6 +228,23 @@ export default function ProjectSidebar() {
   const me = useCurrentUser();
   const { isCollapsed, toggle, expand } = useProjectSidebarCollapse();
 
+  /**
+   * 좁은 화면(1024px 미만)에서만 쓰이는 열림 상태 — 공통 사이드바와 같은 방식이다.
+   * 넓은 화면에서는 클래스가 통째로 꺼져 있어 이 값이 화면에 영향을 주지 않는다.
+   */
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
+
+  /**
+   * 좁은 화면에서는 **언제나 펼친 모습**으로 연다.
+   *
+   * 접힌 모습(58px 레일)은 옆에 본문이 나란히 있을 때 쓸모가 있다 — 떠 있는 판에서는
+   * 이름 없는 점만 남아 무엇을 고르는지 알 수 없다. 여는 순간 함께 펼쳐 둔다.
+   */
+  function openPanel() {
+    expand();
+    setIsPanelOpen(true);
+  }
+
   /** 스테이지 · 스텝을 고친 뒤 목록을 다시 읽는 신호 */
   const [reloadCount, setReloadCount] = useState(0);
   const modal = useModalTarget<SidebarModal>();
@@ -352,6 +372,13 @@ export default function ProjectSidebar() {
   const stages = current?.stages ?? null;
   const members =
     loadedMembers?.projectId === projectId ? loadedMembers.members : null;
+
+  /*
+   * 받아 둔 내 권한을 캐시에 얹어 **사이드바 밖에서도** 쓸 수 있게 한다.
+   * 좁은 화면에서는 이 사이드바가 자리에서 빠져 배지가 함께 사라지므로,
+   * 탭바(`ProjectTabs` · `StepTabs`)가 이 값을 읽어 같은 배지를 세운다.
+   */
+  usePublishProjectPermission(projectId, project?.myPermission);
   // 스텝만 실패해도 스테이지 탐색이 통째로 비어 이전과 같은 오류 화면을 띄운다
   const hasFailed = failedProjectId === projectId || haveStepsFailed;
   const haveMembersFailed = failedMembersProjectId === projectId;
@@ -452,9 +479,31 @@ export default function ProjectSidebar() {
    */
   return (
     <>
+      {/*
+        좁은 화면에서는 사이드바가 본문의 절반을 먹는다 — 자리에서 빼고 왼쪽 아래
+        고정 버튼으로 여닫는다. 판이 뜨면 스테이지 · 스텝 탐색은 그대로 다 할 수 있다.
+      */}
+      <MobileSidebarToggle
+        isOpen={isPanelOpen}
+        onToggle={() => (isPanelOpen ? setIsPanelOpen(false) : openPanel())}
+        onClose={() => setIsPanelOpen(false)}
+        label="프로젝트 메뉴"
+      />
+
       <aside
+        /*
+          스텝을 고르면 판을 닫는다 — 떠 있는 판이 남아 있으면 도착한 스텝이 가려진다.
+          `⋯` 메뉴 · 접기 버튼은 링크가 아니라 그대로 열려 있다.
+        */
+        onClickCapture={(event) => {
+          if ((event.target as HTMLElement).closest('a')) setIsPanelOpen(false);
+        }}
         className={`h-full shrink-0 overflow-hidden border-r border-border-default bg-bg-card transition-[width] duration-200 ease-out motion-reduce:transition-none ${
           isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH
+        } ${
+          isPanelOpen
+            ? mobileSidebarClasses.asideOpen
+            : mobileSidebarClasses.asideClosed
         }`}
       >
         {isCollapsed ? (
@@ -473,7 +522,8 @@ export default function ProjectSidebar() {
           />
         ) : (
           <div
-            className={`flex h-full ${SIDEBAR_WIDTH} animate-panel-in flex-col motion-reduce:animate-none`}
+            /* 좁은 화면에서는 고정 폭(280px) 대신 떠 있는 판을 꽉 채운다 */
+            className={`flex h-full ${SIDEBAR_WIDTH} ${mobileSidebarClasses.panelInner} animate-panel-in flex-col motion-reduce:animate-none`}
           >
             {/*
               이탈 경로는 항상 같은 자리에 있어야 한다 — 스크롤 영역 밖에 둔다.

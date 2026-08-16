@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 
 import Header from '@/components/Header';
+import { mobileSidebarClasses } from '@/components/mobileSidebarClasses';
 import Sidebar from '@/components/Sidebar';
 import ToastHost from '@/components/Toast';
 import { BARE_LAYOUT_PATHS, isProjectScope, isUnder } from '@/constants/menu';
@@ -82,10 +83,15 @@ export default function AppShell({
                 본문 스크롤과 별개로 **바깥 스크롤바**가 생긴다
               */}
               <main
+                /*
+                  좁은 화면에서는 왼쪽 아래 사이드바 버튼이 본문 위에 떠 있다 —
+                  아래 여백을 비워 두지 않으면 마지막 줄(페이지네이션 · 마지막 카드)이
+                  버튼에 가려 누를 수 없다. (`mobileSidebarClasses.contentBottomGap`)
+                */
                 className={`relative min-h-0 min-w-0 flex-1 bg-bg-surface ${
                   isProject
                     ? ''
-                    : '[scrollbar-gutter:stable] overflow-y-auto p-4 md:p-6'
+                    : `[scrollbar-gutter:stable] overflow-y-auto p-4 md:p-6 ${mobileSidebarClasses.contentBottomGap}`
                 }`}
               >
                 {/*

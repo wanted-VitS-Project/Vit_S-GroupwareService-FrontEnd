@@ -84,11 +84,17 @@ const HOVER_DWELL_MS = 110;
  */
 const SETTLE_MS = SLIDE_DURATION_MS;
 
-/** Tailwind 가 조합된 클래스명을 못 읽으므로 완성된 문자열로 매핑한다 */
+/**
+ * Tailwind 가 조합된 클래스명을 못 읽으므로 완성된 문자열로 매핑한다.
+ *
+ * ⚠️ **폭 분기(`md`)를 보드 격자와 반드시 함께 맞춘다.** 좁은 화면에서 보드가 1열이 되는데
+ *    여기만 `col-span-2` 로 남으면, 그리드가 없는 두 번째 열을 **암시적으로 만들어**
+ *    그 블록만 화면 밖으로 삐져나간다 (가로 스크롤바가 생긴다).
+ */
 const COL_SPAN_CLASS: Record<number, string> = {
   1: 'col-span-1',
-  2: 'col-span-2',
-  3: 'col-span-3',
+  2: 'col-span-1 md:col-span-2',
+  3: 'col-span-1 md:col-span-3',
 };
 
 /**
@@ -662,7 +668,13 @@ export default function BlockBoard({
               <div
                 ref={boardRef}
                 // 끄는 동안 텍스트가 파랗게 잡히면 이동이 지저분해 보인다
-                className={`grid grid-cols-3 items-stretch gap-4 ${
+                /*
+                  좁은 화면에서는 3열을 1열로 접는다 — 3분할하면 한 칸이 100px 남짓이라
+                  체크리스트 · 문서 블록의 본문이 글자 하나 폭으로 눌린다.
+                  행 계산(`computeRows`)은 그대로 두고 **보이는 배치만** 접는다 —
+                  순서(`rowIndex` · `sortOrder`)는 서버 값이라 화면 폭으로 바꾸면 안 된다.
+                */
+                className={`grid grid-cols-1 items-stretch gap-4 md:grid-cols-3 ${
                   isDragging ? 'select-none' : ''
                 }`}
                 /*

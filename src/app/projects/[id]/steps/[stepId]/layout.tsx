@@ -1,3 +1,4 @@
+import { mobileSidebarClasses } from '@/components/mobileSidebarClasses';
 import StepTabs from '@/components/StepTabs';
 import StepScopeGuard from '@/features/project/step/StepScopeGuard';
 
@@ -17,7 +18,10 @@ export default function StepLayout({
   return (
     <div className="flex h-full flex-col">
       <StepTabs />
-      <div className="min-h-0 flex-1 [scrollbar-gutter:stable] overflow-y-auto p-6">
+      {/* 좁은 화면 여백 · 아래 버튼 자리는 프로젝트 전체 화면 레이아웃과 같게 둔다 */}
+      <div
+        className={`min-h-0 flex-1 [scrollbar-gutter:stable] overflow-y-auto p-4 md:p-6 ${mobileSidebarClasses.contentBottomGap}`}
+      >
         {/* 세 탭(블록 · 이슈 · 활동 기록)이 모두 `stepId` 로만 조회한다 — 소속은 여기서 한 번만 본다 */}
         <StepScopeGuard>{children}</StepScopeGuard>
       </div>

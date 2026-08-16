@@ -8,6 +8,7 @@ import Logo from '@/components/Logo';
 import MemberAvatar from '@/components/MemberAvatar';
 import MenuIcon from '@/components/MenuIcon';
 import { mobileSidebarClasses } from '@/components/mobileSidebarClasses';
+import MobileSidebarToggle from '@/components/MobileSidebarToggle';
 import { findActiveMenu, MENU_ORDER } from '@/constants/menu';
 import { readShellCookie } from '@/features/auth/shellCache';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
@@ -35,32 +36,24 @@ export default function Sidebar() {
 
   return (
     <>
-      {/*
-        좁은 화면에서 사이드바를 여는 버튼. 넓어지면 사라진다(`min-[1024px]:hidden`).
-        ⚠️ 사이드바 **바깥**에 둔다 — 안에 두면 닫혔을 때(`hidden`) 버튼까지 사라져 다시 열 수 없다.
-      */}
-      <button
-        type="button"
-        onClick={() => setIsOpen((open) => !open)}
-        aria-expanded={isOpen}
-        aria-label={isOpen ? '메뉴 닫기' : '메뉴 열기'}
-        className={mobileSidebarClasses.toggleButton}
-      >
-        {isOpen ? <CloseIcon /> : <MenuBarsIcon />}
-      </button>
-
-      {/* 뒤를 덮는 판 — 누르면 닫힌다. 넓은 화면에는 없다 */}
-      {isOpen && (
-        <button
-          type="button"
-          aria-label="메뉴 닫기"
-          onClick={() => setIsOpen(false)}
-          className={mobileSidebarClasses.backdrop}
-        />
-      )}
+      {/* 좁은 화면에서 사이드바를 여는 버튼 + 뒤를 덮는 판 (넓어지면 둘 다 사라진다) */}
+      <MobileSidebarToggle
+        isOpen={isOpen}
+        onToggle={() => setIsOpen((open) => !open)}
+        onClose={() => setIsOpen(false)}
+        label="메뉴"
+      />
 
       {/* 셸이 화면 높이에 고정돼 있어, 메뉴가 길면 사이드바 안에서 굴러야 한다 */}
       <aside
+        /*
+          좁은 화면의 판은 본문을 덮고 떠 있다 — 메뉴를 고른 뒤에도 남아 있으면
+          도착한 화면이 가려진다. 링크를 누르면 함께 닫는다.
+          (넓은 화면에서는 `isOpen` 이 화면에 아무 영향을 주지 않아 그냥 지나간다)
+        */
+        onClickCapture={(event) => {
+          if ((event.target as HTMLElement).closest('a')) setIsOpen(false);
+        }}
         className={`no-scrollbar w-70 shrink-0 overflow-y-auto bg-bg-sidebar ${
           isOpen
             ? mobileSidebarClasses.asideOpen
@@ -172,39 +165,7 @@ export default function Sidebar() {
   );
 }
 
-/** 메뉴 열기 — 좁은 화면 버튼 */
-function MenuBarsIcon() {
-  return (
-    <svg
-      aria-hidden
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="size-6"
-    >
-      <path d="M4 7h16M4 12h16M4 17h16" />
-    </svg>
-  );
-}
-
-/** 메뉴 닫기 — 열려 있을 때 같은 자리에서 모양만 바뀐다 */
-function CloseIcon() {
-  return (
-    <svg
-      aria-hidden
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="size-6"
-    >
-      <path d="M6 6l12 12M18 6L6 18" />
-    </svg>
-  );
-}
+/* 여닫기 버튼 · 아이콘은 `MobileSidebarToggle` 로 옮겼다 — `ProjectSidebar` 와 함께 쓴다 */
 
 /**
  * 불러오는 동안 메뉴 자리를 잡아둔다.

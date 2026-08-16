@@ -1,5 +1,6 @@
 import ProjectListHeader, {
   PROJECT_ROW_GRID,
+  PROJECT_ROW_NAME_SPAN,
 } from '@/components/project/ProjectListHeader';
 import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
 
@@ -45,7 +46,10 @@ export default function ProjectListSkeleton({ rows = 6 }: { rows?: number }) {
                 `text-label` 21px + `py-0.5` 4px + `border-[1.5px]` 3px = 28px.
               */}
               <Skeleton className="h-[28px] rounded-[9px]" />
-              <Skeleton className="h-[15px] min-w-0" />
+              {/* 과업명 — 실제 카드와 같이 접힌 폭에서 두 칸을 쓴다 (줄 수가 맞아야 높이가 맞다) */}
+              <Skeleton
+                className={`h-[15px] min-w-0 ${PROJECT_ROW_NAME_SPAN}`}
+              />
               <Skeleton className="h-[15px]" />
               <Skeleton className="h-[15px]" />
 

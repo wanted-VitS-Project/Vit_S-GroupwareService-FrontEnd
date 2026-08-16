@@ -24,7 +24,20 @@
  * 상태(`진행 전`/`완료`) · 분류 이름 · 참여자 수 · 진척률 자릿수.
  */
 export const PROJECT_ROW_GRID =
-  'grid grid-cols-[4rem_8rem_minmax(0,2fr)_minmax(0,1fr)_10rem_6rem_8rem] items-center gap-4';
+  'grid grid-cols-2 items-center gap-x-4 gap-y-2 xl:grid-cols-[4rem_8rem_minmax(0,2fr)_minmax(0,1fr)_10rem_6rem_8rem] xl:gap-4';
+
+/**
+ * 한 줄짜리 격자가 성립하는 폭(**1280px = `xl`**).
+ *
+ * 고정 칸만 더해도 `4+8+10+6+8 = 36rem`(576px)이고 여기에 칸 사이 여백 6칸(96px) ·
+ * 좌우 패딩(40px) · 펼침 버튼(44px)이 붙어 **756px** 이 그냥 나간다. 남는 자리를
+ * 과업명 · 발주처가 나눠 갖는데, 사이드바(280px)와 본문 여백(48px)을 빼고 나면
+ * 1280px 아래에서는 그 몫이 거의 0이 되어 이름이 한두 글자로 잘린다.
+ *
+ * 그래서 아래에서는 **2열로 접는다** — 값이 세로로 쌓일 뿐 하나도 사라지지 않는다.
+ * 과업명만 두 칸을 다 쓴다 (`max-xl:col-span-2`) — 카드에서 가장 먼저 읽는 값이다.
+ */
+export const PROJECT_ROW_NAME_SPAN = 'max-xl:col-span-2';
 
 /** 카드 오른쪽 펼침 버튼 자리 — 머리글 · 스켈레톤이 같은 폭으로 비워 둔다 */
 export const PROJECT_ROW_TOGGLE_SLOT = 'size-9 shrink-0';
@@ -42,7 +55,13 @@ export default function ProjectListHeader() {
   return (
     <div
       aria-hidden
-      className="flex items-center gap-2 rounded-base border border-border-default bg-bg-surface pr-3"
+      /*
+        2열로 접히는 폭에서는 머리글을 **세우지 않는다** — 라벨 7개도 함께 접혀
+        `상태 / 분류` 같은 칸 이름만 두 줄 늘어서고, 정작 아래 카드의 값과는
+        자리가 맞지 않아 읽는 사람을 헷갈리게 한다. 그 폭에서는 값 자체(배지 · 태그 ·
+        굵은 과업명 · 진척 바)가 이미 무엇인지 말해준다.
+      */
+      className="hidden items-center gap-2 rounded-base border border-border-default bg-bg-surface pr-3 xl:flex"
     >
       <div
         className={`${PROJECT_ROW_GRID} min-w-0 flex-1 px-5 py-2 text-caption font-semibold text-text-secondary`}

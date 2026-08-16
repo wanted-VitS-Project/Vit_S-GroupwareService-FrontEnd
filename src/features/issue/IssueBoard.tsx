@@ -541,7 +541,12 @@ export default function IssueBoard() {
         <IssueBoardSkeleton />
       ) : (
         // 열을 세로로 끝까지 늘려 카드가 없는 아래쪽에 놓아도 드롭이 잡히게 한다
-        <div className="grid min-h-[60vh] grid-cols-3 items-stretch gap-3">
+        /*
+          좁은 화면에서는 3열을 유지할 수 없다 — 한 열이 100px 남짓이 되어 이슈 제목이
+          한 글자씩 끊긴다. 상태별로 **위에서 아래로** 쌓는다 (`md` = 768px 부터 칸반).
+          드래그로 상태를 옮기는 조작은 어차피 마우스 전용(HTML5 DnD)이라 잃는 것이 없다.
+        */
+        <div className="grid grid-cols-1 items-stretch gap-3 md:min-h-[60vh] md:grid-cols-3">
           {ISSUE_STATUS_ORDER.map((status) => {
             const { badge, dot, columnBg, columnRing } =
               ISSUE_STATUS_STYLES[status];

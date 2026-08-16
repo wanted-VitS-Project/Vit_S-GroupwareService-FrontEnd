@@ -3,6 +3,9 @@
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 
+import PermissionBadge from '@/features/project/PermissionBadge';
+import { useProjectPermission } from '@/features/project/useProjectPermission';
+
 /** 스텝 상세 화면의 탭. `href` 는 스텝 경로 뒤에 붙는다 */
 const TABS = [
   { segment: '', label: '블록', icon: 'block' },
@@ -20,40 +23,56 @@ export default function StepTabs() {
   const params = useParams<{ id: string; stepId: string }>();
   const pathname = usePathname();
 
+  const permission = useProjectPermission(params.id);
+
   const base = `/projects/${params.id}/steps/${params.stepId}`;
 
   return (
-    <nav
-      aria-label="스텝 화면"
-      // 사이드바 '홈으로 돌아가기' 줄과 같은 높이(h-13)로 맞춘다.
-      // 위 10px 을 비워 탭 자체는 42px 이 된다 (시안)
-      className="h-13 shrink-0 border-b border-border-default bg-bg-card px-4 pt-2.5"
-    >
-      <ul className="flex h-full items-stretch">
-        {TABS.map((tab) => {
-          const href = `${base}${tab.segment}`;
-          // 하위 경로가 더 늘어나도 '블록' 탭이 같이 활성되지 않게 정확히 비교한다
-          const isActive = pathname === href;
+    /*
+      탭 줄과 **내 권한 배지**가 한 띠를 나눠 쓴다.
 
-          return (
-            <li key={tab.segment} className="flex">
-              <Link
-                href={href}
-                aria-current={isActive ? 'page' : undefined}
-                className={`flex items-center gap-1.5 border-b-2 px-3 text-body-l font-medium ${
-                  isActive
-                    ? 'border-border-primary text-text-primary-blue'
-                    : 'border-transparent text-text-secondary hover:text-text-primary'
-                }`}
-              >
-                <TabIcon name={tab.icon} />
-                {tab.label}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
+      배지가 여기 있는 이유 — 원래는 사이드바 안에만 있었는데, 좁은 화면(1024px 미만)에서는
+      사이드바가 자리에서 빠지고 데스크톱에서도 접으면 사라져 **정작 확인이 필요할 때
+      안 보였다** (2026-08-16). 탭바는 프로젝트 하위 화면에 항상 떠 있어 자리가 맞다.
+      ⚠️ 배지는 **스크롤 영역 밖**이다 — 안에 두면 탭을 굴릴 때 함께 밀려 나간다.
+    */
+    // 사이드바 '홈으로 돌아가기' 줄과 같은 높이(h-13)로 맞춘다.
+    <div className="flex h-13 shrink-0 items-center border-b border-border-default bg-bg-card pr-4">
+      <nav
+        aria-label="스텝 화면"
+        // 위 10px 을 비워 탭 자체는 42px 이 된다 (시안)
+        // 좁은 화면에서는 가로로 굴린다 — 줄바꿈하면 탭바 높이가 무너진다 (`ProjectTabs` 와 같다)
+        className="no-scrollbar h-full min-w-0 flex-1 overflow-x-auto px-4 pt-2.5"
+      >
+        <ul className="flex h-full w-max items-stretch">
+          {TABS.map((tab) => {
+            const href = `${base}${tab.segment}`;
+            // 하위 경로가 더 늘어나도 '블록' 탭이 같이 활성되지 않게 정확히 비교한다
+            const isActive = pathname === href;
+
+            return (
+              <li key={tab.segment} className="flex">
+                <Link
+                  href={href}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`flex items-center gap-1.5 border-b-2 px-3 text-body-l font-medium whitespace-nowrap ${
+                    isActive
+                      ? 'border-border-primary text-text-primary-blue'
+                      : 'border-transparent text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  <TabIcon name={tab.icon} />
+                  {tab.label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+
+      {/* 아직 못 받았으면 아무것도 그리지 않는다 (`PermissionBadge`) */}
+      <PermissionBadge permission={permission} className="ml-2" />
+    </div>
   );
 }
 
