@@ -56,7 +56,7 @@ export const BLOCK_TYPES: BlockTypeOption[] = [
   {
     code: 'CHECKLIST',
     label: '체크리스트',
-    description: '할 일 목록을 Step 화면에서 바로 체크하며 관리',
+    description: '할 일 목록을 스텝 화면에서 바로 체크하며 관리',
     defaultColSpan: 1,
     background: '#ECFDF5',
     border: '#A4F4CF',
@@ -144,7 +144,7 @@ export const BLOCK_TYPES: BlockTypeOption[] = [
   },
   {
     code: 'AI',
-    label: 'AI Block',
+    label: 'AI 블록',
     description: '문서 요약·초안 생성·분석 결과를 AI로 처리',
     defaultColSpan: 2,
     background: '#EEF2FF',

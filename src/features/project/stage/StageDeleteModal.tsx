@@ -73,7 +73,7 @@ export default function StageDeleteModal({
         code === STAGE_CODES.moveTargetRequired
       ) {
         setMoveTo('');
-        setError(messageOf(caught, '스텝을 옮길 단계를 다시 골라주세요.'));
+        setError(messageOf(caught, '스텝을 옮길 스테이지를 다시 골라주세요.'));
         setIsSubmitting(false);
         return;
       }
@@ -89,7 +89,7 @@ export default function StageDeleteModal({
   }
 
   return (
-    <PanelModal title="단계 삭제" onClose={requestClose}>
+    <PanelModal title="스테이지 삭제" onClose={requestClose}>
       <div className="space-y-4 p-5">
         <div className="flex items-center gap-2 rounded-lg border border-border-default bg-bg-surface px-3 py-2.5">
           <span className="min-w-0 truncate text-label font-semibold text-text-primary">
@@ -126,7 +126,7 @@ export default function StageDeleteModal({
                   {target.name}
                 </option>
               ))}
-              <option value={UNASSIGN_STEPS}>미분류 (단계 없음)</option>
+              <option value={UNASSIGN_STEPS}>미분류 (스테이지 없음)</option>
             </select>
             <p className="mt-1 text-caption break-keep text-text-secondary">
               스텝 {stage.stepCount}개는 삭제되지 않고 이곳으로 옮겨집니다.
@@ -137,7 +137,7 @@ export default function StageDeleteModal({
           <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-detail leading-relaxed break-keep text-yellow-text">
             소속된 스텝이 없어 바로 삭제할 수 있습니다.
             <br />
-            되돌릴 수 없으니 단계명을 확인해주세요.
+            되돌릴 수 없으니 스테이지명을 확인해주세요.
           </p>
         )}
 

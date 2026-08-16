@@ -151,7 +151,7 @@ export default function StepBlocks() {
       // 방금 만든 블록의 편집창을 다시 열지 않는다 — 본문을 새로 마운트하기 때문
       setAutoEditBlockId(null);
       setBodyGeneration((generation) => generation + 1);
-      notifyToast('블록을 새로 불러왔어요.');
+      notifyToast('블록을 새로 불러왔습니다.');
     } finally {
       setIsRefreshing(false);
     }
@@ -270,7 +270,7 @@ export default function StepBlocks() {
           isArranging={isArranging}
           arrangeRef={arrange}
           flushLayoutRef={flushLayout}
-          // 바뀐 순서를 캐시에도 반영한다 — 다음 `Block 추가` 가 옛 좌표로 자리를 잡지 않게
+          // 바뀐 순서를 캐시에도 반영한다 — 다음 `블록 추가` 가 옛 좌표로 자리를 잡지 않게
           onOrderChanged={setBlocks}
         />
       )}

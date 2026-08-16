@@ -71,7 +71,7 @@ function ActivityLogItem({
             decorative
             resigned={log.actor.resignedAt !== null}
           />
-          {/* 퇴사자여도 로그를 지우지 않는다 — 이름 뒤에 문구만 붙인다 */}
+          {/* 퇴사자여도 활동 기록을 지우지 않는다 — 이름 뒤에 문구만 붙인다 */}
           <span className="flex items-center gap-0.5">
             <span className="text-detail font-semibold text-text-primary">
               {log.actor.name}

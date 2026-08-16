@@ -117,7 +117,7 @@ export default function ProjectSettings({ projectId }: { projectId: string }) {
   }, [projectId, requestKey]);
 
   /*
-   * 단계 · 스텝 목록. 상세와 같은 열쇠를 쓰므로 `다시 불러오기` 한 번에 함께 갱신된다.
+   * 스테이지 · 스텝 목록. 상세와 같은 열쇠를 쓰므로 `다시 불러오기` 한 번에 함께 갱신된다.
    * 실패해도 위쪽 네 섹션은 그대로 쓸 수 있어야 해서 상세와 나눠 둔다.
    */
   useEffect(() => {

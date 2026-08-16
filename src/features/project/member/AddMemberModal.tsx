@@ -172,7 +172,7 @@ export default function AddMemberModal({
           </div>
           <p className="mt-1.5 text-caption break-keep text-text-secondary">
             고른 사원 모두에게 같은 권한이 적용됩니다. 추가한 뒤 목록에서 한
-            명씩 바꿀 수 있어요.
+            명씩 바꿀 수 있습니다.
           </p>
         </fieldset>
 

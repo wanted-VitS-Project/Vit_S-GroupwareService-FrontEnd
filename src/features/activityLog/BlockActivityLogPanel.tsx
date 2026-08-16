@@ -15,7 +15,7 @@ import { groupByDate } from './time';
 import { useActivityLogFeed } from './useActivityLogFeed';
 
 /**
- * 블록 활동 로그 팝업. (.ai/API.md 72번)
+ * 블록 활동 기록 팝업. (.ai/API.md 72번)
  *
  * ⚠️ **블록 전용 API 는 없다** — 스텝 활동 기록 API 에 `?blockId=` 를 붙여 쓴다.
  * 목록 · 커서 규칙은 스텝 화면과 같아 `useActivityLogFeed` 를 공유한다.
@@ -54,7 +54,7 @@ export default function BlockActivityLogPanel({
 
   return (
     <Modal
-      title="블록 활동 로그"
+      title="블록 활동 기록"
       onClose={onClose}
       className={SIDE_PANEL}
       header={
@@ -64,7 +64,7 @@ export default function BlockActivityLogPanel({
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="text-label font-semibold text-text-primary">
-              블록 활동 로그
+              블록 활동 기록
             </h2>
             <p className="truncate text-caption text-text-secondary">
               {blockTitle}

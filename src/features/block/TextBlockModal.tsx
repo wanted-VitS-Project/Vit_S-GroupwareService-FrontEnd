@@ -281,7 +281,7 @@ export default function TextBlockModal({
               <strong className="font-semibold">
                 {formatDraftTime(latestDraft.savedAt) || '이전'}
               </strong>
-              에 임시저장한 내용이 있어요
+              에 임시저장한 내용이 있습니다
               {restorable.length > 1 && ` (총 ${restorable.length}개)`}.
               {isStale(latestDraft) &&
                 ' 그 뒤 다른 사람이 본문을 수정했으니, 되살리면 그 변경을 덮어씁니다.'}
@@ -415,9 +415,9 @@ export default function TextBlockModal({
           >
             {errorMessage ||
               (draftFailed
-                ? '이 브라우저에 임시저장할 수 없어요 — 저장 전에 창을 닫지 마세요.'
+                ? '이 브라우저에 임시저장할 수 없습니다 — 저장 전에 창을 닫지 마세요.'
                 : savedAt
-                  ? `임시저장됨 ${formatDraftTime(savedAt)} · 저장 전까지 이 브라우저에만 남아요`
+                  ? `임시저장됨 ${formatDraftTime(savedAt)} · 저장 전까지 이 브라우저에만 남습니다`
                   : '선택 후 툴바 버튼을 클릭하거나 Ctrl+B / Ctrl+I 단축키를 사용하세요')}
           </p>
           <div className="flex shrink-0 items-center gap-2">
@@ -476,7 +476,7 @@ export default function TextBlockModal({
          * "덮어쓰기는 부담스럽고 내 글도 버리기 싫다" 는 자리가 생긴다.
          */
         <ChoiceDialog
-          title="다른 사람이 먼저 저장했어요"
+          title="다른 사람이 먼저 저장했습니다"
           description="그 사이 이 본문이 수정됐습니다. 내 내용으로 덮어쓰거나, 지금 쓴 글을 임시저장해 두고 최신 본문을 받을 수 있습니다."
           choices={[
             {
@@ -507,7 +507,7 @@ export default function TextBlockModal({
       {confirmation === 'leave' && (
         <ChoiceDialog
           title="편집을 마칠까요?"
-          description="아직 서버에 저장하지 않았습니다. 임시저장해 두면 다음에 이 블록을 열 때 이어서 쓸 수 있어요."
+          description="아직 서버에 저장하지 않았습니다. 임시저장해 두면 다음에 이 블록을 열 때 이어서 쓸 수 있습니다."
           choices={[
             {
               label: '임시저장하고 나가기',

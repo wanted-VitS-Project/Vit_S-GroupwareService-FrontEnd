@@ -23,12 +23,12 @@ type StageAction =
   | { kind: 'rename'; stage: ProjectStage }
   | { kind: 'delete'; stage: ProjectStage };
 
-/** 끌고 있는 것. 단계끼리 · 스텝끼리만 자리를 바꾼다 */
+/** 끌고 있는 것. 스테이지끼리 · 스텝끼리만 자리를 바꾼다 */
 type Dragging =
   | { type: 'stage'; index: number }
   | { type: 'step'; bucketIndex: number; index: number };
 
-/** 단계 하나와 그 아래 스텝. `stage: null` 은 맨 끝의 `미분류` 가상 묶음이다 */
+/** 스테이지 하나와 그 아래 스텝. `stage: null` 은 맨 끝의 `미분류` 가상 묶음이다 */
 interface Bucket {
   stage: ProjectStage | null;
   steps: ProjectStep[];
@@ -51,8 +51,8 @@ interface StageManageModalProps {
 const UNASSIGNED_KEY = -1;
 
 /**
- * 단계 · 스텝을 묶음으로 만든다.
- * `미분류` 는 스텝이 없어도 **항상 마지막에 둔다** — 단계 밖으로 빼낼 자리가 필요하다.
+ * 스테이지 · 스텝을 묶음으로 만든다.
+ * `미분류` 는 스텝이 없어도 **항상 마지막에 둔다** — 스테이지 밖으로 빼낼 자리가 필요하다.
  */
 function toBuckets(stages: ProjectStage[], steps: ProjectStep[]): Bucket[] {
   const ordered = [...steps].sort((a, b) => a.sortOrder - b.sortOrder);
@@ -87,7 +87,7 @@ interface StepPlanRow {
  *
  * ⚠️ `sortOrder` 는 **프로젝트 단위 통번호다** (2026-08-11 BE 확인) — 스테이지마다
  *    1부터 다시 세지 않는다. 그래서 **스테이지 순서만 바꿔도 아래 스텝 번호가 전부 밀린다.**
- *    "단계만 끌었으니 스텝 요청은 생략" 이 성립하지 않는 이유다.
+ *    "스테이지만 끌었으니 스텝 요청은 생략" 이 성립하지 않는 이유다.
  */
 function toStepPlan(buckets: Bucket[]): StepPlanRow[] {
   const plan: StepPlanRow[] = [];
@@ -116,7 +116,7 @@ function planPrint(plan: StepPlanRow[]) {
     .join('|');
 }
 
-/** 묶음 하나의 내용 — 어느 단계에 어떤 스텝이 어떤 차례로 들었는지 */
+/** 묶음 하나의 내용 — 어느 스테이지에 어떤 스텝이 어떤 차례로 들었는지 */
 function bucketPrint(bucket: Bucket) {
   const stepIds = bucket.steps.map((step) => step.stepId).join(',');
   return `${bucket.stage?.stageId ?? 0}:${stepIds}`;
@@ -182,7 +182,7 @@ function toStepOrders(plan: StepPlanRow[]): StepOrderItem[] | null {
 }
 
 /**
- * 단계 관리 모달 — `진행 단계` 헤더의 `단계수정` 진입점. (.ai/API.md 112~114 · 119 · 120)
+ * 스테이지 관리 모달 — `스테이지` 헤더의 `수정` 진입점. (.ai/API.md 112~114 · 119 · 120)
  *
  * 사이드바의 `⋯` 메뉴는 행에 **호버해야** 나타나 처음 쓰는 사람이 찾지 못한다.
  * 여기서는 전체 구조를 펼쳐 놓고 이름 수정 · 삭제 · 추가와 **순서 변경**을 함께 다룬다.
@@ -204,8 +204,8 @@ export default function StageManageModal({
    * 순서가 바뀌는 순간에만 도는 FLIP 이동 애니메이션.
    *
    * 끌어 놓은 뒤 행이 **툭 튀지 않고 미끄러져** 어디로 갔는지 눈으로 따라갈 수 있다.
-   * 단계 `<li>` 와 그 안의 스텝 `<li>` 를 함께 등록하지만, 훅이 중첩을 보정해
-   * 스텝은 단계가 옮겨 준 만큼을 빼고 자기 몫만 움직인다.
+   * 스테이지 `<li>` 와 그 안의 스텝 `<li>` 를 함께 등록하지만, 훅이 중첩을 보정해
+   * 스텝은 스테이지가 옮겨 준 만큼을 빼고 자기 몫만 움직인다.
    */
   const slide = useFlipReorder<string>();
 
@@ -250,14 +250,14 @@ export default function StageManageModal({
 
   /*
    * 스텝은 보낼 값을 **직접 만들어서** 비교한다.
-   * `sortOrder` 가 프로젝트 통번호라 단계만 끌어도 스텝 번호가 밀리므로,
+   * `sortOrder` 가 프로젝트 통번호라 스테이지만 끌어도 스텝 번호가 밀리므로,
    * "스텝을 안 건드렸으니 생략" 같은 어림짐작이 통하지 않는다.
    */
   const stepPlan = toStepPlan(buckets);
   const hasStepOrderChanged =
     planPrint(stepPlan) !== planPrint(toStepPlan(baseline));
 
-  /** 실제 단계만 (맨 끝 `미분류` 제외) */
+  /** 실제 스테이지만 (맨 끝 `미분류` 제외) */
   const realStages = buckets
     .map((bucket) => bucket.stage)
     .filter((stage): stage is ProjectStage => stage !== null);
@@ -340,7 +340,7 @@ export default function StageManageModal({
 
     /**
      * 두 API 는 각각 전체 롤백이지만 **서로는 원자적이지 않다.**
-     * 단계가 통과한 뒤 스텝이 409 면 앞의 것만 반영된 상태가 남는다 — 사용자에게 알려야 한다.
+     * 스테이지가 통과한 뒤 스텝이 409 면 앞의 것만 반영된 상태가 남는다 — 사용자에게 알려야 한다.
      */
     let hasSavedStageOrder = false;
 
@@ -367,7 +367,7 @@ export default function StageManageModal({
           ? '다른 사람이 먼저 순서를 바꿨습니다.'
           : messageOf(caught, '순서를 저장하지 못했습니다.');
       const partial = hasSavedStageOrder
-        ? ' 단계 순서는 저장됐고 스텝 순서만 반영되지 않았습니다.'
+        ? ' 스테이지 순서는 저장됐고 스텝 순서만 반영되지 않았습니다.'
         : '';
 
       setError(`${reason}${partial} 최신 순서를 다시 불러온 뒤 조정해주세요.`);
@@ -383,11 +383,11 @@ export default function StageManageModal({
 
   return (
     <>
-      <PanelModal title="단계 관리" onClose={requestClose}>
+      <PanelModal title="스테이지 관리" onClose={requestClose}>
         <div className="max-h-[60vh] overflow-y-auto p-5">
           {realStages.length === 0 && buckets[0].steps.length === 0 ? (
             <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-detail break-keep text-text-secondary">
-              등록된 단계가 없습니다. 아래에서 첫 단계를 추가해주세요.
+              등록된 스테이지가 없습니다. 아래에서 첫 스테이지를 추가해주세요.
             </p>
           ) : (
             <ul className="space-y-2">
@@ -442,7 +442,7 @@ export default function StageManageModal({
                         <span aria-hidden className="size-3 shrink-0" />
                       )}
                       <span className="min-w-0 flex-1 truncate text-detail font-semibold text-text-primary">
-                        {stage?.name ?? '미분류 (단계 없음)'}
+                        {stage?.name ?? '미분류 (스테이지 없음)'}
                       </span>
                       <span className="shrink-0 text-caption text-text-secondary">
                         스텝 {bucket.steps.length}
@@ -571,8 +571,8 @@ export default function StageManageModal({
 
           <p className="mt-2 text-caption leading-relaxed break-keep text-text-secondary">
             행을 끌어 순서를 바꾸고 <strong>순서 저장</strong>을 누르면
-            반영됩니다. 스텝은 다른 단계로도 옮길 수 있습니다. 추가한 단계는
-            목록 맨 뒤에 붙습니다.
+            반영됩니다. 스텝은 다른 스테이지로도 옮길 수 있습니다. 추가한
+            스테이지는 목록 맨 뒤에 붙습니다.
           </p>
           {isDirty && (
             <p className="mt-1 text-caption break-keep text-yellow-text">
@@ -597,7 +597,7 @@ export default function StageManageModal({
             onClick={() => action.open({ kind: 'create' })}
             className="mr-auto cursor-pointer rounded-lg border border-border-primary px-3 py-1.5 text-detail font-medium text-text-primary-blue hover:bg-blue-bg-soft disabled:cursor-not-allowed disabled:border-border-default disabled:text-text-muted"
           >
-            + 단계 추가
+            + 스테이지 추가
           </button>
           {isDirty && !isStale && (
             <button
@@ -636,7 +636,7 @@ export default function StageManageModal({
       </PanelModal>
 
       {/*
-        하위 모달이 닫혀도 이 목록은 열린 채로 둔다 — 여러 단계를 잇달아 고치는 화면이라
+        하위 모달이 닫혀도 이 목록은 열린 채로 둔다 — 여러 스테이지를 잇달아 고치는 화면이라
         한 건 고칠 때마다 처음부터 다시 들어가게 하면 안 된다.
       */}
       {(action.target?.kind === 'create' ||

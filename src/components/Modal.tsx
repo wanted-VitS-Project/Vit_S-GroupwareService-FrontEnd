@@ -43,7 +43,7 @@ const DEFAULT_PANEL = 'w-full max-w-sm rounded-base p-8 shadow-lg';
 const SIDE_PANEL_BASE =
   'mt-auto mr-4 mb-4 ml-auto flex h-[72vh] max-h-[560px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl';
 
-/** 곁패널 기본 폭 — `연결된 이슈` · `블록 활동 로그` */
+/** 곁패널 기본 폭 — `연결된 이슈` · `블록 활동 기록` */
 export const SIDE_PANEL = `${SIDE_PANEL_BASE} w-[380px]`;
 /** 한 줄이 긴 목록을 담는 곁패널 — `비타메이트 분석 이력` */
 export const SIDE_PANEL_WIDE = `${SIDE_PANEL_BASE} w-[420px]`;

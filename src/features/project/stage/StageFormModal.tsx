@@ -125,7 +125,7 @@ export default function StageFormModal({
   return (
     <>
       <PanelModal
-        title={isEditing ? '단계명 수정' : '단계 추가'}
+        title={isEditing ? '스테이지명 수정' : '스테이지 추가'}
         onClose={requestClose}
       >
         <form onSubmit={handleSubmit}>
@@ -136,7 +136,7 @@ export default function StageFormModal({
                   htmlFor="stageName"
                   className="text-detail font-semibold text-text-primary"
                 >
-                  단계명 <span className="text-text-danger">*</span>
+                  스테이지명 <span className="text-text-danger">*</span>
                 </label>
                 <span className="text-caption text-text-secondary">
                   {name.length} / {STAGE_NAME_MAX_LENGTH}
@@ -170,15 +170,15 @@ export default function StageFormModal({
                 <p className="mt-1 text-caption break-keep text-text-secondary">
                   {isEditing
                     ? '이름을 바꿔도 소속 스텝과 순서는 그대로 유지됩니다.'
-                    : '추가한 단계는 목록 맨 뒤에 붙습니다. 소속 스텝은 나중에 추가할 수 있습니다.'}
+                    : '추가한 스테이지는 목록 맨 뒤에 붙습니다. 소속 스텝은 나중에 추가할 수 있습니다.'}
                 </p>
               )}
             </div>
 
             {hasNoVersion && (
               <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-detail leading-relaxed break-keep text-yellow-text">
-                이 단계의 버전 정보를 받지 못해 수정할 수 없습니다. 새로고침 후
-                다시 시도해주세요.
+                이 스테이지의 버전 정보를 받지 못해 수정할 수 없습니다. 새로고침
+                후 다시 시도해주세요.
               </p>
             )}
           </div>
@@ -219,8 +219,8 @@ export default function StageFormModal({
          */
         <AlertDialogTwoButton
           icon={DialogIcons.warning}
-          title="다른 사람이 먼저 저장했어요"
-          description="그 사이 이 단계가 수정됐습니다. 지금 입력한 이름으로 덮어쓰거나, 최신 내용을 다시 불러올 수 있습니다."
+          title="다른 사람이 먼저 저장했습니다"
+          description="그 사이 이 스테이지가 수정됐습니다. 지금 입력한 이름으로 덮어쓰거나, 최신 내용을 다시 불러올 수 있습니다."
           confirmLabel="덮어쓰기"
           cancelLabel="다시 불러오기"
           isDanger

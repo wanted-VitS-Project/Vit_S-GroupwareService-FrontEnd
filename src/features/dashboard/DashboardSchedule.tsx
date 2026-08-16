@@ -278,7 +278,7 @@ export default function DashboardSchedule() {
             type="button"
             onClick={goToToday}
             disabled={isOnToday}
-            title={isOnToday ? '이미 오늘을 보고 있어요' : '오늘로 이동'}
+            title={isOnToday ? '이미 오늘을 보고 있습니다' : '오늘로 이동'}
             className="cursor-pointer justify-self-end rounded-lg border border-border-default px-2.5 py-1.5 text-[13px] font-semibold text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted disabled:hover:bg-transparent"
           >
             오늘
@@ -290,7 +290,7 @@ export default function DashboardSchedule() {
             role="alert"
             className="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-[13px] text-text-secondary"
           >
-            일정을 불러오지 못했어요.
+            일정을 불러오지 못했습니다.
             <button
               type="button"
               onClick={() => setReloadCount((count) => count + 1)}
@@ -374,7 +374,7 @@ export default function DashboardSchedule() {
             role="alert"
             className="flex flex-1 items-center justify-center py-16 text-[13px] text-text-secondary"
           >
-            이슈를 불러오지 못했어요.
+            이슈를 불러오지 못했습니다.
           </p>
         ) : issues === null ? (
           <p
@@ -385,7 +385,7 @@ export default function DashboardSchedule() {
           </p>
         ) : selectedIssues.length === 0 ? (
           <p className="flex flex-1 items-center justify-center py-16 text-[13px] text-text-secondary">
-            이 날짜에 마감인 담당 이슈가 없어요.
+            이 날짜에 마감인 담당 이슈가 없습니다.
           </p>
         ) : (
           /* 하루에 이슈가 많으면 카드 안에서만 굴린다 — 옆 두 상자와 높이가 어긋나지 않게 */
