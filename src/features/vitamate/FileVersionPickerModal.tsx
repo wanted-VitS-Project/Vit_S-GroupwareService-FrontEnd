@@ -96,7 +96,8 @@ export default function FileVersionPickerModal({
             aria-hidden
             className="size-2.5 animate-spin rounded-pill border border-yellow-border border-t-yellow-text"
           />
-          AI가 아직 읽는 중인 문서가 있어요. 끝나면 자동으로 선택할 수 있어요.
+          AI가 아직 읽는 중인 문서가 있습니다. 끝나면 자동으로 선택할 수
+          있습니다.
         </p>
       )}
 

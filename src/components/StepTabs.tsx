@@ -6,7 +6,7 @@ import { usePathname, useParams } from 'next/navigation';
 /** 스텝 상세 화면의 탭. `href` 는 스텝 경로 뒤에 붙는다 */
 const TABS = [
   { segment: '', label: '블록', icon: 'block' },
-  { segment: '/issue', label: '일정', icon: 'schedule' },
+  { segment: '/issue', label: '이슈', icon: 'schedule' },
   { segment: '/log', label: '활동 기록', icon: 'history' },
 ] as const;
 
@@ -68,7 +68,7 @@ const PATHS: Record<TabIcon, React.ReactNode> = {
     </>
   ),
   /*
-   * 일정 — 타임라인 격자(#).
+   * 이슈 — 타임라인 격자(#).
    * 세로선이 x=8·14 라 가운데(12)에서 왼쪽으로 밀려 있었다 — 오른쪽 팔만 길어져
    * 획이 오른쪽으로 쏠려 보였다. 9·15 로 옮겨 네 팔 길이를 같게 맞춘다.
    */

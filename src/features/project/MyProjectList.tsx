@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import Pagination from '@/components/Pagination';
 import { ErrorStateTwoButton } from '@/components/ErrorState';
+import ProjectListHeader from '@/components/project/ProjectListHeader';
 import ProjectListSkeleton from '@/components/project/ProjectListSkeleton';
 import { PROJECT_STATUS_LABELS } from '@/constants/status';
 import { getCategories } from '@/features/businessCategory/api';
@@ -229,8 +230,8 @@ export default function MyProjectList() {
         <Centered>
           <p className="text-[13px] text-text-secondary">
             {hasFilter
-              ? '조건에 맞는 프로젝트가 없어요.'
-              : '참여 중인 프로젝트가 없어요.'}
+              ? '조건에 맞는 프로젝트가 없습니다.'
+              : '참여 중인 프로젝트가 없습니다.'}
           </p>
         </Centered>
       ) : (
@@ -244,6 +245,8 @@ export default function MyProjectList() {
             isLoading ? 'opacity-60' : ''
           }`}
         >
+          <ProjectListHeader />
+
           <ul className="flex flex-col gap-3">
             {rows.map((row) => (
               <ProjectCard key={row.projectId} row={row} />

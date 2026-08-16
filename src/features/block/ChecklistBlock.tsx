@@ -249,7 +249,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
 
         {items.length === 0 && !isEditing && (
           <p className="text-caption text-text-muted">
-            항목이 없습니다. 편집으로 추가해보세요.
+            항목이 없습니다. 편집에서 추가하세요.
           </p>
         )}
 

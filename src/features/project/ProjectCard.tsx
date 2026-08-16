@@ -4,6 +4,10 @@ import Link from 'next/link';
 import { useEffect, useId, useState } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
+import {
+  PROJECT_ROW_GRID,
+  PROJECT_ROW_TOGGLE_SLOT,
+} from '@/components/project/ProjectListHeader';
 import { PROJECT_STATUS_LABELS } from '@/constants/status';
 import { formatDateRange } from '@/lib/format';
 
@@ -22,7 +26,7 @@ const AVATAR_LIMIT = 4;
 
 /**
  * 머리글에 세우는 카테고리 태그 수. 나머지는 `+N` 으로 접는다.
- * 태그 칸 너비가 고정(`w-32`)이라 2개를 세우면 이름이 거의 다 잘려 1개만 둔다.
+ * 태그 칸이 `PROJECT_ROW_GRID` 에서 `8rem` 고정이라 2개를 세우면 이름이 거의 다 잘려 1개만 둔다.
  */
 const CATEGORY_TAG_LIMIT = 1;
 
@@ -67,14 +71,15 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
       >
         <Link
           href={PROJECT_ROUTES.detail(row.projectId)}
-          className="flex min-w-0 flex-1 items-center gap-4 px-5 py-4 hover:bg-black/[0.03]"
+          className={`${PROJECT_ROW_GRID} min-w-0 flex-1 px-5 py-4 hover:bg-black/[0.03]`}
         >
           {/*
-            배지 · 태그 칸은 **너비를 고정한다** — 상태 라벨(`진행 전` vs `완료`)이나
-            카테고리 이름 길이에 따라 폭이 달라지면 카드마다 과업명 시작 위치가 어긋난다
+            칸 너비는 `PROJECT_ROW_GRID` 가 정한다 — 여기서는 폭을 손대지 않는다.
+            내용 길이(상태 라벨 · 카테고리 이름 · 참여자 수)로 폭이 정해지면
+            카드마다 열이 어긋난다.
           */}
           <span
-            className={`flex w-16 shrink-0 justify-center rounded-pill px-2 py-0.5 text-label font-medium ${style.badge}`}
+            className={`flex justify-center rounded-pill px-2 py-0.5 text-label font-medium ${style.badge}`}
           >
             {PROJECT_STATUS_LABELS[row.status]}
           </span>
@@ -86,7 +91,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
            */}
           <span
             title={row.businessCategories.map((item) => item.name).join(' · ')}
-            className="flex w-32 shrink-0 items-center gap-1.5"
+            className="flex min-w-0 items-center gap-1.5"
           >
             {categoryTags.map((category) => (
               <span
@@ -103,16 +108,22 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
             )}
           </span>
 
-          <h3 className="min-w-0 flex-1 truncate text-[15px] font-semibold text-gray-text-soft">
+          <h3
+            title={row.name}
+            className="min-w-0 truncate text-[15px] font-semibold text-gray-text-soft"
+          >
             {row.name}
           </h3>
 
-          {/* 발주처는 이름이 길 수 있어 줄어들 수 있게 둔다 — 넘치면 말줄임 */}
-          <span className="w-32 min-w-0 shrink truncate text-[13px] text-gray-text-soft">
+          {/* 발주처는 이름이 길 수 있다 — 칸을 넘치면 말줄임 */}
+          <span
+            title={row.clientName}
+            className="min-w-0 truncate text-[13px] text-gray-text-soft"
+          >
             {row.clientName}
           </span>
 
-          <span className="w-40 shrink-0 text-[13px] whitespace-nowrap text-gray-text-soft">
+          <span className="text-[13px] whitespace-nowrap text-gray-text-soft">
             {formatDateRange(row.startedOn, row.endedOn)}
           </span>
 
@@ -120,13 +131,15 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
             `relative` 가 필요하다 — 안쪽 `sr-only` 는 `position: absolute` 인데
             좌표 기준(컨테이닝 블록)이 없으면 문서 전체를 기준으로 잡혀 문서 높이를 늘린다
           */}
-          <span className="relative flex shrink-0 items-center -space-x-1.5">
+          <span className="relative flex items-center -space-x-1.5">
             {shown.map((member) => (
               <MemberAvatar
                 key={member.userId}
                 userId={member.userId}
                 name={member.name}
                 decorative
+                // 목록 카드는 사진 대신 이니셜 + 단색으로 구별한다 (카드 전용)
+                initialsOnly
               />
             ))}
             {restCount > 0 && (
@@ -137,7 +150,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
             <span className="sr-only">참여자 {row.members.length}명</span>
           </span>
 
-          <span className="flex w-32 shrink-0 items-center gap-3">
+          <span className="flex items-center gap-3">
             {/* 스텝이 0개면 진척률이 응답에 없다 — 0% 로 단정하지 않고 빈 바로 둔다 */}
             <span className="h-2 flex-1 overflow-hidden rounded-pill bg-bg-hover-secondary">
               {/* 색은 상태와 무관하게 하나로 둔다 — 채운 길이만으로 진행도를 읽는다 */}
@@ -162,7 +175,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
           aria-expanded={isOpen}
           aria-controls={panelId}
           aria-label={`${row.name} ${isOpen ? '접기' : '펼치기'}`}
-          className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg hover:bg-black/[0.05]"
+          className={`${PROJECT_ROW_TOGGLE_SLOT} flex cursor-pointer items-center justify-center rounded-lg hover:bg-black/[0.05]`}
         >
           <ChevronIcon isOpen={isOpen} />
         </button>
@@ -326,7 +339,7 @@ function ProjectPanel({ projectId }: { projectId: number }) {
         role="alert"
         className="mt-5 flex items-center gap-3 text-[13px] text-text-secondary"
       >
-        진행 상황을 불러오지 못했어요.
+        진행 상황을 불러오지 못했습니다.
         <button
           type="button"
           onClick={() => setReloadCount((count) => count + 1)}
@@ -359,7 +372,7 @@ function ProjectPanel({ projectId }: { projectId: number }) {
 
       {data.stages.length === 0 && unassigned.length === 0 ? (
         <p className="mt-5 text-[13px] text-text-muted">
-          등록된 스테이지가 없어요.
+          등록된 스테이지가 없습니다.
         </p>
       ) : (
         <section aria-label="스테이지별 진행 상황" className="mt-5">
@@ -375,7 +388,7 @@ function ProjectPanel({ projectId }: { projectId: number }) {
               />
             ))}
             {unassigned.length > 0 && (
-              <StageBox name="스테이지 미지정" steps={unassigned} />
+              <StageBox name="미분류 (스테이지 없음)" steps={unassigned} />
             )}
           </ul>
         </section>
@@ -435,7 +448,9 @@ function StageBox({ name, steps }: { name: string; steps: ProjectStep[] }) {
           className="flex h-[124px] items-center overflow-x-auto overflow-y-hidden bg-bg-card px-5"
         >
           {sorted.length === 0 ? (
-            <p className="text-label text-text-muted">등록된 스텝이 없어요.</p>
+            <p className="text-label text-text-muted">
+              등록된 스텝이 없습니다.
+            </p>
           ) : (
             <ol className="flex w-full items-start">
               {sorted.map((step, index) => {

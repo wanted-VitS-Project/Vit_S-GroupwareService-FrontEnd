@@ -25,7 +25,7 @@ type Preview =
  * (프로젝트 파일의 `FileViewerModal` 과 같은 구성이다 — 도메인만 다르다)
  *
  * 미리보기는 서버가 앞 5페이지만 잘라 PDF 로 준다 (`.ai/API.md` 148).
- * 이력은 **append-only** 라 버전을 고르면 미리보기 · 내려받기 대상만 바뀐다.
+ * 이력은 **append-only** 라 버전을 고르면 미리보기 · 다운로드 대상만 바뀐다.
  */
 export default function CompanyDocumentViewerModal({
   // ⚠️ prop 이름을 `document` 로 두지 않는다 — 브라우저 전역 `document` 를 가린다
@@ -274,14 +274,14 @@ export default function CompanyDocumentViewerModal({
                 <p className="mt-2 text-center text-micro text-text-secondary">
                   미리보기 {preview.shown}
                   {preview.total !== null && ` / ${preview.total}`}페이지 —
-                  전체는 내려받아 확인해주세요.
+                  전체는 다운로드해서 확인해주세요.
                 </p>
               )}
             </Suspense>
           )}
 
           {preview.kind === 'unsupported' && (
-            <Notice text="이 형식은 미리보기를 지원하지 않습니다. 내려받아 확인해주세요." />
+            <Notice text="이 형식은 미리보기를 지원하지 않습니다. 다운로드해서 확인해주세요." />
           )}
           {preview.kind === 'failed' && <Notice text={preview.message} />}
         </div>

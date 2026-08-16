@@ -8,9 +8,10 @@ import Modal from './Modal';
  * 폼이 들어가는 큰 모달(`Modal` · `PanelModal`)과 쓰임이 다르다 —
  * **확인을 받거나 결과를 알리는** 용도라 아이콘 · 제목 · 설명 · 버튼 한 줄로 고정돼 있다.
  *
- * 버튼 개수로 둘로 나뉜다.
+ * 버튼 개수로 셋으로 나뉜다.
  * - `AlertDialogOneButton` — 알리기만 한다 (저장 완료)
  * - `AlertDialogTwoButton` — 고르게 한다 (저장할까요? · 삭제할까요?)
+ * - `AlertDialogThreeButton` — 취소 말고도 길이 둘일 때 (새 버전으로? 새 문서로?)
  *
  * 아이콘은 쓰는 쪽이 `DialogIcons` 넷 중 하나를 골라 넘긴다.
  * 색 · 버튼 · 글자 크기는 모두 `globals.css` 의 기존 토큰과 `.btn` 계열을 쓴다.
@@ -130,17 +131,87 @@ export function AlertDialogTwoButton({
   );
 }
 
-/** 아이콘 · 제목 · 설명은 둘이 같다 — 버튼만 갈아끼운다 */
+/**
+ * 세 갈래형. **취소 말고도 고를 길이 둘일 때** 쓴다 (같은 이름 문서 → 새 버전 / 새 문서).
+ *
+ * ⚠️ 버튼을 **세로로 쌓는다.** 400px 폭에 한글 라벨 셋을 가로로 두면 글자가 접힌다.
+ * ⚠️ `onCancel` 은 Esc · 배경 클릭과 **같은 자리**다 — 잘못 닫아도 아무 일이 없어야 하므로
+ *    여기에 실제 동작(추가 · 저장)을 걸지 않는다.
+ */
+export function AlertDialogThreeButton({
+  icon,
+  title,
+  description,
+  errorMessage,
+  confirmLabel,
+  altLabel,
+  cancelLabel = '취소',
+  isBusy = false,
+  onConfirm,
+  onAlt,
+  onCancel,
+}: AlertDialogProps & {
+  /** 주 선택지 — 파란 버튼으로 맨 위에 선다 */
+  confirmLabel: string;
+  /** 보조 선택지 */
+  altLabel: string;
+  cancelLabel?: string;
+  isBusy?: boolean;
+  onConfirm: () => void;
+  onAlt: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Shell
+      icon={icon}
+      title={title}
+      description={description}
+      errorMessage={errorMessage}
+      onClose={isBusy ? undefined : onCancel}
+      isStacked
+    >
+      <button
+        type="button"
+        onClick={onConfirm}
+        disabled={isBusy}
+        className="btn btn-primary w-full"
+      >
+        {confirmLabel}
+      </button>
+      <button
+        type="button"
+        onClick={onAlt}
+        disabled={isBusy}
+        className="btn btn-gray w-full"
+      >
+        {altLabel}
+      </button>
+      <button
+        type="button"
+        onClick={onCancel}
+        disabled={isBusy}
+        className="w-full cursor-pointer py-1 text-label font-medium text-text-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {cancelLabel}
+      </button>
+    </Shell>
+  );
+}
+
+/** 아이콘 · 제목 · 설명은 셋이 같다 — 버튼만 갈아끼운다 */
 function Shell({
   icon,
   title,
   description,
   errorMessage,
   onClose,
+  isStacked = false,
   children,
 }: AlertDialogProps & {
   /** 없으면 닫을 수 없는 다이얼로그다 — 처리 중일 때 그렇게 쓴다 */
   onClose?: () => void;
+  /** 버튼을 세로로 쌓는다 — 셋 이상이면 가로로 두지 않는다 */
+  isStacked?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -170,7 +241,11 @@ function Shell({
         )}
       </div>
 
-      <div className="mt-5 flex justify-center gap-2">{children}</div>
+      <div
+        className={`mt-5 flex justify-center gap-2 ${isStacked ? 'flex-col' : ''}`}
+      >
+        {children}
+      </div>
     </Modal>
   );
 }

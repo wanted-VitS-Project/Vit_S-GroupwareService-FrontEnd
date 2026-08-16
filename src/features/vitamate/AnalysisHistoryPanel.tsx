@@ -23,7 +23,7 @@ import {
  * ⚠️ 목록 API 에는 `documents`·`result`·`citations` 가 없다 — 한 건을 누르면
  *    단건 조회를 한 번 더 해서 본문·근거를 채운다.
  *
- * 활동 로그 패널과 같은 자리 · 같은 크기로 뜬다.
+ * 활동 기록 패널과 같은 자리 · 같은 크기로 뜬다.
  */
 export default function AnalysisHistoryPanel({
   blockId,
@@ -259,7 +259,7 @@ function AnalysisDetail({
           ) : isRunning(analysis.analysisStatus) ? (
             // 진행 중인데 "결과 없음" 이라고 하면 끝났는데 빈 것으로 읽힌다
             <p className="text-caption text-text-secondary">
-              아직 검토하고 있어요. 잠시 후 다시 확인해주세요.
+              아직 검토하고 있습니다. 잠시 후 다시 확인해주세요.
             </p>
           ) : (
             <p className="text-caption text-text-secondary">

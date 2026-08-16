@@ -9,10 +9,10 @@ import type { StepBlock } from './types';
 
 const loadAddBlockModal = () => import('./AddBlockModal');
 const AddBlockModal = dynamic(loadAddBlockModal, {
-  loading: () => <ModalLoadingFallback title="Block 추가" />,
+  loading: () => <ModalLoadingFallback title="블록 추가" />,
 });
 
-/** 스텝 화면 블록 목록 헤더의 `Block 추가` 버튼. */
+/** 스텝 화면 블록 목록 헤더의 `블록 추가` 버튼. */
 export default function AddBlockButton({
   stepName,
   blocks,
@@ -54,7 +54,7 @@ export default function AddBlockButton({
         >
           <path d="M12 5v14M5 12h14" />
         </svg>
-        Block 추가
+        블록 추가
       </button>
 
       {modal.isOpen && (

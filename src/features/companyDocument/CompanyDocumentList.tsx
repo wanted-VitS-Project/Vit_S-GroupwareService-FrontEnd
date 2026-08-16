@@ -431,8 +431,8 @@ export default function CompanyDocumentList() {
                 </p>
                 <p className="text-label break-keep text-text-secondary">
                   {hasFilter
-                    ? '검색어나 분류를 바꿔 주세요'
-                    : '위 새 문서 추가 버튼으로 파일을 올려 시작하세요'}
+                    ? '검색어나 분류를 바꾸세요'
+                    : '`새 문서 추가` 버튼으로 파일을 올려 시작하세요'}
                 </p>
               </>
             }

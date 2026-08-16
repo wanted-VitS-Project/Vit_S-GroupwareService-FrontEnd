@@ -177,7 +177,7 @@ export function updateProjectMemberPermission(
  * 참여자 제거. (.ai/API.md 127)
  *
  * ⚠️ **하드 삭제다** — `project_member` 에 soft delete 컬럼이 없다.
- *    활동 로그는 이름 스냅샷을 들고 있어 고아가 되지 않는다.
+ *    활동 기록는 이름 스냅샷을 들고 있어 고아가 되지 않는다.
  * ⭐ 그 프로젝트 스텝의 권한 오버라이드도 함께 지워진다 (2026-08-06 · 권한 누수 방지).
  */
 export function removeProjectMember(
@@ -250,7 +250,7 @@ export function updateProjectStatus(
  * 프로젝트 종결. 어느 상태에서든 부를 수 있다. (.ai/API.md 131)
  *
  * ⛔ **낙관적 락 대상이 아니다** — `version` 을 받지 않고 409 도 없다.
- * ℹ️ 종결해도 목록 · 로그에서 사라지지 않는다 (PRJ-004) — 삭제와 다른 동작이다.
+ * ℹ️ 종결해도 목록 · 활동 기록에서 사라지지 않는다 (PRJ-004) — 삭제와 다른 동작이다.
  */
 export function closeProject(
   projectId: number | string,

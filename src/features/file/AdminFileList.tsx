@@ -304,7 +304,7 @@ export default function AdminFileList({
             </p>
             <p className="text-label break-keep text-text-secondary">
               {hasFilter
-                ? '검색어나 필터를 바꿔 주세요'
+                ? '검색어나 필터를 바꾸세요'
                 : '프로젝트 스텝에 문서를 올리면 여기에 모입니다'}
             </p>
           </>

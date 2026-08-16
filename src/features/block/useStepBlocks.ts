@@ -37,7 +37,7 @@ export function useStepBlocks(stepId: string) {
  * 캐시의 블록 목록을 직접 갈아끼운다 — 서버에 다녀오지 않는다.
  *
  * 드래그로 바뀐 순서처럼 **화면이 이미 정답을 아는** 변화에만 쓴다.
- * 이걸 건너뛰면 다음 `Block 추가` 가 옛 순서로 자리를 잡는다.
+ * 이걸 건너뛰면 다음 `블록 추가` 가 옛 순서로 자리를 잡는다.
  */
 export function useSetStepBlocks(stepId: string) {
   const queryClient = useQueryClient();

@@ -8,6 +8,7 @@ import { ApiError, messageOf } from '@/lib/api';
 
 import { updateProject } from '../api';
 import { isVersionConflict } from '../errorCodes';
+import { AMOUNT_MAX_DIGITS, groupDigits } from '../FormFields';
 import type { ProjectDetail, UpdateProjectRequest } from '../types';
 import { CLIENT_NAME_MAX_LENGTH, PROJECT_NAME_MAX_LENGTH } from '../types';
 import SettingsSection from './SettingsSection';
@@ -146,7 +147,7 @@ export default function ProjectInfoForm({
     /*
      * ⚠️ 숫자가 아닌 값을 먼저 거른다 — `Number('abc')` 는 `NaN` 이라 아래 음수 검사를
      *    그냥 통과하고, JSON 직렬화에서 `null` 이 되어 서버가 400 을 내거나 값을 해제한다.
-     *    `type="number"` 가 대부분 막지만 붙여넣기 · IME 로 새어 들어올 수 있다.
+     *    입력칸이 숫자만 남기지만, 초기값이 서버에서 그대로 오므로 여기서 한 번 더 본다.
      */
     const contractAmount = values.contractAmount.trim()
       ? Number(values.contractAmount)
@@ -270,14 +271,25 @@ export default function ProjectInfoForm({
         </div>
 
         <Field label="계약금액 (원)" htmlFor="projectContractAmount">
+          {/*
+            `type="number"` 는 자릿수가 큰 계약금액을 읽기 어렵다 —
+            생성 폼(`AmountField`)과 같은 규칙으로 화면에만 콤마를 넣는다.
+          */}
           <input
             id="projectContractAmount"
-            type="number"
-            min={0}
+            type="text"
             inputMode="numeric"
-            value={values.contractAmount}
+            value={groupDigits(values.contractAmount)}
             disabled={isDisabled}
-            onChange={(event) => change('contractAmount', event.target.value)}
+            // 숫자만 남긴다 — 자릿수를 막지 않으면 `Number()` 가 `Infinity` 가 된다
+            onChange={(event) =>
+              change(
+                'contractAmount',
+                event.target.value
+                  .replace(/\D/g, '')
+                  .slice(0, AMOUNT_MAX_DIGITS),
+              )
+            }
             className={INPUT_CLASS}
           />
         </Field>

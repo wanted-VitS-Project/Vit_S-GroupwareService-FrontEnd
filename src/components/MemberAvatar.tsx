@@ -104,6 +104,7 @@ export default function MemberAvatar({
   withRing = true,
   decorative = false,
   resigned = false,
+  initialsOnly = false,
   imageUrl,
   thumbnail,
 }: {
@@ -117,6 +118,14 @@ export default function MemberAvatar({
   decorative?: boolean;
   /** 퇴사자 — 블록 담당자는 `owner.deleted` 로 판단한다 */
   resigned?: boolean;
+  /**
+   * 사진을 아예 부르지 않고 **이니셜 + 단색**만 그린다 (2026-08-16, 프로젝트 카드 전용).
+   *
+   * 목록 카드는 한 화면에 아바타가 수십 개 서고 크기도 24px 이라 사진이 거의 읽히지 않는데,
+   * 사번마다 서빙 요청이 한 번씩 나간다. 여기서는 색으로만 구별하는 편이 낫다.
+   * ⚠️ **다른 화면은 그대로 사진을 쓴다** — 이 값을 기본값으로 바꾸지 말 것.
+   */
+  initialsOnly?: boolean;
   /**
    * 사진 경로를 직접 넘길 때만 쓴다 (`/auth/me` 의 `profileImageUrl`).
    * 본인 아바타는 사진을 바꾼 직후 갱신돼야 해서 사번이 아니라 이 값을 받는다.
@@ -138,7 +147,8 @@ export default function MemberAvatar({
   const label = personLabel(name, resigned);
   const { box, text } = SIZES[size];
 
-  const source = sourceOf(userId, imageUrl);
+  // `initialsOnly` 는 사진을 아예 쓰지 않는 자리(겹친 담당자 스택 등)에서 켠다
+  const source = initialsOnly ? null : sourceOf(userId, imageUrl);
   const showsPhoto = Boolean(source) && source !== failedSource;
 
   /**

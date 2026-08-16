@@ -138,11 +138,11 @@ export default function ProjectCreateForm() {
 
     if (name === '') next.name = '과업명을 입력해주세요.';
     else if (name.length > PROJECT_NAME_MAX_LENGTH) {
-      next.name = `과업명은 ${PROJECT_NAME_MAX_LENGTH}자를 넘을 수 없어요.`;
+      next.name = `과업명은 ${PROJECT_NAME_MAX_LENGTH}자를 넘을 수 없습니다.`;
     }
 
     if (values.clientName.trim().length > CLIENT_NAME_MAX_LENGTH) {
-      next.clientName = `발주처는 ${CLIENT_NAME_MAX_LENGTH}자를 넘을 수 없어요.`;
+      next.clientName = `발주처는 ${CLIENT_NAME_MAX_LENGTH}자를 넘을 수 없습니다.`;
     }
 
     if (
@@ -150,7 +150,7 @@ export default function ProjectCreateForm() {
       values.endedOn &&
       values.startedOn > values.endedOn
     ) {
-      next.endedOn = '종료일이 시작일보다 앞설 수 없어요.';
+      next.endedOn = '종료일이 시작일보다 앞설 수 없습니다.';
     }
 
     setErrors(next);
@@ -221,12 +221,12 @@ export default function ProjectCreateForm() {
 
       setFormError(
         code === PROJECT_CATEGORY_CODES.notFound
-          ? '고른 사업 카테고리 중에 지금은 없는 것이 있어요. 새로고침 후 다시 골라주세요.'
+          ? '고른 사업 카테고리 중에 지금은 없는 것이 있습니다. 새로고침 후 다시 골라주세요.'
           : code === PROJECT_CODES.dateRangeInvalid
-            ? '시작일이 종료일보다 늦어요.'
+            ? '시작일이 종료일보다 늦습니다.'
             : messageOf(
                 caught,
-                '프로젝트를 생성하지 못했어요. 잠시 후 다시 시도해주세요.',
+                '프로젝트를 생성하지 못했습니다. 잠시 후 다시 시도해주세요.',
               ),
       );
       setIsSubmitting(false);
@@ -304,7 +304,7 @@ export default function ProjectCreateForm() {
             </legend>
             {hasCategoryFailed ? (
               <p className="text-caption break-keep text-text-secondary">
-                카테고리를 불러오지 못했어요. 생성 후 설정 화면에서 연결할 수
+                카테고리를 불러오지 못했습니다. 생성 후 설정 화면에서 연결할 수
                 있습니다.
               </p>
             ) : !selectable ? (

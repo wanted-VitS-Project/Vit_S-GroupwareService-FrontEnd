@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import PanelModal, { ModalFooter } from '@/components/PanelModal';
-import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
+import LoadingSpinner from '@/components/Spinner';
 import { getProjectSteps } from '@/features/project/api';
 import type { ProjectStep } from '@/features/project/types';
 import { ApiError, messageOf } from '@/lib/api';
@@ -145,13 +145,7 @@ export default function BlockMoveStepModal({
           </div>
 
           {isLoading ? (
-            <SkeletonGroup
-              label="스텝 목록 불러오는 중"
-              className="space-y-1.5"
-            >
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-9" />
-            </SkeletonGroup>
+            <LoadingSpinner label="스텝 목록 불러오는 중" className="py-8" />
           ) : haveStepsFailed ? (
             <p className="rounded-lg bg-red-bg-soft px-3 py-2.5 text-detail break-keep text-text-danger">
               스텝 목록을 불러오지 못했습니다. 닫고 다시 시도해주세요.
@@ -262,7 +256,7 @@ export default function BlockMoveStepModal({
         // 취소(= Esc · 배경 클릭)를 다시 불러오기에 둔다 — 잘못 눌러도 남의 값이 지워지지 않는다
         <AlertDialogTwoButton
           icon={DialogIcons.warning}
-          title="다른 사람이 먼저 저장했어요"
+          title="다른 사람이 먼저 저장했습니다"
           description="그 사이 이 블록이 수정됐습니다. 그대로 옮기거나, 최신 내용을 다시 불러올 수 있습니다."
           confirmLabel="그대로 옮기기"
           cancelLabel="다시 불러오기"

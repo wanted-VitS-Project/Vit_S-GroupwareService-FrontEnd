@@ -69,7 +69,7 @@ export default function ProjectSummaryCards({
         className="flex items-center gap-3 rounded-base border border-border-default bg-bg-card px-5 py-4"
       >
         <p role="alert" className="text-[13px] text-text-secondary">
-          상태별 건수를 불러오지 못했어요.
+          상태별 건수를 불러오지 못했습니다.
         </p>
         <button
           type="button"

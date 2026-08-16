@@ -48,12 +48,12 @@ import {
 
 /**
  * 프로젝트 상세 화면 왼쪽 사이드바.
- * 프로젝트 개요 · 진행 단계 · 참여자를 보여주고 하위 화면 전환의 기준이 된다.
+ * 프로젝트 개요 · 스테이지 · 참여자를 보여주고 하위 화면 전환의 기준이 된다.
  *
  */
 
 /*
- * 단계 · 스텝 편집 모달은 **누를 때 받아온다**.
+ * 스테이지 · 스텝 편집 모달은 **누를 때 받아온다**.
  * 사이드바는 프로젝트 하위 모든 화면에 항상 떠 있어, 여기서 정적으로 물면
  * 편집 권한이 없는 사용자까지 모달 6개를 매번 내려받게 된다.
  */
@@ -82,17 +82,17 @@ const PANEL_FALLBACK = 'w-full max-w-[420px] rounded-base p-6 shadow-2xl';
 
 const StageManageModal = dynamic(loadStageManageModal, {
   loading: () => (
-    <ModalLoadingFallback title="단계 관리" className={PANEL_FALLBACK} />
+    <ModalLoadingFallback title="스테이지 관리" className={PANEL_FALLBACK} />
   ),
 });
 const StageFormModal = dynamic(loadStageFormModal, {
   loading: () => (
-    <ModalLoadingFallback title="단계" className={PANEL_FALLBACK} />
+    <ModalLoadingFallback title="스테이지" className={PANEL_FALLBACK} />
   ),
 });
 const StageDeleteModal = dynamic(loadStageDeleteModal, {
   loading: () => (
-    <ModalLoadingFallback title="단계 삭제" className={PANEL_FALLBACK} />
+    <ModalLoadingFallback title="스테이지 삭제" className={PANEL_FALLBACK} />
   ),
 });
 const StepFormModal = dynamic(loadStepFormModal, {
@@ -118,10 +118,7 @@ const StepPermissionModal = dynamic(loadStepPermissionModal, {
 });
 const StagePermissionModal = dynamic(loadStagePermissionModal, {
   loading: () => (
-    <ModalLoadingFallback
-      title="새 스텝 권한 기본값"
-      className={PANEL_FALLBACK}
-    />
+    <ModalLoadingFallback title="스테이지 권한" className={PANEL_FALLBACK} />
   ),
 });
 
@@ -171,7 +168,7 @@ type SidebarModal =
   | { kind: 'stepPermission'; step: ProjectStep }
   /** 상태 변경 — 바꿀 상태는 **모달 안에서** 고른다 (`DONE` 은 완료 처리로 넘어간다) */
   | { kind: 'stepStatus'; step: ProjectStep }
-  /** 이 단계에 새로 생길 스텝의 권한 기본값 */
+  /** 이 스테이지에 새로 생길 스텝의 권한 기본값 */
   | { kind: 'stagePermission'; stage: ProjectStage }
   /** 참여자 명단 — 사이드바 아바타 줄에서 바로 연다 */
   | { kind: 'members' };
@@ -224,14 +221,14 @@ export default function ProjectSidebar() {
   const router = useRouter();
   const { isCollapsed, toggle, expand } = useProjectSidebarCollapse();
 
-  /** 단계 · 스텝을 고친 뒤 목록을 다시 읽는 신호 */
+  /** 스테이지 · 스텝을 고친 뒤 목록을 다시 읽는 신호 */
   const [reloadCount, setReloadCount] = useState(0);
   const modal = useModalTarget<SidebarModal>();
   /** 스텝 이름을 캐시에서 꺼내 쓰는 화면(스텝 헤더)에도 변경을 알린다 */
   const refreshSteps = useRefreshProjectSteps(projectId);
 
   /**
-   * 스텝 · 단계를 고친 직후 부르는 단일 창구.
+   * 스텝 · 스테이지를 고친 직후 부르는 단일 창구.
    * 사이드바 자신의 목록과 **캐시에 담긴 스텝 목록**을 함께 갱신한다 —
    * 여기를 빼먹으면 이름을 바꿔도 스텝 화면 헤더가 옛 이름을 들고 있다.
    */
@@ -279,7 +276,7 @@ export default function ProjectSidebar() {
       });
 
     return () => controller.abort();
-    // 단계를 고치면 `reloadCount` 가 올라 같은 조회를 다시 태운다 (스텝은 캐시가 맡는다)
+    // 스테이지를 고치면 `reloadCount` 가 올라 같은 조회를 다시 태운다 (스텝은 캐시가 맡는다)
   }, [projectId, reloadCount]);
 
   /**
@@ -326,7 +323,7 @@ export default function ProjectSidebar() {
     };
   }, [projectId, refreshSteps]);
 
-  // 참여자는 보조 정보다. 지연·실패해도 프로젝트 개요와 단계 탐색을 막지 않는다.
+  // 참여자는 보조 정보다. 지연·실패해도 프로젝트 개요와 스테이지 탐색을 막지 않는다.
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
@@ -351,7 +348,7 @@ export default function ProjectSidebar() {
   const stages = current?.stages ?? null;
   const members =
     loadedMembers?.projectId === projectId ? loadedMembers.members : null;
-  // 스텝만 실패해도 단계 탐색이 통째로 비어 이전과 같은 오류 화면을 띄운다
+  // 스텝만 실패해도 스테이지 탐색이 통째로 비어 이전과 같은 오류 화면을 띄운다
   const hasFailed = failedProjectId === projectId || haveStepsFailed;
   const haveMembersFailed = failedMembersProjectId === projectId;
 
@@ -554,7 +551,7 @@ export default function ProjectSidebar() {
 
               <div className="flex h-13 items-center justify-between border-b border-border-default px-4">
                 <h2 className="text-body-l font-semibold text-text-secondary uppercase">
-                  진행 단계
+                  스테이지
                 </h2>
                 {canEdit && (
                   <div className="flex items-center gap-1.5">
@@ -569,7 +566,7 @@ export default function ProjectSidebar() {
                       disabled={!stages}
                       className="cursor-pointer rounded-button-sm border border-border-primary px-1.5 py-0.5 text-label font-medium text-text-primary-blue hover:bg-blue-bg-soft disabled:cursor-not-allowed disabled:border-border-default disabled:text-text-muted"
                     >
-                      단계수정
+                      수정
                     </button>
                     <button
                       type="button"
@@ -587,7 +584,7 @@ export default function ProjectSidebar() {
               {!stages || !steps ? (
                 hasFailed ? (
                   <p className="px-4 py-3 text-label text-text-secondary">
-                    진행 단계를 불러오지 못했습니다.
+                    스테이지를 불러오지 못했습니다.
                   </p>
                 ) : (
                   <ProjectStagesSkeleton />
@@ -679,7 +676,7 @@ export default function ProjectSidebar() {
                                     modal.open({ kind: 'stageRename', stage }),
                                 },
                                 {
-                                  label: '스텝 권한 기본값',
+                                  label: '스테이지 권한',
                                   icon: <KeyIcon />,
                                   onSelect: () =>
                                     modal.open({
@@ -1174,8 +1171,9 @@ function StepCard({
    * 스텝 권한 관리 가능 여부 — **프로젝트 `EDITOR`** 다.
    *
    * ⚠️ 스텝 권한 API(134~136)는 스텝 권한이 아니라 프로젝트 권한을 본다.
-   *    그래서 아래 `step.myPermission` 과 **다른 값이며 함께 쓸 수 없다** —
-   *    남이 이 스텝에 `VIEWER` 오버라이드를 걸어 둔 프로젝트 편집자도 권한은 관리할 수 있다.
+   *    그래서 아래 `step.myPermission` 과 **다른 값이다** — 둘 다 참일 때만 항목을 넣는다.
+   *    이 스텝이 열람 전용인 프로젝트 편집자는 여기 대신 **프로젝트 설정**에서 관리한다
+   *    (메뉴 자체를 세우지 않기로 했다 — 아래 `canEditStep` 분기 주석 참고).
    */
   canManagePermissions: boolean;
   onEdit: () => void;
@@ -1222,37 +1220,35 @@ function StepCard({
           >
             {`${step.progressRate ?? 0}%`}
           </span>
-          {canEditStep || canManagePermissions ? (
+          {/*
+            ⭐ **이 스텝을 고칠 수 없으면 `⋯` 을 아예 세우지 않는다** (2026-08-16).
+               예전에는 프로젝트 편집자면 `권한 관리` 하나만 담아 메뉴를 열어 줬는데,
+               정작 스텝이 열람 전용인 사람에게 메뉴가 보여 "고칠 수 있다" 로 읽혔다.
+               그 사람의 권한 관리 진입로는 **프로젝트 설정 > 스테이지 · 스텝 권한**에
+               스텝 전체 목록으로 이미 있다 — 잃는 길이 없다.
+          */}
+          {canEditStep ? (
             <span className="pointer-events-auto">
               <RowMenu
                 label={step.name}
                 revealClass="group-hover/step:opacity-100"
                 onOpen={preloadStepChunks}
                 items={[
-                  // 수정 · 완료 · 삭제는 **스텝** 권한, 권한 관리는 **프로젝트** 권한이다
-                  ...(canEditStep
-                    ? [
-                        {
-                          label: '스텝 수정',
-                          icon: <PencilIcon />,
-                          onSelect: onEdit,
-                        },
-                      ]
-                    : []),
+                  {
+                    label: '스텝 수정',
+                    icon: <PencilIcon />,
+                    onSelect: onEdit,
+                  },
                   /*
                    * 상태는 **항목 하나로 묶는다** — 진행 전 · 진행중 · 완료를 각각 두면
                    * 메뉴가 스텝 상태에 따라 늘었다 줄었다 해서 매번 읽어야 한다.
                    * 무엇으로 바꿀지는 모달 안에서 고른다 (완료만 완료 처리 모달로 넘어간다).
                    */
-                  ...(canEditStep
-                    ? [
-                        {
-                          label: '상태 변경',
-                          icon: <PlayIcon />,
-                          onSelect: onChangeStatus,
-                        },
-                      ]
-                    : []),
+                  {
+                    label: '상태 변경',
+                    icon: <PlayIcon />,
+                    onSelect: onChangeStatus,
+                  },
                   ...(canManagePermissions
                     ? [
                         {
@@ -1262,16 +1258,12 @@ function StepCard({
                         },
                       ]
                     : []),
-                  ...(canEditStep
-                    ? [
-                        {
-                          label: '삭제',
-                          icon: <TrashIcon />,
-                          danger: true,
-                          onSelect: onDelete,
-                        },
-                      ]
-                    : []),
+                  {
+                    label: '삭제',
+                    icon: <TrashIcon />,
+                    danger: true,
+                    onSelect: onDelete,
+                  },
                 ]}
               />
             </span>

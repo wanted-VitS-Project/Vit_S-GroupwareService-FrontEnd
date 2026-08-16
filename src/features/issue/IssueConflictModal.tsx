@@ -55,14 +55,14 @@ export default function IssueConflictModal({
 
   return (
     <Modal
-      title="같은 항목을 다른 사람도 수정했어요"
+      title="같은 항목을 다른 사람도 수정했습니다"
       onClose={isSaving ? undefined : onCancel}
       dismissOnBackdrop={false}
       className="flex max-h-[85vh] w-full max-w-[560px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
       header={
         <div className="shrink-0 border-b border-border-default px-5 py-3.5">
           <h2 className="text-body-m font-semibold text-text-primary">
-            같은 항목을 다른 사람도 수정했어요
+            같은 항목을 다른 사람도 수정했습니다
           </h2>
           <p className="pt-1 text-caption break-keep text-text-secondary">
             항목마다 어느 값을 남길지 골라주세요. 여기 없는 항목은 이미 최신

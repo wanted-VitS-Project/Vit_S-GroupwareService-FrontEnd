@@ -35,7 +35,7 @@ interface AddBlockModalProps {
 
 /**
  * 스텝 화면에 블록을 추가하는 모달.
- * `type` 만 필수다 — 이름(`title`)은 비워도 생성된다. (.ai/API.md 9번)
+ * `type` 만 필수다 — 제목(`title`)은 비워도 생성된다. (.ai/API.md 9번)
  */
 export default function AddBlockModal({
   stepName,
@@ -54,7 +54,7 @@ export default function AddBlockModal({
   const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState(false);
 
   const selected = BLOCK_TYPES.find((type) => type.code === selectedCode);
-  const titleLabel = selected?.titleLabel ?? '블록 이름';
+  const titleLabel = selected?.titleLabel ?? '블록 제목';
   const isDirty = selectedCode !== null || title.trim().length > 0;
 
   function requestClose() {
@@ -103,7 +103,7 @@ export default function AddBlockModal({
   return (
     <>
       <Modal
-        title="Block 추가"
+        title="블록 추가"
         onClose={isSubmitting ? undefined : requestClose}
         className="w-full max-w-[640px] overflow-hidden rounded-base border border-border-default shadow-2xl"
         header={
@@ -113,7 +113,7 @@ export default function AddBlockModal({
                 <BlockTypeIcon code="TEXT" />
               </span>
               <h2 className="text-body-m font-semibold text-text-primary">
-                Block 추가
+                블록 추가
               </h2>
               <span className="truncate rounded-button-sm bg-bg-hover px-1.5 py-0.5 text-caption text-text-secondary">
                 {stepName}
@@ -191,9 +191,7 @@ export default function AddBlockModal({
               maxLength={BLOCK_TITLE_MAX_LENGTH}
               onChange={(event) => setTitle(event.target.value)}
               placeholder={
-                selected?.titleLabel
-                  ? '예: 1차 기성'
-                  : '블록의 이름을 입력해주세요.'
+                selected?.titleLabel ? '예: 1차 기성' : '블록 제목을 입력하세요'
               }
               className="w-full rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-detail text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
             />
