@@ -6,6 +6,43 @@
 
 ---
 
+## [2026-08-16] 사원 검색 칸이 화면을 통째로 튕기던 문제 ✅
+
+브랜치: `fix/employee-search-forbidden` · API: 변경 없음
+
+`develop` 를 받은 팀원이 **프로젝트 생성 · 스텝(결재 블록) 진입이 안 된다**고 알려와 원인을 잡았다.
+사원 검색 칸이 마운트되면서 **ADMIN 전용 사원 목록 API** 를 불렀고, 그 403 이 전역 처리로
+`/forbidden` 까지 이어지며 화면이 통째로 넘어갔다. 원인(호출)과 증상(표시) 둘 다 고쳤다.
+
+### 변경 파일
+
+| 파일 | 변경 |
+| ---- | ---- |
+| `src/features/employee/EmployeeSearchInput.tsx` | 수정 — 전 사원 목록 프리페치를 ADMIN 으로 한정 |
+| `src/features/auth/CurrentUserProvider.tsx` | 수정 — 권한 403 을 `/forbidden` 이동 대신 `PermissionDeniedContext` 로 전달 |
+| `src/features/pagePermission/PageAccessGate.tsx` | 수정 — 403 안내를 본문 자리에서 함께 그림 |
+
+### 트러블슈팅
+
+| 항목 | 내용 |
+| ---- | ---- |
+| 증상 | 사원(MEMBER) 계정이 `/projects/new` · 결재 블록이 있는 스텝에 들어가면 권한 오류 전체 화면 |
+| 응답 | `GET /api/v1/employees?size=200` → 403 `ACC_ADMIN_REQUIRED` (명세 30번은 ADMIN 전용) |
+| 원인 | `EmployeeSearchInput` 이 빈 칸 목록용으로 그 API 를 마운트 시 호출. `.catch(() => {})` 로 삼켰지만 **전역 403 이벤트(`lib/api.ts`)가 먼저 발사**돼 소용이 없었다 |
+| 해결 | 호출 자체를 ADMIN 으로 한정. 이름 검색(`/employees/search`)은 전원 사용 가능이라 기능은 유지된다 |
+| 부가 | 같은 칸을 쓰는 화면 4곳(프로젝트 생성 · 결재 상신 · 결재자 교체 · 참여자 추가)이 함께 풀렸다 |
+
+### 부수 결정
+
+- **권한 403 은 셸 안 본문에만 그린다** — `/forbidden` 은 `BARE_LAYOUT_PATHS` 라 사이드바 · 헤더까지 사라져, 사이드바에서 누른 결과가 전체 화면 오류가 됐다. 팀 결정(본문 표시)이 `PageAccessGate` 에만 적용돼 있었고 전역 403 경로가 예전 그대로였다
+- **경로를 함께 저장해 자동으로 푼다** — `{ pathname, code }` 로 담아 화면을 옮기면 값이 어긋나 풀린다. 효과에서 상태를 되돌리지 않는 이 저장소의 기존 방식과 같다
+- **`/forbidden` 라우트는 남긴다** — 셸 밖(`BARE_LAYOUT_PATHS`)에서 403 을 받는 경로가 계속 쓴다
+- **`PagePermissionList` 의 같은 호출은 그대로 둔다** — ADMIN 전용 화면(`/settings/page-permissions`)이라 403 이 날 수 없다
+
+### 확인
+
+- `npx tsc --noEmit` · `npx eslint src` · `npm run build` 통과
+- 사원 계정으로 `/projects/new` 진입 정상 확인 (2026-08-16)
 ## [2026-08-16] 디자인 일관성 스윕 — 모달 셸 · 타이포 · 페이지 제목 · 색 토큰 ✅
 
 브랜치: `style` · API: 변경 없음 · 이슈: #176
