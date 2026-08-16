@@ -41,8 +41,7 @@ const ITEMS: FinanceItem[] = [
   {
     icon: 'cashFlow',
     label: '입출금 내역',
-    description:
-      '입출금을 등록·조회하고 정산 블록에 연결합니다. CSV 일괄 업로드도 지원합니다.',
+    description: '입출금을 등록·조회하고 정산 블록에 연결합니다.',
     href: FINANCE_ROUTES.cashFlows,
     pick: (summary) => summary.cashFlow,
     totalLabel: '전체',
@@ -50,8 +49,7 @@ const ITEMS: FinanceItem[] = [
   {
     icon: 'taxInvoice',
     label: '세금계산서',
-    description:
-      'CSV 로 수집한 세금계산서를 조회하고 정산 블록에 연결합니다.',
+    description: 'CSV 로 수집한 세금계산서를 조회하고 정산 블록에 연결합니다.',
     href: FINANCE_ROUTES.taxInvoices,
     pick: (summary) => summary.taxInvoice,
     totalLabel: '전체',
@@ -59,8 +57,7 @@ const ITEMS: FinanceItem[] = [
   {
     icon: 'settlement',
     label: '정산 현황',
-    description:
-      '정산이 끝나지 않은 프로젝트를 한눈에 확인합니다. 미연결 경고를 제공합니다.',
+    description: '정산이 끝나지 않은 프로젝트를 한눈에 확인합니다.',
     href: FINANCE_ROUTES.settlements,
     // ⛔ 화면 미구현 (#18)
     isComingSoon: true,

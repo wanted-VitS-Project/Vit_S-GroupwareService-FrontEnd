@@ -385,7 +385,7 @@ export default function NoticeCreateForm() {
 
         <FormSection
           title="일정"
-          description="비워두면 목록에서 '-' 로 보입니다. 마감일을 넣으면 남은 일수(D-Day)가 계산돼요."
+          description="비워두면 목록에서 '-' 로 보입니다. 마감일을 넣으면 남은 일수(D-Day)가 계산됩니다."
         >
           <TextField
             id="announcedAt"
@@ -426,7 +426,7 @@ export default function NoticeCreateForm() {
           <AmountField
             id="baseAmount"
             label="기초금액"
-            hint="나라장터 '기초금액'. 공개 전이면 비워둡니다."
+            hint="공개 전이면 비워둡니다"
             placeholder="0"
             value={values.baseAmount}
             onChange={change('baseAmount')}
@@ -434,7 +434,7 @@ export default function NoticeCreateForm() {
           <AmountField
             id="estimatedAmount"
             label="추정가격"
-            hint="부가가치세를 포함하지 않은 금액입니다."
+            hint="부가가치세 제외"
             placeholder="0"
             value={values.estimatedAmount}
             onChange={change('estimatedAmount')}
@@ -520,7 +520,7 @@ export default function NoticeCreateForm() {
               label="공고 원문 URL"
               type="url"
               placeholder="https://"
-              hint="선택 입력입니다. 원문을 다시 확인할 유일한 단서이므로 가급적 입력해주세요."
+              hint="선택 입력"
               value={values.sourceUrl}
               error={errors.sourceUrl}
               onChange={change('sourceUrl')}

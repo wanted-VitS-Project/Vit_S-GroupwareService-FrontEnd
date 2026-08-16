@@ -37,27 +37,27 @@ const TEMPLATE_COLUMNS: {
   {
     name: '사번',
     required: true,
-    format: '로그인 아이디로 쓰인다 (중복 불가)',
+    format: '로그인 아이디 · 중복 불가',
   },
   { name: '이름', required: true, format: '' },
-  { name: '부서명', required: true, format: '등록된 부서명과 정확히 일치' },
-  { name: '직급명', required: false, format: '등록된 직급명과 정확히 일치' },
+  { name: '부서명', required: true, format: '등록된 부서명과 동일하게' },
+  { name: '직급명', required: false, format: '등록된 직급명과 동일하게' },
   {
     name: '입사일',
     required: true,
     // 엑셀이 날짜 서식으로 바꾸면 `2026.04.05` 가 되어 그대로 검증에 걸린다
-    format: "yyyy-MM-dd (예: 2026-08-10) — 셀 서식을 '텍스트'로 두세요",
+    format: "yyyy-MM-dd · 셀 서식 '텍스트'",
   },
   {
     name: '이메일',
     required: false,
-    format: '없으면 초기 비밀번호가 발송되지 않는다',
+    format: '없으면 초기 비밀번호 미발송',
   },
   { name: '연락처', required: false, format: '' },
   {
     name: '권한',
     required: true,
-    format: 'MASTER · MEMBER (ADMIN 은 거부된다)',
+    format: 'MASTER · MEMBER',
   },
 ];
 
@@ -337,7 +337,7 @@ function PickStep({
           1. 템플릿 내려받기
         </h3>
         <p className="mt-1 text-label break-keep text-text-secondary">
-          아래 8개 열로 되어 있습니다. 열을 지우거나 순서를 바꾸지 마세요.
+          열을 지우거나 순서를 바꾸지 마세요.
         </p>
         <button
           type="button"

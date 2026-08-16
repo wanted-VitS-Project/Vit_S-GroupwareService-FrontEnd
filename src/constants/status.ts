@@ -50,7 +50,7 @@ export const PROJECT_STATUS_LABELS: Record<ProjectStatusCode, string> = {
 
 export const EMPLOYEE_STATUS_LABELS: Record<EmployeeStatus, string> = {
   ACTIVE: '활성',
-  RESET_REQUIRED: '재설정 필요',
-  INACTIVE: '정지',
+  RESET_REQUIRED: '비밀번호 재설정 필요',
+  INACTIVE: '비활성',
   RESIGNED: '퇴사',
 };

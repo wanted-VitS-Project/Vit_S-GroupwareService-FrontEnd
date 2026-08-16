@@ -50,13 +50,9 @@ export default function JobPositionEmployeesModal({
   }
 
   return (
-    <PanelModal title={`${position.name} 사원`} onClose={onClose}>
+    <PanelModal title={`${position.name} 사원 목록`} onClose={onClose}>
       <div className="p-5">
-        <p className="pb-2 text-caption break-keep text-text-secondary">
-          재직 중인 사원만 나옵니다. 퇴사자와 시스템 계정은 제외됩니다.
-        </p>
-
-        <div className="max-h-72 overflow-auto rounded-lg border border-border-default">
+        <div className="max-h-[min(60dvh,420px)] overflow-auto rounded-lg border border-border-default">
           {hasFailed ? (
             <Centered>
               <p className="text-detail text-text-secondary">

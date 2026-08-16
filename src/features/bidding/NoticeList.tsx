@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
-import Pagination from '@/components/Pagination';
+import Pagination, { PaginationPlaceholder } from '@/components/Pagination';
 import { formatDate, formatTime } from '@/lib/format';
 
 import { getNotices } from './api';
@@ -203,6 +203,13 @@ export default function NoticeList() {
         }
       />
 
+      {/* 받아오는 동안에도 같은 높이를 잡아 둔다 — 결과가 올 때 아래가 밀리지 않게 */}
+      {!hasFailed && !page && (
+        <div className="mt-3 overflow-hidden rounded-xl border border-border-default bg-bg-card">
+          <PaginationPlaceholder />
+        </div>
+      )}
+
       {/* 표 바깥에 둔다 — 실패 · 빈 상태에서는 넘길 페이지가 없다 */}
       {!hasFailed && page && page.totalElements > 0 && (
         <div className="mt-3 overflow-hidden rounded-xl border border-border-default bg-bg-card">
@@ -315,15 +322,14 @@ const NOTICE_COLUMNS: DataTableColumn<BidNoticeListItem>[] = [
     skeletonWidth: 'w-24',
     /**
      * 날짜 · 시각 · 남은 기간을 **한 줄**에 둔다 — 마감을 볼 때 셋은 한 덩어리로 읽힌다.
-     * 좁아지면 배지가 다음 줄로 흐른다 (잘리지는 않는다).
+     *
+     * ⚠️ 줄바꿈을 허용하지 않는다. 예전에는 날짜 칸에 고정 폭(`w-32`)을 주고 넘치면
+     *    다음 줄로 흐르게 두었는데, 표가 좁아지자 **배지만 아래로 떨어져** 줄마다 높이가
+     *    달라지고 고장난 것처럼 보였다. 배지 세로 맞춤보다 한 줄 유지가 먼저다.
      */
     cell: (row) => (
-      <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        {/**
-         * ⚠️ 배지를 칸 오른쪽 끝(`ml-auto`)으로 밀지 않는다 — 날짜와 멀어져 한 덩어리로
-         *    읽히지 않는다. 날짜 칸에 **고정 폭**을 줘서 배지 위치만 세로로 맞춘다.
-         */}
-        <span className="w-32 shrink-0 text-text-secondary">
+      <span className="inline-flex items-center gap-2 whitespace-nowrap">
+        <span className="text-text-secondary">
           {formatDate(row.bidDeadlineAt) || '-'}
           {formatTime(row.bidDeadlineAt) && (
             <span className="ml-1 text-detail text-text-muted">

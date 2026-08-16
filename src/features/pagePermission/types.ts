@@ -13,8 +13,12 @@ export type GrantablePermission = Exclude<PagePermission, 'NONE'>;
  * 접근 근거.
  * `GRANTED` 만 회수할 수 있다 — 나머지는 전역 권한 · 기본값이라 화면에서 손댈 수 없다.
  */
+/**
+ * 권한이 어디서 왔는지.
+ * ⚠️ `NONE` 만 **서버 값이 아니다** — 권한 없는 사원을 같은 표에 세우려고 화면이 만든다.
+ */
 export type PageAccessSource =
-  'GRANTED' | 'GLOBAL_ROLE' | 'ADMIN_ONLY' | 'DEFAULT';
+  'GRANTED' | 'GLOBAL_ROLE' | 'ADMIN_ONLY' | 'DEFAULT' | 'NONE';
 
 /** GET /my/pages — 사이드바 노출의 유일한 근거 */
 export interface MyPage {

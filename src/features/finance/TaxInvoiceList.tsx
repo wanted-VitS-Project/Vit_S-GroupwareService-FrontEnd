@@ -49,7 +49,6 @@ export default function TaxInvoiceList() {
   });
   const [rows, setRows] = useState<TaxInvoiceItem[] | null>(null);
   const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
 
   /** 고른 줄 — 삭제 · 제외는 다건이다 */
@@ -70,7 +69,6 @@ export default function TaxInvoiceList() {
       .then((data) => {
         setRows(data.taxInvoices);
         setTotalPages(data.totalPages);
-        setTotalElements(data.totalElements);
         // 페이지가 바뀌면 지난 선택은 화면에 없다 — 남겨 두면 안 보이는 것이 지워진다
         setPicked(new Set());
         setError('');
@@ -139,7 +137,7 @@ export default function TaxInvoiceList() {
 
     try {
       const { count, skippedItems } = await deleteTaxInvoices([...picked]);
-      report('삭제했어요', count, skippedItems);
+      report('삭제했습니다', count, skippedItems);
     } catch (caught) {
       notifyToast(messageOf(caught, '삭제하지 못했습니다.'), 'error');
     } finally {
@@ -162,7 +160,7 @@ export default function TaxInvoiceList() {
         isExcluded,
       );
       report(
-        isExcluded ? '연결 대상에서 뺐어요' : '연결 대상에 넣었어요',
+        isExcluded ? '연결 대상에서 뺐습니다' : '연결 대상에 넣었습니다',
         count,
         skippedItems,
       );
@@ -188,7 +186,7 @@ export default function TaxInvoiceList() {
           />
           <h2 className="mt-1 text-heading-m font-bold">세금계산서</h2>
           <p className="mt-1.5 text-caption break-keep text-text-secondary">
-            수집한 세금계산서를 정산 블록에 연결합니다. 총 {totalElements}건.
+            수집한 세금계산서를 정산 블록에 연결합니다.
           </p>
         </div>
 
@@ -267,7 +265,6 @@ export default function TaxInvoiceList() {
           errorMessage={error || undefined}
           onRetry={() => setReloadKey((key) => key + 1)}
           emptyMessage="세금계산서가 없습니다. CSV 로 수집해주세요."
-          minWidth={1000}
         />
       )}
 
@@ -343,14 +340,16 @@ function Filters({
       <button
         type="button"
         aria-pressed={query.unlinked ?? false}
-        onClick={() => onChange({ unlinked: query.unlinked ? undefined : true })}
+        onClick={() =>
+          onChange({ unlinked: query.unlinked ? undefined : true })
+        }
         className={`h-9 shrink-0 cursor-pointer rounded-lg border px-3 text-caption font-semibold ${
           query.unlinked
             ? 'border-border-primary bg-blue-bg-soft text-text-primary-blue'
             : 'border-border-default text-text-secondary hover:bg-bg-hover'
         }`}
       >
-        미연결만
+        미연결
       </button>
 
       <div className="relative w-56 shrink-0">
@@ -537,7 +536,7 @@ function buildColumns(
     {
       key: 'pick',
       header: '',
-      width: '3rem',
+      width: '4%',
       // ⚠️ 고르는 칸은 상세로 넘어가면 안 된다 — 체크하려다 화면이 바뀐다
       stopRowClick: true,
       cell: (row) => (
@@ -553,7 +552,7 @@ function buildColumns(
     {
       key: 'issuedNo',
       header: '발행일',
-      width: '8rem',
+      width: '11%',
       cell: (row) => (
         <span className="block text-text-secondary">
           {formatDate(row.issuedNo) || row.issuedNo || '-'}
@@ -563,9 +562,11 @@ function buildColumns(
     {
       key: 'type',
       header: '구분',
-      width: '5rem',
+      width: '7%',
       cell: (row) => (
-        <span className={TAX_INVOICE_TYPE_BADGE[row.type] ?? 'badge badge-gray'}>
+        <span
+          className={TAX_INVOICE_TYPE_BADGE[row.type] ?? 'badge badge-gray'}
+        >
           {TAX_INVOICE_TYPE_LABELS[row.type] ?? row.type}
         </span>
       ),
@@ -573,7 +574,7 @@ function buildColumns(
     {
       key: 'buyerName',
       header: '공급받는자',
-      width: '14rem',
+      width: '19%',
       // 줄 전체가 눌리므로 여기에 링크를 겹치지 않는다
       cell: (row) => (
         <span className="block truncate font-semibold text-text-primary">
@@ -584,7 +585,7 @@ function buildColumns(
     {
       key: 'approvalNo',
       header: '승인번호',
-      width: '12rem',
+      width: '17%',
       cell: (row) => (
         <span className="block truncate text-text-secondary">
           {row.approvalNo || '-'}
@@ -594,9 +595,10 @@ function buildColumns(
     {
       key: 'totalAmount',
       header: '합계',
-      width: '9rem',
+      width: '12%',
+      align: 'right',
       cell: (row) => (
-        <span className="block text-right font-semibold text-text-primary">
+        <span className="block font-semibold text-text-primary">
           {formatAmount(row.totalAmount)}
         </span>
       ),
@@ -604,7 +606,7 @@ function buildColumns(
     {
       key: 'linkStatus',
       header: '연결',
-      width: '7rem',
+      width: '10%',
       cell: (row) => (
         <span className={CASH_FLOW_LINK_BADGE[row.linkStatus]}>
           {CASH_FLOW_LINK_STATUS_LABELS[row.linkStatus] ?? row.linkStatus}
@@ -614,13 +616,11 @@ function buildColumns(
     {
       key: 'roundName',
       header: '연결 대상',
-      width: '14rem',
+      width: '20%',
       cell: (row) => (
         <span className="block truncate text-text-secondary">
           {/* 제외된 건은 연결 대상이 아니라는 것부터 알려야 한다 */}
-          {row.isExcluded
-            ? '연결 대상 제외'
-            : (row.roundName ?? '-')}
+          {row.isExcluded ? '연결 대상 제외' : (row.roundName ?? '-')}
         </span>
       ),
     },

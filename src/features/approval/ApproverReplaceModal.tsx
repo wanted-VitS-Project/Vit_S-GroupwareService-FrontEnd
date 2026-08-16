@@ -255,7 +255,7 @@ function TargetRow({
           ) : (
             <EmployeeSearchInput
               excludedIds={excludedIds}
-              placeholder="이름 · 사번으로 검색"
+              placeholder="이름 · 사번 검색"
               disabled={disabled}
               onSelect={(employee) =>
                 onDecide({

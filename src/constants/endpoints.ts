@@ -128,17 +128,6 @@ export const ENDPOINTS = {
     /** 일괄 등록 */
     bulk: `${V1}/employees/bulk`,
   },
-  employeeGroups: {
-    /** 목록 조회(전체 사용자) · 생성(ADMIN) */
-    root: `${V1}/employee-groups`,
-    /** 수정 · 삭제 */
-    detail: (groupId: number) => `${V1}/employee-groups/${groupId}`,
-    /** 구성원 목록 조회 · 추가 */
-    members: (groupId: number) => `${V1}/employee-groups/${groupId}/members`,
-    /** 구성원 제거 — 다건 API 가 없어 한 명씩 부른다 */
-    member: (groupId: number, userId: string) =>
-      `${V1}/employee-groups/${groupId}/members/${userId}`,
-  },
   accounts: {
     role: (userId: string) => `${V1}/accounts/${userId}/role`,
     status: (userId: string) => `${V1}/accounts/${userId}/status`,

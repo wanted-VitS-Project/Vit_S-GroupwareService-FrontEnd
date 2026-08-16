@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 
 import DataTable from '@/components/DataTable';
-import Pagination from '@/components/Pagination';
-import { messageOf } from '@/lib/api';
+import Pagination, { PaginationPlaceholder } from '@/components/Pagination';
+import { ApiError, messageOf } from '@/lib/api';
 import { formatDate } from '@/lib/format';
 import { useModalTarget } from '@/lib/useModal';
 import { getProjects } from '@/features/project/api';
@@ -58,7 +58,18 @@ const EXTENSION_OPTIONS = [
  *
  * ⛔ **조회 전용이다.** 이름 수정 · 삭제는 문서가 붙은 스텝 화면에서 한다.
  */
-export default function AdminFileList() {
+export default function AdminFileList({
+  lockedProjectId,
+  lockedStepId,
+}: {
+  /**
+   * 탐색기가 골라 준 자리. 주면 **그 안만** 보여주고 요약 · 프로젝트 필터는 숨긴다 —
+   * 이미 경로 막대가 어디를 보고 있는지 말하고 있어, 같은 말을 두 번 할 이유가 없다.
+   */
+  lockedProjectId?: number;
+  /** ⚠️ 스텝 필터가 API 에 없어 **받아온 페이지 안에서** 거른다 */
+  lockedStepId?: number;
+} = {}) {
   const [keyword, setKeyword] = useState('');
   /** 실제 요청에 쓰는 검색어 — 돋보기 버튼 · 엔터로만 반영한다 */
   const [search, setSearch] = useState('');
@@ -87,12 +98,22 @@ export default function AdminFileList() {
   const [errorMessage, setErrorMessage] = useState('');
   const viewerModal = useModalTarget<ViewerFile>();
 
+  /** 탐색기가 잡아 준 프로젝트가 있으면 그쪽이 이긴다 */
+  const effectiveProjectId =
+    lockedProjectId ?? (projectId ? Number(projectId) : undefined);
+  const isLocked = lockedProjectId !== undefined;
+
   const hasFilter = search !== '' || projectId !== '' || extension !== '';
-  const requestKey = `${reloadCount} ${search} ${projectId} ${extension} ${page}`;
+  const requestKey = `${reloadCount} ${search} ${effectiveProjectId ?? ''} ${extension} ${page}`;
   /** 지금 조건의 결과만 화면에 쓴다 — 이전 요청 결과는 로딩으로 본다 */
   const current = result?.key === requestKey ? result : null;
   const filePage = current?.page ?? null;
-  const files = filePage?.content ?? null;
+  const files =
+    filePage === null
+      ? null
+      : lockedStepId === undefined
+        ? filePage.content
+        : filePage.content.filter((file) => file.stepId === lockedStepId);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -101,7 +122,7 @@ export default function AdminFileList() {
     getAdminFiles(
       {
         keyword: search || undefined,
-        projectId: projectId ? Number(projectId) : undefined,
+        projectId: effectiveProjectId,
         extension: extension || undefined,
         page,
         size: PAGE_SIZE,
@@ -112,15 +133,22 @@ export default function AdminFileList() {
       .catch((caught) => {
         // 취소는 실패가 아니다
         if (signal.aborted) return;
+        /**
+         * ⚠️ 403 은 **실패가 아니다.** 볼 권한이 없다는 뜻이라 `불러오지 못했습니다` 로
+         *    알리면 고장으로 읽혀 새로고침만 반복하게 된다. 할 일이 다르면 문구도 달라야 한다.
+         */
+        const isForbidden = caught instanceof ApiError && caught.status === 403;
+
         setResult({
           key: requestKey,
-          // 403(`ACC_ADMIN_REQUIRED`)이 여기로 온다 — 서버 문구를 그대로 보여준다
-          errorMessage: messageOf(caught, '파일 목록을 불러오지 못했습니다.'),
+          errorMessage: isForbidden
+            ? '이 파일을 볼 권한이 없습니다.'
+            : messageOf(caught, '파일 목록을 불러오지 못했습니다.'),
         });
       });
 
     return () => controller.abort();
-  }, [requestKey, search, projectId, extension, page]);
+  }, [requestKey, search, effectiveProjectId, extension, page]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -171,24 +199,26 @@ export default function AdminFileList() {
         요약은 **응답으로 확인되는 두 가지만** 둔다.
         총 용량 · 기간별 업로드 수는 집계 API 가 없어 지금 페이지 20행으로는 셀 수 없다.
       */}
-      <section
-        aria-label="전사 파일 요약"
-        aria-busy={filePage === null}
-        className="mb-4 grid grid-cols-2 gap-4"
-      >
-        <SummaryCard
-          label={hasFilter ? '조건에 맞는 파일' : '전체 파일'}
-          value={filePage?.totalElements ?? null}
-          iconStyle="bg-blue-bg-soft text-blue-text"
-          icon={<DocumentIcon className="size-5" />}
-        />
-        <SummaryCard
-          label="프로젝트"
-          value={projects?.totalCount ?? null}
-          iconStyle="bg-purple-bg-soft text-purple-text"
-          icon={<FolderIcon />}
-        />
-      </section>
+      {!isLocked && (
+        <section
+          aria-label="전사 파일 요약"
+          aria-busy={filePage === null}
+          className="mb-4 grid grid-cols-2 gap-4"
+        >
+          <SummaryCard
+            label={hasFilter ? '조건에 맞는 파일' : '전체 파일'}
+            value={filePage?.totalElements ?? null}
+            iconStyle="bg-blue-bg-soft text-blue-text"
+            icon={<DocumentIcon className="size-5" />}
+          />
+          <SummaryCard
+            label="프로젝트"
+            value={projects?.totalCount ?? null}
+            iconStyle="bg-purple-bg-soft text-purple-text"
+            icon={<FolderIcon />}
+          />
+        </section>
+      )}
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <form
@@ -224,14 +254,16 @@ export default function AdminFileList() {
           </button>
         </form>
 
-        <FilterSelect
-          id="adminFileProject"
-          label="프로젝트"
-          allLabel="프로젝트 전체"
-          value={projectId}
-          onChange={(value) => applyFilter(() => setProjectId(value))}
-          options={projects?.options ?? []}
-        />
+        {!isLocked && (
+          <FilterSelect
+            id="adminFileProject"
+            label="프로젝트"
+            allLabel="프로젝트 전체"
+            value={projectId}
+            onChange={(value) => applyFilter(() => setProjectId(value))}
+            options={projects?.options ?? []}
+          />
+        )}
         <FilterSelect
           id="adminFileExtension"
           label="파일 유형"
@@ -256,8 +288,9 @@ export default function AdminFileList() {
 
       <DataTable
         caption="전사 파일 목록"
+        // 탐색기에서 자리를 옮길 때마다 막대가 번쩍이지 않게 한다
+        showSkeleton={!isLocked}
         dense
-        minWidth={1000}
         rows={files}
         rowKey={(file) => file.fileId}
         errorMessage={current?.errorMessage}
@@ -335,7 +368,6 @@ export default function AdminFileList() {
             key: 'size',
             header: '크기',
             width: '8%',
-            align: 'right',
             cell: (file) => (
               <span className="text-caption whitespace-nowrap text-text-secondary">
                 {formatFileSize(file.sizeBytes)}
@@ -391,6 +423,13 @@ export default function AdminFileList() {
           },
         ]}
       />
+
+      {/* 받아오는 동안에도 같은 높이를 잡아 둔다 — 결과가 올 때 아래가 밀리지 않게 */}
+      {!filePage && (
+        <div className="mt-3 overflow-hidden rounded-base border border-border-default bg-bg-card">
+          <PaginationPlaceholder />
+        </div>
+      )}
 
       {/* 표 바깥에 둔다 — 실패 · 빈 상태에서는 넘길 페이지가 없다 */}
       {filePage && filePage.totalElements > 0 && (

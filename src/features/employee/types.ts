@@ -27,13 +27,7 @@ export interface EmployeeSummary {
   resignedAt: string | null;
 }
 
-/** 소속 그룹 — 상세에서 칩으로만 보여준다 (편집 API 가 없다) */
-export interface EmployeeGroup {
-  groupId: number;
-  name: string;
-}
-
-/** 사원 상세 (.ai/API.md 31) — 목록 필드 + 수정 폼 초기값 · 그룹 */
+/** 사원 상세 (.ai/API.md 31) — 목록 필드 + 수정 폼 초기값 */
 export interface EmployeeDetail extends EmployeeSummary {
   /** 수정 폼 초기값. 미지정이면 null */
   departmentId: number | null;
@@ -43,8 +37,6 @@ export interface EmployeeDetail extends EmployeeSummary {
   hiredAt: string | null;
   /** yyyy-MM-dd HH:mm:ss */
   lastLoginAt: string | null;
-  /** 없으면 `[]` */
-  groups: EmployeeGroup[];
 }
 
 /**

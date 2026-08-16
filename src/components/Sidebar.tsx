@@ -2,11 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 
 import Logo from '@/components/Logo';
 import MemberAvatar from '@/components/MemberAvatar';
 import MenuIcon from '@/components/MenuIcon';
-import { findActiveMenu } from '@/constants/menu';
+import { mobileSidebarClasses } from '@/components/mobileSidebarClasses';
+import { findActiveMenu, MENU_ORDER } from '@/constants/menu';
+import { readShellCookie } from '@/features/auth/shellCache';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useMenuItems } from '@/features/pagePermission/useMyPages';
 
@@ -14,122 +17,205 @@ export default function Sidebar() {
   const pathname = usePathname();
   const user = useCurrentUser();
   const { items, status, refetch } = useMenuItems();
+  /**
+   * 셸 자리표시가 쓰던 사진 사본을 그대로 이어받는다 —
+   * 넘겨받지 않으면 자리표시 → 실제 사이드바로 바뀌는 순간 사진이 한 번 비운다.
+   */
+  const [thumbnail] = useState(() => readShellCookie()?.avatar ?? null);
+  const isLoading = status === 'loading';
   const activeHref = findActiveMenu(pathname, items)?.href;
   /** 소속이 없는 계정(ADMIN 등)은 직급 · 부서가 `null` 로 온다 */
   const hasSubInfo = Boolean(user.jobPositionName || user.departmentPath);
 
+  /**
+   * 좁은 화면(1024px 미만)에서만 쓰이는 열림 상태.
+   * 넓은 화면에서는 클래스가 통째로 꺼져 있어 이 값이 화면에 영향을 주지 않는다.
+   */
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    // 셸이 화면 높이에 고정돼 있어, 메뉴가 길면 사이드바 안에서 굴러야 한다
-    <aside className="no-scrollbar w-70 shrink-0 overflow-y-auto bg-bg-sidebar">
+    <>
       {/*
+        좁은 화면에서 사이드바를 여는 버튼. 넓어지면 사라진다(`min-[1024px]:hidden`).
+        ⚠️ 사이드바 **바깥**에 둔다 — 안에 두면 닫혔을 때(`hidden`) 버튼까지 사라져 다시 열 수 없다.
+      */}
+      <button
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        aria-expanded={isOpen}
+        aria-label={isOpen ? '메뉴 닫기' : '메뉴 열기'}
+        className={mobileSidebarClasses.toggleButton}
+      >
+        {isOpen ? <CloseIcon /> : <MenuBarsIcon />}
+      </button>
+
+      {/* 뒤를 덮는 판 — 누르면 닫힌다. 넓은 화면에는 없다 */}
+      {isOpen && (
+        <button
+          type="button"
+          aria-label="메뉴 닫기"
+          onClick={() => setIsOpen(false)}
+          className={mobileSidebarClasses.backdrop}
+        />
+      )}
+
+      {/* 셸이 화면 높이에 고정돼 있어, 메뉴가 길면 사이드바 안에서 굴러야 한다 */}
+      <aside
+        className={`no-scrollbar w-70 shrink-0 overflow-y-auto bg-bg-sidebar ${
+          isOpen
+            ? mobileSidebarClasses.asideOpen
+            : mobileSidebarClasses.asideClosed
+        }`}
+      >
+        {/*
         로고 줄 — 헤더와 같은 52px(`h-13`) 라 두 영역의 밑줄이 한 선으로 이어진다.
         프로젝트 화면에는 이 사이드바가 없어 `Header` 가 같은 로고를 대신 그린다 —
         모양을 바꿀 때는 두 곳을 함께 고친다.
       */}
-      <div className="flex h-13 items-center border-b border-bg-sidebar-hover px-6">
-        {/* 로고는 어느 화면에서나 **홈으로 가는 길**이다 (프로젝트 화면은 `Header` 참고) */}
-        <Link href="/" aria-label="홈으로 이동" className="flex items-center">
-          <Logo />
-        </Link>
-      </div>
+        <div className="flex h-13 items-center border-b border-bg-sidebar-hover px-6">
+          {/* 로고는 어느 화면에서나 **홈으로 가는 길**이다 (프로젝트 화면은 `Header` 참고) */}
+          <Link href="/" aria-label="홈으로 이동" className="flex items-center">
+            <Logo />
+          </Link>
+        </div>
 
-      <Link
-        href="/mypage"
-        className="flex h-20 items-center gap-3 border-b border-bg-sidebar-hover px-6 hover:bg-bg-sidebar-hover"
-      >
-        {/* 이름이 바로 옆에 있으므로 장식으로 숨긴다 */}
-        <MemberAvatar
-          userId={user.userId}
-          name={user.name}
-          size="lg"
-          withRing={false}
-          decorative
-          imageUrl={user.profileImageUrl}
-        />
+        <Link
+          href="/mypage"
+          className="flex h-20 items-center gap-3 border-b border-bg-sidebar-hover px-6 hover:bg-bg-sidebar-hover"
+        >
+          {/* 이름이 바로 옆에 있으므로 장식으로 숨긴다 */}
+          <MemberAvatar
+            userId={user.userId}
+            name={user.name}
+            size="lg"
+            withRing={false}
+            decorative
+            imageUrl={user.profileImageUrl}
+            thumbnail={thumbnail}
+          />
 
-        <div className="min-w-0 flex-1">
-          {/*
+          <div className="min-w-0 flex-1">
+            {/*
             헤더 프로필과 같은 크기다 — 이름 18/600 · 부가정보 14/400 (명세).
             소속이 없는 계정(ADMIN 등)은 이름 한 줄만 남아 혼자 커 보인다 — 16px 로 떨어뜨린다.
           */}
-          {/* 줄이는 쪽(이름)에 `min-w-0` 이 없으면 flex 가 글자 폭 아래로 안 줄여 말줄임이 안 걸린다 */}
-          <p className="flex items-baseline gap-1.5">
-            <span
-              className={`min-w-0 truncate font-semibold text-text-white ${
-                hasSubInfo ? 'text-heading-m' : 'text-body-l'
-              }`}
-            >
-              {user.name}
-            </span>
-            {/*
+            {/* 줄이는 쪽(이름)에 `min-w-0` 이 없으면 flex 가 글자 폭 아래로 안 줄여 말줄임이 안 걸린다 */}
+            <p className="flex items-baseline gap-1.5">
+              <span
+                className={`min-w-0 truncate font-semibold text-text-white ${
+                  hasSubInfo ? 'text-heading-m' : 'text-body-l'
+                }`}
+              >
+                {user.name}
+              </span>
+              {/*
               `shrink-0` 로 이름이 먼저 줄어들게 두되, 상한 없이 두면 긴 직급명이
               `ChevronIcon` 까지 밀어낸다 — 45% 에서 잘리게 한다.
             */}
-            {user.jobPositionName && (
-              <span className="max-w-[45%] shrink-0 truncate text-body-m text-text-muted">
-                {user.jobPositionName}
-              </span>
-            )}
-          </p>
-          {user.departmentPath && (
-            <p className="truncate text-body-m text-text-muted">
-              {user.departmentPath}
+              {user.jobPositionName && (
+                <span className="max-w-[45%] shrink-0 truncate text-body-m text-text-muted">
+                  {user.jobPositionName}
+                </span>
+              )}
             </p>
-          )}
-        </div>
+            {user.departmentPath && (
+              <p className="truncate text-body-m text-text-muted">
+                {user.departmentPath}
+              </p>
+            )}
+          </div>
 
-        <ChevronIcon />
-      </Link>
+          <ChevronIcon />
+        </Link>
 
-      <nav aria-label="주 메뉴" className="p-4">
-        <ul className="flex flex-col gap-1">
-          {items.map((item) => {
-            const isActive = item.href === activeHref;
+        <nav aria-label="주 메뉴" className="p-4">
+          <ul className="flex flex-col gap-1">
+            {/**
+             * ⭐ **불러오는 중에는 고정 항목도 그리지 않는다.**
+             *
+             * 예전에는 고정 항목(`내 파일`)만 먼저 뜨고 `/my/pages` 가 도착하면 동적 항목이
+             * `MENU_ORDER` 자리에 **끼어들며** 이미 그려진 줄을 밀어냈다 — 새로고침할 때마다
+             * 메뉴가 재배치되는 것처럼 보인 원인이다. 자리만 잡아 두고 한 번에 그린다.
+             */}
+            {isLoading && <MenuPlaceholder />}
 
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  aria-current={isActive ? 'page' : undefined}
-                  /**
-                   * 선택된 메뉴만 파란 배경 · 흰 글씨다.
-                   * 나머지는 배경 없이 보조색이라, 지금 어디에 있는지가 한눈에 갈린다.
-                   *
-                   * 보조색은 `text-secondary`(#6B7280) 가 아니라 `text-muted`(#9CA3AF) 다 —
-                   * 어두운 사이드바 위에서 앞엣것은 대비 4.1:1 로 WCAG AA(4.5:1)에 못 미친다.
-                   */
-                  className={`flex h-11 items-center gap-3 rounded-sidebar px-3 text-body-l font-medium ${
-                    isActive
-                      ? 'bg-btn-primary text-text-white'
-                      : 'text-text-muted hover:bg-bg-sidebar-hover hover:text-text-white'
-                  }`}
-                >
-                  <MenuIcon name={item.icon} />
-                  {item.label}
-                </Link>
-              </li>
-            );
-          })}
+            {!isLoading &&
+              items.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    aria-current={item.href === activeHref ? 'page' : undefined}
+                    /**
+                     * 선택된 메뉴만 파란 배경 · 흰 글씨다.
+                     * 나머지는 배경 없이 보조색이라, 지금 어디에 있는지가 한눈에 갈린다.
+                     *
+                     * 보조색은 `text-secondary`(#6B7280) 가 아니라 `text-muted`(#9CA3AF) 다 —
+                     * 어두운 사이드바 위에서 앞엣것은 대비 4.1:1 로 WCAG AA(4.5:1)에 못 미친다.
+                     */
+                    className={`flex h-11 items-center gap-3 rounded-sidebar px-3 text-body-l font-medium ${
+                      item.href === activeHref
+                        ? 'bg-btn-primary text-text-white'
+                        : 'text-text-muted hover:bg-bg-sidebar-hover hover:text-text-white'
+                    }`}
+                  >
+                    <MenuIcon name={item.icon} />
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
 
-          {/*
-            고정 항목은 이미 그려져 있어 화면이 비지는 않는다 —
-            비어 보이는 자리(권한 메뉴)만 상태를 표시한다.
-          */}
-          {status === 'loading' && <MenuPlaceholder />}
-          {status === 'failed' && <MenuRetry onRetry={refetch} />}
-        </ul>
-      </nav>
-    </aside>
+            {status === 'failed' && <MenuRetry onRetry={refetch} />}
+          </ul>
+        </nav>
+      </aside>
+    </>
   );
 }
 
-/** 불러오는 동안 메뉴 자리를 잡아둔다 — 뜰 때 아래 항목이 밀리지 않는다 */
+/** 메뉴 열기 — 좁은 화면 버튼 */
+function MenuBarsIcon() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      className="size-6"
+    >
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  );
+}
+
+/** 메뉴 닫기 — 열려 있을 때 같은 자리에서 모양만 바뀐다 */
+function CloseIcon() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      className="size-6"
+    >
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  );
+}
+
+/**
+ * 불러오는 동안 메뉴 자리를 잡아둔다.
+ * 줄 수는 `MENU_ORDER` 를 따른다 — 실제 메뉴가 들어설 높이와 맞아야 목록이 안 튄다.
+ */
 function MenuPlaceholder() {
   return (
     <li aria-hidden className="flex flex-col gap-1">
-      {[0, 1].map((index) => (
+      {MENU_ORDER.map((href) => (
         <span
-          key={index}
+          key={href}
           className="block h-11 animate-pulse rounded-sidebar bg-bg-sidebar-hover"
         />
       ))}

@@ -112,10 +112,6 @@ export default function RoleChangeModal({
               </label>
             ))}
           </fieldset>
-
-          <p className="text-caption break-keep text-text-secondary">
-            관리자 권한은 이 화면에서 부여할 수 없습니다.
-          </p>
         </div>
 
         <ModalFooter>

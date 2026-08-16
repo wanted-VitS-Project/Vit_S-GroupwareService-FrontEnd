@@ -272,7 +272,7 @@ const DUPLICATE_COLUMNS: DataTableColumn<TaxInvoiceCsvDuplicateRow>[] = [
     header: '승인번호',
     width: '40%',
     cell: (row) => (
-      <span className="block [overflow-wrap:anywhere] font-semibold text-text-primary">
+      <span className="block font-semibold [overflow-wrap:anywhere] text-text-primary">
         {row.approvalNo || '-'}
       </span>
     ),

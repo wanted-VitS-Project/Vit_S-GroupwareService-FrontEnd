@@ -1,11 +1,31 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { createContext, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
-import { ApiError, FORBIDDEN_EVENT, UNAUTHORIZED_EVENT } from '@/lib/api';
+import AppShellSkeleton from '@/components/AppShellSkeleton';
+import {
+  ApiError,
+  apiUrl,
+  FORBIDDEN_EVENT,
+  UNAUTHORIZED_EVENT,
+} from '@/lib/api';
 
 import { getMe } from './api';
+import {
+  captureAvatarThumbnail,
+  clearAvatarThumbnail,
+} from './avatarThumbnail';
+import type { ShellSnapshot } from './shellCache';
+import { toShellUser, writeShellCookie } from './shellCache';
 import AuthGates from './AuthGates';
 import {
   GATE_CODES,
@@ -23,6 +43,30 @@ import type { CurrentUser } from './types';
  * 만료된 쿠키는 프록시를 통과하므로, 확인 전에 그리면 보호 화면이 잠깐 노출된다.
  */
 export const CurrentUserContext = createContext<CurrentUser | null>(null);
+
+/**
+ * 세션이 **실제로 확인됐는지**. 쿠키에 남아 있던 직전 값으로 셸을 그리는 동안은 `false` 다.
+ *
+ * 셸(사이드바 · 헤더)은 직전 값으로 먼저 그리되, 본문은 이 값이 `true` 가 될 때까지
+ * 그리지 않는다 — 만료된 쿠키도 프록시를 통과하므로 확인 전에 그리면 보호 화면이
+ * 잠깐 노출된다.
+ */
+const SessionConfirmedContext = createContext(false);
+
+/**
+ * 세션이 확인된 뒤에만 자식을 그린다.
+ *
+ * ⚠️ 셸 전체를 막지 않는 것이 요점이다 — 예전에는 확인될 때까지 셸을 통째로 자리표시로
+ *    그렸다가 확인되면 **다시 만들어**, 사이드바 · 헤더가 두 번 그려지며 깜빡였다.
+ *    이제 셸은 한 번만 만들어지고 본문만 늦게 채워진다.
+ */
+export function SessionConfirmedOnly({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return useContext(SessionConfirmedContext) ? <>{children}</> : null;
+}
 
 /**
  * 프로필 사진만 갈아끼운다.
@@ -52,8 +96,16 @@ function gatesOf(blockedBy: string | null, user: CurrentUser | null) {
 
 export default function CurrentUserProvider({
   children,
+  initialShell,
 }: {
   children: React.ReactNode;
+  /**
+   * 서버가 쿠키에서 읽어 넘긴 직전 값. **셸의 겉모습에만** 쓴다.
+   *
+   * ⚠️ 이것으로 children 을 열지는 않는다 — 만료된 쿠키도 프록시를 통과하므로,
+   *    확인 전에 본문을 그리면 보호 화면이 잠깐 노출된다.
+   */
+  initialShell?: ShellSnapshot | null;
 }) {
   const router = useRouter();
   const [user, setUser] = useState<CurrentUser | null>(null);
@@ -79,6 +131,17 @@ export default function CurrentUserProvider({
         handledGates.current.clear();
         setBlockedBy(null);
         setUser(me);
+        // 다음 새로고침의 첫 페인트가 이 값으로 그려진다
+        writeShellCookie({ user: toShellUser(me) });
+        /**
+         * 사진의 작은 사본도 떠 둔다 — 다음 새로고침의 **첫 프레임**에 쓰인다.
+         * 사진이 없는 계정은 사본도 지운다 (없는 얼굴이 계속 비치면 안 된다).
+         */
+        if (me.profileImageUrl) {
+          captureAvatarThumbnail(apiUrl(me.profileImageUrl));
+        } else {
+          clearAvatarThumbnail();
+        }
       })
       .catch((caught) => {
         if (isStale) return;
@@ -105,6 +168,30 @@ export default function CurrentUserProvider({
       isStale = true;
     };
   }, [router, retryCount]);
+
+  /** 쿠키의 셸 값 → 셸이 읽는 칸만 채운 사용자. 나머지는 확인 뒤 진짜 값으로 덮인다 */
+  const shellUser = useMemo<CurrentUser | null>(() => {
+    const cached = initialShell?.user;
+
+    if (!cached) return null;
+
+    return {
+      userId: cached.userId,
+      name: cached.name,
+      role: cached.role,
+      // 게이트는 확인된 응답으로만 판단한다 — 여기 값은 쓰이지 않는다
+      termsStatus: 'AGREED',
+      passwordStatus: 'NORMAL',
+      departmentName: null,
+      departmentPath: cached.departmentPath,
+      jobPositionName: cached.jobPositionName,
+      email: null,
+      phone: null,
+      hiredAt: null,
+      lastLoginAt: null,
+      profileImageUrl: cached.profileImageUrl,
+    };
+  }, [initialShell]);
 
   const setProfileImage = useCallback((profileImageUrl: string | null) => {
     setUser((current) => (current ? { ...current, profileImageUrl } : current));
@@ -184,19 +271,25 @@ export default function CurrentUserProvider({
     return <AuthGates {...gates} onDone={refetch} />;
   }
 
-  if (!user) {
-    return (
-      <Centered>
-        <p className="text-body-m text-text-secondary">불러오는 중…</p>
-      </Centered>
-    );
-  }
+  /**
+   * 세션 확인 중 — 화면 한가운데 문구 대신 **셸 모양 자리표시**를 그린다.
+   * 문구만 띄우면 응답이 오는 순간 사이드바 · 헤더가 통째로 나타나 화면이 한 번 뒤집힌다.
+   */
+  /**
+   * 확인 전에는 **쿠키에 남아 있던 직전 값**으로 셸을 그린다.
+   * 게이트 판단(`gatesOf`)에는 쓰이지 않는다 — 아래 자리표시 값들은 셸이 읽지 않는 칸이다.
+   */
+  const shownUser = user ?? shellUser;
+
+  if (!shownUser) return <AppShellSkeleton shell={initialShell} />;
 
   return (
-    <CurrentUserContext.Provider value={user}>
-      <SetProfileImageContext.Provider value={setProfileImage}>
-        {children}
-      </SetProfileImageContext.Provider>
+    <CurrentUserContext.Provider value={shownUser}>
+      <SessionConfirmedContext.Provider value={user !== null}>
+        <SetProfileImageContext.Provider value={setProfileImage}>
+          {children}
+        </SetProfileImageContext.Provider>
+      </SessionConfirmedContext.Provider>
     </CurrentUserContext.Provider>
   );
 }

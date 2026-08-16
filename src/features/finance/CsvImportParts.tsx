@@ -234,7 +234,7 @@ export function ColumnField<F extends string>({
           label={label}
           required={required}
           value={value}
-          placeholder="파일의 컬럼명을 그대로 적어주세요"
+          placeholder="파일의 컬럼명과 동일하게 입력"
           hint={hint}
           onChange={(next) => onChange(field, next)}
         />

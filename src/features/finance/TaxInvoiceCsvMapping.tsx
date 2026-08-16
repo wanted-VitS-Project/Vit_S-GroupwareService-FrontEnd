@@ -171,7 +171,6 @@ export default function TaxInvoiceCsvMapping({
               {...columnProps}
               field="approvalNoColumn"
               label="승인번호"
-              hint="같은 승인번호는 다시 등록되지 않습니다"
               required
             />
             <ColumnField

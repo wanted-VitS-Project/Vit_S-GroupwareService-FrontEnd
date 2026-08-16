@@ -143,7 +143,6 @@ export default function CategoryFormModal({
             maxLength={CATEGORY_CODE_MAX_LENGTH}
             placeholder="ROAD"
             error={codeError}
-            help="표시 · 검색용입니다. 비워두어도 됩니다."
           />
 
           <label className="block">
@@ -155,7 +154,7 @@ export default function CategoryFormModal({
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               rows={3}
-              placeholder="카테고리에 대한 간략한 설명을 입력하세요."
+              placeholder="카테고리 설명 입력"
               className="w-full resize-none rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-detail break-keep text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
             />
           </label>

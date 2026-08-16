@@ -5,6 +5,10 @@ import { useEffect, useState } from 'react';
 import Modal from '@/components/Modal';
 import LoadingSpinner from '@/components/Spinner';
 import { getCategories } from '@/features/businessCategory/api';
+import {
+  readCachedCategories,
+  writeCachedCategories,
+} from '@/features/businessCategory/cache';
 import type { BusinessCategory } from '@/features/businessCategory/types';
 import { ApiError, messageOf } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
@@ -53,7 +57,10 @@ export default function NoticeProjectConvertModal({
    *    고를 것이 없는 채로 "선택해주세요" 만 뜨면 사용자는 영영 전환할 수 없다.
    *    못 받았다는 사실(`hasCategoryFailed`)을 따로 들고 재시도 길을 준다.
    */
-  const [categories, setCategories] = useState<BusinessCategory[]>([]);
+  /** 직전 응답이 있으면 먼저 그린다 — 셀렉트가 빈 채로 떴다 채워지지 않게 */
+  const [categories, setCategories] = useState<BusinessCategory[]>(
+    () => readCachedCategories()?.filter((item) => !item.deletedAt) ?? [],
+  );
   const [hasCategoryFailed, setHasCategoryFailed] = useState(false);
   /**
    * ⚠️ 로딩 판정에 **카테고리도 넣어야 한다.** 예전에는 `summaries === null` 만 봐서,
@@ -100,6 +107,7 @@ export default function NoticeProjectConvertModal({
         .then((data) => {
           setCategories(data.filter((item) => !item.deletedAt));
           setHasCategoryFailed(false);
+          writeCachedCategories(data);
           setCategoryLoadedAt(reloadCount);
         })
         .catch(() => {
@@ -195,7 +203,7 @@ export default function NoticeProjectConvertModal({
               <SelectField
                 id="convertSummaryId"
                 label="연결할 AI 요약"
-                hint="선택 사항입니다. 확정된 요약만 연결할 수 있습니다."
+                hint="확정된 요약만 연결할 수 있습니다"
                 value={summaryId}
                 emptyLabel="연결 안 함"
                 options={summaries.map((summary) => ({
@@ -211,7 +219,7 @@ export default function NoticeProjectConvertModal({
               label="과업명"
               required
               maxLength={PROJECT_NAME_MAX_LENGTH}
-              placeholder="과업명을 입력하세요"
+              placeholder="과업명 입력"
               value={name}
               onChange={setName}
             />
@@ -280,7 +288,7 @@ export default function NoticeProjectConvertModal({
               id="convertDescription"
               label="설명"
               rows={3}
-              placeholder="과업 설명을 입력하세요"
+              placeholder="과업 설명 입력"
               value={description}
               onChange={setDescription}
             />
