@@ -391,6 +391,14 @@ export const ENDPOINTS = {
   companyDocuments: {
     /** 목록 — 분류 · 검색 · 페이징 */
     root: `${V1}/admin/company-documents`,
+    /**
+     * 검토 참조로 고를 수 있는 사내 문서 — **완료된 최신 버전만** 온다.
+     * 고른 값은 `companyDocumentVersionId` 다 (문서가 아니라 **버전으로 고정**한다).
+     *
+     * ⚠️ 관리자용(`/admin/company-documents`)과 달리 **`/admin` 이 없다** —
+     *    회사 소속이면 `MEMBER` 도 부를 수 있어야 해서 경로가 갈린다.
+     */
+    selectable: `${V1}/company-documents/selectable`,
     /** 업로드 시작 — presigned PUT URL 발급 (10분) */
     uploads: `${V1}/admin/company-documents/uploads`,
     /** 업로드 완료 통보 — 서버가 저장소를 직접 확인한다 */
@@ -454,6 +462,35 @@ export const ENDPOINTS = {
      */
     collectionRun: (runId: number | string) =>
       `${V1}/bidding/collection-runs/${runId}`,
+    /**
+     * AI 요약 요청(POST) · 공고별 이력 조회(GET).
+     *
+     * ⚠️ 요청은 **202** 로 `summaryId` 만 오는 비동기다 — 결과는 `summary()` 를 폴링한다.
+     *    이미 돌고 있으면 409 `BIDDING_SUMMARY_ALREADY_PROCESSING`.
+     */
+    noticeSummaries: (noticeId: number | string) =>
+      `${V1}/bidding/notices/${noticeId}/summaries`,
+    /** AI 요약 단건 조회(GET) · 수정(PATCH) — 폴링 대상 */
+    summary: (summaryId: number | string) =>
+      `${V1}/bidding/summaries/${summaryId}`,
+    /** AI 요약 확정 — 확정하면 더 못 고친다 */
+    summaryConfirm: (summaryId: number | string) =>
+      `${V1}/bidding/summaries/${summaryId}/confirm`,
+    /**
+     * AI 문서 검토 요청(POST) · 공고별 이력 조회(GET).
+     *
+     * ⚠️ 요약과 **다른 기능**이다 — 공고 첨부와 사내 문서를 비교한다 (워커도 따로다).
+     */
+    noticeReviews: (noticeId: number | string) =>
+      `${V1}/bidding/notices/${noticeId}/reviews`,
+    /** 검토 화면에 고를 공고 첨부 목록 — 사내 문서는 별도 API 다 */
+    reviewSources: (noticeId: number | string) =>
+      `${V1}/bidding/notices/${noticeId}/review-sources`,
+    /** 검토 단건 조회 — 폴링 대상 (결과 · 근거 인용 포함) */
+    review: (reviewId: number | string) => `${V1}/bidding/reviews/${reviewId}`,
+    /** 검토 종료 — 임시 파일 정리를 즉시 요청한다 */
+    reviewAbandon: (reviewId: number | string) =>
+      `${V1}/bidding/reviews/${reviewId}/abandon`,
   },
   finance: {
     /** 재무 관리 허브의 3개 항목 수치 (입출금 · 세금계산서 · 정산 현황) */

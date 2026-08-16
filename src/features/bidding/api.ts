@@ -4,6 +4,18 @@ import { api } from '@/lib/api';
 import type {
   BidNoticeDetail,
   BidNoticeListItem,
+  BidReview,
+  BidSummary,
+  CreateReviewRequest,
+  CreateSummaryRequest,
+  ReviewAbandoned,
+  ReviewAccepted,
+  ReviewHistoryItem,
+  ReviewSources,
+  SummaryAccepted,
+  SummaryConfirmed,
+  SummaryHistory,
+  SummarySections,
   CollectionCondition,
   CollectionRun,
   CollectionRunAccepted,
@@ -156,6 +168,12 @@ export function toUpdateRequest(
     noticeTypes: condition.noticeTypes,
     filters: condition.filters,
     isActive: condition.isActive,
+    /**
+     * ⚠️ 통째로 교체라 **이것도 반드시 실어야 한다** — 빠뜨리면 활성 토글 한 번에
+     *    조회 기간이 서버 기본값(`ONE_WEEK`)으로 되돌아간다.
+     * ⚠️ 옛 조건에는 값이 없어 기본값으로 채운다.
+     */
+    lookbackPeriod: condition.lookbackPeriod ?? 'ONE_WEEK',
     autoCollectionEnabled: condition.autoCollectionEnabled,
     scheduleType: condition.scheduleType,
     scheduledTime: condition.scheduledTime?.slice(0, 5) ?? null,
@@ -208,4 +226,137 @@ export function runCollection(
  */
 export function getCollectionRun(runId: number | string, signal?: AbortSignal) {
   return api.get<CollectionRun>(ENDPOINTS.bidding.collectionRun(runId), signal);
+}
+
+/* ────────────────────────── AI 요약 ────────────────────────── */
+
+/**
+ * AI 요약 요청. **202 로 접수만 되고 결과는 없다** — `getSummary()` 를 폴링한다.
+ *
+ * `baseSummaryId` 를 주면 그 요약을 딛고 다시 묻는다 (차수가 오른다).
+ * ⚠️ 같은 공고에 이미 진행 중인 요약이 있으면 409 `BIDDING_SUMMARY_ALREADY_PROCESSING`.
+ */
+export function requestSummary(
+  noticeId: number | string,
+  body: CreateSummaryRequest,
+  signal?: AbortSignal,
+) {
+  return api.post<SummaryAccepted>(
+    ENDPOINTS.bidding.noticeSummaries(noticeId),
+    body,
+    signal,
+  );
+}
+
+/** 요약 단건 — 폴링 대상이다 (`PENDING` · `PROCESSING` 동안 다시 부른다) */
+export function getSummary(summaryId: number | string, signal?: AbortSignal) {
+  return api.get<BidSummary>(ENDPOINTS.bidding.summary(summaryId), signal);
+}
+
+/**
+ * 공고별 요약 이력 — 내 요약 + 같은 회사에서 **확정된** 요약이 최신순으로 온다.
+ * 화면을 다시 열었을 때 `latestMySummaryId` 로 이어서 볼 수 있다.
+ */
+export function getNoticeSummaries(
+  noticeId: number | string,
+  signal?: AbortSignal,
+) {
+  return api.get<SummaryHistory>(
+    ENDPOINTS.bidding.noticeSummaries(noticeId),
+    signal,
+  );
+}
+
+/**
+ * 요약 본문 수정. **보낸 칸만 바뀐다.**
+ *
+ * ⚠️ `COMPLETED` + **미확정**이고 **요청자 본인**일 때만 된다 —
+ *    아니면 409 `BIDDING_SUMMARY_NOT_EDITABLE`.
+ */
+export function updateSummary(
+  summaryId: number | string,
+  body: Partial<SummarySections>,
+  signal?: AbortSignal,
+) {
+  return api.patch<BidSummary>(
+    ENDPOINTS.bidding.summary(summaryId),
+    body,
+    signal,
+  );
+}
+
+/**
+ * 요약 확정. **되돌릴 수 없고** 확정 후에는 수정이 막힌다.
+ * 확정해야 이 공고로 프로젝트를 만들 수 있다 (`projectCreationAllowed`).
+ */
+export function confirmSummary(
+  summaryId: number | string,
+  signal?: AbortSignal,
+) {
+  return api.patch<SummaryConfirmed>(
+    ENDPOINTS.bidding.summaryConfirm(summaryId),
+    undefined,
+    signal,
+  );
+}
+
+/* ────────────────────────── AI 문서 검토 ────────────────────────── */
+
+/** 검토 화면에서 고를 공고 첨부 — `supported: false` 는 고를 수 없다 */
+export function getReviewSources(
+  noticeId: number | string,
+  signal?: AbortSignal,
+) {
+  return api.get<ReviewSources>(
+    ENDPOINTS.bidding.reviewSources(noticeId),
+    signal,
+  );
+}
+
+/**
+ * AI 문서 검토 요청. **202 로 접수만 되고 결과는 없다** — `getReview()` 를 폴링한다.
+ *
+ * ⚠️ 이미 진행 중이면 409 `BIDDING_REVIEW_ALREADY_PROCESSING`,
+ *    AI 가 못 읽는 형식이면 422 `BIDDING_REVIEW_UNSUPPORTED_FILE` 이다.
+ */
+export function requestReview(
+  noticeId: number | string,
+  body: CreateReviewRequest,
+  signal?: AbortSignal,
+) {
+  return api.post<ReviewAccepted>(
+    ENDPOINTS.bidding.noticeReviews(noticeId),
+    body,
+    signal,
+  );
+}
+
+/** 검토 단건 — 폴링 대상이다 (결과 · 근거 인용 포함) */
+export function getReview(reviewId: number | string, signal?: AbortSignal) {
+  return api.get<BidReview>(ENDPOINTS.bidding.review(reviewId), signal);
+}
+
+/** 공고별 검토 이력 — 내가 요청한 것만 최신순 최대 20건 */
+export function getNoticeReviews(
+  noticeId: number | string,
+  signal?: AbortSignal,
+) {
+  return api
+    .get<{ content: ReviewHistoryItem[] }>(
+      ENDPOINTS.bidding.noticeReviews(noticeId),
+      signal,
+    )
+    .then((data) => data.content);
+}
+
+/**
+ * 검토 종료. 프로젝트로 전환하지 않은 검토의 **임시 파일 정리를 즉시** 요청한다.
+ * 그냥 두어도 만료(`expiresAt`)되면 지워지므로 급히 부를 일은 아니다.
+ */
+export function abandonReview(reviewId: number | string, signal?: AbortSignal) {
+  return api.patch<ReviewAbandoned>(
+    ENDPOINTS.bidding.reviewAbandon(reviewId),
+    undefined,
+    signal,
+  );
 }

@@ -9,6 +9,8 @@ import type {
   CompanyDownloadUrlResponse,
   CompleteCompanyUploadResponse,
   DeleteCompanyDocumentResponse,
+  SelectableDocument,
+  SelectableQuery,
   StartCompanyUploadRequest,
   StartCompanyUploadResponse,
   UpdateCompanyDocumentRequest,
@@ -178,4 +180,28 @@ export async function getCompanyPreview(
 function readCount(header: string | null) {
   const parsed = Number(header);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+
+/**
+ * 검토 참조로 고를 수 있는 사내 문서 목록.
+ * 응답 `data` 가 배열 그대로다 (없으면 빈 배열).
+ */
+export function getSelectableDocuments(
+  query: SelectableQuery = {},
+  signal?: AbortSignal,
+) {
+  const params = new URLSearchParams();
+
+  if (query.category) params.set('category', query.category);
+  if (query.keyword) params.set('keyword', query.keyword);
+
+  const search = params.toString();
+
+  return api.get<SelectableDocument[]>(
+    search
+      ? `${ENDPOINTS.companyDocuments.selectable}?${search}`
+      : ENDPOINTS.companyDocuments.selectable,
+    signal,
+  );
 }

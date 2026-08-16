@@ -97,12 +97,15 @@ const REQUIRED_MESSAGES: Partial<Record<FieldName, string>> = {
   noticeName: '공고명을 입력해주세요.',
   noticeType: '공고 유형을 선택해주세요.',
   noticeAgency: '발주처를 입력해주세요.',
-  /**
-   * 원문 URL 은 백엔드가 요구하지 않지만 **화면 정책으로 필수**다 (2026-08-11 결정).
-   * 직접 등록 건은 근거가 사람 입력뿐이라, 원문 링크가 없으면 나중에 내용을 확인할 방법이 없다.
-   */
-  sourceUrl: '공고 원문 URL 을 입력해주세요.',
 };
+
+/**
+ * ⚠️ **원문 URL 은 선택 입력이다** (2026-08-14 변경).
+ *
+ * 한동안 화면 정책으로 필수로 잡았는데, 원문 링크가 없는 공고(구두 · 내부 건)를
+ * 등록할 방법이 사라졌다. 백엔드도 처음부터 `null` 을 허용한다.
+ * 대신 **적었을 때 형식만** 본다 — `example.org` 처럼 적으면 링크가 열리지 않는다.
+ */
 
 /** `http(s)://` 로 시작하는 주소인지. 원문 URL · 첨부 URL 이 같은 규칙을 쓴다 */
 function isHttpUrl(value: string) {
@@ -188,8 +191,8 @@ export default function NoticeCreateForm() {
 
     const { announcedAt, bidDeadlineAt, openingAt, sourceUrl } = values;
 
-    // 필수로 잡았으니 형식도 본다 — `example.org` 만 적으면 링크가 열리지 않는다
-    if (next.sourceUrl === undefined && !isHttpUrl(sourceUrl)) {
+    // 비워 두는 것은 괜찮다 — 적었을 때만 형식을 본다
+    if (sourceUrl.trim() !== '' && !isHttpUrl(sourceUrl)) {
       next.sourceUrl = 'http:// 또는 https:// 로 시작하는 주소를 넣어주세요.';
     }
 
@@ -516,9 +519,8 @@ export default function NoticeCreateForm() {
               id="sourceUrl"
               label="공고 원문 URL"
               type="url"
-              required
               placeholder="https://"
-              hint="직접 등록한 공고는 원문 링크가 유일한 근거 자료라 반드시 필요해요."
+              hint="선택 입력입니다. 원문을 다시 확인할 유일한 단서이므로 가급적 입력해주세요."
               value={values.sourceUrl}
               error={errors.sourceUrl}
               onChange={change('sourceUrl')}

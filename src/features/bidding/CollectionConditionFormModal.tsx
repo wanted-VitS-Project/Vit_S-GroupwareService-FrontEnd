@@ -38,6 +38,16 @@ const SCHEDULE_TYPE_OPTIONS = [
   { value: 'DAILY', label: '매일' },
 ];
 
+/**
+ * 조회 기간. 길수록 매번 훑는 양이 늘어 수집이 느려지므로 짧은 것부터 놓는다.
+ * 값은 백엔드 `CollectionLookbackPeriod`(7 · 14 · 30일)와 같다.
+ */
+const LOOKBACK_OPTIONS = [
+  { value: 'ONE_WEEK', label: '최근 1주 (7일)' },
+  { value: 'TWO_WEEKS', label: '최근 2주 (14일)' },
+  { value: 'ONE_MONTH', label: '최근 1개월 (30일)' },
+];
+
 const INTERNATIONAL_OPTIONS = [
   { value: 'DOMESTIC', label: '국내입찰' },
   { value: 'INTERNATIONAL', label: '국제입찰' },
@@ -64,6 +74,8 @@ interface FormState {
   excludeClosed: boolean;
   internationalBidType: string;
   isActive: boolean;
+  /** 실행할 때마다 며칠 치를 되돌아볼지 */
+  lookbackPeriod: string;
   autoCollectionEnabled: boolean;
   scheduleType: string;
   /** `HH:mm` — 응답(`HH:mm:ss`) 을 그대로 쓰면 안 된다 */
@@ -83,6 +95,8 @@ const EMPTY_STATE: FormState = {
   excludeClosed: true,
   internationalBidType: 'DOMESTIC',
   isActive: true,
+  // 자동 수집을 매일 돌리는 경우가 많아 1주면 충분하다
+  lookbackPeriod: 'ONE_WEEK',
   autoCollectionEnabled: false,
   scheduleType: 'WEEKDAYS',
   scheduledTime: DEFAULT_SCHEDULED_TIME,
@@ -104,6 +118,8 @@ function toFormState(condition: CollectionCondition): FormState {
     excludeClosed: filters.excludeClosed,
     internationalBidType: filters.internationalBidType,
     isActive: condition.isActive,
+    // 옛 조건에는 값이 없다 — 서버 기본값과 같은 것으로 채운다
+    lookbackPeriod: condition.lookbackPeriod ?? 'ONE_WEEK',
     autoCollectionEnabled: condition.autoCollectionEnabled,
     scheduleType: condition.scheduleType ?? 'WEEKDAYS',
     scheduledTime:
@@ -214,6 +230,7 @@ export default function CollectionConditionFormModal({
         internationalBidType: form.internationalBidType,
       },
       isActive: form.isActive,
+      lookbackPeriod: form.lookbackPeriod,
       autoCollectionEnabled: auto,
       // 자동 수집이 꺼져 있으면 스케줄 3개를 모두 null 로 보낸다 (응답도 그렇게 온다)
       scheduleType: auto ? form.scheduleType : null,
@@ -397,6 +414,19 @@ export default function CollectionConditionFormModal({
               checked={form.isActive}
               onChange={(checked) => patch({ isActive: checked })}
             />
+            {/**
+             * 조회 기간은 자동 · 수동 수집에 **모두** 적용된다 —
+             * 자동 수집 칸 안에 넣으면 수동 실행에는 안 걸리는 것처럼 읽힌다.
+             */}
+            <SelectField
+              id="lookbackPeriod"
+              label="조회 기간"
+              hint="실행할 때마다 이 기간만큼 거슬러 올라가 검색합니다. 매일 수집하면 1주, 가끔 확인하면 1개월을 권장합니다."
+              options={LOOKBACK_OPTIONS}
+              value={form.lookbackPeriod}
+              onChange={(value) => patch({ lookbackPeriod: value })}
+            />
+
             <CheckboxField
               id="autoCollectionEnabled"
               label="자동 수집"

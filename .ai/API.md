@@ -4663,10 +4663,38 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 명세서·백엔드 테스트 가이드에는 있으나 **배포되지 않았다** (2026-08-11 스웨거 전수 확인).
 화면에서 호출하지 않는다.
 
-- `PATCH /bidding/notices/{noticeId}/dismiss` · `/restore` — 제외 · 복구
-- `POST /bidding/notices/{noticeId}/projects` — 프로젝트 전환
 - `GET /bidding/collection-runs` — 실행 이력 **목록** (단건 조회만 있다)
-- `/bidding/summaries/*` — AI 요약 전체
+- **요약 중단 · 취소** — 검토의 `abandon` 에 대응하는 API 가 요약엔 없다 (아래 참고)
+
+> ⚠️ 변경사항 (2026-08-16 · 백엔드 소스 확인)
+>
+> `POST /bidding/notices/{noticeId}/projects` 는 **배포됐다.** 아직 연동하지 않았다 (화면 별도 이슈).
+>
+> | 항목 | 값 |
+> | ---- | -- |
+> | 요청 | `reviewId`(필수 · `COMPLETED` 검토) · `summaryId`(선택 · 확정 요약) · `name` · `description` · `businessCategoryId` · `startedOn` · `endedOn` · `memberIds` |
+> | 응답 | `201` `{ projectId }` |
+> | 409 | `PROJECT_BID_NOTICE_ALREADY_LINKED` · `BIDDING_REVIEW_NOT_COMPLETED` · `BIDDING_REVIEW_ALREADY_LINKED_TO_PROJECT` · `BIDDING_SUMMARY_NOT_CONFIRMED` · `BIDDING_SUMMARY_ALREADY_LINKED` |
+>
+> ⭐ **검토가 전환의 근거다** — 검토에서 내려받기에 성공한 공고 첨부가 정식 파일로 프로젝트에 귀속된다.
+> 검토 모달의 "프로젝트로 생성하지 않으면 자동 삭제" 안내가 이것을 가리킨다.
+
+### ⚠️ 변경사항 — 수집 조건 · 실행 (2026-08-15 백엔드)
+
+| 항목 | 내용 |
+| ---- | ---- |
+| `lookbackPeriod` | 수집 조건에 추가. `ONE_WEEK`(7) · `TWO_WEEKS`(14) · `ONE_MONTH`(30). **선택 필드**이고 생략하면 `ONE_WEEK` |
+| 수동 실행 `startedAt` · `endedAt` | 실행 요청에 넣으면 그 구간을 우선 조회 (최대 31일). **미연동** — 백필 · QA 용이라 화면에 두지 않았다 |
+| `collectionStartedAt` · `collectionEndedAt` | 실행 결과 응답에 추가. **실제로 훑은 구간**이라 0건일 때 원인 확인의 첫 단서다 |
+
+> ⚠️ 조건 수정(`PATCH`)은 **통째로 교체**라 `lookbackPeriod` 도 함께 실어야 한다 —
+> 빠뜨리면 활성 토글 한 번에 서버 기본값으로 되돌아간다 (`toUpdateRequest`).
+> ⚠️ 직접 등록 공고의 `sourceUrl` 은 **선택 입력**이다. 화면 정책으로 필수로 잡고 있었으나 2026-08-14 에 풀었다.
+
+> ⚠️ 변경사항 (2026-08-14 · `/v3/api-docs` 전수 확인)
+>
+> - `/bidding/summaries/*` · `/bidding/reviews/*` 는 **배포되어 연동을 마쳤다** (아래 표).
+> - `PATCH /bidding/notices/{noticeId}/dismiss` · `/restore` 도 **배포됐다** — 목록에서 뺀다 (미연동).
 
 > ⚠️ 백엔드 테스트 가이드가 **배포본보다 앞서 있다.** 가이드에 있다고 존재하는 API 가 아니다 —
 > 스웨거에 뜨는 것만 호출한다.
@@ -4684,6 +4712,49 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | `PATCH` | `/bidding/collection-conditions/{conditionId}`      | 아래 `수집 조건`                                                                 |
 | `POST`  | `/bidding/collection-conditions/{conditionId}/runs` | 아래 `수집 실행`                                                                 |
 | `GET`   | `/bidding/collection-runs/{runId}`                  | 아래 `수집 실행`                                                                 |
+
+**AI 요약 · AI 문서 검토** (2026-08-14 스웨거 실측 · 연동 완료)
+
+| 메서드  | 경로                                          | 설명                                                            |
+| ------- | --------------------------------------------- | --------------------------------------------------------------- |
+| `POST`  | `/bidding/notices/{noticeId}/summaries`        | AI 요약 요청 — **202**, `summaryId` 만 온다                     |
+| `GET`   | `/bidding/notices/{noticeId}/summaries`        | 공고별 요약 이력 (`latestMySummaryId` 포함)                     |
+| `GET`   | `/bidding/summaries/{summaryId}`               | 요약 단건 — **폴링 대상**                                       |
+| `PATCH` | `/bidding/summaries/{summaryId}`               | 여섯 칸 수정 — 확정 후엔 `BIDDING_SUMMARY_NOT_EDITABLE`         |
+| `PATCH` | `/bidding/summaries/{summaryId}/confirm`       | 요약 확정 (되돌릴 수 없다)                                      |
+| `GET`   | `/bidding/notices/{noticeId}/review-sources`   | 검토에 고를 **공고 첨부** 목록 (`supported` 로 가능 여부 표시)  |
+| `POST`  | `/bidding/notices/{noticeId}/reviews`          | AI 문서 검토 요청 — **202**                                     |
+| `GET`   | `/bidding/notices/{noticeId}/reviews`          | 공고별 검토 이력 (최대 20건)                                    |
+| `GET`   | `/bidding/reviews/{reviewId}`                  | 검토 단건 — **폴링 대상** (결과 · 근거 인용 포함)               |
+| `PATCH` | `/bidding/reviews/{reviewId}/abandon`          | 아래 `검토 종료`                                                |
+
+> ⚠️ 요약과 검토는 **다른 기능**이다 — 검토는 공고 첨부와 사내 문서를 비교하고 결과에 근거가
+> 붙는다. 서버 워커도 갈린다 (`bid_notice_summary_worker` · `bid_review_worker`).
+>
+> ⚠️ **요약에는 검토의 `abandon` 에 해당하는 API 가 없다** (2026-08-14 스웨거 전수 확인).
+> 진행 중인 요약은 프론트에서 끝낼 수 없어, 화면은 **잠금 해제(`멈추기`)** 까지만 한다.
+> 그 뒤 새로 요청하면 `409 BIDDING_SUMMARY_ALREADY_PROCESSING` 으로 막힌다.
+
+### 검토 종료 — `PATCH /bidding/reviews/{reviewId}/abandon`
+
+프로젝트로 전환하지 않은 검토를 종료하고 임시파일 정리를 **즉시** 요청한다.
+
+```jsonc
+// 200
+{ "reviewId": 71, "reviewStatus": "ABANDONED", "abandonedAt": "2026-08-14T06:21:26.552Z" }
+```
+
+| 코드  | 에러                                                             |
+| ----- | ---------------------------------------------------------------- |
+| `403` | `BIDDING_ACCESS_PERMISSION_REQUIRED` · `BIDDING_REVIEW_ACCESS_DENIED` |
+| `404` | `BIDDING_REVIEW_NOT_FOUND`                                       |
+| `409` | `BIDDING_REVIEW_NOT_ABANDONABLE` — 종료할 수 없는 단계           |
+
+> ⭐ 화면은 이걸 **진행 중 검토의 취소**로 쓴다. 워커가 재시도하는 동안 상태는 계속
+> `PENDING` 이라 멈춘 것과 구분되지 않는데, 종료하지 않으면 새 요청이
+> `BIDDING_REVIEW_ALREADY_PROCESSING` 으로 막혀 기다리는 것 말곤 할 게 없다.
+>
+> ⚠️ **요약에는 대응 API 가 없다** — 진행 중인 요약은 프론트에서 끝낼 방법이 없다.
 
 ### 수집 조건 — `GET /bidding/collection-conditions`
 
