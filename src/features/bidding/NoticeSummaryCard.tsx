@@ -138,6 +138,12 @@ export default function NoticeSummaryCard({
 
   /** `COMPLETED` · `FAILED` 가 될 때까지 물어본다 */
   function poll(summaryId: number, attempt: number) {
+    /**
+     * ⚠️ 새 체인을 걸기 전에 **앞 체인을 끊는다.** 타이머 슬롯이 하나뿐이라
+     *    덮어쓰면 이전 타이머의 참조를 잃고, 정리 함수가 마지막 것만 해제한다.
+     */
+    if (timer.current !== null) window.clearTimeout(timer.current);
+
     timer.current = window.setTimeout(async () => {
       try {
         const next = await getSummary(summaryId, pollAbort.current?.signal);
@@ -497,7 +503,17 @@ export default function NoticeSummaryCard({
               <button
                 type="button"
                 onClick={() => {
+                  /**
+                   * ⚠️ `isBusy` 까지 함께 푼다 — `hasGivenUp` 만 세우면 요청 버튼이
+                   *    `disabled={isBusy || …}` 에 걸려 멈춘 뒤에도 아무것도 못 한다.
+                   * ⚠️ 예약된 폴링도 끊는다 — 안 그러면 멈춘 뒤에도 요청이 계속 나간다.
+                   */
+                  if (timer.current !== null) {
+                    window.clearTimeout(timer.current);
+                    timer.current = null;
+                  }
                   setHasGivenUp(true);
+                  setIsBusy(false);
                   setNotice(
                     '대기를 멈췄습니다. 진행 중인 요약이 끝나면 결과가 표시됩니다.',
                   );

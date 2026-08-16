@@ -228,6 +228,8 @@ export default function NoticeList() {
 const NOTICE_COLUMNS: DataTableColumn<BidNoticeListItem>[] = [
   {
     key: 'noticeName',
+    // ⚠️ 링크가 행 클릭까지 타면 `router.push` 가 두 번 돈다 (Ctrl+클릭도 새 탭 대신 이동)
+    stopRowClick: true,
     header: '공고명',
     width: '30%',
     skeletonWidth: 'w-64',

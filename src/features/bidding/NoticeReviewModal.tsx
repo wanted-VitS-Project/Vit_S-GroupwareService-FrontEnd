@@ -82,6 +82,13 @@ export default function NoticeReviewModal({
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [hasGivenUp, setHasGivenUp] = useState(false);
+  /**
+   * 결과를 덮고 **다시 고르는 중**인지.
+   *
+   * ⚠️ 이게 없으면 검토를 한 번 마친 공고는 **다시 검토할 수 없다** — 완료 상태에서는
+   *    고르는 자리와 요청 버튼이 함께 사라지고, 창을 닫았다 열어도 같은 이력이 다시 온다.
+   */
+  const [wantsNew, setWantsNew] = useState(false);
 
   const timer = useRef<number | null>(null);
   const pollAbort = useRef<AbortController | null>(null);
@@ -150,6 +157,12 @@ export default function NoticeReviewModal({
   }, [noticeId]);
 
   function poll(reviewId: number, attempt: number) {
+    /**
+     * ⚠️ 새 체인을 걸기 전에 **앞 체인을 끊는다.** 타이머 슬롯이 하나뿐이라
+     *    덮어쓰면 이전 타이머의 참조를 잃고, 정리 함수가 마지막 것만 해제한다.
+     */
+    if (timer.current !== null) window.clearTimeout(timer.current);
+
     timer.current = window.setTimeout(async () => {
       try {
         const next = await getReview(reviewId, pollAbort.current?.signal);
@@ -225,6 +238,8 @@ export default function NoticeReviewModal({
        *    "다시 고르기" 로 풀어 놓은 걸 거절이 되돌려, 손이 다시 묶인다.
        */
       setHasGivenUp(false);
+      // 새 검토가 접수됐으니 결과 화면으로 되돌린다
+      setWantsNew(false);
       poll(accepted.reviewId, 0);
     } catch (caught) {
       const code = caught instanceof ApiError ? caught.code : undefined;
@@ -299,7 +314,7 @@ export default function NoticeReviewModal({
    *    창이 확 쪼그라들어, 무엇을 걸어 두고 기다리는지도 알 수 없다.
    *    대신 아래에서 입력만 잠그고 진행 상태를 버튼 자리에 띄운다.
    */
-  const showsPicker = isLoaded && !isDone;
+  const showsPicker = isLoaded && (!isDone || wantsNew);
 
   return (
     <Modal
@@ -415,7 +430,22 @@ export default function NoticeReviewModal({
           </AlertBanner>
         )}
 
-        {isDone && review && <ReviewResult review={review} />}
+        {isDone && review && !wantsNew && (
+          <>
+            <ReviewResult review={review} />
+
+            {/* 프롬프트를 바꿔 다시 묻는 길 — 요약의 `이어서 요약` 과 같은 자리다 */}
+            <div className="mt-6 border-t border-border-default pt-5 text-right">
+              <button
+                type="button"
+                onClick={() => setWantsNew(true)}
+                className="btn btn-sm btn-gray-outlined"
+              >
+                다시 검토
+              </button>
+            </div>
+          </>
+        )}
 
         {notice && (
           <AlertBanner tone="warning" className="mt-4">

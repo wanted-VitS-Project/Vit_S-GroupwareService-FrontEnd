@@ -232,10 +232,20 @@ export type CollectionLookbackPeriod =
   | (string & {});
 
 export const COLLECTION_LOOKBACK_LABELS: Record<string, string> = {
-  ONE_WEEK: '최근 1주',
-  TWO_WEEKS: '최근 2주',
-  ONE_MONTH: '최근 1개월',
+  ONE_WEEK: '최근 1주 (7일)',
+  TWO_WEEKS: '최근 2주 (14일)',
+  ONE_MONTH: '최근 1개월 (30일)',
 };
+
+/**
+ * 조회 기간 표기. **모르는 값은 원문 그대로 보여준다** —
+ * 서버가 새 값(`THREE_MONTHS` 등)을 주기 시작했을 때 `최근 1주` 로 둘러대면
+ * 0건 원인을 찾는 사람이 실제 설정과 다른 기간을 보고 판단하게 된다.
+ */
+export function lookbackLabel(period: CollectionLookbackPeriod | null | undefined) {
+  if (!period) return COLLECTION_LOOKBACK_LABELS.ONE_WEEK;
+  return COLLECTION_LOOKBACK_LABELS[period] ?? period;
+}
 
 /** 수집 조건의 필터. 통째로 교체되므로 부분 수정 대상이 아니다 */
 export interface CollectionFilters {
@@ -298,7 +308,7 @@ export interface CreateCollectionConditionRequest {
   filters: CollectionFilters;
   isActive: boolean;
   autoCollectionEnabled: boolean;
-  /** 생략하면 서버가 `ONE_WEEK` 로 채운다 */
+  /** 서버는 생략을 허용하지만(기본 `ONE_WEEK`) 화면은 **항상 실어 보낸다** */
   lookbackPeriod: CollectionLookbackPeriod;
   scheduleType: CollectionScheduleType | null;
   /** `HH:mm` (응답 포맷과 다르다) */
@@ -443,10 +453,31 @@ export interface SummaryConfirmed {
  *    요약 목록이 그 모양일 리 없어 **단건(`BidSummary`)의 부분집합**으로 본다.
  *    실제 응답을 받아보고 어긋나면 여기부터 고친다.
  */
+/**
+ * 요약 이력 한 줄.
+ *
+ * ⚠️ **단건 조회(`BidSummary`) 와 다르다** — 여섯 칸 본문은 오지 않는다.
+ *    본문이 필요하면 `summaryId` 로 단건을 다시 부른다.
+ */
+export interface SummaryHistoryItem {
+  summaryId: number;
+  parentSummaryId: number | null;
+  revisionNo: number;
+  summaryStatus: SummaryStatus;
+  prompt: string | null;
+  confirmed: boolean;
+  /** 내가 요청한 것인지 — 남의 확정 요약도 함께 온다 */
+  isMine: boolean;
+  projectId: number | null;
+  requestedAt: string;
+  confirmedAt: string | null;
+  completedAt?: string | null;
+}
+
 export interface SummaryHistory {
   /** 내가 마지막으로 요청한 요약 — 화면이 기본으로 펼칠 대상이다 */
   latestMySummaryId: number | null;
-  content: BidSummary[];
+  content: SummaryHistoryItem[];
   totalElements: number;
   totalPages: number;
   page: number;

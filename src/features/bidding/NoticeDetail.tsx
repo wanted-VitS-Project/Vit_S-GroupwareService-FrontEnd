@@ -345,8 +345,14 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
         >
           {/* 요약이 길어 모달 안에서만 스크롤한다 — 뒤 화면까지 함께 굴러가면 어지럽다 */}
           <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-5 pb-8">
-            {/* 모달이 이미 카드다 — 카드 껍데기를 한 겹 더 씌우지 않는다 */}
-            <NoticeSummaryCard noticeId={noticeId} isBare />
+            {/**
+             * 모달이 이미 카드다 — 카드 껍데기를 한 겹 더 씌우지 않는다.
+             *
+             * ⚠️ `key` 로 공고가 바뀌면 **새로 만든다.** 라우트가 바뀌어도 컴포넌트가
+             *    살아남으면 앞 공고의 요약과 폴링이 그대로 남아, 이력이 없는 공고에서
+             *    남의 요약이 보인다.
+             */}
+            <NoticeSummaryCard key={noticeId} noticeId={noticeId} isBare />
           </div>
         </Modal>
       )}

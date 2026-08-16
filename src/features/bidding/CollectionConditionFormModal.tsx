@@ -15,9 +15,10 @@ import {
   TextField,
 } from './FormFields';
 import { REGION_OPTIONS } from './regions';
-import type {
-  CollectionCondition,
-  CreateCollectionConditionRequest,
+import {
+  COLLECTION_LOOKBACK_LABELS,
+  type CollectionCondition,
+  type CreateCollectionConditionRequest,
 } from './types';
 
 /** 폼 대상 — `'create'` 는 등록, 객체는 그 조건 수정 */
@@ -39,14 +40,13 @@ const SCHEDULE_TYPE_OPTIONS = [
 ];
 
 /**
- * 조회 기간. 길수록 매번 훑는 양이 늘어 수집이 느려지므로 짧은 것부터 놓는다.
- * 값은 백엔드 `CollectionLookbackPeriod`(7 · 14 · 30일)와 같다.
+ * 조회 기간. **라벨 맵에서 파생시킨다** — 목록 화면과 값 집합이 갈리면
+ * 한쪽만 고쳤을 때 다른 쪽이 조용히 엉뚱한 기간을 보여준다.
+ * 순서는 맵에 적은 순서(짧은 것부터)를 그대로 따른다.
  */
-const LOOKBACK_OPTIONS = [
-  { value: 'ONE_WEEK', label: '최근 1주 (7일)' },
-  { value: 'TWO_WEEKS', label: '최근 2주 (14일)' },
-  { value: 'ONE_MONTH', label: '최근 1개월 (30일)' },
-];
+const LOOKBACK_OPTIONS = Object.entries(COLLECTION_LOOKBACK_LABELS).map(
+  ([value, label]) => ({ value, label }),
+);
 
 const INTERNATIONAL_OPTIONS = [
   { value: 'DOMESTIC', label: '국내입찰' },

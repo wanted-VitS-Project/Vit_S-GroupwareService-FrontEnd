@@ -33,7 +33,7 @@ import { BIDDING_CODES } from './errorCodes';
 import { regionName } from './regions';
 import { BIDDING_ROUTES } from './routes';
 import {
-  COLLECTION_LOOKBACK_LABELS,
+  lookbackLabel,
   type CollectionCondition,
   type CollectionRun,
 } from './types';
@@ -578,13 +578,7 @@ function ConditionCard({
           value={filters.excludeClosed ? '제외' : '포함'}
         />
         {/* 실행할 때마다 얼마나 되돌아보는지 — 0건일 때 가장 먼저 확인하는 값이다 */}
-        <Row
-          label="조회 기간"
-          value={
-            COLLECTION_LOOKBACK_LABELS[condition.lookbackPeriod ?? 'ONE_WEEK'] ??
-            '최근 1주'
-          }
-        />
+        <Row label="조회 기간" value={lookbackLabel(condition.lookbackPeriod)} />
         <Row
           label="마지막 수집 성공"
           value={
@@ -666,15 +660,29 @@ function RunResult({ state }: { state: RunState }) {
            *    "조건이 틀렸나" 를 의심하기 전에 기간부터 확인할 수 있다.
            * ⚠️ 옛 실행 기록에는 없는 값이라 있을 때만 그린다.
            */}
-          {run.collectionStartedAt && run.collectionEndedAt && (
-            <p className="mt-2 text-caption break-keep text-text-secondary">
-              조회 구간 {formatDateTime(run.collectionStartedAt)} ~{' '}
-              {formatDateTime(run.collectionEndedAt)}
-            </p>
-          )}
+          <CollectionRange run={run} />
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * 실제로 훑은 구간.
+ *
+ * ⚠️ `formatDateTime` 은 **파싱에 실패하면 빈 문자열**을 준다 — 값이 있어도 형식이
+ *    어긋나면 `조회 구간  ~ ` 만 남는다. 양쪽이 다 그려질 때만 문단을 낸다.
+ */
+function CollectionRange({ run }: { run: CollectionRun }) {
+  const from = formatDateTime(run.collectionStartedAt);
+  const to = formatDateTime(run.collectionEndedAt);
+
+  if (!from || !to) return null;
+
+  return (
+    <p className="mt-2 text-caption break-keep text-text-secondary">
+      조회 구간 {from} ~ {to}
+    </p>
   );
 }
 

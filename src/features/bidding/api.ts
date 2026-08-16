@@ -346,7 +346,8 @@ export function getNoticeReviews(
       ENDPOINTS.bidding.noticeReviews(noticeId),
       signal,
     )
-    .then((data) => data.content);
+    // ⚠️ `content` 가 빠져 와도 화면이 `history[0]` 에서 터지지 않게 빈 배열로 맞춘다
+    .then((data) => data.content ?? []);
 }
 
 /**
