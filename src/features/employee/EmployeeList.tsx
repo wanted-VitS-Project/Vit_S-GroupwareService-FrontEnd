@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 import DataTable from '@/components/DataTable';
+import PageTitle from '@/components/PageTitle';
 import Pagination, { PaginationPlaceholder } from '@/components/Pagination';
 import RowMenu from '@/components/RowMenu';
 import { EMPLOYEE_STATUS_LABELS, ROLE_LABELS } from '@/constants/status';
@@ -204,14 +205,10 @@ export default function EmployeeList() {
         ]}
       />
 
-      <div className="mt-2 mb-6 flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="text-heading-m font-bold">사원 관리</h2>
-          <p className="mt-1.5 text-label break-keep text-text-secondary">
-            사원 정보와 계정 상태를 관리합니다. 등록하면 로그인 계정이 함께
-            발급됩니다.
-          </p>
-        </div>
+      <PageTitle
+        title="사원 관리"
+        description="사원 정보와 계정 상태를 관리합니다. 등록하면 로그인 계정이 함께 발급됩니다."
+      >
         <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
@@ -227,7 +224,7 @@ export default function EmployeeList() {
             + 사원 등록
           </Link>
         </div>
-      </div>
+      </PageTitle>
 
       <form
         onSubmit={(event) => {

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
+import PageTitle from '@/components/PageTitle';
 import { notifyToast } from '@/components/Toast';
 import { getCategories } from '@/features/businessCategory/api';
 import type { BusinessCategory as MasterCategory } from '@/features/businessCategory/types';
@@ -252,26 +253,23 @@ export default function ProjectCreateForm() {
   return (
     <div className="mx-auto w-full max-w-[820px]">
       {/*
-        `PageTitle` 은 제목 + 우측 액션만 담아 설명 줄을 넣을 자리가 없다 —
-        시안이 제목 아래 한 줄 설명을 요구해 이 화면만 머리말을 직접 그린다.
+        ⚠️ 공용 `Breadcrumb` 이 아니라 직접 그린 경로다 — 이 화면만 남았다.
+        `Breadcrumb` 으로 옮기면 아래 간격(`mb-2`)까지 함께 따라온다.
       */}
-      <div className="mb-6">
-        <p className="text-caption text-text-secondary">
-          <Link
-            href={PROJECT_ROUTES.list}
-            className="hover:text-text-primary hover:underline"
-          >
-            내 프로젝트
-          </Link>
-          {' › 프로젝트 생성'}
-        </p>
-        <h2 className="mt-2 text-heading-m font-bold text-text-primary">
-          프로젝트 생성
-        </h2>
-        <p className="mt-1 text-detail break-keep text-text-secondary">
-          공고 연결 없이 직접 생성하는 경로입니다.
-        </p>
-      </div>
+      <p className="mb-2 text-caption text-text-secondary">
+        <Link
+          href={PROJECT_ROUTES.list}
+          className="hover:text-text-primary hover:underline"
+        >
+          내 프로젝트
+        </Link>
+        {' › 프로젝트 생성'}
+      </p>
+
+      <PageTitle
+        title="프로젝트 생성"
+        description="공고 연결 없이 직접 생성하는 경로입니다."
+      />
 
       <form onSubmit={submit} className="space-y-5 pb-10">
         <FormCard title="기본 정보">

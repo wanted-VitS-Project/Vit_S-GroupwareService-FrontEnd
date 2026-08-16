@@ -86,7 +86,7 @@ export default function CashFlowMatchModal({
       onClose={onClose}
       // 목록을 훑다 바깥을 잘못 눌러 닫히면 처음부터 다시 골라야 한다
       dismissOnBackdrop={false}
-      className="flex max-h-[80vh] w-full max-w-lg flex-col rounded-base p-8 shadow-lg"
+      className="flex max-h-[80vh] w-full max-w-lg flex-col rounded-base p-8 shadow-2xl"
     >
       <CashFlowSummary cashFlow={cashFlow} />
 

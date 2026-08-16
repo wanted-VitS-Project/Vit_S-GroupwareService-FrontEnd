@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import PageTitle from '@/components/PageTitle';
+
 import {
   getProject,
   getProjectMembers,
@@ -213,12 +215,10 @@ export default function ProjectSettings({ projectId }: { projectId: string }) {
 
   return (
     <div className="mx-auto max-w-[880px] p-6">
-      <h1 className="text-heading-m font-bold text-text-primary">
-        프로젝트 설정
-      </h1>
-      <p className="mt-1.5 text-label break-keep text-text-secondary">
-        과업 정보 · 진행 상태 · 사업 카테고리 · 참여자를 관리합니다.
-      </p>
+      <PageTitle
+        title="프로젝트 설정"
+        description="과업 정보 · 진행 상태 · 사업 카테고리 · 참여자를 관리합니다."
+      />
 
       {project && !canEdit && (
         <p className="mt-4 rounded-lg bg-yellow-bg-soft px-4 py-3 text-detail break-keep text-yellow-text">

@@ -194,7 +194,7 @@ export default function FileViewerModal({
           </span>
 
           <div className="min-w-0 flex-1">
-            <h2 className="truncate text-[13px] font-semibold text-text-primary">
+            <h2 className="truncate text-detail font-semibold text-text-primary">
               {current.originalFileName}
             </h2>
             <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-caption text-text-secondary">
@@ -406,7 +406,7 @@ function PreviewPane({
       <button
         type="button"
         onClick={onDownload}
-        className="min-w-[104px] cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover"
+        className="btn btn-md btn-primary min-w-[104px]"
       >
         다운로드
       </button>

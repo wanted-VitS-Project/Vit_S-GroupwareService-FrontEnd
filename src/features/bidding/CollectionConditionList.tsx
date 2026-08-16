@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import { ErrorStateTwoButton } from '@/components/ErrorState';
+import PageTitle from '@/components/PageTitle';
 import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
 import { ApiError, messageOf } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
@@ -301,12 +302,10 @@ export default function CollectionConditionList() {
       </p>
 
       {/* 액션 버튼은 공고 조회와 같은 자리(필터 줄 오른쪽 끝)에 둔다 — 화면을 옮겨도 안 튄다 */}
-      <div className="mb-6">
-        <h2 className="text-heading-m font-bold">수집 조건</h2>
-        <p className="mt-1.5 text-caption break-keep text-text-secondary">
-          어떤 공고를 가져올지 정하고, 필요할 때 직접 수집을 돌립니다.
-        </p>
-      </div>
+      <PageTitle
+        title="수집 조건"
+        description="어떤 공고를 가져올지 정하고, 필요할 때 직접 수집을 돌립니다."
+      />
 
       <div className="mb-4 flex flex-wrap items-center gap-1.5">
         {/* 조건 수가 적어 셀렉트 대신 칩으로 둔다 (API 에 필터 파라미터가 없어 화면에서 거른다) */}
@@ -355,7 +354,7 @@ export default function CollectionConditionList() {
       ) : conditions.length === 0 ? (
         <EmptyState />
       ) : visible?.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border-default bg-bg-card px-6 py-12 text-center">
+        <div className="rounded-base border border-dashed border-border-default bg-bg-card px-6 py-12 text-center">
           <p className="text-caption text-text-secondary">
             조건에 맞는 항목이 없습니다.
           </p>
@@ -453,7 +452,7 @@ function ToggleConfirmDialog({
 /** 조건이 없으면 수동 수집을 **시작할 수 없다** — 등록으로 유도한다 */
 function EmptyState() {
   return (
-    <div className="rounded-xl border border-dashed border-border-default bg-bg-card px-6 py-12 text-center">
+    <div className="rounded-base border border-dashed border-border-default bg-bg-card px-6 py-12 text-center">
       <p className="text-label font-bold text-text-primary">
         등록된 수집 조건이 없습니다.
       </p>
@@ -500,7 +499,7 @@ function ConditionCard({
   const isBusy = state?.isBusy ?? false;
 
   return (
-    <section className="rounded-xl border border-border-default bg-bg-card p-5">
+    <section className="rounded-base border border-border-default bg-bg-card p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">

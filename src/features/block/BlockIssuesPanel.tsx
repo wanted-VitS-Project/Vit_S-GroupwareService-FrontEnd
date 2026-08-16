@@ -27,7 +27,7 @@ const IssueDetailModal = dynamic(loadIssueDetailModal, {
   loading: () => (
     <ModalLoadingFallback
       title="이슈 상세"
-      className="flex max-h-[90vh] w-full max-w-[700px] flex-col overflow-hidden rounded-2xl border border-border-default p-6 shadow-2xl"
+      className="flex max-h-[90vh] w-full max-w-[700px] flex-col overflow-hidden rounded-base border border-border-default p-6 shadow-2xl"
       bodyClassName="mt-5 h-[460px]"
     />
   ),

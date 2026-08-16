@@ -63,7 +63,7 @@ function GateLoading({ pathname }: { pathname: string }) {
       <Skeleton className="h-5 w-40" />
       <Skeleton className="mt-2 h-3 w-64" />
 
-      <div className="mt-6 overflow-hidden rounded-xl border border-border-default bg-bg-card">
+      <div className="mt-6 overflow-hidden rounded-base border border-border-default bg-bg-card">
         <div className="border-b border-border-default bg-bg-surface px-5 py-3">
           <Skeleton className="h-3 w-24" />
         </div>

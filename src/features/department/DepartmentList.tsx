@@ -6,6 +6,7 @@ import Breadcrumb from '@/components/Breadcrumb';
 import { useEffect, useState } from 'react';
 
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
+import PageTitle from '@/components/PageTitle';
 import RowMenu, { type RowMenuItem } from '@/components/RowMenu';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useModalTarget } from '@/lib/useModal';
@@ -107,15 +108,9 @@ export default function DepartmentList() {
         ]}
       />
 
-      <div className="mt-2 mb-6 flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="text-heading-m font-bold">부서 관리</h2>
-          <p className="mt-1.5 text-label break-keep text-text-secondary">
-            조직 부서를 관리합니다.
-          </p>
-        </div>
+      <PageTitle title="부서 관리" description="조직 부서를 관리합니다.">
         {canManage && <AddButton onClick={() => formModal.open({})} />}
-      </div>
+      </PageTitle>
 
       <DataTable
         caption="부서 목록"

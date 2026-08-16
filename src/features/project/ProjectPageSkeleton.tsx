@@ -19,7 +19,7 @@ import { PROJECT_STATUS_OPTIONS } from './projectStatus';
  * | 자리        | 실제 값                                                |
  * | ----------- | ------------------------------------------------------ |
  * | 제목        | `text-logo` + `leading-8`(32px)                        |
- * | 설명        | `text-[13px]`(≈19.5px), `mt-1`                         |
+ * | 설명        | `text-detail`(≈19.5px), `mt-1`                         |
  * | 통계 카드   | `h-24` 5장 — 같은 grid 분기를 그대로 쓴다               |
  * | 검색        | `h-[41px]`, `min-w-64 flex-1`                          |
  * | 상태 탭     | `p-1` 상자 + `py-1.5 text-label` 버튼 = 43px           |

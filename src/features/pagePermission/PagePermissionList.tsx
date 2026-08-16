@@ -4,6 +4,7 @@ import Breadcrumb from '@/components/Breadcrumb';
 import { useEffect, useState } from 'react';
 
 import DataTable from '@/components/DataTable';
+import PageTitle from '@/components/PageTitle';
 import RowMenu from '@/components/RowMenu';
 import { ROLE_LABELS } from '@/constants/status';
 
@@ -154,12 +155,10 @@ export default function PagePermissionList() {
         ]}
       />
 
-      <div className="mt-2 mb-6">
-        <h2 className="text-heading-m font-bold">페이지 권한</h2>
-        <p className="mt-1.5 text-label break-keep text-text-secondary">
-          페이지별 접근 권한을 사원에게 부여합니다.
-        </p>
-      </div>
+      <PageTitle
+        title="페이지 권한"
+        description="페이지별 접근 권한을 사원에게 부여합니다."
+      />
 
       {hasPagesFailed ? (
         <Centered>

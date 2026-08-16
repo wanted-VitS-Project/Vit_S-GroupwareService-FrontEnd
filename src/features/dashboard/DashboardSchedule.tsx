@@ -176,7 +176,7 @@ export default function DashboardSchedule() {
         aria-label="일정 · 이슈"
         className="flex h-full flex-col rounded-base border border-border-default bg-bg-card p-6"
       >
-        <p className="flex flex-1 items-center justify-center py-16 text-[13px] text-text-muted">
+        <p className="flex flex-1 items-center justify-center py-16 text-detail text-text-muted">
           불러오는 중…
         </p>
       </section>
@@ -279,7 +279,7 @@ export default function DashboardSchedule() {
             onClick={goToToday}
             disabled={isOnToday}
             title={isOnToday ? '이미 오늘을 보고 있습니다' : '오늘로 이동'}
-            className="cursor-pointer justify-self-end rounded-lg border border-border-default px-2.5 py-1.5 text-[13px] font-semibold text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted disabled:hover:bg-transparent"
+            className="cursor-pointer justify-self-end rounded-lg border border-border-default px-2.5 py-1.5 text-detail font-semibold text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted disabled:hover:bg-transparent"
           >
             오늘
           </button>
@@ -288,7 +288,7 @@ export default function DashboardSchedule() {
         {hasFailed ? (
           <p
             role="alert"
-            className="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-[13px] text-text-secondary"
+            className="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-detail text-text-secondary"
           >
             일정을 불러오지 못했습니다.
             <button
@@ -305,7 +305,7 @@ export default function DashboardSchedule() {
               {WEEKDAYS.map((weekday) => (
                 <p
                   key={weekday}
-                  className="py-1 text-center text-[13px] text-text-secondary"
+                  className="py-1 text-center text-detail text-text-secondary"
                 >
                   {weekday}
                 </p>
@@ -343,7 +343,7 @@ export default function DashboardSchedule() {
                     />
                     <span
                       style={{ color: colorOf(item.projectId) }}
-                      className="truncate text-[13px] font-semibold"
+                      className="truncate text-detail font-semibold"
                     >
                       {item.name}
                     </span>
@@ -372,19 +372,19 @@ export default function DashboardSchedule() {
           */
           <p
             role="alert"
-            className="flex flex-1 items-center justify-center py-16 text-[13px] text-text-secondary"
+            className="flex flex-1 items-center justify-center py-16 text-detail text-text-secondary"
           >
             이슈를 불러오지 못했습니다.
           </p>
         ) : issues === null ? (
           <p
             aria-live="polite"
-            className="flex flex-1 items-center justify-center py-16 text-[13px] text-text-muted"
+            className="flex flex-1 items-center justify-center py-16 text-detail text-text-muted"
           >
             불러오는 중…
           </p>
         ) : selectedIssues.length === 0 ? (
-          <p className="flex flex-1 items-center justify-center py-16 text-[13px] text-text-secondary">
+          <p className="flex flex-1 items-center justify-center py-16 text-detail text-text-secondary">
             이 날짜에 마감인 담당 이슈가 없습니다.
           </p>
         ) : (
@@ -409,7 +409,7 @@ export default function DashboardSchedule() {
                       {group.projectName}
                     </span>
                   </p>
-                  <span className="shrink-0 text-[13px] text-text-secondary">
+                  <span className="shrink-0 text-detail text-text-secondary">
                     이슈 {group.issues.length}건
                   </span>
                 </div>
@@ -427,7 +427,7 @@ export default function DashboardSchedule() {
                           issue.stepId,
                           issue.issueId,
                         )}
-                        className="block truncate rounded-lg px-1 py-0.5 text-[13px] text-text-secondary hover:bg-bg-hover hover:text-text-primary"
+                        className="block truncate rounded-lg px-1 py-0.5 text-detail text-text-secondary hover:bg-bg-hover hover:text-text-primary"
                         title={`${issue.stepName} · ${issue.title}`}
                       >
                         {issue.stepName} · {issue.title}
@@ -635,7 +635,7 @@ function MonthPicker({
               type="button"
               aria-pressed={isPicked}
               onClick={() => onPick({ year: draftYear, month: index })}
-              className={`cursor-pointer rounded-lg py-1.5 text-[13px] ${
+              className={`cursor-pointer rounded-lg py-1.5 text-detail ${
                 isPicked
                   ? 'bg-blue-bg-soft font-semibold text-text-primary-blue'
                   : 'text-text-primary hover:bg-bg-hover'

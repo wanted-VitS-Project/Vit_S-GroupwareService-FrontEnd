@@ -68,7 +68,7 @@ export default function DashboardProjects() {
       {hasFailed ? (
         <p
           role="alert"
-          className="flex items-center justify-center gap-3 rounded-base border border-border-default bg-bg-card py-12 text-[13px] text-text-secondary"
+          className="flex items-center justify-center gap-3 rounded-base border border-border-default bg-bg-card py-12 text-detail text-text-secondary"
         >
           프로젝트를 불러오지 못했습니다.
           <button
@@ -83,7 +83,7 @@ export default function DashboardProjects() {
         <ProjectListSkeleton rows={LIMIT} />
       ) : rows.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-base border border-border-default bg-bg-card py-12">
-          <p className="text-[13px] text-text-secondary">
+          <p className="text-detail text-text-secondary">
             참여 중인 프로젝트가 없습니다.
           </p>
         </div>

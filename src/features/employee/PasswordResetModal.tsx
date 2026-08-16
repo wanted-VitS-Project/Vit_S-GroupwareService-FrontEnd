@@ -183,7 +183,7 @@ export default function PasswordResetModal({
                 type="button"
                 onClick={onClose}
                 disabled={isSubmitting}
-                className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+                className="btn btn-md btn-gray-outlined"
               >
                 취소
               </button>

@@ -145,19 +145,19 @@ export default function DashboardNotifications() {
         /* 조회가 끝난 뒤 바뀌는 상태라, 알리지 않으면 스크린리더가 실패를 못 읽는다 */
         <p
           role="alert"
-          className="flex flex-1 items-center justify-center px-6 py-16 text-[13px] text-text-secondary"
+          className="flex flex-1 items-center justify-center px-6 py-16 text-detail text-text-secondary"
         >
           알림을 불러오지 못했습니다.
         </p>
       ) : items === null ? (
         <p
           aria-live="polite"
-          className="flex flex-1 items-center justify-center px-6 py-16 text-[13px] text-text-muted"
+          className="flex flex-1 items-center justify-center px-6 py-16 text-detail text-text-muted"
         >
           불러오는 중…
         </p>
       ) : items.length === 0 ? (
-        <p className="flex flex-1 items-center justify-center px-6 py-16 text-[13px] text-text-secondary">
+        <p className="flex flex-1 items-center justify-center px-6 py-16 text-detail text-text-secondary">
           받은 알림이 없습니다.
         </p>
       ) : (
@@ -182,9 +182,9 @@ export default function DashboardNotifications() {
  * 종류 전체 목록을 받지 못해, 모르는 값은 아래 기본 배지로 떨어진다.
  */
 const TYPE_BADGES: Record<string, { label: string; className: string }> = {
-  ISSUE: { label: '이슈', className: 'bg-[#FFE2E2] text-[#E7000B]' },
+  ISSUE: { label: '이슈', className: 'bg-red-bg text-red-text' },
   APPROVAL: { label: '결재', className: 'bg-yellow-bg-soft text-yellow-text' },
-  REPORT: { label: '보고', className: 'bg-[#EBE7FF] text-[#7C3AED]' },
+  REPORT: { label: '보고', className: 'bg-purple-bg text-purple-text' },
   COMMENT: {
     label: '댓글',
     className: 'bg-blue-bg-soft text-text-primary-blue',

@@ -75,7 +75,7 @@ export default function AnalysisHistoryPanel({
       className={SIDE_PANEL_WIDE}
       header={
         <div className="flex shrink-0 items-center gap-2 border-b border-border-default px-4 py-3">
-          <span className="flex size-5 shrink-0 items-center justify-center rounded-button-sm border border-purple-border bg-blue-bg-soft text-detail text-[#4F39F6]">
+          <span className="flex size-5 shrink-0 items-center justify-center rounded-button-sm border border-purple-border bg-blue-bg-soft text-detail text-ai-primary">
             ✦
           </span>
           <div className="min-w-0 flex-1">
@@ -215,7 +215,7 @@ function AnalysisDetail({
       <button
         type="button"
         onClick={onBack}
-        className="cursor-pointer self-start text-caption font-medium text-[#4F39F6] hover:underline"
+        className="cursor-pointer self-start text-caption font-medium text-ai-primary hover:underline"
       >
         ← 이력 목록
       </button>
