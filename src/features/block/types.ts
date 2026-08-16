@@ -3,13 +3,20 @@
  * 값은 ERD `block.type` enum 9값과 정확히 일치해야 한다. (.ai/API.md 9번)
  */
 
+/**
+ * ⛔ `PAYMENT_CONFIRM`(입금 확인) · `TAX_INVOICE_VIEW`(세금계산서 조회)는
+ *    **화면에서 통째로 걷어냈다** (2026-08-16). 본문이 없어 만들어도 빈 껍데기만 붙었다.
+ *    정산 관련은 `SETTLEMENT` 하나로 모은다.
+ *
+ * ⚠️ 백엔드 enum 에는 두 값이 **남아 있을 수 있다.** 그래서 `block.type` 은
+ *    이 유니온으로 좁혀 받되, 모르는 값이 와도 화면이 죽지 않아야 한다 —
+ *    조회하는 쪽(`BLOCK_TYPES.find`)이 이미 `undefined` 를 감안한다.
+ */
 export type BlockTypeCode =
   | 'TEXT'
   | 'IMAGE'
   | 'CHECKLIST'
   | 'FILE'
-  | 'PAYMENT_CONFIRM'
-  | 'TAX_INVOICE_VIEW'
   | 'APPROVAL'
   | 'AI'
   | 'BID_NOTICE'
@@ -47,10 +54,11 @@ export interface BlockTypeOption {
 }
 
 /**
- * 모달에 노출되는 순서 그대로 둔다 (2열 그리드).
+ * 블록 유형 표 — 모달 선택지이자 기존 블록의 라벨 · 색 조회표다.
  *
- * 가로 1칸 — 텍스트 · 이미지 · 체크리스트 · 결재 · 정산
- * 가로 2칸 — 문서 업로드 · 입금 확인 · 세금계산서 · 입찰 · AI
+ * 모달에 노출되는 순서 그대로 둔다 (2열 그리드).
+ * 가로 1칸 — 체크리스트 · 텍스트 · 이미지 · 결재 · 정산
+ * 가로 2칸 — 문서 업로드 · 입찰 · AI
  */
 export const BLOCK_TYPES: BlockTypeOption[] = [
   {
@@ -100,17 +108,6 @@ export const BLOCK_TYPES: BlockTypeOption[] = [
     icon: '#155DFC',
   },
   {
-    code: 'PAYMENT_CONFIRM',
-    label: '입금 확인',
-    description: '회차별 입금 예정·실제 입금 내역을 확인',
-    titleLabel: '회차명',
-    // 정산 계열 — 금액 · 일자 · 상태를 표로 늘어놓는다
-    defaultColSpan: 2,
-    background: '#F5F3FF',
-    border: '#DDD6FF',
-    icon: '#7F22FE',
-  },
-  {
     code: 'SETTLEMENT',
     label: '정산',
     description: '회차별 정산 예정 금액·일자와 실제 정산 진행률을 관리',
@@ -123,15 +120,6 @@ export const BLOCK_TYPES: BlockTypeOption[] = [
     background: 'var(--color-purple-bg-soft)',
     border: 'var(--color-purple-border)',
     icon: 'var(--color-purple-text)',
-  },
-  {
-    code: 'TAX_INVOICE_VIEW',
-    label: '세금계산서 조회',
-    description: '발행된 세금계산서 내역을 조회',
-    defaultColSpan: 2,
-    background: '#ECFEFF',
-    border: '#A2F4FD',
-    icon: '#0092B8',
   },
   {
     code: 'BID_NOTICE',

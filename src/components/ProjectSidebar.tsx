@@ -24,6 +24,9 @@ import {
   getProjectMembers,
   getProjectStages,
 } from '@/features/project/api';
+import { useCurrentUser } from '@/features/auth/useCurrentUser';
+import { canManageMembers } from '@/features/project/permissions';
+import PermissionBadge from '@/features/project/PermissionBadge';
 import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_WIDTH,
@@ -219,6 +222,7 @@ export default function ProjectSidebar() {
   const pathname = usePathname();
   const upLink = projectScopeUpLink(pathname);
   const router = useRouter();
+  const me = useCurrentUser();
   const { isCollapsed, toggle, expand } = useProjectSidebarCollapse();
 
   /** 스테이지 · 스텝을 고친 뒤 목록을 다시 읽는 신호 */
@@ -378,6 +382,11 @@ export default function ProjectSidebar() {
   const progressRate = project?.progressRate ?? 0;
   const category = project?.businessCategories.map((c) => c.name).join(' · ');
   const canEdit = project?.myPermission === 'EDITOR';
+  /**
+   * 참여자를 **들일 수 있는지** — 편집 권한 + 전사 `ADMIN` 예외 (`permissions.ts`).
+   * 아래 `+` 표시가 이 값을 따라야 모달 안의 `참여자 추가` 버튼과 어긋나지 않는다.
+   */
+  const canAddMembers = canManageMembers({ role: me.role, canEdit });
 
   /**
    * 스텝을 지우면 하위 이슈도 함께 사라진다 —
@@ -508,8 +517,16 @@ export default function ProjectSidebar() {
                       <p className="text-heading-l font-bold break-keep text-text-primary">
                         {project.name}
                       </p>
-                      <p className="text-body-l font-semibold text-text-secondary">
-                        {project.clientName}
+                      {/*
+                        발주처 옆에 **내 권한**을 붙인다 — 사이드바는 프로젝트 하위
+                        모든 화면에 떠 있어, 어느 화면에서 편집 버튼을 못 찾더라도
+                        여기 한 곳만 보면 "권한이 없어서" 임을 바로 알 수 있다.
+                      */}
+                      <p className="flex items-center justify-between gap-2">
+                        <span className="min-w-0 truncate text-body-l font-semibold text-text-secondary">
+                          {project.clientName}
+                        </span>
+                        <PermissionBadge permission={project.myPermission} />
                       </p>
                     </div>
                     {project.description && (
@@ -838,7 +855,7 @@ export default function ProjectSidebar() {
                         `+` 는 **버튼이 아니라 표시**다 — 영역 전체가 이미 버튼이라
                         안에 버튼을 또 넣을 수 없다 (중첩 버튼은 유효하지 않다).
                       */}
-                      {canEdit && (
+                      {canAddMembers && (
                         <span
                           aria-hidden
                           style={{

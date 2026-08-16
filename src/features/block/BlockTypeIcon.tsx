@@ -41,14 +41,6 @@ const PATHS: Record<BlockTypeCode, React.ReactNode> = {
       <path d="M9 12V6a3 3 0 0 1 6 0v6" />
     </>
   ),
-  /** 카드 + 체크. 체크가 카드 왼쪽으로 쏠려 있어 가운데로 옮기고 크기를 키웠다 */
-  PAYMENT_CONFIRM: (
-    <>
-      <rect x="2" y="5" width="20" height="14" rx="2" />
-      <path d="M2 10h20" />
-      <path d="m8.5 14.5 2.5 2.5 4.5-5" />
-    </>
-  ),
   /** 정산 — 회차별 금액을 표로 늘어놓는 블록이라 계산서 모양으로 둔다 */
   SETTLEMENT: (
     <>
@@ -56,15 +48,6 @@ const PATHS: Record<BlockTypeCode, React.ReactNode> = {
       <path d="M8 7h8M8 11h8" />
       <path d="M8 15h4" />
       <path d="M16 15v4" />
-    </>
-  ),
-  TAX_INVOICE_VIEW: (
-    <>
-      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6" />
-      <path d="M14 3v5h5V8z" />
-      <path d="M8 9h4M8 13h3" />
-      <circle cx="17" cy="16" r="3" />
-      <path d="m19.5 18.5 2 2" />
     </>
   ),
   /**
