@@ -4,6 +4,9 @@ import { api, ApiError, isAbortError, requestRaw } from '@/lib/api';
 import type {
   AdminFile,
   AdminFileQuery,
+  AdminTreeProject,
+  AdminTreeStage,
+  AdminTreeStep,
   BlockFilesResponse,
   CompleteUploadResponse,
   DownloadUrlResponse,
@@ -140,7 +143,10 @@ export function getMyFiles(query: MyFileQuery = {}, signal?: AbortSignal) {
  *
  * ⚠️ ADMIN 이 아니면 403 `ACC_ADMIN_REQUIRED` 다 — 화면이 안내 문구로 받는다.
  */
-export function getAdminFiles(query: AdminFileQuery = {}, signal?: AbortSignal) {
+export function getAdminFiles(
+  query: AdminFileQuery = {},
+  signal?: AbortSignal,
+) {
   const params = new URLSearchParams();
 
   if (query.keyword) params.set('keyword', query.keyword);
@@ -156,6 +162,95 @@ export function getAdminFiles(query: AdminFileQuery = {}, signal?: AbortSignal) 
 
   return api.get<FilePage<AdminFile>>(
     search ? `${ENDPOINTS.files.admin}?${search}` : ENDPOINTS.files.admin,
+    signal,
+  );
+}
+
+/**
+ * 탐색기 1단계 — 전사 프로젝트 (§14.1 · ADMIN). 이름 오름차순 · 페이징.
+ *
+ * ⚠️ 일반 프로젝트 목록(`GET /projects`)을 쓰지 않는다 — 그쪽은 참여자 기준이라
+ *    관리자가 참여하지 않은 프로젝트의 스테이지 · 스텝에서 403 이 났다.
+ */
+export function getAdminTreeProjects(
+  query: { page?: number; size?: number } = {},
+  signal?: AbortSignal,
+) {
+  const params = new URLSearchParams();
+
+  // 0 도 유효한 페이지라 값 유무로 판단한다
+  if (query.page !== undefined) params.set('page', String(query.page));
+  if (query.size !== undefined) params.set('size', String(query.size));
+
+  const search = params.toString();
+  const path = ENDPOINTS.files.adminTree.projects;
+
+  return api.get<FilePage<AdminTreeProject>>(
+    search ? `${path}?${search}` : path,
+    signal,
+  );
+}
+
+/**
+ * 탐색기 2단계 — 스테이지 (§14.2 · ADMIN). `sortOrder` 오름차순.
+ *
+ * ⭐ 스테이지에 속하지 않은 스텝이 있으면 **맨 뒤에 `stageId: null` 인 미분류 칸**이 붙어 온다 —
+ *    화면이 세어 만들지 않는다.
+ */
+export function getAdminTreeStages(
+  projectId: number | string,
+  signal?: AbortSignal,
+) {
+  return api
+    .get<{ stages: AdminTreeStage[] }>(
+      ENDPOINTS.files.adminTree.stages(projectId),
+      signal,
+    )
+    .then((data) => data.stages);
+}
+
+/**
+ * 탐색기 3단계 — 스텝 (§14.3 · ADMIN). `sortOrder` 오름차순.
+ *
+ * `stageId` 를 **생략하면 미분류**(스테이지 미소속) 스텝이 온다 — 미분류 칸을 연 경우다.
+ */
+export function getAdminTreeSteps(
+  projectId: number | string,
+  stageId?: number,
+  signal?: AbortSignal,
+) {
+  const path = ENDPOINTS.files.adminTree.steps(projectId);
+
+  return api
+    .get<{ steps: AdminTreeStep[] }>(
+      stageId === undefined ? path : `${path}?stageId=${stageId}`,
+      signal,
+    )
+    .then((data) => data.steps);
+}
+
+/**
+ * 탐색기 4단계 — 스텝 안의 파일 (§14.4 · ADMIN). 최신 업로드순 · 페이징.
+ *
+ * 전사 목록(142번)과 **같은 행 모양**(`AdminFile`)이라 표를 그대로 쓴다.
+ * ⚠️ 검색 · 확장자 필터가 없다 — 조건을 걸어 찾을 때는 142번을 쓴다.
+ * ℹ️ 삭제된 블록의 파일은 오지 않는다 (`blockDeleted` 는 항상 false).
+ */
+export function getAdminStepFiles(
+  stepId: number | string,
+  query: { page?: number; size?: number } = {},
+  signal?: AbortSignal,
+) {
+  const params = new URLSearchParams();
+
+  if (query.page !== undefined) params.set('page', String(query.page));
+  if (query.size !== undefined) params.set('size', String(query.size));
+
+  const search = params.toString();
+  const path = ENDPOINTS.files.adminTree.files(stepId);
+
+  return api.get<FilePage<AdminFile>>(
+    search ? `${path}?${search}` : path,
     signal,
   );
 }

@@ -6,6 +6,49 @@
 
 ---
 
+## [2026-08-16] 전사 파일 탐색기 API 전환 · 블록 삭제 D안 반영 🚧
+
+브랜치: `feat/admin-file-tree` · API: `.ai/API.md` 151~154 신설 · 47 · 105 · 106 갱신 (백엔드 PR #412 `develop` 머지 완료)
+
+백엔드가 **전사 파일 탐색 전용 API 4종**(§14)과 **블록 삭제 시 파일 동반 휴지통행(D안)** 을 내려
+프론트를 그 계약으로 옮겼다. 탐색기가 안고 있던 제약 두 개(참여하지 않은 프로젝트에서 403 · 프로젝트당 500건 상한)가
+이 API 로 함께 사라졌다.
+
+### 변경 파일
+
+| 파일 | 변경 |
+| ---- | ---- |
+| `src/constants/endpoints.ts` | 수정 — `files.adminTree` 4종 추가 |
+| `src/features/file/types.ts` | 수정 — `AdminTreeProject` · `AdminTreeStage` · `AdminTreeStep` 추가, 소유 구조 주석 D안 반영 |
+| `src/features/file/api.ts` | 수정 — `getAdminTreeProjects` · `getAdminTreeStages` · `getAdminTreeSteps` · `getAdminStepFiles` 추가 |
+| `src/features/file/errorCodes.ts` | 수정 — `stepNotFound`(`FILE_STEP_NOT_FOUND`) 추가 |
+| `src/features/file/AdminFileExplorer.tsx` | 수정 — 트리 API 로 전면 교체 (단계별 lazy 조회) |
+| `src/features/file/AdminFileList.tsx` | 수정 — 스텝 자리에서 §14.4 로 전환 · 필터 줄 숨김 · 404 안내 |
+| `src/features/block/BlockDeleteModal.tsx` | 수정 — 409 두 종류 분기 · 문서 휴지통행 안내 |
+| `src/features/project/step/StepDeleteModal.tsx` | 수정 — cascade 안내 · 409 `FILE_APPROVAL_IN_PROGRESS` 분기 |
+
+### 주요 작업 내용
+
+- **탐색기를 전용 API 로 교체** — `프로젝트 → 스테이지 → 스텝` 을 열 때마다 자식만 부른다. 회사 스코프라 관리자가 참여하지 않은 프로젝트도 열린다
+- **스텝 파일을 스텝 API 로** — 프로젝트 파일 500건(100×5)을 미리 받아 화면에서 나누던 방식을 걷어내고 `GET /admin/files/steps/{stepId}/files` 로 페이징한다
+- **미분류 칸을 서버 값으로** — `stageId: null` 버킷을 그대로 쓰고, 프론트가 스텝을 세어 만들던 칸을 제거했다
+- **블록 · 스텝 삭제 안내와 차단 처리** — "문서는 휴지통으로 이동" 을 확인 문구에 넣고, 409 를 되물음(`APPROVAL_DELETE_CONFIRM_REQUIRED`)과 거부(`FILE_APPROVAL_IN_PROGRESS`)로 갈랐다
+
+### 부수 결정
+
+- **스텝 안에서는 검색 · 확장자 필터를 숨긴다** — §14.4 에 그 조건이 없다. 입력만 남겨 두면 쳐도 아무 일이 없어 고장으로 읽힌다. 조건 검색은 한 단계 위(전사 목록 142번) 담당으로 정리했다
+- **개수 힌트(`스텝 N개` · `파일 N개`)를 뺐다** — 응답에 개수가 없고, 스텝마다 파일 API 를 부르면 요청이 스텝 수만큼 늘어난다. 필요해지면 `stepCount` · `fileCount` 를 백엔드에 요청한다
+- **`blockDeleted` 배지는 유지** — D안 이후에도 **복구된 고아**가 `blockDeleted: true` 로 문서함에 나타난다
+- **`FILE_STEP_NOT_FOUND` 는 코드 상수 한 곳에만 둔다** — `features/file/errorCodes.ts`. 분기는 status 가 아니라 `code` 로 한다는 이 도메인 규칙을 그대로 따른다
+
+### 확인
+
+- `npx tsc --noEmit` · `npx eslint src` · `npm run build` 통과
+- 백엔드 §14 배포 후 스웨거(`/v3/api-docs`) 실측 — 경로 4종 · 응답 필드 · `FILE_STEP_NOT_FOUND` 가 구현과 일치
+- ⏳ 화면 실동작 확인 대기 — `/settings/files` 에서 탐색 · 스텝 파일 · 블록 삭제를 훑는다
+
+---
+
 ## [2026-08-16] 사원 검색 칸이 화면을 통째로 튕기던 문제 ✅
 
 브랜치: `fix/employee-search-forbidden` · API: 변경 없음

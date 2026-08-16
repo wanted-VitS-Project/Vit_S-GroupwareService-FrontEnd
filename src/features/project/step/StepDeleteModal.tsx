@@ -6,6 +6,7 @@ import PanelModal, { ModalFooter } from '@/components/PanelModal';
 import LoadingSpinner from '@/components/Spinner';
 import { getStepBlocks } from '@/features/block/api';
 import type { StepBlock } from '@/features/block/types';
+import { FILE_CODES } from '@/features/file/errorCodes';
 import { ApiError, messageOf } from '@/lib/api';
 
 import { deleteStep } from '../api';
@@ -114,6 +115,18 @@ export default function StepDeleteModal({
         return;
       }
 
+      /*
+        ⛔ 진행 중 결재가 하위 블록의 문서를 보고 있으면 막힌다 (2026-08-16 D안).
+        다시 눌러도 결과가 같으므로 **다음에 할 일**(회수 · 완료)을 적어 준다.
+      */
+      if (code === FILE_CODES.approvalInProgress) {
+        setError(
+          '진행 중인 결재가 이 스텝의 문서를 참조하고 있어 삭제할 수 없습니다. 결재를 회수하거나 완료한 뒤 다시 시도해주세요.',
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
       setError(messageOf(caught, '삭제하지 못했습니다.'));
       setIsSubmitting(false);
     }
@@ -191,7 +204,9 @@ export default function StepDeleteModal({
               })}
             </ul>
             <p className="mt-1 text-caption break-keep text-text-secondary">
-              고르지 않은 블록 {deletingBlockCount}개는 스텝과 함께 삭제됩니다.
+              고르지 않은 블록 {deletingBlockCount}개는 스텝과 함께 삭제되고,
+              {/* 2026-08-16 D안 — 블록이 지워지면 그 파일도 함께 휴지통으로 간다 */}{' '}
+              블록에 올린 문서는 프로젝트 휴지통으로 이동합니다.
             </p>
           </div>
         )}

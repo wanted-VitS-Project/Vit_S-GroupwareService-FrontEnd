@@ -9,7 +9,7 @@ import { formatDate } from '@/lib/format';
 import { useModalTarget } from '@/lib/useModal';
 import { getProjects } from '@/features/project/api';
 
-import { downloadVersion, getAdminFiles } from './api';
+import { downloadVersion, getAdminFiles, getAdminStepFiles } from './api';
 import { extensionLabel, extensionStyle, formatFileSize } from './format';
 import { LazyFileViewerModal, preloadViewer } from './LazyFileViewer';
 import { cancelPreviewPrefetch, schedulePreviewPrefetch } from './previewCache';
@@ -67,7 +67,13 @@ export default function AdminFileList({
    * 이미 경로 막대가 어디를 보고 있는지 말하고 있어, 같은 말을 두 번 할 이유가 없다.
    */
   lockedProjectId?: number;
-  /** ⚠️ 스텝 필터가 API 에 없어 **받아온 페이지 안에서** 거른다 */
+  /**
+   * 스텝까지 들어간 자리. 주면 **스텝 전용 API**(§14.4)로 갈아탄다 —
+   * 예전엔 프로젝트 파일 500건을 받아 화면에서 걸러 그 뒤가 보이지 않았다.
+   *
+   * ⚠️ 그 API 에는 검색 · 확장자 필터가 없어 **필터 줄을 숨긴다.**
+   *    조건으로 찾을 때는 한 단계 위(프로젝트)에서 전사 목록(142번)으로 찾는다.
+   */
   lockedStepId?: number;
 } = {}) {
   const [keyword, setKeyword] = useState('');
@@ -103,32 +109,38 @@ export default function AdminFileList({
     lockedProjectId ?? (projectId ? Number(projectId) : undefined);
   const isLocked = lockedProjectId !== undefined;
 
-  const hasFilter = search !== '' || projectId !== '' || extension !== '';
-  const requestKey = `${reloadCount} ${search} ${effectiveProjectId ?? ''} ${extension} ${page}`;
+  /** 스텝 안을 보는 중인지 — 데이터 출처와 필터 노출이 함께 갈린다 */
+  const isStepLocked = lockedStepId !== undefined;
+  const hasFilter =
+    !isStepLocked && (search !== '' || projectId !== '' || extension !== '');
+  const requestKey = `${reloadCount} ${lockedStepId ?? ''} ${search} ${effectiveProjectId ?? ''} ${extension} ${page}`;
   /** 지금 조건의 결과만 화면에 쓴다 — 이전 요청 결과는 로딩으로 본다 */
   const current = result?.key === requestKey ? result : null;
   const filePage = current?.page ?? null;
-  const files =
-    filePage === null
-      ? null
-      : lockedStepId === undefined
-        ? filePage.content
-        : filePage.content.filter((file) => file.stepId === lockedStepId);
+  const files = filePage?.content ?? null;
 
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
 
-    getAdminFiles(
-      {
-        keyword: search || undefined,
-        projectId: effectiveProjectId,
-        extension: extension || undefined,
-        page,
-        size: PAGE_SIZE,
-      },
-      signal,
-    )
+    /*
+      스텝까지 들어갔으면 스텝 전용 API 를 쓴다 (§14.4) — 그 안의 파일 전부가 페이징으로 온다.
+      위 단계(프로젝트 · 스테이지)에서는 검색 · 필터가 되는 전사 목록(142번)을 그대로 쓴다.
+    */
+    const request = isStepLocked
+      ? getAdminStepFiles(lockedStepId, { page, size: PAGE_SIZE }, signal)
+      : getAdminFiles(
+          {
+            keyword: search || undefined,
+            projectId: effectiveProjectId,
+            extension: extension || undefined,
+            page,
+            size: PAGE_SIZE,
+          },
+          signal,
+        );
+
+    request
       .then((data) => setResult({ key: requestKey, page: data }))
       .catch((caught) => {
         // 취소는 실패가 아니다
@@ -137,20 +149,35 @@ export default function AdminFileList({
          * ⚠️ 403 은 **실패가 아니다.** 볼 권한이 없다는 뜻이라 `불러오지 못했습니다` 로
          *    알리면 고장으로 읽혀 새로고침만 반복하게 된다. 할 일이 다르면 문구도 달라야 한다.
          */
-        const isForbidden = caught instanceof ApiError && caught.status === 403;
+        const status = caught instanceof ApiError ? caught.status : 0;
 
         setResult({
           key: requestKey,
-          errorMessage: isForbidden
-            ? '이 파일을 볼 권한이 없습니다.'
-            : messageOf(caught, '파일 목록을 불러오지 못했습니다.'),
+          errorMessage:
+            status === 403
+              ? '이 파일을 볼 권한이 없습니다.'
+              : status === 404
+                ? // 트리를 띄워 둔 사이 남이 스텝을 지운 경우다 (404 `FILE_STEP_NOT_FOUND`)
+                  '삭제되었거나 없는 스텝입니다. 목록을 다시 열어주세요.'
+                : messageOf(caught, '파일 목록을 불러오지 못했습니다.'),
         });
       });
 
     return () => controller.abort();
-  }, [requestKey, search, effectiveProjectId, extension, page]);
+  }, [
+    requestKey,
+    isStepLocked,
+    lockedStepId,
+    search,
+    effectiveProjectId,
+    extension,
+    page,
+  ]);
 
   useEffect(() => {
+    // 선택지 · 요약 카드 둘 다 잠긴 자리에서는 그리지 않는다 — 부를 이유가 없다
+    if (isLocked) return;
+
     const controller = new AbortController();
 
     getProjects({ page: 0, size: PROJECT_OPTION_LIMIT }, controller.signal)
@@ -167,7 +194,7 @@ export default function AdminFileList({
       .catch(() => {});
 
     return () => controller.abort();
-  }, []);
+  }, [isLocked]);
 
   /** 조건이 바뀌면 첫 페이지로 돌아간다 — 3페이지에서 거르면 빈 화면이 나온다 */
   function applyFilter(change: () => void) {
@@ -220,62 +247,68 @@ export default function AdminFileList({
         </section>
       )}
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            applyFilter(() => setSearch(keyword.trim()));
-          }}
-          className="relative min-w-0 flex-1"
-        >
-          <label htmlFor="adminFileSearch" className="sr-only">
-            파일명 · 업로더 검색
-          </label>
-          <input
-            id="adminFileSearch"
-            type="search"
-            value={keyword}
-            onChange={(event) => {
-              setKeyword(event.target.value);
-              // 입력을 비우면 검색을 실행하지 않아도 전체 목록으로 돌아온다
-              if (event.target.value.trim() === '') {
-                applyFilter(() => setSearch(''));
-              }
+      {/*
+        ⚠️ 스텝 안에서는 필터 줄을 숨긴다 — 스텝 파일 API(§14.4)에 검색 · 확장자 조건이 없다.
+        입력만 남겨 두면 쳐도 아무 일이 없어 고장으로 읽힌다.
+      */}
+      {!isStepLocked && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              applyFilter(() => setSearch(keyword.trim()));
             }}
-            placeholder="파일명 · 업로더 검색"
-            className="w-full rounded-lg border border-border-default py-2 pr-10 pl-3 text-label text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
-          />
-          <button
-            type="submit"
-            aria-label="검색"
-            className="absolute top-1/2 right-1 flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-hover hover:text-text-primary"
+            className="relative min-w-0 flex-1"
           >
-            <SearchIcon />
-          </button>
-        </form>
+            <label htmlFor="adminFileSearch" className="sr-only">
+              파일명 · 업로더 검색
+            </label>
+            <input
+              id="adminFileSearch"
+              type="search"
+              value={keyword}
+              onChange={(event) => {
+                setKeyword(event.target.value);
+                // 입력을 비우면 검색을 실행하지 않아도 전체 목록으로 돌아온다
+                if (event.target.value.trim() === '') {
+                  applyFilter(() => setSearch(''));
+                }
+              }}
+              placeholder="파일명 · 업로더 검색"
+              className="w-full rounded-lg border border-border-default py-2 pr-10 pl-3 text-label text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+            />
+            <button
+              type="submit"
+              aria-label="검색"
+              className="absolute top-1/2 right-1 flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-hover hover:text-text-primary"
+            >
+              <SearchIcon />
+            </button>
+          </form>
 
-        {!isLocked && (
+          {!isLocked && (
+            <FilterSelect
+              id="adminFileProject"
+              label="프로젝트"
+              allLabel="프로젝트 전체"
+              value={projectId}
+              onChange={(value) => applyFilter(() => setProjectId(value))}
+              options={projects?.options ?? []}
+            />
+          )}
           <FilterSelect
-            id="adminFileProject"
-            label="프로젝트"
-            allLabel="프로젝트 전체"
-            value={projectId}
-            onChange={(value) => applyFilter(() => setProjectId(value))}
-            options={projects?.options ?? []}
+            id="adminFileExtension"
+            label="파일 유형"
+            allLabel="유형 전체"
+            value={extension}
+            onChange={(value) => applyFilter(() => setExtension(value))}
+            options={EXTENSION_OPTIONS.map((value) => ({
+              value,
+              label: value.toUpperCase(),
+            }))}
           />
-        )}
-        <FilterSelect
-          id="adminFileExtension"
-          label="파일 유형"
-          allLabel="유형 전체"
-          value={extension}
-          onChange={(value) => applyFilter(() => setExtension(value))}
-          options={EXTENSION_OPTIONS.map((value) => ({
-            value,
-            label: value.toUpperCase(),
-          }))}
-        />
-      </div>
+        </div>
+      )}
 
       {errorMessage && (
         <p
@@ -305,7 +338,9 @@ export default function AdminFileList({
             <p className="text-label break-keep text-text-secondary">
               {hasFilter
                 ? '검색어나 필터를 바꾸세요'
-                : '프로젝트 스텝에 문서를 올리면 여기에 모입니다'}
+                : isStepLocked
+                  ? '이 스텝의 문서 블록에 파일을 올리면 여기에 모입니다'
+                  : '프로젝트 스텝에 문서를 올리면 여기에 모입니다'}
             </p>
           </>
         }

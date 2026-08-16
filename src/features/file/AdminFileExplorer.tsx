@@ -2,38 +2,43 @@
 
 import { useEffect, useState } from 'react';
 
-import {
-  getProjects,
-  getProjectStages,
-  getProjectSteps,
-} from '@/features/project/api';
-import type {
-  ProjectListItem,
-  ProjectStage,
-  ProjectStep,
-} from '@/features/project/types';
 import { ApiError, messageOf } from '@/lib/api';
 
-import { getAdminFiles } from './api';
-import type { AdminFile } from './types';
+import {
+  getAdminTreeProjects,
+  getAdminTreeStages,
+  getAdminTreeSteps,
+} from './api';
+import type { AdminTreeProject, AdminTreeStage, AdminTreeStep } from './types';
 
 /**
  * 전사 파일을 **탐색기처럼** 훑는 화면 (`프로젝트 → 스테이지 → 스텝 → 파일`).
  *
- * ℹ️ 한 번에 트리를 주는 API 가 없어 단계마다 다른 API 를 쓴다 —
- *    `GET /projects`(ADMIN 은 전 건) · `/projects/{id}/stages` · `/steps` · `/admin/files?projectId=`.
- * ⚠️ 스텝 필터가 API 에 없어 **프로젝트 단위로 받아 화면에서 나눈다.**
- *    한 프로젝트가 500건을 넘으면 뒤는 보이지 않는다 — 그때 `?stepId=` 를 요청한다.
+ * ⭐ **탐색 전용 API 를 쓴다** (§14 · 2026-08-16 신설) — 노드를 열 때마다 **자식만** 부른다.
+ *    `GET /admin/files/projects` · `…/{projectId}/stages` · `…/{projectId}/steps` 셋 모두 ADMIN 전용이다.
+ *
+ * 예전엔 일반 프로젝트 API 로 훑었는데 두 가지가 걸렸다 — 둘 다 이 API 로 사라졌다.
+ * - 관리자라도 **참여하지 않은 프로젝트**의 스테이지 · 스텝에서 403 이 났다
+ * - 스텝 필터가 없어 프로젝트 파일 **500건을 미리 받아** 화면에서 나눴다 (넘으면 뒤가 안 보였다)
+ *
+ * ⚠️ **검색 · 확장자 필터는 이 트리가 하지 않는다** — 조건으로 찾을 때는 전사 목록(142번)을 쓴다.
  */
 
-/** 한 프로젝트에서 한 번에 받아 둘 파일 수 상한 (100 × 5) */
-const FILE_PAGE_SIZE = 100;
-const FILE_FETCH_PAGES = 5;
+/**
+ * 프로젝트 목록 상한.
+ *
+ * ⚠️ **서버가 100 으로 자른다** (2026-08-16 실측 — `size=200` 을 보내도 응답 `size` 가 100).
+ *    더 큰 값을 보내면 안 받아온 프로젝트가 있는데도 다 받은 것처럼 보이므로 실제 상한을 적는다.
+ *    전사 프로젝트가 100 개를 넘으면 페이지 넘김이나 검색을 붙여야 한다.
+ */
+const PROJECT_LIMIT = 100;
 
-/** 프로젝트 목록 상한 — 전사 프로젝트가 이보다 많아지면 검색을 붙인다 */
-const PROJECT_LIMIT = 200;
-
-/** 스테이지에 배정되지 않은 스텝을 담는 칸 */
+/**
+ * 스테이지에 배정되지 않은 스텝을 담는 칸.
+ *
+ * ⚠️ 서버는 이 칸을 `stageId: null` 로 준다. 여기서 `'none'` 으로 바꿔 쓰는 이유는
+ *    **위치가 URL 에 담기기 때문**이다(`?stageId=none`) — `null` 은 주소로 실을 수 없다.
+ */
 const NO_STAGE = 'none';
 
 /**
@@ -59,18 +64,18 @@ export default function AdminFileExplorer({
   path: ExplorerPath;
   onChange: (next: ExplorerPath) => void;
 }) {
-  const [projects, setProjects] = useState<ProjectListItem[] | null>(null);
+  const [projects, setProjects] = useState<AdminTreeProject[] | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
 
   /* 1단계 — 전사 프로젝트 */
   useEffect(() => {
     const controller = new AbortController();
 
-    getProjects({ page: 0, size: PROJECT_LIMIT }, controller.signal)
+    getAdminTreeProjects({ page: 0, size: PROJECT_LIMIT }, controller.signal)
       .then((data) => setProjects(data.content))
       .catch((caught) => {
         if (!controller.signal.aborted) {
-          setErrorMessage(messageOf(caught, '프로젝트를 불러오지 못했습니다.'));
+          setErrorMessage(explorerErrorMessage(caught, '프로젝트'));
         }
       });
 
@@ -78,90 +83,100 @@ export default function AdminFileExplorer({
   }, []);
 
   /**
-   * 2 · 3단계 — 고른 프로젝트의 스테이지 · 스텝 · 파일.
+   * 2단계 — 고른 프로젝트의 스테이지.
    *
    * ⚠️ 결과에 **어느 프로젝트의 것인지**를 함께 담는다. 프로젝트를 옮기면 키가 어긋나
    *    자동으로 로딩 상태가 되므로, 효과 본문에서 상태를 비울 필요가 없다.
    */
-  const [inside, setInside] = useState<{
+  const [stageResult, setStageResult] = useState<{
     projectId: number;
-    stages: ProjectStage[];
-    steps: ProjectStep[];
-    files: AdminFile[];
+    stages?: AdminTreeStage[];
     /** 못 본 이유 — 권한 없음과 조회 실패는 사용자가 할 일이 다르다 */
     blockedReason?: string;
   } | null>(null);
 
   const projectId = path.projectId;
-  const current = inside?.projectId === projectId ? inside : null;
-  const stages = current?.stages ?? null;
-  const steps = current?.steps ?? null;
-  const files = current?.files ?? null;
+  /** 지금 프로젝트의 결과만 화면에 쓴다 — 옮기는 중이면 로딩으로 본다 */
+  const currentStages =
+    stageResult !== null && stageResult.projectId === projectId
+      ? stageResult
+      : null;
+  const stages = currentStages?.stages ?? null;
+  const blockedReason = currentStages?.blockedReason;
 
   useEffect(() => {
     if (projectId === undefined) return;
 
     const controller = new AbortController();
-    const { signal } = controller;
 
-    /**
-     * 셋을 함께 기다린다 — 스테이지만 먼저 그리면 스텝 수가 나중에 붙어 목록이 들썩인다.
-     * 파일도 여기서 받아 둔다. 스텝마다 다시 부르면 같은 응답을 반복해서 받는다.
-     */
-    Promise.all([
-      getProjectStages(projectId, signal),
-      getProjectSteps(projectId, signal),
-      fetchProjectFiles(projectId, signal),
-    ])
-      .then(([nextStages, nextSteps, nextFiles]) =>
-        setInside({
-          projectId,
-          stages: nextStages,
-          steps: nextSteps,
-          files: nextFiles,
-        }),
-      )
+    getAdminTreeStages(projectId, controller.signal)
+      .then((nextStages) => setStageResult({ projectId, stages: nextStages }))
       .catch((caught) => {
-        if (signal.aborted) return;
+        if (controller.signal.aborted) return;
 
-        /**
-         * ⚠️ 403 은 **실패가 아니다.** 관리자라도 참여하지 않은 프로젝트의 스테이지 · 스텝은
-         *    볼 수 없다. `불러오지 못했습니다` 로 알리면 고장으로 읽혀 새로고침만 반복하게 된다.
-         */
-        const isForbidden = caught instanceof ApiError && caught.status === 403;
-
-        setInside({
+        setStageResult({
           projectId,
-          stages: [],
-          steps: [],
-          files: [],
-          blockedReason: isForbidden
-            ? '이 프로젝트를 볼 권한이 없습니다. 프로젝트 참여자에게 요청해주세요.'
-            : messageOf(caught, '프로젝트 안을 불러오지 못했습니다.'),
+          blockedReason: explorerErrorMessage(caught, '스테이지', true),
         });
       });
 
     return () => controller.abort();
   }, [projectId]);
 
-  const stepsOfStage =
-    steps === null || path.stageId === undefined
-      ? null
-      : steps.filter((step) =>
-          path.stageId === NO_STAGE
-            ? step.stageId === null
-            : step.stageId === path.stageId,
-        );
+  /**
+   * 3단계 — 고른 스테이지의 스텝.
+   *
+   * ⭐ 미분류 칸(`NO_STAGE`)이면 `stageId` 를 **빼고** 부른다 — 그게 미분류 스텝을 받는 방법이다.
+   */
+  const [stepResult, setStepResult] = useState<{
+    key: string;
+    steps?: AdminTreeStep[];
+    blockedReason?: string;
+  } | null>(null);
+
+  const stageId = path.stageId;
+  const stepKey = `${projectId ?? ''} ${stageId ?? ''}`;
+  const currentSteps = stepResult?.key === stepKey ? stepResult : null;
+  const steps = currentSteps?.steps ?? null;
+
+  useEffect(() => {
+    if (projectId === undefined || stageId === undefined) return;
+
+    const controller = new AbortController();
+
+    getAdminTreeSteps(
+      projectId,
+      stageId === NO_STAGE ? undefined : stageId,
+      controller.signal,
+    )
+      .then((nextSteps) => setStepResult({ key: stepKey, steps: nextSteps }))
+      .catch((caught) => {
+        if (controller.signal.aborted) return;
+
+        setStepResult({
+          key: stepKey,
+          blockedReason: explorerErrorMessage(caught, '스텝', true),
+        });
+      });
+
+    return () => controller.abort();
+  }, [stepKey, projectId, stageId]);
 
   /** 경로 막대에 쓸 이름 — 목록이 오기 전에는 비워 두고 자리만 잡는다 */
   const projectName = projects?.find(
     (project) => project.projectId === projectId,
   )?.name;
-  const stageName =
+  const stageName = stages?.find((stage) =>
     path.stageId === NO_STAGE
-      ? '스테이지 미지정'
-      : stages?.find((stage) => stage.stageId === path.stageId)?.name;
+      ? stage.stageId === null
+      : stage.stageId === path.stageId,
+  )?.name;
   const stepName = steps?.find((step) => step.stepId === path.stepId)?.name;
+
+  const levelBlockedReason =
+    path.stageId === undefined
+      ? blockedReason
+      : (currentSteps?.blockedReason ?? blockedReason);
 
   return (
     <div>
@@ -175,9 +190,9 @@ export default function AdminFileExplorer({
         <p className="mt-3 text-caption text-text-danger">{errorMessage}</p>
       )}
 
-      {current?.blockedReason && (
+      {levelBlockedReason && (
         <p className="mt-3 rounded-lg border border-border-default bg-bg-surface px-4 py-6 text-center text-caption break-keep text-text-secondary">
-          {current.blockedReason}
+          {levelBlockedReason}
         </p>
       )}
 
@@ -195,32 +210,37 @@ export default function AdminFileExplorer({
                 key={project.projectId}
                 icon="project"
                 label={project.name}
+                // 발주처가 없는 프로젝트가 있어 있을 때만 적는다
+                hint={project.clientName ?? undefined}
                 onOpen={() => onChange({ projectId: project.projectId })}
               />
             ))
           : path.stageId === undefined
-            ? stageEntries(stages, steps).map((stage) => (
+            ? stages?.map((stage) => (
                 <EntryRow
-                  key={String(stage.id)}
+                  key={stage.stageId ?? NO_STAGE}
                   icon="stage"
                   label={stage.name}
-                  hint={`스텝 ${stage.stepCount}개`}
-                  onOpen={() => onChange({ ...path, stageId: stage.id })}
+                  onOpen={() =>
+                    onChange({
+                      ...path,
+                      stageId: stage.stageId ?? NO_STAGE,
+                    })
+                  }
                 />
               ))
-            : stepsOfStage?.map((step) => (
+            : steps?.map((step) => (
                 <EntryRow
                   key={step.stepId}
                   icon="step"
                   isCurrent={step.stepId === path.stepId}
                   label={step.name}
-                  hint={`파일 ${countFiles(files, step.stepId)}개`}
                   onOpen={() => onChange({ ...path, stepId: step.stepId })}
                 />
               ))}
 
-        {current?.blockedReason === undefined &&
-          isEmptyLevel(path, projects, stages, steps, stepsOfStage) && (
+        {levelBlockedReason === undefined &&
+          isEmptyLevel(path, projects, stages, steps) && (
             <li className="rounded-lg border border-border-default px-4 py-8 text-center text-caption text-text-secondary">
               {path.projectId === undefined
                 ? '프로젝트가 없습니다.'
@@ -344,7 +364,7 @@ function EntryRow({
           {label}
         </span>
         {hint && (
-          <span className="shrink-0 text-caption text-text-secondary">
+          <span className="max-w-40 shrink-0 truncate text-caption text-text-secondary">
             {hint}
           </span>
         )}
@@ -386,75 +406,39 @@ function FolderIcon({ tone }: { tone: 'project' | 'stage' | 'step' }) {
 }
 
 /**
- * 스테이지 칸 목록. 미소속 스텝이 있으면 **맨 뒤에 한 칸**을 더 만든다 —
- * 스테이지에 배정되지 않은 스텝이 어디에도 안 보이면 파일을 영영 못 찾는다.
+ * 못 본 이유를 사용자가 할 일로 옮긴다.
+ *
+ * ⚠️ 403 은 **실패가 아니다** — 관리자가 아니면 이 화면 자체를 볼 수 없다.
+ *    `불러오지 못했습니다` 로 알리면 고장으로 읽혀 새로고침만 반복하게 된다.
+ * ⚠️ 404 를 **어디서 받았는지가 문구를 가른다.** 스테이지 · 스텝은 프로젝트 id 를 찍어 부르니
+ *    404 면 그 사이 지워진 것이지만, **맨 위 프로젝트 목록엔 찍은 id 가 없다** — 거기서
+ *    `삭제되었거나 없는 항목` 이라고 하면 무엇이 지워졌다는 건지 알 수 없다.
  */
-function stageEntries(
-  stages: ProjectStage[] | null,
-  steps: ProjectStep[] | null,
+function explorerErrorMessage(
+  caught: unknown,
+  level: string,
+  /** 특정 id 를 찍어 부른 단계인지 (스테이지 · 스텝) */
+  isTargeted = false,
 ) {
-  if (stages === null) return [];
-
-  const entries = stages.map((stage) => ({
-    id: stage.stageId as number | typeof NO_STAGE,
-    name: stage.name,
-    stepCount: stage.stepCount,
-  }));
-
-  const orphanCount =
-    steps?.filter((step) => step.stageId === null).length ?? 0;
-
-  if (orphanCount > 0) {
-    entries.push({
-      id: NO_STAGE,
-      name: '스테이지 미지정',
-      stepCount: orphanCount,
-    });
+  if (caught instanceof ApiError) {
+    if (caught.status === 403) {
+      return '전사 파일은 관리자만 볼 수 있습니다.';
+    }
+    if (caught.status === 404 && isTargeted) {
+      return '삭제되었거나 없는 항목입니다. 목록을 다시 열어주세요.';
+    }
   }
 
-  return entries;
-}
-
-function countFiles(files: AdminFile[] | null, stepId: number) {
-  return files?.filter((file) => file.stepId === stepId).length ?? 0;
+  return messageOf(caught, `${level} 목록을 불러오지 못했습니다.`);
 }
 
 function isEmptyLevel(
   path: ExplorerPath,
-  projects: ProjectListItem[] | null,
-  stages: ProjectStage[] | null,
-  steps: ProjectStep[] | null,
-  stepsOfStage: ProjectStep[] | null,
+  projects: AdminTreeProject[] | null,
+  stages: AdminTreeStage[] | null,
+  steps: AdminTreeStep[] | null,
 ) {
   if (path.projectId === undefined) return projects?.length === 0;
-  if (path.stageId === undefined) {
-    return (
-      stages !== null &&
-      steps !== null &&
-      stageEntries(stages, steps).length === 0
-    );
-  }
-  return stepsOfStage?.length === 0;
-}
-
-/**
- * 한 프로젝트의 파일을 모아 받는다.
- * ⚠️ 스텝 단위 필터가 API 에 없어 **프로젝트 단위로 받아 화면에서 나눈다.**
- *    상한(500건)을 넘기면 뒤는 받지 않는다 — 더 필요해지면 `?stepId=` 를 요청한다.
- */
-async function fetchProjectFiles(projectId: number, signal: AbortSignal) {
-  const collected: AdminFile[] = [];
-
-  for (let page = 0; page < FILE_FETCH_PAGES; page += 1) {
-    const result = await getAdminFiles(
-      { projectId, page, size: FILE_PAGE_SIZE },
-      signal,
-    );
-
-    collected.push(...result.content);
-
-    if (page >= result.totalPages - 1) break;
-  }
-
-  return collected;
+  if (path.stageId === undefined) return stages?.length === 0;
+  return steps?.length === 0;
 }

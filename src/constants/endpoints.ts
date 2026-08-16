@@ -353,6 +353,25 @@ export const ENDPOINTS = {
      * 경로만 `/admin` 아래에 있고 다루는 것은 파일이라 이 묶음에 둔다.
      */
     admin: `${V1}/admin/files`,
+    /**
+     * 전사 파일 **탐색기** (ADMIN 전용 · §14 · 2026-08-16 신설).
+     *
+     * 전사 목록(`admin`)과 목적이 다르다 — 저쪽은 검색 · 필터, 이쪽은 **한 단계씩 내려가는 탐색**이다.
+     * 노드를 열 때마다 자식만 부른다 (`프로젝트 → 스테이지 → 스텝 → 파일`).
+     *
+     * ⚠️ 프로젝트 · 스테이지 · 스텝 목록을 **일반 경로(`/projects/...`)로 부르지 않는다** —
+     *    그쪽은 참여자 권한이라 관리자가 참여하지 않은 프로젝트에서 403 이 난다.
+     */
+    adminTree: {
+      projects: `${V1}/admin/files/projects`,
+      stages: (projectId: number | string) =>
+        `${V1}/admin/files/projects/${projectId}/stages`,
+      /** `?stageId=` 를 생략하면 **스테이지 미소속(미분류)** 스텝이 온다 */
+      steps: (projectId: number | string) =>
+        `${V1}/admin/files/projects/${projectId}/steps`,
+      files: (stepId: number | string) =>
+        `${V1}/admin/files/steps/${stepId}/files`,
+    },
     /** 업로드 시작 — presigned PUT URL 발급 */
     uploads: `${V1}/files/uploads`,
     /** 업로드 완료 통보 — 서버가 저장소를 직접 확인한다 */

@@ -69,8 +69,7 @@ export default function AdminFileScreen() {
       <div className="mt-2 mb-6">
         <h2 className="text-heading-m font-bold">프로젝트 파일</h2>
         <p className="mt-1.5 text-label break-keep text-text-secondary">
-          전사 모든 프로젝트의 파일을 프로젝트 · 스테이지 · 스텝 순서로 찾아
-          봅니다.
+          모든 프로젝트의 파일을 프로젝트 · 스테이지 · 스텝 순서로 찾아 봅니다.
         </p>
       </div>
 
