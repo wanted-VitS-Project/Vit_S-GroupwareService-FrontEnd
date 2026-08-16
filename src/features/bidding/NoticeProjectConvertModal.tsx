@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import Modal from '@/components/Modal';
-import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
+import LoadingSpinner from '@/components/Spinner';
 import { getCategories } from '@/features/businessCategory/api';
 import type { BusinessCategory } from '@/features/businessCategory/types';
 import { ApiError, messageOf } from '@/lib/api';
@@ -171,11 +171,7 @@ export default function NoticeProjectConvertModal({
       </div>
 
       {isLoading ? (
-        <SkeletonGroup label="전환 정보 불러오는 중" className="mt-5">
-          {[0, 1, 2].map((row) => (
-            <Skeleton key={row} className="mt-3 h-10 rounded-lg" />
-          ))}
-        </SkeletonGroup>
+        <LoadingSpinner label="전환 정보 불러오는 중" className="mt-5 py-16" />
       ) : (
         <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
           <div className="mt-5 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">

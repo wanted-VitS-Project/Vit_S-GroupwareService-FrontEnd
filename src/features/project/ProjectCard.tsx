@@ -52,18 +52,16 @@ const TOGGLE_SLOT = 'size-9 shrink-0';
  * 목록 머리글. 어느 칸이 무엇인지 알려준다 — 값만 늘어서 있으면
  * `2026.01.02 ~ 2026.03.31` 이 기간인지 계약기간인지 알 수 없다.
  *
- * **스크롤을 따라 붙든다** (`sticky`). 목록을 지나 내려가는 동안 기준이 사라지면
- * 라벨을 붙인 뜻이 없다 — 대시보드 · `/projects` 둘 다 같게 둔다.
- * 목록 구역을 벗어나면 sticky 가 자연히 풀려 함께 올라간다.
- *
- * ⚠️ 바탕을 반드시 칠한다 — 투명하면 카드가 머리글을 통과하며 겹쳐 보인다.
- *    스크롤 컨테이너는 `AppShell` 의 `main` 이라 `top-0` 이 그 위쪽 가장자리다.
+ * ⚠️ **스크롤을 따라오지 않는다.** 예전에는 `sticky top-0` 으로 붙들었는데,
+ *    목록을 굴릴 때마다 머리글 띠가 화면 위에 계속 남아 프로젝트 헤더 · 다른 구역
+ *    위를 덮으며 따라다녔다. 목록과 함께 올라가게 두는 편이 덜 거슬린다 —
+ *    대시보드 · `/projects` 둘 다 같게 둔다.
  */
 export function ProjectListHeader() {
   return (
     <div
       aria-hidden
-      className="sticky top-0 z-10 flex items-center gap-2 rounded-base border border-border-default bg-bg-surface pr-3"
+      className="flex items-center gap-2 rounded-base border border-border-default bg-bg-surface pr-3"
     >
       <div
         className={`${PROJECT_ROW_GRID} min-w-0 flex-1 px-5 py-2 text-caption font-semibold text-text-secondary`}

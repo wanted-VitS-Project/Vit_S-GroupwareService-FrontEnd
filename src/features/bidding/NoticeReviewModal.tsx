@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import Modal from '@/components/Modal';
+import LoadingSpinner from '@/components/Spinner';
 import { getSelectableDocuments } from '@/features/companyDocument/api';
 import type { SelectableDocument } from '@/features/companyDocument/types';
 import { ApiError, messageOf } from '@/lib/api';
@@ -363,7 +364,9 @@ export default function NoticeReviewModal({
     >
       {/* 아래 여백을 더 준다 — 마지막 버튼 줄이 창 끝에 붙어 잘려 보인다 */}
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-5 pb-8">
-        {!isLoaded && <ReviewSkeleton />}
+        {!isLoaded && (
+          <LoadingSpinner label="검토 정보 불러오는 중" className="py-20" />
+        )}
 
         {showsPicker && (
           <>
@@ -598,43 +601,6 @@ function pickedIds(
   );
 }
 
-/**
- * 첫 요청들을 기다리는 동안의 자리막이.
- *
- * ⚠️ 고르는 칸의 **구조를 그대로 흉내 낸다** — 여백·높이가 어긋나면 내용이 들어오는
- *    순간 창이 튀어, 딸깍거림을 없애려던 자리막이가 오히려 딸깍거림을 만든다.
- *    (섹션 두 개 · 프롬프트 · 안내문 · 버튼 줄 순서까지 본문과 같다)
- */
-function ReviewSkeleton() {
-  return (
-    <div aria-hidden className="animate-pulse">
-      {[0, 1].map((section) => (
-        <div key={section} className={section === 0 ? '' : 'mt-5'}>
-          <div className="h-4 w-24 rounded-button-sm bg-bg-hover" />
-          <div className="mt-2 flex flex-col gap-1.5">
-            {[0, 1].map((row) => (
-              <div key={row} className="h-11 rounded-lg bg-bg-hover" />
-            ))}
-          </div>
-        </div>
-      ))}
-
-      {/* 검토하고 싶은 포인트 (`rows={3}`) */}
-      <div className="mt-5">
-        <div className="h-4 w-28 rounded-button-sm bg-bg-hover" />
-        <div className="mt-2 h-20 rounded-lg bg-bg-hover" />
-      </div>
-
-      {/* 임시 저장소 안내 */}
-      <div className="mt-4 h-20 rounded-lg bg-bg-hover" />
-
-      {/* 버튼 줄 */}
-      <div className="mt-4 flex justify-end">
-        <div className="h-7 w-24 rounded-button-sm bg-bg-hover" />
-      </div>
-    </div>
-  );
-}
 
 /** 완료된 검토 — 본문과 **분석 자료**(근거 인용)를 함께 보여준다 */
 function ReviewResult({ review }: { review: BidReview }) {

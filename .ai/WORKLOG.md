@@ -6,6 +6,52 @@
 
 ---
 
+## [2026-08-16] 모달 로딩 스피너 통일 · 프로젝트 목록 스켈레톤 정렬 ✅
+
+브랜치: `style` · API: 변경 없음 · 이슈: #172
+(결함 3건 수정 #170 이후 이어진 로딩 표현 정리 건)
+
+스켈레톤은 **실물과 자리가 같을 때만** 값을 한다. 모달은 크기 · 본문 구성이 저마다 달라 뼈대를 맞출 수 없어 스피너로 통일하고, 반대로 모양이 고정된 프로젝트 목록은 스켈레톤을 실물에 정확히 맞췄다. 작업 중 드러난 **폴백 모달 이중 노출**과 **컬럼 머리글 `sticky` 추적**도 함께 잡았다.
+
+### 변경 파일
+
+| 파일 | 변경 |
+| ---- | ---- |
+| `src/components/Spinner.tsx` | **생성** (`Spinner` · `LoadingSpinner`) |
+| `src/components/ModalLoadingFallback.tsx` | 수정 (본문 스피너 교체 · 300ms 지연 노출) |
+| `src/features/issue/IssueDetailModal.tsx` · `IssueFormModal.tsx` | 수정 (헤더 · 본문 뼈대 → 스피너) |
+| `src/features/finance/TaxInvoiceMatchModal.tsx` · `CashFlowMatchModal.tsx` | 수정 (추천 후보 뼈대 → 스피너) |
+| `src/features/bidding/NoticeReviewModal.tsx` | 수정 (`ReviewSkeleton` 삭제 → 스피너) |
+| `src/features/bidding/NoticeProjectConvertModal.tsx` | 수정 (전환 정보 뼈대 → 스피너) |
+| `src/features/block/BlockMoveStepModal.tsx` · `project/step/StepDeleteModal.tsx` | 수정 (목록 뼈대 → 스피너) |
+| `src/components/project/ProjectListSkeleton.tsx` | 수정 (머리글 포함 · 칸 높이 · 탭 폭 · 필터 · 페이지 이동 자리) |
+| `src/features/project/ProjectCard.tsx` | 수정 (`ProjectListHeader` 의 `sticky top-0 z-10` 제거) |
+| `src/features/project/MyProjectList.tsx` · `dashboard/DashboardProjects.tsx` | 수정 (`sticky` 설명 주석 정리) |
+
+### 주요 작업 내용
+
+- **모달 로딩 = 스피너 하나** — 모달 9곳의 스켈레톤을 `LoadingSpinner` 로 교체했다. 자리(`py-8` ~ `py-20`)는 부르는 쪽이 정한다. 블록 곁패널(`연결된 이슈` · `블록 활동 기록`)은 목록 모양이 고정이라 스켈레톤을 그대로 뒀다
+- **폴백 모달 300ms 지연** — 동적 청크 폴백은 실물과 **다른 `<dialog>`** 라, 뜨자마자 닫히고 실물이 새로 열려 창이 두 번 열린 것처럼 보였다. 청크는 대개 `preload*` 로 미리 받아 두므로 그 사이에는 아무것도 그리지 않는다
+- **목록 머리글을 스켈레톤에도** — 실물은 `머리글 → 카드` 인데 스켈레톤은 카드만 그려, 목록이 도착하면 약 37px 내려앉았다. 머리글은 데이터 없이 그릴 수 있는 정적 markup 이라 **실물 컴포넌트를 그대로** 가져다 쓴다
+- **`ProjectPageSkeleton` 실측 보정** — 분류 칸 `25px → 28px`(태그 `border-[1.5px]` 누락), 상태 탭 폭 하드코딩 제거, 기간 필터 · 페이지 이동 자리 추가
+- **컬럼 머리글 `sticky` 제거** — 목록을 굴릴 때 머리글 띠가 화면 위에 남아 다른 구역을 덮었다. 목록과 함께 올라가게 되돌렸다
+
+### 트러블슈팅
+
+| 문제 | 원인 | 해결 |
+| ---- | ---- | ---- |
+| 모달 안에서 스피너가 돌다가 다른 모달이 열림 | `next/dynamic` 의 `loading` 이 실물과 **별개의 `<dialog>`** 를 열었다 닫는다 — 백드롭 깜빡임 + 포커스 이동 + 헤더 모양 변경 | 폴백을 300ms 지연 노출. 그 안에 청크가 오면 창이 한 번만 열린다 |
+| 프로젝트 목록이 뜰 때 아래로 내려앉음 | 스켈레톤에 `ProjectListHeader` 가 없었다 | 실물 컴포넌트를 스켈레톤에서도 렌더 |
+| 상태 탭 옆 검색창 폭이 로딩 중과 다름 | 탭 상자를 `w-80`(320px)로 어림했는데 실제는 6개 탭 ≈388px — `flex-1` 인 검색창이 68px 만큼 어긋났다 | `PROJECT_STATUS_OPTIONS` + 라벨을 `invisible` 로 넣어 폭을 스스로 계산 |
+
+### 부수 결정
+
+- **스켈레톤 대 스피너의 기준은 "자리가 고정인가"** — 목록 · 표처럼 행 모양이 정해진 곳은 스켈레톤, 크기가 제각각인 모달은 스피너. 어긋난 뼈대는 딸깍거림을 없애려다 오히려 만든다
+- **머리글 `sticky` 는 되돌린다** (#170 에서 넣었던 것) — 스크롤 중 다른 구역을 덮는 쪽이 기준을 잃는 것보다 거슬린다
+- **폴백은 지연이지 제거가 아니다** — 청크가 정말 느릴 때는 무반응보다 스피너 창이 낫다. 300ms 는 미리받기가 대부분 끝나는 선
+
+---
+
 ## [2026-08-16] 결함 3건 수정 · 화면 정리 ✅
 
 브랜치: `style` · API: 변경 없음 (67번 제한값 명세만 확정) · 이슈: #170
