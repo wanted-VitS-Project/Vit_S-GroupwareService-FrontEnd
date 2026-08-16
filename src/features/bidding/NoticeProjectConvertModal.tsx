@@ -46,9 +46,17 @@ export default function NoticeProjectConvertModal({
   onClose: () => void;
   onConverted: (projectId: number) => void;
 }) {
-  /** 고를 수 있는 것들 — 못 받으면 그 자리만 빈다 */
+  /** 요약은 선택 사항이라 못 받으면 그 자리만 빈다 */
   const [summaries, setSummaries] = useState<SummaryHistoryItem[] | null>(null);
+  /**
+   * ⚠️ 카테고리는 **필수 입력**이라 실패를 빈 목록으로 뭉개면 안 된다 —
+   *    고를 것이 없는 채로 "선택해주세요" 만 뜨면 사용자는 영영 전환할 수 없다.
+   *    못 받았다는 사실(`hasCategoryFailed`)을 따로 들고 재시도 길을 준다.
+   */
   const [categories, setCategories] = useState<BusinessCategory[]>([]);
+  const [hasCategoryFailed, setHasCategoryFailed] = useState(false);
+  /** 재시도 횟수 — 바뀔 때마다 아래 `useEffect` 가 다시 돈다 */
+  const [reloadCount, setReloadCount] = useState(0);
 
   const [summaryId, setSummaryId] = useState(NO_SUMMARY);
   // 공고명을 그대로 쓰는 경우가 많아 기본값으로 채운다
@@ -78,14 +86,26 @@ export default function NoticeProjectConvertModal({
         }),
 
       getCategories({}, signal)
-        .then((data) => setCategories(data.filter((item) => !item.deletedAt)))
-        .catch(() => {}),
+        .then((data) => {
+          setCategories(data.filter((item) => !item.deletedAt));
+          setHasCategoryFailed(false);
+        })
+        .catch(() => {
+          if (!signal.aborted) setHasCategoryFailed(true);
+        }),
     ]).catch(() => {});
 
     return () => controller.abort();
-  }, [notice.noticeId]);
+  }, [notice.noticeId, reloadCount]);
 
   function validate() {
+    // 고를 수 없는 상태를 입력 실수처럼 알리지 않는다 — 원인이 다르면 문구도 달라야 한다
+    if (hasCategoryFailed) {
+      return '사업 카테고리를 불러오지 못했습니다. 다시 시도해주세요.';
+    }
+    if (categories.length === 0) {
+      return '고를 수 있는 사업 카테고리가 없습니다. 전사 관리에서 먼저 등록해주세요.';
+    }
     if (name.trim() === '') return '과업명을 입력해주세요.';
     if (categoryId === '') return '사업 카테고리를 선택해주세요.';
     if (startedOn === '') return '시작일을 입력해주세요.';
@@ -185,18 +205,43 @@ export default function NoticeProjectConvertModal({
               onChange={setName}
             />
 
-            <SelectField
-              id="convertCategoryId"
-              label="사업 카테고리"
-              required
-              value={categoryId}
-              emptyLabel="선택해주세요"
-              options={categories.map((category) => ({
-                value: String(category.categoryId),
-                label: category.name,
-              }))}
-              onChange={setCategoryId}
-            />
+            {/**
+             * 필수 입력인데 고를 것이 없는 세 경우를 갈라 보여준다.
+             * ⚠️ 실패와 "등록된 카테고리가 없음" 은 사용자가 할 일이 달라 한 문구로 묶지 않는다.
+             */}
+            {hasCategoryFailed ? (
+              <div>
+                <AlertBanner tone="danger">
+                  사업 카테고리를 불러오지 못했습니다. 잠시 후 다시
+                  시도해주세요.
+                </AlertBanner>
+                <button
+                  type="button"
+                  onClick={() => setReloadCount((count) => count + 1)}
+                  className="btn btn-sm btn-gray-outlined mt-2"
+                >
+                  다시 불러오기
+                </button>
+              </div>
+            ) : categories.length === 0 ? (
+              <p className="rounded-lg bg-bg-surface px-4 py-3 text-caption break-keep text-text-secondary">
+                고를 수 있는 사업 카테고리가 없습니다. 전사 관리에서 먼저
+                등록해주세요.
+              </p>
+            ) : (
+              <SelectField
+                id="convertCategoryId"
+                label="사업 카테고리"
+                required
+                value={categoryId}
+                emptyLabel="선택해주세요"
+                options={categories.map((category) => ({
+                  value: String(category.categoryId),
+                  label: category.name,
+                }))}
+                onChange={setCategoryId}
+              />
+            )}
 
             <div className="grid gap-4 sm:grid-cols-2">
               <TextField
@@ -254,7 +299,10 @@ export default function NoticeProjectConvertModal({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              // 고를 카테고리가 없으면 눌러도 400 이다 — 누르기 전에 막는다
+              disabled={
+                isSubmitting || hasCategoryFailed || categories.length === 0
+              }
               className="btn btn-md btn-primary min-w-[104px]"
             >
               {isSubmitting ? '생성 중…' : '생성'}
