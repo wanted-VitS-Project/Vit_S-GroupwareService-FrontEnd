@@ -229,8 +229,8 @@ export default function MyProjectList() {
         <Centered>
           <p className="text-[13px] text-text-secondary">
             {hasFilter
-              ? '조건에 맞는 프로젝트가 없어요.'
-              : '참여 중인 프로젝트가 없어요.'}
+              ? '조건에 맞는 프로젝트가 없습니다.'
+              : '참여 중인 프로젝트가 없습니다.'}
           </p>
         </Centered>
       ) : (

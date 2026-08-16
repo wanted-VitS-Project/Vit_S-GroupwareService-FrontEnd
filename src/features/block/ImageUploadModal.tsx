@@ -252,7 +252,7 @@ export default function ImageUploadModal({
                 </p>
                 {queued.length > 1 && (
                   <p className="text-caption text-text-secondary">
-                    왼쪽 핸들을 드래그해 순서를 바꿀 수 있어요
+                    왼쪽 핸들을 드래그해 순서를 바꿀 수 있습니다
                   </p>
                 )}
               </div>

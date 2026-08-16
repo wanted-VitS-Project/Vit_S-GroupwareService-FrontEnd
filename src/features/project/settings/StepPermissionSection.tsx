@@ -60,8 +60,8 @@ export default function StepPermissionSection({
 
   return (
     <SettingsSection
-      title="스텝 권한"
-      description="스텝마다 따로 열람 · 편집 · 차단을 지정합니다. 지정하지 않은 스텝은 위 참여자 권한을 그대로 따릅니다."
+      title="스테이지 · 스텝 권한"
+      description="스테이지 권한은 그 스테이지에 새 스텝이 생성될 때 기본값으로 적용됩니다. 스텝 권한은 스텝마다 따로 열람 · 편집 · 차단을 지정하며, 지정하지 않은 스텝은 위 참여자 권한을 그대로 따릅니다."
     >
       {!canEdit ? (
         <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-detail break-keep text-text-secondary">
@@ -70,7 +70,7 @@ export default function StepPermissionSection({
       ) : hasFailed ? (
         <div className="rounded-lg bg-red-bg-soft px-3 py-2.5">
           <p className="text-detail break-keep text-text-danger">
-            단계 · 스텝을 불러오지 못했습니다.
+            스테이지 · 스텝을 불러오지 못했습니다.
           </p>
           <button
             type="button"
@@ -84,7 +84,7 @@ export default function StepPermissionSection({
         <p className="text-detail text-text-secondary">불러오는 중…</p>
       ) : buckets.length === 0 ? (
         <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-detail break-keep text-text-secondary">
-          등록된 단계가 없습니다.
+          등록된 스테이지가 없습니다.
         </p>
       ) : (
         <ul className="space-y-2">
@@ -102,11 +102,11 @@ export default function StepPermissionSection({
               >
                 <div className="flex items-center gap-2 bg-bg-surface px-3 py-2">
                   <span className="min-w-0 flex-1 truncate text-detail font-semibold text-text-primary">
-                    {stage?.name ?? '미분류 (단계 없음)'}
+                    {stage?.name ?? '미분류 (스테이지 없음)'}
                   </span>
                   {/*
-                  기본값은 **스테이지에만** 있다 — 미소속 스텝은 프로젝트 권한을 그대로
-                  상속하므로 걸어 둘 자리가 없다 (STG-004).
+                  스테이지 권한(= 새 스텝 기본값)은 **스테이지에만** 있다 — 미소속 스텝은
+                  프로젝트 권한을 그대로 상속하므로 걸어 둘 자리가 없다 (STG-004).
                 */}
                   {stage && (
                     <button
@@ -114,7 +114,7 @@ export default function StepPermissionSection({
                       onClick={() => modal.open({ kind: 'stage', stage })}
                       className="shrink-0 cursor-pointer rounded-button-sm px-2 py-1 text-caption font-medium whitespace-nowrap text-text-primary-blue hover:bg-blue-bg-soft"
                     >
-                      새 스텝 기본값
+                      스테이지 권한
                     </button>
                   )}
                 </div>
@@ -138,7 +138,7 @@ export default function StepPermissionSection({
                           onClick={() => modal.open({ kind: 'step', step })}
                           className="shrink-0 cursor-pointer rounded-button-sm px-2 py-1 text-caption font-medium whitespace-nowrap text-text-primary-blue hover:bg-blue-bg-soft"
                         >
-                          권한 관리
+                          스텝 권한
                         </button>
                       </li>
                     ))

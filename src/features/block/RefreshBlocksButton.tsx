@@ -28,7 +28,7 @@ export default function RefreshBlocksButton({
       aria-label="블록 새로고침"
       // 툴팁은 **못 누르는 이유**까지 말해 준다 — 회색 버튼만 보이면 이유를 알 수 없다
       title={
-        isDisabled ? '배치 편집 중에는 새로고침할 수 없어요' : '블록 새로고침'
+        isDisabled ? '배치 편집 중에는 새로고침할 수 없습니다' : '블록 새로고침'
       }
       aria-busy={isRefreshing}
       disabled={isDisabled || isRefreshing}

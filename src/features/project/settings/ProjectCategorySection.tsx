@@ -91,7 +91,7 @@ export default function ProjectCategorySection({
       ) : categories.length === 0 ? (
         <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-detail break-keep text-text-secondary">
           연결된 사업 카테고리가 없습니다.
-          {canEdit && ' 오른쪽 위에서 연결할 수 있어요.'}
+          {canEdit && ' 오른쪽 위에서 연결할 수 있습니다.'}
         </p>
       ) : (
         <ul className="flex flex-wrap gap-2">

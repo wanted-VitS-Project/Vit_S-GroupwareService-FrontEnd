@@ -88,7 +88,7 @@ export default function TextBlock({
             <MarkdownView key={content} content={content} />
           ) : (
             <p className="text-caption text-text-muted">
-              내용이 없습니다. 편집으로 작성해보세요.
+              내용이 없습니다. 편집에서 작성하세요.
             </p>
           )}
         </div>

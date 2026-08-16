@@ -47,7 +47,7 @@ export default function StagePermissionModal({
   const [permission, setPermission] = useState<StepPermission>('VIEWER');
   /**
    * ⚠️ **기본값은 끔.** 켠 채로 두면 "새 스텝 기본값만 정하려던" 저장이
-   * 이 단계의 **기존 스텝 권한을 전부 덮어쓴다** — 되돌리는 화면이 없다.
+   * 이 스테이지의 **기존 스텝 권한을 전부 덮어쓴다** — 되돌리는 화면이 없다.
    * 안내문("이미 있는 스텝은 아래를 켜야 함께 바뀝니다")과도 이 상태가 맞다.
    */
   const [applyToExistingSteps, setApplyToExistingSteps] = useState(false);
@@ -92,7 +92,7 @@ export default function StagePermissionModal({
       notifyToast(
         result.appliedStepCount > 0
           ? `기본값을 저장하고 기존 스텝 ${result.appliedStepCount}개에 적용했습니다.`
-          : '새 스텝 권한 기본값을 저장했습니다.',
+          : '스테이지 권한(새 스텝 기본값)을 저장했습니다.',
       );
     } catch (caught) {
       setError(messageOf(caught, '기본값을 저장하지 못했습니다.'));
@@ -109,14 +109,15 @@ export default function StagePermissionModal({
   const candidates = members?.filter((member) => member.userId !== me.userId);
 
   return (
-    <PanelModal title="새 스텝 권한 기본값" onClose={requestClose}>
+    <PanelModal title="스테이지 권한" onClose={requestClose}>
       <div className="max-h-[55vh] overflow-y-auto p-5">
         <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-detail break-keep text-text-primary">
           {stageName}
         </p>
 
         <p className="mt-3 rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-caption leading-relaxed break-keep text-yellow-text">
-          여기서 정한 값은 <strong>이 단계에 앞으로 만들어질 스텝</strong>에
+          여기서 정한 값은{' '}
+          <strong>이 스테이지에 새 스텝이 생성될 때 기본값</strong>으로
           적용됩니다. 이미 있는 스텝은 아래를 켜야 함께 바뀝니다. 현재 기본값을
           조회하는 기능은 아직 없어, 지금 무엇으로 돼 있는지는 표시되지
           않습니다.
@@ -167,7 +168,8 @@ export default function StagePermissionModal({
             ))}
           </div>
           <p className="mt-1.5 text-caption break-keep text-text-secondary">
-            <strong>차단</strong>은 이 단계의 스텝을 아예 보지 못하게 합니다.
+            <strong>차단</strong>은 이 스테이지의 스텝을 아예 보지 못하게
+            합니다.
           </p>
         </fieldset>
 

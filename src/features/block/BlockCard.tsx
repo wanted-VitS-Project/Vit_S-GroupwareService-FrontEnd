@@ -43,9 +43,9 @@ const BlockIssuesPanel = dynamic(loadBlockIssuesPanel, {
 const BlockActivityLogPanel = dynamic(loadBlockActivityLogPanel, {
   loading: () => (
     <ModalLoadingFallback
-      title="블록 활동 로그"
+      title="블록 활동 기록"
       className={SIDE_PANEL}
-      header={<SidePanelFallbackHeader title="블록 활동 로그" hasBadge />}
+      header={<SidePanelFallbackHeader title="블록 활동 기록" hasBadge />}
       bodyClassName="m-3 min-h-0 flex-1"
     />
   ),
@@ -343,7 +343,7 @@ function BlockMenu({
                 className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-caption font-medium text-text-primary hover:bg-bg-surface"
               >
                 <ActivityIcon className="size-2.5 shrink-0 text-purple-text" />
-                <span className="flex-1 text-left">활동 로그</span>
+                <span className="flex-1 text-left">활동 기록</span>
               </button>
               <button
                 type="button"

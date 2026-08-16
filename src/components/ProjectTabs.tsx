@@ -6,14 +6,14 @@ import { usePathname, useParams } from 'next/navigation';
 /**
  * 프로젝트 전체 화면의 탭. `href` 는 프로젝트 경로 뒤에 붙는다.
  *
- * 첫 탭이 빈 문자열이라 `/projects/{id}` 자체가 일정 화면이다 —
+ * 첫 탭이 빈 문자열이라 `/projects/{id}` 자체가 이슈 화면이다 —
  * 프로젝트로 들어오면 가장 먼저 볼 것이 "무슨 일이 남았나" 라는 판단이다.
  *
- * ⚠️ 라벨을 `전체 일정` 으로 둔다 — 스텝 화면의 같은 것이 `일정` 탭이다.
- *    한쪽만 `이슈` 라고 부르면 같은 데이터가 두 이름으로 불린다.
+ * ⚠️ 라벨을 `전체 이슈` 로 둔다 — 스텝 화면의 같은 것이 `이슈` 탭이다.
+ *    범위만 프로젝트로 넓어졌을 뿐 같은 데이터라 이름을 갈라 부르지 않는다.
  */
 const TABS = [
-  { segment: '', label: '전체 일정', icon: 'schedule' },
+  { segment: '', label: '전체 이슈', icon: 'schedule' },
   { segment: '/files', label: '문서함', icon: 'document' },
   { segment: '/images', label: '이미지', icon: 'image' },
   { segment: '/trash', label: '휴지통', icon: 'trash' },
@@ -72,7 +72,7 @@ export default function ProjectTabs() {
 /** 탭 아이콘. 아이콘 라이브러리 도입 전까지 인라인 SVG 로 둔다 (`StepTabs` 와 같은 방침) */
 const PATHS: Record<TabIcon, React.ReactNode> = {
   /*
-   * 전체 일정 — 타임라인 격자(#). 스텝 화면의 `일정` 탭과 같은 아이콘이다:
+   * 전체 이슈 — 타임라인 격자(#). 스텝 화면의 `이슈` 탭과 같은 아이콘이다:
    * 범위만 프로젝트로 넓어졌을 뿐 같은 것을 본다.
    */
   schedule: (

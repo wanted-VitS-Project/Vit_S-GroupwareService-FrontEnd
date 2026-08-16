@@ -442,13 +442,13 @@ function RunningState({
         className="size-4 animate-spin rounded-pill border-2 border-purple-border border-t-[#4F39F6]"
       />
       <p className="text-caption font-medium text-[#4F39F6]">
-        {isSlow ? '예상보다 지연되고 있습니다…' : '문서를 검토하고 있어요…'}
+        {isSlow ? '예상보다 지연되고 있습니다…' : '문서를 검토하고 있습니다…'}
       </p>
       {/* 보통 20~30초 걸린다 — 대략의 눈금이 있어야 멈춘 게 아니라는 게 보인다 */}
       <p className="text-micro text-text-secondary">
         {isSlow
-          ? '창을 닫아도 분석은 계속돼요'
-          : '보통 20~30초 걸려요 · 창을 닫아도 계속돼요'}
+          ? '창을 닫아도 분석은 계속됩니다'
+          : '보통 20~30초 걸립니다 · 창을 닫아도 계속됩니다'}
       </p>
       {requestedAt && (
         <p className="text-micro text-text-secondary">

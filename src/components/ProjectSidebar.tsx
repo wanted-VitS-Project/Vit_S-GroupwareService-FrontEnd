@@ -48,12 +48,12 @@ import {
 
 /**
  * 프로젝트 상세 화면 왼쪽 사이드바.
- * 프로젝트 개요 · 진행 단계 · 참여자를 보여주고 하위 화면 전환의 기준이 된다.
+ * 프로젝트 개요 · 스테이지 · 참여자를 보여주고 하위 화면 전환의 기준이 된다.
  *
  */
 
 /*
- * 단계 · 스텝 편집 모달은 **누를 때 받아온다**.
+ * 스테이지 · 스텝 편집 모달은 **누를 때 받아온다**.
  * 사이드바는 프로젝트 하위 모든 화면에 항상 떠 있어, 여기서 정적으로 물면
  * 편집 권한이 없는 사용자까지 모달 6개를 매번 내려받게 된다.
  */
@@ -82,17 +82,17 @@ const PANEL_FALLBACK = 'w-full max-w-[420px] rounded-base p-6 shadow-2xl';
 
 const StageManageModal = dynamic(loadStageManageModal, {
   loading: () => (
-    <ModalLoadingFallback title="단계 관리" className={PANEL_FALLBACK} />
+    <ModalLoadingFallback title="스테이지 관리" className={PANEL_FALLBACK} />
   ),
 });
 const StageFormModal = dynamic(loadStageFormModal, {
   loading: () => (
-    <ModalLoadingFallback title="단계" className={PANEL_FALLBACK} />
+    <ModalLoadingFallback title="스테이지" className={PANEL_FALLBACK} />
   ),
 });
 const StageDeleteModal = dynamic(loadStageDeleteModal, {
   loading: () => (
-    <ModalLoadingFallback title="단계 삭제" className={PANEL_FALLBACK} />
+    <ModalLoadingFallback title="스테이지 삭제" className={PANEL_FALLBACK} />
   ),
 });
 const StepFormModal = dynamic(loadStepFormModal, {
@@ -118,10 +118,7 @@ const StepPermissionModal = dynamic(loadStepPermissionModal, {
 });
 const StagePermissionModal = dynamic(loadStagePermissionModal, {
   loading: () => (
-    <ModalLoadingFallback
-      title="새 스텝 권한 기본값"
-      className={PANEL_FALLBACK}
-    />
+    <ModalLoadingFallback title="스테이지 권한" className={PANEL_FALLBACK} />
   ),
 });
 
@@ -171,7 +168,7 @@ type SidebarModal =
   | { kind: 'stepPermission'; step: ProjectStep }
   /** 상태 변경 — 바꿀 상태는 **모달 안에서** 고른다 (`DONE` 은 완료 처리로 넘어간다) */
   | { kind: 'stepStatus'; step: ProjectStep }
-  /** 이 단계에 새로 생길 스텝의 권한 기본값 */
+  /** 이 스테이지에 새로 생길 스텝의 권한 기본값 */
   | { kind: 'stagePermission'; stage: ProjectStage }
   /** 참여자 명단 — 사이드바 아바타 줄에서 바로 연다 */
   | { kind: 'members' };
@@ -224,14 +221,14 @@ export default function ProjectSidebar() {
   const router = useRouter();
   const { isCollapsed, toggle, expand } = useProjectSidebarCollapse();
 
-  /** 단계 · 스텝을 고친 뒤 목록을 다시 읽는 신호 */
+  /** 스테이지 · 스텝을 고친 뒤 목록을 다시 읽는 신호 */
   const [reloadCount, setReloadCount] = useState(0);
   const modal = useModalTarget<SidebarModal>();
   /** 스텝 이름을 캐시에서 꺼내 쓰는 화면(스텝 헤더)에도 변경을 알린다 */
   const refreshSteps = useRefreshProjectSteps(projectId);
 
   /**
-   * 스텝 · 단계를 고친 직후 부르는 단일 창구.
+   * 스텝 · 스테이지를 고친 직후 부르는 단일 창구.
    * 사이드바 자신의 목록과 **캐시에 담긴 스텝 목록**을 함께 갱신한다 —
    * 여기를 빼먹으면 이름을 바꿔도 스텝 화면 헤더가 옛 이름을 들고 있다.
    */
@@ -279,7 +276,7 @@ export default function ProjectSidebar() {
       });
 
     return () => controller.abort();
-    // 단계를 고치면 `reloadCount` 가 올라 같은 조회를 다시 태운다 (스텝은 캐시가 맡는다)
+    // 스테이지를 고치면 `reloadCount` 가 올라 같은 조회를 다시 태운다 (스텝은 캐시가 맡는다)
   }, [projectId, reloadCount]);
 
   /**
@@ -326,7 +323,7 @@ export default function ProjectSidebar() {
     };
   }, [projectId, refreshSteps]);
 
-  // 참여자는 보조 정보다. 지연·실패해도 프로젝트 개요와 단계 탐색을 막지 않는다.
+  // 참여자는 보조 정보다. 지연·실패해도 프로젝트 개요와 스테이지 탐색을 막지 않는다.
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
@@ -351,7 +348,7 @@ export default function ProjectSidebar() {
   const stages = current?.stages ?? null;
   const members =
     loadedMembers?.projectId === projectId ? loadedMembers.members : null;
-  // 스텝만 실패해도 단계 탐색이 통째로 비어 이전과 같은 오류 화면을 띄운다
+  // 스텝만 실패해도 스테이지 탐색이 통째로 비어 이전과 같은 오류 화면을 띄운다
   const hasFailed = failedProjectId === projectId || haveStepsFailed;
   const haveMembersFailed = failedMembersProjectId === projectId;
 
@@ -554,7 +551,7 @@ export default function ProjectSidebar() {
 
               <div className="flex h-13 items-center justify-between border-b border-border-default px-4">
                 <h2 className="text-body-l font-semibold text-text-secondary uppercase">
-                  진행 단계
+                  스테이지
                 </h2>
                 {canEdit && (
                   <div className="flex items-center gap-1.5">
@@ -569,7 +566,7 @@ export default function ProjectSidebar() {
                       disabled={!stages}
                       className="cursor-pointer rounded-button-sm border border-border-primary px-1.5 py-0.5 text-label font-medium text-text-primary-blue hover:bg-blue-bg-soft disabled:cursor-not-allowed disabled:border-border-default disabled:text-text-muted"
                     >
-                      단계수정
+                      수정
                     </button>
                     <button
                       type="button"
@@ -587,7 +584,7 @@ export default function ProjectSidebar() {
               {!stages || !steps ? (
                 hasFailed ? (
                   <p className="px-4 py-3 text-label text-text-secondary">
-                    진행 단계를 불러오지 못했습니다.
+                    스테이지를 불러오지 못했습니다.
                   </p>
                 ) : (
                   <ProjectStagesSkeleton />
@@ -679,7 +676,7 @@ export default function ProjectSidebar() {
                                     modal.open({ kind: 'stageRename', stage }),
                                 },
                                 {
-                                  label: '스텝 권한 기본값',
+                                  label: '스테이지 권한',
                                   icon: <KeyIcon />,
                                   onSelect: () =>
                                     modal.open({

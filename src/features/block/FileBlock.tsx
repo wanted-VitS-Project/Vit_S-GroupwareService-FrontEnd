@@ -409,7 +409,7 @@ export default function FileBlock({ block }: { block: StepBlock }) {
         /* 취소(= Esc · 배경 클릭)를 **다시 불러오기**에 둔다 — 잘못 눌러도 남의 이름이 안 지워진다 */
         <AlertDialogTwoButton
           icon={DialogIcons.warning}
-          title="다른 사람이 먼저 저장했어요"
+          title="다른 사람이 먼저 저장했습니다"
           description={`그 사이 이 문서가 수정됐습니다. '${renamePending.name}' 로 덮어쓰거나, 최신 내용을 다시 불러올 수 있습니다.`}
           confirmLabel="덮어쓰기"
           cancelLabel="다시 불러오기"

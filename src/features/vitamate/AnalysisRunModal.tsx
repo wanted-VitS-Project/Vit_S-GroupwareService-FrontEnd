@@ -254,7 +254,7 @@ export default function AnalysisRunModal({
         </Field>
 
         {currentType && (
-          <Field label="세부 카테고리" hint="여러 개 고를 수 있어요">
+          <Field label="세부 카테고리" hint="여러 개 고를 수 있습니다">
             <div className="flex flex-wrap gap-1.5">
               {categories.map((category) => (
                 <label
@@ -322,7 +322,7 @@ export default function AnalysisRunModal({
               isPromptTouched.current = true;
               setPrompt(event.target.value);
             }}
-            placeholder="카테고리를 고르면 기본 문구가 채워져요. 필요한 만큼 고쳐서 쓰세요."
+            placeholder="카테고리를 고르면 기본 문구가 채워집니다. 필요한 만큼 고쳐서 쓰세요."
             className="w-full resize-none rounded-button-md border border-border-default bg-bg-surface px-2.5 py-2 text-detail leading-relaxed text-text-primary focus:border-[#4F39F6] focus:outline-none"
           />
           {currentType && selectedCategories.length > 0 && (
@@ -426,7 +426,7 @@ function findBlocker({
   if (targetIds.length === 0) return '검토 대상 문서를 고르세요.';
   // 서버도 400 으로 막지만, 실행을 눌러 보고 알게 되면 늦다
   if (referenceIds.some((id) => targetIds.includes(id))) {
-    return '같은 문서를 기준과 대상에 함께 둘 수 없어요.';
+    return '같은 문서를 기준과 대상에 함께 둘 수 없습니다.';
   }
   if (!prompt) return '프롬프트를 입력하세요.';
   return '';

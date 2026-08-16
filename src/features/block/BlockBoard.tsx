@@ -612,7 +612,7 @@ export default function BlockBoard({
   if (order.length === 0) {
     return (
       <p className="rounded-lg border border-dashed border-border-default px-4 py-10 text-center text-label text-text-secondary">
-        아직 블록이 없습니다. `Block 추가` 로 시작해보세요.
+        아직 블록이 없습니다. `블록 추가` 로 시작하세요.
       </p>
     );
   }

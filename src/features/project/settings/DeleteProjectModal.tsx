@@ -46,7 +46,7 @@ export default function DeleteProjectModal({
 
       setError(
         code === PROJECT_CODES.deleteNotAllowed
-          ? '이미 시작했거나 스텝이 있는 프로젝트는 삭제할 수 없습니다. 그 사이 다른 사람이 바꿨을 수 있어요 — 새로고침 후 종결로 처리해주세요.'
+          ? '이미 시작했거나 스텝이 있는 프로젝트는 삭제할 수 없습니다. 그 사이 다른 사람이 바꿨을 수 있습니다 — 새로고침 후 종결로 처리해주세요.'
           : code === PROJECT_CODES.notFound
             ? '이미 삭제된 프로젝트입니다.'
             : messageOf(caught, '삭제하지 못했습니다.'),

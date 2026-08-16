@@ -326,7 +326,7 @@ function ProjectPanel({ projectId }: { projectId: number }) {
         role="alert"
         className="mt-5 flex items-center gap-3 text-[13px] text-text-secondary"
       >
-        진행 상황을 불러오지 못했어요.
+        진행 상황을 불러오지 못했습니다.
         <button
           type="button"
           onClick={() => setReloadCount((count) => count + 1)}
@@ -359,7 +359,7 @@ function ProjectPanel({ projectId }: { projectId: number }) {
 
       {data.stages.length === 0 && unassigned.length === 0 ? (
         <p className="mt-5 text-[13px] text-text-muted">
-          등록된 스테이지가 없어요.
+          등록된 스테이지가 없습니다.
         </p>
       ) : (
         <section aria-label="스테이지별 진행 상황" className="mt-5">
@@ -375,7 +375,7 @@ function ProjectPanel({ projectId }: { projectId: number }) {
               />
             ))}
             {unassigned.length > 0 && (
-              <StageBox name="스테이지 미지정" steps={unassigned} />
+              <StageBox name="미분류 (스테이지 없음)" steps={unassigned} />
             )}
           </ul>
         </section>
@@ -435,7 +435,9 @@ function StageBox({ name, steps }: { name: string; steps: ProjectStep[] }) {
           className="flex h-[124px] items-center overflow-x-auto overflow-y-hidden bg-bg-card px-5"
         >
           {sorted.length === 0 ? (
-            <p className="text-label text-text-muted">등록된 스텝이 없어요.</p>
+            <p className="text-label text-text-muted">
+              등록된 스텝이 없습니다.
+            </p>
           ) : (
             <ol className="flex w-full items-start">
               {sorted.map((step, index) => {

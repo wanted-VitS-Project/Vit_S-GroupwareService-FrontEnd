@@ -271,7 +271,7 @@ export default function AdminFileList() {
             </p>
             <p className="text-label break-keep text-text-secondary">
               {hasFilter
-                ? '검색어나 필터를 바꿔보세요'
+                ? '검색어나 필터를 바꾸세요'
                 : '프로젝트 스텝에 문서를 올리면 여기에 모입니다'}
             </p>
           </>
@@ -337,7 +337,7 @@ export default function AdminFileList() {
             width: '8%',
             align: 'right',
             cell: (file) => (
-              <span className="whitespace-nowrap text-caption text-text-secondary">
+              <span className="text-caption whitespace-nowrap text-text-secondary">
                 {formatFileSize(file.sizeBytes)}
               </span>
             ),
@@ -358,7 +358,7 @@ export default function AdminFileList() {
             header: '수정일',
             width: '10%',
             cell: (file) => (
-              <span className="whitespace-nowrap text-caption text-text-secondary">
+              <span className="text-caption whitespace-nowrap text-text-secondary">
                 {formatDate(file.updatedAt)}
               </span>
             ),

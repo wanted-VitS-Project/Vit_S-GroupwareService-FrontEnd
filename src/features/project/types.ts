@@ -298,7 +298,7 @@ export interface StepOrderItem {
   /**
    * ⚠️ **프로젝트 단위 통번호다** (2026-08-11 BE 확인) — 스테이지마다 1부터 다시 세지 않는다.
    *
-   * 그래서 **스테이지 순서만 바꿔도 스텝 번호가 전부 밀린다.** 단계를 끌었으면
+   * 그래서 **스테이지 순서만 바꿔도 스텝 번호가 전부 밀린다.** 스테이지를 끌었으면
    * 스텝 순서 API 도 함께 보내야 한다 (`StageManageModal.toStepPlan`).
    */
   sortOrder: number;

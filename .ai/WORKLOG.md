@@ -6,6 +6,65 @@
 
 ---
 
+## [2026-08-16] 화면 용어 통일 · 구어체 정리 ✅
+
+브랜치: `style` · API: 변경 없음 (문구 · 입력 표기만) · 이슈: #168
+
+**프로젝트 > 스테이지 > 스텝 > 블록** 을 공식 계층으로 확정하고, 같은 것을 두 이름으로 부르던 자리를 전부 한 이름으로 모았다. 겸해서 UI 문구에 섞여 있던 해요체를 합쇼체로 맞추고, 프로젝트 설정의 계약금액 입력에 천 단위 구분을 넣었다. 결재 · 입금확인 · 정산 · 세금계산서 조회 · 입찰공고는 범위에서 제외했다.
+
+### 용어 결정
+
+| 대상         | 쓰던 이름                          | 확정               |
+| ------------ | ---------------------------------- | ------------------ |
+| stage        | `단계` · `스테이지`                | **`스테이지`**     |
+| step         | `스텝`                             | `스텝` (변경 없음) |
+| block        | `블록` · `Block` · `AI Block`      | **`블록`**         |
+| issue        | `일정` · `전체 일정` · `이슈`      | **`이슈`**         |
+| activity log | `로그` · `활동 로그` · `활동 기록` | **`활동 기록`**    |
+| download     | `내려받기` · `다운로드`            | **`다운로드`**     |
+
+### 변경 파일
+
+| 파일                                                                                             | 변경                                                                                                                     |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `src/components/{StepTabs,ProjectTabs}.tsx`                                                      | 수정 (탭 `일정` → `이슈`, `전체 일정` → `전체 이슈`)                                                                     |
+| `src/components/ProjectSidebar.tsx`                                                              | 수정 (헤더 `진행 단계` → `스테이지`, 버튼 `단계수정` → `수정`, 메뉴 `스텝 권한 기본값` → `스테이지 권한`, 모달 폴백 3종) |
+| `src/components/{Modal,project/ProjectSidebarSkeleton}.tsx`                                      | 수정 (주석 · 스켈레톤 라벨)                                                                                              |
+| `src/features/project/settings/StepPermissionSection.tsx`                                        | 수정 (섹션 `스테이지 · 스텝 권한`, 버튼 `스테이지 권한` · `스텝 권한`, 기본값 규칙 명시)                                 |
+| `src/features/project/settings/ProjectInfoForm.tsx`                                              | 수정 (**계약금액 천 단위 콤마** — `type="number"` → `text` + `groupDigits`)                                              |
+| `src/features/project/FormFields.tsx`                                                            | 수정 (`groupDigits` export — 생성 폼과 설정 폼이 공유)                                                                   |
+| `src/features/project/stage/*.tsx` (4)                                                           | 수정 (`단계` → `스테이지` 전면)                                                                                          |
+| `src/features/project/step/StepFormModal.tsx` · `ProjectCard.tsx` · `overview/ProjectIssues.tsx` | 수정 (`소속 스테이지` · `전체 이슈` · `이슈 열기`)                                                                       |
+| `src/features/block/*` (16)                                                                      | 수정 (`Block 추가` → `블록 추가`, `블록 이름` → `블록 제목`, 해요체 정리)                                                |
+| `src/features/activityLog/*` (4) · `src/features/issue/*` (3)                                    | 수정 (`활동 로그` → `활동 기록`, 충돌 모달 문구)                                                                         |
+| `src/features/{dashboard,file,companyDocument,vitamate}/*` (10)                                  | 수정 (해요체 정리 · `내려받기` → `다운로드`)                                                                             |
+| `src/features/project/{api,types}.ts` · `src/lib/useFlipReorder.ts` 외                           | 수정 (주석 용어)                                                                                                         |
+
+### 주요 작업 내용
+
+- **이슈 용어 통일** — 스텝 탭 `일정`, 프로젝트 탭 `전체 일정`, 링크 `일정 열기` 가 모두 같은 데이터를 가리키면서 이름만 달랐다. 전부 `이슈` 로 모았다. 메인 대시보드의 `일정`(캘린더)은 실제 일정이라 그대로 둔다
+- **스테이지 용어 통일** — 사이드바 트리는 `스테이지`, 모달은 `단계` 로 갈려 있었다. `스테이지` 로 맞추고 `미분류 (단계 없음)` 5곳도 `미분류 (스테이지 없음)` 으로 교체
+- **권한 라벨 재정리** — `새 스텝 기본값` · `권한 관리` → `스테이지 권한` · `스텝 권한`. 대신 **"새 스텝이 생성될 때 기본값으로 적용된다"** 를 섹션 설명과 모달 배너 두 곳에 명시했다
+- **구어체 제거** — 서술문 해요체(`~어요` · `~네요` · `~돼요`) 30여 곳을 합쇼체로. 명령형 `~하세요` · `~해주세요` 와 확인 다이얼로그 `~할까요?` 는 기존 컨벤션이라 유지
+- **계약금액 표기** — 설정 폼이 `type="number"` 라 `1000000` 그대로 보였다. 생성 폼(`AmountField`)이 쓰던 `groupDigits` 를 export 해 같은 규칙으로 `1,000,000` 표시. 상태 · 요청 값은 여전히 숫자 문자열이다
+
+### 트러블슈팅
+
+| 문제                                                       | 원인                                                                               | 해결                                                                                |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `prettier --write "src/**"` 가 손대지 않은 파일까지 재포맷 | 일부 파일이 이전부터 포맷 규격에서 벗어나 있었음 (bidding · approval · finance 등) | 의도한 파일만 남기고 `git checkout` 으로 되돌림. 이후에는 수정한 파일만 지정해 포맷 |
+| 1차 통일 방향이 반대로 잡힘 (`스테이지` → `단계`)          | 당시 UI 다수가 `단계` 라 그쪽을 우세로 판단                                        | 계층(`프로젝트 > 스테이지 > 스텝 > 블록`)을 먼저 확정한 뒤 `스테이지` 로 재통일     |
+
+### 부수 결정
+
+- **`~할까요?` 확인 다이얼로그는 구어체로 보지 않는다** — 삭제 · 저장 확인 15곳이 모두 같은 형태라 컨벤션으로 굳었고, 질문형이 의도를 더 분명히 전한다
+- **주석 안의 도메인 용어까지 함께 바꾼다** — 코드를 읽는 사람이 화면 라벨과 주석을 대조하므로, 화면만 바꾸면 다음 사람이 다시 헷갈린다. 단 `업로드 3단계` · `캡처 단계` 처럼 stage 와 무관한 `단계` 는 그대로 둔다
+- **사이드바 버튼은 `수정` 한 단어로** — 헤더가 이미 `스테이지` 라 반복이고, `스테이지 수정` 은 옆 `+ 추가` 와 한 줄에 들어가기 빠듯하다
+- **`블록 이름` → `블록 제목`** — 필드가 `title` 이고 수정 모달이 이미 `블록 제목` 이었다. 생성 모달만 `이름` 이라 맞췄다
+- **범위 밖으로 남긴 해요체** — `features/businessCategory/CategoryList.tsx` · `features/employee/EmployeeList.tsx` 의 `바꿔보세요` 2곳. 전사 관리 화면이라 이번 범위에 없다
+
+---
+
 ## [2026-08-16] 입찰 공고 → 프로젝트 전환 화면 ✅
 
 브랜치: `feat/bidding-project-conversion` · API: `POST /bidding/notices/{noticeId}/projects` · 이슈: #166
@@ -14,12 +73,12 @@
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/features/bidding/NoticeProjectConvertModal.tsx` | **생성** (요약 연결 · 프로젝트 정보 입력 · 409 5종 안내) |
-| `src/features/bidding/NoticeReviewModal.tsx` | 수정 (검토 결과 · 실패 화면에 전환 버튼) |
-| `src/features/bidding/NoticeDetail.tsx` | 수정 (검토 → 전환 모달 연결 · 생성 후 프로젝트 상세로 이동) |
-| `src/features/bidding/{api,types,errorCodes}.ts` · `src/constants/endpoints.ts` | 수정 (전환 API · 타입 · 409 코드) |
+| 파일                                                                            | 변경                                                        |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `src/features/bidding/NoticeProjectConvertModal.tsx`                            | **생성** (요약 연결 · 프로젝트 정보 입력 · 409 5종 안내)    |
+| `src/features/bidding/NoticeReviewModal.tsx`                                    | 수정 (검토 결과 · 실패 화면에 전환 버튼)                    |
+| `src/features/bidding/NoticeDetail.tsx`                                         | 수정 (검토 → 전환 모달 연결 · 생성 후 프로젝트 상세로 이동) |
+| `src/features/bidding/{api,types,errorCodes}.ts` · `src/constants/endpoints.ts` | 수정 (전환 API · 타입 · 409 코드)                           |
 
 ### 주요 작업 내용
 
@@ -30,11 +89,11 @@
 
 ### 트러블슈팅
 
-| 문제 | 원인 | 해결 |
-| ---- | ---- | ---- |
-| stash pop 충돌 (`NoticeReviewModal`) | 커밋된 `다시 검토` 버튼과 stash 의 전환 버튼이 같은 자리에 들어옴 | 한 줄에 나란히 두는 형태로 병합 |
-| 전환 모달 타입 오류 | stash 이후 요약 이력 응답이 `BidSummary` → `SummaryHistoryItem` 으로 바뀜 | 상태 · 필터 타입 교체 (쓰는 필드는 그대로) |
-| 검토 자체가 실패 (`AI 문서 비교 검토 생성에 실패했습니다.`) | 서버 응답 메시지 — 프론트 문구가 아니다 (`src/` 에 그 문자열이 없다) | 백엔드 쪽에서 해소. 이후 검토 완료 → 전환 1건 성공 |
+| 문제                                                        | 원인                                                                      | 해결                                               |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------- |
+| stash pop 충돌 (`NoticeReviewModal`)                        | 커밋된 `다시 검토` 버튼과 stash 의 전환 버튼이 같은 자리에 들어옴         | 한 줄에 나란히 두는 형태로 병합                    |
+| 전환 모달 타입 오류                                         | stash 이후 요약 이력 응답이 `BidSummary` → `SummaryHistoryItem` 으로 바뀜 | 상태 · 필터 타입 교체 (쓰는 필드는 그대로)         |
+| 검토 자체가 실패 (`AI 문서 비교 검토 생성에 실패했습니다.`) | 서버 응답 메시지 — 프론트 문구가 아니다 (`src/` 에 그 문자열이 없다)      | 백엔드 쪽에서 해소. 이후 검토 완료 → 전환 1건 성공 |
 
 ### 부수 결정
 
@@ -52,18 +111,18 @@
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/features/bidding/NoticeSummaryCard.tsx` | **생성** (요약 요청 · 폴링 · 수정 · 확정 · 차수 이어가기) |
-| `src/features/bidding/NoticeReviewModal.tsx` | **생성** (문서 선택 · 검토 요청 · 폴링 · 근거 표시 · 검토 종료) |
-| `src/features/bidding/NoticeDetail.tsx` | 수정 (두 모달 연결 · 전환 버튼 제거) |
-| `src/features/bidding/{api,types,errorCodes}.ts` | 수정 (요약 · 검토 · 수집 조건 필드) |
-| `src/features/bidding/CollectionConditionFormModal.tsx` | 수정 (`조회 기간` 드롭다운) |
-| `src/features/bidding/CollectionConditionList.tsx` | 수정 (조건 카드 `조회 기간` · 실행 결과 `조회 구간`) |
-| `src/features/bidding/NoticeCreateForm.tsx` | 수정 (원문 URL 을 선택 입력으로) |
-| `src/features/companyDocument/{api,types}.ts` | 수정 (`getSelectableDocuments` · `SelectableDocument`) |
-| `src/constants/endpoints.ts` | 수정 (요약 · 검토 · 사내 문서 선택) |
-| `.ai/API.md` | 수정 (요약 · 검토 · 수집 조건 · 전환 API 명세) |
+| 파일                                                    | 변경                                                            |
+| ------------------------------------------------------- | --------------------------------------------------------------- |
+| `src/features/bidding/NoticeSummaryCard.tsx`            | **생성** (요약 요청 · 폴링 · 수정 · 확정 · 차수 이어가기)       |
+| `src/features/bidding/NoticeReviewModal.tsx`            | **생성** (문서 선택 · 검토 요청 · 폴링 · 근거 표시 · 검토 종료) |
+| `src/features/bidding/NoticeDetail.tsx`                 | 수정 (두 모달 연결 · 전환 버튼 제거)                            |
+| `src/features/bidding/{api,types,errorCodes}.ts`        | 수정 (요약 · 검토 · 수집 조건 필드)                             |
+| `src/features/bidding/CollectionConditionFormModal.tsx` | 수정 (`조회 기간` 드롭다운)                                     |
+| `src/features/bidding/CollectionConditionList.tsx`      | 수정 (조건 카드 `조회 기간` · 실행 결과 `조회 구간`)            |
+| `src/features/bidding/NoticeCreateForm.tsx`             | 수정 (원문 URL 을 선택 입력으로)                                |
+| `src/features/companyDocument/{api,types}.ts`           | 수정 (`getSelectableDocuments` · `SelectableDocument`)          |
+| `src/constants/endpoints.ts`                            | 수정 (요약 · 검토 · 사내 문서 선택)                             |
+| `.ai/API.md`                                            | 수정 (요약 · 검토 · 수집 조건 · 전환 API 명세)                  |
 
 ### 주요 작업 내용
 
@@ -75,13 +134,13 @@
 
 ### 트러블슈팅
 
-| 문제 | 원인 | 해결 |
-| ---- | ---- | ---- |
-| 요약 · 검토가 영원히 `PENDING` | Spring Outbox 가 Redis 에 발행되지 않음 (스트림에 메시지 자체가 없음) | 프론트 문제 아님 — 근거를 모아 백엔드에 전달 (`.ai/백엔드-요청_입찰AI요약검토.md`) |
-| 워커 재시작해도 job 을 못 잡음 | 처리 완료 전에 `XACK` 이 나가 PEL 에도 남지 않음 | 동일 문서로 전달 (ACK 시점 · 기동 시 PEL 소비) |
-| 실패한 요약을 이어서 요청하면 거절 | 실패 건을 `baseSummaryId` 로 보냄 | 완료된 요약만 딛도록 하고 버튼도 `요약하기` 로 갈랐다 |
-| 모달이 열릴 때 내용이 한꺼번에 튀어나옴 | 응답이 도착하는 대로 그림 | 초기 요청을 함께 기다리고 같은 골격의 스켈레톤을 먼저 그린다 |
-| 수금 진행률이 `1.0%` 로 표시 | `paidAmountRatio` 가 백분율이 아니라 비율(0~1) | 표기 시 100 을 곱한다 |
+| 문제                                    | 원인                                                                  | 해결                                                                               |
+| --------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| 요약 · 검토가 영원히 `PENDING`          | Spring Outbox 가 Redis 에 발행되지 않음 (스트림에 메시지 자체가 없음) | 프론트 문제 아님 — 근거를 모아 백엔드에 전달 (`.ai/백엔드-요청_입찰AI요약검토.md`) |
+| 워커 재시작해도 job 을 못 잡음          | 처리 완료 전에 `XACK` 이 나가 PEL 에도 남지 않음                      | 동일 문서로 전달 (ACK 시점 · 기동 시 PEL 소비)                                     |
+| 실패한 요약을 이어서 요청하면 거절      | 실패 건을 `baseSummaryId` 로 보냄                                     | 완료된 요약만 딛도록 하고 버튼도 `요약하기` 로 갈랐다                              |
+| 모달이 열릴 때 내용이 한꺼번에 튀어나옴 | 응답이 도착하는 대로 그림                                             | 초기 요청을 함께 기다리고 같은 골격의 스켈레톤을 먼저 그린다                       |
+| 수금 진행률이 `1.0%` 로 표시            | `paidAmountRatio` 가 백분율이 아니라 비율(0~1)                        | 표기 시 100 을 곱한다                                                              |
 
 ### 부수 결정
 
@@ -99,25 +158,25 @@
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/app/settings/files/page.tsx` | **생성** (라우트 진입점) |
-| `src/features/file/CompanyFileAdmin.tsx` | **생성** (두 탭 껍데기) |
-| `src/features/file/AdminFileList.tsx` | **생성** (전사 파일 목록 · 요약 · 필터 · 페이징) |
-| `src/features/companyDocument/{types,api,upload}.ts` | **생성** (사내 문서 도메인) |
-| `src/features/companyDocument/CompanyDocumentList.tsx` | **생성** (목록 · 업로드 · 삭제 · 복구) |
-| `src/features/companyDocument/CompanyDocumentViewerModal.tsx` | **생성** (미리보기 + 버전 이력) |
-| `src/features/companyDocument/EditCompanyDocumentModal.tsx` | **생성** (표시명 · 분류 수정) |
-| `src/app/settings/page.tsx` | 수정 (`파일` 섹션 카드 추가) |
-| `src/constants/endpoints.ts` | 수정 (`files.admin` · `companyDocuments`) |
-| `src/features/file/{api,types}.ts` | 수정 (`getAdminFiles` · `AdminFile` · `FilePage<T>`) |
-| `src/features/block/FileBlock.tsx` · `ImageUploadModal.tsx` | 수정 (업로드 토스트) |
-| `src/features/approval/ApprovalDraftForm.tsx` | 수정 (첨부 토스트) |
-| `src/features/auth/ProfileImageField.tsx` | 수정 (프로필 사진 토스트) |
-| `src/features/employee/BulkUploadModal.tsx` | 수정 (일괄 등록 토스트) |
-| `src/features/finance/CashFlowCsvMapping.tsx` | 수정 (CSV 업로드 토스트) |
-| `src/features/approval/ApprovalDocumentModal.tsx` | 수정 (다운로드 버튼 모양 통일) |
-| `.ai/API.md` | 수정 (142 · 143~150 명세 추가) |
+| 파일                                                          | 변경                                                 |
+| ------------------------------------------------------------- | ---------------------------------------------------- |
+| `src/app/settings/files/page.tsx`                             | **생성** (라우트 진입점)                             |
+| `src/features/file/CompanyFileAdmin.tsx`                      | **생성** (두 탭 껍데기)                              |
+| `src/features/file/AdminFileList.tsx`                         | **생성** (전사 파일 목록 · 요약 · 필터 · 페이징)     |
+| `src/features/companyDocument/{types,api,upload}.ts`          | **생성** (사내 문서 도메인)                          |
+| `src/features/companyDocument/CompanyDocumentList.tsx`        | **생성** (목록 · 업로드 · 삭제 · 복구)               |
+| `src/features/companyDocument/CompanyDocumentViewerModal.tsx` | **생성** (미리보기 + 버전 이력)                      |
+| `src/features/companyDocument/EditCompanyDocumentModal.tsx`   | **생성** (표시명 · 분류 수정)                        |
+| `src/app/settings/page.tsx`                                   | 수정 (`파일` 섹션 카드 추가)                         |
+| `src/constants/endpoints.ts`                                  | 수정 (`files.admin` · `companyDocuments`)            |
+| `src/features/file/{api,types}.ts`                            | 수정 (`getAdminFiles` · `AdminFile` · `FilePage<T>`) |
+| `src/features/block/FileBlock.tsx` · `ImageUploadModal.tsx`   | 수정 (업로드 토스트)                                 |
+| `src/features/approval/ApprovalDraftForm.tsx`                 | 수정 (첨부 토스트)                                   |
+| `src/features/auth/ProfileImageField.tsx`                     | 수정 (프로필 사진 토스트)                            |
+| `src/features/employee/BulkUploadModal.tsx`                   | 수정 (일괄 등록 토스트)                              |
+| `src/features/finance/CashFlowCsvMapping.tsx`                 | 수정 (CSV 업로드 토스트)                             |
+| `src/features/approval/ApprovalDocumentModal.tsx`             | 수정 (다운로드 버튼 모양 통일)                       |
+| `.ai/API.md`                                                  | 수정 (142 · 143~150 명세 추가)                       |
 
 ### 주요 작업 내용
 
