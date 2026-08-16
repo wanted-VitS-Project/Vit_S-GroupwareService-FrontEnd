@@ -218,6 +218,35 @@ export interface NoticeMutationResult {
  */
 export type CollectionScheduleType = 'DAILY' | 'WEEKDAYS' | (string & {});
 
+/**
+ * 조회 기간 — 실행할 때마다 **얼마나 되돌아가 검색할지** (2026-08-15 백엔드 추가).
+ *
+ * ⚠️ 선택 필드다. 보내지 않으면 서버가 `ONE_WEEK` 으로 채운다.
+ * ℹ️ 자동 수집이 자주 돌면 짧게, 가끔 몰아 보면 길게 잡는 것이 맞다 —
+ *    길수록 매번 훑는 양이 늘어 수집이 느려진다.
+ */
+export type CollectionLookbackPeriod =
+  | 'ONE_WEEK'
+  | 'TWO_WEEKS'
+  | 'ONE_MONTH'
+  | (string & {});
+
+export const COLLECTION_LOOKBACK_LABELS: Record<string, string> = {
+  ONE_WEEK: '최근 1주 (7일)',
+  TWO_WEEKS: '최근 2주 (14일)',
+  ONE_MONTH: '최근 1개월 (30일)',
+};
+
+/**
+ * 조회 기간 표기. **모르는 값은 원문 그대로 보여준다** —
+ * 서버가 새 값(`THREE_MONTHS` 등)을 주기 시작했을 때 `최근 1주` 로 둘러대면
+ * 0건 원인을 찾는 사람이 실제 설정과 다른 기간을 보고 판단하게 된다.
+ */
+export function lookbackLabel(period: CollectionLookbackPeriod | null | undefined) {
+  if (!period) return COLLECTION_LOOKBACK_LABELS.ONE_WEEK;
+  return COLLECTION_LOOKBACK_LABELS[period] ?? period;
+}
+
 /** 수집 조건의 필터. 통째로 교체되므로 부분 수정 대상이 아니다 */
 export interface CollectionFilters {
   keywords: string[];
@@ -251,6 +280,8 @@ export interface CollectionCondition {
   /** 비활성 조건은 수동 수집이 400 이다 (`BIDDING_INACTIVE_COLLECTION_CONDITION`) */
   isActive: boolean;
   autoCollectionEnabled: boolean;
+  /** ⚠️ 옛 조건에는 없을 수 있다 — 없으면 `ONE_WEEK` 로 본다 */
+  lookbackPeriod?: CollectionLookbackPeriod | null;
   /** 자동 수집이 꺼져 있으면 스케줄 3개가 모두 null */
   scheduleType: CollectionScheduleType | null;
   /** ⚠️ 응답은 `HH:mm:ss`, 요청은 `HH:mm` 다 — 되돌려 보낼 때 잘라야 한다 */
@@ -277,6 +308,8 @@ export interface CreateCollectionConditionRequest {
   filters: CollectionFilters;
   isActive: boolean;
   autoCollectionEnabled: boolean;
+  /** 서버는 생략을 허용하지만(기본 `ONE_WEEK`) 화면은 **항상 실어 보낸다** */
+  lookbackPeriod: CollectionLookbackPeriod;
   scheduleType: CollectionScheduleType | null;
   /** `HH:mm` (응답 포맷과 다르다) */
   scheduledTime: string | null;
@@ -312,6 +345,15 @@ export interface CollectionRun {
   /** 자동 수집은 `SCHEDULED` */
   triggerType: 'MANUAL' | 'SCHEDULED' | (string & {});
   runStatus: CollectionRunStatus;
+  /**
+   * 실제로 훑은 구간 (2026-08-15 백엔드 추가).
+   *
+   * ⭐ **0건일 때 가장 쓸모 있는 값**이다 — "어느 기간을 봤는지" 를 보여주면
+   *    "왜 0건이지?" 라는 물음이 대부분 여기서 풀린다.
+   * ⚠️ 옛 실행 기록에는 없을 수 있어 선택으로 둔다.
+   */
+  collectionStartedAt?: string | null;
+  collectionEndedAt?: string | null;
   collectedCount: number;
   insertedCount: number;
   updatedCount: number;
@@ -320,4 +362,254 @@ export interface CollectionRun {
   errorMessage: string | null;
   startedAt: string | null;
   finishedAt: string | null;
+}
+
+/* ────────────────────────── AI 요약 (BID-V1) ────────────────────────── */
+
+/**
+ * 요약 처리 상태. 수집 실행(`CollectionRunStatus`)과 값이 같지만 **다른 축**이라 따로 둔다.
+ *
+ * ⚠️ Python Worker 가 꺼져 있으면 `PENDING` 에서 영영 멈춘다 (장애가 아니라 미기동이다).
+ *    화면은 폴링 상한을 두고 손을 놓되, 요약 자체는 서버에 남아 있으므로 이력에서 다시 볼 수 있다.
+ */
+export type SummaryStatus =
+  | 'PENDING'
+  | 'PROCESSING'
+  | 'COMPLETED'
+  | 'FAILED'
+  | (string & {});
+
+/** AI 요약 본문 6칸. 수정(PATCH)도 이 모양 그대로 보낸다 */
+export interface SummarySections {
+  overviewSummary: string | null;
+  amountSummary: string | null;
+  scheduleSummary: string | null;
+  qualificationSummary: string | null;
+  taskSummary: string | null;
+  riskSummary: string | null;
+}
+
+/**
+ * AI 요약 단건. (`GET /bidding/summaries/{summaryId}`)
+ *
+ * ℹ️ 같은 공고를 여러 번 요약할 수 있다 — `revisionNo` 가 차수고, 이전 요약을 딛고
+ *    다시 요청하면 `parentSummaryId` 로 이어진다 (요청 본문의 `baseSummaryId`).
+ * ⚠️ **확정(`confirmed`)되면 더 수정할 수 없다** — 수정은 `COMPLETED` + 미확정일 때만이다.
+ */
+export interface BidSummary extends SummarySections {
+  summaryId: number;
+  noticeId: number;
+  /** 이 요약이 딛고 선 이전 요약. 최초 요청이면 null */
+  parentSummaryId: number | null;
+  revisionNo: number;
+  /** 사용자가 입력한 요청 문구 — 결과와 함께 보여 무엇을 물었는지 남긴다 */
+  prompt: string | null;
+  summaryStatus: SummaryStatus;
+  confirmed: boolean;
+  /** 사번 */
+  confirmedBy: string | null;
+  confirmedAt: string | null;
+  /** 이 요약으로 만들어진 프로젝트 */
+  projectId: number | null;
+  /** `FAILED` 일 때의 사유 */
+  errorMessage: string | null;
+  requestedAt: string;
+  completedAt: string | null;
+  updatedAt: string | null;
+}
+
+/** 요약 요청 본문 (`POST /bidding/notices/{noticeId}/summaries`) */
+export interface CreateSummaryRequest {
+  /** 사용자가 직접 쓴다 — 무엇을 정리해달라고 할지가 결과를 좌우한다 */
+  prompt: string;
+  /** 이전 요약을 딛고 다시 물을 때만. 없으면 처음부터 */
+  baseSummaryId?: number;
+}
+
+/** 요약 요청 응답 (`202`) — 결과는 `summaryId` 로 폴링한다 */
+export interface SummaryAccepted {
+  summaryId: number;
+  summaryStatus: SummaryStatus;
+  requestedAt: string;
+}
+
+/** 확정 응답 (`PATCH /bidding/summaries/{summaryId}/confirm`) */
+export interface SummaryConfirmed {
+  summaryId: number;
+  confirmed: boolean;
+  confirmedBy: string;
+  confirmedAt: string;
+  /** 확정해야 이 공고로 프로젝트를 만들 수 있다 */
+  projectCreationAllowed: boolean;
+}
+
+/**
+ * 공고별 요약 이력. (`GET /bidding/notices/{noticeId}/summaries`)
+ *
+ * 내 요약과 **같은 회사에서 확정된 요약**이 최신순으로 온다.
+ *
+ * ⚠️ **스웨거의 `content[]` 스키마가 잘못 붙어 있다** (2026-08-14 실측) —
+ *    전공 목록(`majorId` · `employeeCount` · `deletable`)이 그대로 복사돼 있다.
+ *    요약 목록이 그 모양일 리 없어 **단건(`BidSummary`)의 부분집합**으로 본다.
+ *    실제 응답을 받아보고 어긋나면 여기부터 고친다.
+ */
+/**
+ * 요약 이력 한 줄.
+ *
+ * ⚠️ **단건 조회(`BidSummary`) 와 다르다** — 여섯 칸 본문은 오지 않는다.
+ *    본문이 필요하면 `summaryId` 로 단건을 다시 부른다.
+ */
+export interface SummaryHistoryItem {
+  summaryId: number;
+  parentSummaryId: number | null;
+  revisionNo: number;
+  summaryStatus: SummaryStatus;
+  prompt: string | null;
+  confirmed: boolean;
+  /** 내가 요청한 것인지 — 남의 확정 요약도 함께 온다 */
+  isMine: boolean;
+  projectId: number | null;
+  requestedAt: string;
+  confirmedAt: string | null;
+  completedAt?: string | null;
+}
+
+export interface SummaryHistory {
+  /** 내가 마지막으로 요청한 요약 — 화면이 기본으로 펼칠 대상이다 */
+  latestMySummaryId: number | null;
+  content: SummaryHistoryItem[];
+  totalElements: number;
+  totalPages: number;
+  page: number;
+  size: number;
+}
+
+/* ────────────────────────── AI 문서 검토 (BID-V1) ────────────────────────── */
+
+/** 검토 처리 상태. `ABANDONED` 는 사용자가 끝낸 것이라 실패가 아니다 */
+export type ReviewStatus =
+  | 'PENDING'
+  | 'PROCESSING'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'ABANDONED'
+  | (string & {});
+
+/**
+ * 검토에 들어간 문서 하나가 어디서 왔는지.
+ *
+ * 셋 중 **하나만** 채워진다 — `documentRole` 로 어느 ID 를 볼지 정한다.
+ */
+export type DocumentRole =
+  | 'BID_ATTACHMENT'
+  | 'INTERNAL_REFERENCE'
+  | (string & {});
+
+/** 검토 화면에서 고를 공고 첨부 (`GET .../review-sources`) */
+export interface ReviewAttachment {
+  attachmentId: number;
+  fileName: string;
+  /** 수집처 (`NARA` 등) */
+  sourceType: string | null;
+  /**
+   * AI 가 읽을 수 있는 형식인지.
+   *
+   * ⚠️ `false` 면 **고를 수 없다** — 보내면 422 `BIDDING_REVIEW_UNSUPPORTED_FILE` 이다.
+   *    목록에서 감추지는 않는다. 첨부가 있는데 안 보이면 빠진 줄 안다.
+   */
+  supported: boolean;
+}
+
+export interface ReviewSources {
+  noticeId: number;
+  attachments: ReviewAttachment[];
+}
+
+/** 검토에 실제로 들어간 문서 */
+export interface ReviewDocument {
+  documentRole: DocumentRole;
+  bidAttachmentId: number | null;
+  referenceFileId: number | null;
+  companyDocumentVersionId: number | null;
+  fileName: string;
+  /** 임시 저장소 준비 상태 */
+  processingStatus: string | null;
+}
+
+/**
+ * 결과가 어느 문서 어디를 근거로 삼았는지.
+ * 화면은 이걸 **결과 아래 출처**로 보여준다 — AI 말만 있고 근거가 없으면 검증할 수 없다.
+ */
+export interface ReviewCitation {
+  rankOrder: number;
+  documentRole: DocumentRole;
+  bidAttachmentId: number | null;
+  referenceFileId: number | null;
+  companyDocumentVersionId: number | null;
+  fileName: string;
+  /** PDF 면 페이지, 엑셀이면 시트 — 형식에 따라 한쪽만 온다 */
+  pageNumber: number | null;
+  sheetName: string | null;
+  excerpt: string | null;
+}
+
+/** 검토 단건 (`GET /bidding/reviews/{reviewId}`) */
+export interface BidReview {
+  reviewId: number;
+  noticeId: number;
+  prompt: string | null;
+  reviewStatus: ReviewStatus;
+  /** 완료 시 본문. 요약과 달리 **칸이 나뉘지 않은 한 덩어리 글**이다 */
+  result: string | null;
+  errorMessage: string | null;
+  requestedAt: string;
+  completedAt: string | null;
+  /**
+   * 임시 파일이 지워지는 시각.
+   * ⚠️ 프로젝트로 전환하지 않으면 **3시간 뒤 자동 삭제**된다 — 화면이 미리 알린다.
+   */
+  expiresAt: string | null;
+  projectId: number | null;
+  documents: ReviewDocument[];
+  citations: ReviewCitation[];
+}
+
+/** 검토 이력 한 줄 (`GET /bidding/notices/{noticeId}/reviews`) — 최대 20건 */
+export interface ReviewHistoryItem {
+  reviewId: number;
+  reviewStatus: ReviewStatus;
+  prompt: string | null;
+  requestedAt: string;
+  completedAt: string | null;
+  expiresAt: string | null;
+  projectId: number | null;
+}
+
+/**
+ * 검토 요청 본문.
+ *
+ * ⚠️ 세 목록 모두 **선택**이지만 하나도 안 고르면 비교할 것이 없어 400 이다.
+ * ℹ️ `referenceFileIds` 는 입찰 기준자료(`/bidding/reference-files`)다 —
+ *    그 화면이 아직 없어 지금은 항상 비어 있다.
+ */
+export interface CreateReviewRequest {
+  bidAttachmentIds?: number[];
+  referenceFileIds?: number[];
+  /** 사내 문서는 **버전 ID** 로 고정해 넘긴다 */
+  companyDocumentVersionIds?: number[];
+  prompt: string;
+}
+
+/** 검토 요청 응답 (`202`) — 결과는 `reviewId` 로 폴링한다 */
+export interface ReviewAccepted {
+  reviewId: number;
+  reviewStatus: ReviewStatus;
+  requestedAt: string;
+}
+
+/** 검토 종료 응답 */
+export interface ReviewAbandoned {
+  reviewId: number;
+  reviewStatus: ReviewStatus;
+  abandonedAt: string;
 }

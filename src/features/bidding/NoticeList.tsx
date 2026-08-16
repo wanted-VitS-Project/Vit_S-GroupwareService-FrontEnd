@@ -170,6 +170,12 @@ export default function NoticeList() {
         rows={hasFailed ? [] : isLoading && !rows ? null : (rows ?? [])}
         rowKey={(row) => row.noticeId}
         /**
+         * 행 어디를 눌러도 상세로 간다 — 공고명 링크만 열어 두면 발주처 · 금액 칸을
+         * 눌렀을 때 아무 일도 일어나지 않아, 표가 눌리는 것인지 아닌지 매번 가늠하게 된다.
+         * 공고명 `<Link>` 는 그대로 둔다 — 새 탭 열기 · 주소 복사가 되는 곳이 하나는 있어야 한다.
+         */
+        onRowClick={(row) => router.push(BIDDING_ROUTES.detail(row.noticeId))}
+        /**
          * ⚠️ **가로 스크롤을 두지 않는다** (2026-08-12) — `minWidth` 를 뺐다.
          *    대신 여백을 줄이고(`dense`) 날짜 · 시각을 두 줄로 쌓아 자리를 만든다.
          */
@@ -222,6 +228,8 @@ export default function NoticeList() {
 const NOTICE_COLUMNS: DataTableColumn<BidNoticeListItem>[] = [
   {
     key: 'noticeName',
+    // ⚠️ 링크가 행 클릭까지 타면 `router.push` 가 두 번 돈다 (Ctrl+클릭도 새 탭 대신 이동)
+    stopRowClick: true,
     header: '공고명',
     width: '30%',
     skeletonWidth: 'w-64',

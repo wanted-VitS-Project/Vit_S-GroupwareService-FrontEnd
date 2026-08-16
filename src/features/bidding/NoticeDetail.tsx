@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { NoticeDetailSkeleton } from '@/components/bidding/NoticeSkeletons';
+import Modal from '@/components/Modal';
 import { PROJECT_ROUTES } from '@/features/project/routes';
 import { ApiError, messageOf } from '@/lib/api';
 import { formatDate, formatDateTime } from '@/lib/format';
@@ -16,6 +17,8 @@ import {
   DeadlineBadge,
   NoticeStatusBadge,
 } from './NoticeBadges';
+import NoticeReviewModal from './NoticeReviewModal';
+import NoticeSummaryCard from './NoticeSummaryCard';
 import { BIDDING_ROUTES } from './routes';
 import type { BidNoticeDetail, NoticeAttachment } from './types';
 
@@ -68,6 +71,8 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
   const [notice, setNotice] = useState<BidNoticeDetail | null>(null);
   const [failure, setFailure] = useState<Failure | null>(null);
   const [failureMessage, setFailureMessage] = useState('');
+  const [showsSummary, setShowsSummary] = useState(false);
+  const [showsReview, setShowsReview] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -104,15 +109,21 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
       </p>
 
       <div className="mt-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <NoticeStatusBadge status={notice.noticeStatus} />
-          <DeadlineBadge dDay={notice.dDay} />
-          <ConvertedBadge projectId={notice.projectId} />
+        {/**
+         * 배지를 제목 **옆**에 둔다 — 위에 한 줄을 따로 쓰면 공고명이 아래로 밀려
+         * 화면을 열자마자 "무슨 공고인가" 가 한눈에 안 들어온다.
+         * `items-baseline` 이라 제목이 두 줄이 되어도 배지는 첫 줄 옆에 붙는다.
+         */}
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1.5">
+          <h2 className="text-heading-m font-bold break-keep">
+            {notice.noticeName}
+          </h2>
+          <span className="flex shrink-0 flex-wrap items-center gap-1.5">
+            <NoticeStatusBadge status={notice.noticeStatus} />
+            <DeadlineBadge dDay={notice.dDay} />
+            <ConvertedBadge projectId={notice.projectId} />
+          </span>
         </div>
-
-        <h2 className="mt-1.5 text-heading-m font-bold break-keep">
-          {notice.noticeName}
-        </h2>
         <p className="mt-1.5 text-caption text-text-secondary">
           {orDash(notice.noticeAgency)}
           {/* 번호 없는 공고에 `공고번호 -` 를 붙이면 빠진 값처럼 읽힌다 — 통째로 뺀다 */}
@@ -232,7 +243,7 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
                 rel="noreferrer noopener"
                 // 새 탭으로 열리는 것을 스크린리더에도 알린다 (↗ 는 눈으로만 보인다)
                 aria-label="원문 공고 보기 (새 창)"
-                className="btn btn-sm btn-gray-outlined w-full"
+                className="btn btn-sm btn-primary-outlined w-full"
               >
                 원문 공고 보기 <span aria-hidden>↗</span>
               </a>
@@ -250,29 +261,43 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
             </div>
           </Card>
 
-          <Card title="프로젝트">
+          {/* 이 공고로 무엇을 할지 — AI 요약 · 프로젝트 전환을 한 카드에 모은다 */}
+          <Card title="분석 · 전환">
+            <button
+              type="button"
+              onClick={() => setShowsSummary(true)}
+              className="btn btn-sm btn-primary w-full"
+            >
+              AI 요약
+            </button>
+
+            {/**
+             * AI 검토는 요약과 **다른 기능**이다 — 공고 첨부와 사내 문서를 골라 비교하고
+             * 결과에 근거(인용)가 붙는다 (워커도 `bid_review_worker` 로 갈린다).
+             */}
+            <button
+              type="button"
+              onClick={() => setShowsReview(true)}
+              className="btn btn-sm btn-primary mt-2 w-full"
+            >
+              AI 검토
+            </button>
+
+            {/**
+             * ⚠️ **전환 버튼을 두지 않는다.**
+             *
+             * 백엔드에는 `POST /bidding/notices/{id}/projects` 가 들어왔지만
+             * (근거 검토 · 사업 카테고리 · 기간 · 참여자를 받는 별도 흐름이라) 화면은 따로 만든다.
+             * 눌리지 않는 버튼을 남겨 두면 "고장 났나" 로 읽혀, 아예 빼고 상태만 알린다.
+             */}
             {notice.projectId === null ? (
-              <>
-                <p className="text-caption text-text-secondary">
-                  아직 프로젝트로 전환되지 않았어요.
-                </p>
-                {/**
-                 * ⚠️ 전환 API(`POST /bidding/notices/{id}/projects`)가 아직 없다 —
-                 * 목록과 같은 이유로 눌리지 않게 두고 사유를 툴팁에 남긴다.
-                 */}
-                <button
-                  type="button"
-                  disabled
-                  title="프로젝트 전환 기능은 준비 중입니다"
-                  className="btn btn-sm btn-gray-outlined mt-3 w-full"
-                >
-                  프로젝트로 생성
-                </button>
-              </>
+              <p className="mt-2 text-caption text-text-secondary">
+                아직 프로젝트로 전환되지 않았습니다.
+              </p>
             ) : (
               <Link
                 href={PROJECT_ROUTES.detail(notice.projectId)}
-                className="btn btn-sm btn-gray-outlined w-full"
+                className="btn btn-sm btn-gray-outlined mt-2 w-full"
               >
                 프로젝트 보기
               </Link>
@@ -280,6 +305,57 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
           </Card>
         </div>
       </div>
+
+      {showsReview && (
+        <NoticeReviewModal
+          noticeId={noticeId}
+          onClose={() => setShowsReview(false)}
+        />
+      )}
+
+      {showsSummary && (
+        <Modal
+          title="AI 요약"
+          onClose={() => setShowsSummary(false)}
+          /* 프롬프트를 쓰다 바깥을 잘못 눌러 날리지 않게 한다 (닫기 · Esc 는 살아 있다) */
+          dismissOnBackdrop={false}
+          /* 검토 모달과 같은 크기로 맞춘다 — 두 창을 오가며 쓰는데 폭이 달라 흔들린다 */
+          className="flex max-h-[85vh] w-full max-w-[640px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
+          /**
+           * 제목 줄을 직접 그린다.
+           *
+           * 기본 헤더는 **자기 여백이 없다** — 패널의 `p-8` 을 빌려 쓰는데, 여기서는
+           * 본문만 스크롤시키려고 패딩 없는 `className` 을 주므로 글자가 모서리에 붙는다.
+           */
+          header={
+            <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border-default px-6 py-4">
+              <h2 className="text-body-m font-bold text-text-primary">
+                AI 요약
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowsSummary(false)}
+                aria-label="닫기"
+                className="cursor-pointer rounded-button-sm px-1 text-text-muted hover:text-text-primary"
+              >
+                ✕
+              </button>
+            </div>
+          }
+        >
+          {/* 요약이 길어 모달 안에서만 스크롤한다 — 뒤 화면까지 함께 굴러가면 어지럽다 */}
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-5 pb-8">
+            {/**
+             * 모달이 이미 카드다 — 카드 껍데기를 한 겹 더 씌우지 않는다.
+             *
+             * ⚠️ `key` 로 공고가 바뀌면 **새로 만든다.** 라우트가 바뀌어도 컴포넌트가
+             *    살아남으면 앞 공고의 요약과 폴링이 그대로 남아, 이력이 없는 공고에서
+             *    남의 요약이 보인다.
+             */}
+            <NoticeSummaryCard key={noticeId} noticeId={noticeId} isBare />
+          </div>
+        </Modal>
+      )}
     </>
   );
 }
@@ -299,9 +375,13 @@ function AttachmentList({ attachments }: { attachments: NoticeAttachment[] }) {
   }
 
   return (
+    /**
+     * 파일명이 길어 전부 잘리므로 **줄끼리 구분이 안 된다** — 파일마다 테두리를 둘러
+     * 어디까지가 한 파일인지 눈으로 끊기게 한다. 아이콘은 링크 여부를 함께 알린다.
+     */
     <ul className="mt-1.5 flex flex-col gap-1.5">
       {attachments.map((attachment) => (
-        <li key={attachment.attachmentOrder} className="min-w-0 text-caption">
+        <li key={attachment.attachmentOrder} className="min-w-0">
           {attachment.sourceUrl ? (
             <a
               href={attachment.sourceUrl}
@@ -310,21 +390,49 @@ function AttachmentList({ attachments }: { attachments: NoticeAttachment[] }) {
               title={attachment.fileName}
               // `title` 은 접근 이름에 들어가지 않는다 — 새 탭 안내를 라벨로 준다
               aria-label={`${attachment.fileName} (새 창)`}
-              className="block truncate text-text-primary hover:underline"
+              className="flex items-center gap-2 rounded-lg border border-border-default px-2.5 py-2 text-caption text-text-primary hover:bg-bg-hover"
             >
-              {attachment.fileName}
+              <FileIcon />
+              <span className="min-w-0 flex-1 truncate">
+                {attachment.fileName}
+              </span>
+              <span aria-hidden className="shrink-0 text-text-muted">
+                ↗
+              </span>
             </a>
           ) : (
+            /* 링크가 없는 첨부는 이름만 남는다 — 눌러도 갈 곳이 없어 테두리를 흐리게 둔다 */
             <span
               title={attachment.fileName}
-              className="block truncate text-text-secondary"
+              className="flex items-center gap-2 rounded-lg border border-dashed border-border-default px-2.5 py-2 text-caption text-text-secondary"
             >
-              {attachment.fileName}
+              <FileIcon />
+              <span className="min-w-0 flex-1 truncate">
+                {attachment.fileName}
+              </span>
             </span>
           )}
         </li>
       ))}
     </ul>
+  );
+}
+
+function FileIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className="size-3.5 shrink-0 text-text-muted"
+    >
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <path d="M14 3v5h5" />
+    </svg>
   );
 }
 
@@ -337,7 +445,7 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-border-default p-4">
+    <section className="rounded-xl border border-border-default bg-bg-card p-4">
       <h3 className="mb-3 text-caption font-semibold text-text-primary">
         {title}
       </h3>
