@@ -163,7 +163,8 @@ export default function MyProjectList() {
         }}
         className="flex flex-wrap items-center gap-3"
       >
-        <div className="relative min-w-64 flex-1">
+        {/* `min-w-64`(256px) 는 320px 화면에서 좌우 여백과 부딪힌다 — 그 아래에서는 푼다 */}
+        <div className="relative w-full min-w-0 flex-1 sm:w-auto sm:min-w-64">
           <label htmlFor="projectSearch" className="sr-only">
             프로젝트 검색
           </label>
@@ -188,7 +189,8 @@ export default function MyProjectList() {
         <div
           role="group"
           aria-label="프로젝트 상태 필터"
-          className="flex items-center gap-1 rounded-lg border border-border-default bg-bg-card p-1"
+          /* 다섯 개가 한 줄에 안 들어가는 폭에서는 접는다 — 넘치면 상자 밖으로 삐져나간다 */
+          className="flex flex-wrap items-center gap-1 rounded-lg border border-border-default bg-bg-card p-1"
         >
           <StatusTab
             label="전체"
@@ -313,7 +315,7 @@ function CategoryPeriodFilter({
   return (
     <div
       id="projectFilters"
-      className="flex flex-wrap items-center gap-3 rounded-base border border-border-default bg-bg-card px-5 py-3"
+      className="flex flex-wrap items-center gap-3 rounded-base border border-border-default bg-bg-card px-4 py-3 sm:px-5"
     >
       <span className="text-[15px] font-semibold text-gray-text-soft">
         기간
@@ -324,7 +326,11 @@ function CategoryPeriodFilter({
         max={to || undefined}
         onChange={(value) => onChange({ from: value })}
       />
-      <span aria-hidden className="h-3 w-px bg-bg-hover-secondary" />
+      {/* 줄이 접히면 구분선이 줄 맨 앞에 홀로 남는다 — 좁은 화면에서는 세우지 않는다 */}
+      <span
+        aria-hidden
+        className="hidden h-3 w-px bg-bg-hover-secondary sm:block"
+      />
       <DateTag
         label="시작일 (까지)"
         value={to}
@@ -332,7 +338,10 @@ function CategoryPeriodFilter({
         onChange={(value) => onChange({ to: value })}
       />
 
-      <span aria-hidden className="mx-2 h-6 w-px bg-bg-hover-secondary" />
+      <span
+        aria-hidden
+        className="mx-2 hidden h-6 w-px bg-bg-hover-secondary sm:block"
+      />
 
       <label className="flex items-center gap-3">
         <span className="text-[15px] font-semibold text-gray-text-soft">

@@ -6,6 +6,7 @@ import { useEffect, useId, useState } from 'react';
 import MemberAvatar from '@/components/MemberAvatar';
 import {
   PROJECT_ROW_GRID,
+  PROJECT_ROW_NAME_SPAN,
   PROJECT_ROW_TOGGLE_SLOT,
 } from '@/components/project/ProjectListHeader';
 import { PROJECT_STATUS_LABELS } from '@/constants/status';
@@ -71,16 +72,36 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
       >
         <Link
           href={PROJECT_ROUTES.detail(row.projectId)}
-          className={`${PROJECT_ROW_GRID} min-w-0 flex-1 px-5 py-4 hover:bg-black/[0.03]`}
+          className={`${PROJECT_ROW_GRID} min-w-0 flex-1 px-4 py-3.5 hover:bg-black/[0.03] xl:px-5 xl:py-4`}
         >
           {/*
+            ⭐ 값마다 **`sr-only` 칸 이름**을 붙인다. 머리글 줄(`ProjectListHeader`)은
+               `aria-hidden` 이고 접힌 폭에서는 아예 사라져, 그것만으로는 어느 값이
+               발주처이고 어느 것이 기간인지 알 방법이 없다.
+
             칸 너비는 `PROJECT_ROW_GRID` 가 정한다 — 여기서는 폭을 손대지 않는다.
             내용 길이(상태 라벨 · 카테고리 이름 · 참여자 수)로 폭이 정해지면
             카드마다 열이 어긋난다.
           */}
+          {/*
+            ── 접힌 폭(1280px 미만)의 규칙 ──────────────────────────────
+            네 줄 모두 **왼쪽 값 · 오른쪽 값** 한 쌍으로 읽히게 맞춘다.
+
+              [상태]───────────[분류]
+              과업명 (두 칸을 다 쓴다)
+              발주처───────────[기간]
+              [참여자]─────────[진척률]
+
+            칸이 반반이라 그냥 두면 값이 죄다 왼쪽에 붙어, 가운데가 텅 빈
+            어중간한 표처럼 보인다 — 오른쪽 값은 칸 끝에 붙여 선을 만든다.
+
+            2열로 접히면 칸이 배지보다 훨씬 넓다 — 늘려 두면 알약이 칸을 다 채워
+            배지가 아니라 띠로 보인다. 접힌 폭에서만 글자만큼으로 줄인다.
+          */}
           <span
-            className={`flex justify-center rounded-pill px-2 py-0.5 text-label font-medium ${style.badge}`}
+            className={`flex justify-center justify-self-start rounded-pill px-2 py-0.5 text-label font-medium xl:justify-self-stretch ${style.badge}`}
           >
+            <span className="sr-only">상태 </span>
             {PROJECT_STATUS_LABELS[row.status]}
           </span>
 
@@ -91,8 +112,9 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
            */}
           <span
             title={row.businessCategories.map((item) => item.name).join(' · ')}
-            className="flex min-w-0 items-center gap-1.5"
+            className="flex min-w-0 items-center gap-1.5 max-xl:justify-self-end"
           >
+            <span className="sr-only">분류 </span>
             {categoryTags.map((category) => (
               <span
                 key={category.categoryId}
@@ -108,9 +130,10 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
             )}
           </span>
 
+          {/* 접힌 폭에서는 두 칸을 다 쓴다 — 카드에서 가장 먼저 읽는 값이다 */}
           <h3
             title={row.name}
-            className="min-w-0 truncate text-[15px] font-semibold text-gray-text-soft"
+            className={`min-w-0 truncate text-[15px] font-semibold text-gray-text-soft ${PROJECT_ROW_NAME_SPAN}`}
           >
             {row.name}
           </h3>
@@ -120,10 +143,17 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
             title={row.clientName}
             className="min-w-0 truncate text-detail text-gray-text-soft"
           >
+            <span className="sr-only">발주처 </span>
             {row.clientName}
           </span>
 
-          <span className="text-detail whitespace-nowrap text-gray-text-soft">
+          {/*
+            한 줄 격자에서는 `2026.01.02 ~ 2026.03.31` 이 끊기면 안 된다 (칸이 10rem 고정).
+            2열로 접히면 칸이 그보다 좁아질 수 있어 `~` 에서 줄이 바뀌게 풀어준다 —
+            못을 박아 두면 카드가 가로로 넘쳐 목록에 가로 스크롤바가 생긴다.
+          */}
+          <span className="text-detail text-gray-text-soft max-xl:justify-self-end max-xl:text-right xl:whitespace-nowrap">
+            <span className="sr-only">기간 </span>
             {formatDateRange(row.startedOn, row.endedOn)}
           </span>
 
@@ -160,6 +190,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
               />
             </span>
             <span className="w-9 shrink-0 text-right text-detail font-semibold whitespace-nowrap text-gray-text-soft">
+              <span className="sr-only">진척률 </span>
               {row.progressRate === undefined ? '–' : `${row.progressRate}%`}
             </span>
           </span>
@@ -189,9 +220,9 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
         <div
           id={panelId}
           hidden={!isOpen}
-          className="border-t border-border-default px-5 py-4"
+          className="border-t border-border-default px-4 py-4 sm:px-5"
         >
-          <div className="flex flex-wrap items-center gap-5">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
             {/**
              * ⚠️ 시안 라벨은 `결재 대기` 지만 이 값은 **기안자 관점**이다 —
              * 내가 올려서 아직 안 끝난 건이라 결재함 대기 건수와 다르다. 라벨을 바꿔 단다.
@@ -210,7 +241,12 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
 
             <Link
               href={PROJECT_ROUTES.detail(row.projectId)}
-              className="ml-auto flex items-center gap-2 rounded-lg bg-btn-primary px-5 py-2 text-detail font-medium text-text-white hover:bg-btn-primary-hover"
+              /*
+                좁은 화면에서는 줄이 접혀 버튼만 다음 줄로 내려간다 —
+                `ml-auto` 로 오른쪽 끝에 매달아 두면 그 줄이 통째로 비어 보인다.
+                한 줄을 다 쓰고 가운데 정렬해 **누르는 곳**으로 읽히게 한다.
+              */
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-btn-primary px-5 py-2.5 text-detail font-medium text-text-white hover:bg-btn-primary-hover sm:ml-auto sm:w-auto sm:justify-start sm:py-2"
             >
               프로젝트 전체 보기
               <ArrowIcon />

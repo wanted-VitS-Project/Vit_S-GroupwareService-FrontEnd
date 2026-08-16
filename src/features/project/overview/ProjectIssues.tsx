@@ -348,8 +348,9 @@ const StepAccordion = memo(function StepAccordion({
            * 스텝 이슈 보드와 **같은 3열 칸반**으로 펼친다 — 두 화면에서 같은 이슈를
            * 다른 배열로 보면 어느 쪽이 정본인지 흐려진다.
            * 다만 여기는 조회 전용이라 드래그 · 드롭 대상 강조는 없다.
+           * 좁은 화면에서 세로로 쌓이는 것까지 **같은 기준(`md`)** 으로 맞춘다.
            */
-          <div className="grid grid-cols-3 items-start gap-3 border-t border-border-default bg-bg-surface/60 p-3">
+          <div className="grid grid-cols-1 items-start gap-3 border-t border-border-default bg-bg-surface/60 p-3 md:grid-cols-3">
             {ISSUE_STATUS_ORDER.map((status) => {
               const { badge, dot } = ISSUE_STATUS_STYLES[status];
               const columnIssues = issues.filter(
