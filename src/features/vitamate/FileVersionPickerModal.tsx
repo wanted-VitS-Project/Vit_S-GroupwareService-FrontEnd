@@ -152,7 +152,7 @@ export default function FileVersionPickerModal({
         <button
           type="button"
           onClick={() => onConfirm(draft)}
-          className="cursor-pointer rounded-button-md bg-[#4F39F6] px-3 py-1.5 text-detail font-semibold text-text-white hover:bg-[#4429E0]"
+          className="cursor-pointer rounded-button-md bg-ai-primary px-3 py-1.5 text-detail font-semibold text-text-white hover:bg-ai-primary-hover"
         >
           확인
         </button>
@@ -205,7 +205,7 @@ function VersionRow({
             ? 'cursor-not-allowed border-border-default opacity-50'
             : isChecked
               ? // 고를 수 없게 된 뒤에도 고른 상태면 흐리게 표시해 해제를 유도한다
-                `cursor-pointer border-[#4F39F6] bg-blue-bg-soft ${isBlocked ? 'opacity-60' : ''}`
+                `cursor-pointer border-ai-primary bg-blue-bg-soft ${isBlocked ? 'opacity-60' : ''}`
               : 'cursor-pointer border-border-default hover:bg-bg-surface'
         }`}
       >
@@ -214,7 +214,7 @@ function VersionRow({
           checked={isChecked}
           disabled={isDisabled}
           onChange={onToggle}
-          className="size-3.5 shrink-0 accent-[#4F39F6]"
+          className="size-3.5 shrink-0 accent-ai-primary"
         />
         <span
           style={{ color: style.text, backgroundColor: style.background }}

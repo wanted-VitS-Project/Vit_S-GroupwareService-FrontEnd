@@ -277,7 +277,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
                     onClick={() => toggleItem(item)}
                     className={`flex size-3.5 shrink-0 cursor-pointer items-center justify-center rounded-button-sm border disabled:cursor-progress ${
                       item.isCompleted
-                        ? 'border-[#00BC7D] bg-[#00BC7D] text-text-white'
+                        ? 'border-step-done bg-step-done text-text-white'
                         : 'border-text-secondary bg-bg-card'
                     }`}
                   >
@@ -292,7 +292,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
                     aria-disabled
                     className={`flex size-3.5 shrink-0 items-center justify-center rounded-button-sm border ${
                       item.isCompleted
-                        ? 'border-[#00BC7D] bg-[#00BC7D] text-text-white'
+                        ? 'border-step-done bg-step-done text-text-white'
                         : 'border-text-secondary bg-bg-card'
                     }`}
                   >

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
+import PageTitle from '@/components/PageTitle';
 import Pagination, { PaginationPlaceholder } from '@/components/Pagination';
 import { formatDate, formatTime } from '@/lib/format';
 
@@ -150,12 +151,10 @@ export default function NoticeList() {
   return (
     <>
       {/* 액션 버튼은 필터 바의 검색 오른쪽에 둔다 (`NoticeFilterBar`) */}
-      <div className="mb-6">
-        <h2 className="text-heading-m font-bold">공고 조회</h2>
-        <p className="mt-1.5 text-caption break-keep text-text-secondary">
-          수집된 입찰 공고를 확인합니다.
-        </p>
-      </div>
+      <PageTitle
+        title="공고 조회"
+        description="수집된 입찰 공고를 확인합니다."
+      />
 
       <NoticeFilterBar
         searchParams={searchParams}
@@ -205,14 +204,14 @@ export default function NoticeList() {
 
       {/* 받아오는 동안에도 같은 높이를 잡아 둔다 — 결과가 올 때 아래가 밀리지 않게 */}
       {!hasFailed && !page && (
-        <div className="mt-3 overflow-hidden rounded-xl border border-border-default bg-bg-card">
+        <div className="mt-3 overflow-hidden rounded-base border border-border-default bg-bg-card">
           <PaginationPlaceholder />
         </div>
       )}
 
       {/* 표 바깥에 둔다 — 실패 · 빈 상태에서는 넘길 페이지가 없다 */}
       {!hasFailed && page && page.totalElements > 0 && (
-        <div className="mt-3 overflow-hidden rounded-xl border border-border-default bg-bg-card">
+        <div className="mt-3 overflow-hidden rounded-base border border-border-default bg-bg-card">
           <Pagination
             page={query.page ?? 0}
             totalPages={page.totalPages}

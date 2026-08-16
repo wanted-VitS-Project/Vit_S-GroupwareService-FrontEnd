@@ -128,7 +128,7 @@ export function NoticeDetailSkeleton() {
           {[0, 1, 2].map((card) => (
             <div
               key={card}
-              className="rounded-xl border border-border-default p-4"
+              className="rounded-base border border-border-default p-4"
             >
               <Skeleton className="h-3 w-20" />
               <div className="mt-4 grid grid-cols-2 gap-4">
@@ -147,7 +147,7 @@ export function NoticeDetailSkeleton() {
           {[0, 1].map((card) => (
             <div
               key={card}
-              className="rounded-xl border border-border-default p-4"
+              className="rounded-base border border-border-default p-4"
             >
               <Skeleton className="h-3 w-20" />
               <Skeleton className="mt-4 h-3 w-full" />

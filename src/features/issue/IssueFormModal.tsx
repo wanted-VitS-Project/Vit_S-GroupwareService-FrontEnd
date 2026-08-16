@@ -785,7 +785,7 @@ export default function IssueFormModal({
               type="button"
               onClick={onClose}
               disabled={isSaving}
-              className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="btn btn-md btn-gray-outlined"
             >
               취소
             </button>
@@ -793,7 +793,7 @@ export default function IssueFormModal({
               type="button"
               onClick={submit}
               disabled={isSaving || values === null || loadFailure !== null}
-              className="min-w-[104px] cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="btn btn-md btn-primary min-w-[104px]"
             >
               {isSaving ? '저장 중…' : isEdit ? '수정 완료' : '이슈 생성'}
             </button>

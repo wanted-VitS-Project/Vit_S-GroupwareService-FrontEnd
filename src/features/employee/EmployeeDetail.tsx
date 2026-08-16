@@ -301,7 +301,7 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
               <button
                 type="button"
                 onClick={() => modal.open('resignation')}
-                className="shrink-0 cursor-pointer rounded-lg bg-red-text px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-danger-hover"
+                className="btn btn-md btn-danger shrink-0"
               >
                 퇴사 처리
               </button>

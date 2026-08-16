@@ -452,7 +452,7 @@ export default function TextBlockModal({
               type="button"
               onClick={requestSave}
               disabled={isSaving}
-              className="min-w-[104px] cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="btn btn-md btn-primary min-w-[104px]"
             >
               {isSaving ? '저장 중…' : '저장'}
             </button>

@@ -112,7 +112,7 @@ export default function AccountStatusModal({
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+            className="btn btn-md btn-gray-outlined"
           >
             취소
           </button>
@@ -120,10 +120,8 @@ export default function AccountStatusModal({
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className={`cursor-pointer rounded-lg px-4 py-1.5 text-detail font-semibold text-text-white disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary ${
-              isSuspending
-                ? 'bg-red-text hover:bg-btn-danger-hover'
-                : 'bg-btn-primary hover:bg-btn-primary-hover'
+            className={`btn btn-md min-w-[104px] ${
+              isSuspending ? 'btn-danger' : 'btn-primary'
             }`}
           >
             {isSubmitting ? '처리 중…' : isSuspending ? '정지' : '활성화'}

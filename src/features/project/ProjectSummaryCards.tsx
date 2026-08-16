@@ -68,7 +68,7 @@ export default function ProjectSummaryCards({
         aria-label={label}
         className="flex items-center gap-3 rounded-base border border-border-default bg-bg-card px-5 py-4"
       >
-        <p role="alert" className="text-[13px] text-text-secondary">
+        <p role="alert" className="text-detail text-text-secondary">
           상태별 건수를 불러오지 못했습니다.
         </p>
         <button
@@ -105,13 +105,13 @@ export default function ProjectSummaryCards({
             {card.icon}
           </span>
           <div className="min-w-0">
-            <p className="truncate text-[13px] text-text-secondary">
+            <p className="truncate text-detail text-text-secondary">
               {card.label}
             </p>
             <p className="mt-0.5 truncate text-logo leading-8 font-semibold text-text-primary">
               {/* 아직 세는 중이면 자리만 잡는다 — 0 을 먼저 보이면 잘못된 값을 읽힌다 */}
               {values ? (values[index] ?? 0).toLocaleString('ko-KR') : '–'}
-              <span className="ml-1 text-[13px] font-medium text-text-secondary">
+              <span className="ml-1 text-detail font-medium text-text-secondary">
                 개
               </span>
             </p>

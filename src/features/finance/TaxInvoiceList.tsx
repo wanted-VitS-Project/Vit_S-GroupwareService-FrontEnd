@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import Breadcrumb from '@/components/Breadcrumb';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
+import PageTitle from '@/components/PageTitle';
 import { notifyToast } from '@/components/Toast';
 import { messageOf } from '@/lib/api';
 import { formatDate } from '@/lib/format';
@@ -176,20 +177,17 @@ export default function TaxInvoiceList() {
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <Breadcrumb
-            items={[
-              { label: '재무 관리', href: FINANCE_ROUTES.hub },
-              { label: '세금계산서' },
-            ]}
-          />
-          <h2 className="mt-1 text-heading-m font-bold">세금계산서</h2>
-          <p className="mt-1.5 text-caption break-keep text-text-secondary">
-            수집한 세금계산서를 정산 블록에 연결합니다.
-          </p>
-        </div>
+      <Breadcrumb
+        items={[
+          { label: '재무 관리', href: FINANCE_ROUTES.hub },
+          { label: '세금계산서' },
+        ]}
+      />
 
+      <PageTitle
+        title="세금계산서"
+        description="수집한 세금계산서를 정산 블록에 연결합니다."
+      >
         {/**
          * 직접 등록이 없어 **버튼이 하나뿐**이다 — 입출금은 `CSV 등록`(보조) 옆에
          * `입출금 등록`(주)이 있어 아웃라인이지만, 여기서는 이것이 주 동작이다.
@@ -200,7 +198,7 @@ export default function TaxInvoiceList() {
         >
           CSV 수집
         </Link>
-      </div>
+      </PageTitle>
 
       <Filters
         query={query}

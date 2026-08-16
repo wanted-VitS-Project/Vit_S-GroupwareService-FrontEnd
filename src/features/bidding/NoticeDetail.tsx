@@ -480,7 +480,7 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-border-default bg-bg-card p-4">
+    <section className="rounded-base border border-border-default bg-bg-card p-4">
       <h3 className="mb-3 text-caption font-semibold text-text-primary">
         {title}
       </h3>
@@ -520,7 +520,7 @@ function LongField({ label, value }: { label: string; value: string | null }) {
 /** 실패 화면. 문구는 백엔드 것을 그대로 쓰고 목록으로 돌려보낸다 */
 function FailureView({ kind, message }: { kind: Failure; message: string }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-border-default py-20 text-center">
+    <div className="flex flex-col items-center justify-center rounded-base border border-border-default py-20 text-center">
       <span aria-hidden className="text-heading-xl">
         📋
       </span>

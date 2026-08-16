@@ -145,7 +145,7 @@ export default function MyProjectList() {
         <h2 className="text-logo leading-8 font-bold text-text-primary">
           내 프로젝트
         </h2>
-        <p className="mt-1 text-[13px] text-text-secondary">
+        <p className="mt-1 text-detail text-text-secondary">
           참여 중인 모든 프로젝트를 조회하고 관리합니다.
         </p>
       </div>
@@ -177,7 +177,7 @@ export default function MyProjectList() {
             onChange={(event) => setKeywordInput(event.target.value)}
             /* 백엔드 `keyword` 는 과업명뿐 아니라 발주처도 함께 검색한다 */
             placeholder="과업명 · 발주처 검색"
-            className="h-[41px] w-full rounded-lg border border-border-default bg-bg-card pr-4 pl-9 text-[13px] text-text-primary placeholder:text-text-muted focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+            className="h-[41px] w-full rounded-lg border border-border-default bg-bg-card pr-4 pl-9 text-detail text-text-primary placeholder:text-text-muted focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
           />
         </div>
 
@@ -228,7 +228,7 @@ export default function MyProjectList() {
         <ProjectListSkeleton rows={PAGE_SIZE} />
       ) : !rows || rows.length === 0 ? (
         <Centered>
-          <p className="text-[13px] text-text-secondary">
+          <p className="text-detail text-text-secondary">
             {hasFilter
               ? '조건에 맞는 프로젝트가 없습니다.'
               : '참여 중인 프로젝트가 없습니다.'}
@@ -343,7 +343,7 @@ function CategoryPeriodFilter({
           onChange={(event) =>
             onChange({ categoryId: event.target.value || undefined })
           }
-          className="w-44 cursor-pointer rounded-[9px] border-[1.5px] border-border-default bg-bg-card px-3 py-1 text-[13px] font-medium text-gray-text-soft focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+          className="w-44 cursor-pointer rounded-[9px] border-[1.5px] border-border-default bg-bg-card px-3 py-1 text-detail font-medium text-gray-text-soft focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
         >
           {/* 아직 못 받았어도 `전체` 는 고를 수 있어야 한다 — 필터를 지우는 유일한 값이다 */}
           <option value="">전체</option>
@@ -393,7 +393,7 @@ function DateTag({
         min={min}
         max={max}
         onChange={(event) => onChange(event.target.value || undefined)}
-        className="w-36 cursor-pointer bg-transparent text-[13px] font-medium text-gray-text-soft focus:outline-none"
+        className="w-36 cursor-pointer bg-transparent text-detail font-medium text-gray-text-soft focus:outline-none"
       />
     </label>
   );

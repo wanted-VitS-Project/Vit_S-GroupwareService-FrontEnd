@@ -269,7 +269,7 @@ export default function CollectionConditionFormModal({
       dismissOnBackdrop={false}
       // 스크롤은 패널이 아니라 **안쪽 목록**이 한다 — 패널이 스크롤하면 스크롤바가
       // 둥근 모서리를 잘라 먹어 위아래 모서리가 짝짝이로 보인다
-      className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-xl p-8 shadow-lg"
+      className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-base p-8 shadow-2xl"
     >
       <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
         {/* 필드만 스크롤한다 — 제목과 하단 버튼은 제자리에 남는다 */}

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 import { ApprovalListSkeleton } from '@/components/approval/ApprovalSkeletons';
+import PageTitle from '@/components/PageTitle';
 import Pagination from '@/components/Pagination';
 import { APPROVAL_STATUS_LABELS } from '@/constants/status';
 import type { Role } from '@/features/auth/types';
@@ -226,15 +227,15 @@ export default function ApprovalList() {
 
   return (
     <>
-      <div className="mb-6">
-        <h2 className="text-heading-m font-bold">결재 관리</h2>
-        {/* 관리자는 결재선에 들어가지 않아 `내가 올린 결재` 가 없다 — 설명도 그에 맞춘다 */}
-        <p className="mt-1.5 text-label break-keep text-text-secondary">
-          {user.role === 'ADMIN'
+      {/* 관리자는 결재선에 들어가지 않아 `내가 올린 결재` 가 없다 — 설명도 그에 맞춘다 */}
+      <PageTitle
+        title="결재 관리"
+        description={
+          user.role === 'ADMIN'
             ? '전사에서 진행 중인 결재를 한곳에서 확인합니다.'
-            : '내가 올린 결재와 처리할 결재를 한곳에서 확인합니다.'}
-        </p>
-      </div>
+            : '내가 올린 결재와 처리할 결재를 한곳에서 확인합니다.'
+        }
+      />
 
       <div
         role="tablist"

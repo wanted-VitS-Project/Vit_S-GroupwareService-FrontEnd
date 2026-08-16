@@ -180,7 +180,7 @@ export default function NoticeProjectConvertModal({
       onClose={onClose}
       // 여러 칸을 채우는 흐름이라 바깥을 잘못 눌러 닫히면 처음부터 다시다
       dismissOnBackdrop={false}
-      className="flex max-h-[85vh] w-full max-w-[560px] flex-col rounded-base p-8 shadow-lg"
+      className="flex max-h-[85vh] w-full max-w-[560px] flex-col rounded-base p-8 shadow-2xl"
     >
       {/* 무엇을 근거로 만드는지 — 검토 결과에서 넘어왔다는 사실을 창 안에서도 알린다 */}
       <div className="mt-6 rounded-lg border border-border-default bg-bg-surface px-4 py-3">

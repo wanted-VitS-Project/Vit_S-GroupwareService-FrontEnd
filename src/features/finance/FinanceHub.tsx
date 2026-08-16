@@ -100,11 +100,10 @@ export default function FinanceHub() {
   return (
     <>
       <p className="text-caption text-text-secondary">재무 관리</p>
-      <PageTitle title="재무 관리" />
-
-      <p className="-mt-4 mb-6 text-label text-text-secondary">
-        입출금 내역 · 세금계산서 · 정산 현황을 한 곳에서 관리합니다.
-      </p>
+      <PageTitle
+        title="재무 관리"
+        description="입출금 내역 · 세금계산서 · 정산 현황을 한 곳에서 관리합니다."
+      />
 
       <div className="divide-y divide-border-default overflow-hidden rounded-base border border-border-default bg-bg-card">
         {ITEMS.map((item) => (

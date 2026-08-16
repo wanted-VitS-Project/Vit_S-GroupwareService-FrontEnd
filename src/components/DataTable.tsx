@@ -426,7 +426,7 @@ export default function DataTable<T>({
  */
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-border-default bg-bg-card">
+    <div className="overflow-hidden rounded-base border border-border-default bg-bg-card">
       {children}
     </div>
   );
