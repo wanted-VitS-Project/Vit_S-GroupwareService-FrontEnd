@@ -12,8 +12,8 @@ import { createBlock } from './api';
 import { nextPosition } from './blockLayout';
 import BlockTypeIcon from './BlockTypeIcon';
 import {
-  BLOCK_TITLE_MAX_LENGTH,
   BLOCK_TYPES,
+  BLOCK_TITLE_MAX_LENGTH,
   type BlockTypeCode,
   type StepBlock,
 } from './types';
@@ -132,7 +132,29 @@ export default function AddBlockModal({
         }
       >
         <div className="max-h-[70vh] overflow-y-auto p-5">
-          <p className="text-micro tracking-[0.9px] text-text-secondary uppercase">
+          {/*
+            제목이 유형 선택 **위**에 온다 (2026-08-16).
+            유형을 고르면 아래 `selectType` 이 제목을 유형 이름으로 채워 주는데,
+            입력칸이 그리드 아래에 있으면 그 변화가 화면 밖에서 일어나 눈에 띄지 않았다.
+          */}
+          <label className="block">
+            <span className="block pb-1.5 text-detail font-semibold text-text-primary">
+              {titleLabel}{' '}
+              <span className="font-normal text-text-secondary">(선택)</span>
+            </span>
+            <input
+              type="text"
+              value={title}
+              maxLength={BLOCK_TITLE_MAX_LENGTH}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder={
+                selected?.titleLabel ? '예: 1차 기성' : '블록 제목을 입력하세요'
+              }
+              className="w-full rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-detail text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+            />
+          </label>
+
+          <p className="mt-5 text-micro tracking-[0.9px] text-text-secondary uppercase">
             블록 유형 선택 ({BLOCK_TYPES.length})
           </p>
 
@@ -179,23 +201,6 @@ export default function AddBlockModal({
               );
             })}
           </div>
-
-          <label className="mt-5 block">
-            <span className="block pb-1.5 text-detail font-semibold text-text-primary">
-              {titleLabel}{' '}
-              <span className="font-normal text-text-secondary">(선택)</span>
-            </span>
-            <input
-              type="text"
-              value={title}
-              maxLength={BLOCK_TITLE_MAX_LENGTH}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder={
-                selected?.titleLabel ? '예: 1차 기성' : '블록 제목을 입력하세요'
-              }
-              className="w-full rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-detail text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
-            />
-          </label>
         </div>
 
         <div className="flex items-center justify-between gap-4 border-t border-border-default bg-bg-surface px-5 py-3.5">

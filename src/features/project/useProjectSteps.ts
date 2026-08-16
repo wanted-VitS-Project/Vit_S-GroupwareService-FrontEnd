@@ -57,6 +57,30 @@ export function useStepName(projectId: string, stepId: string) {
 }
 
 /**
+ * **이 스텝을 고칠 수 있는지** — 블록 추가 · 배치 편집 · 블록 수정의 단일 판정.
+ *
+ * 이름과 같은 캐시(`projectStepsKey`)를 보고 `myPermission` 한 줄만 꺼낸다 —
+ * 조회가 따로 나가지 않는다. 스텝 권한은 프로젝트 권한과 **다를 수 있어**
+ * (스텝별 오버라이드, STP-011) 프로젝트 쪽 값으로 대신 판정하면 안 된다.
+ *
+ * ⚠️ **아직 모를 때(`undefined`)는 `false` 로 떨어진다** — 권한이 없는 사람에게
+ *    버튼이 잠깐 보였다 사라지는 것보다, 있는 사람에게 늦게 나타나는 편이 안전하다.
+ *    (눌러 놓고 403 을 받는 일이 없다)
+ */
+export function useStepCanEdit(projectId: string, stepId: string) {
+  const { data } = useQuery({
+    queryKey: projectStepsKey(projectId),
+    queryFn: ({ signal }) => getProjectSteps(projectId, signal),
+    select: (steps) =>
+      steps.find((step) => String(step.stepId) === stepId)?.myPermission,
+    staleTime: PROJECT_STEPS_STALE_MS,
+    enabled: Boolean(projectId && stepId),
+  });
+
+  return data === 'EDITOR';
+}
+
+/**
  * 스텝 목록 캐시를 버리고 다시 읽는다.
  *
  * 스텝을 만들거나 이름 · 순서 · 상태를 고친 직후(`ProjectSidebar.reload`)와

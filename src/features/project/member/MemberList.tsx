@@ -11,6 +11,7 @@ import { useModal, useModalTarget } from '@/lib/useModal';
 import { updateProjectMemberPermission } from '../api';
 import { MEMBER_CODES } from '../errorCodes';
 import { MEMBER_PERMISSION_LABELS, MEMBER_PERMISSIONS } from '../labels';
+import { canManageMembers } from '../permissions';
 import type { ProjectMember, ProjectPermission } from '../types';
 import AddMemberModal from './AddMemberModal';
 import RemoveMemberModal from './RemoveMemberModal';
@@ -55,6 +56,12 @@ export default function MemberList({
   /** 권한을 바꾸는 중인 행 — 그 줄만 막는다 */
   const [savingMemberId, setSavingMemberId] = useState<number | null>(null);
 
+  /**
+   * `참여자 추가` — 편집 권한이면 보인다 (`VIEWER` 에게만 감춘다).
+   * 전사 `ADMIN` 은 프로젝트 권한과 무관하게 예외다 (`permissions.ts`).
+   */
+  const canAdd = canManageMembers({ role: me.role, canEdit });
+
   async function changePermission(
     member: ProjectMember,
     permission: ProjectPermission,
@@ -91,7 +98,7 @@ export default function MemberList({
 
   return (
     <>
-      {showAddButton && canEdit && (
+      {showAddButton && canAdd && (
         <div className="mb-2 flex justify-end">
           <button
             type="button"
