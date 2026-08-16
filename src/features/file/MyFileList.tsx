@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
 import Breadcrumb from '@/components/Breadcrumb';
+import PageTitle from '@/components/PageTitle';
 import { messageOf } from '@/lib/api';
 import { formatDate } from '@/lib/format';
 import { useModalTarget } from '@/lib/useModal';
@@ -141,13 +142,10 @@ export default function MyFileList() {
     <div onPointerEnter={preloadViewer}>
       <Breadcrumb items={[{ label: '내 파일' }]} />
 
-      <div className="mt-2 mb-6">
-        <h2 className="text-heading-m font-bold">내 프로젝트 파일</h2>
-        <p className="mt-1.5 text-label break-keep text-text-secondary">
-          내가 속한 모든 프로젝트의 파일을 프로젝트별로 모아 봅니다. 업로드 ·
-          수정은 각 스텝 화면에서 할 수 있습니다.
-        </p>
-      </div>
+      <PageTitle
+        title="내 프로젝트 파일"
+        description="내가 속한 모든 프로젝트의 파일을 프로젝트별로 모아 봅니다. 업로드 · 수정은 각 스텝 화면에서 할 수 있습니다."
+      />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <form

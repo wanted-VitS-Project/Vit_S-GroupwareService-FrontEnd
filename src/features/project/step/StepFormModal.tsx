@@ -356,14 +356,14 @@ export default function StepFormModal({
                 type="button"
                 onClick={requestClose}
                 disabled={isSubmitting}
-                className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+                className="btn btn-md btn-gray-outlined"
               >
                 취소
               </button>
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className="min-w-[104px] cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+                className="btn btn-md btn-primary min-w-[104px]"
               >
                 {isSubmitting ? '저장 중…' : isEditing ? '저장' : '추가'}
               </button>

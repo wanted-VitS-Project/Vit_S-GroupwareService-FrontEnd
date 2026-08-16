@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 
 import Breadcrumb from '@/components/Breadcrumb';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
+import PageTitle from '@/components/PageTitle';
 import { AlertBanner, TextField } from '@/features/bidding/FormFields';
 import { messageOf } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
@@ -114,19 +115,18 @@ export default function CashFlowCsvImport() {
 
   return (
     <>
-      <div className="mb-6">
-        <Breadcrumb
-          items={[
-            { label: '재무 관리', href: FINANCE_ROUTES.hub },
-            { label: '입출금 내역', href: FINANCE_ROUTES.cashFlows },
-            { label: 'CSV 일괄 등록' },
-          ]}
-        />
-        <h2 className="mt-1 text-heading-m font-bold">CSV 일괄 등록</h2>
-        <p className="mt-1.5 text-caption break-keep text-text-secondary">
-          은행에서 내려받은 거래 내역 파일을 올려 한 번에 등록합니다.
-        </p>
-      </div>
+      <Breadcrumb
+        items={[
+          { label: '재무 관리', href: FINANCE_ROUTES.hub },
+          { label: '입출금 내역', href: FINANCE_ROUTES.cashFlows },
+          { label: 'CSV 일괄 등록' },
+        ]}
+      />
+
+      <PageTitle
+        title="CSV 일괄 등록"
+        description="은행에서 내려받은 거래 내역 파일을 올려 한 번에 등록합니다."
+      />
 
       <StepBar steps={STEPS} current={step} />
 

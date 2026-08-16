@@ -12,7 +12,8 @@ export default function Breadcrumb({
   items: { label: string; href?: string }[];
 }) {
   return (
-    <nav aria-label="현재 위치">
+    // 아래 제목과의 간격은 브레드크럼이 갖는다 — 화면마다 `mt-1`/`mt-2` 로 갈렸던 자리다
+    <nav aria-label="현재 위치" className="mb-2">
       <ol className="flex flex-wrap items-center gap-1.5 text-caption text-text-secondary">
         {items.map((item, index) => {
           /**

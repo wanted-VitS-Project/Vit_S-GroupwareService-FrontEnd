@@ -354,7 +354,8 @@ export const ISSUE_STATUS_STYLES: Record<IssueStatus, IssueStatusStyle> = {
 };
 
 /** 마감일이 지난 이슈를 강조하는 색 — 우선순위 '높음' 과 같은 계열이다 */
-export const ISSUE_OVERDUE_STYLE = 'border-red-border bg-red-bg text-[#C10007]';
+export const ISSUE_OVERDUE_STYLE =
+  'border-red-border bg-red-bg text-red-text-deep';
 
 export const ISSUE_PRIORITY_ORDER: IssuePriority[] = ['HIGH', 'MEDIUM', 'LOW'];
 
@@ -369,7 +370,7 @@ export const ISSUE_PRIORITY_STYLES: Record<
   { badge: string; dot: string }
 > = {
   HIGH: {
-    badge: 'border-red-border bg-red-bg text-[#C10007]',
+    badge: 'border-red-border bg-red-bg text-red-text-deep',
     dot: 'bg-[#FB2C36]',
   },
   MEDIUM: {

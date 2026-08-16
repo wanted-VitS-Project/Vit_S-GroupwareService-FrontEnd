@@ -256,7 +256,7 @@ export default function StepPermissionModal({
         <button
           type="button"
           onClick={onClose}
-          className="min-w-[104px] cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover"
+          className="btn btn-md btn-primary min-w-[104px]"
         >
           닫기
         </button>

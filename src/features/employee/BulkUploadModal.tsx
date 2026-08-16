@@ -185,7 +185,7 @@ export default function BulkUploadModal({
       onClose={isBusy ? undefined : onClose}
       // 검증 표를 훑다 바깥을 잘못 눌러 파일 선택부터 다시 하게 되면 곤란하다
       dismissOnBackdrop={false}
-      className="w-full max-w-[640px] rounded-base p-8 shadow-lg"
+      className="w-full max-w-[640px] rounded-base p-8 shadow-2xl"
     >
       <div className="mt-5">
         {step === 'pick' && (

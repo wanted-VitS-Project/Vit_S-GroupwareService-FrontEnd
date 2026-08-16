@@ -149,7 +149,11 @@ export const BLOCK_TYPES: BlockTypeOption[] = [
     defaultColSpan: 2,
     background: '#EEF2FF',
     border: '#C6D2FF',
-    icon: '#4F39F6',
+    /*
+     * ⚠️ 여기만 토큰을 참조한다 — 다른 블록의 색은 서로를 구별하기 위한 **식별색**이지만,
+     *    AI 블록의 아이콘색은 화면 곳곳에서 쓰는 **AI 브랜드색**이라 한 곳에서 관리한다.
+     */
+    icon: 'var(--color-ai-primary)',
   },
 ];
 

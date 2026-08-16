@@ -201,7 +201,7 @@ export default function CashFlowFormModal({
        * ⚠️ `max-w-md`(448px) 로는 거래고유번호 안내가 잘렸다.
        *    좌우 여백도 `p-8` → `p-6` 으로 줄여 글자 자리를 넓힌다.
        */
-      className="w-full max-w-lg rounded-base p-6 shadow-lg"
+      className="w-full max-w-lg rounded-base p-6 shadow-2xl"
     >
       <form onSubmit={submit} className="mt-6">
         {!isCreate && !isFullEdit && (

@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 
 import Breadcrumb from '@/components/Breadcrumb';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
+import PageTitle from '@/components/PageTitle';
 import { AlertBanner, TextField } from '@/features/bidding/FormFields';
 import { messageOf } from '@/lib/api';
 
@@ -115,19 +116,18 @@ export default function TaxInvoiceCsvImport() {
 
   return (
     <>
-      <div className="mb-6">
-        <Breadcrumb
-          items={[
-            { label: '재무 관리', href: FINANCE_ROUTES.hub },
-            { label: '세금계산서', href: FINANCE_ROUTES.taxInvoices },
-            { label: 'CSV 일괄 수집' },
-          ]}
-        />
-        <h2 className="mt-1 text-heading-m font-bold">CSV 일괄 수집</h2>
-        <p className="mt-1.5 text-caption break-keep text-text-secondary">
-          홈택스에서 내려받은 세금계산서 파일을 올려 한 번에 수집합니다.
-        </p>
-      </div>
+      <Breadcrumb
+        items={[
+          { label: '재무 관리', href: FINANCE_ROUTES.hub },
+          { label: '세금계산서', href: FINANCE_ROUTES.taxInvoices },
+          { label: 'CSV 일괄 수집' },
+        ]}
+      />
+
+      <PageTitle
+        title="CSV 일괄 수집"
+        description="홈택스에서 내려받은 세금계산서 파일을 올려 한 번에 수집합니다."
+      />
 
       <StepBar steps={STEPS} current={step} />
 

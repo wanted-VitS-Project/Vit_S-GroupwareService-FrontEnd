@@ -41,8 +41,13 @@ interface ModalProps {
  */
 const BASE_PANEL =
   'm-auto max-h-[calc(100dvh-2rem)] bg-bg-card backdrop:bg-text-primary/50';
-/** className 을 넘기지 않을 때의 크기 · 여백 */
-const DEFAULT_PANEL = 'w-full max-w-sm rounded-base p-8 shadow-lg';
+/**
+ * className 을 넘기지 않을 때의 크기 · 여백.
+ *
+ * 그림자는 `shadow-2xl` 로 고정한다 — 모달 대부분이 이미 그 값을 직접 붙이고 있어,
+ * 기본값만 `shadow-lg` 로 두면 className 을 안 넘긴 모달만 유독 얕게 뜬다.
+ */
+const DEFAULT_PANEL = 'w-full max-w-sm rounded-base p-8 shadow-2xl';
 
 /**
  * 화면 오른쪽 아래에 붙는 곁패널의 자리 · 높이.

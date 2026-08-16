@@ -33,7 +33,7 @@ const IssueDetailModal = dynamic(loadIssueDetailModal, {
   loading: () => (
     <ModalLoadingFallback
       title="이슈 상세"
-      className="flex max-h-[90vh] w-full max-w-[700px] flex-col overflow-hidden rounded-2xl border border-border-default p-6 shadow-2xl"
+      className="flex max-h-[90vh] w-full max-w-[700px] flex-col overflow-hidden rounded-base border border-border-default p-6 shadow-2xl"
       bodyClassName="mt-5 h-[460px]"
     />
   ),
@@ -303,7 +303,7 @@ const StepAccordion = memo(function StepAccordion({
         >
           <ChevronIcon isOpen={isOpen} />
           <span
-            className={`truncate text-[13px] font-semibold ${
+            className={`truncate text-detail font-semibold ${
               isOpen ? 'text-text-primary-blue' : 'text-text-primary'
             }`}
           >

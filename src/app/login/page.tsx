@@ -102,7 +102,7 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-2xl border border-border-default px-10 py-12">
+      <div className="w-full max-w-md rounded-base border border-border-default px-10 py-12">
         {/**
          * ⚠️ 로고는 **어두운 바탕 전용**이다 (글자가 흰색). 로그인 화면은 밝아서
          *    사이드바와 같은 어두운 판 위에 올린다 — 자산을 한 벌로 유지한다.

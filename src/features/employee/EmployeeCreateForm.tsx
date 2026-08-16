@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import PageTitle from '@/components/PageTitle';
 import { ROLE_LABELS } from '@/constants/status';
 import { getDepartments } from '@/features/department/api';
 import {
@@ -251,13 +252,10 @@ export default function EmployeeCreateForm() {
         &gt; 사원 등록
       </p>
 
-      <div className="mt-2 mb-6">
-        <h2 className="text-heading-m font-bold">사원 등록</h2>
-        <p className="mt-1.5 text-label break-keep text-text-secondary">
-          로그인 계정이 함께 발급됩니다. 초기 비밀번호는 입력한 이메일로
-          발송됩니다.
-        </p>
-      </div>
+      <PageTitle
+        title="사원 등록"
+        description="로그인 계정이 함께 발급됩니다. 초기 비밀번호는 입력한 이메일로 발송됩니다."
+      />
 
       {result ? (
         <CreatedResult

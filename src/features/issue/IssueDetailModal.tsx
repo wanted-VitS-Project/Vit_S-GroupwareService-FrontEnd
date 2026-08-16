@@ -119,7 +119,7 @@ export default function IssueDetailModal({
     <Modal
       title="이슈 상세"
       onClose={onClose}
-      className="flex max-h-[90vh] w-full max-w-[700px] flex-col overflow-hidden rounded-2xl border border-border-default shadow-2xl"
+      className="flex max-h-[90vh] w-full max-w-[700px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
       header={
         <div className="flex shrink-0 items-start gap-3 border-b border-border-default px-6 py-4">
           <div className="min-w-0 flex-1">
@@ -210,7 +210,7 @@ export default function IssueDetailModal({
               <div>
                 <SectionLabel>이슈 설명</SectionLabel>
                 {issue.content ? (
-                  <p className="pt-2 text-[13px] leading-relaxed whitespace-pre-wrap text-text-primary">
+                  <p className="pt-2 text-detail leading-relaxed whitespace-pre-wrap text-text-primary">
                     {issue.content}
                   </p>
                 ) : (
@@ -225,7 +225,7 @@ export default function IssueDetailModal({
                   <SectionLabel>마감일</SectionLabel>
                   <div className="flex items-center gap-1.5 pt-1.5">
                     <CalendarIcon />
-                    <span className="text-[13px] font-medium text-text-primary">
+                    <span className="text-detail font-medium text-text-primary">
                       {formatDate(issue.dueDate) || '-'}
                     </span>
                   </div>
@@ -234,7 +234,7 @@ export default function IssueDetailModal({
                   <SectionLabel>종료일</SectionLabel>
                   <div className="flex items-center gap-1.5 pt-1.5">
                     <CalendarIcon />
-                    <span className="text-[13px] font-medium text-text-primary">
+                    <span className="text-detail font-medium text-text-primary">
                       {finishedOn || '-'}
                     </span>
                   </div>

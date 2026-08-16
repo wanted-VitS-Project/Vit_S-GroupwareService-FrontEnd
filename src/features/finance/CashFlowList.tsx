@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import Breadcrumb from '@/components/Breadcrumb';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
+import PageTitle from '@/components/PageTitle';
 import { notifyToast } from '@/components/Toast';
 import { messageOf } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
@@ -288,20 +289,17 @@ export default function CashFlowList() {
        * 액션 버튼은 **제목 줄 오른쪽**에 둔다 — 필터 바에 섞어 두면 조건이 늘어날 때
        * 버튼이 다음 줄로 밀려 어중간한 자리에 남는다 (조건과 행동은 다른 것이다).
        */}
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <Breadcrumb
-            items={[
-              { label: '재무 관리', href: FINANCE_ROUTES.hub },
-              { label: '입출금 내역' },
-            ]}
-          />
-          <h2 className="mt-1 text-heading-m font-bold">입출금 내역</h2>
-          <p className="mt-1.5 text-caption break-keep text-text-secondary">
-            입출금을 등록·조회하고 정산 블록에 연결합니다.
-          </p>
-        </div>
+      <Breadcrumb
+        items={[
+          { label: '재무 관리', href: FINANCE_ROUTES.hub },
+          { label: '입출금 내역' },
+        ]}
+      />
 
+      <PageTitle
+        title="입출금 내역"
+        description="입출금을 등록·조회하고 정산 블록에 연결합니다."
+      >
         <div className="flex shrink-0 gap-2">
           <Link
             href={FINANCE_ROUTES.cashFlowImport}
@@ -317,7 +315,7 @@ export default function CashFlowList() {
             입출금 등록
           </button>
         </div>
-      </div>
+      </PageTitle>
 
       <CashFlowFilterBar
         searchParams={searchParams}

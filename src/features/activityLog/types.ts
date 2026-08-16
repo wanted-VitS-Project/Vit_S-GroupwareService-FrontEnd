@@ -90,8 +90,8 @@ export const ACTIVITY_ACTION_STYLES: Record<
     icon: 'border-blue-border bg-blue-bg text-btn-primary-hover',
   },
   DELETE: {
-    badge: 'border-red-border bg-red-bg text-[#C10007]',
-    icon: 'border-red-border bg-red-bg text-[#C10007]',
+    badge: 'border-red-border bg-red-bg text-red-text-deep',
+    icon: 'border-red-border bg-red-bg text-red-text-deep',
   },
 };
 

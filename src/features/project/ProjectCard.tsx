@@ -118,12 +118,12 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
           {/* 발주처는 이름이 길 수 있다 — 칸을 넘치면 말줄임 */}
           <span
             title={row.clientName}
-            className="min-w-0 truncate text-[13px] text-gray-text-soft"
+            className="min-w-0 truncate text-detail text-gray-text-soft"
           >
             {row.clientName}
           </span>
 
-          <span className="text-[13px] whitespace-nowrap text-gray-text-soft">
+          <span className="text-detail whitespace-nowrap text-gray-text-soft">
             {formatDateRange(row.startedOn, row.endedOn)}
           </span>
 
@@ -159,7 +159,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
                 className="block h-full rounded-l-pill bg-btn-primary"
               />
             </span>
-            <span className="w-9 shrink-0 text-right text-[13px] font-semibold whitespace-nowrap text-gray-text-soft">
+            <span className="w-9 shrink-0 text-right text-detail font-semibold whitespace-nowrap text-gray-text-soft">
               {row.progressRate === undefined ? '–' : `${row.progressRate}%`}
             </span>
           </span>
@@ -210,7 +210,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
 
             <Link
               href={PROJECT_ROUTES.detail(row.projectId)}
-              className="ml-auto flex items-center gap-2 rounded-lg bg-btn-primary px-5 py-2 text-[13px] font-medium text-text-white hover:bg-btn-primary-hover"
+              className="ml-auto flex items-center gap-2 rounded-lg bg-btn-primary px-5 py-2 text-detail font-medium text-text-white hover:bg-btn-primary-hover"
             >
               프로젝트 전체 보기
               <ArrowIcon />
@@ -235,10 +235,10 @@ function CountItem({
 }) {
   return (
     <span className="flex items-center gap-2">
-      <span className="text-[13px] text-text-secondary">{label}</span>
+      <span className="text-detail text-text-secondary">{label}</span>
       {/* 0건은 색으로 강조하지 않는다 — 할 일이 없다는 뜻이다 */}
       <span
-        className={`text-[13px] font-semibold ${count > 0 ? className : 'text-text-muted'}`}
+        className={`text-detail font-semibold ${count > 0 ? className : 'text-text-muted'}`}
       >
         {count}건
       </span>
@@ -337,7 +337,7 @@ function ProjectPanel({ projectId }: { projectId: number }) {
       // 패널을 연 뒤 비동기로 바뀌는 상태라, 알리지 않으면 스크린리더가 실패를 못 읽는다
       <p
         role="alert"
-        className="mt-5 flex items-center gap-3 text-[13px] text-text-secondary"
+        className="mt-5 flex items-center gap-3 text-detail text-text-secondary"
       >
         진행 상황을 불러오지 못했습니다.
         <button
@@ -353,7 +353,7 @@ function ProjectPanel({ projectId }: { projectId: number }) {
 
   if (!data) {
     return (
-      <p aria-live="polite" className="mt-5 text-[13px] text-text-muted">
+      <p aria-live="polite" className="mt-5 text-detail text-text-muted">
         진행 상황을 불러오는 중…
       </p>
     );
@@ -365,13 +365,13 @@ function ProjectPanel({ projectId }: { projectId: number }) {
   return (
     <>
       {data.detail.description && (
-        <p className="mt-4 text-[13px] whitespace-pre-line text-text-primary">
+        <p className="mt-4 text-detail whitespace-pre-line text-text-primary">
           {data.detail.description}
         </p>
       )}
 
       {data.stages.length === 0 && unassigned.length === 0 ? (
-        <p className="mt-5 text-[13px] text-text-muted">
+        <p className="mt-5 text-detail text-text-muted">
           등록된 스테이지가 없습니다.
         </p>
       ) : (
@@ -415,7 +415,7 @@ function StageBox({ name, steps }: { name: string; steps: ProjectStep[] }) {
         aria-controls={bodyId}
         className="flex w-full cursor-pointer items-center gap-4 bg-bg-surface px-3 py-2 text-left hover:bg-bg-hover"
       >
-        <span className="min-w-0 truncate text-[13px] font-medium text-gray-text-soft">
+        <span className="min-w-0 truncate text-detail font-medium text-gray-text-soft">
           {name}
         </span>
         <span

@@ -244,14 +244,14 @@ export default function AiBlock({ block }: { block: StepBlock }) {
                   ? '같은 설정으로 다시 분석한다'
                   : '검토 유형 또는 프롬프트가 없는 이전 분석이라 수정 후 실행해야 한다'
               }
-              className="cursor-pointer rounded-button-md bg-[#4F39F6] px-2.5 py-1 text-caption font-semibold text-text-white hover:bg-[#4429E0] disabled:cursor-not-allowed disabled:opacity-50"
+              className="cursor-pointer rounded-button-md bg-ai-primary px-2.5 py-1 text-caption font-semibold text-text-white hover:bg-ai-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isRerunning ? '요청 중…' : '재실행'}
             </button>
             <button
               type="button"
               onClick={() => setIsRunModalOpen(true)}
-              className="flex-1 cursor-pointer rounded-button-md border border-[#4F39F6]/30 py-1 text-caption font-medium text-[#4F39F6] hover:bg-blue-bg-soft"
+              className="flex-1 cursor-pointer rounded-button-md border border-ai-primary/30 py-1 text-caption font-medium text-ai-primary hover:bg-blue-bg-soft"
             >
               수정하기
             </button>
@@ -313,7 +313,7 @@ function RequestSummary({ analysis }: { analysis: Analysis }) {
           {analysis.reviewCategoryCodes.map((code) => (
             <li
               key={code}
-              className="rounded-button-sm bg-blue-bg-soft px-1.5 py-0.5 font-mono text-micro font-semibold text-[#4F39F6]"
+              className="rounded-button-sm bg-blue-bg-soft px-1.5 py-0.5 font-mono text-micro font-semibold text-ai-primary"
             >
               {code}
             </li>
@@ -411,7 +411,7 @@ function EmptyState({ onRun }: { onRun: () => void }) {
       <button
         type="button"
         onClick={onRun}
-        className="cursor-pointer rounded-button-md bg-[#4F39F6] px-3 py-1.5 text-caption font-semibold text-text-white hover:bg-[#4429E0]"
+        className="cursor-pointer rounded-button-md bg-ai-primary px-3 py-1.5 text-caption font-semibold text-text-white hover:bg-ai-primary-hover"
       >
         ✦ 검토 실행하기
       </button>
@@ -439,9 +439,9 @@ function RunningState({
     >
       <span
         aria-hidden
-        className="size-4 animate-spin rounded-pill border-2 border-purple-border border-t-[#4F39F6]"
+        className="size-4 animate-spin rounded-pill border-2 border-purple-border border-t-ai-primary"
       />
-      <p className="text-caption font-medium text-[#4F39F6]">
+      <p className="text-caption font-medium text-ai-primary">
         {isSlow ? '예상보다 지연되고 있습니다…' : '문서를 검토하고 있습니다…'}
       </p>
       {/* 보통 20~30초 걸린다 — 대략의 눈금이 있어야 멈춘 게 아니라는 게 보인다 */}

@@ -60,7 +60,7 @@ const BlockMoveStepModal = dynamic(loadBlockMoveStepModal, {
   loading: () => (
     <ModalLoadingFallback
       title="다른 스텝으로 이동"
-      className="w-full max-w-[420px] rounded-xl p-6 shadow-2xl"
+      className="w-full max-w-[420px] rounded-base p-6 shadow-2xl"
     />
   ),
 });

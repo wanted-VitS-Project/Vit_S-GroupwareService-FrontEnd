@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import PageTitle from '@/components/PageTitle';
 import { ROLE_LABELS } from '@/constants/status';
 import { EmployeeFormSkeleton } from '@/components/settings/SettingsSkeletons';
 import { getDepartments } from '@/features/department/api';
@@ -267,12 +268,10 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
         <EmployeeFormSkeleton />
       ) : (
         <>
-          <div className="mt-2 mb-6">
-            <h2 className="text-heading-m font-bold">정보 수정</h2>
-            <p className="mt-1.5 text-label break-keep text-text-secondary">
-              인사 정보를 수정합니다. 바꾼 항목만 저장됩니다.
-            </p>
-          </div>
+          <PageTitle
+            title="정보 수정"
+            description="인사 정보를 수정합니다. 바꾼 항목만 저장됩니다."
+          />
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <section className="rounded-base border border-border-default bg-bg-card p-5">

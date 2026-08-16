@@ -90,7 +90,7 @@ export default function DeleteProjectModal({
           type="button"
           onClick={requestClose}
           disabled={isSubmitting}
-          className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+          className="btn btn-md btn-gray-outlined"
         >
           취소
         </button>
@@ -98,7 +98,7 @@ export default function DeleteProjectModal({
           type="button"
           onClick={() => void submit()}
           disabled={isSubmitting}
-          className="cursor-pointer rounded-lg bg-red-text px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-danger-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+          className="btn btn-md btn-danger"
         >
           {isSubmitting ? '삭제 중…' : '삭제'}
         </button>

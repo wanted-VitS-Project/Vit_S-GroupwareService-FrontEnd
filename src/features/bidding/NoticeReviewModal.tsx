@@ -601,7 +601,6 @@ function pickedIds(
   );
 }
 
-
 /** 완료된 검토 — 본문과 **분석 자료**(근거 인용)를 함께 보여준다 */
 function ReviewResult({ review }: { review: BidReview }) {
   return (
