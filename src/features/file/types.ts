@@ -1,9 +1,13 @@
 /**
  * 파일(문서 · 버전) 도메인 타입. (.ai/API.md 파일 섹션)
  *
- * 파일은 **프로젝트 소속**이고 블록은 참조만 한다 — 블록을 지워도 파일은 산다.
+ * 파일은 **프로젝트 소속**이고 블록은 참조만 한다.
+ * ⚠️ 2026-08-16(D안) — **블록을 지우면 그 블록의 파일도 함께 휴지통으로 간다.**
+ *    활성으로 남아 고아가 되던 예전 동작과 다르다. 복구(§6)하면 문서함으로 살아난다.
  * 권한은 파일 단위가 아니라 **스텝 권한**을 그대로 따른다.
  */
+
+import type { ProjectStatus, StepStatus } from '@/features/project/types';
 
 /** 업로더 정보는 완료 시점 스냅샷이다 — 퇴사 · 부서이동해도 당시 값이 남는다 */
 export interface FileUploader {
@@ -246,6 +250,47 @@ export interface AdminFileQuery {
   page?: number;
   /** 기본 20 · 최대 100 */
   size?: number;
+}
+
+/**
+ * 전사 파일 **탐색기** 노드들. (§14 · ADMIN · 2026-08-16 신설)
+ *
+ * 전사 목록(142번)이 한 번에 평면으로 주는 것과 달리 **열 때마다 자식만** 받는다
+ * (`프로젝트 → 스테이지 → 스텝 → 파일`). 검색 · 필터는 이 트리가 아니라 142번이 맡는다.
+ *
+ * ⚠️ **일반 프로젝트 API 와 모양이 다르다** — 개수(`stepCount`) · 기간 · 책임자가 오지 않는다.
+ *    탐색에 필요한 최소만 담긴 전용 응답이다.
+ */
+export interface AdminTreeProject {
+  projectId: number;
+  name: string;
+  status: ProjectStatus;
+  /** 발주처 — 없을 수 있다 */
+  clientName: string | null;
+  /** YYYY-MM-DD HH:mm:ss (⚠️ 공백 구분이다) */
+  updatedAt: string;
+}
+
+/**
+ * 탐색기의 스테이지 한 칸.
+ *
+ * ⭐ **미분류 버킷을 서버가 만들어 준다** — 스테이지에 속하지 않은 스텝이 하나라도 있으면
+ *    `stageId: null` 노드가 목록 **맨 뒤**에 붙는다. 이 칸을 열 때는 스텝 목록을
+ *    `stageId` 없이 부른다. (예전엔 프론트가 스텝을 세어 이 칸을 만들었다)
+ */
+export interface AdminTreeStage {
+  /** 미분류 버킷이면 `null` */
+  stageId: number | null;
+  /** 미분류 버킷은 `"미분류"` */
+  name: string;
+  sortOrder: number;
+}
+
+export interface AdminTreeStep {
+  stepId: number;
+  name: string;
+  sortOrder: number;
+  status: StepStatus;
 }
 
 /** 페이지 봉투 — 백엔드 공통 모양이다 (프로젝트 목록 등과 같다) */

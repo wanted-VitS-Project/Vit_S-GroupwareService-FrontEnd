@@ -24,6 +24,11 @@ export const FILE_CODES = {
   editPermissionRequired: 'FILE_EDIT_PERMISSION_REQUIRED',
   accessPermissionRequired: 'FILE_ACCESS_PERMISSION_REQUIRED',
   /**
+   * 404 — 탐색기에서 연 스텝이 없다 (§14.4 · 2026-08-16 신설 · `develop` 반영).
+   * 트리를 띄워 둔 사이 남이 스텝을 지운 경우라, 화면은 목록을 다시 받아야 한다.
+   */
+  stepNotFound: 'FILE_STEP_NOT_FOUND',
+  /**
    * 409 — 문서명 수정 중 남이 먼저 저장했다 (2026-08-11 낙관적 락 신설).
    * `overwrite: true` 로 덮어쓸 수 있다.
    */

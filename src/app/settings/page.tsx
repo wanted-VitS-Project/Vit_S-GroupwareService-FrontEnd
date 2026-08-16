@@ -55,7 +55,7 @@ const SECTIONS: { title: string; items: SettingItem[] }[] = [
       {
         icon: 'file',
         label: '프로젝트 파일',
-        description: '전사 모든 프로젝트의 파일 관리',
+        description: '모든 프로젝트의 파일 관리',
         href: '/settings/files',
       },
       {

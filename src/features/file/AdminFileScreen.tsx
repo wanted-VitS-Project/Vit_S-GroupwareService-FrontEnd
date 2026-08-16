@@ -69,8 +69,7 @@ export default function AdminFileScreen() {
       <div className="mt-2 mb-6">
         <h2 className="text-heading-m font-bold">프로젝트 파일</h2>
         <p className="mt-1.5 text-label break-keep text-text-secondary">
-          전사 모든 프로젝트의 파일을 프로젝트 · 스테이지 · 스텝 순서로 찾아
-          봅니다.
+          모든 프로젝트의 파일을 프로젝트 · 스테이지 · 스텝 순서로 찾아 봅니다.
         </p>
       </div>
 
@@ -85,7 +84,13 @@ export default function AdminFileScreen() {
        */}
       {path.projectId !== undefined && (
         <div className="mt-3">
+          {/*
+            ⚠️ `key` 로 **자리마다 새로 만든다.** 표가 들고 있는 페이지 번호 · 검색어는
+               그 자리에서만 뜻이 있는데, 그대로 이어지면 3페이지를 보다 옮긴 스텝에서
+               파일이 없다고 나온다 (파일이 세 장뿐이어도 3페이지를 부른다).
+          */}
           <AdminFileList
+            key={`${path.projectId}-${path.stepId ?? ''}`}
             lockedProjectId={path.projectId}
             lockedStepId={path.stepId}
           />
