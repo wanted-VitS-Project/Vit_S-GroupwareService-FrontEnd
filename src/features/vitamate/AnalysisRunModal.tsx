@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import Modal from '@/components/Modal';
 import { ModalFooter } from '@/components/PanelModal';
+import LoadingSpinner from '@/components/Spinner';
 import { extensionLabel, extensionStyle } from '@/features/file/format';
 import type { ProjectFileVersion } from '@/features/file/types';
 import { useProjectFileVersions } from '@/features/file/useProjectFileVersions';
@@ -218,9 +219,10 @@ export default function AnalysisRunModal({
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">
         <Field label="검토 유형">
           {reviewTypes === null ? (
-            <div
-              aria-hidden
-              className="h-7 animate-pulse rounded-button-sm bg-bg-hover"
+            <LoadingSpinner
+              label="검토 유형을 불러오는 중입니다"
+              className="py-4"
+              spinnerClassName="size-5"
             />
           ) : reviewTypes.length === 0 ? (
             <p className="text-caption text-text-secondary">
