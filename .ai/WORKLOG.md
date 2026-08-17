@@ -6,6 +6,40 @@
 
 ---
 
+## [2026-08-17] 프로젝트 삭제 명세 개정 반영 (409 되물음) ✅
+
+근거: `.ai/API.md` 139 전면 개정 (2026-08-13 백엔드 변경분)
+이슈: #194
+
+삭제 조건(`진행 전` + 스텝 0개)이 폐기되고 **하위 계층 전파 삭제 + 409 되물음**으로 바뀌었다.
+기존 화면은 조건 미달 프로젝트의 삭제 버튼을 아예 잠가 두어, 새 명세에서는 **삭제할 방법이 없는 상태**였다.
+
+### 변경 파일
+
+| 파일                                                     | 변경                                                                  |
+| -------------------------------------------------------- | --------------------------------------------------------------------- |
+| `.ai/API.md`                                             | 수정 — 139 전면 재작성 (`confirm` 쿼리 · 2단계 표 · 함께 지워지는 것) |
+| `src/features/project/errorCodes.ts`                     | 수정 — `deleteNotAllowed` **삭제** → `deleteConfirmRequired`          |
+| `src/features/project/api.ts`                            | 수정 — `deleteProject(id, { confirm, signal })`                       |
+| `src/features/project/settings/DeleteProjectModal.tsx`   | 수정 — 409 되물음 2단계 처리                                          |
+| `src/features/project/settings/DeleteProjectSection.tsx` | 수정 — 상태·스텝 수 잠금 제거                                         |
+
+### 주요 작업 내용
+
+- **2단계 삭제** — 첫 호출이 409 `PROJECT_DELETE_CONFIRM_REQUIRED` 면 `confirm=true` 로 재요청 (블록 삭제 47 과 같은 패턴)
+- **되물음 문구는 서버 `message` 를 그대로** 띄운다 — 삭제될 스텝 수가 담겨 온다. 되물음 상태에서 버튼 라벨이 `그래도 삭제` 로 바뀐다
+- **섹션의 사전 잠금 제거** — 종결·진행 중이어도 언제든 누를 수 있다. 권한(`EDITOR`)과 로딩만 본다
+- 안내 문구를 하위 계층 전파(스테이지 · 스텝 · 블록 · 이슈) + 복구 없음으로 교체
+
+### 부수 결정
+
+| 결정                                                     | 이유                                                                                                      |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `PROJECT_DELETE_NOT_ALLOWED` 상수를 남기지 않고 **삭제** | 폐기된 코드라 서버가 절대 보내지 않는다. 남기면 죽은 분기가 계속 읽힌다                                   |
+| "종결로 처리해주세요" 유도 문구 제거                     | 명세상 폐기 — 삭제를 막는 안내라 사용자가 삭제할 길을 못 찾는다. 종결은 섹션 하단에 **선택지**로만 남긴다 |
+
+---
+
 ## [2026-08-17] 정산 현황 화면 ✅
 
 브랜치: `feat/education-certificate` 에서 이어짐 (정산 현황 작업분) · API: `.ai/API.md` 재무 도메인에 3종 추가
@@ -16,16 +50,16 @@
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/components/DataTable.tsx` | 수정 — `renderExpanded` 추가 (행 아래 펼침 줄) |
-| `src/features/finance/SettlementStatusList.tsx` | **생성** — 목록 · 필터 · 페이징 |
+| 파일                                            | 변경                                           |
+| ----------------------------------------------- | ---------------------------------------------- |
+| `src/components/DataTable.tsx`                  | 수정 — `renderExpanded` 추가 (행 아래 펼침 줄) |
+| `src/features/finance/SettlementStatusList.tsx` | **생성** — 목록 · 필터 · 페이징                |
 | `src/features/finance/SettlementRoundPanel.tsx` | **생성** — 회차 표 (매칭 처리자 · 계좌 펼치기) |
-| `src/features/finance/{types,api,display}.ts` | 수정 — 타입 · 조회 3종 · 상태 판정 |
-| `src/constants/endpoints.ts` | 수정 — `finance.settlements` 3경로 |
-| `src/app/finance/settlements/page.tsx` | 수정 — stub → 화면 연결 |
-| `src/features/finance/FinanceHub.tsx` | 수정 — `준비 중` 해제 |
-| `src/features/project/useProjectPermission.ts` | 수정 — `queryFn: skipToken` |
+| `src/features/finance/{types,api,display}.ts`   | 수정 — 타입 · 조회 3종 · 상태 판정             |
+| `src/constants/endpoints.ts`                    | 수정 — `finance.settlements` 3경로             |
+| `src/app/finance/settlements/page.tsx`          | 수정 — stub → 화면 연결                        |
+| `src/features/finance/FinanceHub.tsx`           | 수정 — `준비 중` 해제                          |
+| `src/features/project/useProjectPermission.ts`  | 수정 — `queryFn: skipToken`                    |
 
 ### 주요 작업 내용
 
@@ -49,17 +83,18 @@
 
 ### 트러블슈팅
 
-| 항목 | 내용 |
-| ---- | ---- |
-| 증상 | 프로젝트 화면에서 콘솔에 `No queryFn was passed` 오류 |
+| 항목 | 내용                                                                                                                      |
+| ---- | ------------------------------------------------------------------------------------------------------------------------- |
+| 증상 | 프로젝트 화면에서 콘솔에 `No queryFn was passed` 오류                                                                     |
 | 원인 | `useProjectPermission` 이 캐시만 읽으려고 `enabled: false` 만 두었다. react-query v5 는 `queryFn` 이 없으면 오류를 남긴다 |
-| 해결 | `queryFn: skipToken` — "이 쿼리는 실행하지 않는다" 를 값으로 밝힌다 |
+| 해결 | `queryFn: skipToken` — "이 쿼리는 실행하지 않는다" 를 값으로 밝힌다                                                       |
 
 ### 확인
 
 - `npx tsc --noEmit` · `npx eslint src` · `prettier` 통과
 - `/finance/settlements` 실동작 — 목록 10건 · 회차 3건 · 필터 · 열 폭 100% 확인
 - ⏳ 페이지 넘김은 데이터가 1페이지뿐이라 미확인
+
 ## [2026-08-17] AI 블록 결과에 마크다운 적용 ✅
 
 브랜치: `user/project` · API: 변경 없음 · 이슈: #188
@@ -68,11 +103,11 @@ AI 결과는 두 경로로 그려진다 — `parseResult` 가 구조를 못 찾�
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/components/InlineMarkdown.tsx` | **생성** — 인라인 전용 렌더 (`**굵게**` · `*기울임*` · `***둘다***` · `` `코드` `` · `~~취소~~`) |
-| `src/features/vitamate/types.ts` | 수정 (`ResultBlock` 신설 · `headingOf` 가 `level` 까지 반환 · `parseResult` 가 소제목/문단/목록 보존) |
-| `src/features/vitamate/AnalysisResultView.tsx` | 수정 (`BlockList` · `HEADING_SIZE` 추가 · 지적 사항 제목·상세와 경고 배너에 `InlineMarkdown` 적용) |
+| 파일                                           | 변경                                                                                                  |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `src/components/InlineMarkdown.tsx`            | **생성** — 인라인 전용 렌더 (`**굵게**` · `*기울임*` · `***둘다***` · `` `코드` `` · `~~취소~~`)      |
+| `src/features/vitamate/types.ts`               | 수정 (`ResultBlock` 신설 · `headingOf` 가 `level` 까지 반환 · `parseResult` 가 소제목/문단/목록 보존) |
+| `src/features/vitamate/AnalysisResultView.tsx` | 수정 (`BlockList` · `HEADING_SIZE` 추가 · 지적 사항 제목·상세와 경고 배너에 `InlineMarkdown` 적용)    |
 
 ### 주요 작업 내용
 
@@ -107,14 +142,14 @@ AI 결과는 두 경로로 그려진다 — `parseResult` 가 구조를 못 찾�
 
 ### 검증
 
-| 항목 | 결과 |
-| ---- | ---- |
-| `parseResult` 표본 파싱 (소제목 · 문단 · 목록 · 지적 2건 · 경고) | ✅ 구획·`level`·항목 분리 확인 · 폴백(`null`) 유지 |
-| 리뷰 회귀 — `## 지적 사항` 뒤 목록 아닌 줄 | ✅ 요약으로 새지 않고 첫 항목으로 남음 |
-| 삼중 강조 중첩 (`***…`` `코드` ``***` · `***~~취소~~***`) | ✅ 안쪽 문법 렌더 |
-| 인라인 패턴 17개 케이스 (`3 * 4 * 5` · `2 ** 3` · `snake_case` · 짝 없는 `**` 포함) | ✅ 오탐 0 |
-| `npx tsc --noEmit` · `eslint` · `prettier --check` | ✅ 에러 0 |
-| 실화면 동작 확인 | ⏳ 남음 |
+| 항목                                                                                | 결과                                               |
+| ----------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `parseResult` 표본 파싱 (소제목 · 문단 · 목록 · 지적 2건 · 경고)                    | ✅ 구획·`level`·항목 분리 확인 · 폴백(`null`) 유지 |
+| 리뷰 회귀 — `## 지적 사항` 뒤 목록 아닌 줄                                          | ✅ 요약으로 새지 않고 첫 항목으로 남음             |
+| 삼중 강조 중첩 (`***…`` `코드` ``***` · `***~~취소~~***`)                           | ✅ 안쪽 문법 렌더                                  |
+| 인라인 패턴 17개 케이스 (`3 * 4 * 5` · `2 ** 3` · `snake_case` · 짝 없는 `**` 포함) | ✅ 오탐 0                                          |
+| `npx tsc --noEmit` · `eslint` · `prettier --check`                                  | ✅ 에러 0                                          |
+| 실화면 동작 확인                                                                    | ⏳ 남음                                            |
 
 ---
 
@@ -126,10 +161,10 @@ AI 결과는 두 경로로 그려진다 — `parseResult` 가 구조를 못 찾�
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/features/block/textDraft.ts` | 수정 (`putAutoDraft` 삭제 · `addManualDraft` → `saveTextDraft` · `kind`/`TextDraftKind` 제거 · 넘침 처리 단순화) |
-| `src/features/block/TextBlockModal.tsx` | 수정 (디바운스 자동저장 `useEffect` 삭제 · `keptDraft` 파생값 도입 · 이탈 확인 조건 · 푸터 · 버튼 · 목록 배지) |
+| 파일                                    | 변경                                                                                                             |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `src/features/block/textDraft.ts`       | 수정 (`putAutoDraft` 삭제 · `addManualDraft` → `saveTextDraft` · `kind`/`TextDraftKind` 제거 · 넘침 처리 단순화) |
+| `src/features/block/TextBlockModal.tsx` | 수정 (디바운스 자동저장 `useEffect` 삭제 · `keptDraft` 파생값 도입 · 이탈 확인 조건 · 푸터 · 버튼 · 목록 배지)   |
 
 ### 주요 작업 내용
 
@@ -152,11 +187,11 @@ AI 결과는 두 경로로 그려진다 — `parseResult` 가 구조를 못 찾�
 
 ### 검증
 
-| 명령 | 결과 |
-| ---- | ---- |
-| `npx tsc --noEmit` | ✅ 에러 0 |
+| 명령                      | 결과               |
+| ------------------------- | ------------------ |
+| `npx tsc --noEmit`        | ✅ 에러 0          |
 | `npx eslint` (변경 2파일) | ✅ 에러 0 · 경고 0 |
-| 실화면 동작 확인 | ⏳ 남음 |
+| 실화면 동작 확인          | ⏳ 남음            |
 
 ---
 
@@ -169,16 +204,16 @@ AI 결과는 두 경로로 그려진다 — `parseResult` 가 구조를 못 찾�
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/features/file/FileViewerModal.tsx` | 수정 (버전 이력 · 미리보기) |
-| `src/features/file/LazyFileViewer.tsx` · `block/FileBlock.tsx` | 수정 (문서 뷰어 청크 폴백) |
-| `src/features/companyDocument/CompanyDocumentViewerModal.tsx` | 수정 (버전 목록 · 미리보기 2곳) |
-| `src/features/approval/ApprovalDocumentModal.tsx` | 수정 (PDF 뷰어 폴백) |
-| `src/features/block/ImageEditModal.tsx` | 수정 (이미지 목록) |
-| `src/features/vitamate/AnalysisRunModal.tsx` · `FileVersionPickerModal.tsx` | 수정 (검토 유형 · 문서 목록) |
-| `src/features/vitamate/AnalysisHistoryPanel.tsx` | 수정 (분석 이력 · 결과) |
-| `src/features/bidding/NoticeSummaryCard.tsx` | 수정 (`SummarySkeleton` 함수 삭제 — `AI 요약` 모달 전용 컴포넌트) |
+| 파일                                                                        | 변경                                                              |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `src/features/file/FileViewerModal.tsx`                                     | 수정 (버전 이력 · 미리보기)                                       |
+| `src/features/file/LazyFileViewer.tsx` · `block/FileBlock.tsx`              | 수정 (문서 뷰어 청크 폴백)                                        |
+| `src/features/companyDocument/CompanyDocumentViewerModal.tsx`               | 수정 (버전 목록 · 미리보기 2곳)                                   |
+| `src/features/approval/ApprovalDocumentModal.tsx`                           | 수정 (PDF 뷰어 폴백)                                              |
+| `src/features/block/ImageEditModal.tsx`                                     | 수정 (이미지 목록)                                                |
+| `src/features/vitamate/AnalysisRunModal.tsx` · `FileVersionPickerModal.tsx` | 수정 (검토 유형 · 문서 목록)                                      |
+| `src/features/vitamate/AnalysisHistoryPanel.tsx`                            | 수정 (분석 이력 · 결과)                                           |
+| `src/features/bidding/NoticeSummaryCard.tsx`                                | 수정 (`SummarySkeleton` 함수 삭제 — `AI 요약` 모달 전용 컴포넌트) |
 
 ### 주요 작업 내용
 
@@ -204,16 +239,16 @@ AI 결과는 두 경로로 그려진다 — `parseResult` 가 구조를 못 찾�
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/constants/endpoints.ts` | 수정 — `files.adminTree` 4종 추가 |
-| `src/features/file/types.ts` | 수정 — `AdminTreeProject` · `AdminTreeStage` · `AdminTreeStep` 추가, 소유 구조 주석 D안 반영 |
-| `src/features/file/api.ts` | 수정 — `getAdminTreeProjects` · `getAdminTreeStages` · `getAdminTreeSteps` · `getAdminStepFiles` 추가 |
-| `src/features/file/errorCodes.ts` | 수정 — `stepNotFound`(`FILE_STEP_NOT_FOUND`) 추가 |
-| `src/features/file/AdminFileExplorer.tsx` | 수정 — 트리 API 로 전면 교체 (단계별 lazy 조회) |
-| `src/features/file/AdminFileList.tsx` | 수정 — 스텝 자리에서 §14.4 로 전환 · 필터 줄 숨김 · 404 안내 |
-| `src/features/block/BlockDeleteModal.tsx` | 수정 — 409 두 종류 분기 · 문서 휴지통행 안내 |
-| `src/features/project/step/StepDeleteModal.tsx` | 수정 — cascade 안내 · 409 `FILE_APPROVAL_IN_PROGRESS` 분기 |
+| 파일                                            | 변경                                                                                                  |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `src/constants/endpoints.ts`                    | 수정 — `files.adminTree` 4종 추가                                                                     |
+| `src/features/file/types.ts`                    | 수정 — `AdminTreeProject` · `AdminTreeStage` · `AdminTreeStep` 추가, 소유 구조 주석 D안 반영          |
+| `src/features/file/api.ts`                      | 수정 — `getAdminTreeProjects` · `getAdminTreeStages` · `getAdminTreeSteps` · `getAdminStepFiles` 추가 |
+| `src/features/file/errorCodes.ts`               | 수정 — `stepNotFound`(`FILE_STEP_NOT_FOUND`) 추가                                                     |
+| `src/features/file/AdminFileExplorer.tsx`       | 수정 — 트리 API 로 전면 교체 (단계별 lazy 조회)                                                       |
+| `src/features/file/AdminFileList.tsx`           | 수정 — 스텝 자리에서 §14.4 로 전환 · 필터 줄 숨김 · 404 안내                                          |
+| `src/features/block/BlockDeleteModal.tsx`       | 수정 — 409 두 종류 분기 · 문서 휴지통행 안내                                                          |
+| `src/features/project/step/StepDeleteModal.tsx` | 수정 — cascade 안내 · 409 `FILE_APPROVAL_IN_PROGRESS` 분기                                            |
 
 ### 주요 작업 내용
 
@@ -235,6 +270,7 @@ AI 결과는 두 경로로 그려진다 — `parseResult` 가 구조를 못 찾�
 - API 4종 응답 필드 · 에러코드가 구현과 일치하는지 대조 완료
 - `/settings/files` 실동작 확인 — 프로젝트 14건 → 스테이지(미분류 포함) → 스텝 → 스텝 파일 조회, 블록 삭제 후 휴지통 이동 · 복구까지 확인
 - 확인 중 발견: 삭제된 스텝의 문서와 복구된 문서는 탐색기에 나오지 않는다 (`STATE.md` 백로그 등록)
+
 ## [2026-08-16] 권한 없는 사용자에게 노출되던 수정 버튼 정리 · 내 권한 표시 ✅ (#180)
 
 브랜치: `ref-ys` · API: 변경 없음 · 이슈: #180

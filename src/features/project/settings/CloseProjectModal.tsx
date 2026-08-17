@@ -135,8 +135,9 @@ export default function CloseProjectModal({
         </div>
 
         <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-detail leading-relaxed break-keep text-yellow-text">
-          종결해도 프로젝트가 삭제되지는 않습니다. 목록과 활동 기록에 그대로
-          남고, 나중에 다른 상태로 되돌릴 수 있습니다.
+          종결해도 프로젝트가 삭제되지는 않습니다.
+          <br />
+          목록과 활동 기록에 그대로 남고, 나중에 다른 상태로 되돌릴 수 있습니다.
         </p>
 
         <p

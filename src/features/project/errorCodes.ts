@@ -85,8 +85,12 @@ export const PROJECT_CODES = {
   closeReasonNoteTooLong: 'CLOSE_REASON_NOTE_TOO_LONG',
   /** 404 — 없거나 삭제됨 · **다른 회사의 프로젝트** */
   notFound: 'PROJECT_NOT_FOUND',
-  /** 409 — `진행 전` 이 아니거나 스텝이 남아 있다 (삭제 · .ai/API.md 139). 종결로 처리해야 한다 */
-  deleteNotAllowed: 'PROJECT_DELETE_NOT_ALLOWED',
+  /**
+   * 409 — 지울 범위 확인이 필요하다 (삭제 · .ai/API.md 139).
+   * ⚠️ **금지가 아니다** — `confirm=true` 로 재요청하면 삭제된다.
+   *    `message` 에 삭제될 스텝 수가 담겨 오므로 **그 문구를 그대로 띄운다.**
+   */
+  deleteConfirmRequired: 'PROJECT_DELETE_CONFIRM_REQUIRED',
   /**
    * 409 — 이미 다른 프로젝트가 연결된 공고다 (생성 · .ai/API.md 138).
    * **같은 회사 안에서만** 본다 — 다른 회사가 같은 공고를 쓴 것은 충돌이 아니다.

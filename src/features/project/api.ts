@@ -267,17 +267,23 @@ export function closeProject(
 /**
  * 프로젝트 삭제. 프로젝트 `EDITOR` 전용. (.ai/API.md 139 · PRJ-014)
  *
- * ⛔ **`진행 전` 이면서 스텝이 0개일 때만** 지워진다 — 아니면 409 `PROJECT_DELETE_NOT_ALLOWED` 다.
- *    이미 굴러간 프로젝트는 삭제가 아니라 **종결**(`closeProject`)로 남긴다.
- * ℹ️ `deleted_at` 논리 삭제이고, **연결된 공고(`bid_notice_id`)는 비워진다** —
- *    그렇게 하지 않으면 UNIQUE 를 시체가 점유해 그 공고로 다시 만들 수 없다.
- * ℹ️ 블록 수는 보지 않는다 — 블록은 스텝에만 붙어 스텝이 0개면 블록도 0개다.
+ * **2단계다.** 진행 전 + 스텝 0개가 아니면 첫 호출이 409
+ * `PROJECT_DELETE_CONFIRM_REQUIRED` 로 되묻는다 — 무엇이 함께 지워지는지
+ * 사용자에게 확인받고 `confirm` 으로 다시 부른다.
+ *
+ * ⚠️ 409 를 실패로 끝내면 **그 프로젝트는 영영 삭제할 수 없다.**
+ * ℹ️ 하위 스테이지 · 스텝 · 블록 · 이슈가 함께 논리 삭제되고 **복구는 없다.**
+ * ℹ️ 연결된 공고(`bid_notice_id`)는 비워진다 — 그 공고로 다시 만들 수 있다.
  */
 export function deleteProject(
   projectId: number | string,
-  signal?: AbortSignal,
+  options: { confirm?: boolean; signal?: AbortSignal } = {},
 ) {
-  return api.delete<null>(ENDPOINTS.projects.detail(projectId), signal);
+  const path = options.confirm
+    ? `${ENDPOINTS.projects.detail(projectId)}?confirm=true`
+    : ENDPOINTS.projects.detail(projectId);
+
+  return api.delete<null>(path, options.signal);
 }
 
 /* ─────────────── 사업 카테고리 연결 · 해제 ─────────────── */
