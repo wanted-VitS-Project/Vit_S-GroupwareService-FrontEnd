@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import Modal from '@/components/Modal';
@@ -11,20 +11,16 @@ import BlockTypeIcon from './BlockTypeIcon';
 import { isTextVersionConflict, NO_VERSION_MESSAGE } from './errorCodes';
 import MarkdownEditor from './MarkdownEditor';
 import {
-  addManualDraft,
   clearTextDrafts,
   draftPreview,
   formatDraftTime,
   loadTextDrafts,
   MAX_TEXT_DRAFTS,
-  putAutoDraft,
   removeTextDraft,
   removeTextDraftsWhere,
+  saveTextDraft,
   type TextDraft,
 } from './textDraft';
-
-/** 자동 임시저장 간격 — 타이핑이 멎은 뒤 이만큼 지나면 남긴다 */
-const DRAFT_DEBOUNCE_MS = 800;
 
 interface TextBlockModalProps {
   /** 헤더에 노출할 블록 제목 */
@@ -52,10 +48,16 @@ interface TextBlockModalProps {
  *    **재조회 / 덮어쓰기**를 묻는다. 취소(Esc · 배경)를 재조회에 둬 잘못 눌러도 남의 값이
  *    지워지지 않게 한다 (`StageFormModal` 과 같은 방침).
  *
- * 💾 **임시저장** (2026-08-12) — 편집 중인 본문을 `localStorage` 에 자동으로 남긴다 (`textDraft.ts`).
+ * 💾 **임시저장** (2026-08-12) — 편집 중인 본문을 `localStorage` 에 남긴다 (`textDraft.ts`).
  *    저장하지 않고 나가거나 **충돌로 저장이 막혔을 때** 쓴 글을 잃지 않게 하는 장치다.
  *    되살릴지 · 버릴지는 **언제나 사용자가 고른다** — 초안을 조용히 덮어씌우면 서버 본문이
  *    남의 최신 내용일 때 그것을 못 본 채 지우게 된다.
+ *
+ * 🔕 **묻는 자리는 이탈 한 곳뿐** (2026-08-17) — 타이핑 중 자동으로 남기지 않는다.
+ *    자동저장은 사용자가 만들지 않은 초안을 임시저장함에 계속 밀어넣어, 정작 직접 남긴
+ *    초안을 찾기 어렵게 했다. 대신 **나갈 때 한 번** 묻고, 지금 내용이 이미 임시저장함에
+ *    있으면(=`임시저장` 을 누른 뒤 고친 게 없으면) **묻지 않고 그냥 닫는다** — 이미 안전한데
+ *    한 번 더 묻는 것은 사용자를 훈련시켜 확인창을 읽지 않게 만든다.
  */
 export default function TextBlockModal({
   blockTitle,
@@ -89,8 +91,6 @@ export default function TextBlockModal({
   const [dismissedBanner, setDismissedBanner] = useState(false);
   /** 저장소에 쓰지 못했다 (사생활 보호 모드 · 용량 초과) */
   const [draftFailed, setDraftFailed] = useState(false);
-  /** 마지막으로 남긴 초안 시각 — 푸터에 "임시저장됨 오후 3:14" 로 보여 준다 */
-  const [savedAt, setSavedAt] = useState('');
   /**
    * 에디터를 다시 마운트시키는 열쇠.
    *
@@ -102,6 +102,11 @@ export default function TextBlockModal({
   const isDirty =
     normalizedInitialContent !== null && content !== normalizedInitialContent;
 
+  /**
+   * 지금 편집 중인 내용과 **똑같은 초안** — 있으면 나가도 잃을 게 없다.
+   * (`임시저장` 을 누른 뒤 손대지 않았거나, 초안을 되살린 직후)
+   */
+  const keptDraft = drafts.find((draft) => draft.content === content) ?? null;
   /** 지금 화면과 다른 초안만 되살릴 값이 있다 */
   const restorable = drafts.filter((draft) => draft.content !== content);
   /** 배너로 권할 최근 초안 */
@@ -115,37 +120,6 @@ export default function TextBlockModal({
       draft.version !== version
     );
   }
-
-  /**
-   * 타이핑이 멎으면 자동 칸에 남긴다.
-   *
-   * ⚠️ 서버 본문과 같아지면(되돌려 놓았을 때) **자동 칸만 지운다** — 사용자가 직접 남긴
-   *    초안은 뜻이 있어 건드리지 않는다.
-   */
-  useEffect(() => {
-    if (normalizedInitialContent === null) return;
-
-    const timer = setTimeout(() => {
-      if (content === normalizedInitialContent) {
-        const remaining = removeTextDraftsWhere(
-          txtId,
-          (draft) => draft.kind === 'auto',
-        );
-        if (remaining) setDrafts(remaining);
-        setSavedAt('');
-        return;
-      }
-
-      const saved = putAutoDraft(txtId, { content, version });
-      setDraftFailed(saved === null);
-      if (saved) {
-        setDrafts(saved);
-        setSavedAt(saved[0]?.savedAt ?? '');
-      }
-    }, DRAFT_DEBOUNCE_MS);
-
-    return () => clearTimeout(timer);
-  }, [content, normalizedInitialContent, txtId, version]);
 
   /** 초안을 편집기에 되살린다 */
   function restoreDraft(draft: TextDraft) {
@@ -167,27 +141,26 @@ export default function TextBlockModal({
   function emptyBox() {
     clearTextDrafts(txtId);
     setDrafts([]);
-    setSavedAt('');
     setIsBoxOpen(false);
   }
 
-  /**
-   * 지금 편집 중인 내용을 임시저장함에 **직접** 남긴다 (자동 저장을 기다리지 않는다).
-   * 나가기 · 충돌 때도 이 경로를 쓴다 — 자동 칸은 다음 타이핑에 덮이니까.
-   */
+  /** 지금 편집 중인 내용을 임시저장함에 남긴다. 나가기 · 충돌 때도 이 경로를 쓴다 */
   function keepDraft() {
-    const saved = addManualDraft(txtId, { content, version });
+    const saved = saveTextDraft(txtId, { content, version });
     setDraftFailed(saved === null);
-    if (saved) {
-      setDrafts(saved);
-      setSavedAt(saved[0]?.savedAt ?? '');
-    }
+    if (saved) setDrafts(saved);
     return saved !== null;
   }
 
+  /**
+   * 나가기.
+   *
+   * ⚠️ 묻는 건 **잃을 게 있을 때만**이다 — 고친 게 없거나(`isDirty`), 지금 내용이 이미
+   *    임시저장함에 있으면(`keptDraft`) 확인창 없이 닫는다.
+   */
   function requestClose() {
     if (isSaving) return;
-    if (isDirty) setConfirmation('leave');
+    if (isDirty && !keptDraft) setConfirmation('leave');
     else onClose();
   }
 
@@ -225,10 +198,7 @@ export default function TextBlockModal({
        * 임시저장함을 통째로 비우면 사용자가 따로 남겨 둔 다른 안까지 사라진다 —
        * 그건 사용자가 목록에서 직접 지울 일이다.
        */
-      removeTextDraftsWhere(
-        txtId,
-        (draft) => draft.kind === 'auto' || draft.content === content,
-      );
+      removeTextDraftsWhere(txtId, (draft) => draft.content === content);
       onSaved(updated.content, updated.version);
       onClose();
     } catch (caught) {
@@ -334,8 +304,8 @@ export default function TextBlockModal({
 
             {drafts.length === 0 ? (
               <p className="py-3 text-caption text-text-secondary">
-                임시저장한 내용이 없습니다. 편집하면 자동으로 한 칸이 채워지고,
-                `임시저장` 을 누르면 따로 쌓입니다.
+                임시저장한 내용이 없습니다. `임시저장` 을 누르거나, 저장하지 않고
+                나갈 때 남겨 두면 여기에 쌓입니다.
               </p>
             ) : (
               <ul className="flex flex-col gap-1.5">
@@ -349,15 +319,6 @@ export default function TextBlockModal({
                     >
                       <div className="min-w-0 flex-1">
                         <p className="flex items-center gap-1.5 text-micro text-text-secondary">
-                          <span
-                            className={`rounded-pill px-1.5 py-px font-medium ${
-                              draft.kind === 'manual'
-                                ? 'bg-blue-bg-soft text-text-primary-blue'
-                                : 'bg-bg-hover text-text-secondary'
-                            }`}
-                          >
-                            {draft.kind === 'manual' ? '직접' : '자동'}
-                          </span>
                           {formatDraftTime(draft.savedAt)}
                           {isStale(draft) && (
                             <span className="text-yellow-text">
@@ -416,8 +377,8 @@ export default function TextBlockModal({
             {errorMessage ||
               (draftFailed
                 ? '이 브라우저에 임시저장할 수 없습니다 — 저장 전에 창을 닫지 마세요.'
-                : savedAt
-                  ? `임시저장됨 ${formatDraftTime(savedAt)} · 저장 전까지 이 브라우저에만 남습니다`
+                : keptDraft
+                  ? `임시저장됨 ${formatDraftTime(keptDraft.savedAt)} · 저장 전까지 이 브라우저에만 남습니다`
                   : '선택 후 툴바 버튼을 클릭하거나 Ctrl+B / Ctrl+I 단축키를 사용하세요')}
           </p>
           <div className="flex shrink-0 items-center gap-2">
@@ -434,11 +395,16 @@ export default function TextBlockModal({
             <button
               type="button"
               onClick={keepDraft}
-              disabled={isSaving || !isDirty}
-              title="이 브라우저에만 남깁니다"
+              // 이미 같은 내용이 임시저장함에 있으면 더 남길 게 없다
+              disabled={isSaving || !isDirty || keptDraft !== null}
+              title={
+                keptDraft
+                  ? '지금 내용은 이미 임시저장돼 있습니다'
+                  : '이 브라우저에만 남깁니다'
+              }
               className="cursor-pointer rounded-lg border border-border-default px-3 py-1.5 text-detail font-medium text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
-              임시저장
+              {keptDraft ? '임시저장됨' : '임시저장'}
             </button>
             <button
               type="button"
@@ -527,14 +493,11 @@ export default function TextBlockModal({
                   ? `지금 변경사항은 사라집니다 (임시저장함 ${drafts.length}개는 남습니다)`
                   : '지금 변경사항은 사라집니다',
               tone: 'danger',
-              onSelect: () => {
-                /*
-                 * 자동 칸만 지운다 — 사용자가 직접 남긴 초안은 "나가기" 로 없애지 않는다.
-                 * 통째로 비우기는 임시저장함의 `전체 비우기` 가 맡는다.
-                 */
-                removeTextDraftsWhere(txtId, (draft) => draft.kind === 'auto');
-                onClose();
-              },
+              /*
+               * 임시저장함은 건드리지 않는다 — 담긴 초안은 모두 사용자가 남긴 것이라
+               * "이번 편집 버리기" 로 없애면 안 된다. 비우기는 `전체 비우기` 가 맡는다.
+               */
+              onSelect: onClose,
             },
             {
               label: '계속 편집',

@@ -4,6 +4,9 @@
  * 서버에 저장하지 않고 나가거나, 낙관적 락 충돌로 저장이 막혔을 때 **쓴 글을 잃지 않게** 하는 장치다.
  * 초안은 어디까지나 이 브라우저의 것이라 — 다른 기기 · 다른 사용자와 공유되지 않는다.
  *
+ * ⚠️ 초안은 **사용자가 남길 때만** 생긴다 (2026-08-17) — 타이핑 중 자동으로 쌓지 않는다.
+ *    `임시저장` 버튼 · 모달 이탈 · 충돌 확인창, 이 세 자리에서만 쓴다.
+ *
  * ⚠️ **`sessionStorage` 가 아니라 `localStorage` 다.** 탭을 닫았다 다시 열어도 남아 있어야
  *    "실수로 창을 닫았다" 를 구제할 수 있다.
  * ⚠️ 저장소 접근은 **전부 실패할 수 있다** — Safari 사생활 보호 모드는 쓰기에서 예외를 던지고,
@@ -15,21 +18,14 @@ const KEY_PREFIX = 'vit-s:text-draft:';
 /**
  * 한 블록이 들 수 있는 초안 수.
  *
- * 넘치면 **가장 오래된 직접 저장분**을 버린다 — 무한히 쌓으면 저장소 용량(보통 5MB)을
+ * 넘치면 **가장 오래된 것**을 버린다 — 무한히 쌓으면 저장소 용량(보통 5MB)을
  * 텍스트 하나가 다 먹고, 목록도 훑을 수 없게 길어진다.
  */
 export const MAX_TEXT_DRAFTS = 10;
 
-export type TextDraftKind = 'auto' | 'manual';
-
 export interface TextDraft {
   /** 목록에서 고르고 지울 때 쓰는 열쇠 */
   id: string;
-  /**
-   * `auto` 는 타이핑이 멎을 때 **덮어써지는 한 칸**, `manual` 은 사용자가 남긴 것이라 쌓인다.
-   * 자동 저장분까지 쌓으면 임시저장함이 타이핑 기록으로 뒤덮인다.
-   */
-  kind: TextDraftKind;
   /** 마크다운 원문 */
   content: string;
   /**
@@ -57,14 +53,17 @@ function isDraft(value: unknown): value is TextDraft {
   );
 }
 
-/** 저장소에 담긴 값을 초안 목록으로 다듬는다 — 모양이 어긋난 항목은 버린다 */
+/**
+ * 저장소에 담긴 값을 초안 목록으로 다듬는다 — 모양이 어긋난 항목은 버린다.
+ *
+ * 예전 값도 읽어 준다: 초안이 한 칸이던 시절(2026-08-12 이전)의 단일 객체,
+ * 자동/직접을 나누던 시절(2026-08-17 이전)의 `kind` 필드 — 지금은 둘 다 그냥 초안이다.
+ */
 function normalize(raw: unknown): TextDraft[] {
-  // 초안이 한 칸이던 시절의 값도 읽어 준다 (2026-08-12 이전)
   const list = Array.isArray(raw) ? raw : [raw];
 
   return list.filter(isDraft).map((draft) => ({
     id: typeof draft.id === 'string' ? draft.id : newId(),
-    kind: draft.kind === 'manual' ? 'manual' : 'auto',
     content: draft.content,
     version: typeof draft.version === 'number' ? draft.version : undefined,
     savedAt: typeof draft.savedAt === 'string' ? draft.savedAt : '',
@@ -109,57 +108,31 @@ function write(
   }
 }
 
-/** 자동 저장 — `auto` 한 칸을 갈아끼운다 */
-export function putAutoDraft(
-  txtId: number | string,
-  draft: { content: string; version?: number },
-) {
-  const others = loadTextDrafts(txtId).filter((kept) => kept.kind !== 'auto');
-  const saved: TextDraft = {
-    id: newId(),
-    kind: 'auto',
-    content: draft.content,
-    version: draft.version,
-    savedAt: new Date().toISOString(),
-  };
-
-  return write(txtId, [saved, ...others]);
-}
-
 /**
- * 사용자가 직접 남기는 초안 — 목록에 **쌓인다**.
+ * 초안을 남긴다 — 목록에 **쌓인다**.
  *
  * 같은 내용이 이미 있으면 새로 만들지 않고 그것을 최신으로 올린다 —
- * 저장 버튼을 두 번 눌렀다고 똑같은 칸이 둘이 되면 목록만 지저분해진다.
+ * 임시저장을 두 번 눌렀다고 똑같은 칸이 둘이 되면 목록만 지저분해진다.
  */
-export function addManualDraft(
+export function saveTextDraft(
   txtId: number | string,
   draft: { content: string; version?: number },
 ) {
   const existing = loadTextDrafts(txtId);
-  const same = existing.find(
-    (kept) => kept.kind === 'manual' && kept.content === draft.content,
-  );
+  const same = existing.find((kept) => kept.content === draft.content);
 
   const saved: TextDraft = {
     id: same?.id ?? newId(),
-    kind: 'manual',
     content: draft.content,
     version: draft.version,
     savedAt: new Date().toISOString(),
   };
 
-  const rest = existing.filter((kept) => kept.id !== saved.id);
-  // 넘치면 가장 오래된 직접 저장분부터 버린다 (자동 칸은 하나뿐이라 남긴다)
-  const manuals = rest.filter((kept) => kept.kind === 'manual');
-  const overflow = Math.max(0, manuals.length + 1 - (MAX_TEXT_DRAFTS - 1));
-  const dropped = new Set(
-    sortNewestFirst(manuals)
-      .slice(manuals.length - overflow)
-      .map((kept) => kept.id),
-  );
+  const rest = sortNewestFirst(existing.filter((kept) => kept.id !== saved.id));
+  // 넘치면 가장 오래된 것부터 버린다
+  const keepCount = Math.max(0, MAX_TEXT_DRAFTS - 1);
 
-  return write(txtId, [saved, ...rest.filter((kept) => !dropped.has(kept.id))]);
+  return write(txtId, [saved, ...rest.slice(0, keepCount)]);
 }
 
 /** 한 칸만 지운다. 남은 목록을 돌려준다 (쓰기 실패면 `null`) */
