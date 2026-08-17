@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import Modal from '@/components/Modal';
+import LoadingSpinner from '@/components/Spinner';
 import { messageOf } from '@/lib/api';
 import { useFlipReorder } from '@/lib/useFlipReorder';
 
@@ -326,18 +327,10 @@ export default function ImageEditModal({
               </button>
             </div>
           ) : !images ? (
-            <div
-              role="status"
-              aria-label="이미지 목록을 불러오는 중입니다"
-              className="flex flex-col gap-3"
-            >
-              {[0, 1, 2].map((row) => (
-                <div
-                  key={row}
-                  className="h-[76px] animate-pulse rounded-base bg-bg-surface"
-                />
-              ))}
-            </div>
+            <LoadingSpinner
+              label="이미지 목록을 불러오는 중입니다"
+              className="py-16"
+            />
           ) : (
             <ul ref={listRef} className="flex flex-col gap-3">
               {images.map((image, index) => {

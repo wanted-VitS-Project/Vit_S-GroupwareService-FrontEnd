@@ -195,12 +195,25 @@ export interface ResultFinding {
   severity: FindingSeverity;
 }
 
+/**
+ * 요약 · 경고 구획을 이루는 한 덩이.
+ *
+ * 옛 파서는 이 구획들을 문자열 하나로 이어 붙였다. 그러면 `### 계약 금액` 같은
+ * **소제목과 문단 · 목록이 한 줄로 뭉개져** 원문의 구조가 사라진다.
+ */
+export interface ResultBlock {
+  kind: 'heading' | 'paragraph' | 'item';
+  text: string;
+  /** `heading` 의 크기 1~6 (`#` 개수). `**제목**` · `제목:` 꼴은 3 으로 본다 */
+  level?: number;
+}
+
 export interface ParsedResult {
-  /** 검토 요약 — 한두 문장 */
-  summary: string;
+  /** 검토 요약 */
+  summary: ResultBlock[];
   findings: ResultFinding[];
   /** 종합 경고 · 결론 */
-  warning: string;
+  warning: ResultBlock[];
 }
 
 /** 값이 어긋난 쪽이 비어 있는 쪽보다 급하다 — 먼저 걸리는 순서로 둔다 */
@@ -229,17 +242,27 @@ function bucketOf(heading: string): Bucket | null {
   return null;
 }
 
-/** `## 제목` · `**제목**` · `제목:` 처럼 홀로 선 줄이면 그 제목을 준다 */
-function headingOf(line: string) {
-  const hash = /^#{1,6}\s+(.+?)\s*$/.exec(line);
-  if (hash) return hash[1].replace(/[*:·]+$/, '').trim();
+/**
+ * `## 제목` · `**제목**` · `제목:` 처럼 홀로 선 줄이면 그 제목과 **크기**를 준다.
+ *
+ * `#` 개수를 흘려버리면 h1 과 h4 가 같은 모양으로 그려져, 원문이 세워 둔 층이 사라진다.
+ * 기호 없는 꼴(`**제목**` · `제목:`)은 크기를 알 수 없어 중간(3)으로 둔다.
+ */
+function headingOf(line: string): { text: string; level: number } | null {
+  const hash = /^(#{1,6})\s+(.+?)\s*$/.exec(line);
+  if (hash) {
+    return {
+      text: hash[2].replace(/[*:·]+$/, '').trim(),
+      level: hash[1].length,
+    };
+  }
 
   const bold = /^\*\*(.+?)\*\*\s*:?\s*$/.exec(line);
-  if (bold) return bold[1].replace(/[:·]+$/, '').trim();
+  if (bold) return { text: bold[1].replace(/[:·]+$/, '').trim(), level: 3 };
 
   // "검토 요약:" 처럼 콜론으로 끝나는 짧은 줄. 길면 본문으로 본다
   const colon = /^([^:：]{2,20})[:：]\s*$/.exec(line);
-  return colon ? colon[1].trim() : null;
+  return colon ? { text: colon[1].trim(), level: 3 } : null;
 }
 
 /** 목록 항목이면 글머리표를 뗀 본문을 준다 */
@@ -296,23 +319,63 @@ function splitFinding(text: string): ResultFinding {
 export function parseResult(result: string): ParsedResult | null {
   const lines = result.split('\n');
 
-  const summary: string[] = [];
+  const summary: ResultBlock[] = [];
   const findings: ResultFinding[] = [];
-  const warning: string[] = [];
+  const warning: ResultBlock[] = [];
   /** 아직 제목을 못 만난 구간 — 첫 문단은 요약으로 본다 */
   let current: Bucket = 'summary';
   let sawHeading = false;
+  /** 빈 줄 · 제목을 지나왔다 — 다음 줄은 앞 문단에 잇지 않고 새로 세운다 */
+  let brokeParagraph = true;
+
+  /**
+   * 블록을 쌓는 구획은 요약 · 경고 **둘뿐**이다 (지적 사항은 `findings` 가 따로 받는다).
+   *
+   * ⚠️ 타입에서 `findings` 를 빼 둔 것은 실수를 막기 위해서다 — 예전에는 `Bucket` 을
+   *    그대로 받아, 지적 사항 구획의 줄이 조용히 **요약으로 새어 들어갔다**.
+   */
+  type TextBucket = Exclude<Bucket, 'findings'>;
+
+  function blocksOf(bucket: TextBucket) {
+    return bucket === 'warning' ? warning : summary;
+  }
+
+  /**
+   * 이어지는 평범한 줄은 **한 문단으로 잇는다** — 마크다운의 soft wrap 과 같다.
+   * 빈 줄이나 제목을 지나온 뒤라면 새 문단을 세운다.
+   */
+  function pushText(
+    bucket: TextBucket,
+    text: string,
+    kind: 'paragraph' | 'item',
+  ) {
+    const blocks = blocksOf(bucket);
+    const last = blocks[blocks.length - 1];
+
+    if (kind === 'paragraph' && !brokeParagraph && last?.kind === 'paragraph') {
+      last.text = `${last.text} ${text}`;
+      return;
+    }
+
+    blocks.push({ kind, text });
+    // 목록 항목은 줄마다 하나다 — 다음 줄을 여기에 이어 붙이지 않는다
+    brokeParagraph = kind === 'item';
+  }
 
   for (const line of lines) {
     const text = line.trim();
-    if (text === '') continue;
+    if (text === '') {
+      brokeParagraph = true;
+      continue;
+    }
 
     const heading = headingOf(text);
     if (heading) {
-      const next = bucketOf(heading);
+      const next = bucketOf(heading.text);
       if (next) {
         current = next;
         sawHeading = true;
+        brokeParagraph = true;
         continue;
       }
 
@@ -324,41 +387,48 @@ export function parseResult(result: string): ParsedResult | null {
        * 남아 엉뚱한 항목에 붙는다.
        */
       if (current === 'findings') {
-        findings.push(splitFinding(heading));
-      } else if (current === 'warning') {
-        warning.push(heading);
+        findings.push(splitFinding(heading.text));
       } else {
-        summary.push(heading);
+        blocksOf(current).push({
+          kind: 'heading',
+          text: heading.text,
+          level: heading.level,
+        });
       }
+      brokeParagraph = true;
       continue;
     }
 
     const item = listItemOf(text);
 
+    /*
+     * 지적 사항 구획의 줄은 **여기서 전부 처리한다.**
+     *
+     * 예전에는 첫 줄이 목록이 아니면 아래로 흘러가 `요약`에 쌓였다 — `## 지적 사항`
+     * 아래 문장이 `검토 요약` 칸에 뜨는 셈이라, 사용자는 읽은 자리에서 그 문장을 잃는다.
+     */
     if (current === 'findings') {
-      // 목록이 아닌 줄은 직전 항목의 이어지는 설명으로 붙인다
-      if (item === null && findings.length > 0) {
-        const last = findings[findings.length - 1];
-        last.detail = last.detail ? `${last.detail} ${text}` : text;
-        continue;
-      }
       if (item !== null) {
         findings.push(splitFinding(item));
         continue;
       }
+      // 목록이 아닌 줄은 직전 항목의 이어지는 설명으로 붙인다
+      if (findings.length > 0) {
+        const last = findings[findings.length - 1];
+        last.detail = last.detail ? `${last.detail} ${text}` : text;
+        continue;
+      }
+      // 아직 항목이 하나도 없다 — 이 구획의 머리글이라 첫 항목으로 세운다
+      findings.push(splitFinding(text));
+      continue;
     }
 
-    const plain = item ?? text;
-    if (current === 'warning') warning.push(plain);
-    else summary.push(plain);
+    if (item !== null) pushText(current, item, 'item');
+    else pushText(current, text, 'paragraph');
   }
 
   // 제목도 없고 지적 사항도 못 찾았으면 구조가 아니다 — 원문을 그대로 보여준다
   if (!sawHeading && findings.length === 0) return null;
 
-  return {
-    summary: summary.join(' ').trim(),
-    findings,
-    warning: warning.join(' ').trim(),
-  };
+  return { summary, findings, warning };
 }
