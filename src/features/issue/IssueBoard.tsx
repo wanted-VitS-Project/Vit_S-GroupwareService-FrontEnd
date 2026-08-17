@@ -26,13 +26,42 @@ import {
   type IssueSummary,
 } from './types';
 
+/**
+ * 재조회 결과를 **화면에 있던 순서 그대로** 앉힌다.
+ *
+ * 첫 조회만 마감일 순으로 세운다 — 이후에도 매번 다시 세우면, 마감일 하나만 고쳐도
+ * 보드 전체가 뒤섞여 방금 무엇을 고쳤는지 눈으로 좇을 수 없다.
+ * 화면에 없던 건(그 사이 남이 만든 이슈)은 마감일 순으로 **뒤에** 붙여 기존 줄을 밀지 않는다.
+ */
+function keepOrder(
+  previous: IssueSummary[] | null,
+  next: IssueSummary[],
+  meta: { stepId: string },
+) {
+  if (previous === null) {
+    return { ...meta, issues: [...next].sort(byDueDate) };
+  }
+
+  const rank = new Map(previous.map((issue, index) => [issue.issueId, index]));
+  const rankOf = (issue: IssueSummary) =>
+    rank.get(issue.issueId) ?? Number.MAX_SAFE_INTEGER;
+
+  const issues = [...next].sort((left, right) =>
+    rankOf(left) === rankOf(right)
+      ? byDueDate(left, right)
+      : rankOf(left) - rankOf(right),
+  );
+
+  return { ...meta, issues };
+}
+
 const loadIssueDetailModal = () => import('./IssueDetailModal');
 const loadIssueFormModal = () => import('./IssueFormModal');
 const IssueDetailModal = dynamic(loadIssueDetailModal, {
   loading: () => (
     <ModalLoadingFallback
       title="이슈 상세"
-      className="flex max-h-[90vh] w-full max-w-[700px] flex-col overflow-hidden rounded-2xl border border-border-default p-6 shadow-2xl"
+      className="flex max-h-[90vh] w-full max-w-[700px] flex-col overflow-hidden rounded-base border border-border-default p-6 shadow-2xl"
       bodyClassName="mt-5 h-[460px]"
     />
   ),
@@ -76,7 +105,7 @@ function deepLinkModal(issueParam: string | null): OpenModal {
 }
 
 /**
- * 스텝 이슈(일정) 보드 — 상태 3열 칸반. (.ai/API.md 55~60번)
+ * 스텝 이슈 보드 — 상태 3열 칸반. (.ai/API.md 55~60번)
  *
  * 서버는 필터 · 정렬을 하지 않는다. **첫 조회만 마감일 순(미지정 마지막)** 으로 세우고,
  * 그 뒤로는 화면이 들고 있는 순서를 따른다 — 새로 만들거나 상태를 바꾼 이슈가
@@ -182,8 +211,15 @@ export default function IssueBoard() {
 
     getStepIssues(stepId, { signal })
       .then((issues) => {
-        // 첫 조회만 마감일 순으로 세운다 — 이후 순서는 화면이 관리한다
-        setLoaded({ stepId, issues: [...issues].sort(byDueDate) });
+        /*
+          ⭐ **직전 목록을 지우지 않고 값만 갈아끼운다** — 재조회 중에도 카드가 그대로
+             남아 깜빡이지 않는다. 순서도 화면에 있던 것을 그대로 지킨다 (`keepOrder`).
+        */
+        setLoaded((prev) =>
+          keepOrder(prev?.stepId === stepId ? prev.issues : null, issues, {
+            stepId,
+          }),
+        );
         // 같은 스텝에서 재조회가 성공하면 이전 실패를 지운다
         setFailedStepId((failed) => (failed === stepId ? null : failed));
       })
@@ -223,6 +259,18 @@ export default function IssueBoard() {
 
   const issues = loaded?.stepId === stepId ? loaded.issues : null;
   const hasFailed = failedStepId === stepId;
+
+  /**
+   * 서버에서 목록을 다시 읽는다. **깜빡이지 않는다** — 직전 목록을 지우지 않고
+   * 도착한 값으로 덮어쓰기만 하며, 순서도 `keepOrder` 가 그대로 지킨다.
+   *
+   * ⚠️ 생성 · 수정 응답만 믿고 화면을 갈면 **응답에 없는 필드가 옛값으로 남는다**
+   *    (우선순위를 바꿔도 카드가 그대로였던 원인). 낙관적 반영으로 즉시 보여 주되
+   *    곧바로 재조회해 서버 값과 맞춘다.
+   */
+  function refresh() {
+    setReloadCount((count) => count + 1);
+  }
 
   /** 목록을 통째로 갈지 않고 한 건만 갈아끼운다 — 스크롤 · 드래그 상태를 지킨다 */
   function replaceIssue(next: IssueDetail | IssueSummary) {
@@ -493,7 +541,12 @@ export default function IssueBoard() {
         <IssueBoardSkeleton />
       ) : (
         // 열을 세로로 끝까지 늘려 카드가 없는 아래쪽에 놓아도 드롭이 잡히게 한다
-        <div className="grid min-h-[60vh] grid-cols-3 items-stretch gap-3">
+        /*
+          좁은 화면에서는 3열을 유지할 수 없다 — 한 열이 100px 남짓이 되어 이슈 제목이
+          한 글자씩 끊긴다. 상태별로 **위에서 아래로** 쌓는다 (`md` = 768px 부터 칸반).
+          드래그로 상태를 옮기는 조작은 어차피 마우스 전용(HTML5 DnD)이라 잃는 것이 없다.
+        */
+        <div className="grid grid-cols-1 items-stretch gap-3 md:min-h-[60vh] md:grid-cols-3">
           {ISSUE_STATUS_ORDER.map((status) => {
             const { badge, dot, columnBg, columnRing } =
               ISSUE_STATUS_STYLES[status];
@@ -618,6 +671,8 @@ export default function IssueBoard() {
           onSaved={(created) => {
             addIssue(created);
             setOpenModal(null);
+            // 생성 응답에 없는 필드까지 서버 값으로 맞춘다
+            refresh();
           }}
         />
       )}
@@ -632,6 +687,8 @@ export default function IssueBoard() {
           onSaved={(updated) => {
             replaceIssue(updated);
             setOpenModal(null);
+            // 우선순위처럼 수정 응답이 빠뜨리는 값이 옛것으로 남지 않게 다시 읽는다
+            refresh();
           }}
         />
       )}

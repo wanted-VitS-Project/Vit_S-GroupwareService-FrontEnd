@@ -6,6 +6,777 @@
 
 ---
 
+## [2026-08-17] 정산 현황 화면 ✅
+
+브랜치: `feat/education-certificate` 에서 이어짐 (정산 현황 작업분) · API: `.ai/API.md` 재무 도메인에 3종 추가
+
+정산은 프로젝트 스텝 안의 블록에서 쓰는데, 그러면 "어느 프로젝트의 수금이 밀렸는지" 를 보려고
+프로젝트를 하나씩 열어야 했다. 프로젝트 단위 집계 API 가 나와 그 값을 한 화면에 모았다.
+재무 허브에서 `준비 중` 으로 막아 두었던 항목도 열었다.
+
+### 변경 파일
+
+| 파일 | 변경 |
+| ---- | ---- |
+| `src/components/DataTable.tsx` | 수정 — `renderExpanded` 추가 (행 아래 펼침 줄) |
+| `src/features/finance/SettlementStatusList.tsx` | **생성** — 목록 · 필터 · 페이징 |
+| `src/features/finance/SettlementRoundPanel.tsx` | **생성** — 회차 표 (매칭 처리자 · 계좌 펼치기) |
+| `src/features/finance/{types,api,display}.ts` | 수정 — 타입 · 조회 3종 · 상태 판정 |
+| `src/constants/endpoints.ts` | 수정 — `finance.settlements` 3경로 |
+| `src/app/finance/settlements/page.tsx` | 수정 — stub → 화면 연결 |
+| `src/features/finance/FinanceHub.tsx` | 수정 — `준비 중` 해제 |
+| `src/features/project/useProjectPermission.ts` | 수정 — `queryFn: skipToken` |
+
+### 주요 작업 내용
+
+- **목록 10열** — 과업명 · 발주처 · 담당자 · 예정 금액 · 정산 진행 · 수입 · 지출 · 합계 · 예정일 · 상태
+- **회차 표 8열** — 회차 · 회차명 · 예정일 · 예정 금액 · 계산서 · 입출금 · 매칭 처리자 · 상태
+- 행을 누르면 그 자리에서 회차가 펼쳐진다 — 화면을 옮기지 않아 프로젝트를 연달아 훑는다
+- 필터는 URL 에 담는다 (입출금 · 세금계산서 화면과 같은 방식)
+
+### 부수 결정
+
+- **`totalPlannedAmount` 를 `계약 금액` 이라 적지 않는다** — 회차 예정 금액의 합계다. 계약금액 필드는 응답에 없다
+- **합계를 화면에서 계산하지 않는다** — 서버의 `totalAmount` 를 그대로 적는다. 수입 − 지출로 직접 구하면 서버 산식이 바뀌었을 때 화면 값만 어긋난다
+- **프로젝트 상태는 화면이 판정한다** — 서버에 값이 없어(팀 확인) 지연 일수 · 미연결 건수 · 회차 수로 정한다. 급한 것부터 보이도록 입금 지연 → 계산서 지연 → 예정일 미입력 순으로 본다
+- **회차가 0개인 프로젝트에는 미연결 배지를 세우지 않는다** — 연결할 것이 없어 0 인데 `완료` 로 적으면 정산을 마친 것처럼 읽힌다
+- **계좌 정보는 열이 아니라 펼치기** — 출금 회차에만 있는 값이라 열로 세우면 대부분의 줄이 빈다
+- **조건을 바꾸는 동안 직전 표를 남긴다** — 매번 자리표시로 되돌리면 필터를 만질 때마다 화면이 번쩍인다
+- **회차는 `DataTable` 의 `renderExpanded` 로 행 바로 아래에 편다** — 표 밖에 두면 목록 끝에 열려 화면 밖이 된다. 공용 컴포넌트에 넣었지만 **넘기지 않으면 동작이 같아** 기존 표 8곳은 그대로다
+- **펼친 칸은 왼쪽 굵은 선 + 들여쓰기 + 회색 바탕으로 구분한다** — 목록과 같은 층으로 보이면 어느 행에 딸린 것인지 읽히지 않는다
+- **펼침 칸에 제목 · 닫기 버튼을 두지 않는다** — 제목은 바로 위 행과 같은 말이고, 닫기는 **행을 다시 누르면** 된다 (여는 자리와 닫는 자리를 같게)
+- **왼쪽 정렬 열을 앞으로 모은다** — 금액 열이 연속으로 붙어야 자릿수가 세로로 줄을 맞춘다 (목록 · 회차 표 모두)
+
+### 트러블슈팅
+
+| 항목 | 내용 |
+| ---- | ---- |
+| 증상 | 프로젝트 화면에서 콘솔에 `No queryFn was passed` 오류 |
+| 원인 | `useProjectPermission` 이 캐시만 읽으려고 `enabled: false` 만 두었다. react-query v5 는 `queryFn` 이 없으면 오류를 남긴다 |
+| 해결 | `queryFn: skipToken` — "이 쿼리는 실행하지 않는다" 를 값으로 밝힌다 |
+
+### 확인
+
+- `npx tsc --noEmit` · `npx eslint src` · `prettier` 통과
+- `/finance/settlements` 실동작 — 목록 10건 · 회차 3건 · 필터 · 열 폭 100% 확인
+- ⏳ 페이지 넘김은 데이터가 1페이지뿐이라 미확인
+## [2026-08-17] AI 블록 결과에 마크다운 적용 ✅
+
+브랜치: `user/project` · API: 변경 없음 · 이슈: #188
+
+AI 결과는 두 경로로 그려진다 — `parseResult` 가 구조를 못 찾으면 `MarkdownView`(TipTap)로 원문을 전부 렌더하고(마크다운 ✅), 구조를 찾으면 파서가 쪼갠 조각을 **생 문자열로** `<p>` 에 박았다(마크다운 ❌). 실제 결과는 거의 구조화 경로를 타므로 `**1,000만원**` 이 별표째 보이고, 소제목 · 문단 · 목록이 한 덩이로 뭉개졌다. 구조화 UI(심각도 색 막대 · 더보기 · 근거)는 그대로 두고 **조각마다 마크다운을 입히는** 쪽으로 고쳤다.
+
+### 변경 파일
+
+| 파일 | 변경 |
+| ---- | ---- |
+| `src/components/InlineMarkdown.tsx` | **생성** — 인라인 전용 렌더 (`**굵게**` · `*기울임*` · `***둘다***` · `` `코드` `` · `~~취소~~`) |
+| `src/features/vitamate/types.ts` | 수정 (`ResultBlock` 신설 · `headingOf` 가 `level` 까지 반환 · `parseResult` 가 소제목/문단/목록 보존) |
+| `src/features/vitamate/AnalysisResultView.tsx` | 수정 (`BlockList` · `HEADING_SIZE` 추가 · 지적 사항 제목·상세와 경고 배너에 `InlineMarkdown` 적용) |
+
+### 주요 작업 내용
+
+- **`ParsedResult.summary`·`warning` 을 `string` → `ResultBlock[]` 로** — 옛 파서는 구획을 `join(' ')` 으로 이어 붙여, `### 계약 금액` 같은 소제목과 문단·목록이 한 줄로 뭉개졌다. 이제 `heading`(+`level`) · `paragraph` · `item` 을 원문 순서대로 들고 나온다
+- **빈 줄로 문단을 가른다** — 이어지는 줄은 마크다운의 soft wrap 처럼 한 문단으로 잇고, 빈 줄·제목을 지나면 새로 세운다
+- **`#` 개수를 살렸다** — `headingOf` 가 `level` 을 함께 주고, `HEADING_SIZE` 로 크기를 나눈다. 기호 없는 꼴(`**제목**` · `제목:`)은 크기를 알 수 없어 3 으로 둔다
+- **인라인은 TipTap 을 쓰지 않는다** — `MarkdownView` 는 문서 하나에 에디터 인스턴스 하나다. 지적 사항 20건이면 제목·상세로 40개가 뜬다. 문장 단위 자리에는 정규식 렌더러가 맞다
+
+### 트러블슈팅
+
+- **문제**: `***셋겹***` 이 `<strong>*셋겹</strong>*` 로 어긋났다
+- **원인**: 굵게 패턴이 여는 `**` 다음의 세 번째 `*` 를 본문 첫 글자로 삼고, 닫는 짝을 뒤쪽 `***` 의 앞 두 글자에서 찾았다
+- **해결**: `***…***` 대안을 **굵게보다 앞에** 두어 먼저 걸리게 했다 (정규식 대안은 앞에서부터 시도된다)
+- **문제(2차)**: `*a **b** c*` 에서 여는 `*` 가 `**b` 의 첫 별표를 짝으로 잡아 엉뚱한 자리가 기울어졌다
+- **해결**: 기울임 몸통만 별표를 **불허**(`FLAT`)로 바꿨다. 굵게 몸통은 허용(`NESTABLE`)이라 `**굵게 속 *기울임*…**` 은 그대로 살아난다. 못 알아본 자리는 별표를 글자로 남겨 둔다 — 엉뚱하게 기울어지는 것보다 낫다
+
+### 부수 결정
+
+- **`_밑줄_` 은 지원하지 않는다** — 파일명(`report_v2_final`)이 통째로 기울어지는 쪽이 강조를 놓치는 것보다 나쁘다. AI 결과의 강조는 거의 `*` 로 온다
+- **링크(`[글](주소)`)도 뺐다** — 본문은 모델이 만든 문자열이라, 주소를 눌리게 하면 만들어낸 주소로 사용자를 보낼 수 있다
+- **소제목 태그는 `h5` 고정** — 구획 위에 이미 `h4`(`SectionLabel`)가 있어, 원문 `#` 개수를 태그로 옮기면 문서 제목 층이 뒤집힌다. **보이는 크기만** 나눈다
+- **경고 배너는 `BlockList` 를 돌려쓰지 않는다** — 배너 안은 색이 하나(`text-yellow-text`)여야 경고로 읽힌다. 본문 색이 섞이면 배너가 배너로 보이지 않는다
+- **근거(`citation.excerpt`)는 그대로 둔다** — 문서에서 그대로 떠 온 발췌라 마크다운이 아니다
+- **구조화 파싱을 버리고 전체를 `MarkdownView` 로 돌리는 안은 채택하지 않았다** — 심각도 색 막대 · 더보기 · 근거 접기를 함께 잃는다
+
+### 코드 리뷰 반영 (CodeRabbit)
+
+- **`***…***` 안쪽도 재귀 렌더** — 이 분기만 문자열을 그대로 넣어, `***중요한 `` `코드` ``***` 의 안쪽 문법이 기호째 보였다. 별표는 못 오지만(`FLAT`) 코드·취소선은 올 수 있다
+- **경고 배너가 구조를 폈던 것** — `heading`·`item` 을 모두 `<p>` 로 그려 소제목의 층과 `<ul>`/`<li>` 의미가 사라졌다. `BlockList` 에 `className` 을 열어 **색·크기만** 배너 쪽으로 바꿔 물려주고 구조는 요약과 같은 것을 쓴다
+- **`findings` 구획의 일반 줄이 요약으로 샜던 것** — `## 지적 사항` 뒤 첫 줄이 목록이 아니면 아래로 흘러 `요약`에 쌓였다. 지적 사항 구획은 이제 **모든 갈래가 `continue`** 로 끝나고, 항목이 없으면 그 줄을 첫 항목으로 세운다
+- 같은 실수를 타입으로 막았다 — `blocksOf`·`pushText` 가 `Exclude<Bucket, 'findings'>` 만 받는다. 지적 사항 갈래가 전부 `continue` 라 뒤에서는 TS 가 `'summary' | 'warning'` 으로 좁혀 준다
+
+### 검증
+
+| 항목 | 결과 |
+| ---- | ---- |
+| `parseResult` 표본 파싱 (소제목 · 문단 · 목록 · 지적 2건 · 경고) | ✅ 구획·`level`·항목 분리 확인 · 폴백(`null`) 유지 |
+| 리뷰 회귀 — `## 지적 사항` 뒤 목록 아닌 줄 | ✅ 요약으로 새지 않고 첫 항목으로 남음 |
+| 삼중 강조 중첩 (`***…`` `코드` ``***` · `***~~취소~~***`) | ✅ 안쪽 문법 렌더 |
+| 인라인 패턴 17개 케이스 (`3 * 4 * 5` · `2 ** 3` · `snake_case` · 짝 없는 `**` 포함) | ✅ 오탐 0 |
+| `npx tsc --noEmit` · `eslint` · `prettier --check` | ✅ 에러 0 |
+| 실화면 동작 확인 | ⏳ 남음 |
+
+---
+
+## [2026-08-17] 텍스트 블록 임시저장 UX 개선 — 이탈 시점만 묻는다 ✅
+
+브랜치: `user/project` · API: 변경 없음 · 이슈: #188
+
+임시저장이 **두 군데서 작동**하고 있었다 — 타이핑이 멎으면 800ms 뒤 자동으로 `auto` 칸에 남기고, 나갈 때 또 물었다. 그래서 (1) 임시저장함이 사용자가 만들지 않은 자동 칸으로 덮이고, (2) `임시저장` 을 눌러 이미 안전한 상태인데도 나갈 때 똑같이 확인창이 떴다. 초안이 생기는 자리를 **사용자가 남길 때 한 곳**으로 모으고, 확인창은 **정말 잃을 게 있을 때만** 띄우게 정리했다.
+
+### 변경 파일
+
+| 파일 | 변경 |
+| ---- | ---- |
+| `src/features/block/textDraft.ts` | 수정 (`putAutoDraft` 삭제 · `addManualDraft` → `saveTextDraft` · `kind`/`TextDraftKind` 제거 · 넘침 처리 단순화) |
+| `src/features/block/TextBlockModal.tsx` | 수정 (디바운스 자동저장 `useEffect` 삭제 · `keptDraft` 파생값 도입 · 이탈 확인 조건 · 푸터 · 버튼 · 목록 배지) |
+
+### 주요 작업 내용
+
+- **자동저장 폐지** — `DRAFT_DEBOUNCE_MS` 디바운스 `useEffect` 와 `putAutoDraft` 를 걷어냈다. 초안은 `임시저장` 버튼 · 이탈 확인창 · 충돌 확인창 세 자리에서만 생긴다
+- **`auto`/`manual` 구분 제거** — 자동 칸이 없으니 종류가 하나다. 목록의 `직접`/`자동` 배지, 넘침 시 "자동 칸은 남긴다" 예외, 저장·이탈 때의 `kind === 'auto'` 청소 로직이 모두 사라졌다
+- **이탈 확인은 `isDirty && !keptDraft` 일 때만** — `keptDraft` 는 "지금 편집 중인 내용과 똑같은 초안" 이다. `임시저장` 을 누른 뒤 · 초안을 되살린 직후엔 잃을 게 없어 확인창 없이 닫힌다
+- **`임시저장` 버튼이 상태를 보여 준다** — 같은 내용이 이미 있으면 `임시저장됨` 으로 바뀌며 잠기고, 푸터도 그 초안의 시각을 읽는다
+
+### 부수 결정
+
+- **`savedAt` 상태를 없애고 `keptDraft` 에서 파생시켰다** — 별도 상태로 두면 임시저장 후 본문을 고쳐도 "임시저장됨 오후 3:14" 가 그대로 남아, 안 남은 내용을 남았다고 알리게 된다. 목록에서 내용을 대조하면 표기가 언제나 사실과 맞는다
+- **`저장 안 하고 나가기` 는 임시저장함을 건드리지 않는다** — 예전엔 자동 칸을 지웠지만, 이제 담긴 초안은 모두 사용자가 남긴 것이다. 비우기는 `전체 비우기` 한 곳이 맡는다
+- **옛 저장값은 계속 읽는다** — `normalize` 가 `kind` 필드를 그냥 무시한다. 이미 브라우저에 쌓인 `auto` 초안도 일반 초안으로 목록에 뜬다 (버리면 사용자 글이 사라진다)
+- **남은 대가**: 저장 전에 **탭 · 브라우저를 닫으면** 본문이 사라진다 — 예전 자동저장이 덮던 자리다. `beforeunload` 경고로 메울지는 미결
+
+### 코드 리뷰 반영 (CodeRabbit)
+
+- **충돌 확인창이 임시저장 실패를 무시했다** — `임시저장하고 다시 불러오기` 가 `keepDraft()` 의 반환을 버리고 재조회·닫기를 그대로 실행했다. 사생활 보호 모드·용량 초과로 못 남긴 경우, 사용자는 "임시저장하고" 를 골랐는데 글을 잃고, **재조회가 서버 본문을 덮어 되돌릴 길도 없다**
+- 실패하면 확인창만 닫고 편집기를 유지한다 (`if (!kept) return`) — 푸터가 "이 브라우저에 임시저장할 수 없습니다" 를 알린다. 나가기 확인창이 이미 쓰던 방침과 같게 맞췄다
+
+### 검증
+
+| 명령 | 결과 |
+| ---- | ---- |
+| `npx tsc --noEmit` | ✅ 에러 0 |
+| `npx eslint` (변경 2파일) | ✅ 에러 0 · 경고 0 |
+| 실화면 동작 확인 | ⏳ 남음 |
+
+---
+
+## [2026-08-17] 모달에 남은 스켈레톤 제거 — 스피너로 통일 ✅
+
+브랜치: `ref-ys` · API: 변경 없음 · 이슈: #186
+(#172 모달 로딩 스피너 통일의 **누락분 정리**)
+
+#172 는 `Skeleton` 컴포넌트를 쓰는 자리만 훑어서, **`animate-pulse` 로 직접 만든 뼈대**를 쓰던 모달 10곳이 그대로 남아 있었다. 크기가 제각각인 모달에서 어긋난 뼈대는 내용이 도착할 때 오히려 창을 튀게 만들므로 남은 곳도 모두 `LoadingSpinner` 로 맞췄다.
+
+### 변경 파일
+
+| 파일 | 변경 |
+| ---- | ---- |
+| `src/features/file/FileViewerModal.tsx` | 수정 (버전 이력 · 미리보기) |
+| `src/features/file/LazyFileViewer.tsx` · `block/FileBlock.tsx` | 수정 (문서 뷰어 청크 폴백) |
+| `src/features/companyDocument/CompanyDocumentViewerModal.tsx` | 수정 (버전 목록 · 미리보기 2곳) |
+| `src/features/approval/ApprovalDocumentModal.tsx` | 수정 (PDF 뷰어 폴백) |
+| `src/features/block/ImageEditModal.tsx` | 수정 (이미지 목록) |
+| `src/features/vitamate/AnalysisRunModal.tsx` · `FileVersionPickerModal.tsx` | 수정 (검토 유형 · 문서 목록) |
+| `src/features/vitamate/AnalysisHistoryPanel.tsx` | 수정 (분석 이력 · 결과) |
+| `src/features/bidding/NoticeSummaryCard.tsx` | 수정 (`SummarySkeleton` 함수 삭제 — `AI 요약` 모달 전용 컴포넌트) |
+
+### 주요 작업 내용
+
+- **누락분을 `animate-pulse` 로 찾았다** — `Skeleton` 만 훑으면 손으로 만든 뼈대가 걸리지 않는다. 이후 스윕에서도 두 가지를 함께 봐야 한다
+- **뷰어 자리는 높이를 유지한 채 스피너만** — `h-[600px]` · `h-[560px]` 같은 뷰어 자리는 그대로 두고 안쪽만 스피너로 바꿨다. 자리까지 없애면 미리보기가 도착할 때 모달이 통째로 늘어난다
+- **`SummarySkeleton` 은 함수째 삭제** — `NoticeSummaryCard` 는 `AI 요약` 모달에서만 쓰이는 컴포넌트라 남길 이유가 없다
+
+### 부수 결정
+
+- **`SidePanelFallbackHeader` 는 유지 (A안)** — 유지 대상인 곁패널(`연결된 이슈` · `블록 활동 기록`)의 헤더 자리라 떼면 청크 도착 때 헤더가 튄다. `비타메이트 분석 이력` 도 같은 헤더를 쓰지만, 그것만 떼려고 파라미터를 늘리지 않는다
+- **"진행 중" 점은 스켈레톤이 아니다** — `NoticeReviewModal` · `NoticeSummaryCard` 의 `size-3 animate-pulse rounded-pill bg-btn-primary` 는 폴링 중임을 알리는 표시라 대상에서 뺐다
+- **블록 본문은 모달이 아니다** — `TextBlock` · `ImageBlock` · `BlockBoard` · `AiBlock` 의 자리막이는 스텝 화면 위의 요소라 그대로 둔다. 사이드바 · 페이지 스켈레톤도 마찬가지
+
+---
+
+## [2026-08-16] 전사 파일 탐색기 API 전환 · 블록 삭제 동작 반영 ✅
+
+브랜치: `feat/admin-file-tree` · API: `.ai/API.md` 151~154 신설 · 47 · 105 · 106 갱신
+
+백엔드가 **전사 파일 탐색 전용 API 4종**(§14)과 **블록 삭제 시 파일 동반 휴지통행(D안)** 을 내려
+프론트를 그 계약으로 옮겼다. 탐색기가 안고 있던 제약 두 개(참여하지 않은 프로젝트에서 403 · 프로젝트당 500건 상한)가
+이 API 로 함께 사라졌다.
+
+### 변경 파일
+
+| 파일 | 변경 |
+| ---- | ---- |
+| `src/constants/endpoints.ts` | 수정 — `files.adminTree` 4종 추가 |
+| `src/features/file/types.ts` | 수정 — `AdminTreeProject` · `AdminTreeStage` · `AdminTreeStep` 추가, 소유 구조 주석 D안 반영 |
+| `src/features/file/api.ts` | 수정 — `getAdminTreeProjects` · `getAdminTreeStages` · `getAdminTreeSteps` · `getAdminStepFiles` 추가 |
+| `src/features/file/errorCodes.ts` | 수정 — `stepNotFound`(`FILE_STEP_NOT_FOUND`) 추가 |
+| `src/features/file/AdminFileExplorer.tsx` | 수정 — 트리 API 로 전면 교체 (단계별 lazy 조회) |
+| `src/features/file/AdminFileList.tsx` | 수정 — 스텝 자리에서 §14.4 로 전환 · 필터 줄 숨김 · 404 안내 |
+| `src/features/block/BlockDeleteModal.tsx` | 수정 — 409 두 종류 분기 · 문서 휴지통행 안내 |
+| `src/features/project/step/StepDeleteModal.tsx` | 수정 — cascade 안내 · 409 `FILE_APPROVAL_IN_PROGRESS` 분기 |
+
+### 주요 작업 내용
+
+- **탐색기를 전용 API 로 교체** — `프로젝트 → 스테이지 → 스텝` 을 열 때마다 자식만 부른다. 회사 스코프라 관리자가 참여하지 않은 프로젝트도 열린다
+- **스텝 파일을 스텝 API 로** — 프로젝트 파일 500건(100×5)을 미리 받아 화면에서 나누던 방식을 걷어내고 `GET /admin/files/steps/{stepId}/files` 로 페이징한다
+- **미분류 칸을 서버 값으로** — `stageId: null` 버킷을 그대로 쓰고, 프론트가 스텝을 세어 만들던 칸을 제거했다
+- **블록 · 스텝 삭제 안내와 차단 처리** — "문서는 휴지통으로 이동" 을 확인 문구에 넣고, 409 를 되물음(`APPROVAL_DELETE_CONFIRM_REQUIRED`)과 거부(`FILE_APPROVAL_IN_PROGRESS`)로 갈랐다
+
+### 부수 결정
+
+- **스텝 안에서는 검색 · 확장자 필터를 숨긴다** — §14.4 에 그 조건이 없다. 입력만 남겨 두면 쳐도 아무 일이 없어 고장으로 읽힌다. 조건 검색은 한 단계 위(전사 목록 142번) 담당으로 정리했다
+- **개수 힌트(`스텝 N개` · `파일 N개`)를 뺐다** — 응답에 개수가 없고, 스텝마다 파일 API 를 부르면 요청이 스텝 수만큼 늘어난다. 필요해지면 `stepCount` · `fileCount` 를 백엔드에 요청한다
+- **`blockDeleted` 배지는 유지** — D안 이후에도 **복구된 고아**가 `blockDeleted: true` 로 문서함에 나타난다
+- **`FILE_STEP_NOT_FOUND` 는 코드 상수 한 곳에만 둔다** — `features/file/errorCodes.ts`. 분기는 status 가 아니라 `code` 로 한다는 이 도메인 규칙을 그대로 따른다
+
+### 확인
+
+- `npx tsc --noEmit` · `npx eslint src` · `npm run build` 통과
+- API 4종 응답 필드 · 에러코드가 구현과 일치하는지 대조 완료
+- `/settings/files` 실동작 확인 — 프로젝트 14건 → 스테이지(미분류 포함) → 스텝 → 스텝 파일 조회, 블록 삭제 후 휴지통 이동 · 복구까지 확인
+- 확인 중 발견: 삭제된 스텝의 문서와 복구된 문서는 탐색기에 나오지 않는다 (`STATE.md` 백로그 등록)
+## [2026-08-16] 권한 없는 사용자에게 노출되던 수정 버튼 정리 · 내 권한 표시 ✅ (#180)
+
+브랜치: `ref-ys` · API: 변경 없음 · 이슈: #180
+
+`#178` 이 403 을 **잘 보여주는** 처리였다면, 이건 그 403 이 **나기 전에** 버튼을 감추는 쪽이다.
+먼저 화면 전체를 감사했더니 설정 · 참여자 · 사이드바 · 이슈 보드는 이미 막혀 있었고,
+**블록 보드에만 권한 판정이 통째로 없었다** — 실제 작업은 거기에 집중됐다.
+
+### 감사 결과 — 요청받은 곳은 이미 막혀 있었다
+
+| 화면                          | 상태                                |
+| ----------------------------- | ----------------------------------- |
+| 프로젝트 설정 5개 섹션        | ✅ 이미 `canEdit` 적용              |
+| 참여자 권한 변경 · 제거       | ✅ 이미 적용 (자기 행 잠금까지)     |
+| 사이드바 스테이지 · 스텝 조작 | ✅ 이미 적용                        |
+| 이슈 보드                     | ✅ 이미 적용 (`step?.myPermission`) |
+| **블록 보드**                 | ❌ **판정 없음 — 이번 작업 대상**   |
+
+### 변경 파일
+
+| 파일                                                                      | 변경                                                                       |
+| ------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `src/features/block/BlockPermissionContext.tsx`                           | **신규** — 보드 → 카드 → 본문으로 판정을 흘린다 (기본값 `true`)            |
+| `src/features/project/permissions.ts`                                     | **신규** — 참여자 추가 판정 단일 소스 (`ADMIN` 예외)                       |
+| `src/features/project/PermissionBadge.tsx`                                | **신규** — 내 권한 배지 (편집 파랑 · 열람 회색)                            |
+| `src/features/project/useProjectSteps.ts`                                 | 수정 — `useStepCanEdit` 추가 (스텝 목록 캐시에서 `myPermission` 만 꺼낸다) |
+| `src/features/block/StepBlocks.tsx`                                       | 수정 — `블록 추가` · `배치 편집` 가리기, 보드에 `canEdit` 전달             |
+| `src/features/block/BlockBoard.tsx`                                       | 수정 — `canEdit` prop + `BlockCanEditProvider` 로 감싸기                   |
+| `src/features/block/BlockCard.tsx`                                        | 수정 — `⋯` 의 수정 · 스텝 이동 · 삭제 가리기                               |
+| `src/features/block/ChecklistBlock.tsx` · `TextBlock.tsx`                 | 수정 — `편집` 버튼 가리기                                                  |
+| `src/features/project/member/MemberList.tsx`                              | 수정 — `참여자 추가` 를 `canManageMembers()` 판정으로                      |
+| `src/components/ProjectSidebar.tsx`                                       | 수정 — 권한 배지 노출 · 아바타 줄 `+` 를 같은 판정으로                     |
+| `src/features/project/settings/ProjectSettings.tsx`                       | 수정 — 제목 줄에 권한 배지                                                 |
+| `src/features/block/types.ts` · `BlockTypeIcon.tsx` · `AddBlockModal.tsx` | 수정 — 블록 유형 2종 제거 · 제목 입력 위치 이동                            |
+
+### 주요 작업 내용
+
+- **블록 보드 권한 게이트.** `ProjectStep.myPermission` 이 응답에 이미 있는데 아무도 보지 않고 있었다. 카드가 유형별 본문을 한 겹 거쳐 그려져 prop 으로는 못 나른다 — `BlockDragContext` · `BlockMembersContext` 와 같은 방식으로 컨텍스트를 썼다. 잠근 것은 `블록 추가` · `배치 편집` · 카드 `⋯`(수정 · 이동 · 삭제) · 체크리스트 `편집` · 텍스트 `편집` 이고, **읽기(연결된 이슈 · 활동 기록 · 새로고침)는 남겼다** — 메뉴를 통째로 감추면 열람 권한인 사람이 그 둘로 가는 길까지 잃는다
+- **참여자 추가는 `VIEWER` 에게만 숨긴다.** 전사 `ADMIN` 은 프로젝트 권한과 무관하게 예외다. 사이드바 아바타 줄의 `+` 표시도 같은 판정을 따라야 모달 안 버튼과 어긋나지 않는다
+- **내 권한 배지.** 사이드바(하위 전 화면에서 보인다) · 설정 제목 줄 두 곳. 판정 전(`null`)에는 **아무것도 그리지 않는다** — 기본값을 `열람` 으로 두면 편집자에게 잠깐 `열람` 이 보였다 바뀌어 권한이 낮아진 것으로 오해한다
+- **블록 유형 2종 제거.** 본문이 없어 만들어도 빈 껍데기만 붙던 `PAYMENT_CONFIRM`(입금 확인) · `TAX_INVOICE_VIEW`(세금계산서 조회)를 타입 유니온 · `BLOCK_TYPES` · 아이콘까지 지웠다 (10종 → 8종). `블록 추가` 모달의 제목 입력은 유형 선택 **위**로 올렸다
+
+### 트러블슈팅
+
+| 문제                                            | 원인                                                                                                                                            | 해결                                                                                                                                        |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 요구가 "소유자만"이었는데 구현 불가             | 소유자(`createdBy`)는 **생성 응답(128)에만** 있다. 상세(6) · 참여자 목록(45)에는 없어 설정 화면 · 사이드바에서는 누가 소유자인지 알 방법이 없다 | 사용자 확인 결과 **편집 권한 기준이 맞았다** — 소유자 개념을 걷어내고 `EDITOR` + `ADMIN` 예외로 확정. 근거는 `permissions.ts` 주석에 남겼다 |
+| 블록 유형을 `BLOCK_TYPES` 에서 바로 지우면 위험 | 이 배열은 추가 선택지이자 **기존 블록의 라벨 · 아이콘 색 조회표**다 (`BlockCard` · `IssueBadges`)                                               | 실 데이터에 해당 블록이 없음을 확인한 뒤 완전 삭제. 남아 있었다면 이름 없는 회색 카드가 됐을 것이다                                         |
+| 판정 로딩 중 버튼이 깜빡일 우려                 | 스텝 목록이 도착하기 전에는 `myPermission` 이 `undefined`                                                                                       | `undefined` 는 `false` 로 떨어뜨렸다 — 없는 사람에게 잠깐 보였다 사라지는 것보다, 있는 사람에게 늦게 나타나는 편이 안전하다                 |
+
+### 부수 결정
+
+- **판정은 프로젝트 권한이 아니라 스텝 권한이다** — 스텝별 오버라이드(STP-011)가 있어 둘이 다를 수 있다. 프로젝트 권한으로 대신 판정하면 안 된다
+- **`BlockCanEditContext` 기본값은 `true`** — 보드 밖에서 쓰이는 카드(연결 이슈 패널 등)까지 조용히 잠기면 권한이 있는데도 아무것도 못 하는 화면이 생긴다. 잠그는 쪽이 명시적으로 감싼다
+- **화면 단 안내일 뿐 실제 차단은 서버 몫이다** — 버튼을 감춰도 API 는 계속 403 으로 막아야 한다
+- **파일 · 이미지 블록 본문은 이번 범위에서 제외** — 쓰기 버튼 39개+ 가 읽기(다운로드 · 미리보기 · 확대)와 섞여 있어 하나씩 판별이 필요하다. 컨텍스트는 깔아뒀으므로 후속에서 `useBlockCanEdit()` 만 부르면 된다
+
+### develop 병합 메모 (#178 이후)
+
+`ref-ys` 가 `8d6c7c3` 기준이라 `origin/develop`(`4baf58a`)을 fast-forward 로 당겼다. **충돌 0건** — develop 이 바꾼 4개 파일(`CurrentUserProvider` · `PageAccessGate` · `EmployeeSearchInput` · `WORKLOG`)과 이 작업의 파일이 하나도 겹치지 않는다. `CurrentUser` 타입 · `role` 도 그대로라 의미 충돌도 없다.
+
+**#178 과 방향이 같다** — 그쪽은 403 을 `/forbidden` 대신 본문 자리에서 보여주고, 이 작업은 그 403 이 날 버튼을 애초에 감춘다. 예방과 대처가 짝을 이룬다.
+
+### 확인
+
+- `npm run build` · `npm run lint` 통과 (develop 반영 후 재검증)
+
+---
+
+## [2026-08-16] 사원 검색 칸이 화면을 통째로 튕기던 문제 ✅
+
+브랜치: `fix/employee-search-forbidden` · API: 변경 없음
+
+`develop` 를 받은 팀원이 **프로젝트 생성 · 스텝(결재 블록) 진입이 안 된다**고 알려와 원인을 잡았다.
+사원 검색 칸이 마운트되면서 **ADMIN 전용 사원 목록 API** 를 불렀고, 그 403 이 전역 처리로
+`/forbidden` 까지 이어지며 화면이 통째로 넘어갔다. 원인(호출)과 증상(표시) 둘 다 고쳤다.
+
+### 변경 파일
+
+| 파일                                             | 변경                                                                        |
+| ------------------------------------------------ | --------------------------------------------------------------------------- |
+| `src/features/employee/EmployeeSearchInput.tsx`  | 수정 — 전 사원 목록 프리페치를 ADMIN 으로 한정                              |
+| `src/features/auth/CurrentUserProvider.tsx`      | 수정 — 권한 403 을 `/forbidden` 이동 대신 `PermissionDeniedContext` 로 전달 |
+| `src/features/pagePermission/PageAccessGate.tsx` | 수정 — 403 안내를 본문 자리에서 함께 그림                                   |
+
+### 트러블슈팅
+
+| 항목 | 내용                                                                                                                                                             |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 증상 | 사원(MEMBER) 계정이 `/projects/new` · 결재 블록이 있는 스텝에 들어가면 권한 오류 전체 화면                                                                       |
+| 응답 | `GET /api/v1/employees?size=200` → 403 `ACC_ADMIN_REQUIRED` (명세 30번은 ADMIN 전용)                                                                             |
+| 원인 | `EmployeeSearchInput` 이 빈 칸 목록용으로 그 API 를 마운트 시 호출. `.catch(() => {})` 로 삼켰지만 **전역 403 이벤트(`lib/api.ts`)가 먼저 발사**돼 소용이 없었다 |
+| 해결 | 호출 자체를 ADMIN 으로 한정. 이름 검색(`/employees/search`)은 전원 사용 가능이라 기능은 유지된다                                                                 |
+| 부가 | 같은 칸을 쓰는 화면 4곳(프로젝트 생성 · 결재 상신 · 결재자 교체 · 참여자 추가)이 함께 풀렸다                                                                     |
+
+### 부수 결정
+
+- **권한 403 은 셸 안 본문에만 그린다** — `/forbidden` 은 `BARE_LAYOUT_PATHS` 라 사이드바 · 헤더까지 사라져, 사이드바에서 누른 결과가 전체 화면 오류가 됐다. 팀 결정(본문 표시)이 `PageAccessGate` 에만 적용돼 있었고 전역 403 경로가 예전 그대로였다
+- **경로를 함께 저장해 자동으로 푼다** — `{ pathname, code }` 로 담아 화면을 옮기면 값이 어긋나 풀린다. 효과에서 상태를 되돌리지 않는 이 저장소의 기존 방식과 같다
+- **`/forbidden` 라우트는 남긴다** — 셸 밖(`BARE_LAYOUT_PATHS`)에서 403 을 받는 경로가 계속 쓴다
+- **`PagePermissionList` 의 같은 호출은 그대로 둔다** — ADMIN 전용 화면(`/settings/page-permissions`)이라 403 이 날 수 없다
+
+### 확인
+
+- `npx tsc --noEmit` · `npx eslint src` · `npm run build` 통과
+- 사원 계정으로 `/projects/new` 진입 정상 확인 (2026-08-16)
+
+## [2026-08-16] 디자인 일관성 스윕 — 모달 셸 · 타이포 · 페이지 제목 · 색 토큰 ✅
+
+브랜치: `style` · API: 변경 없음 · 이슈: #176
+(모달 버튼 통일에 이어, 조사에서 나온 나머지 이탈을 한 번에 정리한 건)
+
+버튼 스윕 뒤 남은 네 갈래를 정리했다 — **모달 껍데기 3종 · `text-[13px]` 우회 · 손수 만든 페이지 제목 · 하드코딩 색**. 새 규칙을 만든 곳은 `PageTitle` 의 설명 슬롯과 AI 색 토큰 둘뿐이고, 나머지는 이미 있던 토큰·컴포넌트로 합류시켰다.
+
+> 🔀 **2026-08-16 `develop`(#174 화면 다듬기 스윕) 병합 후 재검토 완료.** 아래 `develop 병합 메모` 참고 — 토큰 **값**이 바뀌어 일부 치환의 결과 색이 달라졌고, 삭제된 화면 2개는 작업 대상에서 빠졌다.
+
+### 변경 파일
+
+| 파일                                                                                                                                                                                    | 변경                                                                                                                               |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app/globals.css`                                                                                                                                                                   | 수정 (`--color-red-text-deep` · `--color-ai-primary` · `--color-ai-primary-hover` 추가, `--color-btn-danger-hover` 를 참조로 전환) |
+| `src/components/Modal.tsx`                                                                                                                                                              | 수정 (`DEFAULT_PANEL` 그림자 `shadow-lg` → `shadow-2xl`)                                                                           |
+| `src/components/PageTitle.tsx`                                                                                                                                                          | 수정 (`description` 슬롯 추가 · 설명 유무로 정렬 분기)                                                                             |
+| `src/components/Breadcrumb.tsx`                                                                                                                                                         | 수정 (`mb-2` — 아래 제목과의 간격을 자기가 갖는다)                                                                                 |
+| `src/components/DataTable.tsx` · `bidding/NoticeSkeletons.tsx`                                                                                                                          | 수정 (`rounded-xl` → `rounded-base`)                                                                                               |
+| `src/features/**` 모달 6개 (`CollectionConditionFormModal` · `NoticeProjectConvertModal` · `BulkUploadModal` · `CashFlowFormModal` · `CashFlowMatchModal` · `TaxInvoiceMatchModal`)     | 수정 (`shadow-lg` → `shadow-2xl`)                                                                                                  |
+| `src/features/**` 반경 19곳 (`login/page` · `IssueBoard` · `IssueDetailModal` · `BlockIssuesPanel` · `ProjectIssues` · `BlockCard` · `PageAccessGate` · `FormFields` 2종 · bidding 7곳) | 수정 (`rounded-xl`/`rounded-2xl` → `rounded-base`)                                                                                 |
+| `src/features/**` 타이포 12개 파일 (`DashboardSchedule` 11 · `ProjectCard` 11 · `MyProjectList` 5 · `ProjectSummaryCards` 3 · `IssueDetailModal` 3 · `DashboardNotifications` 3 외)     | 수정 (`text-[13px]` → `text-detail`, 43곳)                                                                                         |
+| `src/features/**` 페이지 제목 18개 파일                                                                                                                                                 | 수정 (손수 만든 `<h2>` → `PageTitle`)                                                                                              |
+| `src/features/finance/FinanceHub.tsx` · `employeeGroup/EmployeeGroupList.tsx`                                                                                                           | 수정 (`PageTitle` 밖에 붙이던 설명을 `description` 으로)                                                                           |
+| `src/features/**` 색 15개 파일 (vitamate 4 · approval 5 · `ChecklistBlock` · `DashboardNotifications` · `NotificationList` · `activityLog/types` · `issue/types` · `NoticeReviewModal`) | 수정 (하드코딩 hex → 토큰, 52곳)                                                                                                   |
+| `src/features/block/types.ts`                                                                                                                                                           | 수정 (AI 블록 아이콘색만 `var(--color-ai-primary)` 참조)                                                                           |
+
+### 주요 작업 내용
+
+- **모달 셸 통일** — `Modal` 의 `DEFAULT_PANEL` 이 `shadow-lg` 라, `className` 을 안 넘긴 모달만 그림자가 얕았다. 다수파(`shadow-2xl` 31개)로 기본값을 맞추고, 직접 `shadow-lg` 를 붙이던 모달 6개도 함께 올렸다. `rounded-xl`(12px, `rounded-base` 와 같은 값) · `rounded-2xl`(16px, 토큰에 없음) 19곳을 `rounded-base` 로 모았다
+- **`text-[13px]` → `text-detail`** 43곳. `--text-detail` 이 13px 로 들어온 뒤로 값이 같아 남길 이유가 없었다. `MarkdownEditor` 의 `[&_h2]:text-[13px]` 도 함께 바뀌어 `[&_h3]:text-label` 과 표기가 맞춰졌다
+- **`PageTitle` 에 설명 슬롯 추가 후 18개 화면 적용** — 제목 아래 한 줄 설명이 컴포넌트 밖에 있어 `mt-1`/`mt-2`, `text-label`/`text-caption` 로 갈려 있었다. 설명을 컴포넌트가 들고, 브레드크럼 아래 간격은 `Breadcrumb` 이 `mb-2` 로 갖는다
+- **색 토큰화 52곳** — ① 값이 같은 토큰이 이미 있던 것(`#00BC7D`→`step-done`, `#FFE2E2`/`#E7000B`→`red-bg`/`red-text`, `#EBE7FF`/`#7C3AED`→`purple-bg`/`purple-text`) ② AI 보라 `#4F39F6` 을 `--color-ai-primary` 로 승격. 파일마다 갈리던 hover 두 값(`#4430d6` 5곳 · `#4429E0` 4곳)을 `--color-ai-primary-hover` 하나로 합쳤다
+
+### 트러블슈팅
+
+| 문제                                                   | 원인                                                                     | 해결                                                                                                      |
+| ------------------------------------------------------ | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| `#C10007` 에 맞는 토큰이 `--color-btn-danger-hover` 뿐 | 값은 같은데 **버튼 hover 용 이름**이라, 배지 글자색에 쓰면 뜻이 어긋난다 | `--color-red-text-deep` 를 신설하고 `--color-btn-danger-hover` 가 이를 참조하게 했다. 값은 한 곳에만 있다 |
+| `PageTitle` 적용 후 브레드크럼 아래 간격이 두 번 잡힘  | 제목 블록의 `mt-2` 와 브레드크럼 감싼 `<div className="mb-6">` 이 겹쳤다 | 래퍼 `div` 를 걷어내고 간격을 `Breadcrumb` 의 `mb-2` 하나로 모았다                                        |
+| `prettier --write` 가 무관한 11개 파일을 수정          | 저장소에 기존 포맷 드리프트가 있다 (버튼 PR 때와 같은 파일들)            | 이번에도 되돌렸다 — 별도 `[CHORE]` 로 한 번에 정리할 것                                                   |
+
+### develop 병합 메모 (#174 이후)
+
+`style` 이 `develop` 보다 6커밋 뒤라 fast-forward 후 작업을 얹었다. 충돌 14건 중 코드 12건 · 문서 1건 · 삭제 2건.
+
+| 쟁점                             | develop                                            | 이 작업                                                      | 결론                                                                                 |
+| -------------------------------- | -------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `--color-step-done`              | `#00bc7d` → **`#00a76f`**                          | `ChecklistBlock` 의 `#00BC7D` 를 `step-done` 으로 치환       | **치환 유지** — 토큰을 따르는 게 목적이다. 체크 표시가 조금 어두워진다 (의도된 결과) |
+| `--color-purple-bg`              | `#ebe7ff` → **`#eef2ff`**                          | `DashboardNotifications` 의 `#EBE7FF` 를 `purple-bg` 로 치환 | **치환 유지** — 같은 이유. `보고` 배지 배경이 조금 밝아진다                          |
+| 결재 목록 탭 색                  | `#4F39F6` → `btn-primary`(파랑)                    | `ai-primary`(보라)                                           | **develop 채택** — 다른 화면 탭과 같은 파랑이 맞다                                   |
+| 공고 검토 체크박스               | `accent-[#4F39F6]` → `accent-btn-primary`          | `accent-ai-primary`                                          | **develop 채택** — 체크박스 accent 는 전사 17곳이 `btn-primary` 다                   |
+| 결재 · 알림의 나머지 보라        | (손 안 댐)                                         | `ai-primary` 로 치환했다 되돌림                              | **원본 HEX 유지** — 담당 구역이 달라 손대지 않고 목록만 인계했다 (아래 참고)         |
+| 화면 설명 문구                   | 짧게 다듬음 (`조직 부서를 관리합니다.` 등)         | 옛 긴 문구                                                   | **develop 채택** — 문구는 #174 의 결과물이다. 구조만 `PageTitle` 로                  |
+| `Modal` 의 `BASE_PANEL`          | `max-h-[calc(100dvh-2rem)]` 추가                   | 변경 없음                                                    | **develop 채택** + 이 작업의 `DEFAULT_PANEL` 그림자 변경을 함께 유지                 |
+| 로그인 카드                      | 로고 판 추가 (`rounded-2xl` 유지)                  | `rounded-base`                                               | **양쪽 병합** — 로고는 develop, 반경은 이 작업                                       |
+| `그룹 관리` · `CompanyFileAdmin` | **삭제** (기능 제거 · `AdminFileScreen` 으로 교체) | `PageTitle` 적용                                             | **develop 채택** — 파일이 없어져 작업 대상에서 빠졌다 (`PageTitle` 적용 23 → 21곳)   |
+
+병합 뒤 4개 항목 모두 유지됨을 재확인했다 — 손수 모달 버튼 0 · `rounded-xl`/`2xl` 0 · `text-[13px]` 0 · `#4F39F6` 0 · 모달 `shadow-lg` 0.
+
+**#174 가 이 작업과 같은 방향으로 움직인 것** — 전역 `cursor: pointer` 규칙을 `globals.css` 에 넣었다. 이 작업이 버튼 66개에서 `cursor-pointer` 를 떼어낸 것과 결론이 같다 (골격이 맡고 화면은 붙이지 않는다).
+
+**AI 보라의 적용 범위는 비타메이트로 정했다 — 다만 결재 · 알림은 직접 고치지 않았다.** #174 는 결재 탭 · 공고 검토 체크박스 2곳만 파랑으로 되돌리고 나머지는 남겨 둬, 결재 화면에 보라와 파랑이 섞여 있다. 결재 · 알림은 AI 기능이 아니라 보라가 맞지 않지만 **담당 구역이 달라** 원본 HEX(`#4F39F6` · `#4430d6`)를 그대로 두고 자리 목록만 담당자에게 넘겼다.
+
+| 파일                                             | 줄        | 자리                              |
+| ------------------------------------------------ | --------- | --------------------------------- |
+| `src/features/approval/ApprovalBlock.tsx`        | 359 · 374 | 결재 요청 버튼 (완료 표시 · 제출) |
+| `src/features/approval/ApprovalDetailView.tsx`   | 351 · 450 | 회차 선택 칩 · `승인` 버튼        |
+| `src/features/approval/ApprovalDraftForm.tsx`    | 146       | 임시저장 후 닫기 버튼             |
+| `src/features/approval/ApprovalList.tsx`         | 444       | `내 차례` 배지                    |
+| `src/features/approval/ApprovalProcessModal.tsx` | 22        | `승인` 확인 모달 버튼             |
+| `src/features/notification/NotificationList.tsx` | 50        | 알림 분류 필터 칩                 |
+
+이 자리들을 파랑으로 옮기려면 `bg-[#4F39F6]` → `bg-btn-primary`, `hover:bg-[#4430d6]` → `hover:bg-btn-primary-hover`, `border-[#4F39F6]` → `border-btn-primary`, `text-[#4F39F6]` → `text-text-primary-blue`, `bg-[#4F39F6]/5` → `bg-btn-primary/5` 로 바꾸면 된다.
+
+이 작업이 토큰으로 옮긴 보라는 `features/vitamate/*`(26곳)와 `BLOCK_TYPES` 의 AI 블록 아이콘뿐이다. **범위 규칙은 `globals.css` 토큰 주석에 적어 뒀다** — 색을 빌려 쓰기 시작하면 "보라 = AI" 라는 뜻이 곧 무너지기 때문이다.
+
+---
+
+### 부수 결정
+
+- **식별색 팔레트는 토큰화하지 않는다** — `block/types.ts`(블록 유형 10종) · `file/format.ts`(확장자 14종) · `PROJECT_COLORS` · `MemberAvatar` 의 hex 는 값이 토큰과 겹쳐도 뜻이 다르다. `#ECFDF5` 가 거기서는 "성공" 이 아니라 "체크리스트 블록" 이다. 의미색으로 바꾸면 나중에 토큰을 손볼 때 관계없는 아이콘 색이 함께 움직인다
+- **예외 하나 — AI 블록 아이콘색** — 다른 블록색과 달리 화면 곳곳에서 쓰는 브랜드색이라 `var(--color-ai-primary)` 를 참조한다. 주석으로 이유를 남겼다
+- **AI hover 는 다수파(`#4430d6`)를 택했다** — `#4429E0` 와 육안 차이가 없어 어느 쪽이든 상관없지만, 쓰이는 곳이 하나 더 많은 쪽으로 붙였다
+- **AI 옅은 색은 토큰을 더 만들지 않는다** — `bg-ai-primary/5` · `border-ai-primary/30` 처럼 투명도로 만든다. 단계마다 토큰을 두면 "어느 단계를 쓰나" 가 또 갈린다
+- **상세 화면의 엔티티 제목은 `PageTitle` 이 아니다** — `EmployeeDetail` · `NoticeDetail` · `ApprovalDetailView` · `TaxInvoiceDetail` 은 제목이 **데이터**이고 배지가 같은 줄에 붙는다. 페이지 제목과 성격이 달라 그대로 뒀다
+- **`Breadcrumb` 이 아래 간격을 갖는다** — 제목이 아니라 브레드크럼의 일이다. 이렇게 두면 브레드크럼을 쓰는 화면이 늘어도 간격을 매번 정하지 않는다
+
+---
+
+## [2026-08-16] 모달 푸터 버튼을 공통 `.btn` 체계로 통일 ✅
+
+브랜치: `style` · API: 변경 없음 · 이슈: #176
+(디자인 일관성 조사에서 가장 규모가 큰 이탈로 꼽힌 건)
+
+`globals.css` 에 `.btn` 골격이 있는데도 **모달 푸터 버튼만 손수 만든 클래스 문자열이 36개 파일에 복붙**돼 있었다. 그 결과 같은 "확인" 버튼이 페이지에서는 34px/16px, 모달에서는 31.5px/13px 로 다르게 보였다. 66개를 저장소에 이미 자리잡은 표준(`btn btn-md btn-*`)으로 맞췄다.
+
+### 변경 파일
+
+| 파일                                                                                                                                                            | 변경        |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `src/features/block/AddBlockModal.tsx` · `BlockEditModal.tsx` · `BlockMoveStepModal.tsx` · `ImageEditModal.tsx` · `ImageUploadModal.tsx` · `TextBlockModal.tsx` | 수정 (11개) |
+| `src/features/project/step/StepCompleteModal.tsx` · `StepDeleteModal.tsx` · `StepFormModal.tsx` · `StepPermissionModal.tsx` · `StepStatusModal.tsx`             | 수정 (8개)  |
+| `src/features/project/stage/StageDeleteModal.tsx` · `StageFormModal.tsx` · `StageManageModal.tsx` · `StagePermissionModal.tsx`                                  | 수정 (7개)  |
+| `src/features/project/settings/CloseProjectModal.tsx` · `DeleteProjectModal.tsx` · `LinkCategoryModal.tsx`                                                      | 수정 (6개)  |
+| `src/features/project/member/AddMemberModal.tsx` · `ProjectMembersModal.tsx`                                                                                    | 수정 (3개)  |
+| `src/features/employee/AccountStatusModal.tsx` · `EmployeeDetail.tsx` · `PasswordResetModal.tsx` · `ResignationModal.tsx` · `RoleChangeModal.tsx`               | 수정 (7개)  |
+| `src/features/department/DeleteDepartmentModal.tsx` · `DepartmentFormModal.tsx`                                                                                 | 수정 (5개)  |
+| `src/features/jobPosition/DeleteJobPositionModal.tsx` · `JobPositionFormModal.tsx`                                                                              | 수정 (5개)  |
+| `src/features/businessCategory/DeleteCategoryModal.tsx` · `CategoryFormModal.tsx`                                                                               | 수정 (5개)  |
+| `src/features/issue/IssueConflictModal.tsx` · `IssueFormModal.tsx`                                                                                              | 수정 (4개)  |
+| `src/features/approval/ApproverReplaceModal.tsx`                                                                                                                | 수정 (2개)  |
+| `src/features/companyDocument/EditCompanyDocumentModal.tsx`                                                                                                     | 수정 (2개)  |
+| `src/features/file/FileViewerModal.tsx`                                                                                                                         | 수정 (1개)  |
+
+### 주요 작업 내용
+
+- **확인 버튼** `min-w-[104px] cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail …` → `btn btn-md btn-primary min-w-[104px]` (24개). `min-w-[128px]`(`ImageUploadModal`) · `min-w-[136px]`(`IssueConflictModal`) 는 폭만 남기고 나머지를 골격에 넘겼다
+- **삭제 버튼** `bg-red-text … hover:bg-btn-danger-hover` → `btn btn-md btn-danger` (9개)
+- **취소 버튼** 고스트(배경·테두리 없음) → `btn btn-md btn-gray-outlined` (30개). 이미 35개 파일이 쓰던 방식에 맞췄다
+- **`AccountStatusModal`** 의 조건부 버튼은 `AlertDialog` 와 같은 꼴(`btn btn-md ${isDanger ? 'btn-danger' : 'btn-primary'}`)로 바꿨다. 라벨이 `정지`/`활성화`/`처리 중…` 로 바뀌며 폭이 튀던 것도 `min-w-[104px]` 로 잡혔다
+
+### 트러블슈팅
+
+| 문제                                            | 원인                                                                                                                                                         | 해결                                                              |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| 일괄 치환 시 일부 문자열이 깨짐                 | 짧은 패턴(`… hover:bg-btn-primary-hover`)이 긴 패턴(`… hover:bg-btn-primary-hover disabled:…`)의 **접두사**라, 짧은 쪽을 먼저 바꾸면 긴 쪽이 반쪽만 치환된다 | 규칙을 **길이 내림차순**으로 정렬해 적용                          |
+| `prettier --write` 가 무관한 11개 파일까지 수정 | 저장소에 이미 포맷이 어긋난 파일이 있었다 (기존 드리프트)                                                                                                    | 버튼 변경이 없는 파일은 `git checkout` 으로 되돌려 PR 범위를 유지 |
+
+### 부수 결정
+
+- **모달 푸터 표준 = `btn btn-md btn-gray-outlined` + `btn btn-md btn-primary min-w-[104px]`** — 새로 정한 게 아니라 `CashFlowFormModal` · `NoticeProjectConvertModal` · `BulkUploadModal` 등 35개 파일이 이미 쓰던 것이다. 표준을 만드는 대신 **다수파에 합류**시켰다
+- **`.btn-ghost` 변형은 만들지 않는다** — 취소 버튼의 가벼운 느낌은 살릴 수 있지만, 그러면 같은 "취소"가 모달마다 고스트/아웃라인 두 종류로 남는다. 종류를 늘리지 않는 쪽을 골랐다
+- **`disabled:` 유틸리티는 전부 뗀다** — `.btn:disabled` 가 `cursor: not-allowed; pointer-events: none` 을, 각 변형이 색·투명도를 이미 처리한다. 화면마다 다르던 `disabled:opacity-40` / `disabled:text-text-muted` 갈래도 함께 사라졌다
+- **`cursor-pointer` 도 뗀다** — `.btn` 에 들어 있다. 남겨 두면 골격을 안 믿고 있다는 신호가 된다
+
+---
+
+## [2026-08-16] 화면 다듬기 스윕 — 깜빡임 · 표 · 문구 · 반응형 ✅
+
+브랜치: `ref/ui-polish-sweep` · 이슈: #174
+
+담당 화면(내 파일 · 전사 관리 · 재무 · 결재 · 공고 조회 · 입찰)을 훑어 **완성도 문제**를 걷어냈다.
+제일 컸던 것은 새로고침마다 셸이 번쩍이는 문제였고, 원인은 캐시 저장 위치(`sessionStorage`)가
+서버 렌더에서 읽히지 않는 데 있었다. 겸해서 표 · 문구 · 반응형을 같은 기준으로 맞췄다.
+
+### 변경 파일 (주요)
+
+| 파일                                                                   | 변경                                                             |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `src/features/auth/shellCache.ts` · `avatarThumbnail.ts`               | **생성** — 셸 값 · 아바타 사본을 쿠키에 담아 첫 HTML 부터 그린다 |
+| `src/components/AppShellSkeleton.tsx`                                  | **생성** — 세션 확인 전 셸 (쿠키 값으로 실제 모습 그대로)        |
+| `src/components/mobileSidebarClasses.ts`                               | **생성** — 1024px 미만 사이드바 드로어                           |
+| `src/features/file/AdminFileExplorer.tsx` · `AdminFileScreen.tsx`      | **생성** — 전사 파일 탐색기 (프로젝트 → 스테이지 → 스텝 → 파일)  |
+| `src/features/companyDocument/CompanyDocumentScreen.tsx`               | **생성** — 사내 문서함 분리                                      |
+| `src/features/businessCategory/cache.ts` · `employee/optionCache.ts`   | **생성** — 카테고리 · 부서 · 직급 셀렉트 캐시                    |
+| `src/components/{Pagination,DataTable,Modal,Sidebar,MemberAvatar}.tsx` | 수정 — 번호 페이지네이션 · 카드 전환 · 폭 버그 · 드로어 · 아바타 |
+| `src/features/employeeGroup/` · `app/settings/employee-groups/`        | **삭제** — 그룹 관리 제거                                        |
+| 담당 화면 다수                                                         | 표 정렬 · 컬럼명 · 문구 · 플레이스홀더                           |
+
+### 주요 작업 내용
+
+- **셸 깜빡임 제거** — 사용자 · 메뉴 · 아바타 썸네일을 쿠키에 담아 루트 레이아웃이 HTML 에 그려 내린다. 세션 확인 전에도 셸은 한 번만 그려지고 본문만 늦게 채워진다
+- **전사 파일 탐색기** — 프로젝트를 고르면 파일이 바로 펼쳐지고 스테이지 · 스텝으로 좁힌다. 위치는 URL 에 담아 새로고침 · 뒤로가기가 자연스럽게 동작한다
+- **표** — 금액만 오른쪽, 나머지 왼쪽으로 정렬 통일. 가로 스크롤 제거(3개 표), 768px 미만 카드 전환, 스켈레톤이 열 정렬을 따르도록 수정
+- **페이지네이션** — 번호 + `…` 방식으로 교체하고 가운데 정렬 · 로딩 자리표시 추가
+- **문구** — 서술은 `합니다`, 요청은 `해주세요` 로 통일. 설명형 힌트 · 이모지 · 반말 예시를 걷어냈다
+- **반응형** — 사이드바 드로어 · 표 카드 전환 · 본문 여백 · 모달 상한
+
+## [2026-08-16] 모달 로딩 스피너 통일 · 프로젝트 목록 스켈레톤 정렬 ✅
+
+브랜치: `style` · API: 변경 없음 · 이슈: #172
+(결함 3건 수정 #170 이후 이어진 로딩 표현 정리 건)
+
+스켈레톤은 **실물과 자리가 같을 때만** 값을 한다. 모달은 크기 · 본문 구성이 저마다 달라 뼈대를 맞출 수 없어 스피너로 통일하고, 반대로 모양이 고정된 프로젝트 목록은 스켈레톤을 실물에 정확히 맞췄다. 작업 중 드러난 **폴백 모달 이중 노출**과 **컬럼 머리글 `sticky` 추적**도 함께 잡았다.
+
+### 변경 파일
+
+| 파일                                                                                                   | 변경                                                                            |
+| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| `src/components/Spinner.tsx`                                                                           | **생성** (`Spinner` · `LoadingSpinner`)                                         |
+| `src/components/ModalLoadingFallback.tsx`                                                              | 수정 (본문 스피너 교체 · 300ms 지연 노출)                                       |
+| `src/features/issue/IssueDetailModal.tsx` · `IssueFormModal.tsx`                                       | 수정 (헤더 · 본문 뼈대 → 스피너)                                                |
+| `src/features/finance/TaxInvoiceMatchModal.tsx` · `CashFlowMatchModal.tsx`                             | 수정 (추천 후보 뼈대 → 스피너)                                                  |
+| `src/features/bidding/NoticeReviewModal.tsx`                                                           | 수정 (`ReviewSkeleton` 삭제 → 스피너)                                           |
+| `src/features/bidding/NoticeProjectConvertModal.tsx`                                                   | 수정 (전환 정보 뼈대 → 스피너)                                                  |
+| `src/features/block/BlockMoveStepModal.tsx` · `project/step/StepDeleteModal.tsx`                       | 수정 (목록 뼈대 → 스피너)                                                       |
+| `src/components/project/ProjectListHeader.tsx`                                                         | **생성** (`PROJECT_ROW_GRID` · `PROJECT_ROW_TOGGLE_SLOT` · 머리글 — 리뷰 반영)  |
+| `src/features/project/ProjectPageSkeleton.tsx`                                                         | **생성** (`/projects` 화면 껍데기 — `ProjectListSkeleton` 에서 분리, 리뷰 반영) |
+| `src/components/project/ProjectListSkeleton.tsx`                                                       | 수정 (머리글 포함 · 칸 높이 · 카드 행만 남김)                                   |
+| `src/features/project/ProjectCard.tsx`                                                                 | 수정 (`sticky top-0 z-10` 제거 · 격자/머리글을 공용 모듈에서 가져옴)            |
+| `src/features/project/MyProjectList.tsx` · `dashboard/DashboardProjects.tsx` · `app/projects/page.tsx` | 수정 (import 경로 · `sticky` 주석 정리)                                         |
+
+### 주요 작업 내용
+
+- **모달 로딩 = 스피너 하나** — 모달 9곳의 스켈레톤을 `LoadingSpinner` 로 교체했다. 자리(`py-8` ~ `py-20`)는 부르는 쪽이 정한다. 블록 곁패널(`연결된 이슈` · `블록 활동 기록`)은 목록 모양이 고정이라 스켈레톤을 그대로 뒀다
+- **폴백 모달 300ms 지연** — 동적 청크 폴백은 실물과 **다른 `<dialog>`** 라, 뜨자마자 닫히고 실물이 새로 열려 창이 두 번 열린 것처럼 보였다. 청크는 대개 `preload*` 로 미리 받아 두므로 그 사이에는 아무것도 그리지 않는다
+- **목록 머리글을 스켈레톤에도** — 실물은 `머리글 → 카드` 인데 스켈레톤은 카드만 그려, 목록이 도착하면 약 37px 내려앉았다. 머리글은 데이터 없이 그릴 수 있는 정적 markup 이라 **실물 컴포넌트를 그대로** 가져다 쓴다
+- **`ProjectPageSkeleton` 실측 보정** — 분류 칸 `25px → 28px`(태그 `border-[1.5px]` 누락), 상태 탭 폭 하드코딩 제거, 기간 필터 · 페이지 이동 자리 추가
+- **컬럼 머리글 `sticky` 제거** — 목록을 굴릴 때 머리글 띠가 화면 위에 남아 다른 구역을 덮었다. 목록과 함께 올라가게 되돌렸다
+
+### 코드 리뷰 반영 (CodeRabbit, PR #172)
+
+- **공용 스켈레톤의 feature 의존 분리** — `components/project/ProjectListSkeleton` 이 `features/project/ProjectCard` · `projectStatus` 를 직접 참조해, 대시보드 로딩 UI 가 프로젝트 feature 구현에 묶여 있었다. 공용으로 쓰는 격자 · 머리글은 `components/project/ProjectListHeader` 로 내리고, feature 규칙(`PROJECT_STATUS_OPTIONS`)을 알아야 하는 화면 껍데기는 `features/project/ProjectPageSkeleton` 으로 올렸다. 결과적으로 `src/components/project/` 의 `@/features` 참조 0건
+- **전환 모달 로딩 판정에 카테고리 누락** (`NoticeProjectConvertModal`) — `Promise.all` 로 감쌌지만 `setSummaries` 는 개별 `.then` 에서 불려, 요약이 먼저 오면 카테고리가 오는 중인데 폼이 열렸다. 그 순간 `categories` 가 빈 배열이라 "고를 수 있는 사업 카테고리가 없습니다" 로 잠긴다. `categoryLoadedAt !== reloadCount` 를 로딩 조건에 더했다
+- **재시도 중 후보 자리가 빔** (`TaxInvoiceMatchModal`) — `다시 시도` 가 `retryCount` 만 올리고 `error` 를 남겨 `candidates === null && hasFailed` 가 계속 참이었다. 핸들러에서 `setError('')` 를 먼저 부른다
+
+### 트러블슈팅
+
+| 문제                                 | 원인                                                   | 해결                                                                       |
+| ------------------------------------ | ------------------------------------------------------ | -------------------------------------------------------------------------- |
+| 새로고침마다 셸이 두 번 그려짐       | 자리표시 셸 → 실제 셸로 **컴포넌트가 교체**됨          | 확인 전에도 같은 셸을 그리고 본문만 가린다 (`SessionConfirmedOnly`)        |
+| 캐시가 있어도 첫 페인트가 빔         | `sessionStorage` 는 서버 렌더에서 못 읽는다            | 쿠키로 옮겨 루트 레이아웃이 읽어 HTML 에 담는다                            |
+| 아바타가 이니셜 ↔ 사진으로 번갈아 뜸 | 사진 오기 전 이니셜을 먼저 그림                        | 사진이 올 자리는 테두리만 두고, 48px 사본을 쿠키에 담아 첫 프레임에 그린다 |
+| 모달이 화면 폭만큼 늘어남            | 공통 `max-w` 와 호출부 `max-w` 가 충돌 (CSS 순서 문제) | 공통에서 폭 상한을 빼고 높이만 남긴다                                      |
+| 표 스켈레톤이 값과 어긋남            | 막대가 열 정렬(`align`)을 따르지 않음                  | 스켈레톤 셀에도 같은 정렬을 적용                                           |
+| 입출금 필터바가 한 번 늘어남         | 프로젝트 셀렉트를 **옵션 도착 후** 그림                | 자리를 먼저 두고 비었을 때만 잠근다                                        |
+
+### 부수 결정
+
+- **표 정렬은 금액만 오른쪽** — 날짜 · 배지를 가운데로 두었다가 되돌렸다. 눈이 왼쪽 기준선을 따라가는 편이 훑기 쉽다
+- **호버 커서는 전역 규칙으로** — 화면마다 `cursor-pointer` 를 붙이다 빠진 자리가 계속 나와, `globals.css` 에서 눌리는 요소 전체에 건다
+- **모달 스켈레톤은 되돌렸다** — 다른 담당자가 맡기로 해 원래 코드로 복구
+- **담당 밖 도메인은 손대지 않는다** — 프로젝트 · 블록 · 이슈 · 정산 · 비타메이트 · 대시보드의 문구 수정은 전부 되돌렸다
+  | 모달 안에서 스피너가 돌다가 다른 모달이 열림 | `next/dynamic` 의 `loading` 이 실물과 **별개의 `<dialog>`** 를 열었다 닫는다 — 백드롭 깜빡임 + 포커스 이동 + 헤더 모양 변경 | 폴백을 300ms 지연 노출. 그 안에 청크가 오면 창이 한 번만 열린다 |
+  | 프로젝트 목록이 뜰 때 아래로 내려앉음 | 스켈레톤에 `ProjectListHeader` 가 없었다 | 실물 컴포넌트를 스켈레톤에서도 렌더 |
+  | 상태 탭 옆 검색창 폭이 로딩 중과 다름 | 탭 상자를 `w-80`(320px)로 어림했는데 실제는 6개 탭 ≈388px — `flex-1` 인 검색창이 68px 만큼 어긋났다 | `PROJECT_STATUS_OPTIONS` + 라벨을 `invisible` 로 넣어 폭을 스스로 계산 |
+
+### 부수 결정
+
+- **스켈레톤 대 스피너의 기준은 "자리가 고정인가"** — 목록 · 표처럼 행 모양이 정해진 곳은 스켈레톤, 크기가 제각각인 모달은 스피너. 어긋난 뼈대는 딸깍거림을 없애려다 오히려 만든다
+- **머리글 `sticky` 는 되돌린다** (#170 에서 넣었던 것) — 스크롤 중 다른 구역을 덮는 쪽이 기준을 잃는 것보다 거슬린다
+- **폴백은 지연이지 제거가 아니다** — 청크가 정말 느릴 때는 무반응보다 스피너 창이 낫다. 300ms 는 미리받기가 대부분 끝나는 선
+- **`src/components/` 는 feature 를 참조하지 않는다** — 두 화면이 함께 쓰는 것(격자 · 머리글)만 공용으로 내리고, 한 화면의 규칙을 알아야 하는 껍데기는 그 feature 안에 둔다. 스켈레톤이라고 무조건 `components/` 가 아니다
+- **"조회 중" 을 불리언 대신 `…At === reloadCount` 로** — 재시도 때 효과 안에서 플래그를 되돌리면 `react-hooks/set-state-in-effect` 에 걸린다. `DashboardProjects` 의 `failedAt` 과 같은 방식으로 맞췄다
+
+---
+
+## [2026-08-16] 결함 3건 수정 · 화면 정리 ✅
+
+브랜치: `style` · API: 변경 없음 (67번 제한값 명세만 확정) · 이슈: #170
+(용어 통일 #167 이후 이어진 QA 피드백 반영 건)
+
+QA 에서 나온 결함 3건 — **이슈 수정이 화면에 안 붙음 · 열람 권한자에게 `⋯` 노출 · 주소만 고치면 남의 프로젝트 블록이 보임** — 을 잡고, 함께 지적된 화면 문제(문서 블록 업로드 흐름 · 아이콘 크기 · 카드 정렬 · 이미지 제한 안내)를 정리했다.
+
+### 변경 파일
+
+| 파일                                                                                                                        | 변경                                                                 |
+| --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `src/features/project/step/StepScopeGuard.tsx`                                                                              | **생성** (스텝의 프로젝트 소속 검증)                                 |
+| `src/app/projects/[id]/steps/[stepId]/layout.tsx`                                                                           | 수정 (세 탭을 문지기로 감쌈)                                         |
+| `src/features/issue/IssueBoard.tsx`                                                                                         | 수정 (`refresh()` · `keepOrder()` — 저장 후 무깜빡임 재조회)         |
+| `src/components/ProjectSidebar.tsx`                                                                                         | 수정 (스텝 `⋯` 를 `canEditStep` 일 때만 노출)                        |
+| `src/components/AlertDialog.tsx`                                                                                            | 수정 (`AlertDialogThreeButton` 추가 · `Shell` 세로 배치 옵션)        |
+| `src/features/file/DuplicateNameModal.tsx` · `src/features/block/FileBlock.tsx`                                             | 수정 (동명 파일 → 새 버전 / 새 문서 선택, 행 아이콘 확대)            |
+| `src/features/block/ImageUploadModal.tsx` · `block/types.ts`                                                                | 수정 (장당 20MB · 요청당 15장 · 300MB)                               |
+| `src/features/project/ProjectCard.tsx`                                                                                      | 수정 (`PROJECT_ROW_GRID` · `ProjectListHeader` · 카드 아바타 이니셜) |
+| `src/features/project/MyProjectList.tsx` · `dashboard/DashboardProjects.tsx` · `components/project/ProjectListSkeleton.tsx` | 수정 (머리글 배치 · 같은 격자 공유)                                  |
+| `src/components/MemberAvatar.tsx`                                                                                           | 수정 (`initialsOnly` 옵션)                                           |
+| `src/features/activityLog/ActivityLogItem.tsx`                                                                              | 수정 (`<pre>` 에 `font-sans`)                                        |
+| `src/features/block/BlockIssuesPanel.tsx` · `activityLog/BlockActivityLogPanel.tsx` · `components/ModalLoadingFallback.tsx` | 수정 (패널 제목 `truncate`)                                          |
+| `src/features/block/ImageBlock.tsx` · `file/MyFileList.tsx`                                                                 | 수정 (아이콘 버튼 `size-7` + 아이콘 `size-4`)                        |
+| `.ai/API.md`                                                                                                                | 수정 (67번 이미지 업로드 제한 확정)                                  |
+
+### 주요 작업 내용
+
+- **이슈 저장 후 재조회** — 수정 응답만으로 카드를 병합하면 응답에 없는 필드(우선순위)가 옛값으로 남는다. 낙관적 반영은 유지하고 곧바로 목록을 다시 읽어 서버 값과 맞춘다. 직전 목록을 지우지 않아 깜빡이지 않고, `keepOrder()` 가 화면 순서를 그대로 지킨다
+- **스텝 `⋯` 노출 축소** — 이 스텝을 고칠 수 없으면 메뉴를 세우지 않는다. 자리는 빈 `span` 으로 남겨 진척률 `%` 위치가 흔들리지 않는다
+- **스텝 소속 검증** — 블록 · 이슈 · 활동 기록은 경로에 프로젝트가 없어 `stepId` 만으로 조회된다. 사이드바가 이미 받아 둔 스텝 목록 캐시로 소속을 확인하고, 아니면 안내 화면으로 돌린다 (추가 요청 없음)
+- **동명 파일 3갈래** — `새 버전으로 올리기` · `새 문서로 추가` · `취소`. 같은 이름이 여럿이면 얹을 대상을 특정할 수 없어 기존 2버튼으로 떨어진다
+- **프로젝트 카드 격자화** — 카드 · 머리글 · 스켈레톤이 `PROJECT_ROW_GRID` 하나를 공유하고, 컬럼명을 `sticky` 로 붙였다
+- **이미지 업로드 제한** — 넘친 장수를 버리지 않고 "남은 N장은 이어서" 로 안내한다 (블록 총 장수는 무제한, 요청 하나의 상한이다)
+
+### 트러블슈팅
+
+| 문제                                    | 원인                                                                                 | 해결                                                           |
+| --------------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| 우선순위를 바꿔도 카드가 그대로         | PATCH 응답을 `{...issue, ...next}` 로 병합 — 응답에 없는 필드는 옛값이 남는다        | 저장 후 목록 재조회. 순서 · 스크롤은 `keepOrder()` 로 보존     |
+| 프로젝트 번호만 바꿔도 이전 블록이 보임 | 캐시가 아니라 **소속을 확인하는 곳이 없었다** — 세 탭 모두 `stepId` 로만 조회한다    | `StepScopeGuard` 를 스텝 레이아웃에 한 겹                      |
+| 활동 기록의 변경 내용만 글씨체가 다름   | `<pre>` 의 브라우저 기본값이 고정폭 글꼴이라 `body` 의 Pretendard 가 상속되지 않는다 | `font-sans` 추가 (줄바꿈은 `whitespace-pre-wrap` 이 유지)      |
+| `연결된 이슈` 제목이 두 줄로 접힘       | 제목 `<h2>` 에만 줄바꿈 방지가 없어 배지 · 닫기 버튼에 밀렸다                        | `truncate` 추가 — 로딩 껍데기도 같이 맞춰 청크 도착 때 안 튀게 |
+
+### 부수 결정
+
+- **문지기는 "모르는 동안" 막지 않는다** — 스텝 목록이 아직 없거나 실패했으면 통과시킨다. 판정 전에 가로막으면 정상 진입에도 오류 화면이 한 번 스친다
+- **열람 전용 스텝의 권한 관리는 설정 화면으로 몬다** — 사이드바 메뉴를 없애도 `프로젝트 설정 > 스테이지 · 스텝 권한` 에 스텝 전체 목록이 있어 잃는 길이 없다
+- **아바타 이니셜은 프로젝트 카드에만** — 처음엔 전역으로 바꿨다가 되돌렸다. 24px 아바타가 수십 개 서는 목록에서만 사진이 의미가 없고, 헤더 · 마이페이지는 사진이 제 역할을 한다. `initialsOnly` 기본값을 바꾸지 말 것
+- **카드 격자에서 과업명 · 발주처만 `fr`** — 카드마다 컨테이너 폭이 같아 `fr` 도 같은 값으로 풀려 열이 맞는다. 나머지를 고정하는 이유는 내용 길이가 제각각이기 때문이다 (상태 라벨 · 분류 이름 · 참여자 수)
+- **아이콘 크기 기준은 전사 파일 관리** — 거기가 이미 `size-7` + `size-4` 였다. 문서 블록 · 내 문서함 · 이미지 블록을 그쪽에 맞췄다
+
+---
+
+## [2026-08-16] 화면 용어 통일 · 구어체 정리 ✅
+
+브랜치: `style` · API: 변경 없음 (문구 · 입력 표기만) · 이슈: #168
+
+**프로젝트 > 스테이지 > 스텝 > 블록** 을 공식 계층으로 확정하고, 같은 것을 두 이름으로 부르던 자리를 전부 한 이름으로 모았다. 겸해서 UI 문구에 섞여 있던 해요체를 합쇼체로 맞추고, 프로젝트 설정의 계약금액 입력에 천 단위 구분을 넣었다. 결재 · 입금확인 · 정산 · 세금계산서 조회 · 입찰공고는 범위에서 제외했다.
+
+### 용어 결정
+
+| 대상         | 쓰던 이름                          | 확정               |
+| ------------ | ---------------------------------- | ------------------ |
+| stage        | `단계` · `스테이지`                | **`스테이지`**     |
+| step         | `스텝`                             | `스텝` (변경 없음) |
+| block        | `블록` · `Block` · `AI Block`      | **`블록`**         |
+| issue        | `일정` · `전체 일정` · `이슈`      | **`이슈`**         |
+| activity log | `로그` · `활동 로그` · `활동 기록` | **`활동 기록`**    |
+| download     | `내려받기` · `다운로드`            | **`다운로드`**     |
+
+### 변경 파일
+
+| 파일                                                                                             | 변경                                                                                                                     |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `src/components/{StepTabs,ProjectTabs}.tsx`                                                      | 수정 (탭 `일정` → `이슈`, `전체 일정` → `전체 이슈`)                                                                     |
+| `src/components/ProjectSidebar.tsx`                                                              | 수정 (헤더 `진행 단계` → `스테이지`, 버튼 `단계수정` → `수정`, 메뉴 `스텝 권한 기본값` → `스테이지 권한`, 모달 폴백 3종) |
+| `src/components/{Modal,project/ProjectSidebarSkeleton}.tsx`                                      | 수정 (주석 · 스켈레톤 라벨)                                                                                              |
+| `src/features/project/settings/StepPermissionSection.tsx`                                        | 수정 (섹션 `스테이지 · 스텝 권한`, 버튼 `스테이지 권한` · `스텝 권한`, 기본값 규칙 명시)                                 |
+| `src/features/project/settings/ProjectInfoForm.tsx`                                              | 수정 (**계약금액 천 단위 콤마** — `type="number"` → `text` + `groupDigits`)                                              |
+| `src/features/project/FormFields.tsx`                                                            | 수정 (`groupDigits` export — 생성 폼과 설정 폼이 공유)                                                                   |
+| `src/features/project/stage/*.tsx` (4)                                                           | 수정 (`단계` → `스테이지` 전면)                                                                                          |
+| `src/features/project/step/StepFormModal.tsx` · `ProjectCard.tsx` · `overview/ProjectIssues.tsx` | 수정 (`소속 스테이지` · `전체 이슈` · `이슈 열기`)                                                                       |
+| `src/features/block/*` (16)                                                                      | 수정 (`Block 추가` → `블록 추가`, `블록 이름` → `블록 제목`, 해요체 정리)                                                |
+| `src/features/activityLog/*` (4) · `src/features/issue/*` (3)                                    | 수정 (`활동 로그` → `활동 기록`, 충돌 모달 문구)                                                                         |
+| `src/features/{dashboard,file,companyDocument,vitamate}/*` (10)                                  | 수정 (해요체 정리 · `내려받기` → `다운로드`)                                                                             |
+| `src/features/project/{api,types}.ts` · `src/lib/useFlipReorder.ts` 외                           | 수정 (주석 용어)                                                                                                         |
+
+### 주요 작업 내용
+
+- **이슈 용어 통일** — 스텝 탭 `일정`, 프로젝트 탭 `전체 일정`, 링크 `일정 열기` 가 모두 같은 데이터를 가리키면서 이름만 달랐다. 전부 `이슈` 로 모았다. 메인 대시보드의 `일정`(캘린더)은 실제 일정이라 그대로 둔다
+- **스테이지 용어 통일** — 사이드바 트리는 `스테이지`, 모달은 `단계` 로 갈려 있었다. `스테이지` 로 맞추고 `미분류 (단계 없음)` 5곳도 `미분류 (스테이지 없음)` 으로 교체
+- **권한 라벨 재정리** — `새 스텝 기본값` · `권한 관리` → `스테이지 권한` · `스텝 권한`. 대신 **"새 스텝이 생성될 때 기본값으로 적용된다"** 를 섹션 설명과 모달 배너 두 곳에 명시했다
+- **구어체 제거** — 서술문 해요체(`~어요` · `~네요` · `~돼요`) 30여 곳을 합쇼체로. 명령형 `~하세요` · `~해주세요` 와 확인 다이얼로그 `~할까요?` 는 기존 컨벤션이라 유지
+- **계약금액 표기** — 설정 폼이 `type="number"` 라 `1000000` 그대로 보였다. 생성 폼(`AmountField`)이 쓰던 `groupDigits` 를 export 해 같은 규칙으로 `1,000,000` 표시. 상태 · 요청 값은 여전히 숫자 문자열이다
+
+### 트러블슈팅
+
+| 문제                                                       | 원인                                                                               | 해결                                                                                |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `prettier --write "src/**"` 가 손대지 않은 파일까지 재포맷 | 일부 파일이 이전부터 포맷 규격에서 벗어나 있었음 (bidding · approval · finance 등) | 의도한 파일만 남기고 `git checkout` 으로 되돌림. 이후에는 수정한 파일만 지정해 포맷 |
+| 1차 통일 방향이 반대로 잡힘 (`스테이지` → `단계`)          | 당시 UI 다수가 `단계` 라 그쪽을 우세로 판단                                        | 계층(`프로젝트 > 스테이지 > 스텝 > 블록`)을 먼저 확정한 뒤 `스테이지` 로 재통일     |
+
+### 부수 결정
+
+- **`~할까요?` 확인 다이얼로그는 구어체로 보지 않는다** — 삭제 · 저장 확인 15곳이 모두 같은 형태라 컨벤션으로 굳었고, 질문형이 의도를 더 분명히 전한다
+- **주석 안의 도메인 용어까지 함께 바꾼다** — 코드를 읽는 사람이 화면 라벨과 주석을 대조하므로, 화면만 바꾸면 다음 사람이 다시 헷갈린다. 단 `업로드 3단계` · `캡처 단계` 처럼 stage 와 무관한 `단계` 는 그대로 둔다
+- **사이드바 버튼은 `수정` 한 단어로** — 헤더가 이미 `스테이지` 라 반복이고, `스테이지 수정` 은 옆 `+ 추가` 와 한 줄에 들어가기 빠듯하다
+- **`블록 이름` → `블록 제목`** — 필드가 `title` 이고 수정 모달이 이미 `블록 제목` 이었다. 생성 모달만 `이름` 이라 맞췄다
+- **전사 관리 화면은 건드리지 않는다** — 해요체 7곳(`businessCategory` · `department` · `employee` 2 · `jobPosition` · `pagePermission`)이 남아 있지만 **다른 작업자의 담당 파트**라 손대지 않는다. 결재 · 입찰공고 · 정산 · 세금계산서 도메인 20여 곳도 같은 이유로 제외
+
+---
+
+## [2026-08-16] 입찰 공고 → 프로젝트 전환 화면 ✅
+
+브랜치: `feat/bidding-project-conversion` · API: `POST /bidding/notices/{noticeId}/projects` · 이슈: #166
+
+완료된 **AI 문서 검토를 근거로** 공고를 프로젝트로 전환하는 화면을 붙였다. 검토에서 내려받은 공고 첨부가 정식 파일로 프로젝트에 귀속되므로, 진입점은 **검토 결과 화면 하나**다. **실제 전환 1건 성공을 확인했다.**
+
+### 변경 파일
+
+| 파일                                                                            | 변경                                                        |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `src/features/bidding/NoticeProjectConvertModal.tsx`                            | **생성** (요약 연결 · 프로젝트 정보 입력 · 409 5종 안내)    |
+| `src/features/bidding/NoticeReviewModal.tsx`                                    | 수정 (검토 결과 · 실패 화면에 전환 버튼)                    |
+| `src/features/bidding/NoticeDetail.tsx`                                         | 수정 (검토 → 전환 모달 연결 · 생성 후 프로젝트 상세로 이동) |
+| `src/features/bidding/{api,types,errorCodes}.ts` · `src/constants/endpoints.ts` | 수정 (전환 API · 타입 · 409 코드)                           |
+
+### 주요 작업 내용
+
+- **전환 모달** — 확정 · 미연결 요약만 고를 수 있는 선택 칸, 과업명 · 카테고리 · 기간 · 설명 입력. 409 다섯 갈래를 각각 다른 문구로 안내
+- **자동 채움** — 과업명은 공고명, 종료일은 **투찰 마감일**(`bidDeadlineAt`). 종료일엔 어디서 왔는지 힌트를 달고, 사용자가 고치면 힌트를 거둔다
+- **버튼을 감추지 않고 잠근다** — 이미 전환된 공고 · 이미 연결된 검토 · 검토 미완료는 이유를 옆에 적고 `disabled`. 버튼이 사라지면 어디로 갔는지 사용자가 찾게 된다
+- **직접 생성 화면과 표기 통일** — 라벨 `과업명`, 최대 300자, placeholder 를 `/projects/new` 와 맞췄다
+
+### 트러블슈팅
+
+| 문제                                                        | 원인                                                                      | 해결                                               |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------- |
+| stash pop 충돌 (`NoticeReviewModal`)                        | 커밋된 `다시 검토` 버튼과 stash 의 전환 버튼이 같은 자리에 들어옴         | 한 줄에 나란히 두는 형태로 병합                    |
+| 전환 모달 타입 오류                                         | stash 이후 요약 이력 응답이 `BidSummary` → `SummaryHistoryItem` 으로 바뀜 | 상태 · 필터 타입 교체 (쓰는 필드는 그대로)         |
+| 검토 자체가 실패 (`AI 문서 비교 검토 생성에 실패했습니다.`) | 서버 응답 메시지 — 프론트 문구가 아니다 (`src/` 에 그 문자열이 없다)      | 백엔드 쪽에서 해소. 이후 검토 완료 → 전환 1건 성공 |
+
+### 부수 결정
+
+- **발주처 · 계약금액은 전환 폼에 넣지 않는다** — 전환 API 가 받지 않는 필드이고, 계약금액은 낙찰 전이라 채울 값도 없다. 생성 후 프로젝트 설정에서 채운다
+- **날짜 · 카테고리는 필수로 둔다** — 직접 생성은 선택이지만, 전환은 스텝 · 이슈 마감의 기준이 되는 시작점이라 비워 두지 않는다
+- **실패한 검토에서도 전환 버튼 자리를 남긴다** — 맨 아래 `AI 검토하기` 옆에 잠긴 채로 두고, 왜 못 누르는지 위에 한 줄 적는다
+
+---
+
+## [2026-08-16] 입찰 AI 요약 · AI 문서 검토 연동 ✅
+
+브랜치: `feat/bidding-ai-summary` · API: 입찰 AI 요약 5종 · 문서 검토 5종 · 사내 문서 선택 1종 · 이슈: #TBD
+
+공고 상세에 **AI 요약**(공고 본문을 여섯 칸으로 정리)과 **AI 문서 검토**(공고 첨부 + 사내 문서를 비교하고 근거를 붙임)를 붙였다. 둘 다 `202` 로 접수하고 폴링으로 결과를 받는 비동기 흐름이라, 대기 중에도 화면이 흔들리지 않고 사용자가 손을 놓지 않도록 만드는 데 대부분의 판단이 들어갔다. 겸해서 백엔드가 바꾼 수집 조건 · 공고 등록 항목도 함께 반영했다.
+
+### 변경 파일
+
+| 파일                                                    | 변경                                                            |
+| ------------------------------------------------------- | --------------------------------------------------------------- |
+| `src/features/bidding/NoticeSummaryCard.tsx`            | **생성** (요약 요청 · 폴링 · 수정 · 확정 · 차수 이어가기)       |
+| `src/features/bidding/NoticeReviewModal.tsx`            | **생성** (문서 선택 · 검토 요청 · 폴링 · 근거 표시 · 검토 종료) |
+| `src/features/bidding/NoticeDetail.tsx`                 | 수정 (두 모달 연결 · 전환 버튼 제거)                            |
+| `src/features/bidding/{api,types,errorCodes}.ts`        | 수정 (요약 · 검토 · 수집 조건 필드)                             |
+| `src/features/bidding/CollectionConditionFormModal.tsx` | 수정 (`조회 기간` 드롭다운)                                     |
+| `src/features/bidding/CollectionConditionList.tsx`      | 수정 (조건 카드 `조회 기간` · 실행 결과 `조회 구간`)            |
+| `src/features/bidding/NoticeCreateForm.tsx`             | 수정 (원문 URL 을 선택 입력으로)                                |
+| `src/features/companyDocument/{api,types}.ts`           | 수정 (`getSelectableDocuments` · `SelectableDocument`)          |
+| `src/constants/endpoints.ts`                            | 수정 (요약 · 검토 · 사내 문서 선택)                             |
+| `.ai/API.md`                                            | 수정 (요약 · 검토 · 수집 조건 · 전환 API 명세)                  |
+
+### 주요 작업 내용
+
+- **AI 요약** — 프롬프트를 사람이 직접 쓰고 결과와 함께 남긴다. 완료 후 여섯 칸을 고치고 확정할 수 있으며, 확정된 요약을 딛고 새 차수를 만든다
+- **AI 문서 검토** — 공고 첨부와 사내 문서를 골라 비교한다. 사내 문서는 `companyDocumentVersionId` 로 **버전 고정**해 보낸다. 결과에는 근거(인용)를 접지 않고 그대로 편다
+- **대기 중 화면 유지** — 폴링 중에도 고른 목록과 입력칸을 그대로 두고 잠그기만 한다. 진행 상태는 버튼 줄 위에 따로 두어 문구가 버튼에 밀려 잘리지 않게 했다
+- **검토 종료** — `PATCH .../abandon` 을 붙여 진행 중 검토를 실제로 닫는다. 요약에는 대응 API 가 없어 화면 잠금 해제(`멈추기`)까지만 지원한다
+- **수집 조건 조회 기간** — `ONE_WEEK` · `TWO_WEEKS` · `ONE_MONTH` 선택과 실행 결과의 실제 조회 구간 표시
+
+### 트러블슈팅
+
+| 문제                                    | 원인                                                                  | 해결                                                                               |
+| --------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| 요약 · 검토가 영원히 `PENDING`          | Spring Outbox 가 Redis 에 발행되지 않음 (스트림에 메시지 자체가 없음) | 프론트 문제 아님 — 근거를 모아 백엔드에 전달 (`.ai/백엔드-요청_입찰AI요약검토.md`) |
+| 워커 재시작해도 job 을 못 잡음          | 처리 완료 전에 `XACK` 이 나가 PEL 에도 남지 않음                      | 동일 문서로 전달 (ACK 시점 · 기동 시 PEL 소비)                                     |
+| 실패한 요약을 이어서 요청하면 거절      | 실패 건을 `baseSummaryId` 로 보냄                                     | 완료된 요약만 딛도록 하고 버튼도 `요약하기` 로 갈랐다                              |
+| 모달이 열릴 때 내용이 한꺼번에 튀어나옴 | 응답이 도착하는 대로 그림                                             | 초기 요청을 함께 기다리고 같은 골격의 스켈레톤을 먼저 그린다                       |
+| 수금 진행률이 `1.0%` 로 표시            | `paidAmountRatio` 가 백분율이 아니라 비율(0~1)                        | 표기 시 100 을 곱한다                                                              |
+
+### 부수 결정
+
+- **원문 URL 필수 해제** — 화면 정책으로 필수였으나 링크 없는 공고를 등록할 방법이 사라져 선택으로 되돌렸다. 적었을 때만 형식을 검사한다
+- **프로젝트 전환 버튼 제거** — 전환 API 는 배포됐지만 근거 검토 · 카테고리 · 기간을 받는 별도 흐름이라 화면을 따로 만든다. 눌리지 않는 버튼은 고장으로 읽혀 빼고 상태만 알린다
+- **모달 규격 통일** — 요약 · 검토 모달을 같은 크기(`640px` · `85vh`)로 맞추고 바깥 클릭으로 닫히지 않게 했다 (입력을 잃지 않도록)
+
+---
+
 ## [2026-08-14] 전사 파일 관리 화면 신설 · 파일 업로드 결과 토스트 ✅
 
 브랜치: `ref-ys` · API: 142(전사 파일 목록) · 143~150(사내 문서함) 신규 연동 · 이슈: #TBD
@@ -14,25 +785,25 @@
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/app/settings/files/page.tsx` | **생성** (라우트 진입점) |
-| `src/features/file/CompanyFileAdmin.tsx` | **생성** (두 탭 껍데기) |
-| `src/features/file/AdminFileList.tsx` | **생성** (전사 파일 목록 · 요약 · 필터 · 페이징) |
-| `src/features/companyDocument/{types,api,upload}.ts` | **생성** (사내 문서 도메인) |
-| `src/features/companyDocument/CompanyDocumentList.tsx` | **생성** (목록 · 업로드 · 삭제 · 복구) |
-| `src/features/companyDocument/CompanyDocumentViewerModal.tsx` | **생성** (미리보기 + 버전 이력) |
-| `src/features/companyDocument/EditCompanyDocumentModal.tsx` | **생성** (표시명 · 분류 수정) |
-| `src/app/settings/page.tsx` | 수정 (`파일` 섹션 카드 추가) |
-| `src/constants/endpoints.ts` | 수정 (`files.admin` · `companyDocuments`) |
-| `src/features/file/{api,types}.ts` | 수정 (`getAdminFiles` · `AdminFile` · `FilePage<T>`) |
-| `src/features/block/FileBlock.tsx` · `ImageUploadModal.tsx` | 수정 (업로드 토스트) |
-| `src/features/approval/ApprovalDraftForm.tsx` | 수정 (첨부 토스트) |
-| `src/features/auth/ProfileImageField.tsx` | 수정 (프로필 사진 토스트) |
-| `src/features/employee/BulkUploadModal.tsx` | 수정 (일괄 등록 토스트) |
-| `src/features/finance/CashFlowCsvMapping.tsx` | 수정 (CSV 업로드 토스트) |
-| `src/features/approval/ApprovalDocumentModal.tsx` | 수정 (다운로드 버튼 모양 통일) |
-| `.ai/API.md` | 수정 (142 · 143~150 명세 추가) |
+| 파일                                                          | 변경                                                 |
+| ------------------------------------------------------------- | ---------------------------------------------------- |
+| `src/app/settings/files/page.tsx`                             | **생성** (라우트 진입점)                             |
+| `src/features/file/CompanyFileAdmin.tsx`                      | **생성** (두 탭 껍데기)                              |
+| `src/features/file/AdminFileList.tsx`                         | **생성** (전사 파일 목록 · 요약 · 필터 · 페이징)     |
+| `src/features/companyDocument/{types,api,upload}.ts`          | **생성** (사내 문서 도메인)                          |
+| `src/features/companyDocument/CompanyDocumentList.tsx`        | **생성** (목록 · 업로드 · 삭제 · 복구)               |
+| `src/features/companyDocument/CompanyDocumentViewerModal.tsx` | **생성** (미리보기 + 버전 이력)                      |
+| `src/features/companyDocument/EditCompanyDocumentModal.tsx`   | **생성** (표시명 · 분류 수정)                        |
+| `src/app/settings/page.tsx`                                   | 수정 (`파일` 섹션 카드 추가)                         |
+| `src/constants/endpoints.ts`                                  | 수정 (`files.admin` · `companyDocuments`)            |
+| `src/features/file/{api,types}.ts`                            | 수정 (`getAdminFiles` · `AdminFile` · `FilePage<T>`) |
+| `src/features/block/FileBlock.tsx` · `ImageUploadModal.tsx`   | 수정 (업로드 토스트)                                 |
+| `src/features/approval/ApprovalDraftForm.tsx`                 | 수정 (첨부 토스트)                                   |
+| `src/features/auth/ProfileImageField.tsx`                     | 수정 (프로필 사진 토스트)                            |
+| `src/features/employee/BulkUploadModal.tsx`                   | 수정 (일괄 등록 토스트)                              |
+| `src/features/finance/CashFlowCsvMapping.tsx`                 | 수정 (CSV 업로드 토스트)                             |
+| `src/features/approval/ApprovalDocumentModal.tsx`             | 수정 (다운로드 버튼 모양 통일)                       |
+| `.ai/API.md`                                                  | 수정 (142 · 143~150 명세 추가)                       |
 
 ### 주요 작업 내용
 

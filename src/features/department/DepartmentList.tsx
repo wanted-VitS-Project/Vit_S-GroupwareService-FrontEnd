@@ -6,6 +6,7 @@ import Breadcrumb from '@/components/Breadcrumb';
 import { useEffect, useState } from 'react';
 
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
+import PageTitle from '@/components/PageTitle';
 import RowMenu, { type RowMenuItem } from '@/components/RowMenu';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useModalTarget } from '@/lib/useModal';
@@ -107,16 +108,9 @@ export default function DepartmentList() {
         ]}
       />
 
-      <div className="mt-2 mb-6 flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="text-heading-m font-bold">부서 관리</h2>
-          <p className="mt-1.5 text-label break-keep text-text-secondary">
-            조직 구조를 2단까지 관리합니다. 사원이 있거나 하위 부서가 있는
-            부서는 삭제할 수 없습니다.
-          </p>
-        </div>
+      <PageTitle title="부서 관리" description="조직 부서를 관리합니다.">
         {canManage && <AddButton onClick={() => formModal.open({})} />}
-      </div>
+      </PageTitle>
 
       <DataTable
         caption="부서 목록"
@@ -134,7 +128,7 @@ export default function DepartmentList() {
               등록된 부서가 없습니다
             </p>
             <p className="text-label break-keep text-text-secondary">
-              부서를 추가하면 사원 등록 시 선택할 수 있어요
+              부서를 추가하면 사원 등록 시 선택할 수 있습니다
             </p>
             {canManage && (
               <AddButton subtle onClick={() => formModal.open({})} />
@@ -181,20 +175,25 @@ function departmentColumns(
       key: 'name',
       header: '부서명',
       skeletonWidth: 'w-40',
+      /**
+       * 하위 부서는 **들여쓰기 + 잇는 선 + 같은 글자색**으로 보인다.
+       *
+       * 예전에는 들여쓰고 글자를 흐리게(`text-secondary`) 두었는데, 흐린 글자가 비활성으로
+       * 읽혀 하위 부서가 눈에 잘 들어오지 않았다. 계층은 **자리**로 말하고 글자는 또렷하게 둔다.
+       */
       cell: ({ department, depth }) => (
-        <span
-          className={`flex min-w-0 items-center gap-1.5 ${depth === 1 ? 'pl-6' : ''}`}
-        >
+        <span className="flex min-w-0 items-center gap-2">
           {depth === 1 && (
-            <span aria-hidden className="text-text-muted">
-              └
+            <span
+              aria-hidden
+              className="ml-3 flex h-5 w-4 shrink-0 items-end justify-start"
+            >
+              <span className="h-3 w-full rounded-bl-[4px] border-b border-l border-border-default" />
             </span>
           )}
           <span
             className={`truncate ${
-              depth === 0
-                ? 'font-bold text-text-primary'
-                : 'text-text-secondary'
+              depth === 0 ? 'font-bold text-text-primary' : 'text-text-primary'
             }`}
           >
             {department.name}

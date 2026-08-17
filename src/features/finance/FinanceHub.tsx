@@ -41,8 +41,7 @@ const ITEMS: FinanceItem[] = [
   {
     icon: 'cashFlow',
     label: '입출금 내역',
-    description:
-      '입출금을 등록·조회하고 정산 블록에 연결합니다. CSV 일괄 업로드도 지원합니다.',
+    description: '입출금을 등록·조회하고 정산 블록에 연결합니다.',
     href: FINANCE_ROUTES.cashFlows,
     pick: (summary) => summary.cashFlow,
     totalLabel: '전체',
@@ -50,8 +49,7 @@ const ITEMS: FinanceItem[] = [
   {
     icon: 'taxInvoice',
     label: '세금계산서',
-    description:
-      'CSV 로 수집한 세금계산서를 조회하고 정산 블록에 연결합니다.',
+    description: 'CSV 로 수집한 세금계산서를 조회하고 정산 블록에 연결합니다.',
     href: FINANCE_ROUTES.taxInvoices,
     pick: (summary) => summary.taxInvoice,
     totalLabel: '전체',
@@ -59,11 +57,8 @@ const ITEMS: FinanceItem[] = [
   {
     icon: 'settlement',
     label: '정산 현황',
-    description:
-      '정산이 끝나지 않은 프로젝트를 한눈에 확인합니다. 미연결 경고를 제공합니다.',
+    description: '정산이 끝나지 않은 프로젝트를 한눈에 확인합니다.',
     href: FINANCE_ROUTES.settlements,
-    // ⛔ 화면 미구현 (#18)
-    isComingSoon: true,
     // 정산 현황만 두 번째 수치가 '진행 중 프로젝트' 다
     pick: (summary) => ({
       unlinkedCount: summary.settlement.unlinkedCount,
@@ -103,11 +98,10 @@ export default function FinanceHub() {
   return (
     <>
       <p className="text-caption text-text-secondary">재무 관리</p>
-      <PageTitle title="재무 관리" />
-
-      <p className="-mt-4 mb-6 text-label text-text-secondary">
-        입출금 내역 · 세금계산서 · 정산 현황을 한 곳에서 관리합니다.
-      </p>
+      <PageTitle
+        title="재무 관리"
+        description="입출금 내역 · 세금계산서 · 정산 현황을 한 곳에서 관리합니다."
+      />
 
       <div className="divide-y divide-border-default overflow-hidden rounded-base border border-border-default bg-bg-card">
         {ITEMS.map((item) => (

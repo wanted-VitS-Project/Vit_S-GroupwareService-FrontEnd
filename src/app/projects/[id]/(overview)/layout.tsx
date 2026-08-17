@@ -1,3 +1,4 @@
+import { mobileSidebarClasses } from '@/components/mobileSidebarClasses';
 import ProjectTabs from '@/components/ProjectTabs';
 
 /**
@@ -19,7 +20,13 @@ export default function ProjectOverviewLayout({
   return (
     <div className="flex h-full flex-col">
       <ProjectTabs />
-      <div className="min-h-0 flex-1 [scrollbar-gutter:stable] overflow-y-auto p-6">
+      {/*
+        좁은 화면에서는 여백을 줄이고(`p-4`), 대신 아래는 넉넉히 비운다 —
+        왼쪽 아래 사이드바 버튼이 떠 있어 마지막 줄이 가려진다.
+      */}
+      <div
+        className={`min-h-0 flex-1 [scrollbar-gutter:stable] overflow-y-auto p-4 md:p-6 ${mobileSidebarClasses.contentBottomGap}`}
+      >
         {children}
       </div>
     </div>

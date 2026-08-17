@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 
+import InlineMarkdown from '@/components/InlineMarkdown';
 import MarkdownView from '@/features/block/MarkdownView';
 
 import {
@@ -9,6 +10,7 @@ import {
   type AnalysisDocument,
   type FindingSeverity,
   parseResult,
+  type ResultBlock,
   type ResultFinding,
 } from './types';
 
@@ -41,6 +43,11 @@ const SEVERITY_LABEL: Record<FindingSeverity, string> = {
  * ⚠️ `result` 는 서버가 형식을 보장하지 않는 **자유 문자열**이다.
  *    요약 · 지적 사항 · 경고로 나눠지면 구조화해서 그리고, 안 나눠지면
  *    마크다운 원문을 그대로 보여준다 (`parseResult` 가 null 을 준다).
+ *
+ * 📝 **마크다운** (2026-08-17) — 구조화된 쪽도 조각마다 마크다운을 그린다.
+ *    소제목 · 문단 · 목록은 `parseResult` 가 `ResultBlock` 으로 넘겨 주고, 문장 안의
+ *    `**굵게**` · `*기울임*` 은 `InlineMarkdown` 이 받는다. 예전엔 파서가 쪼갠 조각을
+ *    생 문자열로 박아, 강조 기호가 별표째 읽히고 층이 한 덩이로 뭉개졌다.
  */
 export default function AnalysisResultView({
   result,
@@ -58,12 +65,10 @@ export default function AnalysisResultView({
     <div className="flex flex-col gap-3">
       {parsed ? (
         <>
-          {parsed.summary && (
+          {parsed.summary.length > 0 && (
             <section>
               <SectionLabel>검토 요약</SectionLabel>
-              <p className="text-detail leading-relaxed break-keep text-text-primary">
-                {parsed.summary}
-              </p>
+              <BlockList blocks={parsed.summary} />
             </section>
           )}
 
@@ -71,7 +76,9 @@ export default function AnalysisResultView({
             <FindingList findings={parsed.findings} />
           )}
 
-          {parsed.warning && <WarningBanner text={parsed.warning} />}
+          {parsed.warning.length > 0 && (
+            <WarningBanner blocks={parsed.warning} />
+          )}
         </>
       ) : (
         <div className="text-detail leading-relaxed text-text-primary">
@@ -94,6 +101,83 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * 소제목 크기별 글자 크기.
+ *
+ * ⚠️ 태그는 `h5`/`h6` 로 **고정**한다 — 이 구획 위에 이미 `h4`(`SectionLabel`)가 있어,
+ *    원문의 `#` 개수를 그대로 태그로 옮기면 문서 제목 층이 뒤집힌다. 보이는 크기만 나눈다.
+ */
+const HEADING_SIZE: Record<number, string> = {
+  1: 'text-label font-bold',
+  2: 'text-label font-bold',
+  3: 'text-detail font-semibold',
+  4: 'text-detail font-semibold',
+  5: 'text-caption font-semibold',
+  6: 'text-caption font-semibold',
+};
+
+/** 요약 구획의 글자 — 색 · 크기는 감싸는 쪽에서 정하고 자식은 물려받는다 */
+const BODY_CLASS = 'text-detail leading-relaxed text-text-primary';
+
+/**
+ * 요약 · 경고 구획의 본문 — 소제목 · 문단 · 목록을 원문 순서대로 그린다.
+ *
+ * 이어지는 목록 항목은 하나의 `<ul>` 로 묶는다. 항목마다 목록을 새로 열면
+ * 보조 기술이 "항목 1개짜리 목록" 을 개수만큼 읽는다.
+ *
+ * ⚠️ 색 · 크기는 `className` 으로 **바깥에서** 받는다. 경고 배너처럼 같은 구조를
+ *    다른 색으로 그려야 하는 자리가 있어, 자식마다 색을 박으면 돌려쓸 수 없다.
+ */
+function BlockList({
+  blocks,
+  className = BODY_CLASS,
+}: {
+  blocks: ResultBlock[];
+  className?: string;
+}) {
+  return (
+    <div className={`flex flex-col gap-1 ${className}`}>
+      {groupBlocks(blocks).map((group, index) =>
+        group.kind === 'item' ? (
+          <ul key={index} className="list-disc pl-4">
+            {group.blocks.map((block, itemIndex) => (
+              <li key={itemIndex} className="break-keep">
+                <InlineMarkdown text={block.text} />
+              </li>
+            ))}
+          </ul>
+        ) : group.blocks[0].kind === 'heading' ? (
+          <h5
+            key={index}
+            className={`mt-1 break-keep ${
+              HEADING_SIZE[group.blocks[0].level ?? 3] ?? HEADING_SIZE[3]
+            }`}
+          >
+            <InlineMarkdown text={group.blocks[0].text} />
+          </h5>
+        ) : (
+          <p key={index} className="break-keep">
+            <InlineMarkdown text={group.blocks[0].text} />
+          </p>
+        ),
+      )}
+    </div>
+  );
+}
+
+/** 이어지는 목록 항목만 한 덩이로 묶는다. 나머지는 한 칸에 하나씩 */
+function groupBlocks(blocks: ResultBlock[]) {
+  const groups: { kind: ResultBlock['kind']; blocks: ResultBlock[] }[] = [];
+
+  for (const block of blocks) {
+    const last = groups[groups.length - 1];
+    if (block.kind === 'item' && last?.kind === 'item') last.blocks.push(block);
+    else groups.push({ kind: block.kind, blocks: [block] });
+  }
+
+  return groups;
+}
+
 function FindingList({ findings }: { findings: ResultFinding[] }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const hidden = findings.length - VISIBLE_FINDINGS;
@@ -111,14 +195,16 @@ function FindingList({ findings }: { findings: ResultFinding[] }) {
             className={`rounded-button-sm border-l-2 bg-bg-surface px-2.5 py-1.5 ${SEVERITY_BAR[finding.severity]}`}
           >
             <p className="flex items-center gap-1.5 text-detail font-semibold break-keep text-text-primary">
-              <span className="min-w-0 flex-1">{finding.title}</span>
+              <span className="min-w-0 flex-1">
+                <InlineMarkdown text={finding.title} />
+              </span>
               <span className="sr-only">
                 — {SEVERITY_LABEL[finding.severity]}
               </span>
             </p>
             {finding.detail && (
               <p className="mt-0.5 text-caption leading-relaxed break-keep text-text-secondary">
-                {finding.detail}
+                <InlineMarkdown text={finding.detail} />
               </p>
             )}
           </li>
@@ -140,15 +226,23 @@ function FindingList({ findings }: { findings: ResultFinding[] }) {
 }
 
 /**
- * 종합 경고 줄.
+ * 종합 경고.
  * 결과 안에서 가장 먼저 읽혀야 하는 문장이라 색을 따로 준다.
+ *
+ * 구조는 요약과 **같은 `BlockList`** 로 그린다 — 목록을 `<p>` 로 펴 버리면 보조 기술이
+ * 목록을 목록으로 읽지 못하고, 소제목의 층도 사라진다. 색만 배너 쪽으로 바꿔 물려준다.
  */
-function WarningBanner({ text }: { text: string }) {
+function WarningBanner({ blocks }: { blocks: ResultBlock[] }) {
   return (
-    <p className="flex items-start gap-1.5 rounded-button-sm border border-yellow-border bg-yellow-bg-soft px-2.5 py-2 text-caption leading-relaxed font-medium break-keep text-yellow-text">
-      <span aria-hidden>⚠</span>
-      <span className="min-w-0 flex-1">{text}</span>
-    </p>
+    <div className="flex items-start gap-1.5 rounded-button-sm border border-yellow-border bg-yellow-bg-soft px-2.5 py-2">
+      <span aria-hidden className="text-caption text-yellow-text">
+        ⚠
+      </span>
+      <BlockList
+        blocks={blocks}
+        className="min-w-0 flex-1 text-caption leading-relaxed font-medium text-yellow-text"
+      />
+    </div>
   );
 }
 

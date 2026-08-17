@@ -97,12 +97,15 @@ const REQUIRED_MESSAGES: Partial<Record<FieldName, string>> = {
   noticeName: '공고명을 입력해주세요.',
   noticeType: '공고 유형을 선택해주세요.',
   noticeAgency: '발주처를 입력해주세요.',
-  /**
-   * 원문 URL 은 백엔드가 요구하지 않지만 **화면 정책으로 필수**다 (2026-08-11 결정).
-   * 직접 등록 건은 근거가 사람 입력뿐이라, 원문 링크가 없으면 나중에 내용을 확인할 방법이 없다.
-   */
-  sourceUrl: '공고 원문 URL 을 입력해주세요.',
 };
+
+/**
+ * ⚠️ **원문 URL 은 선택 입력이다** (2026-08-14 변경).
+ *
+ * 한동안 화면 정책으로 필수로 잡았는데, 원문 링크가 없는 공고(구두 · 내부 건)를
+ * 등록할 방법이 사라졌다. 백엔드도 처음부터 `null` 을 허용한다.
+ * 대신 **적었을 때 형식만** 본다 — `example.org` 처럼 적으면 링크가 열리지 않는다.
+ */
 
 /** `http(s)://` 로 시작하는 주소인지. 원문 URL · 첨부 URL 이 같은 규칙을 쓴다 */
 function isHttpUrl(value: string) {
@@ -188,16 +191,16 @@ export default function NoticeCreateForm() {
 
     const { announcedAt, bidDeadlineAt, openingAt, sourceUrl } = values;
 
-    // 필수로 잡았으니 형식도 본다 — `example.org` 만 적으면 링크가 열리지 않는다
-    if (next.sourceUrl === undefined && !isHttpUrl(sourceUrl)) {
+    // 비워 두는 것은 괜찮다 — 적었을 때만 형식을 본다
+    if (sourceUrl.trim() !== '' && !isHttpUrl(sourceUrl)) {
       next.sourceUrl = 'http:// 또는 https:// 로 시작하는 주소를 넣어주세요.';
     }
 
     if (announcedAt && bidDeadlineAt && bidDeadlineAt < announcedAt) {
-      next.bidDeadlineAt = '마감일이 공고일보다 앞설 수 없어요.';
+      next.bidDeadlineAt = '마감일이 공고일보다 앞설 수 없습니다.';
     }
     if (bidDeadlineAt && openingAt && openingAt < bidDeadlineAt) {
-      next.openingAt = '개찰일이 마감일보다 앞설 수 없어요.';
+      next.openingAt = '개찰일이 마감일보다 앞설 수 없습니다.';
     }
 
     setErrors(next);
@@ -306,10 +309,10 @@ export default function NoticeCreateForm() {
 
       setFormError(
         isDuplicated
-          ? '같은 공고가 이미 등록돼 있어요. 목록에서 확인해주세요.'
+          ? '같은 공고가 이미 등록돼 있습니다. 목록에서 확인해주세요.'
           : messageOf(
               error,
-              '공고 등록에 실패했어요. 잠시 후 다시 시도해주세요.',
+              '공고 등록에 실패했습니다. 잠시 후 다시 시도해주세요.',
             ),
       );
       setIsSubmitting(false);
@@ -332,7 +335,7 @@ export default function NoticeCreateForm() {
       <form onSubmit={submit} className="space-y-4 pb-10">
         <FormSection
           title="기본 정보"
-          description="수집으로 가져오지 못한 공고를 직접 넣습니다. 등록 후에도 수정할 수 있어요."
+          description="수집으로 가져오지 못한 공고를 직접 등록합니다. 등록 후에도 수정할 수 있습니다."
         >
           <div className="sm:col-span-2">
             <TextField
@@ -382,7 +385,7 @@ export default function NoticeCreateForm() {
 
         <FormSection
           title="일정"
-          description="비워두면 목록에서 '-' 로 보입니다. 마감일을 넣으면 남은 일수(D-Day)가 계산돼요."
+          description="비워두면 목록에서 '-' 로 보입니다. 마감일을 넣으면 남은 일수(D-Day)가 계산됩니다."
         >
           <TextField
             id="announcedAt"
@@ -423,7 +426,7 @@ export default function NoticeCreateForm() {
           <AmountField
             id="baseAmount"
             label="기초금액"
-            hint="나라장터 '기초금액'. 공개 전이면 비워둡니다."
+            hint="공개 전이면 비워둡니다"
             placeholder="0"
             value={values.baseAmount}
             onChange={change('baseAmount')}
@@ -431,7 +434,7 @@ export default function NoticeCreateForm() {
           <AmountField
             id="estimatedAmount"
             label="추정가격"
-            hint="부가가치세를 포함하지 않은 금액입니다."
+            hint="부가가치세 제외"
             placeholder="0"
             value={values.estimatedAmount}
             onChange={change('estimatedAmount')}
@@ -516,9 +519,8 @@ export default function NoticeCreateForm() {
               id="sourceUrl"
               label="공고 원문 URL"
               type="url"
-              required
               placeholder="https://"
-              hint="직접 등록한 공고는 원문 링크가 유일한 근거 자료라 반드시 필요해요."
+              hint="선택 입력"
               value={values.sourceUrl}
               error={errors.sourceUrl}
               onChange={change('sourceUrl')}

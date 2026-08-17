@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import PageTitle from '@/components/PageTitle';
 import { ROLE_LABELS } from '@/constants/status';
 import { getDepartments } from '@/features/department/api';
 import {
@@ -11,6 +12,8 @@ import {
   toDepartmentOptions,
 } from '@/features/department/options';
 import { getJobPositions } from '@/features/jobPosition/api';
+
+import { writeCachedDepartments, writeCachedJobPositions } from './optionCache';
 import type { JobPosition } from '@/features/jobPosition/types';
 import { ApiError, messageOf } from '@/lib/api';
 import { formatPhone } from '@/lib/format';
@@ -50,7 +53,8 @@ const EMPTY_VALUES: FormValues = {
   userId: '',
   name: '',
   departmentId: '',
-  hiredAt: '',
+  // 대부분 오늘 등록한다 — 비워 두면 매번 달력을 열어 오늘을 찾아야 한다
+  hiredAt: today(),
   // 대부분이 일반 사원이라 기본값을 준다. 올리려면 의식적으로 바꾸게 된다
   role: 'MEMBER',
   jobPositionId: '',
@@ -101,6 +105,8 @@ export default function EmployeeCreateForm() {
       .then(([departments, positions]) => {
         setDepartmentOptions(toDepartmentOptions(departments));
         setJobPositions(positions);
+        writeCachedDepartments(departments);
+        writeCachedJobPositions(positions);
         setHasOptionsFailed(false);
         setAreOptionsLoading(false);
       })
@@ -246,13 +252,10 @@ export default function EmployeeCreateForm() {
         &gt; 사원 등록
       </p>
 
-      <div className="mt-2 mb-6">
-        <h2 className="text-heading-m font-bold">사원 등록</h2>
-        <p className="mt-1.5 text-label break-keep text-text-secondary">
-          로그인 계정이 함께 발급됩니다. 초기 비밀번호는 입력한 이메일로
-          발송됩니다.
-        </p>
-      </div>
+      <PageTitle
+        title="사원 등록"
+        description="로그인 계정이 함께 발급됩니다. 초기 비밀번호는 입력한 이메일로 발송됩니다."
+      />
 
       {result ? (
         <CreatedResult
@@ -277,7 +280,7 @@ export default function EmployeeCreateForm() {
                 maxLength={USER_ID_MAX_LENGTH}
                 value={values.userId}
                 error={fieldErrors.userId}
-                hint="로그인 아이디로 쓰입니다. 등록 후에는 변경할 수 없습니다."
+                hint="로그인 아이디 · 등록 후 변경 불가"
                 onChange={(value) => change('userId', value)}
               />
               <SelectField
@@ -287,7 +290,6 @@ export default function EmployeeCreateForm() {
                 emptyLabel="선택해주세요"
                 value={values.role}
                 error={fieldErrors.role}
-                hint="관리자 권한은 이 화면에서 부여할 수 없습니다."
                 options={ROLE_OPTIONS.map((role) => ({
                   value: role,
                   label: ROLE_LABELS[role],
@@ -358,6 +360,12 @@ export default function EmployeeCreateForm() {
                 label="입사일"
                 type="date"
                 required
+                /**
+                 * ⚠️ 상한이 없으면 브라우저가 **연도를 6자리까지** 받는다 (`200000-01-01`).
+                 *    서버는 4자리만 받아 400 이 되므로 입력 단계에서 막는다.
+                 */
+                min="1900-01-01"
+                max="2999-12-31"
                 value={values.hiredAt}
                 error={fieldErrors.hiredAt}
                 onChange={(value) => change('hiredAt', value)}
@@ -440,9 +448,8 @@ function CreatedResult({
   return (
     <>
       <section className="rounded-base border border-border-default bg-bg-card p-6">
-        <p className="text-body-m font-bold text-green-text">
-          ✅ 등록되었습니다
-        </p>
+        {/* 이모지는 쓰지 않는다 — 화면 문구는 글자만으로 뜻이 서야 한다 */}
+        <p className="text-body-m font-bold text-green-text">등록되었습니다</p>
         <p className="mt-2 text-label text-text-primary">
           <b>{result.name}</b>{' '}
           <span className="text-text-secondary">({result.userId})</span>
@@ -506,4 +513,13 @@ function CreatedResult({
       )}
     </>
   );
+}
+
+/** 오늘(`yyyy-MM-dd`). 타임존이 밀리지 않게 로컬 값을 그대로 조립한다 */
+function today() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+
+  return `${now.getFullYear()}-${month}-${day}`;
 }

@@ -55,14 +55,14 @@ export default function IssueConflictModal({
 
   return (
     <Modal
-      title="같은 항목을 다른 사람도 수정했어요"
+      title="같은 항목을 다른 사람도 수정했습니다"
       onClose={isSaving ? undefined : onCancel}
       dismissOnBackdrop={false}
       className="flex max-h-[85vh] w-full max-w-[560px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
       header={
         <div className="shrink-0 border-b border-border-default px-5 py-3.5">
           <h2 className="text-body-m font-semibold text-text-primary">
-            같은 항목을 다른 사람도 수정했어요
+            같은 항목을 다른 사람도 수정했습니다
           </h2>
           <p className="pt-1 text-caption break-keep text-text-secondary">
             항목마다 어느 값을 남길지 골라주세요. 여기 없는 항목은 이미 최신
@@ -125,7 +125,7 @@ export default function IssueConflictModal({
           type="button"
           onClick={onCancel}
           disabled={isSaving}
-          className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
+          className="btn btn-md btn-gray-outlined"
         >
           계속 편집
         </button>
@@ -133,7 +133,7 @@ export default function IssueConflictModal({
           type="button"
           onClick={() => onSave(choices)}
           disabled={isSaving}
-          className="min-w-[136px] cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+          className="btn btn-md btn-primary min-w-[136px]"
         >
           {isSaving ? '저장 중…' : '이 선택으로 저장'}
         </button>

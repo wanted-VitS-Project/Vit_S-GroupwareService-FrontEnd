@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 
 import DataTable from '@/components/DataTable';
-import Pagination from '@/components/Pagination';
-import { messageOf } from '@/lib/api';
+import Pagination, { PaginationPlaceholder } from '@/components/Pagination';
+import { ApiError, messageOf } from '@/lib/api';
 import { formatDate } from '@/lib/format';
 import { useModalTarget } from '@/lib/useModal';
 import { getProjects } from '@/features/project/api';
 
-import { downloadVersion, getAdminFiles } from './api';
+import { downloadVersion, getAdminFiles, getAdminStepFiles } from './api';
+import { FILE_CODES } from './errorCodes';
 import { extensionLabel, extensionStyle, formatFileSize } from './format';
 import { LazyFileViewerModal, preloadViewer } from './LazyFileViewer';
 import { cancelPreviewPrefetch, schedulePreviewPrefetch } from './previewCache';
@@ -58,7 +59,24 @@ const EXTENSION_OPTIONS = [
  *
  * ⛔ **조회 전용이다.** 이름 수정 · 삭제는 문서가 붙은 스텝 화면에서 한다.
  */
-export default function AdminFileList() {
+export default function AdminFileList({
+  lockedProjectId,
+  lockedStepId,
+}: {
+  /**
+   * 탐색기가 골라 준 자리. 주면 **그 안만** 보여주고 요약 · 프로젝트 필터는 숨긴다 —
+   * 이미 경로 막대가 어디를 보고 있는지 말하고 있어, 같은 말을 두 번 할 이유가 없다.
+   */
+  lockedProjectId?: number;
+  /**
+   * 스텝까지 들어간 자리. 주면 **스텝 전용 API**(§14.4)로 갈아탄다 —
+   * 예전엔 프로젝트 파일 500건을 받아 화면에서 걸러 그 뒤가 보이지 않았다.
+   *
+   * ⚠️ 그 API 에는 검색 · 확장자 필터가 없어 **필터 줄을 숨긴다.**
+   *    조건으로 찾을 때는 한 단계 위(프로젝트)에서 전사 목록(142번)으로 찾는다.
+   */
+  lockedStepId?: number;
+} = {}) {
   const [keyword, setKeyword] = useState('');
   /** 실제 요청에 쓰는 검색어 — 돋보기 버튼 · 엔터로만 반영한다 */
   const [search, setSearch] = useState('');
@@ -87,8 +105,16 @@ export default function AdminFileList() {
   const [errorMessage, setErrorMessage] = useState('');
   const viewerModal = useModalTarget<ViewerFile>();
 
-  const hasFilter = search !== '' || projectId !== '' || extension !== '';
-  const requestKey = `${reloadCount} ${search} ${projectId} ${extension} ${page}`;
+  /** 탐색기가 잡아 준 프로젝트가 있으면 그쪽이 이긴다 */
+  const effectiveProjectId =
+    lockedProjectId ?? (projectId ? Number(projectId) : undefined);
+  const isLocked = lockedProjectId !== undefined;
+
+  /** 스텝 안을 보는 중인지 — 데이터 출처와 필터 노출이 함께 갈린다 */
+  const isStepLocked = lockedStepId !== undefined;
+  const hasFilter =
+    !isStepLocked && (search !== '' || projectId !== '' || extension !== '');
+  const requestKey = `${reloadCount} ${lockedStepId ?? ''} ${search} ${effectiveProjectId ?? ''} ${extension} ${page}`;
   /** 지금 조건의 결과만 화면에 쓴다 — 이전 요청 결과는 로딩으로 본다 */
   const current = result?.key === requestKey ? result : null;
   const filePage = current?.page ?? null;
@@ -98,31 +124,64 @@ export default function AdminFileList() {
     const controller = new AbortController();
     const { signal } = controller;
 
-    getAdminFiles(
-      {
-        keyword: search || undefined,
-        projectId: projectId ? Number(projectId) : undefined,
-        extension: extension || undefined,
-        page,
-        size: PAGE_SIZE,
-      },
-      signal,
-    )
+    /*
+      스텝까지 들어갔으면 스텝 전용 API 를 쓴다 (§14.4) — 그 안의 파일 전부가 페이징으로 온다.
+      위 단계(프로젝트 · 스테이지)에서는 검색 · 필터가 되는 전사 목록(142번)을 그대로 쓴다.
+    */
+    const request = isStepLocked
+      ? getAdminStepFiles(lockedStepId, { page, size: PAGE_SIZE }, signal)
+      : getAdminFiles(
+          {
+            keyword: search || undefined,
+            projectId: effectiveProjectId,
+            extension: extension || undefined,
+            page,
+            size: PAGE_SIZE,
+          },
+          signal,
+        );
+
+    request
       .then((data) => setResult({ key: requestKey, page: data }))
       .catch((caught) => {
         // 취소는 실패가 아니다
         if (signal.aborted) return;
+        /**
+         * ⚠️ 403 은 **실패가 아니다.** 볼 권한이 없다는 뜻이라 `불러오지 못했습니다` 로
+         *    알리면 고장으로 읽혀 새로고침만 반복하게 된다. 할 일이 다르면 문구도 달라야 한다.
+         */
+        const status = caught instanceof ApiError ? caught.status : 0;
+        const code = caught instanceof ApiError ? caught.code : undefined;
+        // 트리를 띄워 둔 사이 남이 스텝을 지운 경우다 — 스텝을 부른 요청에만 해당한다
+        const isStepGone =
+          isStepLocked && (code === FILE_CODES.stepNotFound || status === 404);
+
         setResult({
           key: requestKey,
-          // 403(`ACC_ADMIN_REQUIRED`)이 여기로 온다 — 서버 문구를 그대로 보여준다
-          errorMessage: messageOf(caught, '파일 목록을 불러오지 못했습니다.'),
+          errorMessage:
+            status === 403
+              ? '이 파일을 볼 권한이 없습니다.'
+              : isStepGone
+                ? '삭제되었거나 없는 스텝입니다. 목록을 다시 열어주세요.'
+                : messageOf(caught, '파일 목록을 불러오지 못했습니다.'),
         });
       });
 
     return () => controller.abort();
-  }, [requestKey, search, projectId, extension, page]);
+  }, [
+    requestKey,
+    isStepLocked,
+    lockedStepId,
+    search,
+    effectiveProjectId,
+    extension,
+    page,
+  ]);
 
   useEffect(() => {
+    // 선택지 · 요약 카드 둘 다 잠긴 자리에서는 그리지 않는다 — 부를 이유가 없다
+    if (isLocked) return;
+
     const controller = new AbortController();
 
     getProjects({ page: 0, size: PROJECT_OPTION_LIMIT }, controller.signal)
@@ -139,7 +198,7 @@ export default function AdminFileList() {
       .catch(() => {});
 
     return () => controller.abort();
-  }, []);
+  }, [isLocked]);
 
   /** 조건이 바뀌면 첫 페이지로 돌아간다 — 3페이지에서 거르면 빈 화면이 나온다 */
   function applyFilter(change: () => void) {
@@ -171,79 +230,89 @@ export default function AdminFileList() {
         요약은 **응답으로 확인되는 두 가지만** 둔다.
         총 용량 · 기간별 업로드 수는 집계 API 가 없어 지금 페이지 20행으로는 셀 수 없다.
       */}
-      <section
-        aria-label="전사 파일 요약"
-        aria-busy={filePage === null}
-        className="mb-4 grid grid-cols-2 gap-4"
-      >
-        <SummaryCard
-          label={hasFilter ? '조건에 맞는 파일' : '전체 파일'}
-          value={filePage?.totalElements ?? null}
-          iconStyle="bg-blue-bg-soft text-blue-text"
-          icon={<DocumentIcon className="size-5" />}
-        />
-        <SummaryCard
-          label="프로젝트"
-          value={projects?.totalCount ?? null}
-          iconStyle="bg-purple-bg-soft text-purple-text"
-          icon={<FolderIcon />}
-        />
-      </section>
-
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            applyFilter(() => setSearch(keyword.trim()));
-          }}
-          className="relative min-w-0 flex-1"
+      {!isLocked && (
+        <section
+          aria-label="전사 파일 요약"
+          aria-busy={filePage === null}
+          className="mb-4 grid grid-cols-2 gap-4"
         >
-          <label htmlFor="adminFileSearch" className="sr-only">
-            파일명 · 업로더 검색
-          </label>
-          <input
-            id="adminFileSearch"
-            type="search"
-            value={keyword}
-            onChange={(event) => {
-              setKeyword(event.target.value);
-              // 입력을 비우면 검색을 실행하지 않아도 전체 목록으로 돌아온다
-              if (event.target.value.trim() === '') {
-                applyFilter(() => setSearch(''));
-              }
-            }}
-            placeholder="파일명 · 업로더 검색"
-            className="w-full rounded-lg border border-border-default py-2 pr-10 pl-3 text-label text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+          <SummaryCard
+            label={hasFilter ? '조건에 맞는 파일' : '전체 파일'}
+            value={filePage?.totalElements ?? null}
+            iconStyle="bg-blue-bg-soft text-blue-text"
+            icon={<DocumentIcon className="size-5" />}
           />
-          <button
-            type="submit"
-            aria-label="검색"
-            className="absolute top-1/2 right-1 flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-hover hover:text-text-primary"
-          >
-            <SearchIcon />
-          </button>
-        </form>
+          <SummaryCard
+            label="프로젝트"
+            value={projects?.totalCount ?? null}
+            iconStyle="bg-purple-bg-soft text-purple-text"
+            icon={<FolderIcon />}
+          />
+        </section>
+      )}
 
-        <FilterSelect
-          id="adminFileProject"
-          label="프로젝트"
-          allLabel="프로젝트 전체"
-          value={projectId}
-          onChange={(value) => applyFilter(() => setProjectId(value))}
-          options={projects?.options ?? []}
-        />
-        <FilterSelect
-          id="adminFileExtension"
-          label="파일 유형"
-          allLabel="유형 전체"
-          value={extension}
-          onChange={(value) => applyFilter(() => setExtension(value))}
-          options={EXTENSION_OPTIONS.map((value) => ({
-            value,
-            label: value.toUpperCase(),
-          }))}
-        />
-      </div>
+      {/*
+        ⚠️ 스텝 안에서는 필터 줄을 숨긴다 — 스텝 파일 API(§14.4)에 검색 · 확장자 조건이 없다.
+        입력만 남겨 두면 쳐도 아무 일이 없어 고장으로 읽힌다.
+      */}
+      {!isStepLocked && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              applyFilter(() => setSearch(keyword.trim()));
+            }}
+            className="relative min-w-0 flex-1"
+          >
+            <label htmlFor="adminFileSearch" className="sr-only">
+              파일명 · 업로더 검색
+            </label>
+            <input
+              id="adminFileSearch"
+              type="search"
+              value={keyword}
+              onChange={(event) => {
+                setKeyword(event.target.value);
+                // 입력을 비우면 검색을 실행하지 않아도 전체 목록으로 돌아온다
+                if (event.target.value.trim() === '') {
+                  applyFilter(() => setSearch(''));
+                }
+              }}
+              placeholder="파일명 · 업로더 검색"
+              className="w-full rounded-lg border border-border-default py-2 pr-10 pl-3 text-label text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+            />
+            <button
+              type="submit"
+              aria-label="검색"
+              className="absolute top-1/2 right-1 flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-hover hover:text-text-primary"
+            >
+              <SearchIcon />
+            </button>
+          </form>
+
+          {!isLocked && (
+            <FilterSelect
+              id="adminFileProject"
+              label="프로젝트"
+              allLabel="프로젝트 전체"
+              value={projectId}
+              onChange={(value) => applyFilter(() => setProjectId(value))}
+              options={projects?.options ?? []}
+            />
+          )}
+          <FilterSelect
+            id="adminFileExtension"
+            label="파일 유형"
+            allLabel="유형 전체"
+            value={extension}
+            onChange={(value) => applyFilter(() => setExtension(value))}
+            options={EXTENSION_OPTIONS.map((value) => ({
+              value,
+              label: value.toUpperCase(),
+            }))}
+          />
+        </div>
+      )}
 
       {errorMessage && (
         <p
@@ -256,8 +325,9 @@ export default function AdminFileList() {
 
       <DataTable
         caption="전사 파일 목록"
+        // 탐색기에서 자리를 옮길 때마다 막대가 번쩍이지 않게 한다
+        showSkeleton={!isLocked}
         dense
-        minWidth={1000}
         rows={files}
         rowKey={(file) => file.fileId}
         errorMessage={current?.errorMessage}
@@ -271,8 +341,10 @@ export default function AdminFileList() {
             </p>
             <p className="text-label break-keep text-text-secondary">
               {hasFilter
-                ? '검색어나 필터를 바꿔보세요'
-                : '프로젝트 스텝에 문서를 올리면 여기에 모입니다'}
+                ? '검색어나 필터를 바꾸세요'
+                : isStepLocked
+                  ? '이 스텝의 문서 블록에 파일을 올리면 여기에 모입니다'
+                  : '프로젝트 스텝에 문서를 올리면 여기에 모입니다'}
             </p>
           </>
         }
@@ -335,9 +407,8 @@ export default function AdminFileList() {
             key: 'size',
             header: '크기',
             width: '8%',
-            align: 'right',
             cell: (file) => (
-              <span className="whitespace-nowrap text-caption text-text-secondary">
+              <span className="text-caption whitespace-nowrap text-text-secondary">
                 {formatFileSize(file.sizeBytes)}
               </span>
             ),
@@ -358,7 +429,7 @@ export default function AdminFileList() {
             header: '수정일',
             width: '10%',
             cell: (file) => (
-              <span className="whitespace-nowrap text-caption text-text-secondary">
+              <span className="text-caption whitespace-nowrap text-text-secondary">
                 {formatDate(file.updatedAt)}
               </span>
             ),
@@ -391,6 +462,13 @@ export default function AdminFileList() {
           },
         ]}
       />
+
+      {/* 받아오는 동안에도 같은 높이를 잡아 둔다 — 결과가 올 때 아래가 밀리지 않게 */}
+      {!filePage && (
+        <div className="mt-3 overflow-hidden rounded-base border border-border-default bg-bg-card">
+          <PaginationPlaceholder />
+        </div>
+      )}
 
       {/* 표 바깥에 둔다 — 실패 · 빈 상태에서는 넘길 페이지가 없다 */}
       {filePage && filePage.totalElements > 0 && (

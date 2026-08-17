@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
+import { writeShellCookie } from '@/features/auth/shellCache';
 import { messageOf } from '@/lib/api';
 
 import { getNotifications, getNotificationTarget } from './api';
@@ -20,10 +21,8 @@ import { type NotificationItem } from './types';
 
 /** 드롭다운에 보여줄 개수. 전체는 알림 페이지에서 본다 */
 const PREVIEW_SIZE = 5;
-/** 배지에는 숫자만 쓰므로 목록은 최소로 받는다 */
+/** 배지는 있고 없고만 표시하므로 목록은 최소로 받는다 */
 const COUNT_ONLY_SIZE = 1;
-/** 두 자리를 넘으면 배지가 아이콘을 밀어낸다 */
-const BADGE_MAX = 99;
 /**
  * 배지를 다시 세는 주기. 알림은 **밖에서 늘어나는 값**이라 가만히 두면 낡는다.
  *
@@ -82,6 +81,8 @@ export default function NotificationBell({
     )
       .then((page) => {
         setUnreadCount(page.totalElements);
+        // 다음 새로고침의 첫 페인트가 같은 모습이도록 유무만 남긴다
+        writeShellCookie({ hasUnread: page.totalElements > 0 });
         lastCheckedAt.current = Date.now();
         // 옆 탭은 이 값을 쓰고 자기 요청을 건너뛴다
         shareUnreadCount(countChannel.current, page.totalElements);
@@ -122,6 +123,8 @@ export default function NotificationBell({
      */
     const shared = subscribeUnreadCount(({ unreadCount: count, sentAt }) => {
       setUnreadCount(count);
+      // 다음 새로고침의 첫 페인트가 같은 모습이도록 유무만 남긴다
+      writeShellCookie({ hasUnread: count > 0 });
       lastCheckedAt.current = sentAt;
     });
     countChannel.current = shared.channel;
@@ -241,10 +244,18 @@ export default function NotificationBell({
       >
         <BellIcon />
 
+        {/**
+         * 안 읽은 알림이 있다는 **사실만** 알린다.
+         *
+         * 숫자를 쓰면 도착할 때마다 배지 폭이 달라져 종 아이콘이 밀리고, 처음 그릴 때도
+         * 없다가 툭 나타난다. 점은 크기가 고정이라 붙어도 자리가 흔들리지 않는다.
+         * 정확한 개수는 아래 목록에서 본다.
+         */}
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex min-w-4 items-center justify-center rounded-pill bg-red-text px-1 text-micro font-bold text-text-white">
-            {unreadCount > BADGE_MAX ? `${BADGE_MAX}+` : unreadCount}
-          </span>
+          <span
+            aria-hidden
+            className="absolute top-0 right-0 size-2.5 rounded-pill border-2 border-bg-header bg-red-text"
+          />
         )}
       </button>
 

@@ -4,6 +4,7 @@ import Breadcrumb from '@/components/Breadcrumb';
 import { useEffect, useState } from 'react';
 
 import DataTable from '@/components/DataTable';
+import PageTitle from '@/components/PageTitle';
 import RowMenu from '@/components/RowMenu';
 import { useModalTarget } from '@/lib/useModal';
 
@@ -105,16 +106,12 @@ export default function JobPositionList() {
         ]}
       />
 
-      <div className="mt-2 mb-6 flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="text-heading-m font-bold">직급 관리</h2>
-          <p className="mt-1.5 text-label break-keep text-text-secondary">
-            사원에게 지정할 직급과 노출 순서를 관리합니다. 사용 중인 직급은
-            삭제할 수 없습니다.
-          </p>
-        </div>
+      <PageTitle
+        title="직급 관리"
+        description="사원에게 지정할 직급과 노출 순서를 관리합니다."
+      >
         <AddButton onClick={() => formModal.open('create')} />
-      </div>
+      </PageTitle>
 
       <p
         role="alert"
@@ -128,6 +125,7 @@ export default function JobPositionList() {
         columns={[
           {
             key: 'order',
+            align: 'center',
             header: '순서',
             width: '4rem',
             skeletonWidth: 'w-6',
@@ -221,7 +219,7 @@ export default function JobPositionList() {
               등록된 직급이 없습니다
             </p>
             <p className="text-label break-keep text-text-secondary">
-              직급을 추가하면 사원 등록 시 선택할 수 있어요
+              직급을 추가하면 사원 등록 시 선택할 수 있습니다
             </p>
             <AddButton subtle onClick={() => formModal.open('create')} />
           </>

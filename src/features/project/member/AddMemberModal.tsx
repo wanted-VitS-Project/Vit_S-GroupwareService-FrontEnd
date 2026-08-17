@@ -172,7 +172,7 @@ export default function AddMemberModal({
           </div>
           <p className="mt-1.5 text-caption break-keep text-text-secondary">
             고른 사원 모두에게 같은 권한이 적용됩니다. 추가한 뒤 목록에서 한
-            명씩 바꿀 수 있어요.
+            명씩 바꿀 수 있습니다.
           </p>
         </fieldset>
 
@@ -190,7 +190,7 @@ export default function AddMemberModal({
           type="button"
           onClick={onClose}
           disabled={isSubmitting}
-          className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+          className="btn btn-md btn-gray-outlined"
         >
           취소
         </button>
@@ -198,7 +198,7 @@ export default function AddMemberModal({
           type="button"
           onClick={() => void submit()}
           disabled={isSubmitting || selected.length === 0}
-          className="min-w-[104px] cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+          className="btn btn-md btn-primary min-w-[104px]"
         >
           {isSubmitting ? '추가 중…' : `추가 (${selected.length})`}
         </button>

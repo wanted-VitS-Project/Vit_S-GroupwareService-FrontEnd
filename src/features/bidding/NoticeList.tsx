@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
-import Pagination from '@/components/Pagination';
+import PageTitle from '@/components/PageTitle';
+import Pagination, { PaginationPlaceholder } from '@/components/Pagination';
 import { formatDate, formatTime } from '@/lib/format';
 
 import { getNotices } from './api';
@@ -150,12 +151,10 @@ export default function NoticeList() {
   return (
     <>
       {/* 액션 버튼은 필터 바의 검색 오른쪽에 둔다 (`NoticeFilterBar`) */}
-      <div className="mb-6">
-        <h2 className="text-heading-m font-bold">공고 조회</h2>
-        <p className="mt-1.5 text-caption break-keep text-text-secondary">
-          수집된 입찰 공고를 확인합니다.
-        </p>
-      </div>
+      <PageTitle
+        title="공고 조회"
+        description="수집된 입찰 공고를 확인합니다."
+      />
 
       <NoticeFilterBar
         searchParams={searchParams}
@@ -169,6 +168,12 @@ export default function NoticeList() {
         columns={NOTICE_COLUMNS}
         rows={hasFailed ? [] : isLoading && !rows ? null : (rows ?? [])}
         rowKey={(row) => row.noticeId}
+        /**
+         * 행 어디를 눌러도 상세로 간다 — 공고명 링크만 열어 두면 발주처 · 금액 칸을
+         * 눌렀을 때 아무 일도 일어나지 않아, 표가 눌리는 것인지 아닌지 매번 가늠하게 된다.
+         * 공고명 `<Link>` 는 그대로 둔다 — 새 탭 열기 · 주소 복사가 되는 곳이 하나는 있어야 한다.
+         */
+        onRowClick={(row) => router.push(BIDDING_ROUTES.detail(row.noticeId))}
         /**
          * ⚠️ **가로 스크롤을 두지 않는다** (2026-08-12) — `minWidth` 를 뺐다.
          *    대신 여백을 줄이고(`dense`) 날짜 · 시각을 두 줄로 쌓아 자리를 만든다.
@@ -197,9 +202,16 @@ export default function NoticeList() {
         }
       />
 
+      {/* 받아오는 동안에도 같은 높이를 잡아 둔다 — 결과가 올 때 아래가 밀리지 않게 */}
+      {!hasFailed && !page && (
+        <div className="mt-3 overflow-hidden rounded-base border border-border-default bg-bg-card">
+          <PaginationPlaceholder />
+        </div>
+      )}
+
       {/* 표 바깥에 둔다 — 실패 · 빈 상태에서는 넘길 페이지가 없다 */}
       {!hasFailed && page && page.totalElements > 0 && (
-        <div className="mt-3 overflow-hidden rounded-xl border border-border-default bg-bg-card">
+        <div className="mt-3 overflow-hidden rounded-base border border-border-default bg-bg-card">
           <Pagination
             page={query.page ?? 0}
             totalPages={page.totalPages}
@@ -222,6 +234,8 @@ export default function NoticeList() {
 const NOTICE_COLUMNS: DataTableColumn<BidNoticeListItem>[] = [
   {
     key: 'noticeName',
+    // ⚠️ 링크가 행 클릭까지 타면 `router.push` 가 두 번 돈다 (Ctrl+클릭도 새 탭 대신 이동)
+    stopRowClick: true,
     header: '공고명',
     width: '30%',
     skeletonWidth: 'w-64',
@@ -307,15 +321,14 @@ const NOTICE_COLUMNS: DataTableColumn<BidNoticeListItem>[] = [
     skeletonWidth: 'w-24',
     /**
      * 날짜 · 시각 · 남은 기간을 **한 줄**에 둔다 — 마감을 볼 때 셋은 한 덩어리로 읽힌다.
-     * 좁아지면 배지가 다음 줄로 흐른다 (잘리지는 않는다).
+     *
+     * ⚠️ 줄바꿈을 허용하지 않는다. 예전에는 날짜 칸에 고정 폭(`w-32`)을 주고 넘치면
+     *    다음 줄로 흐르게 두었는데, 표가 좁아지자 **배지만 아래로 떨어져** 줄마다 높이가
+     *    달라지고 고장난 것처럼 보였다. 배지 세로 맞춤보다 한 줄 유지가 먼저다.
      */
     cell: (row) => (
-      <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        {/**
-         * ⚠️ 배지를 칸 오른쪽 끝(`ml-auto`)으로 밀지 않는다 — 날짜와 멀어져 한 덩어리로
-         *    읽히지 않는다. 날짜 칸에 **고정 폭**을 줘서 배지 위치만 세로로 맞춘다.
-         */}
-        <span className="w-32 shrink-0 text-text-secondary">
+      <span className="inline-flex items-center gap-2 whitespace-nowrap">
+        <span className="text-text-secondary">
           {formatDate(row.bidDeadlineAt) || '-'}
           {formatTime(row.bidDeadlineAt) && (
             <span className="ml-1 text-detail text-text-muted">

@@ -3,11 +3,12 @@
 import { useContext, useMemo } from 'react';
 
 import { FIXED_BY_ROLE, MENU_ORDER, type MenuItem } from '@/constants/menu';
+import type { Role } from '@/features/auth/types';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 import { toMenuItems } from './catalog';
 import { MyPagesContext } from './MyPagesProvider';
-import type { PagePermission } from './types';
+import type { MyPage, PagePermission } from './types';
 
 /** `/my/pages` 원본이 필요할 때 (접근 가드 · 권한 표시) */
 export function useMyPages() {
@@ -43,7 +44,23 @@ export function useMenuItems(): {
   const { role } = useCurrentUser();
   const { pages, status, refetch } = useMyPages();
 
-  const items = useMemo(() => {
+  const items = useMemo(() => buildMenuItems(role, pages), [role, pages]);
+
+  return { items, status, refetch };
+}
+
+/**
+ * `/my/pages` 응답 + 고정 항목 → **화면에 그릴 순서 그대로의 메뉴**.
+ *
+ * 훅 밖으로 빼 둔 이유가 있다 — 세션을 확인하는 동안 그리는 셸(`AppShellSkeleton`)이
+ * 캐시된 응답으로 **같은 목록**을 만들어야 한다. 조립 규칙이 두 벌이면 새로고침할 때
+ * 메뉴가 미묘하게 달라져 자리가 흔들린다.
+ */
+export function buildMenuItems(
+  role: Role,
+  pages: MyPage[],
+): ResolvedMenuItem[] {
+  {
     const dynamic = toMenuItems(pages);
     /**
      * 같은 화면이 두 줄로 나오지 않게 한다 —
@@ -62,7 +79,5 @@ export function useMenuItems(): {
     };
 
     return [...fixed, ...dynamic].sort((a, b) => rank(a.href) - rank(b.href));
-  }, [role, pages]);
-
-  return { items, status, refetch };
+  }
 }

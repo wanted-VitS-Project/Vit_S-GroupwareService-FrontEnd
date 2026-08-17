@@ -211,7 +211,7 @@ export default function BlockEditModal({
               value={title}
               maxLength={BLOCK_TITLE_MAX_LENGTH}
               onChange={(event) => setTitle(event.target.value)}
-              placeholder="블록 제목을 입력해주세요."
+              placeholder="블록 제목을 입력하세요"
               className="w-full rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-detail font-normal text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
             />
           </label>
@@ -318,7 +318,7 @@ export default function BlockEditModal({
               type="button"
               onClick={requestClose}
               disabled={isSubmitting}
-              className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="btn btn-md btn-gray-outlined"
             >
               취소
             </button>
@@ -326,7 +326,7 @@ export default function BlockEditModal({
               type="button"
               onClick={requestSave}
               disabled={isSubmitting || hasNoVersion}
-              className="min-w-[104px] cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="btn btn-md btn-primary min-w-[104px]"
             >
               {isSubmitting ? '저장 중…' : '저장'}
             </button>
@@ -347,7 +347,7 @@ export default function BlockEditModal({
         // 취소(= Esc · 배경 클릭)를 다시 불러오기에 둔다 — 잘못 눌러도 남의 값이 지워지지 않는다
         <AlertDialogTwoButton
           icon={DialogIcons.warning}
-          title="다른 사람이 먼저 저장했어요"
+          title="다른 사람이 먼저 저장했습니다"
           description="그 사이 이 블록이 수정됐습니다. 지금 입력한 내용으로 덮어쓰거나, 최신 내용을 다시 불러올 수 있습니다."
           confirmLabel="덮어쓰기"
           cancelLabel="다시 불러오기"

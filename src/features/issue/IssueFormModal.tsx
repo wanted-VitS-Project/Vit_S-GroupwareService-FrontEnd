@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import MemberAvatar from '@/components/MemberAvatar';
 import Modal from '@/components/Modal';
 import PersonNote from '@/components/PersonNote';
-import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
+import LoadingSpinner from '@/components/Spinner';
 import { notifyToast } from '@/components/Toast';
 import { getStepBlocks } from '@/features/block/api';
 import type { StepBlock } from '@/features/block/types';
@@ -549,14 +549,7 @@ export default function IssueFormModal({
             </div>
           </div>
         ) : values === null ? (
-          <SkeletonGroup
-            label="이슈를 불러오는 중"
-            className="flex flex-col gap-4 p-5"
-          >
-            <Skeleton className="h-[34px] w-full" />
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-[34px] w-1/2" />
-          </SkeletonGroup>
+          <LoadingSpinner label="이슈를 불러오는 중" className="py-16" />
         ) : (
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
             <label className="block">
@@ -792,7 +785,7 @@ export default function IssueFormModal({
               type="button"
               onClick={onClose}
               disabled={isSaving}
-              className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="btn btn-md btn-gray-outlined"
             >
               취소
             </button>
@@ -800,7 +793,7 @@ export default function IssueFormModal({
               type="button"
               onClick={submit}
               disabled={isSaving || values === null || loadFailure !== null}
-              className="min-w-[104px] cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="btn btn-md btn-primary min-w-[104px]"
             >
               {isSaving ? '저장 중…' : isEdit ? '수정 완료' : '이슈 생성'}
             </button>

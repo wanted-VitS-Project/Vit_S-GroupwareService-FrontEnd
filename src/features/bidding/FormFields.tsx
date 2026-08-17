@@ -344,7 +344,7 @@ export function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-border-default bg-bg-card p-5">
+    <section className="rounded-base border border-border-default bg-bg-card p-5">
       <h3 className="text-label font-bold text-text-primary">{title}</h3>
       {description && (
         <p className="mt-1 text-micro break-keep text-text-secondary">

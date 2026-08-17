@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
+import PageTitle from '@/components/PageTitle';
 import { notifyToast } from '@/components/Toast';
 import { getCategories } from '@/features/businessCategory/api';
 import type { BusinessCategory as MasterCategory } from '@/features/businessCategory/types';
@@ -138,11 +139,11 @@ export default function ProjectCreateForm() {
 
     if (name === '') next.name = '과업명을 입력해주세요.';
     else if (name.length > PROJECT_NAME_MAX_LENGTH) {
-      next.name = `과업명은 ${PROJECT_NAME_MAX_LENGTH}자를 넘을 수 없어요.`;
+      next.name = `과업명은 ${PROJECT_NAME_MAX_LENGTH}자를 넘을 수 없습니다.`;
     }
 
     if (values.clientName.trim().length > CLIENT_NAME_MAX_LENGTH) {
-      next.clientName = `발주처는 ${CLIENT_NAME_MAX_LENGTH}자를 넘을 수 없어요.`;
+      next.clientName = `발주처는 ${CLIENT_NAME_MAX_LENGTH}자를 넘을 수 없습니다.`;
     }
 
     if (
@@ -150,7 +151,7 @@ export default function ProjectCreateForm() {
       values.endedOn &&
       values.startedOn > values.endedOn
     ) {
-      next.endedOn = '종료일이 시작일보다 앞설 수 없어요.';
+      next.endedOn = '종료일이 시작일보다 앞설 수 없습니다.';
     }
 
     setErrors(next);
@@ -221,12 +222,12 @@ export default function ProjectCreateForm() {
 
       setFormError(
         code === PROJECT_CATEGORY_CODES.notFound
-          ? '고른 사업 카테고리 중에 지금은 없는 것이 있어요. 새로고침 후 다시 골라주세요.'
+          ? '고른 사업 카테고리 중에 지금은 없는 것이 있습니다. 새로고침 후 다시 골라주세요.'
           : code === PROJECT_CODES.dateRangeInvalid
-            ? '시작일이 종료일보다 늦어요.'
+            ? '시작일이 종료일보다 늦습니다.'
             : messageOf(
                 caught,
-                '프로젝트를 생성하지 못했어요. 잠시 후 다시 시도해주세요.',
+                '프로젝트를 생성하지 못했습니다. 잠시 후 다시 시도해주세요.',
               ),
       );
       setIsSubmitting(false);
@@ -252,26 +253,23 @@ export default function ProjectCreateForm() {
   return (
     <div className="mx-auto w-full max-w-[820px]">
       {/*
-        `PageTitle` 은 제목 + 우측 액션만 담아 설명 줄을 넣을 자리가 없다 —
-        시안이 제목 아래 한 줄 설명을 요구해 이 화면만 머리말을 직접 그린다.
+        ⚠️ 공용 `Breadcrumb` 이 아니라 직접 그린 경로다 — 이 화면만 남았다.
+        `Breadcrumb` 으로 옮기면 아래 간격(`mb-2`)까지 함께 따라온다.
       */}
-      <div className="mb-6">
-        <p className="text-caption text-text-secondary">
-          <Link
-            href={PROJECT_ROUTES.list}
-            className="hover:text-text-primary hover:underline"
-          >
-            내 프로젝트
-          </Link>
-          {' › 프로젝트 생성'}
-        </p>
-        <h2 className="mt-2 text-heading-m font-bold text-text-primary">
-          프로젝트 생성
-        </h2>
-        <p className="mt-1 text-detail break-keep text-text-secondary">
-          공고 연결 없이 직접 생성하는 경로입니다.
-        </p>
-      </div>
+      <p className="mb-2 text-caption text-text-secondary">
+        <Link
+          href={PROJECT_ROUTES.list}
+          className="hover:text-text-primary hover:underline"
+        >
+          내 프로젝트
+        </Link>
+        {' › 프로젝트 생성'}
+      </p>
+
+      <PageTitle
+        title="프로젝트 생성"
+        description="공고 연결 없이 직접 생성하는 경로입니다."
+      />
 
       <form onSubmit={submit} className="space-y-5 pb-10">
         <FormCard title="기본 정보">
@@ -304,7 +302,7 @@ export default function ProjectCreateForm() {
             </legend>
             {hasCategoryFailed ? (
               <p className="text-caption break-keep text-text-secondary">
-                카테고리를 불러오지 못했어요. 생성 후 설정 화면에서 연결할 수
+                카테고리를 불러오지 못했습니다. 생성 후 설정 화면에서 연결할 수
                 있습니다.
               </p>
             ) : !selectable ? (

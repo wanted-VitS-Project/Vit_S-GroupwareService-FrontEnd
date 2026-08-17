@@ -54,10 +54,11 @@ export default function Header() {
   return (
     // 사이드바 로고 줄과 같은 52px — 두 영역의 밑줄이 한 선으로 이어진다
     <header
-      className={`flex h-13 shrink-0 items-center justify-between border-b pr-8 ${
+      // 좌우 여백은 좁은 화면에서 절반으로 줄인다 — 8은 375px 폭에서 프로필 · 종을 밀어낸다
+      className={`flex h-13 shrink-0 items-center justify-between border-b pr-4 md:pr-8 ${
         isDark
           ? 'border-bg-sidebar-hover bg-bg-sidebar pl-0'
-          : 'border-border-default bg-bg-header pl-8'
+          : 'border-border-default bg-bg-header pl-4 md:pl-8'
       }`}
     >
       <div className="flex h-full min-w-0 items-center">
@@ -83,7 +84,12 @@ export default function Header() {
              * `padding` 도 함께 전환한다 — 폭만 전환하면 좌우 여백이 첫 프레임에 툭 바뀌어
              * 로고 글자가 한 번 튄다.
              */
-            className={`flex h-full shrink-0 items-center overflow-hidden border-r border-bg-sidebar-hover transition-[width,padding] duration-200 ease-out motion-reduce:transition-none ${
+            /*
+              좁은 화면(1024px 미만)에서는 아래 `ProjectSidebar` 가 자리에서 빠진다 —
+              맞출 경계선이 없는데 280px 짜리 로고 칸만 남으면 헤더가 통째로 왼쪽으로
+              쏠린다. 폭 · 테두리를 풀고 글자만큼만 차지하게 한다.
+            */
+            className={`flex h-full shrink-0 items-center overflow-hidden border-r border-bg-sidebar-hover transition-[width,padding] duration-200 ease-out motion-reduce:transition-none max-[1023px]:w-auto max-[1023px]:border-r-0 max-[1023px]:px-4 ${
               isCollapsed
                 ? `${SIDEBAR_COLLAPSED_WIDTH} justify-center px-0`
                 : `${SIDEBAR_WIDTH} px-6`

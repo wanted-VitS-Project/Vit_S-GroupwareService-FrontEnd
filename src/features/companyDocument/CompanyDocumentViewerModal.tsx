@@ -3,6 +3,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 
 import Modal from '@/components/Modal';
+import LoadingSpinner from '@/components/Spinner';
 import { messageOf } from '@/lib/api';
 import { formatDate } from '@/lib/format';
 
@@ -25,7 +26,7 @@ type Preview =
  * (프로젝트 파일의 `FileViewerModal` 과 같은 구성이다 — 도메인만 다르다)
  *
  * 미리보기는 서버가 앞 5페이지만 잘라 PDF 로 준다 (`.ai/API.md` 148).
- * 이력은 **append-only** 라 버전을 고르면 미리보기 · 내려받기 대상만 바뀐다.
+ * 이력은 **append-only** 라 버전을 고르면 미리보기 · 다운로드 대상만 바뀐다.
  */
 export default function CompanyDocumentViewerModal({
   // ⚠️ prop 이름을 `document` 로 두지 않는다 — 브라우저 전역 `document` 를 가린다
@@ -120,7 +121,12 @@ export default function CompanyDocumentViewerModal({
     <Modal
       title={`${item.name} 문서 보기`}
       onClose={onClose}
-      className="flex h-[85vh] w-full max-w-[860px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
+      /**
+       * 창 크기 — **화면을 다 먹지 않는다.** 넓은 모니터에서 `85vh` · `860px` 로 두면
+       * 뒤 화면이 거의 가려져 창이 아니라 페이지처럼 보였다. 미리보기는 내용을 확인하는
+       * 자리이지 작업하는 자리가 아니라, 뒤가 비쳐 보이는 편이 낫다.
+       */
+      className="flex h-[min(72vh,680px)] w-full max-w-[720px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
       header={
         <div className="flex shrink-0 items-center gap-3 border-b border-border-default px-5 py-3">
           <span
@@ -143,9 +149,7 @@ export default function CompanyDocumentViewerModal({
               {/* 업로더가 ADMIN 이면 이름이 오지 않는다 */}
               <span>{current?.uploaderName ?? item.uploaderName ?? '—'}</span>
               <span aria-hidden>·</span>
-              <span>
-                {formatDate(current?.completedAt ?? item.updatedAt)}
-              </span>
+              <span>{formatDate(current?.completedAt ?? item.updatedAt)}</span>
               <span aria-hidden>·</span>
               <span>
                 {formatFileSize(current?.sizeBytes ?? item.sizeBytes)}
@@ -187,14 +191,10 @@ export default function CompanyDocumentViewerModal({
           )}
 
           {!versions && !versionsError && (
-            <div aria-hidden className="flex flex-col gap-1.5">
-              {[0, 1].map((index) => (
-                <span
-                  key={index}
-                  className="h-12 animate-pulse rounded-button-md bg-bg-hover"
-                />
-              ))}
-            </div>
+            <LoadingSpinner
+              label="버전 목록을 불러오는 중입니다"
+              className="py-10"
+            />
           )}
 
           <ul className="flex flex-col gap-1.5">
@@ -242,19 +242,18 @@ export default function CompanyDocumentViewerModal({
         {/* 미리보기 — 서버가 앞 5페이지만 잘라 준다 */}
         <div className="min-w-0 flex-1 overflow-y-auto bg-bg-surface p-4">
           {preview.kind === 'loading' && (
-            <div
-              role="status"
-              aria-label="미리보기를 불러오는 중입니다"
-              className="mx-auto h-[560px] w-full max-w-[560px] animate-pulse rounded-button-sm bg-bg-hover"
+            <LoadingSpinner
+              label="미리보기를 불러오는 중입니다"
+              className="mx-auto h-[560px] w-full max-w-[560px]"
             />
           )}
 
           {preview.kind === 'ready' && (
             <Suspense
               fallback={
-                <div
-                  aria-hidden
-                  className="mx-auto h-[560px] w-full max-w-[560px] animate-pulse rounded-button-sm bg-bg-hover"
+                <LoadingSpinner
+                  label="미리보기 뷰어를 불러오는 중입니다"
+                  className="mx-auto h-[560px] w-full max-w-[560px]"
                 />
               }
             >
@@ -271,14 +270,14 @@ export default function CompanyDocumentViewerModal({
                 <p className="mt-2 text-center text-micro text-text-secondary">
                   미리보기 {preview.shown}
                   {preview.total !== null && ` / ${preview.total}`}페이지 —
-                  전체는 내려받아 확인해주세요.
+                  전체는 다운로드해서 확인해주세요.
                 </p>
               )}
             </Suspense>
           )}
 
           {preview.kind === 'unsupported' && (
-            <Notice text="이 형식은 미리보기를 지원하지 않아요. 내려받아 확인해주세요." />
+            <Notice text="이 형식은 미리보기를 지원하지 않습니다. 다운로드해서 확인해주세요." />
           )}
           {preview.kind === 'failed' && <Notice text={preview.message} />}
         </div>

@@ -228,7 +228,7 @@ export default function StepStatusModal({
           type="button"
           onClick={onClose}
           disabled={isSaving}
-          className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+          className="btn btn-md btn-gray-outlined"
         >
           {isSaving ? '저장 중…' : '닫기'}
         </button>

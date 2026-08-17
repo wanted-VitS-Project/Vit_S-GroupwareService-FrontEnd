@@ -20,7 +20,7 @@ interface StepFormModalProps {
   step?: ProjectStep;
   /** 추가할 때 소속시킬 스테이지. 없으면 미분류 스텝이 된다 */
   stageId?: number;
-  /** 어느 단계에 넣는지 모달 머리에 보여준다 */
+  /** 어느 스테이지에 넣는지 모달 머리에 보여준다 */
   stageName?: string;
   onClose: () => void;
   onSaved: () => void;
@@ -175,10 +175,10 @@ export default function StepFormModal({
             {!isEditing && (
               <div className="rounded-lg border border-border-default bg-bg-surface px-3 py-2.5">
                 <span className="block text-caption text-text-secondary">
-                  소속 단계
+                  소속 스테이지
                 </span>
                 <span className="mt-0.5 block truncate text-label font-semibold text-text-primary">
-                  {stageName ?? '미분류 (단계 없음)'}
+                  {stageName ?? '미분류 (스테이지 없음)'}
                 </span>
               </div>
             )}
@@ -330,7 +330,7 @@ export default function StepFormModal({
 
             {isEditing && (
               <p className="rounded-lg bg-bg-surface px-3 py-2.5 text-caption leading-relaxed break-keep text-text-secondary">
-                비운 칸은 저장 시 <strong>해제</strong>됩니다. 소속 단계와
+                비운 칸은 저장 시 <strong>해제</strong>됩니다. 소속 스테이지와
                 순서는 이 화면에서 바꿀 수 없습니다.
               </p>
             )}
@@ -356,14 +356,14 @@ export default function StepFormModal({
                 type="button"
                 onClick={requestClose}
                 disabled={isSubmitting}
-                className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+                className="btn btn-md btn-gray-outlined"
               >
                 취소
               </button>
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className="min-w-[104px] cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+                className="btn btn-md btn-primary min-w-[104px]"
               >
                 {isSubmitting ? '저장 중…' : isEditing ? '저장' : '추가'}
               </button>
@@ -376,7 +376,7 @@ export default function StepFormModal({
         // 취소(= Esc · 배경 클릭)를 다시 불러오기에 둔다 — 잘못 눌러도 남의 값이 지워지지 않는다
         <AlertDialogTwoButton
           icon={DialogIcons.warning}
-          title="다른 사람이 먼저 저장했어요"
+          title="다른 사람이 먼저 저장했습니다"
           description="그 사이 이 스텝이 수정됐습니다. 지금 입력한 내용으로 덮어쓰거나, 최신 내용을 다시 불러올 수 있습니다."
           confirmLabel="덮어쓰기"
           cancelLabel="다시 불러오기"

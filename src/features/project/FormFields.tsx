@@ -126,7 +126,7 @@ export const AMOUNT_MAX_DIGITS = 15;
  * ⚠️ `Number(value).toLocaleString()` 을 쓰지 않는다 —
  *    숫자가 아닌 값이 오면 화면에 `NaN` 이 뜨고, 큰 수는 정밀도가 조용히 깎인다.
  */
-function groupDigits(value: string) {
+export function groupDigits(value: string) {
   const digits = value.replace(/\D/g, '');
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
@@ -257,7 +257,7 @@ export function FormCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-border-default bg-bg-card p-6">
+    <section className="rounded-base border border-border-default bg-bg-card p-6">
       <h3 className="text-label font-semibold text-text-primary">{title}</h3>
       {description && (
         <p className="mt-1 text-micro break-keep text-text-secondary">

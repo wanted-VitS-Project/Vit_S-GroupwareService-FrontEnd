@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import Modal from '@/components/Modal';
+import LoadingSpinner from '@/components/Spinner';
 import { messageOf } from '@/lib/api';
 import { useFlipReorder } from '@/lib/useFlipReorder';
 
@@ -326,18 +327,10 @@ export default function ImageEditModal({
               </button>
             </div>
           ) : !images ? (
-            <div
-              role="status"
-              aria-label="이미지 목록을 불러오는 중입니다"
-              className="flex flex-col gap-3"
-            >
-              {[0, 1, 2].map((row) => (
-                <div
-                  key={row}
-                  className="h-[76px] animate-pulse rounded-base bg-bg-surface"
-                />
-              ))}
-            </div>
+            <LoadingSpinner
+              label="이미지 목록을 불러오는 중입니다"
+              className="py-16"
+            />
           ) : (
             <ul ref={listRef} className="flex flex-col gap-3">
               {images.map((image, index) => {
@@ -453,7 +446,7 @@ export default function ImageEditModal({
               type="button"
               onClick={requestClose}
               disabled={isSaving}
-              className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="btn btn-md btn-gray-outlined"
             >
               취소
             </button>
@@ -461,7 +454,7 @@ export default function ImageEditModal({
               type="button"
               onClick={requestSave}
               disabled={isSaving || !images}
-              className="min-w-[104px] cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="btn btn-md btn-primary min-w-[104px]"
             >
               {isSaving ? '저장 중…' : '저장'}
             </button>

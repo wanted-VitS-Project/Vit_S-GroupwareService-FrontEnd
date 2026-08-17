@@ -46,7 +46,7 @@ export default function DeleteProjectModal({
 
       setError(
         code === PROJECT_CODES.deleteNotAllowed
-          ? '이미 시작했거나 스텝이 있는 프로젝트는 삭제할 수 없습니다. 그 사이 다른 사람이 바꿨을 수 있어요 — 새로고침 후 종결로 처리해주세요.'
+          ? '이미 시작했거나 스텝이 있는 프로젝트는 삭제할 수 없습니다. 그 사이 다른 사람이 바꿨을 수 있습니다 — 새로고침 후 종결로 처리해주세요.'
           : code === PROJECT_CODES.notFound
             ? '이미 삭제된 프로젝트입니다.'
             : messageOf(caught, '삭제하지 못했습니다.'),
@@ -90,7 +90,7 @@ export default function DeleteProjectModal({
           type="button"
           onClick={requestClose}
           disabled={isSubmitting}
-          className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+          className="btn btn-md btn-gray-outlined"
         >
           취소
         </button>
@@ -98,7 +98,7 @@ export default function DeleteProjectModal({
           type="button"
           onClick={() => void submit()}
           disabled={isSubmitting}
-          className="cursor-pointer rounded-lg bg-red-text px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-danger-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+          className="btn btn-md btn-danger"
         >
           {isSubmitting ? '삭제 중…' : '삭제'}
         </button>

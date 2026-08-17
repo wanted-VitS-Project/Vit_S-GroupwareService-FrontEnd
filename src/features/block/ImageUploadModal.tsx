@@ -8,11 +8,14 @@ import { notifyToast } from '@/components/Toast';
 import { messageOf } from '@/lib/api';
 import { useFlipReorder } from '@/lib/useFlipReorder';
 
+import { formatFileSize } from '../file/format';
 import { createImageItems } from './api';
 import {
   IMAGE_ACCEPT,
   IMAGE_CAPTION_MAX_LENGTH,
   IMAGE_MAX_SIZE_BYTES,
+  IMAGE_UPLOAD_MAX_COUNT,
+  IMAGE_UPLOAD_MAX_TOTAL_BYTES,
   isAllowedImageType,
   type BlockImage,
 } from './types';
@@ -20,6 +23,10 @@ import { useDragAutoScroll } from './useDragAutoScroll';
 
 /** 모달 안 목록은 짧다 — 가장자리 띠와 속도를 보드보다 좁게 잡는다 */
 const MODAL_AUTO_SCROLL = { edgePx: 56, maxStepPx: 12 };
+
+/** 안내 문구용 — 상수에서 뽑아 쓴다 (제한값이 바뀌면 문구도 함께 따라온다) */
+const MAX_SIZE_LABEL = `${IMAGE_MAX_SIZE_BYTES / 1024 / 1024}MB`;
+const MAX_TOTAL_LABEL = `${IMAGE_UPLOAD_MAX_TOTAL_BYTES / 1024 / 1024}MB`;
 
 /** 업로드 대기 중인 한 장 — 미리보기는 로컬 object URL 로 만든다 */
 interface QueuedImage {
@@ -96,19 +103,52 @@ export default function ImageUploadModal({
       (file) => file.size <= IMAGE_MAX_SIZE_BYTES,
     );
 
-    if (withinSize.length < picked.length) {
-      setErrorMessage(
-        accepted.length < picked.length
-          ? 'JPG · PNG · GIF · WEBP 이미지만 올릴 수 있습니다.'
-          : '10MB 이하 이미지만 올릴 수 있습니다.',
-      );
-    } else {
-      setErrorMessage('');
+    /*
+     * 요청 한 번의 상한(15장 · 300MB)까지만 담는다.
+     *
+     * ⚠️ **블록이 담을 수 있는 총 장수에는 제한이 없다** — 넘친 건 잘못된 파일이 아니라
+     *    이번 요청에 안 들어갈 뿐이다. 그래서 조용히 버리지 않고 몇 장이 남았는지 알려
+     *    나눠 올리도록 안내한다.
+     */
+    let count = queued.length;
+    let totalBytes = queued.reduce((sum, item) => sum + item.file.size, 0);
+    const fitted: File[] = [];
+
+    for (const file of withinSize) {
+      if (
+        count + 1 > IMAGE_UPLOAD_MAX_COUNT ||
+        totalBytes + file.size > IMAGE_UPLOAD_MAX_TOTAL_BYTES
+      ) {
+        break;
+      }
+
+      fitted.push(file);
+      count += 1;
+      totalBytes += file.size;
     }
+
+    const reasons: string[] = [];
+
+    if (accepted.length < picked.length) {
+      reasons.push('JPG · PNG · GIF · WEBP 이미지만 올릴 수 있습니다.');
+    }
+    if (withinSize.length < accepted.length) {
+      reasons.push(`한 장은 ${MAX_SIZE_LABEL} 까지 올릴 수 있습니다.`);
+    }
+    if (fitted.length < withinSize.length) {
+      reasons.push(
+        `한 번에 ${IMAGE_UPLOAD_MAX_COUNT}장 · 합계 ${MAX_TOTAL_LABEL} 까지 올릴 수 있습니다.` +
+          ` 남은 ${withinSize.length - fitted.length}장은 올린 뒤 이어서 올려주세요.`,
+      );
+    }
+
+    setErrorMessage(reasons.join(' '));
+
+    if (fitted.length === 0) return;
 
     setQueued((previous) => [
       ...previous,
-      ...withinSize.map((file) => ({
+      ...fitted.map((file) => ({
         key: `queued-${nextKeyRef.current++}`,
         file,
         previewUrl: URL.createObjectURL(file),
@@ -225,8 +265,13 @@ export default function ImageUploadModal({
             <span className="text-label font-semibold text-text-primary">
               파일을 드래그하거나 클릭하여 업로드
             </span>
-            <span className="text-caption text-text-secondary">
-              JPG, PNG, GIF, WEBP · 최대 10MB
+            <span className="text-caption break-keep text-text-secondary">
+              JPG, PNG, GIF, WEBP · 한 장 {MAX_SIZE_LABEL}
+            </span>
+            {/* 블록 장수는 무제한이고 요청 한 번만 막힌다 — 그 사실을 여기서 미리 알린다 */}
+            <span className="text-micro break-keep text-text-muted">
+              한 번에 {IMAGE_UPLOAD_MAX_COUNT}장 · 합계 {MAX_TOTAL_LABEL} 까지
+              (블록에 담는 장수는 제한 없음)
             </span>
           </button>
 
@@ -248,11 +293,15 @@ export default function ImageUploadModal({
             <div ref={listRef} className="mt-4 flex flex-col gap-2">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-caption font-semibold text-text-primary">
-                  {queued.length}개 파일 선택됨
+                  {queued.length} / {IMAGE_UPLOAD_MAX_COUNT}장 ·{' '}
+                  {formatFileSize(
+                    queued.reduce((sum, item) => sum + item.file.size, 0),
+                  )}{' '}
+                  / {MAX_TOTAL_LABEL}
                 </p>
                 {queued.length > 1 && (
                   <p className="text-caption text-text-secondary">
-                    왼쪽 핸들을 드래그해 순서를 바꿀 수 있어요
+                    왼쪽 핸들을 드래그해 순서를 바꿀 수 있습니다
                   </p>
                 )}
               </div>
@@ -350,7 +399,7 @@ export default function ImageUploadModal({
             type="button"
             onClick={requestClose}
             disabled={isUploading}
-            className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
+            className="btn btn-md btn-gray-outlined"
           >
             취소
           </button>
@@ -358,7 +407,7 @@ export default function ImageUploadModal({
             type="button"
             onClick={upload}
             disabled={queued.length === 0 || isUploading}
-            className="min-w-[128px] cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+            className="btn btn-md btn-primary min-w-[128px]"
           >
             {isUploading ? '올리는 중…' : `등록하기 (${queued.length})`}
           </button>

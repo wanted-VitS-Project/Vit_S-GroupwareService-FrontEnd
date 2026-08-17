@@ -29,10 +29,25 @@ interface ModalProps {
   children: React.ReactNode;
 }
 
-/** 모달 동작에 필요해 항상 적용한다 */
-const BASE_PANEL = 'm-auto bg-bg-card backdrop:bg-text-primary/50';
-/** className 을 넘기지 않을 때의 크기 · 여백 */
-const DEFAULT_PANEL = 'w-full max-w-sm rounded-base p-8 shadow-lg';
+/**
+ * 모달 동작에 필요해 항상 적용한다.
+ *
+ * ⚠️ **폭 상한(`max-w-…`)을 여기서 걸지 않는다.** 호출부가 이미 `max-w-[420px]` 처럼
+ *    자기 폭을 정하는데 여기서 `max-w-[calc(100dvw-2rem)]` 를 함께 걸면 같은 성질의
+ *    클래스가 둘이 되어 **어느 쪽이 이길지 CSS 순서에 달린다** — 넓은 화면에서 창이
+ *    화면 폭만큼 늘어나는 일이 실제로 있었다 (2026-08-16).
+ *    좁은 화면 보호는 브라우저가 이미 한다 — `<dialog>` 는 기본 스타일로 뷰포트를 넘지 않는다.
+ * ℹ️ 높이 상한만 남긴다. 이건 호출부가 잘 정하지 않고, 넘치면 닫기 버튼까지 화면 밖으로 나간다.
+ */
+const BASE_PANEL =
+  'm-auto max-h-[calc(100dvh-2rem)] bg-bg-card backdrop:bg-text-primary/50';
+/**
+ * className 을 넘기지 않을 때의 크기 · 여백.
+ *
+ * 그림자는 `shadow-2xl` 로 고정한다 — 모달 대부분이 이미 그 값을 직접 붙이고 있어,
+ * 기본값만 `shadow-lg` 로 두면 className 을 안 넘긴 모달만 유독 얕게 뜬다.
+ */
+const DEFAULT_PANEL = 'w-full max-w-sm rounded-base p-8 shadow-2xl';
 
 /**
  * 화면 오른쪽 아래에 붙는 곁패널의 자리 · 높이.
@@ -43,7 +58,7 @@ const DEFAULT_PANEL = 'w-full max-w-sm rounded-base p-8 shadow-lg';
 const SIDE_PANEL_BASE =
   'mt-auto mr-4 mb-4 ml-auto flex h-[72vh] max-h-[560px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl';
 
-/** 곁패널 기본 폭 — `연결된 이슈` · `블록 활동 로그` */
+/** 곁패널 기본 폭 — `연결된 이슈` · `블록 활동 기록` */
 export const SIDE_PANEL = `${SIDE_PANEL_BASE} w-[380px]`;
 /** 한 줄이 긴 목록을 담는 곁패널 — `비타메이트 분석 이력` */
 export const SIDE_PANEL_WIDE = `${SIDE_PANEL_BASE} w-[420px]`;

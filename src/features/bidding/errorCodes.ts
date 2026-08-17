@@ -49,4 +49,53 @@ export const BIDDING_CODES = {
   collectionQueryLimitExceeded: 'BIDDING_COLLECTION_QUERY_LIMIT_EXCEEDED',
   /** 400 — 지원하지 않는 수집처 `sourceCode` */
   unsupportedSource: 'BIDDING_UNSUPPORTED_SOURCE',
+
+  /** 400 — 요약 요청 입력 오류 (프롬프트 누락 등) */
+  invalidSummaryRequest: 'BIDDING_INVALID_SUMMARY_REQUEST',
+  /** 404 — 없는 요약 */
+  summaryNotFound: 'BIDDING_SUMMARY_NOT_FOUND',
+  /**
+   * 409 — 이 공고에 이미 요약이 돌고 있다.
+   *
+   * ⚠️ 실패가 아니다 — 잠시 뒤 결과가 나온다. 새로 요청하는 대신 **이력을 다시 받아**
+   *    진행 중인 요약을 이어서 폴링하면 된다.
+   */
+  summaryAlreadyProcessing: 'BIDDING_SUMMARY_ALREADY_PROCESSING',
+  /** 400 — 요약 수정 입력 오류 (여섯 칸이 모두 비었을 때 등) */
+  invalidSummaryUpdate: 'BIDDING_INVALID_SUMMARY_UPDATE',
+  /** 409 — 확정됐거나 아직 완료 전이라 수정할 수 없다 */
+  summaryNotEditable: 'BIDDING_SUMMARY_NOT_EDITABLE',
+  /** 409 — 아직 `COMPLETED` 가 아니라 확정할 수 없다 */
+  summaryNotCompleted: 'BIDDING_SUMMARY_NOT_COMPLETED',
+  /** 409 — 이미 확정됨. 되돌릴 수 없다 */
+  summaryAlreadyConfirmed: 'BIDDING_SUMMARY_ALREADY_CONFIRMED',
+
+  /** 400 — 검토 요청 입력 오류 (문서를 하나도 안 골랐거나 프롬프트 누락) */
+  invalidReviewRequest: 'BIDDING_INVALID_REVIEW_REQUEST',
+  /** 404 — 없는 검토 */
+  reviewNotFound: 'BIDDING_REVIEW_NOT_FOUND',
+  /** 403 — 남이 요청한 검토 */
+  reviewAccessDenied: 'BIDDING_REVIEW_ACCESS_DENIED',
+  /** 403 — 고른 문서를 볼 권한이 없다 */
+  reviewDocumentAccessDenied: 'BIDDING_REVIEW_DOCUMENT_ACCESS_DENIED',
+  /** 404 — 고른 첨부가 그 공고에 없다 */
+  noticeAttachmentNotFound: 'BIDDING_NOTICE_ATTACHMENT_NOT_FOUND',
+  /**
+   * 409 — 이 공고에 이미 검토가 돌고 있다.
+   * 실패가 아니라 되물음이다 — 이력을 다시 받아 진행 중인 검토를 이어서 폴링한다.
+   */
+  reviewAlreadyProcessing: 'BIDDING_REVIEW_ALREADY_PROCESSING',
+  /** 409 — 고른 문서가 아직 임시 저장소에 준비되지 않았다 */
+  reviewDocumentNotReady: 'BIDDING_REVIEW_DOCUMENT_NOT_READY',
+  /** 409 — 이미 끝났거나 전환돼 종료할 수 없다 */
+  reviewNotAbandonable: 'BIDDING_REVIEW_NOT_ABANDONABLE',
+
+  /* 프로젝트 전환 — 409 가 다섯 갈래라 화면에서 각각 다르게 안내한다 */
+  noticeAlreadyLinked: 'PROJECT_BID_NOTICE_ALREADY_LINKED',
+  reviewNotCompleted: 'BIDDING_REVIEW_NOT_COMPLETED',
+  reviewAlreadyLinkedToProject: 'BIDDING_REVIEW_ALREADY_LINKED_TO_PROJECT',
+  summaryNotConfirmed: 'BIDDING_SUMMARY_NOT_CONFIRMED',
+  summaryAlreadyLinked: 'BIDDING_SUMMARY_ALREADY_LINKED',
+  /** 422 — AI 가 읽을 수 없는 형식 (`supported: false` 를 고른 경우) */
+  reviewUnsupportedFile: 'BIDDING_REVIEW_UNSUPPORTED_FILE',
 } as const;

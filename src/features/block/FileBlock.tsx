@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import Modal from '@/components/Modal';
 import ModalLoadingFallback from '@/components/ModalLoadingFallback';
+import LoadingSpinner from '@/components/Spinner';
 import { notifyToast } from '@/components/Toast';
 import {
   downloadVersion,
@@ -75,16 +76,10 @@ function FileViewerFallback() {
       title="문서 보기"
       className="flex h-[85vh] w-full max-w-[820px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
     >
-      <div
-        role="status"
-        aria-label="문서 뷰어를 불러오는 중입니다"
-        className="flex min-h-0 flex-1 justify-center bg-bg-surface p-6"
-      >
-        <div
-          aria-hidden
-          className="h-[600px] w-full max-w-[576px] animate-pulse rounded-button-sm border border-border-default bg-bg-card shadow-sm"
-        />
-      </div>
+      <LoadingSpinner
+        label="문서 뷰어를 불러오는 중입니다"
+        className="min-h-0 flex-1 bg-bg-surface p-6"
+      />
     </Modal>
   );
 }
@@ -145,8 +140,15 @@ export default function FileBlock({ block }: { block: StepBlock }) {
   /** 뷰어로 열어둔 문서 */
   const viewerModal = useModalTarget<BlockFile>();
   const trashModal = useModalTarget<BlockFile>();
-  /** 동명 문서 확인 대기 — 확인하면 같은 파일을 다시 올린다 */
-  const duplicateModal = useModalTarget<{ file: File; message: string }>();
+  /**
+   * 동명 문서 확인 대기 — 고른 대로 같은 파일을 다시 올린다.
+   * `sameNameFileId` 가 있으면 그 문서의 **새 버전**으로 올리는 길도 함께 연다.
+   */
+  const duplicateModal = useModalTarget<{
+    file: File;
+    message: string;
+    sameNameFileId?: number;
+  }>();
   /** 이름 저장이 409 로 막힘 — 덮어쓸지 다시 불러올지 묻는다 */
   const renameConflictModal = useModalTarget<{
     file: BlockFile;
@@ -190,6 +192,23 @@ export default function FileBlock({ block }: { block: StepBlock }) {
     pickerRef.current?.click();
   }
 
+  /**
+   * 이름이 겹치는 문서를 **하나로 특정**되면 그 `fileId`, 아니면 `undefined`.
+   *
+   * 표시명(`name`)은 확장자를 뗀 원본명이 기본값이라 그것부터 맞춰 보고,
+   * 이름을 바꾼 문서까지 잡으려고 원본 파일명도 함께 본다.
+   * ⚠️ 후보가 둘 이상이면 **어디에 얹을지 고를 수 없다** — 그때는 새 버전 길을 열지 않는다.
+   */
+  function sameNameFileIdOf(uploaded: File) {
+    const baseName = uploaded.name.replace(/\.[^.]+$/, '');
+    const matched = (files ?? []).filter(
+      (item) =>
+        item.name === baseName || item.originalFileName === uploaded.name,
+    );
+
+    return matched.length === 1 ? matched[0].fileId : undefined;
+  }
+
   async function upload(file: File, allowDuplicateName?: boolean) {
     /**
      * ⚠️ 대상은 **시작할 때 고정한다.** `await` 뒤에 `versionTargetId.current` 를 다시 읽으면,
@@ -216,7 +235,17 @@ export default function FileBlock({ block }: { block: StepBlock }) {
     } catch (caught) {
       if (caught instanceof DuplicateNameError) {
         // 확인을 받은 뒤 같은 파일로 한 번만 다시 올린다. 아직 실패가 아니라 토스트를 띄우지 않는다
-        duplicateModal.open({ file, message: caught.message });
+        duplicateModal.open({
+          file,
+          message: caught.message,
+          /*
+           * 새 버전은 **새 문서로 올리려다 막힌 경우**에만 권한다.
+           * 이미 특정 문서의 새 버전을 올리는 중이었다면 409 의 원인이 다른 데 있다 —
+           * 여기서 또 새 버전을 권하면 같은 실패를 반복시킨다.
+           */
+          sameNameFileId:
+            targetFileId === undefined ? sameNameFileIdOf(file) : undefined,
+        });
       } else {
         const message =
           caught instanceof Error
@@ -397,10 +426,20 @@ export default function FileBlock({ block }: { block: StepBlock }) {
         <DuplicateNameModal
           fileName={duplicatePending.file.name}
           message={duplicatePending.message}
+          canAddVersion={duplicatePending.sameNameFileId !== undefined}
           onCancel={duplicateModal.close}
+          onAddVersion={() => {
+            const { file, sameNameFileId } = duplicatePending;
+            duplicateModal.close();
+            // 대상을 그 문서로 바꿔 다시 올린다 — 새 버전이라 동명 확인은 필요 없다
+            versionTargetId.current = sameNameFileId;
+            void upload(file);
+          }}
           onConfirm={() => {
             duplicateModal.close();
-            upload(duplicatePending.file, true);
+            // 모달이 떠 있는 사이 다른 행의 `새 버전` 이 눌렸을 수 있다 — 새 문서로 못 박는다
+            versionTargetId.current = undefined;
+            void upload(duplicatePending.file, true);
           }}
         />
       )}
@@ -409,7 +448,7 @@ export default function FileBlock({ block }: { block: StepBlock }) {
         /* 취소(= Esc · 배경 클릭)를 **다시 불러오기**에 둔다 — 잘못 눌러도 남의 이름이 안 지워진다 */
         <AlertDialogTwoButton
           icon={DialogIcons.warning}
-          title="다른 사람이 먼저 저장했어요"
+          title="다른 사람이 먼저 저장했습니다"
           description={`그 사이 이 문서가 수정됐습니다. '${renamePending.name}' 로 덮어쓰거나, 최신 내용을 다시 불러올 수 있습니다.`}
           confirmLabel="덮어쓰기"
           cancelLabel="다시 불러오기"
@@ -569,9 +608,12 @@ function FileRow({
 /**
  * 문서 행의 아이콘 버튼.
  * 기본색은 모두 같고, 자기 위에 마우스를 올렸을 때만 강조색이 된다.
+ *
+ * ⚠️ 크기는 **셋이 함께 움직인다** (다운로드 · 새 버전 · `⋯`) — 하나만 키우면 줄이 어긋난다.
+ *    24px 은 겨냥하기 좁아 28px 로 둔다 (행 높이는 문서명 · 메타 3줄이 정해 그대로다).
  */
 const ICON_BUTTON_CLASS =
-  'flex size-6 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-card hover:text-text-primary-blue';
+  'flex size-7 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-card hover:text-text-primary-blue';
 
 function IconButton({
   label,
@@ -796,9 +838,9 @@ function UploadIcon() {
   );
 }
 
-/** 행에서 쓰는 선 아이콘 공통 껍데기 */
+/** 행에서 쓰는 선 아이콘 공통 껍데기 (다운로드 · 새 버전) */
 function Glyph({
-  className = 'size-3 shrink-0',
+  className = 'size-4 shrink-0',
   children,
 }: {
   className?: string;
@@ -842,7 +884,8 @@ function MoreIcon() {
       viewBox="0 0 24 24"
       fill="currentColor"
       aria-hidden
-      className="size-2.5"
+      // 점 세 개라 같은 크기여도 선 아이콘보다 작아 보인다 — 한 단계 덜 줄인다
+      className="size-3.5"
     >
       <circle cx="5" cy="12" r="1.6" />
       <circle cx="12" cy="12" r="1.6" />

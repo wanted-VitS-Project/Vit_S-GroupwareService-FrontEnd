@@ -128,17 +128,6 @@ export const ENDPOINTS = {
     /** 일괄 등록 */
     bulk: `${V1}/employees/bulk`,
   },
-  employeeGroups: {
-    /** 목록 조회(전체 사용자) · 생성(ADMIN) */
-    root: `${V1}/employee-groups`,
-    /** 수정 · 삭제 */
-    detail: (groupId: number) => `${V1}/employee-groups/${groupId}`,
-    /** 구성원 목록 조회 · 추가 */
-    members: (groupId: number) => `${V1}/employee-groups/${groupId}/members`,
-    /** 구성원 제거 — 다건 API 가 없어 한 명씩 부른다 */
-    member: (groupId: number, userId: string) =>
-      `${V1}/employee-groups/${groupId}/members/${userId}`,
-  },
   accounts: {
     role: (userId: string) => `${V1}/accounts/${userId}/role`,
     status: (userId: string) => `${V1}/accounts/${userId}/status`,
@@ -364,6 +353,25 @@ export const ENDPOINTS = {
      * 경로만 `/admin` 아래에 있고 다루는 것은 파일이라 이 묶음에 둔다.
      */
     admin: `${V1}/admin/files`,
+    /**
+     * 전사 파일 **탐색기** (ADMIN 전용 · §14 · 2026-08-16 신설).
+     *
+     * 전사 목록(`admin`)과 목적이 다르다 — 저쪽은 검색 · 필터, 이쪽은 **한 단계씩 내려가는 탐색**이다.
+     * 노드를 열 때마다 자식만 부른다 (`프로젝트 → 스테이지 → 스텝 → 파일`).
+     *
+     * ⚠️ 프로젝트 · 스테이지 · 스텝 목록을 **일반 경로(`/projects/...`)로 부르지 않는다** —
+     *    그쪽은 참여자 권한이라 관리자가 참여하지 않은 프로젝트에서 403 이 난다.
+     */
+    adminTree: {
+      projects: `${V1}/admin/files/projects`,
+      stages: (projectId: number | string) =>
+        `${V1}/admin/files/projects/${projectId}/stages`,
+      /** `?stageId=` 를 생략하면 **스테이지 미소속(미분류)** 스텝이 온다 */
+      steps: (projectId: number | string) =>
+        `${V1}/admin/files/projects/${projectId}/steps`,
+      files: (stepId: number | string) =>
+        `${V1}/admin/files/steps/${stepId}/files`,
+    },
     /** 업로드 시작 — presigned PUT URL 발급 */
     uploads: `${V1}/files/uploads`,
     /** 업로드 완료 통보 — 서버가 저장소를 직접 확인한다 */
@@ -391,6 +399,14 @@ export const ENDPOINTS = {
   companyDocuments: {
     /** 목록 — 분류 · 검색 · 페이징 */
     root: `${V1}/admin/company-documents`,
+    /**
+     * 검토 참조로 고를 수 있는 사내 문서 — **완료된 최신 버전만** 온다.
+     * 고른 값은 `companyDocumentVersionId` 다 (문서가 아니라 **버전으로 고정**한다).
+     *
+     * ⚠️ 관리자용(`/admin/company-documents`)과 달리 **`/admin` 이 없다** —
+     *    회사 소속이면 `MEMBER` 도 부를 수 있어야 해서 경로가 갈린다.
+     */
+    selectable: `${V1}/company-documents/selectable`,
     /** 업로드 시작 — presigned PUT URL 발급 (10분) */
     uploads: `${V1}/admin/company-documents/uploads`,
     /** 업로드 완료 통보 — 서버가 저장소를 직접 확인한다 */
@@ -454,10 +470,62 @@ export const ENDPOINTS = {
      */
     collectionRun: (runId: number | string) =>
       `${V1}/bidding/collection-runs/${runId}`,
+    /**
+     * AI 요약 요청(POST) · 공고별 이력 조회(GET).
+     *
+     * ⚠️ 요청은 **202** 로 `summaryId` 만 오는 비동기다 — 결과는 `summary()` 를 폴링한다.
+     *    이미 돌고 있으면 409 `BIDDING_SUMMARY_ALREADY_PROCESSING`.
+     */
+    noticeSummaries: (noticeId: number | string) =>
+      `${V1}/bidding/notices/${noticeId}/summaries`,
+    /** AI 요약 단건 조회(GET) · 수정(PATCH) — 폴링 대상 */
+    summary: (summaryId: number | string) =>
+      `${V1}/bidding/summaries/${summaryId}`,
+    /** AI 요약 확정 — 확정하면 더 못 고친다 */
+    summaryConfirm: (summaryId: number | string) =>
+      `${V1}/bidding/summaries/${summaryId}/confirm`,
+    /**
+     * AI 문서 검토 요청(POST) · 공고별 이력 조회(GET).
+     *
+     * ⚠️ 요약과 **다른 기능**이다 — 공고 첨부와 사내 문서를 비교한다 (워커도 따로다).
+     */
+    noticeReviews: (noticeId: number | string) =>
+      `${V1}/bidding/notices/${noticeId}/reviews`,
+    /** 검토 화면에 고를 공고 첨부 목록 — 사내 문서는 별도 API 다 */
+    reviewSources: (noticeId: number | string) =>
+      `${V1}/bidding/notices/${noticeId}/review-sources`,
+    /** 검토 단건 조회 — 폴링 대상 (결과 · 근거 인용 포함) */
+    review: (reviewId: number | string) => `${V1}/bidding/reviews/${reviewId}`,
+    /** 검토 종료 — 임시 파일 정리를 즉시 요청한다 */
+    reviewAbandon: (reviewId: number | string) =>
+      `${V1}/bidding/reviews/${reviewId}/abandon`,
+    /**
+     * 공고 → 프로젝트 전환.
+     *
+     * ⚠️ **완료된 AI 문서 검토가 근거로 필수**다 — 검토에서 내려받기에 성공한 공고 첨부가
+     *    정식 파일로 프로젝트에 귀속된다. 전환하지 않으면 임시 파일은 만료 시 삭제된다.
+     */
+    noticeProjects: (noticeId: number | string) =>
+      `${V1}/bidding/notices/${noticeId}/projects`,
   },
   finance: {
     /** 재무 관리 허브의 3개 항목 수치 (입출금 · 세금계산서 · 정산 현황) */
     summary: `${V1}/finance/summary`,
+    /**
+     * 정산 현황 — **프로젝트 단위 집계**다.
+     *
+     * ⚠️ 경로가 `/finance` 가 아니라 `/projects` 아래에 있다 (집계 대상이 프로젝트라서).
+     *    다루는 화면은 재무 관리이므로 이 묶음에 둔다.
+     */
+    settlements: {
+      /** 전사 프로젝트 정산 현황 (페이징 · 정렬) */
+      root: `${V1}/projects/settlements`,
+      /** 필터 옵션 — 발주처 이름 목록만 온다 */
+      filters: `${V1}/projects/settlements/filters`,
+      /** 한 프로젝트의 정산 회차 목록 (페이징 없음) */
+      ofProject: (projectId: number | string) =>
+        `${V1}/projects/${projectId}/settlements`,
+    },
     cashFlows: {
       /** 목록 조회(GET) · 직접 등록(POST) · 다건 삭제(DELETE — body 에 id 배열) */
       root: `${V1}/finance/cash-flows`,

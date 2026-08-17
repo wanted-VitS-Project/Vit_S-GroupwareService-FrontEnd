@@ -2,9 +2,10 @@
 
 import { useEffect, useId, useState } from 'react';
 
+import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { isAbortError, messageOf } from '@/lib/api';
 
-import { searchEmployees } from './api';
+import { getEmployees, searchEmployees } from './api';
 import type { EmployeeSearchResult } from './types';
 
 /** 타이핑마다 부르지 않기 위한 대기 시간 */
@@ -42,8 +43,47 @@ export default function EmployeeSearchInput({
   const [error, setError] = useState('');
   /** 키보드로 짚고 있는 후보. -1 이면 아무것도 안 짚은 상태 */
   const [activeIndex, setActiveIndex] = useState(-1);
+  /**
+   * 아무것도 치지 않았을 때 보여줄 **전 사원 목록**.
+   *
+   * ⭐ 검색어를 넣어야만 후보가 나오면, 이름을 모르는 사람은 사원 관리 화면을 다녀와야 한다.
+   *    칸을 누르면 바로 목록이 펴지고 훑어 고를 수 있어야 한다.
+   * ⚠️ 검색 API 는 이름이 비면 400 이라 **목록 API** 를 따로 쓴다.
+   * ⛔ 그 목록 API 는 ADMIN 전용이라 **관리자에게만 채워진다** (아래 효과 참고).
+   */
+  const [allEmployees, setAllEmployees] = useState<EmployeeSearchResult[]>([]);
 
   const name = keyword.trim();
+
+  const role = useCurrentUser().role;
+
+  /**
+   * ⛔ **ADMIN 이 아니면 부르지 않는다** — 403 을 `.catch` 로 삼켜도 늦다.
+   *    403 은 앱 전체가 반응하는 이벤트(`lib/api.ts`)라, 이 칸이 놓인 화면
+   *    (프로젝트 생성 · 결재 블록 …)이 통째로 권한 오류로 넘어갔다.
+   *    이름 검색은 전원 쓸 수 있어 빈 칸 목록만 관리자 한정이 된다.
+   */
+  useEffect(() => {
+    if (role !== 'ADMIN') return;
+
+    const controller = new AbortController();
+
+    // 재직자만 · 한 번만 받는다. 실패해도 검색은 그대로 쓸 수 있다
+    getEmployees({ page: 0, size: 200 }, controller.signal)
+      .then((data) =>
+        setAllEmployees(
+          data.content.map((employee) => ({
+            userId: employee.userId,
+            name: employee.name,
+            department: employee.departmentName,
+            position: employee.jobPositionName,
+          })),
+        ),
+      )
+      .catch(() => {});
+
+    return () => controller.abort();
+  }, [role]);
 
   useEffect(() => {
     // 빈 입력은 400 이 확정이라 요청 자체를 만들지 않는다
@@ -78,15 +118,18 @@ export default function EmployeeSearchInput({
    * 이미 결재선에 있는 사람은 **숨기지 않고 `이미 추가됨` 으로 보여준다** —
    * 목록에서 사라지면 "검색이 안 되는 것" 처럼 보인다.
    */
-  const options =
-    name === ''
-      ? []
-      : results.map((employee) => ({
-          ...employee,
-          isAdded: excludedIds.includes(employee.userId),
-        }));
+  /**
+   * ⚠️ 빈 칸 목록은 **ADMIN 일 때만** 쓴다 — 역할이 내려간 뒤에도 지난 목록이 남아
+   *    보이지 않게, 받아둔 값이 아니라 지금 역할로 판단한다.
+   */
+  const listed = name === '' ? (role === 'ADMIN' ? allEmployees : []) : results;
+  const options = listed.map((employee) => ({
+    ...employee,
+    isAdded: excludedIds.includes(employee.userId),
+  }));
   const selectableCount = options.filter((option) => !option.isAdded).length;
-  const isListVisible = isOpen && name !== '';
+  /** 칸을 누르면(`isOpen`) 아무것도 치지 않아도 목록이 펴진다 */
+  const isListVisible = isOpen && options.length > 0;
 
   function choose(employee: EmployeeSearchResult) {
     onSelect(employee);
@@ -179,7 +222,7 @@ export default function EmployeeSearchInput({
 
           {!isLoading && error === '' && options.length === 0 && (
             <li className="px-2.5 py-1.5 text-caption break-keep text-text-secondary">
-              검색 결과가 없습니다. 성만 입력해도 돼요 (예: 김)
+              검색 결과가 없습니다
             </li>
           )}
 

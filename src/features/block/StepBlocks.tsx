@@ -9,6 +9,7 @@ import ModalLoadingFallback from '@/components/ModalLoadingFallback';
 import { notifyToast } from '@/components/Toast';
 import {
   useRefreshProjectSteps,
+  useStepCanEdit,
   useStepName,
 } from '@/features/project/useProjectSteps';
 import { useModalRouter } from '@/lib/useModal';
@@ -60,6 +61,11 @@ export default function StepBlocks() {
    * 스텝을 고치면 사이드바가 무효화하고, 새로고침 버튼도 함께 다시 읽는다.
    */
   const stepName = useStepName(projectId, stepId);
+  /**
+   * 이 스텝을 고칠 수 있는지 — 스텝 목록 캐시에서 `myPermission` 한 줄만 꺼낸다.
+   * ⚠️ **프로젝트 권한이 아니라 스텝 권한**이다 (스텝별 오버라이드가 있다, STP-011).
+   */
+  const canEdit = useStepCanEdit(projectId, stepId);
   const refreshSteps = useRefreshProjectSteps(projectId);
   /** 생성 직후 입력창을 띄울 블록 */
   const [autoEditBlockId, setAutoEditBlockId] = useState<number | null>(null);
@@ -151,7 +157,7 @@ export default function StepBlocks() {
       // 방금 만든 블록의 편집창을 다시 열지 않는다 — 본문을 새로 마운트하기 때문
       setAutoEditBlockId(null);
       setBodyGeneration((generation) => generation + 1);
-      notifyToast('블록을 새로 불러왔어요.');
+      notifyToast('블록을 새로 불러왔습니다.');
     } finally {
       setIsRefreshing(false);
     }
@@ -225,28 +231,38 @@ export default function StepBlocks() {
             {stepName || '스텝'}
           </h2>
         </div>
+        {/*
+          ⭐ **고칠 수 없는 스텝에서는 쓰기 버튼을 세우지 않는다** (2026-08-16).
+             `블록 추가` · `배치 편집` 은 눌러도 403 으로 끝난다 — 할 수 없는 동작의
+             흔적을 남기지 않는 편이 낫다 (배치 핸들을 편집 중에만 그리는 것과 같은 방침).
+             읽기 조작(새로고침 · 연결 이슈 · 활동 기록)은 그대로 둔다.
+        */}
         <div className="flex shrink-0 items-center gap-2">
-          <ArrangeBlocksButton
-            isArranging={isArranging}
-            isDisabled={blocks === undefined || blocks.length === 0}
-            onToggle={toggleArrange}
-          />
-          <AddBlockButton
-            stepName={stepName || '스텝'}
-            blocks={blocks ?? null}
-            isBlocked={isArranging}
-            onBlocked={() => arrangeModal.open('blocked')}
-            onBeforeCreate={() => flushLayout.current?.()}
-            onCreated={() => {
-              // blocks 가 null 이면 기준이 빈 배열이 되어 기존 블록까지 신규로 잡힌다.
-              // 그럴 때는 스냅샷을 남기지 않고 자동 편집을 건너뛴다
-              snapshotBeforeCreate.current = blocks
-                ? { stepId, ids: blocks.map((block) => block.blockId) }
-                : null;
-              setAutoEditBlockId(null);
-              refresh();
-            }}
-          />
+          {canEdit && (
+            <ArrangeBlocksButton
+              isArranging={isArranging}
+              isDisabled={blocks === undefined || blocks.length === 0}
+              onToggle={toggleArrange}
+            />
+          )}
+          {canEdit && (
+            <AddBlockButton
+              stepName={stepName || '스텝'}
+              blocks={blocks ?? null}
+              isBlocked={isArranging}
+              onBlocked={() => arrangeModal.open('blocked')}
+              onBeforeCreate={() => flushLayout.current?.()}
+              onCreated={() => {
+                // blocks 가 null 이면 기준이 빈 배열이 되어 기존 블록까지 신규로 잡힌다.
+                // 그럴 때는 스냅샷을 남기지 않고 자동 편집을 건너뛴다
+                snapshotBeforeCreate.current = blocks
+                  ? { stepId, ids: blocks.map((block) => block.blockId) }
+                  : null;
+                setAutoEditBlockId(null);
+                refresh();
+              }}
+            />
+          )}
         </div>
       </div>
 
@@ -264,13 +280,14 @@ export default function StepBlocks() {
       ) : (
         <BlockBoard
           stepId={stepId}
+          canEdit={canEdit}
           blocks={blocks}
           autoEditBlockId={autoEditBlockId}
           bodyGeneration={bodyGeneration}
           isArranging={isArranging}
           arrangeRef={arrange}
           flushLayoutRef={flushLayout}
-          // 바뀐 순서를 캐시에도 반영한다 — 다음 `Block 추가` 가 옛 좌표로 자리를 잡지 않게
+          // 바뀐 순서를 캐시에도 반영한다 — 다음 `블록 추가` 가 옛 좌표로 자리를 잡지 않게
           onOrderChanged={setBlocks}
         />
       )}

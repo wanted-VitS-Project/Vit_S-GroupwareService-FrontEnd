@@ -81,6 +81,8 @@ export function TextField({
   required,
   placeholder,
   maxLength,
+  min,
+  max,
   value,
   error,
   hint,
@@ -92,6 +94,13 @@ export function TextField({
   required?: boolean;
   placeholder?: string;
   maxLength?: number;
+  /**
+   * 날짜 입력의 상 · 하한 (`yyyy-MM-dd`).
+   * ⚠️ `<input type="date">` 는 상한이 없으면 **연도를 6자리까지** 받는다 (`200000-01-01`).
+   *    서버는 4자리만 받으므로 눈에 보이는 자리에서 먼저 막는다.
+   */
+  min?: string;
+  max?: string;
   value: string;
   error?: string;
   hint?: string;
@@ -111,6 +120,8 @@ export function TextField({
         value={value}
         placeholder={placeholder}
         maxLength={maxLength}
+        min={min}
+        max={max}
         onChange={(event) => onChange(event.target.value)}
         aria-required={required || undefined}
         aria-invalid={error ? true : undefined}

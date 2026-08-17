@@ -33,18 +33,18 @@ const IssueDetailModal = dynamic(loadIssueDetailModal, {
   loading: () => (
     <ModalLoadingFallback
       title="이슈 상세"
-      className="flex max-h-[90vh] w-full max-w-[700px] flex-col overflow-hidden rounded-2xl border border-border-default p-6 shadow-2xl"
+      className="flex max-h-[90vh] w-full max-w-[700px] flex-col overflow-hidden rounded-base border border-border-default p-6 shadow-2xl"
       bodyClassName="mt-5 h-[460px]"
     />
   ),
 });
 
 /**
- * 프로젝트 전체 일정 — 스테이지 > 스텝 아코디언. (명세 108번)
+ * 프로젝트 전체 이슈 — 스테이지 > 스텝 아코디언. (명세 108번)
  *
  * 스텝 이슈 보드(`IssueBoard`)와 **역할이 다르다.**
  * 보드는 일을 옮기는 곳이고 여기는 **훑어보는 곳**이다 — 그래서 이 화면은 전부 조회 전용이다.
- * 상태를 바꾸려면 스텝 일정 화면으로 넘어간다 (스텝 머리의 `일정 열기`).
+ * 상태를 바꾸려면 스텝 이슈 화면으로 넘어간다 (스텝 머리의 `이슈 열기`).
  *
  * ⚠️ 서버가 페이징 · 필터를 하지 않는다. 프로젝트의 모든 이슈가 한 번에 오므로
  *    기본 펼침은 **이슈가 있는 스텝**으로만 제한한다 (빈 스텝까지 펼치면 화면이 길어지기만 한다).
@@ -176,7 +176,7 @@ export default function ProjectIssues() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <h2 className="text-body-m font-semibold text-text-primary">
-              전체 일정
+              전체 이슈
             </h2>
             <span className="rounded-pill bg-bg-hover px-2 py-0.5 text-caption text-text-secondary">
               총 {progress.totalIssueCount}건
@@ -303,7 +303,7 @@ const StepAccordion = memo(function StepAccordion({
         >
           <ChevronIcon isOpen={isOpen} />
           <span
-            className={`truncate text-[13px] font-semibold ${
+            className={`truncate text-detail font-semibold ${
               isOpen ? 'text-text-primary-blue' : 'text-text-primary'
             }`}
           >
@@ -329,12 +329,12 @@ const StepAccordion = memo(function StepAccordion({
           </span>
         </div>
 
-        {/* 이 화면은 조회 전용이다 — 고치려면 스텝 일정 화면으로 넘어간다 */}
+        {/* 이 화면은 조회 전용이다 — 고치려면 스텝 이슈 화면으로 넘어간다 */}
         <Link
           href={`/projects/${projectId}/steps/${step.stepId}/issue`}
           className="shrink-0 rounded-button-sm px-2 py-1 text-detail font-medium text-text-secondary hover:bg-bg-surface hover:text-text-primary-blue"
         >
-          일정 열기
+          이슈 열기
         </Link>
       </div>
 
@@ -348,8 +348,9 @@ const StepAccordion = memo(function StepAccordion({
            * 스텝 이슈 보드와 **같은 3열 칸반**으로 펼친다 — 두 화면에서 같은 이슈를
            * 다른 배열로 보면 어느 쪽이 정본인지 흐려진다.
            * 다만 여기는 조회 전용이라 드래그 · 드롭 대상 강조는 없다.
+           * 좁은 화면에서 세로로 쌓이는 것까지 **같은 기준(`md`)** 으로 맞춘다.
            */
-          <div className="grid grid-cols-3 items-start gap-3 border-t border-border-default bg-bg-surface/60 p-3">
+          <div className="grid grid-cols-1 items-start gap-3 border-t border-border-default bg-bg-surface/60 p-3 md:grid-cols-3">
             {ISSUE_STATUS_ORDER.map((status) => {
               const { badge, dot } = ISSUE_STATUS_STYLES[status];
               const columnIssues = issues.filter(

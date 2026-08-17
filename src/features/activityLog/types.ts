@@ -15,7 +15,7 @@ export type ActivityTargetType = 'BLOCK' | 'RESOURCE';
 /**
  * 활동 수행자. `userId` 는 사번이다.
  *
- * 퇴사자여도 **로그 항목을 화면에서 지우지 않는다** — 이름을 그대로 두고
+ * 퇴사자여도 **활동 기록 항목을 화면에서 지우지 않는다** — 이름을 그대로 두고
  * 뒤에 `(퇴사자)` 문구만 붙인다 (2026-08-12 퇴사자 표기 컨벤션 · `components/PersonNote.tsx`).
  */
 export interface ActivityActor {
@@ -90,8 +90,8 @@ export const ACTIVITY_ACTION_STYLES: Record<
     icon: 'border-blue-border bg-blue-bg text-btn-primary-hover',
   },
   DELETE: {
-    badge: 'border-red-border bg-red-bg text-[#C10007]',
-    icon: 'border-red-border bg-red-bg text-[#C10007]',
+    badge: 'border-red-border bg-red-bg text-red-text-deep',
+    icon: 'border-red-border bg-red-bg text-red-text-deep',
   },
 };
 

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import PageTitle from '@/components/PageTitle';
 import { ROLE_LABELS } from '@/constants/status';
 import { EmployeeFormSkeleton } from '@/components/settings/SettingsSkeletons';
 import { getDepartments } from '@/features/department/api';
@@ -12,6 +13,8 @@ import {
   toDepartmentOptions,
 } from '@/features/department/options';
 import { getJobPositions } from '@/features/jobPosition/api';
+
+import { writeCachedDepartments, writeCachedJobPositions } from './optionCache';
 import type { JobPosition } from '@/features/jobPosition/types';
 import { ApiError, messageOf } from '@/lib/api';
 import { formatPhone } from '@/lib/format';
@@ -134,6 +137,8 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
       .then(([departments, positions]) => {
         setDepartmentOptions(toDepartmentOptions(departments));
         setJobPositions(positions);
+        writeCachedDepartments(departments);
+        writeCachedJobPositions(positions);
         setHasOptionsFailed(false);
       })
       .catch(() => {
@@ -263,12 +268,10 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
         <EmployeeFormSkeleton />
       ) : (
         <>
-          <div className="mt-2 mb-6">
-            <h2 className="text-heading-m font-bold">정보 수정</h2>
-            <p className="mt-1.5 text-label break-keep text-text-secondary">
-              인사 정보를 수정합니다. 바꾼 항목만 저장됩니다.
-            </p>
-          </div>
+          <PageTitle
+            title="정보 수정"
+            description="인사 정보를 수정합니다. 바꾼 항목만 저장됩니다."
+          />
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <section className="rounded-base border border-border-default bg-bg-card p-5">
@@ -329,7 +332,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
                   hint={
                     employee.emailRegistered && values.email.trim() === ''
                       ? '⚠ 이메일을 지우면 이 사원은 로그인 · 비밀번호 재설정을 할 수 없습니다.'
-                      : '초기 비밀번호 · 재설정 메일이 이 주소로 갑니다.'
+                      : '비밀번호 재설정 메일 주소'
                   }
                   onChange={(value) => change('email', value)}
                 />

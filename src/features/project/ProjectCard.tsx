@@ -4,6 +4,11 @@ import Link from 'next/link';
 import { useEffect, useId, useState } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
+import {
+  PROJECT_ROW_GRID,
+  PROJECT_ROW_NAME_SPAN,
+  PROJECT_ROW_TOGGLE_SLOT,
+} from '@/components/project/ProjectListHeader';
 import { PROJECT_STATUS_LABELS } from '@/constants/status';
 import { formatDateRange } from '@/lib/format';
 
@@ -22,7 +27,7 @@ const AVATAR_LIMIT = 4;
 
 /**
  * 머리글에 세우는 카테고리 태그 수. 나머지는 `+N` 으로 접는다.
- * 태그 칸 너비가 고정(`w-32`)이라 2개를 세우면 이름이 거의 다 잘려 1개만 둔다.
+ * 태그 칸이 `PROJECT_ROW_GRID` 에서 `8rem` 고정이라 2개를 세우면 이름이 거의 다 잘려 1개만 둔다.
  */
 const CATEGORY_TAG_LIMIT = 1;
 
@@ -67,15 +72,36 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
       >
         <Link
           href={PROJECT_ROUTES.detail(row.projectId)}
-          className="flex min-w-0 flex-1 items-center gap-4 px-5 py-4 hover:bg-black/[0.03]"
+          className={`${PROJECT_ROW_GRID} min-w-0 flex-1 px-4 py-3.5 hover:bg-black/[0.03] xl:px-5 xl:py-4`}
         >
           {/*
-            배지 · 태그 칸은 **너비를 고정한다** — 상태 라벨(`진행 전` vs `완료`)이나
-            카테고리 이름 길이에 따라 폭이 달라지면 카드마다 과업명 시작 위치가 어긋난다
+            ⭐ 값마다 **`sr-only` 칸 이름**을 붙인다. 머리글 줄(`ProjectListHeader`)은
+               `aria-hidden` 이고 접힌 폭에서는 아예 사라져, 그것만으로는 어느 값이
+               발주처이고 어느 것이 기간인지 알 방법이 없다.
+
+            칸 너비는 `PROJECT_ROW_GRID` 가 정한다 — 여기서는 폭을 손대지 않는다.
+            내용 길이(상태 라벨 · 카테고리 이름 · 참여자 수)로 폭이 정해지면
+            카드마다 열이 어긋난다.
+          */}
+          {/*
+            ── 접힌 폭(1280px 미만)의 규칙 ──────────────────────────────
+            네 줄 모두 **왼쪽 값 · 오른쪽 값** 한 쌍으로 읽히게 맞춘다.
+
+              [상태]───────────[분류]
+              과업명 (두 칸을 다 쓴다)
+              발주처───────────[기간]
+              [참여자]─────────[진척률]
+
+            칸이 반반이라 그냥 두면 값이 죄다 왼쪽에 붙어, 가운데가 텅 빈
+            어중간한 표처럼 보인다 — 오른쪽 값은 칸 끝에 붙여 선을 만든다.
+
+            2열로 접히면 칸이 배지보다 훨씬 넓다 — 늘려 두면 알약이 칸을 다 채워
+            배지가 아니라 띠로 보인다. 접힌 폭에서만 글자만큼으로 줄인다.
           */}
           <span
-            className={`flex w-16 shrink-0 justify-center rounded-pill px-2 py-0.5 text-label font-medium ${style.badge}`}
+            className={`flex justify-center justify-self-start rounded-pill px-2 py-0.5 text-label font-medium xl:justify-self-stretch ${style.badge}`}
           >
+            <span className="sr-only">상태 </span>
             {PROJECT_STATUS_LABELS[row.status]}
           </span>
 
@@ -86,8 +112,9 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
            */}
           <span
             title={row.businessCategories.map((item) => item.name).join(' · ')}
-            className="flex w-32 shrink-0 items-center gap-1.5"
+            className="flex min-w-0 items-center gap-1.5 max-xl:justify-self-end"
           >
+            <span className="sr-only">분류 </span>
             {categoryTags.map((category) => (
               <span
                 key={category.categoryId}
@@ -103,16 +130,30 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
             )}
           </span>
 
-          <h3 className="min-w-0 flex-1 truncate text-[15px] font-semibold text-gray-text-soft">
+          {/* 접힌 폭에서는 두 칸을 다 쓴다 — 카드에서 가장 먼저 읽는 값이다 */}
+          <h3
+            title={row.name}
+            className={`min-w-0 truncate text-[15px] font-semibold text-gray-text-soft ${PROJECT_ROW_NAME_SPAN}`}
+          >
             {row.name}
           </h3>
 
-          {/* 발주처는 이름이 길 수 있어 줄어들 수 있게 둔다 — 넘치면 말줄임 */}
-          <span className="w-32 min-w-0 shrink truncate text-[13px] text-gray-text-soft">
+          {/* 발주처는 이름이 길 수 있다 — 칸을 넘치면 말줄임 */}
+          <span
+            title={row.clientName}
+            className="min-w-0 truncate text-detail text-gray-text-soft"
+          >
+            <span className="sr-only">발주처 </span>
             {row.clientName}
           </span>
 
-          <span className="w-40 shrink-0 text-[13px] whitespace-nowrap text-gray-text-soft">
+          {/*
+            한 줄 격자에서는 `2026.01.02 ~ 2026.03.31` 이 끊기면 안 된다 (칸이 10rem 고정).
+            2열로 접히면 칸이 그보다 좁아질 수 있어 `~` 에서 줄이 바뀌게 풀어준다 —
+            못을 박아 두면 카드가 가로로 넘쳐 목록에 가로 스크롤바가 생긴다.
+          */}
+          <span className="text-detail text-gray-text-soft max-xl:justify-self-end max-xl:text-right xl:whitespace-nowrap">
+            <span className="sr-only">기간 </span>
             {formatDateRange(row.startedOn, row.endedOn)}
           </span>
 
@@ -120,13 +161,15 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
             `relative` 가 필요하다 — 안쪽 `sr-only` 는 `position: absolute` 인데
             좌표 기준(컨테이닝 블록)이 없으면 문서 전체를 기준으로 잡혀 문서 높이를 늘린다
           */}
-          <span className="relative flex shrink-0 items-center -space-x-1.5">
+          <span className="relative flex items-center -space-x-1.5">
             {shown.map((member) => (
               <MemberAvatar
                 key={member.userId}
                 userId={member.userId}
                 name={member.name}
                 decorative
+                // 목록 카드는 사진 대신 이니셜 + 단색으로 구별한다 (카드 전용)
+                initialsOnly
               />
             ))}
             {restCount > 0 && (
@@ -137,7 +180,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
             <span className="sr-only">참여자 {row.members.length}명</span>
           </span>
 
-          <span className="flex w-32 shrink-0 items-center gap-3">
+          <span className="flex items-center gap-3">
             {/* 스텝이 0개면 진척률이 응답에 없다 — 0% 로 단정하지 않고 빈 바로 둔다 */}
             <span className="h-2 flex-1 overflow-hidden rounded-pill bg-bg-hover-secondary">
               {/* 색은 상태와 무관하게 하나로 둔다 — 채운 길이만으로 진행도를 읽는다 */}
@@ -146,7 +189,8 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
                 className="block h-full rounded-l-pill bg-btn-primary"
               />
             </span>
-            <span className="w-9 shrink-0 text-right text-[13px] font-semibold whitespace-nowrap text-gray-text-soft">
+            <span className="w-9 shrink-0 text-right text-detail font-semibold whitespace-nowrap text-gray-text-soft">
+              <span className="sr-only">진척률 </span>
               {row.progressRate === undefined ? '–' : `${row.progressRate}%`}
             </span>
           </span>
@@ -162,7 +206,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
           aria-expanded={isOpen}
           aria-controls={panelId}
           aria-label={`${row.name} ${isOpen ? '접기' : '펼치기'}`}
-          className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg hover:bg-black/[0.05]"
+          className={`${PROJECT_ROW_TOGGLE_SLOT} flex cursor-pointer items-center justify-center rounded-lg hover:bg-black/[0.05]`}
         >
           <ChevronIcon isOpen={isOpen} />
         </button>
@@ -176,9 +220,9 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
         <div
           id={panelId}
           hidden={!isOpen}
-          className="border-t border-border-default px-5 py-4"
+          className="border-t border-border-default px-4 py-4 sm:px-5"
         >
-          <div className="flex flex-wrap items-center gap-5">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
             {/**
              * ⚠️ 시안 라벨은 `결재 대기` 지만 이 값은 **기안자 관점**이다 —
              * 내가 올려서 아직 안 끝난 건이라 결재함 대기 건수와 다르다. 라벨을 바꿔 단다.
@@ -197,7 +241,12 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
 
             <Link
               href={PROJECT_ROUTES.detail(row.projectId)}
-              className="ml-auto flex items-center gap-2 rounded-lg bg-btn-primary px-5 py-2 text-[13px] font-medium text-text-white hover:bg-btn-primary-hover"
+              /*
+                좁은 화면에서는 줄이 접혀 버튼만 다음 줄로 내려간다 —
+                `ml-auto` 로 오른쪽 끝에 매달아 두면 그 줄이 통째로 비어 보인다.
+                한 줄을 다 쓰고 가운데 정렬해 **누르는 곳**으로 읽히게 한다.
+              */
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-btn-primary px-5 py-2.5 text-detail font-medium text-text-white hover:bg-btn-primary-hover sm:ml-auto sm:w-auto sm:justify-start sm:py-2"
             >
               프로젝트 전체 보기
               <ArrowIcon />
@@ -222,10 +271,10 @@ function CountItem({
 }) {
   return (
     <span className="flex items-center gap-2">
-      <span className="text-[13px] text-text-secondary">{label}</span>
+      <span className="text-detail text-text-secondary">{label}</span>
       {/* 0건은 색으로 강조하지 않는다 — 할 일이 없다는 뜻이다 */}
       <span
-        className={`text-[13px] font-semibold ${count > 0 ? className : 'text-text-muted'}`}
+        className={`text-detail font-semibold ${count > 0 ? className : 'text-text-muted'}`}
       >
         {count}건
       </span>
@@ -324,9 +373,9 @@ function ProjectPanel({ projectId }: { projectId: number }) {
       // 패널을 연 뒤 비동기로 바뀌는 상태라, 알리지 않으면 스크린리더가 실패를 못 읽는다
       <p
         role="alert"
-        className="mt-5 flex items-center gap-3 text-[13px] text-text-secondary"
+        className="mt-5 flex items-center gap-3 text-detail text-text-secondary"
       >
-        진행 상황을 불러오지 못했어요.
+        진행 상황을 불러오지 못했습니다.
         <button
           type="button"
           onClick={() => setReloadCount((count) => count + 1)}
@@ -340,7 +389,7 @@ function ProjectPanel({ projectId }: { projectId: number }) {
 
   if (!data) {
     return (
-      <p aria-live="polite" className="mt-5 text-[13px] text-text-muted">
+      <p aria-live="polite" className="mt-5 text-detail text-text-muted">
         진행 상황을 불러오는 중…
       </p>
     );
@@ -352,14 +401,14 @@ function ProjectPanel({ projectId }: { projectId: number }) {
   return (
     <>
       {data.detail.description && (
-        <p className="mt-4 text-[13px] whitespace-pre-line text-text-primary">
+        <p className="mt-4 text-detail whitespace-pre-line text-text-primary">
           {data.detail.description}
         </p>
       )}
 
       {data.stages.length === 0 && unassigned.length === 0 ? (
-        <p className="mt-5 text-[13px] text-text-muted">
-          등록된 스테이지가 없어요.
+        <p className="mt-5 text-detail text-text-muted">
+          등록된 스테이지가 없습니다.
         </p>
       ) : (
         <section aria-label="스테이지별 진행 상황" className="mt-5">
@@ -375,7 +424,7 @@ function ProjectPanel({ projectId }: { projectId: number }) {
               />
             ))}
             {unassigned.length > 0 && (
-              <StageBox name="스테이지 미지정" steps={unassigned} />
+              <StageBox name="미분류 (스테이지 없음)" steps={unassigned} />
             )}
           </ul>
         </section>
@@ -402,7 +451,7 @@ function StageBox({ name, steps }: { name: string; steps: ProjectStep[] }) {
         aria-controls={bodyId}
         className="flex w-full cursor-pointer items-center gap-4 bg-bg-surface px-3 py-2 text-left hover:bg-bg-hover"
       >
-        <span className="min-w-0 truncate text-[13px] font-medium text-gray-text-soft">
+        <span className="min-w-0 truncate text-detail font-medium text-gray-text-soft">
           {name}
         </span>
         <span
@@ -435,7 +484,9 @@ function StageBox({ name, steps }: { name: string; steps: ProjectStep[] }) {
           className="flex h-[124px] items-center overflow-x-auto overflow-y-hidden bg-bg-card px-5"
         >
           {sorted.length === 0 ? (
-            <p className="text-label text-text-muted">등록된 스텝이 없어요.</p>
+            <p className="text-label text-text-muted">
+              등록된 스텝이 없습니다.
+            </p>
           ) : (
             <ol className="flex w-full items-start">
               {sorted.map((step, index) => {

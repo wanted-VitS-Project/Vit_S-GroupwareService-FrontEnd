@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import Modal from '@/components/Modal';
 import { ModalFooter } from '@/components/PanelModal';
+import LoadingSpinner from '@/components/Spinner';
 import { extensionLabel, extensionStyle } from '@/features/file/format';
 import type { ProjectFileVersion } from '@/features/file/types';
 import { useProjectFileVersions } from '@/features/file/useProjectFileVersions';
@@ -218,9 +219,10 @@ export default function AnalysisRunModal({
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">
         <Field label="검토 유형">
           {reviewTypes === null ? (
-            <div
-              aria-hidden
-              className="h-7 animate-pulse rounded-button-sm bg-bg-hover"
+            <LoadingSpinner
+              label="검토 유형을 불러오는 중입니다"
+              className="py-4"
+              spinnerClassName="size-5"
             />
           ) : reviewTypes.length === 0 ? (
             <p className="text-caption text-text-secondary">
@@ -242,7 +244,7 @@ export default function AnalysisRunModal({
                   onClick={() => changeType(type.reviewType)}
                   className={`cursor-pointer rounded-button-md border px-2.5 py-1 text-detail font-medium ${
                     type.reviewType === effectiveType
-                      ? 'border-[#4F39F6] bg-blue-bg-soft text-[#4F39F6]'
+                      ? 'border-ai-primary bg-blue-bg-soft text-ai-primary'
                       : 'border-border-default text-text-secondary hover:bg-bg-surface'
                   }`}
                 >
@@ -254,7 +256,7 @@ export default function AnalysisRunModal({
         </Field>
 
         {currentType && (
-          <Field label="세부 카테고리" hint="여러 개 고를 수 있어요">
+          <Field label="세부 카테고리" hint="여러 개 고를 수 있습니다">
             <div className="flex flex-wrap gap-1.5">
               {categories.map((category) => (
                 <label
@@ -262,7 +264,7 @@ export default function AnalysisRunModal({
                   title={category.guideText}
                   className={`flex cursor-pointer items-center gap-1.5 rounded-button-md border px-2.5 py-1 text-detail ${
                     selectedCategories.includes(category.categoryCode)
-                      ? 'border-[#4F39F6] bg-blue-bg-soft text-[#4F39F6]'
+                      ? 'border-ai-primary bg-blue-bg-soft text-ai-primary'
                       : 'border-border-default text-text-secondary hover:bg-bg-surface'
                   }`}
                 >
@@ -270,7 +272,7 @@ export default function AnalysisRunModal({
                     type="checkbox"
                     checked={selectedCategories.includes(category.categoryCode)}
                     onChange={() => toggleCategory(category.categoryCode)}
-                    className="size-3 accent-[#4F39F6]"
+                    className="size-3 accent-ai-primary"
                   />
                   {category.categoryName}
                 </label>
@@ -322,8 +324,8 @@ export default function AnalysisRunModal({
               isPromptTouched.current = true;
               setPrompt(event.target.value);
             }}
-            placeholder="카테고리를 고르면 기본 문구가 채워져요. 필요한 만큼 고쳐서 쓰세요."
-            className="w-full resize-none rounded-button-md border border-border-default bg-bg-surface px-2.5 py-2 text-detail leading-relaxed text-text-primary focus:border-[#4F39F6] focus:outline-none"
+            placeholder="카테고리를 고르면 기본 문구가 채워집니다. 필요한 만큼 고쳐서 쓰세요."
+            className="w-full resize-none rounded-button-md border border-border-default bg-bg-surface px-2.5 py-2 text-detail leading-relaxed text-text-primary focus:border-ai-primary focus:outline-none"
           />
           {currentType && selectedCategories.length > 0 && (
             <ul className="mt-1 flex flex-col gap-0.5">
@@ -370,7 +372,7 @@ export default function AnalysisRunModal({
           type="button"
           onClick={submit}
           disabled={Boolean(blocker) || isSubmitting}
-          className="cursor-pointer rounded-button-md bg-[#4F39F6] px-3 py-1.5 text-detail font-semibold text-text-white hover:bg-[#4429E0] disabled:cursor-not-allowed disabled:opacity-50"
+          className="cursor-pointer rounded-button-md bg-ai-primary px-3 py-1.5 text-detail font-semibold text-text-white hover:bg-ai-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSubmitting ? '요청 중…' : '실행하기'}
         </button>
@@ -426,7 +428,7 @@ function findBlocker({
   if (targetIds.length === 0) return '검토 대상 문서를 고르세요.';
   // 서버도 400 으로 막지만, 실행을 눌러 보고 알게 되면 늦다
   if (referenceIds.some((id) => targetIds.includes(id))) {
-    return '같은 문서를 기준과 대상에 함께 둘 수 없어요.';
+    return '같은 문서를 기준과 대상에 함께 둘 수 없습니다.';
   }
   if (!prompt) return '프롬프트를 입력하세요.';
   return '';
@@ -471,7 +473,7 @@ function DocumentField({
       <button
         type="button"
         onClick={onPick}
-        className="w-full cursor-pointer rounded-button-md border border-dashed border-border-default py-1.5 text-caption font-medium text-text-secondary hover:border-[#4F39F6] hover:text-[#4F39F6]"
+        className="w-full cursor-pointer rounded-button-md border border-dashed border-border-default py-1.5 text-caption font-medium text-text-secondary hover:border-ai-primary hover:text-ai-primary"
       >
         + 문서 선택 {ids.length > 0 && `(${ids.length})`}
       </button>

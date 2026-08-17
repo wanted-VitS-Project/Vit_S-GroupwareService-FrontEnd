@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 
 import PanelModal, { ModalFooter } from '@/components/PanelModal';
-import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
+import LoadingSpinner from '@/components/Spinner';
 import { getStepBlocks } from '@/features/block/api';
 import type { StepBlock } from '@/features/block/types';
+import { FILE_CODES } from '@/features/file/errorCodes';
 import { ApiError, messageOf } from '@/lib/api';
 
 import { deleteStep } from '../api';
@@ -114,6 +115,18 @@ export default function StepDeleteModal({
         return;
       }
 
+      /*
+        ⛔ 진행 중 결재가 하위 블록의 문서를 보고 있으면 막힌다 (2026-08-16 D안).
+        다시 눌러도 결과가 같으므로 **다음에 할 일**(회수 · 완료)을 적어 준다.
+      */
+      if (code === FILE_CODES.approvalInProgress) {
+        setError(
+          '진행 중인 결재가 이 스텝의 문서를 참조하고 있어 삭제할 수 없습니다. 결재를 회수하거나 완료한 뒤 다시 시도해주세요.',
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
       setError(messageOf(caught, '삭제하지 못했습니다.'));
       setIsSubmitting(false);
     }
@@ -139,11 +152,7 @@ export default function StepDeleteModal({
         </div>
 
         {isLoading ? (
-          <SkeletonGroup label="블록 목록 불러오는 중" className="space-y-1.5">
-            {[0, 1, 2].map((row) => (
-              <Skeleton key={row} className="h-8" />
-            ))}
-          </SkeletonGroup>
+          <LoadingSpinner label="블록 목록 불러오는 중" className="py-8" />
         ) : haveBlocksFailed ? (
           <p className="rounded-lg bg-yellow-bg-soft px-3 py-2.5 text-detail leading-relaxed break-keep text-yellow-text">
             블록 목록을 불러오지 못했습니다. 이대로 삭제하면 하위 블록을 골라
@@ -199,6 +208,14 @@ export default function StepDeleteModal({
             </p>
           </div>
         )}
+
+        {/*
+          블록이 지워지면 그 문서도 함께 휴지통으로 간다 — 목록을 못 받은 경우에도
+          삭제는 진행되므로 **분기 바깥**에 둔다. 옮기기로 고른 블록의 문서는 남는다.
+        */}
+        <p className="text-caption break-keep text-text-secondary">
+          삭제되는 블록에 올린 문서는 프로젝트 휴지통으로 이동합니다.
+        </p>
 
         {hasMoveTarget && (
           <div>
@@ -274,7 +291,7 @@ export default function StepDeleteModal({
             type="button"
             onClick={requestClose}
             disabled={isSubmitting}
-            className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+            className="btn btn-md btn-gray-outlined"
           >
             취소
           </button>
@@ -282,7 +299,7 @@ export default function StepDeleteModal({
             type="button"
             onClick={handleDelete}
             disabled={!canSubmit}
-            className="cursor-pointer rounded-lg bg-red-text px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-danger-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+            className="btn btn-md btn-danger"
           >
             {isSubmitting ? '삭제 중…' : '삭제'}
           </button>

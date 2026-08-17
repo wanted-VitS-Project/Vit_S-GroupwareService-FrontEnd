@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import Pagination from '@/components/Pagination';
 import { ErrorStateTwoButton } from '@/components/ErrorState';
+import ProjectListHeader from '@/components/project/ProjectListHeader';
 import ProjectListSkeleton from '@/components/project/ProjectListSkeleton';
 import { PROJECT_STATUS_LABELS } from '@/constants/status';
 import { getCategories } from '@/features/businessCategory/api';
@@ -144,7 +145,7 @@ export default function MyProjectList() {
         <h2 className="text-logo leading-8 font-bold text-text-primary">
           내 프로젝트
         </h2>
-        <p className="mt-1 text-[13px] text-text-secondary">
+        <p className="mt-1 text-detail text-text-secondary">
           참여 중인 모든 프로젝트를 조회하고 관리합니다.
         </p>
       </div>
@@ -162,7 +163,8 @@ export default function MyProjectList() {
         }}
         className="flex flex-wrap items-center gap-3"
       >
-        <div className="relative min-w-64 flex-1">
+        {/* `min-w-64`(256px) 는 320px 화면에서 좌우 여백과 부딪힌다 — 그 아래에서는 푼다 */}
+        <div className="relative w-full min-w-0 flex-1 sm:w-auto sm:min-w-64">
           <label htmlFor="projectSearch" className="sr-only">
             프로젝트 검색
           </label>
@@ -176,7 +178,7 @@ export default function MyProjectList() {
             onChange={(event) => setKeywordInput(event.target.value)}
             /* 백엔드 `keyword` 는 과업명뿐 아니라 발주처도 함께 검색한다 */
             placeholder="과업명 · 발주처 검색"
-            className="h-[41px] w-full rounded-lg border border-border-default bg-bg-card pr-4 pl-9 text-[13px] text-text-primary placeholder:text-text-muted focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+            className="h-[41px] w-full rounded-lg border border-border-default bg-bg-card pr-4 pl-9 text-detail text-text-primary placeholder:text-text-muted focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
           />
         </div>
 
@@ -187,7 +189,8 @@ export default function MyProjectList() {
         <div
           role="group"
           aria-label="프로젝트 상태 필터"
-          className="flex items-center gap-1 rounded-lg border border-border-default bg-bg-card p-1"
+          /* 다섯 개가 한 줄에 안 들어가는 폭에서는 접는다 — 넘치면 상자 밖으로 삐져나간다 */
+          className="flex flex-wrap items-center gap-1 rounded-lg border border-border-default bg-bg-card p-1"
         >
           <StatusTab
             label="전체"
@@ -227,10 +230,10 @@ export default function MyProjectList() {
         <ProjectListSkeleton rows={PAGE_SIZE} />
       ) : !rows || rows.length === 0 ? (
         <Centered>
-          <p className="text-[13px] text-text-secondary">
+          <p className="text-detail text-text-secondary">
             {hasFilter
-              ? '조건에 맞는 프로젝트가 없어요.'
-              : '참여 중인 프로젝트가 없어요.'}
+              ? '조건에 맞는 프로젝트가 없습니다.'
+              : '참여 중인 프로젝트가 없습니다.'}
           </p>
         </Centered>
       ) : (
@@ -244,6 +247,8 @@ export default function MyProjectList() {
             isLoading ? 'opacity-60' : ''
           }`}
         >
+          <ProjectListHeader />
+
           <ul className="flex flex-col gap-3">
             {rows.map((row) => (
               <ProjectCard key={row.projectId} row={row} />
@@ -310,7 +315,7 @@ function CategoryPeriodFilter({
   return (
     <div
       id="projectFilters"
-      className="flex flex-wrap items-center gap-3 rounded-base border border-border-default bg-bg-card px-5 py-3"
+      className="flex flex-wrap items-center gap-3 rounded-base border border-border-default bg-bg-card px-4 py-3 sm:px-5"
     >
       <span className="text-[15px] font-semibold text-gray-text-soft">
         기간
@@ -321,7 +326,11 @@ function CategoryPeriodFilter({
         max={to || undefined}
         onChange={(value) => onChange({ from: value })}
       />
-      <span aria-hidden className="h-3 w-px bg-bg-hover-secondary" />
+      {/* 줄이 접히면 구분선이 줄 맨 앞에 홀로 남는다 — 좁은 화면에서는 세우지 않는다 */}
+      <span
+        aria-hidden
+        className="hidden h-3 w-px bg-bg-hover-secondary sm:block"
+      />
       <DateTag
         label="시작일 (까지)"
         value={to}
@@ -329,7 +338,10 @@ function CategoryPeriodFilter({
         onChange={(value) => onChange({ to: value })}
       />
 
-      <span aria-hidden className="mx-2 h-6 w-px bg-bg-hover-secondary" />
+      <span
+        aria-hidden
+        className="mx-2 hidden h-6 w-px bg-bg-hover-secondary sm:block"
+      />
 
       <label className="flex items-center gap-3">
         <span className="text-[15px] font-semibold text-gray-text-soft">
@@ -340,7 +352,7 @@ function CategoryPeriodFilter({
           onChange={(event) =>
             onChange({ categoryId: event.target.value || undefined })
           }
-          className="w-44 cursor-pointer rounded-[9px] border-[1.5px] border-border-default bg-bg-card px-3 py-1 text-[13px] font-medium text-gray-text-soft focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+          className="w-44 cursor-pointer rounded-[9px] border-[1.5px] border-border-default bg-bg-card px-3 py-1 text-detail font-medium text-gray-text-soft focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
         >
           {/* 아직 못 받았어도 `전체` 는 고를 수 있어야 한다 — 필터를 지우는 유일한 값이다 */}
           <option value="">전체</option>
@@ -390,7 +402,7 @@ function DateTag({
         min={min}
         max={max}
         onChange={(event) => onChange(event.target.value || undefined)}
-        className="w-36 cursor-pointer bg-transparent text-[13px] font-medium text-gray-text-soft focus:outline-none"
+        className="w-36 cursor-pointer bg-transparent text-detail font-medium text-gray-text-soft focus:outline-none"
       />
     </label>
   );

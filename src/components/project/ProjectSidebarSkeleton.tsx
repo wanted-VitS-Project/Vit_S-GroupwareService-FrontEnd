@@ -18,7 +18,7 @@ export function ProjectOverviewSkeleton() {
 export function ProjectStagesSkeleton() {
   return (
     <ProjectSkeletonGroup
-      label="진행 단계를 불러오는 중입니다"
+      label="스테이지를 불러오는 중입니다"
       className="flex flex-col gap-2 px-4 py-3"
     >
       {[0, 1, 2].map((row) => (

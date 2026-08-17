@@ -3,10 +3,14 @@
 import { usePathname } from 'next/navigation';
 
 import Header from '@/components/Header';
+import { mobileSidebarClasses } from '@/components/mobileSidebarClasses';
 import Sidebar from '@/components/Sidebar';
 import ToastHost from '@/components/Toast';
 import { BARE_LAYOUT_PATHS, isProjectScope, isUnder } from '@/constants/menu';
-import CurrentUserProvider from '@/features/auth/CurrentUserProvider';
+import CurrentUserProvider, {
+  SessionConfirmedOnly,
+} from '@/features/auth/CurrentUserProvider';
+import type { ShellSnapshot } from '@/features/auth/shellCache';
 import NotificationStreamProvider from '@/features/notification/NotificationStreamProvider';
 import MyPagesProvider from '@/features/pagePermission/MyPagesProvider';
 import PageAccessGate from '@/features/pagePermission/PageAccessGate';
@@ -24,7 +28,14 @@ import { ProjectSidebarCollapseProvider } from '@/features/project/SidebarCollap
  * 중간 flex 래퍼마다 `min-h-0` 이 필요하다 — 없으면 flex 자식이 내용만큼 부풀어
  * `overflow-y-auto` 가 걸린 영역이 넘치지 않아 스크롤바가 생기지 않는다.
  */
-export default function AppShell({ children }: { children: React.ReactNode }) {
+export default function AppShell({
+  children,
+  initialShell,
+}: {
+  children: React.ReactNode;
+  /** 서버가 쿠키에서 읽어 넘긴 직전 셸 값 — 첫 페인트부터 프로필 · 메뉴를 그린다 */
+  initialShell?: ShellSnapshot | null;
+}) {
   const pathname = usePathname();
   const isBare = BARE_LAYOUT_PATHS.some((path) => isUnder(pathname, path));
 
@@ -34,7 +45,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isProject = isProjectScope(pathname);
 
   return (
-    <CurrentUserProvider>
+    <CurrentUserProvider initialShell={initialShell}>
       {/*
         메뉴 노출 근거(`GET /my/pages`)는 세션이 확인된 뒤에만 의미가 있어
         `CurrentUserProvider` **안쪽**에 둔다. 게이트 화면에서는 호출되지 않는다.
@@ -44,7 +55,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         세션이 확인된 뒤여야 하므로 `CurrentUserProvider` 안쪽이다
       */}
       <NotificationStreamProvider />
-      <MyPagesProvider>
+      <MyPagesProvider initialPages={initialShell?.pages ?? []}>
         {/*
           사이드바 접힘 상태는 `ProjectSidebar` 와 `Header`(로고 칸)가 함께 읽는다 —
           둘의 폭이 어긋나면 경계선이 한 줄로 이어지지 않는다
@@ -72,14 +83,25 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 본문 스크롤과 별개로 **바깥 스크롤바**가 생긴다
               */}
               <main
+                /*
+                  좁은 화면에서는 왼쪽 아래 사이드바 버튼이 본문 위에 떠 있다 —
+                  아래 여백을 비워 두지 않으면 마지막 줄(페이지네이션 · 마지막 카드)이
+                  버튼에 가려 누를 수 없다. (`mobileSidebarClasses.contentBottomGap`)
+                */
                 className={`relative min-h-0 min-w-0 flex-1 bg-bg-surface ${
                   isProject
                     ? ''
-                    : '[scrollbar-gutter:stable] overflow-y-auto p-6'
+                    : `[scrollbar-gutter:stable] overflow-y-auto p-4 md:p-6 ${mobileSidebarClasses.contentBottomGap}`
                 }`}
               >
-                {/* 셸(사이드바 · 헤더)은 그대로 두고 본문만 가린다 */}
-                <PageAccessGate>{children}</PageAccessGate>
+                {/*
+                  셸(사이드바 · 헤더)은 그대로 두고 본문만 가린다.
+                  `SessionConfirmedOnly` 는 세션이 확인되기 전(쿠키의 직전 값으로 셸을
+                  그리는 동안) 본문을 비워 둔다 — 만료된 쿠키로 보호 화면이 비치지 않게.
+                */}
+                <SessionConfirmedOnly>
+                  <PageAccessGate>{children}</PageAccessGate>
+                </SessionConfirmedOnly>
               </main>
             </div>
           </div>

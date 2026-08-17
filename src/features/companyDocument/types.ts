@@ -145,3 +145,35 @@ export interface CompanyDownloadUrlResponse {
   originalFileName: string;
   sizeBytes: number;
 }
+
+
+/* ---------------------------------------------------------------------------
+ * 입찰 AI 검토에서 **비교 기준으로 고르는** 목록 (#161)
+ * ------------------------------------------------------------------------- */
+
+/**
+ * 검토 참조로 고를 수 있는 문서 한 줄. (`GET /company-documents/selectable`)
+ *
+ * ⭐ 검토에 넘기는 값은 `companyDocumentId` 가 아니라 **`companyDocumentVersionId`** 다 —
+ *    참조를 **버전으로 고정**해야 나중에 문서를 고쳐도 검토 근거가 흔들리지 않는다.
+ * ℹ️ 회사 스코프 · **완료된 최신 버전만** 내려온다. 회사 소속이면 `MEMBER` 도 조회한다.
+ * ℹ️ 원본 파일 키(`storageKey`)는 응답에 없다 — 원본 접근은 서버(검토 워커)만 한다.
+ */
+export interface SelectableDocument {
+  companyDocumentId: number;
+  companyDocumentVersionId: number;
+  category: string | null;
+  originalFileName: string;
+  versionNo: number;
+  /**
+   * AI 인덱스 상태.
+   * ⚠️ **현재 항상 `null`** 이다 — 이 값으로 선택을 막으면 아무것도 못 고른다.
+   */
+  indexStatus: string | null;
+}
+
+export interface SelectableQuery {
+  category?: string;
+  /** 이름 · 파일명 */
+  keyword?: string;
+}

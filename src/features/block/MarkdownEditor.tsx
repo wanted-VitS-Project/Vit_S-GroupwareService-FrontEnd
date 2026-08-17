@@ -19,7 +19,7 @@ export const MARKDOWN_CLASS = [
   '[&_strong]:font-semibold',
   '[&_em]:italic',
   '[&_h1]:mt-3 [&_h1]:mb-1 [&_h1]:text-[15px] [&_h1]:font-bold',
-  '[&_h2]:mt-3 [&_h2]:mb-1 [&_h2]:border-b [&_h2]:border-border-default [&_h2]:pb-1 [&_h2]:text-[13px] [&_h2]:font-bold',
+  '[&_h2]:mt-3 [&_h2]:mb-1 [&_h2]:border-b [&_h2]:border-border-default [&_h2]:pb-1 [&_h2]:text-detail [&_h2]:font-bold',
   '[&_h3]:mt-2 [&_h3]:mb-1 [&_h3]:text-label [&_h3]:font-bold',
   '[&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-5',
   '[&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-5',

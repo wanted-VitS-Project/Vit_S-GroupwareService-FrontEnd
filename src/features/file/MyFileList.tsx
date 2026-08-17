@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
 import Breadcrumb from '@/components/Breadcrumb';
+import PageTitle from '@/components/PageTitle';
 import { messageOf } from '@/lib/api';
 import { formatDate } from '@/lib/format';
 import { useModalTarget } from '@/lib/useModal';
@@ -141,13 +142,10 @@ export default function MyFileList() {
     <div onPointerEnter={preloadViewer}>
       <Breadcrumb items={[{ label: '내 파일' }]} />
 
-      <div className="mt-2 mb-6">
-        <h2 className="text-heading-m font-bold">내 프로젝트 파일</h2>
-        <p className="mt-1.5 text-label break-keep text-text-secondary">
-          내가 속한 모든 프로젝트의 파일을 프로젝트별로 모아 봅니다. 업로드 ·
-          수정은 각 스텝 화면에서 할 수 있어요.
-        </p>
-      </div>
+      <PageTitle
+        title="내 프로젝트 파일"
+        description="내가 속한 모든 프로젝트의 파일을 프로젝트별로 모아 봅니다. 업로드 · 수정은 각 스텝 화면에서 할 수 있습니다."
+      />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <form
@@ -227,7 +225,7 @@ export default function MyFileList() {
           </p>
           <p className="text-label break-keep text-text-secondary">
             {hasFilter
-              ? '검색어나 필터를 바꿔보세요'
+              ? '검색어나 필터를 바꾸세요'
               : '참여 중인 프로젝트의 스텝에 문서를 올리면 여기에 모입니다'}
           </p>
           {hasFilter && (
@@ -468,7 +466,7 @@ const FileRow = memo(function FileRow({
               title={`${file.name} 미리보기`}
               aria-label={`${file.name} 미리보기`}
               onClick={() => onOpen(file)}
-              className="flex size-6 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-card hover:text-text-primary-blue"
+              className="flex size-7 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-card hover:text-text-primary-blue"
             >
               <EyeIcon />
             </button>
@@ -478,7 +476,7 @@ const FileRow = memo(function FileRow({
             title={`${file.name} 다운로드`}
             aria-label={`${file.name} 다운로드`}
             onClick={() => onDownload(file)}
-            className="flex size-6 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-card hover:text-text-primary-blue"
+            className="flex size-7 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-card hover:text-text-primary-blue"
           >
             <DownloadIcon />
           </button>
@@ -638,7 +636,7 @@ function EyeIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className="size-3.5 shrink-0"
+      className="size-4 shrink-0"
     >
       <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z" />
       <circle cx="12" cy="12" r="2.5" />
@@ -656,7 +654,7 @@ function DownloadIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className="size-3.5 shrink-0"
+      className="size-4 shrink-0"
     >
       <path d="M4 20h16" />
       <path d="M12 4v11" />

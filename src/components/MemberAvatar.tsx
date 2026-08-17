@@ -104,7 +104,9 @@ export default function MemberAvatar({
   withRing = true,
   decorative = false,
   resigned = false,
+  initialsOnly = false,
   imageUrl,
+  thumbnail,
 }: {
   userId: string;
   name: string;
@@ -117,56 +119,118 @@ export default function MemberAvatar({
   /** 퇴사자 — 블록 담당자는 `owner.deleted` 로 판단한다 */
   resigned?: boolean;
   /**
+   * 사진을 아예 부르지 않고 **이니셜 + 단색**만 그린다 (2026-08-16, 프로젝트 카드 전용).
+   *
+   * 목록 카드는 한 화면에 아바타가 수십 개 서고 크기도 24px 이라 사진이 거의 읽히지 않는데,
+   * 사번마다 서빙 요청이 한 번씩 나간다. 여기서는 색으로만 구별하는 편이 낫다.
+   * ⚠️ **다른 화면은 그대로 사진을 쓴다** — 이 값을 기본값으로 바꾸지 말 것.
+   */
+  initialsOnly?: boolean;
+  /**
    * 사진 경로를 직접 넘길 때만 쓴다 (`/auth/me` 의 `profileImageUrl`).
    * 본인 아바타는 사진을 바꾼 직후 갱신돼야 해서 사번이 아니라 이 값을 받는다.
    * `null` 은 **사진이 없는 것을 이미 안다**는 뜻이라 서빙을 시도하지 않는다.
    */
   imageUrl?: string | null;
+  /**
+   * 첫 프레임에 바로 그릴 아주 작은 사본 (data URL).
+   * 원본이 도착하기 전까지 이 그림이 자리를 지키고, 도착하면 그 위를 덮는다.
+   * 셸(사이드바 · 헤더) 아바타에만 쓴다 — 목록 아바타까지 담기엔 쿠키가 작다.
+   */
+  thumbnail?: string | null;
 }) {
   /**
    * 실패한 주소를 기억한다 (`boolean` 이 아니다) — 사진을 지웠다 다시 올리면
    * 주소가 바뀌는데, `true` 로만 두면 새 사진도 계속 이니셜로 남는다.
    */
   const [failedSource, setFailedSource] = useState<string | null>(null);
-
   const label = personLabel(name, resigned);
-  const source = sourceOf(userId, imageUrl);
   const { box, text } = SIZES[size];
 
-  const shape = `shrink-0 rounded-pill ${box} ${
-    withRing ? 'border border-white' : ''
-  } ${resigned ? 'opacity-50' : ''}`;
+  // `initialsOnly` 는 사진을 아예 쓰지 않는 자리(겹친 담당자 스택 등)에서 켠다
+  const source = initialsOnly ? null : sourceOf(userId, imageUrl);
+  const showsPhoto = Boolean(source) && source !== failedSource;
 
-  if (source && source !== failedSource) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element -- 서빙이 302 라 next/image 로더가 따라가지 못한다
-      <img
-        src={source}
-        // 빈 `alt` 자체가 장식이라는 표시다 — `aria-hidden` 을 덧붙이지 않는다
-        alt={decorative ? '' : label}
-        title={decorative ? undefined : label}
-        onError={() => {
-          // 사진 없음이거나 일시 장애 — 잠시 쉬었다 다시 시도한다 (위 주석 참고)
-          missingAvatars.set(userId, Date.now());
-          setFailedSource(source);
-        }}
-        className={`${shape} object-cover`}
-      />
-    );
-  }
+  /**
+   * 사진을 받을 참이면 **테두리만** 남긴다.
+   *
+   * 색 원이나 이니셜을 먼저 그리면 사진이 도착하는 순간 둘이 번갈아 뜬 것처럼 보이고,
+   * 아예 비워 두면 그 자리가 뚫린 것처럼 보인다. 테두리는 **사진이 온 뒤에도 그대로**라
+   * 바뀌는 것이 없으면서 자리를 알려준다.
+   */
+  const ring = withRing
+    ? 'border border-white'
+    : showsPhoto
+      ? 'border border-border-default'
+      : '';
+
+  const shape = `shrink-0 rounded-pill ${box} ${ring} ${
+    resigned ? 'opacity-50' : ''
+  }`;
 
   return (
     <span
       {...(decorative
         ? { 'aria-hidden': true }
         : { role: 'img', 'aria-label': label, title: label })}
-      style={{ backgroundColor: avatarColor(userId) }}
-      className={`flex items-center justify-center font-semibold text-text-white ${shape} ${text}`}
+      /**
+       * ⚠️ 사진을 받을 참이면 **색 원도 이니셜도 그리지 않는다.**
+       *
+       * 무엇이든 먼저 그려 두면 사진이 도착하는 순간 그것과 얼굴이 번갈아 뜬 것처럼 보인다.
+       * 자리만 비워 두면 사진이 그냥 나타날 뿐이라 바뀌는 것이 없다.
+       * 사진이 없거나(404) 실패하면 그때 색 원과 글자가 나온다.
+       */
+      style={showsPhoto ? undefined : { backgroundColor: avatarColor(userId) }}
+      className={`relative flex items-center justify-center overflow-hidden font-semibold text-text-white ${shape} ${text}`}
     >
-      {name.slice(0, 1)}
+      {!showsPhoto && name.slice(0, 1)}
+
+      {/* 원본이 오기 전까지 자리를 지키는 사본 — 같은 그림이라 덮여도 바뀐 티가 없다 */}
+      {showsPhoto && thumbnail && (
+        // eslint-disable-next-line @next/next/no-img-element -- data URL 이라 로더가 필요 없다
+        <img
+          src={thumbnail}
+          alt=""
+          className="absolute inset-0 size-full object-cover"
+        />
+      )}
+
+      {showsPhoto && (
+        // eslint-disable-next-line @next/next/no-img-element -- 서빙이 302 라 next/image 로더가 따라가지 못한다
+        <img
+          /**
+           * ⚠️ 주소가 바뀌면 **새 `<img>` 로 갈아끼운다** (`key`) — 같은 요소를 재사용하면
+           *    새 사진을 받는 동안 **직전 사진이 그대로 남아** 바뀐 줄 모른다.
+           */
+          key={source}
+          src={source ?? undefined}
+          // 바깥 `span` 이 이미 이름을 읽히므로 사진은 장식이다
+          alt=""
+          /**
+           * 헤더 · 사이드바 · 마이페이지 아바타는 **화면에서 가장 먼저 보이는 사진**이라
+           * 늦게 받으면 티가 크게 난다. 목록 안 작은 아바타는 수십 개라 그렇게 다루지 않는다.
+           */
+          loading={IMMEDIATE_SIZES.has(size) ? 'eager' : 'lazy'}
+          fetchPriority={IMMEDIATE_SIZES.has(size) ? 'high' : 'auto'}
+          decoding="async"
+          onError={() => {
+            // 사진 없음이거나 일시 장애 — 잠시 쉬었다 다시 시도한다 (위 주석 참고)
+            missingAvatars.set(userId, Date.now());
+            setFailedSource(source);
+          }}
+          /**
+           * ⚠️ 투명도로 감췄다 보여주지 않는다 — 캐시된 사진은 이미 받아져 있어서
+           *    한 박자 늦게 나타나는 것처럼(딸깍) 보인다. 그릴 수 있을 때 그냥 그린다.
+           */
+          className="absolute inset-0 size-full object-cover"
+        />
+      )}
     </span>
   );
 }
+
+/** 사진을 미루지 않고 곧바로 받는 자리 — 헤더 · 사이드바 · 마이페이지 */
+const IMMEDIATE_SIZES = new Set<keyof typeof SIZES>(['md', 'lg', 'xl']);
 
 /**
  * 그릴 사진 주소. 없으면 `null` (이니셜로 떨어진다).

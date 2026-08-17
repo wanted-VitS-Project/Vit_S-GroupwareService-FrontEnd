@@ -1,8 +1,8 @@
 # 연동 API 명세서
 
+**최종 업데이트**: 2026-08-17 (정산 현황 — 프로젝트 집계 · 회차 조회 3종 추가)
+**최종 업데이트**: 2026-08-16 (전사 파일 탐색기 151~~154 신설, 블록 삭제 D안 — 파일 동반 휴지통행 반영)
 **최종 업데이트**: 2026-08-13 (프로젝트 인원 편집 · 설정 · 스텝 권한 — 125~~137 추가, 45번 `deleted` · `NONE` 폐기 반영)
-**최종 업데이트**: 2026-08-11 (입찰 — 공고 직접 등록 · 수정 본문, 수동 수집 호출 순서 추가)
-**최종 업데이트**: 2026-08-11 (스테이지 · 스텝 쓰기 — 112~~120 추가, 스테이지·스텝 공통 절 신설)
 
 > 📌 이 파일은 **프론트가 연동하는 백엔드 API**를 정리하는 곳이에요. (내가 만드는 게 아니라 **호출하는** 입장)
 > AI는 API 연동 코드를 작성하기 전에 이 파일을 먼저 읽어요. (잘못된 경로/필드/타입으로 fetch 짜는 실수 방지)
@@ -157,6 +157,7 @@
 | [141](#141-알림-실시간-수신-sse)          | 알림 실시간 수신   | `GET /notifications/stream`                                  | ✅ `features/notification/stream.ts`  |
 | [142](#142-전사-파일-목록-admin)          | 전사 파일 목록     | `GET /admin/files`                                           | ✅ `features/file/api.ts`             |
 | [143~150](#143150-사내-문서함-admin)      | 사내 문서함        | `/admin/company-documents …`                                 | ✅ `features/companyDocument/api.ts`  |
+| [151~154](#151154-전사-파일-탐색기-admin) | 전사 파일 탐색기   | `/admin/files/projects …`                                    | ✅ `features/file/api.ts`             |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
 > 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통) · [이미지 도메인 — 공통](#이미지-도메인--공통) · [사원 그룹 도메인 — 공통](#사원-그룹-도메인--공통) · [페이지 권한 도메인 — 공통](#페이지-권한-도메인--공통) · [스테이지 · 스텝 도메인 — 공통](#스테이지--스텝-도메인--공통) · [이슈 도메인 — 공통](#이슈-도메인--공통) · [입찰 도메인 — 공통](#입찰-도메인--공통) · [프로젝트 참여자 · 설정 도메인 — 공통](#프로젝트-참여자--설정-도메인--공통)
@@ -1489,7 +1490,7 @@ data: {
 | 항목          | 내용                                                                                                           |
 | ------------- | -------------------------------------------------------------------------------------------------------------- |
 | **권한**      | ⚠️ **파일 단위 권한이 없다.** 스텝 권한을 그대로 따른다 — `VIEWER`=조회·다운로드, `EDITOR`=업로드·수정·삭제    |
-| **소유 구조** | ⚠️ 파일은 **프로젝트 소속**이고 블록은 참조만 한다. 블록을 지워도 파일은 산다                                  |
+| **소유 구조** | ⚠️ 파일은 **프로젝트 소속**이고 블록은 참조만 한다. 다만 **블록을 지우면 파일도 함께 휴지통으로 간다** (2026-08-16 D안) |
 | **저장소**    | S3 presigned URL — 클라이언트가 직접 `PUT`/`GET`. 서버는 바이너리를 거치지 않는다 (업로드 10분 · 다운로드 5분) |
 | **제약**      | 50MB 이하 · 실행파일 확장자 차단 · 미리보기는 **PDF 만**, 서버가 앞 5페이지를 잘라 반환                        |
 
@@ -1828,12 +1829,29 @@ data: {
 
 soft delete(`deleted_at` 플래그)만 지원하며 응답 `data` 는 `null` 이다. **하드 삭제 API 는 존재하지 않는다** (BLK-007 · INV-05).
 
+### ⚠️ 블록을 지우면 파일도 휴지통으로 간다 (2026-08-16 · D안 · PR #412 머지 완료)
+
+예전엔 파일이 활성으로 남아 **고아**(`blockDeleted: true`)가 됐다. 이제는 그 블록에 매달린 파일이
+**함께 휴지통으로 이동**한다. 스텝(117) · 스테이지(114) 삭제로 하위 블록이 지워질 때도 같다.
+
+| 어디에서              | 무엇이 달라졌나                                                                    |
+| --------------------- | ---------------------------------------------------------------------------------- |
+| 프로젝트 문서함(105)  | 삭제 블록의 파일이 **바로 사라진다** — `blockDeleted: true` 는 복구된 고아만 남는다 |
+| 프로젝트 휴지통(106)  | 자동으로 넘어온 파일이 **여기 나타난다** (`blockDeleted: true`)                     |
+| 복구(103)             | 원블록이 없으니 `blockId: null` 로 **문서함에 되살아난다** (블록 복구는 없다)       |
+
+> ⛔ **새 차단 케이스** — 블록에 **진행 중 결재가 참조하는 파일**이 하나라도 있으면 삭제가
+> **409 `FILE_APPROVAL_IN_PROGRESS`** 로 거부된다. 결재 취소 되물음(`APPROVAL_DELETE_CONFIRM_REQUIRED`)과
+> **다른 코드다** — 저건 한 번 더 누르면 되지만 이건 결재를 회수 · 완료해야 풀린다.
+> ⚠️ 그래서 화면은 두 409 를 **`code` 로 갈라** 처리한다 (`BlockDeleteModal` · `StepDeleteModal`).
+> ⚠️ 삭제 확인 문구에 **"문서는 휴지통으로 이동"** 을 적는다 — 안 적으면 파일이 사라진 것으로 읽힌다.
+
 > ⛔ **삭제 잠금 4종은 폐기됐다** (2026-08-09 · 백엔드 `BLOCK.md` §8 재작성). 입금 연결 입금확인 · 계산서 연결 조회 · 진행 중 결재 · 결재 대상 파일 — **네 가지 모두 더 이상 409 를 내지 않는다.** 화면에서 삭제를 미리 막던 분기가 있으면 걷어낸다.
 > ⚠️ 막는 대신 **옮길 수단을 준다** — 살리고 싶은 블록은 **블록 이동(121)** 으로 다른 스텝에 옮긴 뒤 지운다 (BLK-014).
 > ⚠️ 입금·계산서 **연결 해제(BLK-013)는 아직 미구현**이라, 연결이 남은 채로 블록이 삭제된다.
 > ⛔ **낙관적 락 대상이 아니다** — `version` 을 받지 않고 409 `BLOCK_VERSION_CONFLICT` 도 나지 않는다. 삭제는 멱등이라 두 번 눌러도 결과가 같고 유실될 편집 내용이 없다.
 
-**Status Code** — 200 · 401 `AUTH_UNAUTHENTICATED` · 403 `STEP_EDIT_DENIED` · 404 `BLOCK_NOT_FOUND`(**다른 회사의 블록도 여기로**) · **409 `APPROVAL_DELETE_CONFIRM_REQUIRED`**
+**Status Code** — 200 · 401 `AUTH_UNAUTHENTICATED` · 403 `STEP_EDIT_DENIED` · 404 `BLOCK_NOT_FOUND`(**다른 회사의 블록도 여기로**) · **409 `APPROVAL_DELETE_CONFIRM_REQUIRED`**(되물음) · **409 `FILE_APPROVAL_IN_PROGRESS`**(거부 · 2026-08-16 신설)
 
 ### ⚠️ 결재 블록은 2단계다 (2026-08-13 신설)
 
@@ -2495,7 +2513,7 @@ soft delete 이며 응답 `data` 는 `null` 이다. 담당자 · 블록은 삭�
 | 편집 권한 플래그 (문서 블록의 `canEdit` 같은 값)                | 지금은 모두에게 추가 · 수정 · 삭제 버튼을 보여주고 서버 403 에 맡김                                                                 |
 | 캡션 최대 길이                                                  | 임시로 블록 제목과 같은 200자로 막는다                                                                                              |
 | 68번 수정에서 **빠뜨린 이미지**가 삭제되는지 유지되는지         | 항상 전체 목록을 보낸다 (삭제는 69번으로 따로)                                                                                      |
-| 이미지 용량 · 확장자 제한 (초안 문구는 10MB · JPG/PNG/GIF/WEBP) | 프론트가 10MB · `image/jpeg,png,gif,webp` 로 먼저 거른다 — **서버도 같은 목록으로 독립 검증 필요** (SVG 는 스크립트를 품을 수 있다) |
+| 이미지 **확장자** 제한 (용량 · 장수는 2026-08-16 확정, 67번 참고)  | 프론트가 `image/jpeg,png,gif,webp` 로 먼저 거른다 — **서버도 같은 목록으로 독립 검증 필요** (SVG 는 스크립트를 품을 수 있다) |
 | **`altText` 필드 추가 요청** — 이미지의 뜻을 담는 대체 텍스트   | 지금은 캡션 · 파일명으로 대신한다 (뜻을 보장하지 못한다). 아래 참고                                                                 |
 | **삭제 + 순서/캡션을 한 번에 처리하는 API** 요청                | 지금은 69번 여러 번 → 68번 순으로 나가 **중간에 끊기면 부분 반영**된다. 실패 시 71번으로 다시 읽어 화면을 맞춘다                    |
 
@@ -2568,6 +2586,10 @@ data: {
 }
 ```
 
+> 📏 **업로드 제한 (2026-08-16 확정)** — 한 장 **20MB**, 요청 한 번에 **15장 · 합계 300MB**.
+> **블록이 담는 총 장수에는 제한이 없다** — 위 값은 요청 하나의 상한이라 넘치면 나눠 올리면 된다.
+> 프론트는 `IMAGE_MAX_SIZE_BYTES` · `IMAGE_UPLOAD_MAX_COUNT` · `IMAGE_UPLOAD_MAX_TOTAL_BYTES`(`features/block/types.ts`)로 먼저 거르고, 넘친 장수를 문구로 알린다.
+>
 > ⚠️ `Content-Type` 헤더를 직접 넣지 않는다 — 브라우저가 `boundary` 를 채워야 한다 (`src/lib/api.ts` → `postForm()`).
 > ℹ️ 응답 `version`(항상 1)은 곧바로 68번 요청에 실을 수 있다 — 올린 직후 캡션을 고쳐도 재조회가 필요 없다.
 > ℹ️ `captions` 는 `files` 와 **같은 순서 · 같은 길이**로 맞춘다. 캡션이 없으면 빈 문자열.
@@ -3965,6 +3987,9 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | 404    | `PROJECT_NOT_FOUND`               | 프로젝트 없음  |
 
 > ⚠️ **presigned 미임베드** — 다운로드는 클릭 시 42번(5분 URL)을 호출한다. 정렬은 `stepId` → `blockId` → 연결일.
+> 🔄 **2026-08-16(D안)** — 블록 삭제 파일이 휴지통으로 가므로 이 활성 목록엔 **바로 오지 않는다.**
+>    그래도 `blockDeleted: true` 는 여전히 나타난다 — **휴지통에서 복구된 고아**가 이 값으로 온다.
+>    `블록 삭제됨` 배지 처리를 **유지한다** (`groupFiles.ts` 의 고아 묶음).
 
 ---
 
@@ -4038,11 +4063,12 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | 필드                                            | 설명                                    |
 | ----------------------------------------------- | --------------------------------------- |
 | `projectId` / `projectName`                     | 속한 프로젝트 (그룹핑 기준)             |
-| `stepName` / `blockTitle`                       | 위치 — **이름만** 온다 (id 가 없다)     |
+| `stepId` / `stepName` / `blockId` / `blockTitle` | 위치 — **id 도 함께 온다** (2026-08-16 스웨거 실측. 예전 표에 이름만 적혀 있었다) |
 | `fileId` / `name` / `versionCount`              | 문서 정보                               |
 | `latestVersionId` / `latestVersionNo`           | 최신 완료 버전 — 다운로드 · 미리보기 대상 |
 | `originalFileName` / `extension` / `sizeBytes`  | 원본 정보                               |
-| `previewable` / `uploaderName?` / `updatedAt`   | 업로더는 시스템 계정이면 오지 않는다    |
+| `previewable` / `updatedAt`                     | —                                        |
+| `uploaderName?` / `uploaderDepartment?` / `uploaderPosition?` | 시스템 계정이면 오지 않는다 |
 
 | status | code                   | 화면 처리        |
 | ------ | ---------------------- | ---------------- |
@@ -4051,6 +4077,9 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 > ℹ️ 다운로드 · 미리보기는 행에서 **공용 파일 버전 API**(42번 `download` · `preview`)를 그대로 부른다.
 > ⚠️ **정렬 파라미터가 없다** — 목업의 `최근 수정순` 드롭다운은 화면에서 뺐다.
+> ✅ **스텝 단위 조회는 151~154번(탐색기)이 맡는다** (2026-08-16 해소) — 이 API 에 `stepId` 필터를 붙이는 대신
+>    전용 트리 API 가 왔다. 탐색기가 프로젝트 500건을 미리 받아 화면에서 나누던 방식은 걷어냈다.
+>    이 API 는 이제 **검색 · 필터 담당**이다 (프로젝트 · 스테이지 단계에서 쓴다).
 > ⚠️ **집계가 없다** — 총 용량 · 기간별 업로드 수는 응답으로 알 수 없어 요약 카드에 넣지 않았다.
 
 ---
@@ -4097,6 +4126,45 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 ---
 
+## 151~154. 전사 파일 탐색기 (ADMIN)
+
+> 백엔드 `.ai/api/file.md` **§14** · 2026-08-16 (PR #412 **`develop` 머지 완료**). 전 API **ADMIN 전용**(403 `ACC_ADMIN_REQUIRED`).
+> **사용 위치**: `features/file/api.ts` → `getAdminTreeProjects()` · `getAdminTreeStages()` · `getAdminTreeSteps()` · `getAdminStepFiles()`
+
+전사 파일을 **윈도우 탐색기식 계층**으로 훑는다. 노드를 열 때마다 **자식만** 부른다 (`프로젝트 → 스테이지 → 스텝 → 파일`).
+
+| 번호 | Method · Path                                       | 페이징 | 반환                    |
+| ---- | --------------------------------------------------- | ------ | ----------------------- |
+| 151  | `GET /admin/files/projects`                         | ✅     | 프로젝트 (이름 오름차순) |
+| 152  | `GET /admin/files/projects/{projectId}/stages`      | —      | 스테이지 + 미분류 버킷   |
+| 153  | `GET /admin/files/projects/{projectId}/steps`       | —      | 스텝 (`stageId` 필터)    |
+| 154  | `GET /admin/files/steps/{stepId}/files`             | ✅     | 스텝 안의 파일           |
+
+**151 프로젝트** — Query `page`(0-base) · `size`(기본 10)
+`data.content[]`: `projectId` · `name` · `status`(`NOT_STARTED`·`IN_PROGRESS`·`SETTLEMENT`·`COMPLETED`·`CLOSED`) · `clientName?` · `updatedAt`(`yyyy-MM-dd HH:mm:ss`)
+
+**152 스테이지** — `data.stages[]`: `stageId`(⚠️ **미분류 버킷이면 `null`**) · `name` · `sortOrder`
+⭐ **미분류 버킷을 서버가 만든다** — 스테이지에 속하지 않은 스텝이 하나라도 있으면 목록 **맨 뒤**에
+`{ "stageId": null, "name": "미분류", "sortOrder": 2147483647 }` 이 붙는다. 이 칸을 열면 153 을 **`stageId` 없이** 부른다.
+에러: 404 `PROJECT_NOT_FOUND`
+
+**153 스텝** — Query `stageId`(선택 · 생략하면 **미분류** 스텝)
+`data.steps[]`: `stepId` · `name` · `sortOrder` · `status`(`NOT_STARTED`·`IN_PROGRESS`·`DONE`) / 404 `PROJECT_NOT_FOUND`
+
+**154 스텝 내 파일** — Query `page` · `size`(기본 10) · 최신 업로드순 · 문서 단위 최신 완료 버전
+`data.content[]` 는 **142번과 같은 행 모양**(`AdminFile`)이라 표를 그대로 쓴다. `blockDeleted` 는 항상 `false`(삭제 블록 파일은 오지 않는다).
+에러: 404 `FILE_STEP_NOT_FOUND` (**신설** · `develop` 반영 — 코드 상수는 `features/file/errorCodes.ts`)
+
+> ⭐ **일반 프로젝트 API 로 훑지 않는다** — `GET /projects` · `/projects/{id}/stages` · `/steps` 는 참여자 권한이라
+>    관리자가 **참여하지 않은 프로젝트**에서 403 이 났다. 이 4종은 회사 스코프라 그 문제가 없다.
+> ⚠️ **검색 · 확장자 필터가 없다** — 조건으로 찾을 때는 142번(`GET /admin/files`)을 쓴다.
+>    그래서 화면은 스텝 안에 들어가면 **필터 줄을 숨긴다** (`AdminFileList` 의 `lockedStepId`).
+> ⚠️ **개수가 없다** — 스테이지의 스텝 수 · 스텝의 파일 수가 응답에 없어 목록의 `스텝 N개` · `파일 N개` 힌트를 뺐다.
+>    필요해지면 `stepCount` · `fileCount` 를 백엔드에 요청한다.
+> ℹ️ 다운로드 · 미리보기는 목록에 URL 이 없다 — 행에서 42 · 43번(`/file-versions/{id}/download` · `/preview`)을 부른다.
+
+---
+
 ## 106. 프로젝트 휴지통 모아보기
 
 | 항목          | 내용                                              |
@@ -4125,6 +4193,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | 404    | `PROJECT_NOT_FOUND`               | 프로젝트 없음  |
 
 > ℹ️ 휴지통 문서만 · presigned 미임베드(복구 · 영구삭제만 가능하다). 정렬은 `deletedAt` 내림차순.
+> 🔄 **2026-08-16(D안)** — 블록 · 스텝 · 스테이지 삭제로 **자동 휴지통행한 파일도 여기 나타난다** (`blockDeleted: true`).
 
 ---
 
@@ -4663,10 +4732,42 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 명세서·백엔드 테스트 가이드에는 있으나 **배포되지 않았다** (2026-08-11 스웨거 전수 확인).
 화면에서 호출하지 않는다.
 
-- `PATCH /bidding/notices/{noticeId}/dismiss` · `/restore` — 제외 · 복구
-- `POST /bidding/notices/{noticeId}/projects` — 프로젝트 전환
 - `GET /bidding/collection-runs` — 실행 이력 **목록** (단건 조회만 있다)
-- `/bidding/summaries/*` — AI 요약 전체
+- **요약 중단 · 취소** — 검토의 `abandon` 에 대응하는 API 가 요약엔 없다 (아래 참고)
+
+> ⚠️ 변경사항 (2026-08-16 · 백엔드 소스 확인)
+>
+> `POST /bidding/notices/{noticeId}/projects` 는 **배포됐고 연동을 마쳤다** (2026-08-16 · `NoticeProjectConvertModal`).
+> ✅ **실제 전환 1건 성공을 확인했다** (2026-08-16).
+>
+> | 항목 | 값 |
+> | ---- | -- |
+> | 요청 | `reviewId`(필수 · `COMPLETED` 검토) · `summaryId`(선택 · 확정 요약) · `name` · `description` · `businessCategoryId` · `startedOn` · `endedOn` · `memberIds` |
+> | 응답 | `201` `{ projectId }` |
+> | 409 | `PROJECT_BID_NOTICE_ALREADY_LINKED` · `BIDDING_REVIEW_NOT_COMPLETED` · `BIDDING_REVIEW_ALREADY_LINKED_TO_PROJECT` · `BIDDING_SUMMARY_NOT_CONFIRMED` · `BIDDING_SUMMARY_ALREADY_LINKED` |
+>
+> ⭐ **검토가 전환의 근거다** — 검토에서 내려받기에 성공한 공고 첨부가 정식 파일로 프로젝트에 귀속된다.
+> 검토 모달의 "프로젝트로 생성하지 않으면 자동 삭제" 안내가 이것을 가리킨다.
+> ℹ️ 화면은 `businessCategoryId` **하나**만 보낸다 — 직접 생성(138)의 `businessCategoryIds`(복수)와 다르다.
+> ℹ️ `clientName` · `contractAmount` 는 이 API 에 **없다.** 전환 폼에 칸을 두지 않고 생성 후 프로젝트 설정에서 채운다.
+> ℹ️ `memberIds` 는 받지만 화면에서 보내지 않는다 — 요청자는 서버가 편집 권한으로 등록하고, 나머지는 설정에서 검색해 넣는다.
+
+### ⚠️ 변경사항 — 수집 조건 · 실행 (2026-08-15 백엔드)
+
+| 항목 | 내용 |
+| ---- | ---- |
+| `lookbackPeriod` | 수집 조건에 추가. `ONE_WEEK`(7) · `TWO_WEEKS`(14) · `ONE_MONTH`(30). **선택 필드**이고 생략하면 `ONE_WEEK` |
+| 수동 실행 `startedAt` · `endedAt` | 실행 요청에 넣으면 그 구간을 우선 조회 (최대 31일). **미연동** — 백필 · QA 용이라 화면에 두지 않았다 |
+| `collectionStartedAt` · `collectionEndedAt` | 실행 결과 응답에 추가. **실제로 훑은 구간**이라 0건일 때 원인 확인의 첫 단서다 |
+
+> ⚠️ 조건 수정(`PATCH`)은 **통째로 교체**라 `lookbackPeriod` 도 함께 실어야 한다 —
+> 빠뜨리면 활성 토글 한 번에 서버 기본값으로 되돌아간다 (`toUpdateRequest`).
+> ⚠️ 직접 등록 공고의 `sourceUrl` 은 **선택 입력**이다. 화면 정책으로 필수로 잡고 있었으나 2026-08-14 에 풀었다.
+
+> ⚠️ 변경사항 (2026-08-14 · `/v3/api-docs` 전수 확인)
+>
+> - `/bidding/summaries/*` · `/bidding/reviews/*` 는 **배포되어 연동을 마쳤다** (아래 표).
+> - `PATCH /bidding/notices/{noticeId}/dismiss` · `/restore` 도 **배포됐다** — 목록에서 뺀다 (미연동).
 
 > ⚠️ 백엔드 테스트 가이드가 **배포본보다 앞서 있다.** 가이드에 있다고 존재하는 API 가 아니다 —
 > 스웨거에 뜨는 것만 호출한다.
@@ -4684,6 +4785,49 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | `PATCH` | `/bidding/collection-conditions/{conditionId}`      | 아래 `수집 조건`                                                                 |
 | `POST`  | `/bidding/collection-conditions/{conditionId}/runs` | 아래 `수집 실행`                                                                 |
 | `GET`   | `/bidding/collection-runs/{runId}`                  | 아래 `수집 실행`                                                                 |
+
+**AI 요약 · AI 문서 검토** (2026-08-14 스웨거 실측 · 연동 완료)
+
+| 메서드  | 경로                                          | 설명                                                            |
+| ------- | --------------------------------------------- | --------------------------------------------------------------- |
+| `POST`  | `/bidding/notices/{noticeId}/summaries`        | AI 요약 요청 — **202**, `summaryId` 만 온다                     |
+| `GET`   | `/bidding/notices/{noticeId}/summaries`        | 공고별 요약 이력 (`latestMySummaryId` 포함)                     |
+| `GET`   | `/bidding/summaries/{summaryId}`               | 요약 단건 — **폴링 대상**                                       |
+| `PATCH` | `/bidding/summaries/{summaryId}`               | 여섯 칸 수정 — 확정 후엔 `BIDDING_SUMMARY_NOT_EDITABLE`         |
+| `PATCH` | `/bidding/summaries/{summaryId}/confirm`       | 요약 확정 (되돌릴 수 없다)                                      |
+| `GET`   | `/bidding/notices/{noticeId}/review-sources`   | 검토에 고를 **공고 첨부** 목록 (`supported` 로 가능 여부 표시)  |
+| `POST`  | `/bidding/notices/{noticeId}/reviews`          | AI 문서 검토 요청 — **202**                                     |
+| `GET`   | `/bidding/notices/{noticeId}/reviews`          | 공고별 검토 이력 (최대 20건)                                    |
+| `GET`   | `/bidding/reviews/{reviewId}`                  | 검토 단건 — **폴링 대상** (결과 · 근거 인용 포함)               |
+| `PATCH` | `/bidding/reviews/{reviewId}/abandon`          | 아래 `검토 종료`                                                |
+
+> ⚠️ 요약과 검토는 **다른 기능**이다 — 검토는 공고 첨부와 사내 문서를 비교하고 결과에 근거가
+> 붙는다. 서버 워커도 갈린다 (`bid_notice_summary_worker` · `bid_review_worker`).
+>
+> ⚠️ **요약에는 검토의 `abandon` 에 해당하는 API 가 없다** (2026-08-14 스웨거 전수 확인).
+> 진행 중인 요약은 프론트에서 끝낼 수 없어, 화면은 **잠금 해제(`멈추기`)** 까지만 한다.
+> 그 뒤 새로 요청하면 `409 BIDDING_SUMMARY_ALREADY_PROCESSING` 으로 막힌다.
+
+### 검토 종료 — `PATCH /bidding/reviews/{reviewId}/abandon`
+
+프로젝트로 전환하지 않은 검토를 종료하고 임시파일 정리를 **즉시** 요청한다.
+
+```jsonc
+// 200
+{ "reviewId": 71, "reviewStatus": "ABANDONED", "abandonedAt": "2026-08-14T06:21:26.552Z" }
+```
+
+| 코드  | 에러                                                             |
+| ----- | ---------------------------------------------------------------- |
+| `403` | `BIDDING_ACCESS_PERMISSION_REQUIRED` · `BIDDING_REVIEW_ACCESS_DENIED` |
+| `404` | `BIDDING_REVIEW_NOT_FOUND`                                       |
+| `409` | `BIDDING_REVIEW_NOT_ABANDONABLE` — 종료할 수 없는 단계           |
+
+> ⭐ 화면은 이걸 **진행 중 검토의 취소**로 쓴다. 워커가 재시도하는 동안 상태는 계속
+> `PENDING` 이라 멈춘 것과 구분되지 않는데, 종료하지 않으면 새 요청이
+> `BIDDING_REVIEW_ALREADY_PROCESSING` 으로 막혀 기다리는 것 말곤 할 게 없다.
+>
+> ⚠️ **요약에는 대응 API 가 없다** — 진행 중인 요약은 프론트에서 끝낼 방법이 없다.
 
 ### 수집 조건 — `GET /bidding/collection-conditions`
 
@@ -5559,6 +5703,50 @@ data: {
 > ❗ **페이징이 없다.** `{ "cashFlows": [...] }` 배열 하나가 통째로 온다 — 화면에 페이지네이션을 붙이지 않는다.
 > ❗ **구분 · 출처 필터는 서버에 없다.** 화면에서 거른다.
 > ❗ **`bankName` 이 목록에 없다** (단건 조회 API 도 없다). 수정 폼은 `bankTxnId` 앞부분으로 되읽는다 — 필드가 추가되면 `display.ts` 의 `bankNameFromTxnId` 를 지운다.
+
+### 정산 현황 (2026-08-17 연동)
+
+프로젝트 단위로 정산 진행을 모아 보는 화면이다. 경로가 `/finance` 가 아니라 **`/projects` 아래**에 있다.
+
+| Method | Path                                    | 용도                        |
+| ------ | --------------------------------------- | --------------------------- |
+| `GET`  | `/projects/settlements`                 | 프로젝트 집계 (**페이징 있음**) |
+| `GET`  | `/projects/settlements/filters`         | 발주처 선택지 (`clients[]`) |
+| `GET`  | `/projects/{projectId}/settlements`     | 회차(정산 블록) 목록 (페이징 없음) |
+
+**목록 Query** — `startDate` · `endDate` · `client` · `includeCompleted` · `page` · `size` · `sort`
+`sort` 는 **`NEXT_PLANNED_DATE_ASC` · `TOTAL_AMOUNT_DESC` 둘뿐이다** — 표 머리글 정렬을 붙이면 안 된다.
+
+**목록 응답** — `projects[]` + `page` · `size` · `totalElements` · `totalPages`
+
+| 필드                                              | 설명                                     |
+| ------------------------------------------------- | ---------------------------------------- |
+| `projectId` · `projectName` · `clientName?`       | 프로젝트 · 발주처                         |
+| `projectManager`                                  | 담당자(PM) 이름                           |
+| `totalPlannedAmount?`                             | **회차 예정 금액 합계** (계약금액이 아니다) |
+| `totalIncome` · `totalOutcome` · `totalAmount`    | 수입 · 지출 · 합계 — 합계는 **서버 값을 그대로 쓴다** |
+| `completedRoundCount` / `totalRoundCount`         | 정산 진행                                 |
+| `nextPlannedDate?`                                | 다음 예정일                               |
+| `paymentUnlinkedCount` · `taxInvoiceUnlinkedCount` | 미연결 건수                              |
+| `paymentOverdueDays` · `taxInvoiceOverdueDays`    | 지연 일수 (0 이면 지연 아님)              |
+| `projectStatus` · `endedOn?`                      | 프로젝트 상태 · 종료일                    |
+
+**회차 응답** — `blocks[]`
+
+`settleId` · `roundNo?` · `roundName?` · `plannedDate?` · `plannedAmount?` · `plannedTaxAmount?` ·
+`taxInvoiceDate?` · `taxInvoiceAmount?` · `paidType?`(`INCOME`·`OUTCOME`) · `bankName?` · `accountNumber?` ·
+`accountHolder?` · `paidDate?` · `paidAmount?` · `status` ·
+`taxLinkedBy?` · `taxLinkedByName?` · `taxLinkedAt?` · `cashFlowLinkedBy?` · `cashFlowLinkedByName?` · `cashFlowLinkedAt?`
+
+회차 상태는 정산 블록과 같은 4값이다 — `PENDING`(미연결) · `WAITING`(정산 대기) · `PARTIAL`(부분 정산) · `COMPLETED`(정산 완료).
+
+> ⚠️ **프로젝트 단위 상태 값은 없다** (2026-08-17 팀 확인). 화면이 지연 일수 · 미연결 건수 · 회차 수로
+>    `입금 대기 N일` · `계산서 미발행 N일` · `예정일 미입력` · `정산 완료` · `진행 중` 을 판정한다
+>    (`features/finance/display.ts` → `settlementProjectState`). 서버 정의가 생기면 그 함수를 지운다.
+> ⚠️ **계약 금액 · 미계획 금액 필드가 없다** — 와이어프레임의 `미계획 N원` 배지는 계산 근거가 없어 뺐다.
+> ⚠️ 회차의 **계좌 정보는 출금에만** 있다 — 표의 열로 두지 않고 `계좌 보기` 로 펼친다.
+
+---
 
 ### 수정 (`PATCH /finance/cash-flows/{cashFlowId}`)
 

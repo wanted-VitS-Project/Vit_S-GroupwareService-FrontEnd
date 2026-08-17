@@ -159,7 +159,7 @@ export default function GrantPermissionModal({
                 사원 검색
               </label>
               <EmployeeSearchInput
-                placeholder="이름으로 검색 (예: 김)"
+                placeholder="이름 검색 (예: 김)"
                 disabled={isSubmitting}
                 excludedIds={[
                   ...accessorIds,
@@ -179,9 +179,7 @@ export default function GrantPermissionModal({
                   ])
                 }
               />
-              <p className="mt-1 text-caption break-keep text-text-secondary">
-                이미 접근 가능한 사원은 목록에서 등급만 바꿀 수 있습니다.
-              </p>
+              <p className="mt-1 text-caption break-keep text-text-secondary"></p>
             </div>
           )}
 

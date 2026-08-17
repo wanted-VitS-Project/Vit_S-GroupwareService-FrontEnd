@@ -1,6 +1,6 @@
 /**
  * 활동 — 심전도 모양 선. (초안의 `Activity` 아이콘)
- * 블록 카드 메뉴 · 활동 로그 팝업 헤더 · 빈 상태가 같은 모양을 쓴다.
+ * 블록 카드 메뉴 · 활동 기록 팝업 헤더 · 빈 상태가 같은 모양을 쓴다.
  */
 export default function ActivityIcon({
   className = 'size-3',

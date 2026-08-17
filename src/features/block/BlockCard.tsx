@@ -19,6 +19,7 @@ import { useModal, useModalRouter } from '@/lib/useModal';
 import { useBlockActions } from './BlockActionsContext';
 import { setPillDragImage, useBlockDrag } from './BlockDragContext';
 import { useOwnerResigned } from './BlockMembersContext';
+import { useBlockCanEdit } from './BlockPermissionContext';
 import { notifyBlockChanged } from './events';
 import BlockTypeIcon from './BlockTypeIcon';
 import { BLOCK_TYPES, type StepBlock } from './types';
@@ -43,9 +44,9 @@ const BlockIssuesPanel = dynamic(loadBlockIssuesPanel, {
 const BlockActivityLogPanel = dynamic(loadBlockActivityLogPanel, {
   loading: () => (
     <ModalLoadingFallback
-      title="블록 활동 로그"
+      title="블록 활동 기록"
       className={SIDE_PANEL}
-      header={<SidePanelFallbackHeader title="블록 활동 로그" hasBadge />}
+      header={<SidePanelFallbackHeader title="블록 활동 기록" hasBadge />}
       bodyClassName="m-3 min-h-0 flex-1"
     />
   ),
@@ -60,7 +61,7 @@ const BlockMoveStepModal = dynamic(loadBlockMoveStepModal, {
   loading: () => (
     <ModalLoadingFallback
       title="다른 스텝으로 이동"
-      className="w-full max-w-[420px] rounded-xl p-6 shadow-2xl"
+      className="w-full max-w-[420px] rounded-base p-6 shadow-2xl"
     />
   ),
 });
@@ -260,6 +261,8 @@ function BlockMenu({
 }) {
   const { id: projectId, stepId } = useParams<{ id: string; stepId: string }>();
   const actions = useBlockActions();
+  /** 이 스텝을 고칠 수 있는지 — 보드가 감싸 준다. 보드 밖에서는 `true` (컨텍스트 기본값) */
+  const canEdit = useBlockCanEdit();
   /** ⋯ 드롭다운. 모달은 아니지만 여닫이가 같아 같은 훅을 쓴다 */
   const menu = useModal();
   /** 메뉴에서 여는 모달 셋 — 하나만 열린다 */
@@ -314,7 +317,7 @@ function BlockMenu({
             />
             <span
               role="menu"
-              className="absolute top-full right-0 z-20 mt-1 flex w-28 flex-col overflow-hidden rounded-lg border border-border-default bg-bg-card shadow-lg"
+              className="absolute top-full right-0 z-20 mt-1 flex w-32 flex-col overflow-hidden rounded-lg border border-border-default bg-bg-card shadow-lg"
             >
               <button
                 type="button"
@@ -326,7 +329,7 @@ function BlockMenu({
                 className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-caption font-medium text-text-primary hover:bg-bg-surface"
               >
                 <HashIcon />
-                <span className="flex-1 text-left">연결된 이슈</span>
+                <span className="flex-1 whitespace-nowrap text-left">연결된 이슈</span>
                 {block.linkedIssueTotal > 0 && (
                   <span className="rounded-pill bg-blue-bg px-1.5 py-0.5 text-micro font-bold text-btn-primary-hover">
                     {block.linkedIssueTotal}
@@ -343,26 +346,35 @@ function BlockMenu({
                 className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-caption font-medium text-text-primary hover:bg-bg-surface"
               >
                 <ActivityIcon className="size-2.5 shrink-0 text-purple-text" />
-                <span className="flex-1 text-left">활동 로그</span>
+                <span className="flex-1 text-left">활동 기록</span>
               </button>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => openFromMenu('edit')}
-                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-caption font-medium text-text-primary hover:bg-bg-surface"
-              >
-                <PencilIcon />
-                수정
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => openFromMenu('move')}
-                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-caption font-medium text-text-primary hover:bg-bg-surface"
-              >
-                <MoveIcon />
-                <span className="flex-1 text-left">스텝 이동</span>
-              </button>
+              {/*
+                ⭐ **쓰기 항목은 고칠 수 있을 때만 세운다** (2026-08-16).
+                   위 두 항목(연결된 이슈 · 활동 기록)은 읽기라 누구에게나 남긴다 —
+                   메뉴를 통째로 감추면 열람 권한인 사람이 그 둘로 가는 길까지 잃는다.
+              */}
+              {canEdit && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => openFromMenu('edit')}
+                  className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-caption font-medium text-text-primary hover:bg-bg-surface"
+                >
+                  <PencilIcon />
+                  수정
+                </button>
+              )}
+              {canEdit && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => openFromMenu('move')}
+                  className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-caption font-medium text-text-primary hover:bg-bg-surface"
+                >
+                  <MoveIcon />
+                  <span className="flex-1 text-left">스텝 이동</span>
+                </button>
+              )}
               {/**
                * ⚠️ **연결된 정산 블록은 지울 수 없다.** 세금계산서 · 입출금이 붙은 블록을
                *    지우면 재무 쪽 연결이 가리키는 대상이 사라진다 —
@@ -373,15 +385,17 @@ function BlockMenu({
                *    지워진 뒤에는 재무 쪽 입출금이 `LINK_BLOCK_DELETED` 로 내려와
                *    `블록 삭제됨` 으로 구분된다. 그래서 여기서 막지 않는다.
                */}
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => openFromMenu('delete')}
-                className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-caption font-medium text-text-danger hover:bg-red-bg-soft"
-              >
-                <TrashIcon />
-                삭제
-              </button>
+              {canEdit && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => openFromMenu('delete')}
+                  className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-caption font-medium text-text-danger hover:bg-red-bg-soft"
+                >
+                  <TrashIcon />
+                  삭제
+                </button>
+              )}
             </span>
           </>
         )}

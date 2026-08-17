@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import Logo from '@/components/Logo';
 import PasswordVisibilityToggle from '@/components/PasswordVisibilityToggle';
 import { login } from '@/features/auth/api';
 import { isGateCode, LOGIN_ERROR_MESSAGES } from '@/features/auth/errorCodes';
@@ -70,6 +71,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isPending, setIsPending] = useState(false);
+  /** 로고가 자리를 잡았는지 — 아래 폼은 그 뒤에 편다 */
+  const [isLogoReady, setIsLogoReady] = useState(false);
 
   const canSubmit = userId.trim() !== '' && password !== '' && !isPending;
 
@@ -99,10 +102,31 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-2xl border border-border-default px-10 py-12">
-        <h1 className="text-center text-heading-l font-bold">VitaS</h1>
+      <div className="w-full max-w-md rounded-base border border-border-default px-10 py-12">
+        {/**
+         * ⚠️ 로고는 **어두운 바탕 전용**이다 (글자가 흰색). 로그인 화면은 밝아서
+         *    사이드바와 같은 어두운 판 위에 올린다 — 자산을 한 벌로 유지한다.
+         */}
+        <h1 className="flex justify-center">
+          <span className="sr-only">VitaS</span>
+          <span className="flex h-13 items-center rounded-base bg-bg-sidebar px-6">
+            <Logo onReady={() => setIsLogoReady(true)} />
+          </span>
+        </h1>
 
-        <form onSubmit={handleSubmit} className="mt-10 space-y-6">
+        {/**
+         * ⭐ **로고가 자리를 잡은 뒤 폼을 편다.**
+         *
+         * 셋이 동시에 뜨면 로고 · 입력칸 · 버튼이 제각기 다른 시점에 나타나 화면이 어수선하다.
+         * 로고를 먼저 세우고 나머지를 한 번에 올리면 들어오는 순서가 하나로 읽힌다.
+         * ⚠️ 자리는 처음부터 차지한다(`opacity`) — `display` 로 감추면 폼이 뜰 때 창이 늘어난다.
+         */}
+        <form
+          onSubmit={handleSubmit}
+          className={`mt-10 space-y-6 transition-opacity duration-300 ${
+            isLogoReady ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
           <Field
             id="userId"
             label="아이디"
@@ -131,7 +155,11 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-label text-text-secondary">
+        <p
+          className={`mt-6 text-center text-label text-text-secondary transition-opacity duration-300 ${
+            isLogoReady ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
           계정 문의는 시스템 관리자에게 연락하세요.
         </p>
       </div>

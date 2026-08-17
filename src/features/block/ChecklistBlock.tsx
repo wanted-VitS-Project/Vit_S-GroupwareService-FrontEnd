@@ -13,6 +13,7 @@ import {
   updateChecklistItem,
 } from './api';
 import BlockCard from './BlockCard';
+import { useBlockCanEdit } from './BlockPermissionContext';
 
 const loadItemDeleteModal = () => import('./ChecklistItemDeleteModal');
 const ChecklistItemDeleteModal = dynamic(loadItemDeleteModal, {
@@ -56,6 +57,8 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
    * 없으면 어느 체크리스트에 붙일지 알 수 없어 추가를 막는다.
    */
   const chkBlockId = readChecklistBlockId(block.detail);
+  /** 고칠 수 없는 스텝이면 `편집` 자체를 세우지 않는다 — 항목 조작이 전부 그 뒤에 있다 */
+  const canEdit = useBlockCanEdit();
   const [isEditing, setIsEditing] = useState(false);
 
   // effect 가 아니라 렌더 중 상태 조정이다 (`TextBlock` 과 같은 방식)
@@ -249,7 +252,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
 
         {items.length === 0 && !isEditing && (
           <p className="text-caption text-text-muted">
-            항목이 없습니다. 편집으로 추가해보세요.
+            항목이 없습니다. 편집에서 추가하세요.
           </p>
         )}
 
@@ -277,7 +280,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
                     onClick={() => toggleItem(item)}
                     className={`flex size-3.5 shrink-0 cursor-pointer items-center justify-center rounded-button-sm border disabled:cursor-progress ${
                       item.isCompleted
-                        ? 'border-[#00BC7D] bg-[#00BC7D] text-text-white'
+                        ? 'border-step-done bg-step-done text-text-white'
                         : 'border-text-secondary bg-bg-card'
                     }`}
                   >
@@ -292,7 +295,7 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
                     aria-disabled
                     className={`flex size-3.5 shrink-0 items-center justify-center rounded-button-sm border ${
                       item.isCompleted
-                        ? 'border-[#00BC7D] bg-[#00BC7D] text-text-white'
+                        ? 'border-step-done bg-step-done text-text-white'
                         : 'border-text-secondary bg-bg-card'
                     }`}
                   >
@@ -373,23 +376,29 @@ export default function ChecklistBlock({ block }: { block: StepBlock }) {
           </p>
         )}
 
-        <div className="flex items-center justify-end border-t border-border-default pt-1">
-          <button
-            type="button"
-            onClick={() => {
-              setEditingId(null);
-              setErrorMessage('');
-              setIsEditing((wasEditing) => !wasEditing);
-            }}
-            className={`flex cursor-pointer items-center gap-1 rounded-button-md px-2 py-0.5 text-caption font-medium ${
-              isEditing
-                ? 'text-text-secondary hover:bg-bg-hover'
-                : 'text-text-primary-blue hover:bg-blue-bg-soft'
-            }`}
-          >
-            {isEditing ? <CheckIcon /> : <PencilIcon />}
-            {isEditing ? '편집 완료' : '편집'}
-          </button>
+        {/*
+          `편집` 하나가 항목 추가 · 이름 수정 · 삭제로 가는 **유일한 입구**다 —
+          여기만 닫으면 체크리스트의 쓰기 조작이 통째로 닫힌다 (2026-08-16).
+        */}
+        <div className="flex items-center justify-end border-t border-border-default pt-1 empty:hidden">
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditingId(null);
+                setErrorMessage('');
+                setIsEditing((wasEditing) => !wasEditing);
+              }}
+              className={`flex cursor-pointer items-center gap-1 rounded-button-md px-2 py-0.5 text-caption font-medium ${
+                isEditing
+                  ? 'text-text-secondary hover:bg-bg-hover'
+                  : 'text-text-primary-blue hover:bg-blue-bg-soft'
+              }`}
+            >
+              {isEditing ? <CheckIcon /> : <PencilIcon />}
+              {isEditing ? '편집 완료' : '편집'}
+            </button>
+          )}
         </div>
       </div>
 

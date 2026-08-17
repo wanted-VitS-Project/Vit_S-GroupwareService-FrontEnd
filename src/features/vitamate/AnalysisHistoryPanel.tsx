@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import Modal, { SIDE_PANEL_WIDE } from '@/components/Modal';
+import LoadingSpinner from '@/components/Spinner';
 import { formatDateTime } from '@/lib/format';
 import { messageOf } from '@/lib/api';
 
@@ -23,7 +24,7 @@ import {
  * ⚠️ 목록 API 에는 `documents`·`result`·`citations` 가 없다 — 한 건을 누르면
  *    단건 조회를 한 번 더 해서 본문·근거를 채운다.
  *
- * 활동 로그 패널과 같은 자리 · 같은 크기로 뜬다.
+ * 활동 기록 패널과 같은 자리 · 같은 크기로 뜬다.
  */
 export default function AnalysisHistoryPanel({
   blockId,
@@ -75,7 +76,7 @@ export default function AnalysisHistoryPanel({
       className={SIDE_PANEL_WIDE}
       header={
         <div className="flex shrink-0 items-center gap-2 border-b border-border-default px-4 py-3">
-          <span className="flex size-5 shrink-0 items-center justify-center rounded-button-sm border border-purple-border bg-blue-bg-soft text-detail text-[#4F39F6]">
+          <span className="flex size-5 shrink-0 items-center justify-center rounded-button-sm border border-purple-border bg-blue-bg-soft text-detail text-ai-primary">
             ✦
           </span>
           <div className="min-w-0 flex-1">
@@ -105,15 +106,10 @@ export default function AnalysisHistoryPanel({
             onBack={() => setOpenId(null)}
           />
         ) : analyses === null ? (
-          <ul className="flex flex-col gap-1.5">
-            {[0, 1, 2].map((row) => (
-              <li
-                key={row}
-                aria-hidden
-                className="h-14 animate-pulse rounded-lg bg-bg-hover"
-              />
-            ))}
-          </ul>
+          <LoadingSpinner
+            label="분석 이력을 불러오는 중입니다"
+            className="py-16"
+          />
         ) : listError ? (
           // 빈 목록과 같은 모양이면 실패를 "아직 없음" 으로 오해한다
           <p
@@ -215,7 +211,7 @@ function AnalysisDetail({
       <button
         type="button"
         onClick={onBack}
-        className="cursor-pointer self-start text-caption font-medium text-[#4F39F6] hover:underline"
+        className="cursor-pointer self-start text-caption font-medium text-ai-primary hover:underline"
       >
         ← 이력 목록
       </button>
@@ -225,9 +221,9 @@ function AnalysisDetail({
           {error}
         </p>
       ) : !analysis ? (
-        <div
-          aria-hidden
-          className="h-40 animate-pulse rounded-lg bg-bg-hover"
+        <LoadingSpinner
+          label="분석 결과를 불러오는 중입니다"
+          className="h-40"
         />
       ) : (
         <>
@@ -259,7 +255,7 @@ function AnalysisDetail({
           ) : isRunning(analysis.analysisStatus) ? (
             // 진행 중인데 "결과 없음" 이라고 하면 끝났는데 빈 것으로 읽힌다
             <p className="text-caption text-text-secondary">
-              아직 검토하고 있어요. 잠시 후 다시 확인해주세요.
+              아직 검토하고 있습니다. 잠시 후 다시 확인해주세요.
             </p>
           ) : (
             <p className="text-caption text-text-secondary">

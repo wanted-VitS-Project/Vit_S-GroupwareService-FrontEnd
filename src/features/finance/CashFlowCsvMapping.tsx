@@ -332,7 +332,6 @@ export default function CashFlowCsvMapping({
               {...columnProps}
               field="balanceColumn"
               label="거래 후 잔액"
-              hint="넣어 두면 나중에 대사할 때 도움이 됩니다"
             />
           </div>
 

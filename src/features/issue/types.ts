@@ -1,5 +1,5 @@
 /**
- * 스텝 이슈(일정) 도메인 타입 · 라벨 · 배지 색. (.ai/API.md 55~60번)
+ * 스텝 이슈 도메인 타입 · 라벨 · 배지 색. (.ai/API.md 55~60번)
  *
  * 응답에 없는 것은 화면에서도 만들지 않는다 — 표시용 이슈 키, 시작일,
  * 이슈별 진척도, 이슈 활동 이력은 명세에서 명시적으로 제외됐다.
@@ -354,7 +354,8 @@ export const ISSUE_STATUS_STYLES: Record<IssueStatus, IssueStatusStyle> = {
 };
 
 /** 마감일이 지난 이슈를 강조하는 색 — 우선순위 '높음' 과 같은 계열이다 */
-export const ISSUE_OVERDUE_STYLE = 'border-red-border bg-red-bg text-[#C10007]';
+export const ISSUE_OVERDUE_STYLE =
+  'border-red-border bg-red-bg text-red-text-deep';
 
 export const ISSUE_PRIORITY_ORDER: IssuePriority[] = ['HIGH', 'MEDIUM', 'LOW'];
 
@@ -369,7 +370,7 @@ export const ISSUE_PRIORITY_STYLES: Record<
   { badge: string; dot: string }
 > = {
   HIGH: {
-    badge: 'border-red-border bg-red-bg text-[#C10007]',
+    badge: 'border-red-border bg-red-bg text-red-text-deep',
     dot: 'bg-[#FB2C36]',
   },
   MEDIUM: {

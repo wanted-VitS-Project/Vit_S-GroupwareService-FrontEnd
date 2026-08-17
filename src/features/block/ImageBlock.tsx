@@ -639,7 +639,7 @@ function ImageMenu({
         aria-haspopup="menu"
         aria-expanded={isOpen}
         onClick={onToggle}
-        className={`flex size-6 cursor-pointer items-center justify-center rounded-button-md bg-black/50 text-text-white hover:bg-black/70 ${
+        className={`flex size-7 cursor-pointer items-center justify-center rounded-button-md bg-black/50 text-text-white hover:bg-black/70 ${
           isOpen
             ? 'opacity-100'
             : 'opacity-0 group-focus-within/image:opacity-100 group-hover/image:opacity-100'
@@ -787,7 +787,7 @@ function MoreIcon() {
       viewBox="0 0 24 24"
       fill="currentColor"
       aria-hidden
-      className="size-2.5"
+      className="size-3.5"
     >
       <circle cx="5" cy="12" r="1.6" />
       <circle cx="12" cy="12" r="1.6" />

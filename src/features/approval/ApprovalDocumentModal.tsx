@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 
 import Modal from '@/components/Modal';
+import LoadingSpinner from '@/components/Spinner';
 import { downloadVersion, getFileVersion } from '@/features/file/api';
 import { FILE_CODES } from '@/features/file/errorCodes';
 import { formatFileSize } from '@/features/file/format';
@@ -23,12 +24,10 @@ import type { ApprovalDocument } from './types';
 const PdfPages = dynamic(() => import('@/features/file/PdfPages'), {
   ssr: false,
   loading: () => (
-    <div role="status" aria-label="미리보기 뷰어를 불러오는 중입니다">
-      <div
-        aria-hidden
-        className="h-[600px] w-full animate-pulse rounded-lg border border-border-default bg-bg-card shadow-sm"
-      />
-    </div>
+    <LoadingSpinner
+      label="미리보기 뷰어를 불러오는 중입니다"
+      className="h-[600px] w-full"
+    />
   ),
 });
 
@@ -224,7 +223,7 @@ export default function ApprovalDocumentModal({
             </p>
             <p className="mt-1.5 text-label break-keep text-text-secondary">
               결재 문서는 원본 프로젝트의 스텝 열람 권한을 따릅니다. 해당
-              프로젝트 참여자로 초대되어야 볼 수 있어요.
+              프로젝트 참여자로 초대되어야 볼 수 있습니다.
             </p>
           </div>
         )}

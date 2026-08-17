@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
+import ProjectListHeader from '@/components/project/ProjectListHeader';
 import ProjectListSkeleton from '@/components/project/ProjectListSkeleton';
 import { getProjects } from '@/features/project/api';
 import ProjectCard from '@/features/project/ProjectCard';
@@ -67,9 +68,9 @@ export default function DashboardProjects() {
       {hasFailed ? (
         <p
           role="alert"
-          className="flex items-center justify-center gap-3 rounded-base border border-border-default bg-bg-card py-12 text-[13px] text-text-secondary"
+          className="flex items-center justify-center gap-3 rounded-base border border-border-default bg-bg-card py-12 text-detail text-text-secondary"
         >
-          프로젝트를 불러오지 못했어요.
+          프로젝트를 불러오지 못했습니다.
           <button
             type="button"
             onClick={() => setReloadCount((count) => count + 1)}
@@ -82,16 +83,20 @@ export default function DashboardProjects() {
         <ProjectListSkeleton rows={LIMIT} />
       ) : rows.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-base border border-border-default bg-bg-card py-12">
-          <p className="text-[13px] text-text-secondary">
-            참여 중인 프로젝트가 없어요.
+          <p className="text-detail text-text-secondary">
+            참여 중인 프로젝트가 없습니다.
           </p>
         </div>
       ) : (
-        <ul className="flex flex-col gap-3">
-          {rows.map((row) => (
-            <ProjectCard key={row.projectId} row={row} />
-          ))}
-        </ul>
+        <div className="flex flex-col gap-3">
+          <ProjectListHeader />
+
+          <ul className="flex flex-col gap-3">
+            {rows.map((row) => (
+              <ProjectCard key={row.projectId} row={row} />
+            ))}
+          </ul>
+        </div>
       )}
     </section>
   );

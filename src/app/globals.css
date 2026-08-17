@@ -87,6 +87,11 @@
   --color-red-bg-soft: #fef2f2;
   --color-red-border: #ffa2a2;
   --color-red-text: #e7000b;
+  /*
+   * 붉은 배경 위에 얹는 글자 — `red-text` 는 `red-bg` 위에서 대비가 모자란다.
+   * 위험 버튼의 hover 배경(`--color-btn-danger-hover`)과 **같은 값**이다.
+   */
+  --color-red-text-deep: #c10007;
 
   --color-green-bg: #ecfdf5;
   --color-green-border: #a4f4cf;
@@ -97,7 +102,7 @@
   --color-yellow-border: #ffb900;
   --color-yellow-text: #e17100;
 
-  --color-purple-bg: #ebe7ff;
+  --color-purple-bg: #eef2ff;
   --color-purple-bg-soft: #f5f3ff;
   --color-purple-border: #c6d2ff;
   --color-purple-text: #7c3aed;
@@ -106,7 +111,7 @@
   --color-blue-bg: #dbeafe;
   --color-blue-bg-soft: #eff6ff;
   --color-blue-border: #93c5fd;
-  --color-blue-border-soft: #bfdffe;
+  --color-blue-border-soft: #bfdbfe;
   --color-blue-text: #2563eb;
 
   --color-gray-bg: #e5e7eb;
@@ -114,6 +119,21 @@
   --color-gray-border: #e5e7eb;
   --color-gray-text: #1f2937;
   --color-gray-text-soft: #374151;
+
+  /* ---------- AI (비타메이트) ---------- */
+  /*
+   * AI 기능을 나타내는 보라. **서비스 기본색(파랑)과 뜻이 다르다** —
+   * "사람이 누른 동작" 이 아니라 "AI 가 한 일" 이라는 표시다.
+   *
+   * ⚠️ **쓰는 곳은 비타메이트뿐이다** (`features/vitamate/*` · `BLOCK_TYPES` 의 AI 블록).
+   *    결재 · 알림도 한때 이 보라를 썼지만 AI 기능이 아니라 파랑으로 되돌렸다 (2026-08-16).
+   *    AI 가 아닌 화면에서 강조가 필요하면 `--color-btn-primary` 를 쓴다 —
+   *    여기서 색을 빌려 쓰기 시작하면 "보라 = AI" 라는 뜻이 곧 무너진다.
+   * ⚠️ 옅은 배경 · 테두리는 별도 토큰 없이 투명도로 만든다 (`bg-ai-primary/5`).
+   *    단계마다 토큰을 두면 어느 단계를 써야 할지가 또 갈린다.
+   */
+  --color-ai-primary: #4f39f6;
+  --color-ai-primary-hover: #4430d6;
 
   /* ---------- Step Status ---------- */
   /*
@@ -123,13 +143,13 @@
    */
   --color-step-not-started: #d1d5db;
   --color-step-in-progress: #ffb900;
-  --color-step-done: #00bc7d;
+  --color-step-done: #00a76f;
 
   /* ---------- Button Palette ---------- */
   --color-btn-primary: #2563eb;
   --color-btn-primary-hover: #1d4ed8;
   /* 위험 버튼 — 배경은 `--color-red-text` 를 그대로 쓰고 hover 만 한 단계 어둡게 */
-  --color-btn-danger-hover: #c10007;
+  --color-btn-danger-hover: var(--color-red-text-deep);
   --color-btn-gray-bg: #f3f4f6;
   --color-btn-gray-bg-hover: #d1d5db;
   --color-btn-gray-text: #6b7280;
@@ -171,6 +191,12 @@ body {
 }
 
 body {
+  /*
+   * 이 서비스는 밝은 화면 하나만 그린다. 지정하지 않으면 OS 가 어두운 모드일 때
+   * 브라우저가 기본 위젯(셀렉트 · 날짜 입력 · 스크롤바)을 어둡게 그려, 흰 화면 위에서
+   * 그 부분만 검게 번쩍인다.
+   */
+  color-scheme: light;
   font-family: var(--font-sans);
   font-size: var(--text-body-l);
   font-weight: var(--font-weight-regular);
@@ -184,6 +210,36 @@ body {
 
 ::placeholder {
   color: var(--color-text-placeholder);
+}
+
+/*
+ * 누를 수 있는 것에는 **손가락 커서**를 붙인다.
+ *
+ * 화면마다 `cursor-pointer` 를 손으로 달다 보니 빠진 자리가 계속 나왔고, 그런 자리는
+ * 눌리는지 아닌지 대 보고서야 알 수 있었다. 규칙을 여기 한 줄로 두면 새로 만드는
+ * 버튼에도 자동으로 붙는다.
+ *
+ * ⚠️ 잠긴 것(`:disabled` · `aria-disabled`)은 제외한다 — 못 누르는데 손가락이 뜨면
+ *    눌러 보고 고장으로 읽는다. 잠금 표시는 `not-allowed` 가 맡는다.
+ */
+button:not(:disabled):not([aria-disabled='true']),
+summary,
+label:has(> input[type='checkbox']),
+label:has(> input[type='radio']),
+select:not(:disabled),
+input[type='checkbox']:not(:disabled),
+input[type='radio']:not(:disabled),
+input[type='file']:not(:disabled),
+[role='button']:not([aria-disabled='true']),
+[role='tab']:not([aria-disabled='true']) {
+  cursor: pointer;
+}
+
+button:disabled,
+button[aria-disabled='true'],
+select:disabled,
+input:disabled {
+  cursor: not-allowed;
 }
 
 /* ============================================================

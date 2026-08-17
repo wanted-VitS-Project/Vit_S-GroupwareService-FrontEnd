@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import Modal from '@/components/Modal';
+import LoadingSpinner from '@/components/Spinner';
 import { messageOf } from '@/lib/api';
 
 import { downloadVersion, getFileVersions } from './api';
@@ -178,7 +179,12 @@ export default function FileViewerModal({
     <Modal
       title={`${file.name} 문서 보기`}
       onClose={onClose}
-      className="flex h-[85vh] w-full max-w-[820px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
+      /**
+       * 창 크기 — **화면을 다 먹지 않는다.** 넓은 모니터에서 `85vh` · `860px` 로 두면
+       * 뒤 화면이 거의 가려져 창이 아니라 페이지처럼 보였다. 미리보기는 내용을 확인하는
+       * 자리이지 작업하는 자리가 아니라, 뒤가 비쳐 보이는 편이 낫다.
+       */
+      className="flex h-[min(72vh,680px)] w-full max-w-[720px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
       header={
         <div className="flex shrink-0 items-center gap-3 border-b border-border-default px-5 py-3">
           <span
@@ -189,7 +195,7 @@ export default function FileViewerModal({
           </span>
 
           <div className="min-w-0 flex-1">
-            <h2 className="truncate text-[13px] font-semibold text-text-primary">
+            <h2 className="truncate text-detail font-semibold text-text-primary">
               {current.originalFileName}
             </h2>
             <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-caption text-text-secondary">
@@ -275,19 +281,10 @@ export default function FileViewerModal({
                   </button>
                 </div>
               ) : !versions ? (
-                <div
-                  role="status"
-                  aria-label="버전 이력을 불러오는 중입니다"
-                  className="flex flex-col gap-2"
-                >
-                  {[0, 1].map((row) => (
-                    <div
-                      key={row}
-                      aria-hidden
-                      className="h-28 animate-pulse rounded-lg bg-bg-surface"
-                    />
-                  ))}
-                </div>
+                <LoadingSpinner
+                  label="버전 이력을 불러오는 중입니다"
+                  className="py-16"
+                />
               ) : (
                 <ul className="flex flex-col gap-2">
                   {versions.content.map((version) => (
@@ -375,10 +372,9 @@ function PreviewPane({
 }) {
   if (preview.kind === 'loading') {
     return (
-      <div
-        role="status"
-        aria-label="미리보기를 불러오는 중입니다"
-        className="h-[600px] w-full max-w-[576px] animate-pulse rounded-button-sm border border-border-default bg-bg-card shadow-sm"
+      <LoadingSpinner
+        label="미리보기를 불러오는 중입니다"
+        className="h-[600px] w-full max-w-[576px]"
       />
     );
   }
@@ -401,7 +397,7 @@ function PreviewPane({
       <button
         type="button"
         onClick={onDownload}
-        className="min-w-[104px] cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover"
+        className="btn btn-md btn-primary min-w-[104px]"
       >
         다운로드
       </button>

@@ -11,13 +11,16 @@ export const PERMISSION_LABEL: Record<PagePermission, string> = {
 /** `globals.css` 의 `.badge-*` 를 그대로 쓴다 */
 export const PERMISSION_BADGE: Record<PagePermission, string> = {
   NONE: 'badge-gray',
-  VIEWER: 'badge-blue',
-  EDITOR: 'badge-purple',
+  // 열람만 되는 쪽을 눈에 띄게 — 편집이 기본이고 뷰어가 제한이라는 것이 한눈에 갈린다
+  VIEWER: 'badge-red',
+  EDITOR: 'badge-blue',
 };
 
 export const SOURCE_LABEL: Record<PageAccessSource, string> = {
-  GRANTED: '명시 부여',
-  GLOBAL_ROLE: '전역 권한',
+  /** 화면이 만든 줄 — 아직 아무 권한도 없는 사원 */
+  NONE: '권한 없음',
+  GRANTED: '직접 부여',
+  GLOBAL_ROLE: '자동 부여',
   ADMIN_ONLY: '관리자 전용',
   DEFAULT: '기본 제공',
 };
@@ -27,8 +30,9 @@ export const SOURCE_LABEL: Record<PageAccessSource, string> = {
  * `GRANTED` 만 회수 대상이라 나머지는 이유를 문장으로 준다.
  */
 export const NOT_REVOCABLE_REASON: Record<PageAccessSource, string> = {
+  NONE: '아직 권한이 없습니다.',
   GRANTED: '',
-  GLOBAL_ROLE: '전역 권한으로 열람 중이라 회수할 수 없습니다.',
+  GLOBAL_ROLE: '역할에 따라 자동으로 부여돼 회수할 수 없습니다.',
   ADMIN_ONLY: '관리자 계정이라 회수할 수 없습니다.',
   DEFAULT: '기본 제공 페이지라 회수할 수 없습니다.',
 };

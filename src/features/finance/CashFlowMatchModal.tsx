@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 
 import Modal from '@/components/Modal';
+import LoadingSpinner from '@/components/Spinner';
 import { notifyBlockChanged } from '@/features/block/events';
-import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
 import { messageOf } from '@/lib/api';
 import { formatDate, formatDateTime } from '@/lib/format';
 
@@ -86,7 +86,7 @@ export default function CashFlowMatchModal({
       onClose={onClose}
       // 목록을 훑다 바깥을 잘못 눌러 닫히면 처음부터 다시 골라야 한다
       dismissOnBackdrop={false}
-      className="flex max-h-[80vh] w-full max-w-lg flex-col rounded-base p-8 shadow-lg"
+      className="flex max-h-[80vh] w-full max-w-lg flex-col rounded-base p-8 shadow-2xl"
     >
       <CashFlowSummary cashFlow={cashFlow} />
 
@@ -169,22 +169,7 @@ function CandidateList({
   onSelect: (settleId: number) => void;
 }) {
   if (candidates === null) {
-    return (
-      <SkeletonGroup
-        label="추천 후보 불러오는 중"
-        className="flex flex-col gap-2"
-      >
-        {[0, 1, 2].map((row) => (
-          <div
-            key={row}
-            className="rounded-lg border border-border-default px-4 py-3"
-          >
-            <Skeleton className="h-3 w-40" />
-            <Skeleton className="mt-2 h-3 w-56" />
-          </div>
-        ))}
-      </SkeletonGroup>
-    );
+    return <LoadingSpinner label="추천 후보 불러오는 중" />;
   }
 
   if (candidates.length === 0) {
@@ -192,7 +177,7 @@ function CandidateList({
       <p className="py-12 text-center text-caption break-keep text-text-secondary">
         연결할 만한 정산 블록이 없습니다.
         <br />
-        정산 블록이 먼저 작성돼 있어야 연결할 수 있어요.
+        정산 블록이 먼저 작성돼 있어야 연결할 수 있습니다.
       </p>
     );
   }

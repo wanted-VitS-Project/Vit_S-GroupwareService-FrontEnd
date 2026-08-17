@@ -25,6 +25,7 @@ import {
 } from './blockLayout';
 import { BlockActionsProvider, type BlockActions } from './BlockActionsContext';
 import { BlockDragProvider, type BlockDragValue } from './BlockDragContext';
+import { BlockCanEditProvider } from './BlockPermissionContext';
 import {
   BlockMembersProvider,
   useBlockMembersSource,
@@ -83,11 +84,17 @@ const HOVER_DWELL_MS = 110;
  */
 const SETTLE_MS = SLIDE_DURATION_MS;
 
-/** Tailwind 가 조합된 클래스명을 못 읽으므로 완성된 문자열로 매핑한다 */
+/**
+ * Tailwind 가 조합된 클래스명을 못 읽으므로 완성된 문자열로 매핑한다.
+ *
+ * ⚠️ **폭 분기(`md`)를 보드 격자와 반드시 함께 맞춘다.** 좁은 화면에서 보드가 1열이 되는데
+ *    여기만 `col-span-2` 로 남으면, 그리드가 없는 두 번째 열을 **암시적으로 만들어**
+ *    그 블록만 화면 밖으로 삐져나간다 (가로 스크롤바가 생긴다).
+ */
 const COL_SPAN_CLASS: Record<number, string> = {
   1: 'col-span-1',
-  2: 'col-span-2',
-  3: 'col-span-3',
+  2: 'col-span-1 md:col-span-2',
+  3: 'col-span-1 md:col-span-3',
 };
 
 /**
@@ -150,6 +157,7 @@ function readDropTarget(target: EventTarget | null): DropTarget | null {
  */
 export default function BlockBoard({
   stepId,
+  canEdit = true,
   blocks,
   autoEditBlockId,
   bodyGeneration = 0,
@@ -159,6 +167,12 @@ export default function BlockBoard({
   flushLayoutRef,
 }: {
   stepId: string;
+  /**
+   * 이 스텝의 블록을 고칠 수 있는지 (스텝 `myPermission`).
+   * 카드 `⋯` 의 쓰기 항목을 여닫는다 — 값은 컨텍스트로 흘러 본문 유형을 거치지 않는다.
+   * 기본 `true` — 보드 밖 · 옛 호출부가 조용히 잠기지 않게 한다.
+   */
+  canEdit?: boolean;
   blocks: StepBlock[];
   /** 방금 만든 블록 — 편집 입력창을 곧바로 띄운다 */
   autoEditBlockId?: number | null;
@@ -612,141 +626,151 @@ export default function BlockBoard({
   if (order.length === 0) {
     return (
       <p className="rounded-lg border border-dashed border-border-default px-4 py-10 text-center text-label text-text-secondary">
-        아직 블록이 없습니다. `Block 추가` 로 시작해보세요.
+        아직 블록이 없습니다. `블록 추가` 로 시작하세요.
       </p>
     );
   }
 
   return (
     <BlockActionsProvider value={actions}>
-      <BlockMembersProvider value={members}>
-        {/* 편집 모드가 아니면 배선을 아예 내려주지 않는다 — 카드가 드래그 핸들 없이 그려진다 */}
-        <BlockDragProvider value={isArranging ? drag : null}>
-          <div className="flex flex-col gap-4">
-            {isArranging && (
-              <div className="flex items-center gap-2 rounded-button-sm border border-border-primary/30 bg-blue-bg-soft px-2.5 py-1.5 text-caption text-text-primary-blue">
-                <p className="min-w-0 flex-1">
-                  블록을 끌어 자리를 바꾼 뒤 <strong>배치 완료</strong> 를
-                  눌러주세요. 저장은 그때 한 번만 이뤄집니다.
+      <BlockCanEditProvider value={canEdit}>
+        <BlockMembersProvider value={members}>
+          {/* 편집 모드가 아니면 배선을 아예 내려주지 않는다 — 카드가 드래그 핸들 없이 그려진다 */}
+          <BlockDragProvider value={isArranging ? drag : null}>
+            <div className="flex flex-col gap-4">
+              {isArranging && (
+                <div className="flex items-center gap-2 rounded-button-sm border border-border-primary/30 bg-blue-bg-soft px-2.5 py-1.5 text-caption text-text-primary-blue">
+                  <p className="min-w-0 flex-1">
+                    블록을 끌어 자리를 바꾼 뒤 <strong>배치 완료</strong> 를
+                    눌러주세요. 저장은 그때 한 번만 이뤄집니다.
+                  </p>
+                  {hasArrangeChanges && (
+                    <button
+                      type="button"
+                      onClick={() => arrangeApi.revert()}
+                      className="shrink-0 cursor-pointer rounded-button-sm px-1.5 py-0.5 font-medium underline-offset-2 hover:bg-bg-card hover:underline"
+                    >
+                      되돌리기
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {saveError && (
+                <p
+                  role="alert"
+                  className="rounded-button-sm border border-border-danger/20 bg-red-bg-soft px-2.5 py-1.5 text-caption text-text-danger"
+                >
+                  {saveError}
                 </p>
-                {hasArrangeChanges && (
-                  <button
-                    type="button"
-                    onClick={() => arrangeApi.revert()}
-                    className="shrink-0 cursor-pointer rounded-button-sm px-1.5 py-0.5 font-medium underline-offset-2 hover:bg-bg-card hover:underline"
-                  >
-                    되돌리기
-                  </button>
-                )}
-              </div>
-            )}
+              )}
 
-            {saveError && (
-              <p
-                role="alert"
-                className="rounded-button-sm border border-border-danger/20 bg-red-bg-soft px-2.5 py-1.5 text-caption text-text-danger"
-              >
-                {saveError}
-              </p>
-            )}
-
-            <div
-              ref={boardRef}
-              // 끄는 동안 텍스트가 파랗게 잡히면 이동이 지저분해 보인다
-              className={`grid grid-cols-3 items-stretch gap-4 ${
-                isDragging ? 'select-none' : ''
-              }`}
-              /*
+              <div
+                ref={boardRef}
+                // 끄는 동안 텍스트가 파랗게 잡히면 이동이 지저분해 보인다
+                /*
+                  좁은 화면에서는 3열을 1열로 접는다 — 3분할하면 한 칸이 100px 남짓이라
+                  체크리스트 · 문서 블록의 본문이 글자 하나 폭으로 눌린다.
+                  행 계산(`computeRows`)은 그대로 두고 **보이는 배치만** 접는다 —
+                  순서(`rowIndex` · `sortOrder`)는 서버 값이라 화면 폭으로 바꾸면 안 된다.
+                */
+                className={`grid grid-cols-1 items-stretch gap-4 md:grid-cols-3 ${
+                  isDragging ? 'select-none' : ''
+                }`}
+                /*
             **캡처 단계**에서 받는다. 버블 단계로 받으면 카드 안쪽 자식이 이벤트를 멈췄을 때
             판정이 통째로 빠지고, 그 블록은 "드래그해도 반응이 없는 블록" 이 된다.
             여백에 놓아도 취소되지 않도록 preventDefault 는 항상 건다.
           */
-              onDragOverCapture={(event) => {
-                // 블록 드래그가 아닐 때(예: 바탕화면 파일)는 손대지 않는다
-                if (draggingId === null) return;
+                onDragOverCapture={(event) => {
+                  // 블록 드래그가 아닐 때(예: 바탕화면 파일)는 손대지 않는다
+                  if (draggingId === null) return;
 
-                // 여백에 놓아도 취소되지 않도록 항상 건다
-                event.preventDefault();
+                  // 여백에 놓아도 취소되지 않도록 항상 건다
+                  event.preventDefault();
 
-                const target = readDropTarget(event.target);
-                if (target) drag.hover(target.blockId, target.mode);
-              }}
-              onDropCapture={(event) => {
-                if (draggingId === null) return;
+                  const target = readDropTarget(event.target);
+                  if (target) drag.hover(target.blockId, target.mode);
+                }}
+                onDropCapture={(event) => {
+                  if (draggingId === null) return;
 
-                event.preventDefault();
-                drag.finish();
-              }}
-            >
-              {/*
+                  event.preventDefault();
+                  drag.finish();
+                }}
+              >
+                {/*
             행 단위로 훑되 **평평한 배열 하나**로 내보낸다 (Fragment 로 묶지 않는다).
             빈 칸 안내는 행의 마지막 블록 뒤에 꽂아 grid 가 남은 칸에 배치하게 둔다.
           */}
-              {rows.flatMap((row, rowIndex) => {
-                const cells = row.map((block) => (
-                  <div
-                    key={block.blockId}
-                    ref={slide.register(block.blockId)}
-                    data-drop-block={block.blockId}
-                    // 겨누는 중 — 자리를 내주기 직전이라는 신호
-                    className={`min-w-0 rounded-lg ${
-                      COL_SPAN_CLASS[toSpan(block.colSpan)]
-                    } ${
-                      aimingId === block.blockId
-                        ? 'ring-2 ring-border-primary/40 ring-offset-2'
-                        : ''
-                    }`}
-                  >
-                    <BlockBody
-                      /*
-                       * 새로고침 때마다 바뀌는 key — 본문을 **다시 마운트**한다.
-                       *
-                       * 블록 본문은 저마다 서버 상태를 따로 들고 있다. `detail` 을 첫 렌더에
-                       * 베껴 두는 유형(체크리스트 · 이미지 · 결재 · AI)도 있고, 자기 API 를
-                       * 직접 부르는 유형(문서 · 결재 · AI)도 있어 **목록만 새로 받아서는
-                       * 어느 쪽도 갱신되지 않는다.**
-                       *
-                       * 사용자가 새로고침을 눌렀을 때만 바뀐다 — 화면 복귀 · 블록 생성 같은
-                       * 자동 재조회에서 본문이 통째로 리셋되면 설명되지 않는 움직임이 된다.
-                       */
-                      key={`${block.blockId}:${bodyGeneration}`}
-                      block={block}
-                      autoEdit={block.blockId === autoEditBlockId}
-                    />
-                  </div>
-                ));
+                {rows.flatMap((row, rowIndex) => {
+                  const cells = row.map((block) => (
+                    <div
+                      key={block.blockId}
+                      ref={slide.register(block.blockId)}
+                      data-drop-block={block.blockId}
+                      // 겨누는 중 — 자리를 내주기 직전이라는 신호
+                      className={`min-w-0 rounded-lg ${
+                        COL_SPAN_CLASS[toSpan(block.colSpan)]
+                      } ${
+                        aimingId === block.blockId
+                          ? 'ring-2 ring-border-primary/40 ring-offset-2'
+                          : ''
+                      }`}
+                    >
+                      <BlockBody
+                        /*
+                         * 새로고침 때마다 바뀌는 key — 본문을 **다시 마운트**한다.
+                         *
+                         * 블록 본문은 저마다 서버 상태를 따로 들고 있다. `detail` 을 첫 렌더에
+                         * 베껴 두는 유형(체크리스트 · 이미지 · 결재 · AI)도 있고, 자기 API 를
+                         * 직접 부르는 유형(문서 · 결재 · AI)도 있어 **목록만 새로 받아서는
+                         * 어느 쪽도 갱신되지 않는다.**
+                         *
+                         * 사용자가 새로고침을 눌렀을 때만 바뀐다 — 화면 복귀 · 블록 생성 같은
+                         * 자동 재조회에서 본문이 통째로 리셋되면 설명되지 않는 움직임이 된다.
+                         */
+                        key={`${block.blockId}:${bodyGeneration}`}
+                        block={block}
+                        autoEdit={block.blockId === autoEditBlockId}
+                      />
+                    </div>
+                  ));
 
-                const free = BLOCK_COLUMNS - usedColumns(row);
-                const rowLast = row[row.length - 1];
+                  const free = BLOCK_COLUMNS - usedColumns(row);
+                  const rowLast = row[row.length - 1];
 
-                // 마지막 행의 빈 칸은 아래 꼬리 자리와 뜻이 같다 — 둘 다 켜지면 어디로 갈지 헷갈린다
-                if (isDragging && free > 0 && rowIndex < rows.length - 1) {
-                  cells.push(
-                    <DropSlot
-                      key={`slot-${rowIndex}`}
-                      span={free}
-                      afterBlockId={rowLast.blockId}
-                      isActive={activeSlot === rowLast.blockId}
-                    />,
-                  );
-                }
+                  // 마지막 행의 빈 칸은 아래 꼬리 자리와 뜻이 같다 — 둘 다 켜지면 어디로 갈지 헷갈린다
+                  if (isDragging && free > 0 && rowIndex < rows.length - 1) {
+                    cells.push(
+                      <DropSlot
+                        key={`slot-${rowIndex}`}
+                        span={free}
+                        afterBlockId={rowLast.blockId}
+                        isActive={activeSlot === rowLast.blockId}
+                      />,
+                    );
+                  }
 
-                return cells;
-              })}
+                  return cells;
+                })}
 
-              {needsTailSlot && lastRow && (
-                <DropSlot
-                  key="slot-tail"
-                  span={BLOCK_COLUMNS}
-                  label="맨 뒤로 보내기"
-                  afterBlockId={lastRow[lastRow.length - 1].blockId}
-                  isActive={activeSlot === lastRow[lastRow.length - 1].blockId}
-                />
-              )}
+                {needsTailSlot && lastRow && (
+                  <DropSlot
+                    key="slot-tail"
+                    span={BLOCK_COLUMNS}
+                    label="맨 뒤로 보내기"
+                    afterBlockId={lastRow[lastRow.length - 1].blockId}
+                    isActive={
+                      activeSlot === lastRow[lastRow.length - 1].blockId
+                    }
+                  />
+                )}
+              </div>
             </div>
-          </div>
-        </BlockDragProvider>
-      </BlockMembersProvider>
+          </BlockDragProvider>
+        </BlockMembersProvider>
+      </BlockCanEditProvider>
     </BlockActionsProvider>
   );
 }
@@ -808,7 +832,7 @@ const BlockBody = memo(function BlockBody({
   if (block.type === 'AI') return <AiBlock block={block} />;
   if (block.type === 'SETTLEMENT') return <SettlementBlock block={block} />;
 
-  // TODO: 유형별 블록 구현 (PAYMENT_CONFIRM · TAX_INVOICE_VIEW · …)
+  // TODO: 유형별 블록 구현 (BID_NOTICE · …)
   return (
     <BlockCard block={block}>
       <p className="text-caption text-text-secondary">준비 중인 블록입니다.</p>

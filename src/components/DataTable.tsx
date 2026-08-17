@@ -1,6 +1,9 @@
 'use client';
 
+import { Fragment, useCallback, useSyncExternalStore } from 'react';
+
 import { Skeleton, SkeletonGroup } from './Skeleton';
+import LoadingSpinner from './Spinner';
 
 /**
  * 목록 표 공용 컴포넌트.
@@ -89,6 +92,13 @@ interface DataTableProps<T> {
   /** 주면 세로 스크롤 + **헤더 고정** (예: `'60vh'`) */
   maxHeight?: string;
   skeletonRows?: number;
+  /**
+   * 불러오는 동안 **회색 막대를 그리지 않는다.**
+   *
+   * 몇 줄이 올지 모르는 표에서는 막대가 실제 결과와 어긋나, 응답이 오는 순간 표가
+   * 늘었다 줄며 화면이 튄다. 자리(높이)만 잡고 비워 두는 편이 조용하다.
+   */
+  showSkeleton?: boolean;
   /** 조회는 됐지만 결과가 없을 때 */
   emptyMessage?: string;
   /** 빈 상태 아래에 놓을 버튼 (필터 초기화 등) */
@@ -108,6 +118,40 @@ interface DataTableProps<T> {
    * ⚠️ 이것만으로는 **키보드로 갈 수 없다** — 셀 안에 링크를 함께 두어야 한다.
    */
   onRowClick?: (row: T) => void;
+  /**
+   * 행 **바로 아래**에 펼칠 내용. 값을 돌려주는 행에만 줄이 하나 더 붙는다.
+   *
+   * ⭐ 목록 끝이 아니라 **누른 자리**에서 열려야 한다 — 표가 길면 끝에 열린 내용은
+   *    화면 밖이라 아무 일도 안 일어난 것처럼 보인다.
+   * ℹ️ 좁은 화면(카드)에서는 그 카드 아래에 놓인다.
+   */
+  renderExpanded?: (row: T) => React.ReactNode;
+  /**
+   * 불러오는 동안 **머리글은 남기고** 본문 자리에 스피너를 둔다.
+   *
+   * 열이 많은 표는 자리표시 막대가 실제 줄과 어긋나 결과가 오는 순간 표가 흔들린다.
+   * 머리글이 남아 있으면 무엇을 기다리는지 보이고, 표의 자리도 그대로 유지된다.
+   * ⚠️ 주면 `showSkeleton` 보다 **이쪽이 이긴다.**
+   */
+  loadingLabel?: string;
+}
+
+/** 표로 그릴 폭인지 (`md` 이상). 서버 렌더에서는 표를 기준으로 둔다 */
+const WIDE_SCREEN_QUERY = '(min-width: 768px)';
+
+function useIsWideScreen() {
+  const subscribe = useCallback((onChange: () => void) => {
+    const media = window.matchMedia(WIDE_SCREEN_QUERY);
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
+  }, []);
+
+  return useSyncExternalStore(
+    subscribe,
+    () => window.matchMedia(WIDE_SCREEN_QUERY).matches,
+    // 서버에는 창 폭이 없다 — 표로 그려 두고 마운트 후 실제 폭으로 맞춘다
+    () => true,
+  );
 }
 
 const ALIGN_CLASS = {
@@ -147,6 +191,7 @@ export default function DataTable<T>({
   minWidth,
   maxHeight,
   skeletonRows = 8,
+  showSkeleton = true,
   dense = false,
   emptyMessage = '표시할 내용이 없습니다.',
   emptyAction,
@@ -155,7 +200,15 @@ export default function DataTable<T>({
   onRetry,
   rowClassName,
   onRowClick,
+  renderExpanded,
+  loadingLabel,
 }: DataTableProps<T>) {
+  /*
+    ⚠️ **표와 카드 중 한쪽만 그린다.** 예전에는 `hidden md:block` 으로 감췄는데,
+       CSS 숨김은 렌더를 막지 못해 **양쪽이 모두 마운트**됐다. 펼침 줄(`renderExpanded`)이
+       두 번 붙어 그 안의 조회가 매번 두 번 나갔다.
+  */
+  const isWide = useIsWideScreen();
   warnIfWidthsBroken(columns);
 
   /** 헤더 · 본문 · 빈 상태가 같은 값을 써야 열이 어긋나지 않는다 */
@@ -198,7 +251,7 @@ export default function DataTable<T>({
     );
   }
 
-  const body = (
+  const table = (
     <div
       /**
        * `maxHeight` 는 인라인으로 준다 — Tailwind 임의값(`max-h-[60vh]`)을 쓰면
@@ -247,68 +300,194 @@ export default function DataTable<T>({
         </thead>
 
         <tbody>
-          {rows === null
-            ? Array.from({ length: skeletonRows }, (_, index) => (
-                <tr
-                  key={index}
-                  // 본문과 같은 글자 크기를 얹어야 아래 `h-[1.5em]` 이 같은 값이 된다
-                  className="border-b border-border-default text-label"
-                >
-                  {columns.map((column) => (
-                    <td key={column.key} className={`${padX} py-3.5`}>
-                      {/**
-                       * 막대를 **글자 한 줄과 같은 높이의 상자**에 담는다.
-                       *
-                       * 그냥 두면 12px 막대가 21px 글자보다 낮아 로딩 행이 데이터 행보다
-                       * 짧고, 응답이 오는 순간 표 전체가 아래로 늘어나 화면이 튄다.
-                       * 틀을 먼저 고정하고 안의 내용만 바뀌게 한다.
-                       */}
-                      <span className="flex h-[1.5em] items-center">
-                        <Skeleton
-                          className={`h-3 ${column.skeletonWidth ?? 'w-24'}`}
-                        />
-                      </span>
-                    </td>
-                  ))}
-                </tr>
-              ))
-            : rows.map((row, index) => (
-                <tr
-                  key={rowKey?.(row) ?? index}
-                  onClick={onRowClick ? () => onRowClick(row) : undefined}
-                  className={`group border-b border-border-default text-label last:border-b-0 hover:bg-bg-surface ${
-                    onRowClick ? 'cursor-pointer' : ''
-                  } ${rowClassName?.(row) ?? ''}`}
-                >
-                  {columns.map((column) => (
-                    <td
-                      key={column.key}
-                      // 칸 자체에 동작이 있는 열은 행 클릭으로 새지 않게 막는다
-                      onClick={
-                        column.stopRowClick
-                          ? (event) => event.stopPropagation()
-                          : undefined
-                      }
-                      /**
-                       * 세로는 **가운데**다 — 한 칸이 두 줄이 되어 행이 높아져도
-                       * 나머지 칸이 위에 매달려 있지 않고 가운데에서 균형을 잡는다.
-                       */
-                      className={`${padX} py-3.5 align-middle ${ALIGN_CLASS[column.align ?? 'left']}`}
+          {rows === null && loadingLabel ? (
+            <tr>
+              <td colSpan={columns.length} className="p-0">
+                <LoadingSpinner label={loadingLabel} className="py-16" />
+              </td>
+            </tr>
+          ) : rows === null ? (
+            Array.from({ length: skeletonRows }, (_, index) => (
+              <tr
+                key={index}
+                // 본문과 같은 글자 크기를 얹어야 아래 `h-[1.5em]` 이 같은 값이 된다
+                className="border-b border-border-default text-label"
+              >
+                {columns.map((column) => (
+                  <td
+                    key={column.key}
+                    className={`${padX} py-3.5 ${ALIGN_CLASS[column.align ?? 'left']}`}
+                  >
+                    {/**
+                     * 막대를 **글자 한 줄과 같은 높이의 상자**에 담는다.
+                     *
+                     * 그냥 두면 12px 막대가 21px 글자보다 낮아 로딩 행이 데이터 행보다
+                     * 짧고, 응답이 오는 순간 표 전체가 아래로 늘어나 화면이 튄다.
+                     * 틀을 먼저 고정하고 안의 내용만 바뀌게 한다.
+                     *
+                     * ⚠️ 막대도 **칸의 정렬을 따른다.** 오른쪽 · 가운데 정렬 열인데 막대만
+                     *    왼쪽에 붙어 있으면, 값이 도착하는 순간 글자가 반대쪽으로 건너뛴다.
+                     */}
+                    <span
+                      className={`flex h-[1.5em] items-center ${
+                        column.align === 'right'
+                          ? 'justify-end'
+                          : column.align === 'center'
+                            ? 'justify-center'
+                            : ''
+                      }`}
                     >
-                      {column.cell?.(row, index)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
+                      <Skeleton
+                        className={`h-3 ${column.skeletonWidth ?? 'w-24'}`}
+                      />
+                    </span>
+                  </td>
+                ))}
+              </tr>
+            ))
+          ) : (
+            rows.map((row, index) => {
+              const expanded = renderExpanded?.(row);
+
+              return (
+                <Fragment key={rowKey?.(row) ?? index}>
+                  <tr
+                    onClick={onRowClick ? () => onRowClick(row) : undefined}
+                    className={`group border-b border-border-default text-label last:border-b-0 hover:bg-bg-surface ${
+                      onRowClick ? 'cursor-pointer' : ''
+                    } ${rowClassName?.(row) ?? ''}`}
+                  >
+                    {columns.map((column) => (
+                      <td
+                        key={column.key}
+                        // 칸 자체에 동작이 있는 열은 행 클릭으로 새지 않게 막는다
+                        onClick={
+                          column.stopRowClick
+                            ? (event) => event.stopPropagation()
+                            : undefined
+                        }
+                        /**
+                         * 세로는 **가운데**다 — 한 칸이 두 줄이 되어 행이 높아져도
+                         * 나머지 칸이 위에 매달려 있지 않고 가운데에서 균형을 잡는다.
+                         */
+                        className={`${padX} py-3.5 align-middle ${ALIGN_CLASS[column.align ?? 'left']}`}
+                      >
+                        {column.cell?.(row, index)}
+                      </td>
+                    ))}
+                  </tr>
+
+                  {expanded && (
+                    <tr className="border-b border-border-default last:border-b-0">
+                      <td colSpan={columns.length} className="p-0">
+                        {expanded}
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })
+          )}
         </tbody>
       </table>
     </div>
   );
 
-  // 로딩 중에는 스크린리더가 "불러오는 중" 을 읽도록 묶어 준다
+  /**
+   * ⭐ **좁은 화면에서는 표를 카드로 바꾼다.**
+   *
+   * 열이 6~8개인 표를 폰 폭에 밀어 넣으면 글자가 한 자씩 끊기거나 가로로 흘러 읽을 수 없다.
+   * 열 정의(`header` + `cell`)를 그대로 재사용해 **`이름: 값`** 으로 세로로 쌓으면
+   * 화면마다 따로 만들지 않아도 목록 전부가 함께 좁은 화면을 지원한다.
+   *
+   * ℹ️ 첫 열은 제목처럼 크게 놓는다 — 어느 줄인지 먼저 알아야 나머지 값이 의미를 갖는다.
+   * ℹ️ 이름이 없는 열(동작 버튼 · 체크박스)은 이름 없이 값만 놓는다.
+   */
+  const cards = (
+    <ul className="flex flex-col gap-2 p-3">
+      {rows === null && loadingLabel ? (
+        <li>
+          <LoadingSpinner label={loadingLabel} className="py-12" />
+        </li>
+      ) : rows === null ? (
+        Array.from({ length: Math.min(skeletonRows, 4) }, (_, index) => (
+          <li
+            key={index}
+            className="rounded-lg border border-border-default p-4"
+          >
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="mt-3 h-3 w-full" />
+            <Skeleton className="mt-2 h-3 w-2/3" />
+          </li>
+        ))
+      ) : (
+        rows.map((row, index) => {
+          const [first, ...rest] = columns;
+
+          return (
+            <li key={rowKey?.(row) ?? index}>
+              <div
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                className={`rounded-lg border border-border-default p-4 ${
+                  onRowClick ? 'cursor-pointer' : ''
+                } ${rowClassName?.(row) ?? ''}`}
+              >
+                <div className="text-label font-semibold text-text-primary">
+                  {first.cell?.(row, index)}
+                </div>
+
+                <dl className="mt-2 flex flex-col gap-1.5">
+                  {rest.map((column) => (
+                    <div
+                      key={column.key}
+                      onClick={
+                        column.stopRowClick
+                          ? (event) => event.stopPropagation()
+                          : undefined
+                      }
+                      className="flex items-start justify-between gap-3 text-caption"
+                    >
+                      {column.header ? (
+                        <dt className="shrink-0 text-text-secondary">
+                          {column.header}
+                        </dt>
+                      ) : (
+                        <dt className="sr-only">동작</dt>
+                      )}
+                      <dd className="min-w-0 text-right text-text-primary">
+                        {column.cell?.(row, index)}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+
+              {renderExpanded?.(row)}
+            </li>
+          );
+        })
+      )}
+    </ul>
+  );
+
+  const body =
+    rows === null && !showSkeleton && !loadingLabel ? (
+      // 자리만 남긴다 — 무엇이 몇 줄 올지 모르는 표에서는 막대가 오히려 화면을 흔든다
+      <div className="min-h-40" />
+    ) : isWide ? (
+      table
+    ) : (
+      cards
+    );
+
+  /*
+    로딩 중에는 스크린리더가 "불러오는 중" 을 읽도록 묶어 준다.
+    ⚠️ `loadingLabel` 을 쓸 때는 묶지 않는다 — 스피너가 이미 `role="status"` 라
+       상태 영역이 겹쳐 같은 안내가 두 번 읽힌다.
+  */
   return (
     <Shell>
-      {rows === null ? (
+      {rows === null && !loadingLabel ? (
         <SkeletonGroup label={`${caption} 불러오는 중`}>{body}</SkeletonGroup>
       ) : (
         body
@@ -323,7 +502,7 @@ export default function DataTable<T>({
  */
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-border-default bg-bg-card">
+    <div className="overflow-hidden rounded-base border border-border-default bg-bg-card">
       {children}
     </div>
   );

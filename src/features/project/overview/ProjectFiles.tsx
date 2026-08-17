@@ -210,7 +210,7 @@ export default function ProjectFiles() {
                     >
                       <ChevronIcon isOpen={isOpen} />
                       <span
-                        className={`truncate text-[13px] font-semibold ${
+                        className={`truncate text-detail font-semibold ${
                           isOpen
                             ? 'text-text-primary-blue'
                             : 'text-text-primary'

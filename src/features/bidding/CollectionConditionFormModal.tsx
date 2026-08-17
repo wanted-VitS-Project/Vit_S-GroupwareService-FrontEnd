@@ -15,9 +15,10 @@ import {
   TextField,
 } from './FormFields';
 import { REGION_OPTIONS } from './regions';
-import type {
-  CollectionCondition,
-  CreateCollectionConditionRequest,
+import {
+  COLLECTION_LOOKBACK_LABELS,
+  type CollectionCondition,
+  type CreateCollectionConditionRequest,
 } from './types';
 
 /** 폼 대상 — `'create'` 는 등록, 객체는 그 조건 수정 */
@@ -26,17 +27,19 @@ export type ConditionFormTarget = 'create' | CollectionCondition;
 /** 수집처. 지금은 나라장터뿐이고 등록 후에는 바꿀 수 없다 */
 const SOURCE_OPTIONS = [{ value: 'NARA', label: '나라장터' }];
 
-/** 공고 유형 — 수집 조건과 직접 등록 폼이 같은 축을 쓴다 */
-const NOTICE_TYPE_OPTIONS = [
-  { value: 'SERVICE', label: '용역' },
-  { value: 'CONSTRUCTION', label: '공사' },
-  { value: 'GOODS', label: '물품' },
-];
-
 const SCHEDULE_TYPE_OPTIONS = [
   { value: 'WEEKDAYS', label: '평일' },
   { value: 'DAILY', label: '매일' },
 ];
+
+/**
+ * 조회 기간. **라벨 맵에서 파생시킨다** — 목록 화면과 값 집합이 갈리면
+ * 한쪽만 고쳤을 때 다른 쪽이 조용히 엉뚱한 기간을 보여준다.
+ * 순서는 맵에 적은 순서(짧은 것부터)를 그대로 따른다.
+ */
+const LOOKBACK_OPTIONS = Object.entries(COLLECTION_LOOKBACK_LABELS).map(
+  ([value, label]) => ({ value, label }),
+);
 
 const INTERNATIONAL_OPTIONS = [
   { value: 'DOMESTIC', label: '국내입찰' },
@@ -50,6 +53,10 @@ const DEFAULT_SCHEDULED_TIME = '09:00';
 interface FormState {
   sourceCode: string;
   conditionName: string;
+  /**
+   * 공고 유형. **입력 UI 는 없다** — `industryCodes` 와 같은 이유로 상태로만 들고 있다.
+   * 수정이 **전체 교체**라 빼고 보내면 서버에 저장된 값이 지워진다.
+   */
   noticeTypes: string[];
   keywords: string[];
   regionCodes: string[];
@@ -64,6 +71,8 @@ interface FormState {
   excludeClosed: boolean;
   internationalBidType: string;
   isActive: boolean;
+  /** 실행할 때마다 며칠 치를 되돌아볼지 */
+  lookbackPeriod: string;
   autoCollectionEnabled: boolean;
   scheduleType: string;
   /** `HH:mm` — 응답(`HH:mm:ss`) 을 그대로 쓰면 안 된다 */
@@ -83,6 +92,8 @@ const EMPTY_STATE: FormState = {
   excludeClosed: true,
   internationalBidType: 'DOMESTIC',
   isActive: true,
+  // 자동 수집을 매일 돌리는 경우가 많아 1주면 충분하다
+  lookbackPeriod: 'ONE_WEEK',
   autoCollectionEnabled: false,
   scheduleType: 'WEEKDAYS',
   scheduledTime: DEFAULT_SCHEDULED_TIME,
@@ -104,6 +115,8 @@ function toFormState(condition: CollectionCondition): FormState {
     excludeClosed: filters.excludeClosed,
     internationalBidType: filters.internationalBidType,
     isActive: condition.isActive,
+    // 옛 조건에는 값이 없다 — 서버 기본값과 같은 것으로 채운다
+    lookbackPeriod: condition.lookbackPeriod ?? 'ONE_WEEK',
     autoCollectionEnabled: condition.autoCollectionEnabled,
     scheduleType: condition.scheduleType ?? 'WEEKDAYS',
     scheduledTime:
@@ -168,8 +181,6 @@ export default function CollectionConditionFormModal({
 
   function validate() {
     if (form.conditionName.trim() === '') return '조건명을 입력해주세요.';
-    if (form.noticeTypes.length === 0)
-      return '공고 유형을 하나 이상 선택해주세요.';
     if (form.keywords.length === 0)
       return '검색 키워드를 하나 이상 넣어주세요.';
 
@@ -184,7 +195,7 @@ export default function CollectionConditionFormModal({
       return '추정가격 최대가 너무 큽니다.';
     }
     if (form.minimumEstimatedPrice && form.maximumEstimatedPrice && min > max) {
-      return '추정가격 최소가 최대보다 클 수 없어요.';
+      return '추정가격 최소가 최대보다 클 수 없습니다.';
     }
     if (form.autoCollectionEnabled && form.scheduledTime === '') {
       return '자동 수집 시각을 입력해주세요.';
@@ -214,6 +225,7 @@ export default function CollectionConditionFormModal({
         internationalBidType: form.internationalBidType,
       },
       isActive: form.isActive,
+      lookbackPeriod: form.lookbackPeriod,
       autoCollectionEnabled: auto,
       // 자동 수집이 꺼져 있으면 스케줄 3개를 모두 null 로 보낸다 (응답도 그렇게 온다)
       scheduleType: auto ? form.scheduleType : null,
@@ -257,7 +269,7 @@ export default function CollectionConditionFormModal({
       dismissOnBackdrop={false}
       // 스크롤은 패널이 아니라 **안쪽 목록**이 한다 — 패널이 스크롤하면 스크롤바가
       // 둥근 모서리를 잘라 먹어 위아래 모서리가 짝짝이로 보인다
-      className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-xl p-8 shadow-lg"
+      className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-base p-8 shadow-2xl"
     >
       <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
         {/* 필드만 스크롤한다 — 제목과 하단 버튼은 제자리에 남는다 */}
@@ -271,7 +283,7 @@ export default function CollectionConditionFormModal({
               value={form.sourceCode}
               // 수집처는 등록 때만 정한다 (수정 본문에 없다)
               disabled={!isCreate}
-              hint={isCreate ? undefined : '수집처는 변경할 수 없어요.'}
+              hint={isCreate ? undefined : '수집처는 변경할 수 없습니다.'}
               onChange={(value) => patch({ sourceCode: value })}
             />
             <SelectField
@@ -294,17 +306,6 @@ export default function CollectionConditionFormModal({
             </div>
           </div>
 
-          <CheckGroup
-            label="공고 유형"
-            required
-            options={NOTICE_TYPE_OPTIONS.map((option) => ({
-              value: option.value,
-              label: option.label,
-            }))}
-            selected={form.noticeTypes}
-            onToggle={toggle('noticeTypes')}
-          />
-
           <div>
             <p className="pb-1.5 text-detail font-semibold text-text-primary">
               검색 키워드
@@ -323,17 +324,21 @@ export default function CollectionConditionFormModal({
                 }}
                 className="input flex-1"
               />
+              {/*
+                입력칸과 **같은 높이**여야 한다 — `btn-sm`(28px)은 입력칸(38px)보다 낮아
+                버튼만 떠 보였다. 글자도 잘리지 않게 최소 폭을 준다.
+              */}
               <button
                 type="button"
                 onClick={addKeyword}
-                className="btn btn-sm btn-gray"
+                className="btn btn-md btn-gray min-w-16 shrink-0"
               >
                 추가
               </button>
             </div>
 
             <p className="mt-1 text-caption break-keep text-text-secondary">
-              키워드가 없으면 조회 조합이 커져 수집 상한을 넘길 수 있어요.
+              키워드가 없으면 조회 조합이 커져 수집 상한을 넘길 수 있습니다.
             </p>
 
             {form.keywords.length > 0 && (
@@ -357,7 +362,7 @@ export default function CollectionConditionFormModal({
 
           <CheckGroup
             label="지역"
-            hint="선택하지 않으면 전국을 가져옵니다."
+            hint="선택하지 않으면 전국"
             options={REGION_OPTIONS.map((option) => ({
               value: option.code,
               label: option.name,
@@ -370,14 +375,15 @@ export default function CollectionConditionFormModal({
             <AmountField
               id="minimumEstimatedPrice"
               label="추정가격 최소"
-              placeholder="0"
+              // `0` 을 두면 **0원으로 지정한 것**처럼 읽힌다 — 제한 없음을 그대로 적는다
+              placeholder="제한 없음"
               value={form.minimumEstimatedPrice}
               onChange={(value) => patch({ minimumEstimatedPrice: value })}
             />
             <AmountField
               id="maximumEstimatedPrice"
               label="추정가격 최대"
-              placeholder="0"
+              placeholder="제한 없음"
               value={form.maximumEstimatedPrice}
               onChange={(value) => patch({ maximumEstimatedPrice: value })}
             />
@@ -393,14 +399,25 @@ export default function CollectionConditionFormModal({
             <CheckboxField
               id="isActive"
               label="조건 활성화"
-              hint="비활성 조건은 수동 수집도 할 수 없어요."
               checked={form.isActive}
               onChange={(checked) => patch({ isActive: checked })}
             />
+            {/**
+             * 조회 기간은 자동 · 수동 수집에 **모두** 적용된다 —
+             * 자동 수집 칸 안에 넣으면 수동 실행에는 안 걸리는 것처럼 읽힌다.
+             */}
+            <SelectField
+              id="lookbackPeriod"
+              label="조회 기간"
+              hint="실행할 때마다 이 기간만큼 거슬러 올라가 검색합니다."
+              options={LOOKBACK_OPTIONS}
+              value={form.lookbackPeriod}
+              onChange={(value) => patch({ lookbackPeriod: value })}
+            />
+
             <CheckboxField
               id="autoCollectionEnabled"
               label="자동 수집"
-              hint="정해진 시각에 서버가 알아서 가져옵니다."
               checked={form.autoCollectionEnabled}
               onChange={(checked) => patch({ autoCollectionEnabled: checked })}
             />
@@ -520,11 +537,11 @@ function toErrorMessage(error: unknown) {
     return '조건 조합이 너무 많아요. 키워드 · 지역 · 카테고리 수를 줄여주세요.';
   }
   if (code === BIDDING_CODES.unsupportedSource) {
-    return '지원하지 않는 수집처예요.';
+    return '지원하지 않는 수집처입니다.';
   }
   if (code === BIDDING_CODES.invalidCollectionCondition) {
     return messageOf(error, '입력값을 다시 확인해주세요.');
   }
 
-  return messageOf(error, '저장에 실패했어요. 잠시 후 다시 시도해주세요.');
+  return messageOf(error, '저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
 }

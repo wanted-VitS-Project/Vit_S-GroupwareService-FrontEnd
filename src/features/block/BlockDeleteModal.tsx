@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
+import { FILE_CODES } from '@/features/file/errorCodes';
 import { ApiError, messageOf } from '@/lib/api';
 
 import { deleteBlock } from './api';
@@ -55,7 +56,20 @@ export default function BlockDeleteModal({
       const code = caught instanceof ApiError ? caught.code : undefined;
 
       /*
-        409 는 실패가 아니라 되물음이다. 여기서 끝내면 이 블록은 영영 지울 수 없다 —
+        ⛔ 이건 되물음이 아니라 **거부**다 (2026-08-16 D안).
+        블록을 지우면 그 안의 파일도 휴지통으로 가는데, 진행 중 결재가 그 파일을 보고 있으면
+        서버가 막는다. 다시 눌러도 결과가 같으므로 **다음에 할 일**(회수 · 완료)을 적어 준다.
+      */
+      if (code === FILE_CODES.approvalInProgress) {
+        setErrorMessage(
+          '진행 중인 결재가 이 블록의 문서를 참조하고 있어 삭제할 수 없습니다. 결재를 회수하거나 완료한 뒤 다시 시도해주세요.',
+        );
+        setIsDeleting(false);
+        return;
+      }
+
+      /*
+        반대로 이쪽 409 는 실패가 아니라 되물음이다. 여기서 끝내면 이 블록은 영영 지울 수 없다 —
         서버 문구를 그대로 띄우고 한 번 더 누르게 한다.
       */
       if (code === BLOCK_CODES.approvalDeleteConfirmRequired) {
@@ -83,7 +97,8 @@ export default function BlockDeleteModal({
         ) : (
           <>
             <strong className="text-text-primary">{blockTitle}</strong> 블록은
-            삭제 후 복구할 수 없습니다.
+            삭제 후 복구할 수 없습니다. 블록에 올린 문서는 프로젝트 휴지통으로
+            이동하며, 휴지통에서 복구하면 문서함에 남습니다.
             {isLinkedSettlement &&
               ' 연결된 세금계산서 · 입출금 내역은 재무 관리에서 블록 삭제됨 으로 남습니다.'}
           </>

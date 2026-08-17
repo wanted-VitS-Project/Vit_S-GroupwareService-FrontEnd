@@ -10,6 +10,7 @@ import { NoticeListSkeleton } from '@/components/bidding/NoticeSkeletons';
 import { CashFlowListSkeleton } from '@/components/finance/CashFlowSkeletons';
 
 import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
+import { usePermissionDenied } from '@/features/auth/CurrentUserProvider';
 
 import { isPageDenied, isPageGated } from './catalog';
 import { useMyPages } from './useMyPages';
@@ -63,7 +64,7 @@ function GateLoading({ pathname }: { pathname: string }) {
       <Skeleton className="h-5 w-40" />
       <Skeleton className="mt-2 h-3 w-64" />
 
-      <div className="mt-6 overflow-hidden rounded-xl border border-border-default bg-bg-card">
+      <div className="mt-6 overflow-hidden rounded-base border border-border-default bg-bg-card">
         <div className="border-b border-border-default bg-bg-surface px-5 py-3">
           <Skeleton className="h-3 w-24" />
         </div>
@@ -108,8 +109,14 @@ export default function PageAccessGate({
    * **모든 화면의 첫 렌더가 `/my/pages` 응답 속도에 묶인다.**
    */
   const isGated = isPageGated(pathname);
+  /**
+   * 두 갈래가 같은 자리에 그려진다 — `/my/pages` 로 **미리** 아는 경우(`isPageDenied`)와
+   * 호출이 403 을 받고 **나서야** 아는 경우(`usePermissionDenied`).
+   */
+  const deniedCode = usePermissionDenied();
   const isDenied =
-    isGated && status === 'ready' && isPageDenied(pathname, pages);
+    deniedCode !== null ||
+    (isGated && status === 'ready' && isPageDenied(pathname, pages));
 
   /**
    * 다시 시도해도 결과가 같아 버튼은 홈으로 하나뿐이다 —

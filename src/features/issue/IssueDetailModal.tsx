@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import MemberAvatar from '@/components/MemberAvatar';
 import Modal from '@/components/Modal';
 import PersonNote from '@/components/PersonNote';
-import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
+import LoadingSpinner from '@/components/Spinner';
 import { isAbortError, messageOf } from '@/lib/api';
 import { formatDate } from '@/lib/format';
 
@@ -119,7 +119,7 @@ export default function IssueDetailModal({
     <Modal
       title="이슈 상세"
       onClose={onClose}
-      className="flex max-h-[90vh] w-full max-w-[700px] flex-col overflow-hidden rounded-2xl border border-border-default shadow-2xl"
+      className="flex max-h-[90vh] w-full max-w-[700px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
       header={
         <div className="flex shrink-0 items-start gap-3 border-b border-border-default px-6 py-4">
           <div className="min-w-0 flex-1">
@@ -142,10 +142,10 @@ export default function IssueDetailModal({
                 이슈 상세
               </h2>
             ) : (
-              <SkeletonGroup label="이슈를 불러오는 중">
-                <Skeleton className="mb-2 h-4 w-32" />
-                <Skeleton className="h-5 w-2/3" />
-              </SkeletonGroup>
+              // 헤더는 본문 스피너가 이미 로딩을 알린다 — 제목만 그대로 둔다
+              <h2 className="text-body-l font-semibold text-text-primary">
+                이슈 상세
+              </h2>
             )}
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
@@ -203,22 +203,14 @@ export default function IssueDetailModal({
             </div>
           </div>
         ) : !issue ? (
-          <SkeletonGroup
-            label="이슈 상세를 불러오는 중"
-            className="flex flex-col gap-4 p-6"
-          >
-            <Skeleton className="h-3 w-16" />
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-3 w-16" />
-            <Skeleton className="h-8 w-1/2" />
-          </SkeletonGroup>
+          <LoadingSpinner label="이슈 상세를 불러오는 중" className="py-20" />
         ) : (
           <div className="grid grid-cols-[1fr_220px]">
             <div className="flex flex-col gap-5 border-r border-border-default p-6">
               <div>
                 <SectionLabel>이슈 설명</SectionLabel>
                 {issue.content ? (
-                  <p className="pt-2 text-[13px] leading-relaxed whitespace-pre-wrap text-text-primary">
+                  <p className="pt-2 text-detail leading-relaxed whitespace-pre-wrap text-text-primary">
                     {issue.content}
                   </p>
                 ) : (
@@ -233,7 +225,7 @@ export default function IssueDetailModal({
                   <SectionLabel>마감일</SectionLabel>
                   <div className="flex items-center gap-1.5 pt-1.5">
                     <CalendarIcon />
-                    <span className="text-[13px] font-medium text-text-primary">
+                    <span className="text-detail font-medium text-text-primary">
                       {formatDate(issue.dueDate) || '-'}
                     </span>
                   </div>
@@ -242,7 +234,7 @@ export default function IssueDetailModal({
                   <SectionLabel>종료일</SectionLabel>
                   <div className="flex items-center gap-1.5 pt-1.5">
                     <CalendarIcon />
-                    <span className="text-[13px] font-medium text-text-primary">
+                    <span className="text-detail font-medium text-text-primary">
                       {finishedOn || '-'}
                     </span>
                   </div>

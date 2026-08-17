@@ -154,7 +154,7 @@ export default function ApproverReplaceModal({
             type="button"
             onClick={onClose}
             disabled={isBusy}
-            className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+            className="btn btn-md btn-gray-outlined"
           >
             취소
           </button>
@@ -162,7 +162,7 @@ export default function ApproverReplaceModal({
             type="button"
             onClick={save}
             disabled={isBusy || !isReady || targets.length === 0}
-            className="min-w-[104px] cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+            className="btn btn-md btn-primary min-w-[104px]"
           >
             {isBusy ? '저장 중…' : '저장'}
           </button>
@@ -255,7 +255,7 @@ function TargetRow({
           ) : (
             <EmployeeSearchInput
               excludedIds={excludedIds}
-              placeholder="이름 · 사번으로 검색"
+              placeholder="이름 · 사번 검색"
               disabled={disabled}
               onSelect={(employee) =>
                 onDecide({

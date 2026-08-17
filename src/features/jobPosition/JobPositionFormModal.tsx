@@ -128,13 +128,7 @@ export default function JobPositionFormModal({
               >
                 {nameError}
               </p>
-            ) : (
-              <p className="mt-1 text-caption break-keep text-text-secondary">
-                {isEditing
-                  ? '이름을 바꿔도 이 직급이 지정된 사원은 그대로 유지됩니다.'
-                  : '노출 순서는 추가 후 목록에서 바꿀 수 있습니다.'}
-              </p>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -151,14 +145,14 @@ export default function JobPositionFormModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
+              className="btn btn-md btn-gray-outlined"
             >
               취소
             </button>
             <button
               type="submit"
               disabled={!canSubmit}
-              className="min-w-[104px] cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="btn btn-md btn-primary min-w-[104px]"
             >
               {isSubmitting ? '저장 중…' : isEditing ? '저장' : '추가'}
             </button>

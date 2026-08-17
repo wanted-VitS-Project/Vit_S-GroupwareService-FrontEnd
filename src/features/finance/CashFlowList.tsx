@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import Breadcrumb from '@/components/Breadcrumb';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
+import PageTitle from '@/components/PageTitle';
 import { notifyToast } from '@/components/Toast';
 import { messageOf } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
@@ -288,20 +289,17 @@ export default function CashFlowList() {
        * 액션 버튼은 **제목 줄 오른쪽**에 둔다 — 필터 바에 섞어 두면 조건이 늘어날 때
        * 버튼이 다음 줄로 밀려 어중간한 자리에 남는다 (조건과 행동은 다른 것이다).
        */}
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <Breadcrumb
-            items={[
-              { label: '재무 관리', href: FINANCE_ROUTES.hub },
-              { label: '입출금 내역' },
-            ]}
-          />
-          <h2 className="mt-1 text-heading-m font-bold">입출금 내역</h2>
-          <p className="mt-1.5 text-caption break-keep text-text-secondary">
-            입출금을 등록·조회하고 정산 블록에 연결합니다.
-          </p>
-        </div>
+      <Breadcrumb
+        items={[
+          { label: '재무 관리', href: FINANCE_ROUTES.hub },
+          { label: '입출금 내역' },
+        ]}
+      />
 
+      <PageTitle
+        title="입출금 내역"
+        description="입출금을 등록·조회하고 정산 블록에 연결합니다."
+      >
         <div className="flex shrink-0 gap-2">
           <Link
             href={FINANCE_ROUTES.cashFlowImport}
@@ -317,7 +315,7 @@ export default function CashFlowList() {
             입출금 등록
           </button>
         </div>
-      </div>
+      </PageTitle>
 
       <CashFlowFilterBar
         searchParams={searchParams}
@@ -701,20 +699,23 @@ function CashFlowFilterBar({
         onChange={(value) => onApply({ source: value })}
       />
 
-      {/* 옵션이 오기 전에는 고를 게 없다 — 빈 셀렉트를 띄우지 않는다 */}
-      {projects.length > 0 && (
-        <SelectFilter
-          label="프로젝트"
-          value={searchParams.get('projectId') ?? ''}
-          options={projects.map((project) => ({
-            value: String(project.projectId),
-            label: project.projectName,
-          }))}
-          placeholder="프로젝트 전체"
-          width="w-44"
-          onChange={(value) => onApply({ projectId: value })}
-        />
-      )}
+      {/**
+       * ⚠️ **옵션이 온 뒤에 그리지 않는다.** 예전에는 목록이 도착해야 이 칸이 생겨서,
+       *    필터 바가 한 번 늘어나며 옆 칸들이 밀렸다(깜빡임). 자리를 처음부터 두고
+       *    고를 것이 없는 동안만 잠근다.
+       */}
+      <SelectFilter
+        label="프로젝트"
+        value={searchParams.get('projectId') ?? ''}
+        options={projects.map((project) => ({
+          value: String(project.projectId),
+          label: project.projectName,
+        }))}
+        placeholder="프로젝트 전체"
+        width="w-44"
+        disabled={projects.length === 0}
+        onChange={(value) => onApply({ projectId: value })}
+      />
 
       {/* 토글은 값이 하나뿐이라 켜면 `true`, 끄면 파라미터 자체를 뺀다 */}
       <button
@@ -727,7 +728,7 @@ function CashFlowFilterBar({
             : 'border-border-default text-text-secondary hover:bg-bg-hover'
         }`}
       >
-        미연결만
+        미연결
       </button>
 
       <div className="relative w-56 shrink-0">
@@ -761,6 +762,7 @@ function SelectFilter({
   options,
   placeholder,
   width = 'w-32',
+  disabled = false,
   onChange,
 }: {
   label: string;
@@ -768,6 +770,8 @@ function SelectFilter({
   options: { value: string; label: string }[];
   placeholder: string;
   width?: string;
+  /** 고를 것이 아직 없을 때 — 자리는 두고 잠근다 */
+  disabled?: boolean;
   onChange: (value: string | undefined) => void;
 }) {
   return (
@@ -775,8 +779,9 @@ function SelectFilter({
       <span className="sr-only">{label}</span>
       <select
         value={value}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.value || undefined)}
-        className={`h-9 ${width} cursor-pointer rounded-lg border border-border-default px-2 text-caption text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary`}
+        className={`h-9 ${width} rounded-lg border border-border-default px-2 text-caption text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary disabled:opacity-60`}
       >
         <option value="">{placeholder}</option>
         {options.map((option) => (

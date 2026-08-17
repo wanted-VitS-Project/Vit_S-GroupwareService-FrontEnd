@@ -12,8 +12,8 @@ import { createBlock } from './api';
 import { nextPosition } from './blockLayout';
 import BlockTypeIcon from './BlockTypeIcon';
 import {
-  BLOCK_TITLE_MAX_LENGTH,
   BLOCK_TYPES,
+  BLOCK_TITLE_MAX_LENGTH,
   type BlockTypeCode,
   type StepBlock,
 } from './types';
@@ -35,7 +35,7 @@ interface AddBlockModalProps {
 
 /**
  * 스텝 화면에 블록을 추가하는 모달.
- * `type` 만 필수다 — 이름(`title`)은 비워도 생성된다. (.ai/API.md 9번)
+ * `type` 만 필수다 — 제목(`title`)은 비워도 생성된다. (.ai/API.md 9번)
  */
 export default function AddBlockModal({
   stepName,
@@ -54,7 +54,7 @@ export default function AddBlockModal({
   const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState(false);
 
   const selected = BLOCK_TYPES.find((type) => type.code === selectedCode);
-  const titleLabel = selected?.titleLabel ?? '블록 이름';
+  const titleLabel = selected?.titleLabel ?? '블록 제목';
   const isDirty = selectedCode !== null || title.trim().length > 0;
 
   function requestClose() {
@@ -103,7 +103,7 @@ export default function AddBlockModal({
   return (
     <>
       <Modal
-        title="Block 추가"
+        title="블록 추가"
         onClose={isSubmitting ? undefined : requestClose}
         className="w-full max-w-[640px] overflow-hidden rounded-base border border-border-default shadow-2xl"
         header={
@@ -113,7 +113,7 @@ export default function AddBlockModal({
                 <BlockTypeIcon code="TEXT" />
               </span>
               <h2 className="text-body-m font-semibold text-text-primary">
-                Block 추가
+                블록 추가
               </h2>
               <span className="truncate rounded-button-sm bg-bg-hover px-1.5 py-0.5 text-caption text-text-secondary">
                 {stepName}
@@ -132,7 +132,29 @@ export default function AddBlockModal({
         }
       >
         <div className="max-h-[70vh] overflow-y-auto p-5">
-          <p className="text-micro tracking-[0.9px] text-text-secondary uppercase">
+          {/*
+            제목이 유형 선택 **위**에 온다 (2026-08-16).
+            유형을 고르면 아래 `selectType` 이 제목을 유형 이름으로 채워 주는데,
+            입력칸이 그리드 아래에 있으면 그 변화가 화면 밖에서 일어나 눈에 띄지 않았다.
+          */}
+          <label className="block">
+            <span className="block pb-1.5 text-detail font-semibold text-text-primary">
+              {titleLabel}{' '}
+              <span className="font-normal text-text-secondary">(선택)</span>
+            </span>
+            <input
+              type="text"
+              value={title}
+              maxLength={BLOCK_TITLE_MAX_LENGTH}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder={
+                selected?.titleLabel ? '예: 1차 기성' : '블록 제목을 입력하세요'
+              }
+              className="w-full rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-detail text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+            />
+          </label>
+
+          <p className="mt-5 text-micro tracking-[0.9px] text-text-secondary uppercase">
             블록 유형 선택 ({BLOCK_TYPES.length})
           </p>
 
@@ -179,25 +201,6 @@ export default function AddBlockModal({
               );
             })}
           </div>
-
-          <label className="mt-5 block">
-            <span className="block pb-1.5 text-detail font-semibold text-text-primary">
-              {titleLabel}{' '}
-              <span className="font-normal text-text-secondary">(선택)</span>
-            </span>
-            <input
-              type="text"
-              value={title}
-              maxLength={BLOCK_TITLE_MAX_LENGTH}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder={
-                selected?.titleLabel
-                  ? '예: 1차 기성'
-                  : '블록의 이름을 입력해주세요.'
-              }
-              className="w-full rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-detail text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
-            />
-          </label>
         </div>
 
         <div className="flex items-center justify-between gap-4 border-t border-border-default bg-bg-surface px-5 py-3.5">
@@ -217,7 +220,7 @@ export default function AddBlockModal({
               type="button"
               onClick={requestClose}
               disabled={isSubmitting}
-              className="cursor-pointer rounded-lg px-4 py-1.5 text-detail font-medium text-text-secondary hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="btn btn-md btn-gray-outlined"
             >
               취소
             </button>
@@ -225,7 +228,7 @@ export default function AddBlockModal({
               type="button"
               onClick={submit}
               disabled={!selected || isSubmitting}
-              className="min-w-[104px] cursor-pointer rounded-lg bg-btn-primary px-4 py-1.5 text-detail font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="btn btn-md btn-primary min-w-[104px]"
             >
               {isSubmitting ? '추가 중…' : '추가하기'}
             </button>

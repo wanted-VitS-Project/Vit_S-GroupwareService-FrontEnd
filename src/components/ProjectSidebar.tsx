@@ -7,6 +7,9 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import MemberAvatar from '@/components/MemberAvatar';
+import { mobileSidebarClasses } from '@/components/mobileSidebarClasses';
+import MobileSidebarToggle from '@/components/MobileSidebarToggle';
+import { useNarrowScreen } from '@/components/useNarrowScreen';
 import ModalLoadingFallback from '@/components/ModalLoadingFallback';
 import { notifyToast } from '@/components/Toast';
 import { projectScopeUpLink } from '@/constants/menu';
@@ -24,6 +27,10 @@ import {
   getProjectMembers,
   getProjectStages,
 } from '@/features/project/api';
+import { useCurrentUser } from '@/features/auth/useCurrentUser';
+import { canManageMembers } from '@/features/project/permissions';
+import PermissionBadge from '@/features/project/PermissionBadge';
+import { usePublishProjectPermission } from '@/features/project/useProjectPermission';
 import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_WIDTH,
@@ -48,12 +55,12 @@ import {
 
 /**
  * 프로젝트 상세 화면 왼쪽 사이드바.
- * 프로젝트 개요 · 진행 단계 · 참여자를 보여주고 하위 화면 전환의 기준이 된다.
+ * 프로젝트 개요 · 스테이지 · 참여자를 보여주고 하위 화면 전환의 기준이 된다.
  *
  */
 
 /*
- * 단계 · 스텝 편집 모달은 **누를 때 받아온다**.
+ * 스테이지 · 스텝 편집 모달은 **누를 때 받아온다**.
  * 사이드바는 프로젝트 하위 모든 화면에 항상 떠 있어, 여기서 정적으로 물면
  * 편집 권한이 없는 사용자까지 모달 6개를 매번 내려받게 된다.
  */
@@ -82,17 +89,17 @@ const PANEL_FALLBACK = 'w-full max-w-[420px] rounded-base p-6 shadow-2xl';
 
 const StageManageModal = dynamic(loadStageManageModal, {
   loading: () => (
-    <ModalLoadingFallback title="단계 관리" className={PANEL_FALLBACK} />
+    <ModalLoadingFallback title="스테이지 관리" className={PANEL_FALLBACK} />
   ),
 });
 const StageFormModal = dynamic(loadStageFormModal, {
   loading: () => (
-    <ModalLoadingFallback title="단계" className={PANEL_FALLBACK} />
+    <ModalLoadingFallback title="스테이지" className={PANEL_FALLBACK} />
   ),
 });
 const StageDeleteModal = dynamic(loadStageDeleteModal, {
   loading: () => (
-    <ModalLoadingFallback title="단계 삭제" className={PANEL_FALLBACK} />
+    <ModalLoadingFallback title="스테이지 삭제" className={PANEL_FALLBACK} />
   ),
 });
 const StepFormModal = dynamic(loadStepFormModal, {
@@ -118,10 +125,7 @@ const StepPermissionModal = dynamic(loadStepPermissionModal, {
 });
 const StagePermissionModal = dynamic(loadStagePermissionModal, {
   loading: () => (
-    <ModalLoadingFallback
-      title="새 스텝 권한 기본값"
-      className={PANEL_FALLBACK}
-    />
+    <ModalLoadingFallback title="스테이지 권한" className={PANEL_FALLBACK} />
   ),
 });
 
@@ -171,7 +175,7 @@ type SidebarModal =
   | { kind: 'stepPermission'; step: ProjectStep }
   /** 상태 변경 — 바꿀 상태는 **모달 안에서** 고른다 (`DONE` 은 완료 처리로 넘어간다) */
   | { kind: 'stepStatus'; step: ProjectStep }
-  /** 이 단계에 새로 생길 스텝의 권한 기본값 */
+  /** 이 스테이지에 새로 생길 스텝의 권한 기본값 */
   | { kind: 'stagePermission'; stage: ProjectStage }
   /** 참여자 명단 — 사이드바 아바타 줄에서 바로 연다 */
   | { kind: 'members' };
@@ -222,16 +226,38 @@ export default function ProjectSidebar() {
   const pathname = usePathname();
   const upLink = projectScopeUpLink(pathname);
   const router = useRouter();
+  const me = useCurrentUser();
   const { isCollapsed, toggle, expand } = useProjectSidebarCollapse();
 
-  /** 단계 · 스텝을 고친 뒤 목록을 다시 읽는 신호 */
+  /**
+   * 좁은 화면(1024px 미만)에서만 쓰이는 열림 상태 — 공통 사이드바와 같은 방식이다.
+   * 넓은 화면에서는 클래스가 통째로 꺼져 있어 이 값이 화면에 영향을 주지 않는다.
+   */
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
+  /** 판이 실제로 떠 있는 상태 — 이때만 모달로 알린다 (넓은 화면에서는 제자리 사이드바다) */
+  const isNarrow = useNarrowScreen();
+  const isModal = isPanelOpen && isNarrow;
+  const panelRef = useRef<HTMLElement>(null);
+
+  /**
+   * 좁은 화면에서는 **언제나 펼친 모습**으로 연다.
+   *
+   * 접힌 모습(58px 레일)은 옆에 본문이 나란히 있을 때 쓸모가 있다 — 떠 있는 판에서는
+   * 이름 없는 점만 남아 무엇을 고르는지 알 수 없다. 여는 순간 함께 펼쳐 둔다.
+   */
+  function openPanel() {
+    expand();
+    setIsPanelOpen(true);
+  }
+
+  /** 스테이지 · 스텝을 고친 뒤 목록을 다시 읽는 신호 */
   const [reloadCount, setReloadCount] = useState(0);
   const modal = useModalTarget<SidebarModal>();
   /** 스텝 이름을 캐시에서 꺼내 쓰는 화면(스텝 헤더)에도 변경을 알린다 */
   const refreshSteps = useRefreshProjectSteps(projectId);
 
   /**
-   * 스텝 · 단계를 고친 직후 부르는 단일 창구.
+   * 스텝 · 스테이지를 고친 직후 부르는 단일 창구.
    * 사이드바 자신의 목록과 **캐시에 담긴 스텝 목록**을 함께 갱신한다 —
    * 여기를 빼먹으면 이름을 바꿔도 스텝 화면 헤더가 옛 이름을 들고 있다.
    */
@@ -279,7 +305,7 @@ export default function ProjectSidebar() {
       });
 
     return () => controller.abort();
-    // 단계를 고치면 `reloadCount` 가 올라 같은 조회를 다시 태운다 (스텝은 캐시가 맡는다)
+    // 스테이지를 고치면 `reloadCount` 가 올라 같은 조회를 다시 태운다 (스텝은 캐시가 맡는다)
   }, [projectId, reloadCount]);
 
   /**
@@ -326,7 +352,7 @@ export default function ProjectSidebar() {
     };
   }, [projectId, refreshSteps]);
 
-  // 참여자는 보조 정보다. 지연·실패해도 프로젝트 개요와 단계 탐색을 막지 않는다.
+  // 참여자는 보조 정보다. 지연·실패해도 프로젝트 개요와 스테이지 탐색을 막지 않는다.
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
@@ -351,7 +377,14 @@ export default function ProjectSidebar() {
   const stages = current?.stages ?? null;
   const members =
     loadedMembers?.projectId === projectId ? loadedMembers.members : null;
-  // 스텝만 실패해도 단계 탐색이 통째로 비어 이전과 같은 오류 화면을 띄운다
+
+  /*
+   * 받아 둔 내 권한을 캐시에 얹어 **사이드바 밖에서도** 쓸 수 있게 한다.
+   * 좁은 화면에서는 이 사이드바가 자리에서 빠져 배지가 함께 사라지므로,
+   * 탭바(`ProjectTabs` · `StepTabs`)가 이 값을 읽어 같은 배지를 세운다.
+   */
+  usePublishProjectPermission(projectId, project?.myPermission);
+  // 스텝만 실패해도 스테이지 탐색이 통째로 비어 이전과 같은 오류 화면을 띄운다
   const hasFailed = failedProjectId === projectId || haveStepsFailed;
   const haveMembersFailed = failedMembersProjectId === projectId;
 
@@ -381,6 +414,11 @@ export default function ProjectSidebar() {
   const progressRate = project?.progressRate ?? 0;
   const category = project?.businessCategories.map((c) => c.name).join(' · ');
   const canEdit = project?.myPermission === 'EDITOR';
+  /**
+   * 참여자를 **들일 수 있는지** — 편집 권한 + 전사 `ADMIN` 예외 (`permissions.ts`).
+   * 아래 `+` 표시가 이 값을 따라야 모달 안의 `참여자 추가` 버튼과 어긋나지 않는다.
+   */
+  const canAddMembers = canManageMembers({ role: me.role, canEdit });
 
   /**
    * 스텝을 지우면 하위 이슈도 함께 사라진다 —
@@ -446,9 +484,37 @@ export default function ProjectSidebar() {
    */
   return (
     <>
+      {/*
+        좁은 화면에서는 사이드바가 본문의 절반을 먹는다 — 자리에서 빼고 왼쪽 아래
+        고정 버튼으로 여닫는다. 판이 뜨면 스테이지 · 스텝 탐색은 그대로 다 할 수 있다.
+      */}
+      <MobileSidebarToggle
+        isOpen={isPanelOpen}
+        onToggle={() => (isPanelOpen ? setIsPanelOpen(false) : openPanel())}
+        onClose={() => setIsPanelOpen(false)}
+        label="프로젝트 메뉴"
+        panelRef={panelRef}
+      />
+
       <aside
+        ref={panelRef}
+        /* 떠 있는 동안에는 모달로 알린다 (`Sidebar` 와 같은 규칙) */
+        role={isModal ? 'dialog' : undefined}
+        aria-modal={isModal || undefined}
+        aria-label={isModal ? '프로젝트 메뉴' : undefined}
+        /*
+          스텝을 고르면 판을 닫는다 — 떠 있는 판이 남아 있으면 도착한 스텝이 가려진다.
+          `⋯` 메뉴 · 접기 버튼은 링크가 아니라 그대로 열려 있다.
+        */
+        onClickCapture={(event) => {
+          if ((event.target as HTMLElement).closest('a')) setIsPanelOpen(false);
+        }}
         className={`h-full shrink-0 overflow-hidden border-r border-border-default bg-bg-card transition-[width] duration-200 ease-out motion-reduce:transition-none ${
           isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH
+        } ${
+          isPanelOpen
+            ? mobileSidebarClasses.asideOpen
+            : mobileSidebarClasses.asideClosed
         }`}
       >
         {isCollapsed ? (
@@ -467,7 +533,8 @@ export default function ProjectSidebar() {
           />
         ) : (
           <div
-            className={`flex h-full ${SIDEBAR_WIDTH} animate-panel-in flex-col motion-reduce:animate-none`}
+            /* 좁은 화면에서는 고정 폭(280px) 대신 떠 있는 판을 꽉 채운다 */
+            className={`flex h-full ${SIDEBAR_WIDTH} ${mobileSidebarClasses.panelInner} animate-panel-in flex-col motion-reduce:animate-none`}
           >
             {/*
               이탈 경로는 항상 같은 자리에 있어야 한다 — 스크롤 영역 밖에 둔다.
@@ -511,8 +578,16 @@ export default function ProjectSidebar() {
                       <p className="text-heading-l font-bold break-keep text-text-primary">
                         {project.name}
                       </p>
-                      <p className="text-body-l font-semibold text-text-secondary">
-                        {project.clientName}
+                      {/*
+                        발주처 옆에 **내 권한**을 붙인다 — 사이드바는 프로젝트 하위
+                        모든 화면에 떠 있어, 어느 화면에서 편집 버튼을 못 찾더라도
+                        여기 한 곳만 보면 "권한이 없어서" 임을 바로 알 수 있다.
+                      */}
+                      <p className="flex items-center justify-between gap-2">
+                        <span className="min-w-0 truncate text-body-l font-semibold text-text-secondary">
+                          {project.clientName}
+                        </span>
+                        <PermissionBadge permission={project.myPermission} />
                       </p>
                     </div>
                     {project.description && (
@@ -554,7 +629,7 @@ export default function ProjectSidebar() {
 
               <div className="flex h-13 items-center justify-between border-b border-border-default px-4">
                 <h2 className="text-body-l font-semibold text-text-secondary uppercase">
-                  진행 단계
+                  스테이지
                 </h2>
                 {canEdit && (
                   <div className="flex items-center gap-1.5">
@@ -569,7 +644,7 @@ export default function ProjectSidebar() {
                       disabled={!stages}
                       className="cursor-pointer rounded-button-sm border border-border-primary px-1.5 py-0.5 text-label font-medium text-text-primary-blue hover:bg-blue-bg-soft disabled:cursor-not-allowed disabled:border-border-default disabled:text-text-muted"
                     >
-                      단계수정
+                      수정
                     </button>
                     <button
                       type="button"
@@ -587,7 +662,7 @@ export default function ProjectSidebar() {
               {!stages || !steps ? (
                 hasFailed ? (
                   <p className="px-4 py-3 text-label text-text-secondary">
-                    진행 단계를 불러오지 못했습니다.
+                    스테이지를 불러오지 못했습니다.
                   </p>
                 ) : (
                   <ProjectStagesSkeleton />
@@ -679,7 +754,7 @@ export default function ProjectSidebar() {
                                     modal.open({ kind: 'stageRename', stage }),
                                 },
                                 {
-                                  label: '스텝 권한 기본값',
+                                  label: '스테이지 권한',
                                   icon: <KeyIcon />,
                                   onSelect: () =>
                                     modal.open({
@@ -841,7 +916,7 @@ export default function ProjectSidebar() {
                         `+` 는 **버튼이 아니라 표시**다 — 영역 전체가 이미 버튼이라
                         안에 버튼을 또 넣을 수 없다 (중첩 버튼은 유효하지 않다).
                       */}
-                      {canEdit && (
+                      {canAddMembers && (
                         <span
                           aria-hidden
                           style={{
@@ -1174,8 +1249,9 @@ function StepCard({
    * 스텝 권한 관리 가능 여부 — **프로젝트 `EDITOR`** 다.
    *
    * ⚠️ 스텝 권한 API(134~136)는 스텝 권한이 아니라 프로젝트 권한을 본다.
-   *    그래서 아래 `step.myPermission` 과 **다른 값이며 함께 쓸 수 없다** —
-   *    남이 이 스텝에 `VIEWER` 오버라이드를 걸어 둔 프로젝트 편집자도 권한은 관리할 수 있다.
+   *    그래서 아래 `step.myPermission` 과 **다른 값이다** — 둘 다 참일 때만 항목을 넣는다.
+   *    이 스텝이 열람 전용인 프로젝트 편집자는 여기 대신 **프로젝트 설정**에서 관리한다
+   *    (메뉴 자체를 세우지 않기로 했다 — 아래 `canEditStep` 분기 주석 참고).
    */
   canManagePermissions: boolean;
   onEdit: () => void;
@@ -1222,37 +1298,35 @@ function StepCard({
           >
             {`${step.progressRate ?? 0}%`}
           </span>
-          {canEditStep || canManagePermissions ? (
+          {/*
+            ⭐ **이 스텝을 고칠 수 없으면 `⋯` 을 아예 세우지 않는다** (2026-08-16).
+               예전에는 프로젝트 편집자면 `권한 관리` 하나만 담아 메뉴를 열어 줬는데,
+               정작 스텝이 열람 전용인 사람에게 메뉴가 보여 "고칠 수 있다" 로 읽혔다.
+               그 사람의 권한 관리 진입로는 **프로젝트 설정 > 스테이지 · 스텝 권한**에
+               스텝 전체 목록으로 이미 있다 — 잃는 길이 없다.
+          */}
+          {canEditStep ? (
             <span className="pointer-events-auto">
               <RowMenu
                 label={step.name}
                 revealClass="group-hover/step:opacity-100"
                 onOpen={preloadStepChunks}
                 items={[
-                  // 수정 · 완료 · 삭제는 **스텝** 권한, 권한 관리는 **프로젝트** 권한이다
-                  ...(canEditStep
-                    ? [
-                        {
-                          label: '스텝 수정',
-                          icon: <PencilIcon />,
-                          onSelect: onEdit,
-                        },
-                      ]
-                    : []),
+                  {
+                    label: '스텝 수정',
+                    icon: <PencilIcon />,
+                    onSelect: onEdit,
+                  },
                   /*
                    * 상태는 **항목 하나로 묶는다** — 진행 전 · 진행중 · 완료를 각각 두면
                    * 메뉴가 스텝 상태에 따라 늘었다 줄었다 해서 매번 읽어야 한다.
                    * 무엇으로 바꿀지는 모달 안에서 고른다 (완료만 완료 처리 모달로 넘어간다).
                    */
-                  ...(canEditStep
-                    ? [
-                        {
-                          label: '상태 변경',
-                          icon: <PlayIcon />,
-                          onSelect: onChangeStatus,
-                        },
-                      ]
-                    : []),
+                  {
+                    label: '상태 변경',
+                    icon: <PlayIcon />,
+                    onSelect: onChangeStatus,
+                  },
                   ...(canManagePermissions
                     ? [
                         {
@@ -1262,16 +1336,12 @@ function StepCard({
                         },
                       ]
                     : []),
-                  ...(canEditStep
-                    ? [
-                        {
-                          label: '삭제',
-                          icon: <TrashIcon />,
-                          danger: true,
-                          onSelect: onDelete,
-                        },
-                      ]
-                    : []),
+                  {
+                    label: '삭제',
+                    icon: <TrashIcon />,
+                    danger: true,
+                    onSelect: onDelete,
+                  },
                 ]}
               />
             </span>
