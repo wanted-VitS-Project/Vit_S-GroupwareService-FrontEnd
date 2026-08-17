@@ -77,9 +77,10 @@ function renderInline(text: string, depth = 0): ReactNode[] {
         </code>,
       );
     } else if (boldItalic !== undefined) {
+      // 안쪽에 별표는 못 오지만 `` `코드` `` · `~~취소~~` 는 올 수 있다
       nodes.push(
         <strong key={key} className="font-semibold italic">
-          {boldItalic}
+          {renderInline(boldItalic, depth + 1)}
         </strong>,
       );
     } else if (bold !== undefined) {

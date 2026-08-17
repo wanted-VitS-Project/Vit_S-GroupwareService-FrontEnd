@@ -304,8 +304,8 @@ export default function TextBlockModal({
 
             {drafts.length === 0 ? (
               <p className="py-3 text-caption text-text-secondary">
-                임시저장한 내용이 없습니다. `임시저장` 을 누르거나, 저장하지 않고
-                나갈 때 남겨 두면 여기에 쌓입니다.
+                임시저장한 내용이 없습니다. `임시저장` 을 누르거나, 저장하지
+                않고 나갈 때 남겨 두면 여기에 쌓입니다.
               </p>
             ) : (
               <ul className="flex flex-col gap-1.5">
@@ -456,8 +456,17 @@ export default function TextBlockModal({
               hint: '내 글은 이 브라우저에 남고, 최신 본문을 받습니다',
               tone: 'primary',
               onSelect: () => {
-                keepDraft();
+                const kept = keepDraft();
                 setConfirmation(null);
+                /*
+                 * 남기지 못했으면 **재조회도 닫기도 하지 않는다.**
+                 *
+                 * 여기서 닫으면 사용자는 "임시저장하고" 를 골랐는데 글이 사라진다 —
+                 * 게다가 재조회가 서버 최신 본문을 덮어 되돌릴 길도 없다.
+                 * 편집기를 그대로 두면 푸터가 "임시저장할 수 없습니다" 를 알린다.
+                 */
+                if (!kept) return;
+
                 onRefetch();
                 onClose();
               },

@@ -328,8 +328,15 @@ export function parseResult(result: string): ParsedResult | null {
   /** 빈 줄 · 제목을 지나왔다 — 다음 줄은 앞 문단에 잇지 않고 새로 세운다 */
   let brokeParagraph = true;
 
-  /** 요약 · 경고 구획만 블록을 쌓는다 (지적 사항은 `findings` 가 따로 받는다) */
-  function blocksOf(bucket: Bucket) {
+  /**
+   * 블록을 쌓는 구획은 요약 · 경고 **둘뿐**이다 (지적 사항은 `findings` 가 따로 받는다).
+   *
+   * ⚠️ 타입에서 `findings` 를 빼 둔 것은 실수를 막기 위해서다 — 예전에는 `Bucket` 을
+   *    그대로 받아, 지적 사항 구획의 줄이 조용히 **요약으로 새어 들어갔다**.
+   */
+  type TextBucket = Exclude<Bucket, 'findings'>;
+
+  function blocksOf(bucket: TextBucket) {
     return bucket === 'warning' ? warning : summary;
   }
 
@@ -337,7 +344,11 @@ export function parseResult(result: string): ParsedResult | null {
    * 이어지는 평범한 줄은 **한 문단으로 잇는다** — 마크다운의 soft wrap 과 같다.
    * 빈 줄이나 제목을 지나온 뒤라면 새 문단을 세운다.
    */
-  function pushText(bucket: Bucket, text: string, kind: 'paragraph' | 'item') {
+  function pushText(
+    bucket: TextBucket,
+    text: string,
+    kind: 'paragraph' | 'item',
+  ) {
     const blocks = blocksOf(bucket);
     const last = blocks[blocks.length - 1];
 
@@ -390,17 +401,26 @@ export function parseResult(result: string): ParsedResult | null {
 
     const item = listItemOf(text);
 
+    /*
+     * 지적 사항 구획의 줄은 **여기서 전부 처리한다.**
+     *
+     * 예전에는 첫 줄이 목록이 아니면 아래로 흘러가 `요약`에 쌓였다 — `## 지적 사항`
+     * 아래 문장이 `검토 요약` 칸에 뜨는 셈이라, 사용자는 읽은 자리에서 그 문장을 잃는다.
+     */
     if (current === 'findings') {
-      // 목록이 아닌 줄은 직전 항목의 이어지는 설명으로 붙인다
-      if (item === null && findings.length > 0) {
-        const last = findings[findings.length - 1];
-        last.detail = last.detail ? `${last.detail} ${text}` : text;
-        continue;
-      }
       if (item !== null) {
         findings.push(splitFinding(item));
         continue;
       }
+      // 목록이 아닌 줄은 직전 항목의 이어지는 설명으로 붙인다
+      if (findings.length > 0) {
+        const last = findings[findings.length - 1];
+        last.detail = last.detail ? `${last.detail} ${text}` : text;
+        continue;
+      }
+      // 아직 항목이 하나도 없다 — 이 구획의 머리글이라 첫 항목으로 세운다
+      findings.push(splitFinding(text));
+      continue;
     }
 
     if (item !== null) pushText(current, item, 'item');
