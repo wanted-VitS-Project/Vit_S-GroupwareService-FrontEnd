@@ -1,5 +1,7 @@
 'use client';
 
+// CSR - 블록 공통 껍데기: 헤더(드래그 핸들·유형 아이콘·제목·⋯)와 담당자 푸터를 두고
+// 본문은 유형별 블록이 children 으로 채운다.
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { useRef } from 'react';
@@ -81,12 +83,9 @@ interface BlockCardProps {
   children: React.ReactNode;
 }
 
-/**
- * 블록 공통 껍데기 — 헤더(드래그 핸들 · 유형 아이콘 · 제목 · ⋯) / 본문 / 담당자 푸터.
- * 같은 행의 블록끼리 높이를 맞추려고 `h-full` 로 늘어난다.
- *
- * 드래그는 **핸들에서만** 시작한다 — 카드 전체를 잡게 하면 본문의 입력·체크가 막힌다.
- */
+// 블록 공통 껍데기 — 헤더(드래그 핸들·유형 아이콘·제목·⋯) / 본문 / 담당자 푸터.
+// 같은 행의 블록끼리 높이를 맞추려고 h-full 로 늘어난다.
+// 드래그는 핸들에서만 시작한다 — 카드 전체를 잡게 하면 본문의 입력·체크가 막힌다.
 export default function BlockCard({
   block,
   headerExtra,
@@ -97,7 +96,7 @@ export default function BlockCard({
   const panel = useModalRouter<'issues' | 'logs'>();
   const type = BLOCK_TYPES.find((option) => option.code === block.type);
   const drag = useBlockDrag();
-  /** 담당자 이름 뒤 `(퇴사자)` — `owner.deleted` 와 참여자 목록의 `resigned` 를 합쳐 본다 */
+  /** 담당자 이름 뒤 (퇴사자) — owner.deleted 와 참여자 목록의 resigned 를 합쳐 본다 */
   const isOwnerResigned = useOwnerResigned(block.owner);
   const label = block.title || type?.label || '블록';
   const isDragging = drag?.draggingId === block.blockId;
@@ -106,7 +105,7 @@ export default function BlockCard({
     <article
       /*
        * 드롭 대상 판정은 카드가 하지 않는다 — 보드가 캡처 단계에서 한 번에 처리한다.
-       * 카드 안에는 파일 목록 · 에디터처럼 자체 드래그 처리를 갖는 자식이 있어,
+       * 카드 안에는 파일 목록·에디터처럼 자체 드래그 처리를 갖는 자식이 있어,
        * 카드에 핸들러를 달면 그런 자식 위에서는 이벤트가 올라오지 않는다.
        */
       // 끄는 중인 카드는 "여기서 빠져나간 자리" 로 읽히게 점선 + 반투명으로 낮춘다
@@ -127,8 +126,8 @@ export default function BlockCard({
             role="button"
             /*
              * 드래그는 포인터가 있어야만 쓸 수 있다 — 핸들에 초점을 줄 수 있게 하고
-             * **화살표 키로 같은 이동**을 연다 (`drag.moveBy`).
-             * 좌우로 둔 이유: 블록은 3칸 그리드를 왼→오른쪽으로 흐르는 **평면 순서**라
+             * 화살표 키로 같은 이동을 연다 (drag.moveBy).
+             * 좌우로 둔 이유: 블록은 3칸 그리드를 왼→오른쪽으로 흐르는 평면 순서라
              * 위/아래는 몇 칸 움직이는지가 배치에 따라 달라져 예측할 수 없다.
              */
             tabIndex={0}
@@ -261,7 +260,7 @@ function BlockMenu({
 }) {
   const { id: projectId, stepId } = useParams<{ id: string; stepId: string }>();
   const actions = useBlockActions();
-  /** 이 스텝을 고칠 수 있는지 — 보드가 감싸 준다. 보드 밖에서는 `true` (컨텍스트 기본값) */
+  /** 이 스텝을 고칠 수 있는지 — 보드가 감싸 준다. 보드 밖에서는 true (컨텍스트 기본값) */
   const canEdit = useBlockCanEdit();
   /** ⋯ 드롭다운. 모달은 아니지만 여닫이가 같아 같은 훅을 쓴다 */
   const menu = useModal();
@@ -376,14 +375,14 @@ function BlockMenu({
                 </button>
               )}
               {/**
-               * ⚠️ **연결된 정산 블록은 지울 수 없다.** 세금계산서 · 입출금이 붙은 블록을
+               * 연결된 정산 블록은 지울 수 없다. 세금계산서·입출금이 붙은 블록을
                *    지우면 재무 쪽 연결이 가리키는 대상이 사라진다 —
                *    백엔드가 아직 이 삭제를 막지 않으므로 화면에서 먼저 막는다.
                */}
               {/**
-               * ℹ️ 연결된 정산 블록도 **삭제할 수 있다** (2026-08-13 백엔드 확인) —
-               *    지워진 뒤에는 재무 쪽 입출금이 `LINK_BLOCK_DELETED` 로 내려와
-               *    `블록 삭제됨` 으로 구분된다. 그래서 여기서 막지 않는다.
+               * 연결된 정산 블록도 삭제할 수 있다 (2026-08-13 백엔드 확인) —
+               *    지워진 뒤에는 재무 쪽 입출금이 LINK_BLOCK_DELETED 로 내려와
+               *    블록 삭제됨 으로 구분된다. 그래서 여기서 막지 않는다.
                */}
               {canEdit && (
                 <button
@@ -419,7 +418,7 @@ function BlockMenu({
           onClose={modal.close}
           onMoved={(result) => {
             /*
-             * 옮긴 블록은 **이 스텝에서 사라진다** — 삭제와 같은 자리 정리다.
+             * 옮긴 블록은 이 스텝에서 사라진다 — 삭제와 같은 자리 정리다.
              * 보드 밖에서 쓰인 카드(컨텍스트 없음)는 재조회로 되돌아간다.
              */
             if (actions) actions.remove(result.blockId);

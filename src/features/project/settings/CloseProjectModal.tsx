@@ -15,17 +15,14 @@ interface CloseProjectModalProps {
   projectId: string;
   projectName: string;
   onClose: () => void;
-  /** 종결 응답에 `version` 이 없어 상세를 다시 읽는다 */
+  /** 종결 응답에 version 이 없어 상세를 다시 읽는다 */
   onClosed: () => void;
 }
 
-/**
- * 프로젝트 종결 모달. (.ai/API.md 131)
- *
- * ⛔ **낙관적 락 대상이 아니다** — `version` 을 싣지 않고 409 도 오지 않는다.
- *    사유가 필수라 두 번 눌러도 결과가 같고 잃을 편집 내용이 없어서다.
- * ℹ️ 삭제가 아니다 — 목록 · 활동 기록에는 그대로 남는다는 것을 문구로 알린다.
- */
+// 프로젝트 종결 모달. (.ai/API.md 131)
+// 낙관적 락 대상이 아니다 — version 을 싣지 않고 409 도 오지 않는다.
+// 사유가 필수라 두 번 눌러도 결과가 같고 잃을 편집 내용이 없어서다.
+// 삭제가 아니다 — 목록·활동 기록에는 그대로 남는다는 것을 문구로 알린다.
 export default function CloseProjectModal({
   projectId,
   projectName,

@@ -1,17 +1,15 @@
 'use client';
 
+// CSR - 프로젝트 휴지통: 문서·이미지 두 갈래를 탭으로 나눠 복구·영구 삭제를 다룬다.
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
 
 import { ProjectFilesSkeleton } from './ProjectOverviewSkeletons';
 
-/**
- * 두 갈래는 **각자 청크로 나눈다.**
- *
- * 한 번에 하나만 그리는데 둘을 함께 실으면, 문서만 보고 나가는 사용자도
- * 이미지 휴지통 · 다중 선택 · 이미지 영구삭제 모달 로더까지 받는다.
- * 처음 보이는 `문서` 쪽은 **선택 즉시** 필요하므로 자리를 지키는 스켈레톤을 함께 준다.
- */
+// 두 갈래는 각자 청크로 나눈다.
+// 한 번에 하나만 그리는데 둘을 함께 실으면, 문서만 보고 나가는 사용자도
+// 이미지 휴지통·다중 선택·이미지 영구삭제 모달 로더까지 받는다.
+// 처음 보이는 문서 쪽은 선택 즉시 필요하므로 자리를 지키는 스켈레톤을 함께 준다.
 const TrashFiles = dynamic(() => import('./TrashFiles'), {
   loading: () => <ProjectFilesSkeleton />,
 });
@@ -27,16 +25,12 @@ const KINDS: { kind: TrashKind; label: string }[] = [
   { kind: 'images', label: '이미지' },
 ];
 
-/**
- * 휴지통 — 문서 · 이미지.
- *
- * 두 도메인의 **계약이 달라** 한 목록으로 합치지 않는다.
- * 문서는 건별(경로에 ID)이고 확인 문자로 잠기며, 이미지는 다건(`imgIds[]`)에 확인 문자가 없다.
- * 섞어 놓으면 어떤 항목이 무슨 규칙으로 지워지는지 화면에서 설명할 수 없다.
- *
- * ⚠️ 갈래 전환을 URL 쿼리로 두지 않는다 — 탭 내비(`ProjectTabs`)가 이미 `pathname` 정확 일치로
- *    활성 탭을 잡고 있어, 쿼리가 붙으면 휴지통 탭 활성 판정과 뒤엉킨다.
- */
+// 휴지통 — 문서·이미지.
+// 두 도메인의 계약이 달라 한 목록으로 합치지 않는다.
+// 문서는 건별(경로에 ID)이고 확인 문자로 잠기며, 이미지는 다건(imgIds[])에 확인 문자가 없다.
+// 섞어 놓으면 어떤 항목이 무슨 규칙으로 지워지는지 화면에서 설명할 수 없다.
+// 갈래 전환을 URL 쿼리로 두지 않는다 — 탭 내비(ProjectTabs)가 이미 pathname 정확 일치로
+// 활성 탭을 잡고 있어, 쿼리가 붙으면 휴지통 탭 활성 판정과 뒤엉킨다.
 export default function ProjectTrash() {
   const [kind, setKind] = useState<TrashKind>('files');
 
@@ -69,7 +63,7 @@ export default function ProjectTrash() {
             <button
               key={option.kind}
               type="button"
-              // 라벨이 **지금 상태**(문서 · 이미지)라 눌림 여부를 그대로 실을 수 있다
+              // 라벨이 지금 상태(문서·이미지)라 눌림 여부를 그대로 실을 수 있다
               aria-pressed={kind === option.kind}
               // 누르기 직전 신호 — 이미지 청크를 미리 받아 두면 전환이 끊기지 않는다
               onPointerEnter={

@@ -10,16 +10,10 @@ import type { IndexStatus, ProjectFileVersion } from '@/features/file/types';
 
 import { type DocumentRole, ROLE_LABEL } from './types';
 
-/**
- * 기준 · 대상 문서 선택 모달 (역할만 바꿔 재사용한다).
- *
- * 파일과 파일 **버전**은 다르다 — 같은 문서라도 버전에 따라 결과가 달라져서
- * 목록도 버전 단위다. 프로젝트 전체가 대상이라 다른 스텝에 올린 기준 문서도 고를 수 있다.
- *
- * 두 가지를 미리 막는다 (서버도 막지만 눌러 보고 알게 되면 늦다).
- * - `indexStatus !== 'COMPLETED'` — AI 가 아직 문서를 못 읽었다
- * - 반대 역할에 이미 넣은 버전 — 같은 버전을 기준·대상 양쪽에 둘 수 없다
- */
+// 기준·대상 문서 선택 모달 (역할만 바꿔 재사용한다).
+// 같은 문서라도 버전에 따라 결과가 달라져 목록이 버전 단위다. 프로젝트 전체가 대상이라
+// 다른 스텝에 올린 기준 문서도 고를 수 있다.
+// 인덱싱이 안 끝난 문서와 반대 역할이 이미 가져간 버전은 미리 막는다 (서버도 막지만 늦다).
 export default function FileVersionPickerModal({
   versions,
   loadError,
@@ -31,7 +25,7 @@ export default function FileVersionPickerModal({
   onConfirm,
   onClose,
 }: {
-  /** 아직 안 왔으면 null — 목록은 실행 모달이 한 번만 받아 두 역할이 나눠 쓴다 */
+  /** 아직 안 왔으면 null. 목록은 실행 모달이 한 번만 받아 두 역할이 나눠 쓴다 */
   versions: ProjectFileVersion[] | null;
   loadError: string;
   /** 아직 읽는 중인 문서가 있는지 — 목록이 저절로 갱신된다는 것을 알린다 */
@@ -42,7 +36,7 @@ export default function FileVersionPickerModal({
   onConfirm: (fileVersionIds: number[]) => void;
   onClose: () => void;
 }) {
-  /** 확인을 눌러야 반영한다 — 취소하면 원래 선택이 남아야 한다 */
+  // 확인을 눌러야 반영한다 — 취소하면 원래 선택이 남아야 한다.
   const [draft, setDraft] = useState<number[]>(selectedIds);
 
   function toggle(fileVersionId: number) {
@@ -59,7 +53,7 @@ export default function FileVersionPickerModal({
     <Modal
       title={title}
       onClose={onClose}
-      /* 실행 모달과 같은 이유로 높이 고정 — 문서가 1개든 30개든 패널은 그대로다 */
+      /* 실행 모달과 같은 이유로 높이 고정 — 문서가 1개든 30개든 패널 크기는 그대로다 */
       className="flex h-[520px] max-h-[80vh] w-full max-w-[560px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
       header={
         <div className="flex items-center justify-between gap-2 border-b border-border-default px-5 py-3.5">
@@ -154,10 +148,8 @@ export default function FileVersionPickerModal({
   );
 }
 
-/**
- * 인덱싱이 안 끝난 문서를 왜 못 고르는지 알려주는 문구.
- * `COMPLETED` 에는 문구가 없어 `Partial` 이다.
- */
+// 인덱싱이 안 끝난 문서를 왜 못 고르는지 알려주는 문구.
+// COMPLETED 에는 문구가 없어 Partial 이다.
 const INDEX_HINT: Partial<Record<IndexStatus, string>> = {
   PENDING: 'AI가 아직 읽는 중',
   PROCESSING: 'AI가 아직 읽는 중',
@@ -177,13 +169,10 @@ function VersionRow({
 }) {
   const isIndexed = version.indexStatus === 'COMPLETED';
   const isBlocked = !isIndexed || isTaken;
-  /**
-   * 이미 고른 항목은 **막지 않는다.**
-   *
-   * 목록은 폴링으로 갱신되므로 모달이 열린 채로 상태가 바뀔 수 있다. 고른 버전이
-   * 재인덱싱으로 `PENDING` 이 되면 체크박스가 잠겨 **해제할 수도 없이** 그대로
-   * 전송된다. 색은 그대로 흐리게 두되 해제는 열어 둔다.
-   */
+  // 이미 고른 항목은 막지 않는다.
+  // 목록은 폴링으로 갱신되므로 모달이 열린 채로 상태가 바뀔 수 있다. 고른 버전이
+  // 재인덱싱으로 PENDING 이 되면 체크박스가 잠겨 해제할 수도 없이 그대로
+  // 전송된다. 색은 그대로 흐리게 두되 해제는 열어 둔다.
   const isDisabled = isBlocked && !isChecked;
   const hint = isTaken
     ? '반대쪽에 이미 선택됨'

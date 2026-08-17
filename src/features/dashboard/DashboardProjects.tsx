@@ -1,5 +1,6 @@
 'use client';
 
+// CSR - 대시보드 내 프로젝트: 상위 3건만 조회해 보여주고 전체는 내 프로젝트 화면으로 넘긴다.
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -10,25 +11,13 @@ import ProjectCard from '@/features/project/ProjectCard';
 import { PROJECT_ROUTES } from '@/features/project/routes';
 import type { ProjectListItem } from '@/features/project/types';
 
-/**
- * 대시보드에 세우는 프로젝트 수.
- *
- * ⭐ **최대 3건**이다 — 목록을 다 보여주는 자리가 아니라 `내 프로젝트` 로 넘어가는 입구다.
- *    서버에 `size=3` 으로 물어 필요 없는 건은 애초에 받지 않는다.
- */
+// 입구 역할이라 3건까지만 — 서버에 size=3 으로 물어 나머지는 아예 받지 않는다.
 const LIMIT = 3;
 
-/**
- * 대시보드 `내 프로젝트`.
- *
- * 카드는 `내 프로젝트` 화면의 `ProjectCard` 를 **그대로** 쓴다 —
- * 두 화면이 같은 프로젝트를 다른 모양으로 보이면 같은 것으로 읽히지 않는다.
- * (정렬도 목록과 같다 — `created_at DESC` 고정이라 정렬 파라미터가 없다)
- */
 export default function DashboardProjects() {
   const [rows, setRows] = useState<ProjectListItem[] | null>(null);
   const [reloadCount, setReloadCount] = useState(0);
-  /** 몇 번째 시도가 실패했는지 — `다시 시도` 를 누르면 자동으로 실패가 풀린다 */
+  // 몇 번째 시도가 실패했는지 — 다시 시도를 누르면 reloadCount 가 올라가 실패가 자동으로 풀린다.
   const [failedAt, setFailedAt] = useState<number | null>(null);
   const hasFailed = failedAt === reloadCount;
 

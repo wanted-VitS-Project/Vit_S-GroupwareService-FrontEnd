@@ -1,5 +1,6 @@
 'use client';
 
+// CSR - 스텝 화면의 블록 영역: 목록 조회·재조회와 헤더(추가·배치·새로고침)를 함께 관리한다.
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -37,85 +38,61 @@ const BlockArrangeBlockedModal = dynamic(
   { loading: () => <ModalLoadingFallback title="배치 편집 중" /> },
 );
 
-/**
- * 스텝 화면의 블록 영역 — 목록 조회 · 재조회 · 헤더를 함께 관리한다.
- * 블록을 추가하면 목록을 다시 불러온다.
- */
+// 스텝 화면의 블록 영역 — 목록 조회·재조회·헤더를 함께 관리한다.
+// 블록을 추가하면 목록을 다시 불러온다.
 export default function StepBlocks() {
   const params = useParams<{ id: string; stepId: string }>();
   const projectId = params.id;
   const stepId = params.stepId;
 
-  /**
-   * 블록 목록 — 캐시는 스텝별로 나뉘어 있어(`['step-blocks', stepId]`)
-   * 경로가 바뀌면 남의 스텝 응답이 섞일 자리가 없다.
-   */
+  // 블록 목록 — 캐시는 스텝별로 나뉘어 있어(['step-blocks', stepId])
+  // 경로가 바뀌면 남의 스텝 응답이 섞일 자리가 없다.
   const { data: blocks, isError, refetch } = useStepBlocks(stepId);
   /** 캐시를 버리고 다시 읽는다 — 블록 영역만 */
   const refresh = useRefreshStepBlocks(stepId);
   /** 서버에 다녀오지 않고 캐시만 갈아끼운다 (드래그로 바뀐 순서) */
   const setBlocks = useSetStepBlocks(stepId);
 
-  /**
-   * 헤더에 세울 스텝 이름. 목록 캐시에서 이름 한 줄만 꺼내 온다.
-   * 스텝을 고치면 사이드바가 무효화하고, 새로고침 버튼도 함께 다시 읽는다.
-   */
+  // 헤더에 세울 스텝 이름. 목록 캐시에서 이름 한 줄만 꺼내 온다.
+  // 스텝을 고치면 사이드바가 무효화하고, 새로고침 버튼도 함께 다시 읽는다.
   const stepName = useStepName(projectId, stepId);
-  /**
-   * 이 스텝을 고칠 수 있는지 — 스텝 목록 캐시에서 `myPermission` 한 줄만 꺼낸다.
-   * ⚠️ **프로젝트 권한이 아니라 스텝 권한**이다 (스텝별 오버라이드가 있다, STP-011).
-   */
+  // 이 스텝을 고칠 수 있는지 — 스텝 목록 캐시에서 myPermission 한 줄만 꺼낸다.
+  // 프로젝트 권한이 아니라 스텝 권한이다 (스텝별 오버라이드가 있다, STP-011).
   const canEdit = useStepCanEdit(projectId, stepId);
   const refreshSteps = useRefreshProjectSteps(projectId);
   /** 생성 직후 입력창을 띄울 블록 */
   const [autoEditBlockId, setAutoEditBlockId] = useState<number | null>(null);
-  /**
-   * 생성 직전의 블록 ID 목록 스냅샷.
-   * 블록 생성 응답에 ID 가 없어(스키마 미확정) 재조회 결과와 비교해 새 블록을 찾는다.
-   *
-   * ⚠️ 어느 스텝의 목록인지 함께 담는다. `stepId` 없이 비교하면
-   *    스텝을 옮긴 뒤 도착한 응답에서 남의 블록을 신규로 오판할 수 있다.
-   */
+  // 생성 직전의 블록 ID 목록 스냅샷.
+  // 블록 생성 응답에 ID 가 없어(스키마 미확정) 재조회 결과와 비교해 새 블록을 찾는다.
+  // 어느 스텝의 목록인지 함께 담는다. stepId 없이 비교하면
+  // 스텝을 옮긴 뒤 도착한 응답에서 남의 블록을 신규로 오판할 수 있다.
   const snapshotBeforeCreate = useRef<{
     stepId: string;
     ids: number[];
   } | null>(null);
-  /**
-   * 보드가 넘겨준 "대기 중인 배치를 지금 보내기" 손잡이.
-   *
-   * 블록 생성 직전에 부른다. 미뤄둔 배치 저장이 생성 **뒤에** 나가면
-   * 새 블록이 빠진 목록을 스텝 전체 배치로 보내게 된다.
-   */
+  // 보드가 넘겨준 "대기 중인 배치를 지금 보내기" 손잡이.
+  // 블록 생성 직전에 부른다. 미뤄둔 배치 저장이 생성 뒤에 나가면
+  // 새 블록이 빠진 목록을 스텝 전체 배치로 보내게 된다.
   const flushLayout = useRef<(() => void) | null>(null);
   /** 배치 편집 모드 — 이때만 블록을 끌어 옮길 수 있다 */
   const [isArranging, setIsArranging] = useState(false);
-  /**
-   * 새로고침 버튼이 도는 중.
-   *
-   * `isFetching` 을 쓰지 않는다 — 화면 복귀 · 블록 생성처럼 **사용자가 부르지 않은**
-   * 재조회까지 아이콘이 도는 것은 설명되지 않는 움직임이다.
-   */
+  // 새로고침 버튼이 도는 중.
+  // isFetching 을 쓰지 않는다 — 화면 복귀·블록 생성처럼 사용자가 부르지 않은
+  // 재조회까지 아이콘이 도는 것은 설명되지 않는 움직임이다.
   const [isRefreshing, setIsRefreshing] = useState(false);
-  /**
-   * 블록 본문 세대. 새로고침이 성공할 때만 올라간다.
-   *
-   * 목록을 새로 받아도 본문은 따라오지 않는다 — 유형마다 `detail` 을 첫 렌더에
-   * 베껴 두거나(체크리스트 · 이미지 · 결재 · AI) 자기 API 를 따로 부르기(문서 · 결재 · AI)
-   * 때문이다. 세대를 올려 본문만 다시 마운트하면 열 유형이 한꺼번에 서버 값으로 돌아온다.
-   */
+  // 블록 본문 세대. 새로고침이 성공할 때만 올라간다.
+  // 목록을 새로 받아도 본문은 따라오지 않는다 — 유형마다 detail 을 첫 렌더에
+  // 베껴 두거나(체크리스트·이미지·결재·AI) 자기 API 를 따로 부르기(문서·결재·AI)
+  // 때문이다. 세대를 올려 본문만 다시 마운트하면 열 유형이 한꺼번에 서버 값으로 돌아온다.
   const [bodyGeneration, setBodyGeneration] = useState(0);
-  /**
-   * 배치 편집이 띄우는 두 모달. 둘은 **동시에 뜰 수 없다** —
-   * `저장할까요?` 는 편집을 끝낼 때, `추가할 수 없습니다` 는 편집 중에만 나온다.
-   */
+  // 배치 편집이 띄우는 두 모달. 둘은 동시에 뜰 수 없다 —
+  // 저장할까요? 는 편집을 끝낼 때, 추가할 수 없습니다 는 편집 중에만 나온다.
   const arrangeModal = useModalRouter<'exit' | 'blocked'>();
   /** 보드가 넘겨준 배치 편집 손잡이 */
   const arrange = useRef<ArrangeHandle | null>(null);
 
-  /**
-   * 편집 모드를 끄려는 순간.
-   * **바뀐 게 없으면 묻지도, 보내지도 않는다** — 편집만 켰다 껐거나 제자리로 돌려놓은 경우다.
-   */
+  // 편집 모드를 끄려는 순간.
+  // 바뀐 게 없으면 묻지도, 보내지도 않는다 — 편집만 켰다 껐거나 제자리로 돌려놓은 경우다.
   function toggleArrange() {
     if (!isArranging) {
       setIsArranging(true);
@@ -129,17 +106,13 @@ export default function StepBlocks() {
     setIsArranging(false);
   }
 
-  /**
-   * 새로고침 버튼을 누른 순간.
-   *
-   * ⚠️ **미뤄둔 배치를 먼저 보낸다.** 새 목록이 도착하면 보드가 로컬 순서를 버리고
-   *    `saver.reset()` 으로 대기 중인 배치까지 지운다 — 방금 끈 블록이 조용히 사라진다.
-   *    (화면을 떠날 때 · 블록을 만들 때와 같은 방침)
-   *
-   * 최소 회전 시간을 두는 이유는 눈속임이 아니다. 응답이 100ms 안에 오면 아이콘이
-   * **깜빡이지도 않고** 끝나 "눌리지 않았다" 로 읽힌다. 바뀐 게 없을 때는 화면도
-   * 그대로라 구별할 단서가 아예 없어진다 — 그래서 토스트로 결과도 알린다.
-   */
+  // 새로고침 버튼을 누른 순간.
+  // 미뤄둔 배치를 먼저 보낸다. 새 목록이 도착하면 보드가 로컬 순서를 버리고
+  // saver.reset() 으로 대기 중인 배치까지 지운다 — 방금 끈 블록이 조용히 사라진다.
+  // (화면을 떠날 때·블록을 만들 때와 같은 방침)
+  // 최소 회전 시간을 두는 이유는 눈속임이 아니다. 응답이 100ms 안에 오면 아이콘이
+  // 깜빡이지도 않고 끝나 "눌리지 않았다" 로 읽힌다. 바뀐 게 없을 때는 화면도
+  // 그대로라 구별할 단서가 아예 없어진다 — 그래서 토스트로 결과도 알린다.
   async function handleRefresh() {
     flushLayout.current?.();
     setIsRefreshing(true);
@@ -163,12 +136,9 @@ export default function StepBlocks() {
     }
   }
 
-  /**
-   * 새로 받은 목록에서 방금 만든 블록을 찾아 편집창을 띄운다.
-   *
-   * 목록이 실제로 **달라졌을 때만** 실행된다 — react-query 가 구조 공유로
-   * 내용이 같은 응답에는 같은 참조를 돌려주기 때문이다.
-   */
+  // 새로 받은 목록에서 방금 만든 블록을 찾아 편집창을 띄운다.
+  // 목록이 실제로 달라졌을 때만 실행된다 — react-query 가 구조 공유로
+  // 내용이 같은 응답에는 같은 참조를 돌려주기 때문이다.
   useEffect(() => {
     if (!blocks) return;
 
@@ -178,7 +148,7 @@ export default function StepBlocks() {
     if (!before || before.stepId !== stepId) return;
 
     // 만들자마자 내용을 채워야 하는 유형만 자동으로 띄운다
-    // (TEXT — 본문 편집기 · IMAGE — 이미지 등록 모달)
+    // (TEXT — 본문 편집기·IMAGE — 이미지 등록 모달)
     const created = blocks.find(
       (block) =>
         (block.type === 'TEXT' || block.type === 'IMAGE') &&
@@ -192,16 +162,12 @@ export default function StepBlocks() {
     return () => window.removeEventListener(BLOCK_CHANGED_EVENT, refresh);
   }, [refresh]);
 
-  /**
-   * 다른 사람이 바꾼 배치를 받아오는 지점.
-   *
-   * 서버가 변경을 밀어주는 통로(WebSocket · SSE)가 없어 **실시간 반영은 불가능**하다.
-   * 대신 화면으로 **돌아오는 순간** 다시 읽는다 — 자리를 비운 사이의 변경이 가장 크고,
-   * 보고 있지 않은 동안 주기적으로 찔러 보는 것보다 요청도 적다.
-   *
-   * 나가기 직전에는 미뤄둔 배치를 먼저 보낸다. 그러지 않으면 탭을 옮기는 순간
-   * 마지막 이동이 대기 상태로 남고, 돌아와 재조회하면 그대로 사라진다.
-   */
+  // 다른 사람이 바꾼 배치를 받아오는 지점.
+  // 서버가 변경을 밀어주는 통로(WebSocket·SSE)가 없어 실시간 반영은 불가능하다.
+  // 대신 화면으로 돌아오는 순간 다시 읽는다 — 자리를 비운 사이의 변경이 가장 크고,
+  // 보고 있지 않은 동안 주기적으로 찔러 보는 것보다 요청도 적다.
+  // 나가기 직전에는 미뤄둔 배치를 먼저 보낸다. 그러지 않으면 탭을 옮기는 순간
+  // 마지막 이동이 대기 상태로 남고, 돌아와 재조회하면 그대로 사라진다.
   useEffect(() => {
     function handleVisibility() {
       if (document.visibilityState === 'hidden') {
@@ -287,7 +253,7 @@ export default function StepBlocks() {
           isArranging={isArranging}
           arrangeRef={arrange}
           flushLayoutRef={flushLayout}
-          // 바뀐 순서를 캐시에도 반영한다 — 다음 `블록 추가` 가 옛 좌표로 자리를 잡지 않게
+          // 바뀐 순서를 캐시에도 반영한다 — 다음 블록 추가 가 옛 좌표로 자리를 잡지 않게
           onOrderChanged={setBlocks}
         />
       )}

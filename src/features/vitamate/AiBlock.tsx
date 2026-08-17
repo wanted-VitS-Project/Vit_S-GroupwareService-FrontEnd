@@ -1,5 +1,10 @@
 'use client';
 
+// CSR - 비타메이트 AI 블록: 검토 유형·기준/대상 문서·프롬프트로 분석을 돌리고 결과를 보여준다.
+// 화면은 분석 없음 / 진행 중(폴링) / 실패 / 완료 넷으로 갈린다.
+// "블록의 최신 분석" 전용 API 가 없어 detail.latestAnalysisId 가 있으면 그걸 쓰고,
+// 없으면 이력 목록(최신순)의 첫 건으로 대체한다.
+
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -37,7 +42,7 @@ const AnalysisRunModal = dynamic(loadAnalysisRunModal, {
 });
 const AnalysisHistoryPanel = dynamic(loadAnalysisHistoryPanel, {
   loading: () => (
-    // 실물은 화면 오른쪽 아래 곁패널이다 — 폴백이 가운데 큰 모달이면 청크 도착 때 자리가 튄다
+    // 실물은 화면 오른쪽 아래 곁패널이다 — 폴백이 가운데 큰 모달이면 청크 도착 때 자리가 튄다.
     <ModalLoadingFallback
       title="비타메이트 분석 이력"
       className={SIDE_PANEL_WIDE}
@@ -52,35 +57,23 @@ function preloadAnalysisPanels() {
   void loadAnalysisHistoryPanel();
 }
 
-/**
- * 비타메이트 AI 블록. (검토 유형 · 기준/대상 문서 · 프롬프트 → 분석 결과)
- *
- * 화면이 넷으로 갈린다.
- * - 분석 없음 — 실행 안내
- * - `PENDING`·`PROCESSING` — 진행 중 (폴링)
- * - `FAILED` — 실패 사유 + 재실행
- * - `COMPLETED` — 결과 + 재실행 · 수정
- *
- * ⚠️ **"블록의 최신 분석" 전용 API 가 없다.** `detail.latestAnalysisId` 가 있으면
- *    그걸 쓰고, 없으면 이력 목록(최신순)의 첫 건으로 대체한다.
- */
 export default function AiBlock({ block }: { block: StepBlock }) {
   const { id: projectId } = useParams<{ id: string }>();
   const detail = readVitamateBlockDetail(block.detail);
 
-  /** 지금 보고 있는 분석. 실행 · 재실행하면 새 ID 로 갈아탄다 */
+  // 지금 보고 있는 분석. 실행·재실행하면 새 ID 로 갈아탄다.
   const [analysisId, setAnalysisId] = useState<number | null>(
     detail.latestAnalysisId,
   );
-  /** 최신 분석 ID 를 이력에서 찾는 중인지 — `detail` 에 없을 때만 돈다 */
+  // 최신 분석 ID 를 이력에서 찾는 중인지 — detail 에 없을 때만 돈다.
   const [isResolving, setIsResolving] = useState(
     detail.latestAnalysisId === null,
   );
-  /** 이 화면에서 방금 요청했는지 — 첫 15초를 건너뛸지 정한다 */
+  // 이 화면에서 방금 요청했는지 — 폴링 첫 15초를 건너뛸지 정한다.
   const [justRequested, setJustRequested] = useState(false);
-  /** 최신 분석을 찾다가 실패했는지 — "분석 없음" 과 구분해야 한다 */
+  // 최신 분석을 찾다가 실패했는지 — "분석 없음" 과 구분해야 한다.
   const [resolveError, setResolveError] = useState('');
-  /** 값이 바뀌면 최신 분석을 다시 찾는다 */
+  // 값이 바뀌면 최신 분석을 다시 찾는다.
   const [resolveCount, setResolveCount] = useState(0);
 
   const [isRunModalOpen, setIsRunModalOpen] = useState(false);
@@ -100,16 +93,14 @@ export default function AiBlock({ block }: { block: StepBlock }) {
 
     getBlockAnalyses(block.blockId, signal)
       .then((list) => {
-        // 최신순이라 첫 건이 최신이다
+        // 최신순이라 첫 건이 최신이다.
         if (list.length > 0) setAnalysisId(list[0].analysisId);
         setResolveError('');
       })
       .catch((caught) => {
         if (signal.aborted) return;
-        /*
-         * 삼키면 안 된다 — 실패를 "분석 없음" 으로 보여주면, 이미 결과가 있는데도
-         * 사용자가 새로 실행해서 **같은 분석을 중복 생성**한다.
-         */
+        // 삼키면 안 된다 — 실패를 "분석 없음" 으로 보여주면 이미 결과가 있는데도
+        // 사용자가 새로 실행해서 같은 분석을 중복 생성한다.
         setResolveError(messageOf(caught, '분석 이력을 불러오지 못했습니다.'));
       })
       .finally(() => {
@@ -119,7 +110,7 @@ export default function AiBlock({ block }: { block: StepBlock }) {
     return () => controller.abort();
   }, [block.blockId, detail.latestAnalysisId, resolveCount]);
 
-  /** 같은 설정으로 새 분석을 만든다 — 새 결과를 원하는 것이므로 키를 새로 뽑는다 */
+  // 같은 설정으로 새 분석을 만든다 — 새 결과를 원하는 것이므로 중복 방지 키를 새로 뽑는다.
   async function rerun() {
     if (!analysis || isRerunning) return;
 
@@ -148,7 +139,7 @@ export default function AiBlock({ block }: { block: StepBlock }) {
   }
 
   const label = block.title || '비타메이트 검토';
-  /** 레거시 분석은 유형이 없다 — 재실행하면 400 이 나므로 수정 화면으로 보낸다 */
+  // 레거시 분석은 유형이 없다 — 재실행하면 400 이 나므로 수정 화면으로 보낸다.
   const canRerun = Boolean(analysis?.reviewType && analysis.prompt);
 
   return (
@@ -170,7 +161,7 @@ export default function AiBlock({ block }: { block: StepBlock }) {
               className="h-16 animate-pulse rounded-button-sm bg-bg-hover"
             />
           ) : resolveError ? (
-            // "분석 없음" 으로 보여주면 중복 실행을 부른다
+            // "분석 없음" 으로 보여주면 중복 실행을 부른다.
             <FailureNotice
               message={resolveError}
               onRetry={() => {
@@ -183,10 +174,8 @@ export default function AiBlock({ block }: { block: StepBlock }) {
             <EmptyState onRun={() => setIsRunModalOpen(true)} />
           )
         ) : !analysis ? (
-          /*
-           * 조회가 실패했는데 진행 중 스피너를 계속 돌리면 실패를 놓친다.
-           * 폴링은 뒤에서 계속 재시도하므로 재시도 버튼은 두지 않는다.
-           */
+          // 조회가 실패했는데 진행 중 스피너를 계속 돌리면 실패를 놓친다.
+          // 폴링은 뒤에서 계속 재시도하므로 재시도 버튼은 두지 않는다.
           loadError ? (
             <FailureNotice message={loadError} />
           ) : (
@@ -297,7 +286,7 @@ function idsOf(analysis: Analysis, role: 'REFERENCE' | 'TARGET') {
     .map((document) => document.fileVersionId);
 }
 
-/** 이 결과가 **무엇을 기준으로 무엇을 봤는지** — 결과보다 먼저 읽혀야 한다 */
+// 이 결과가 무엇을 기준으로 무엇을 봤는지 — 결과보다 먼저 읽혀야 한다.
 function RequestSummary({ analysis }: { analysis: Analysis }) {
   const references = analysis.documents.filter(
     (document) => document.documentRole === 'REFERENCE',
@@ -368,12 +357,8 @@ function RoleRow({
   );
 }
 
-/**
- * 조회 실패 안내.
- *
- * "분석 없음"·"진행 중" 과 **눈에 띄게 달라야** 한다 — 같은 모양이면 사용자가
- * 실패를 정상 상태로 오해하고, 이미 있는 분석을 또 실행하게 된다.
- */
+// 조회 실패 안내. "분석 없음"·"진행 중" 과 눈에 띄게 달라야 한다 —
+// 같은 모양이면 실패를 정상 상태로 오해하고 이미 있는 분석을 또 실행하게 된다.
 function FailureNotice({
   message,
   onRetry,
@@ -419,12 +404,8 @@ function EmptyState({ onRun }: { onRun: () => void }) {
   );
 }
 
-/**
- * 진행 중 안내.
- *
- * 결과가 비어 있는 상태를 오류로 오해하지 않게 한다 — 실측 평균 20~30초라
- * 아무 표시도 없으면 멈춘 것처럼 보인다. 2분을 넘기면 문구를 바꾼다.
- */
+// 진행 중 안내. 결과가 비어 있는 상태를 오류로 오해하지 않게 한다 —
+// 실측 평균 20~30초라 아무 표시도 없으면 멈춘 것처럼 보이고, 2분을 넘기면 문구를 바꾼다.
 function RunningState({
   requestedAt,
   isSlow,

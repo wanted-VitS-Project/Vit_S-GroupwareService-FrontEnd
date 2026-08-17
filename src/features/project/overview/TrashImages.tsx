@@ -24,19 +24,14 @@ const PermanentDeleteImagesModal = dynamic(loadPermanentDeleteModal, {
   loading: () => <ModalLoadingFallback title="영구 삭제" />,
 });
 
-/**
- * 휴지통 — 이미지. (명세 109 · 110 · 111번)
- *
- * 문서 휴지통과 조작 방식이 다르다 — **복구 · 영구 삭제 API 가 다건**(`imgIds[]`)이라
- * 건별 버튼 대신 **선택 후 일괄 처리**로 둔다. 한 장만 고르면 그대로 한 건 처리다.
- *
- * ⚠️ 응답에 `imgBlockId` 가 없어 어느 블록의 것인지 알 수 없다 — 묶지 않고 삭제 시각순으로만 늘어놓는다.
- * 복구 · 영구 삭제는 **낙관적으로 처리한다** — 고른 것을 화면에서 먼저 빼고 요청은 뒤에서 보낸다.
- * 끝나면 토스트로 알리고, 실패하면 뺀 것을 되돌린다.
- *
- * ⚠️ 복구는 **이미지가 속한 스텝별로** 권한을 본다. 보낸 것이 다 돌아오지 않을 수 있어,
- *    응답이 오면 **돌아오지 않은 것만 목록에 되살린다.**
- */
+// 휴지통 — 이미지. (명세 109·110·111번)
+// 문서 휴지통과 조작 방식이 다르다 — 복구·영구 삭제 API 가 다건(imgIds[])이라
+// 건별 버튼 대신 선택 후 일괄 처리로 둔다. 한 장만 고르면 그대로 한 건 처리다.
+// 응답에 imgBlockId 가 없어 어느 블록의 것인지 알 수 없다 — 묶지 않고 삭제 시각순으로만 늘어놓는다.
+// 복구·영구 삭제는 낙관적으로 처리한다 — 고른 것을 화면에서 먼저 빼고 요청은 뒤에서 보낸다.
+// 끝나면 토스트로 알리고, 실패하면 뺀 것을 되돌린다.
+// 복구는 이미지가 속한 스텝별로 권한을 본다. 보낸 것이 다 돌아오지 않을 수 있어,
+// 응답이 오면 돌아오지 않은 것만 목록에 되살린다.
 export default function TrashImages() {
   const params = useParams<{ id: string }>();
   const projectId = params.id;
@@ -80,12 +75,9 @@ export default function TrashImages() {
     });
   }
 
-  /**
-   * 고른 것을 화면에서 뺀다 — 되돌릴 수 있게 뺀 항목을 그대로 돌려준다.
-   *
-   * `of` 는 **요청을 시작한 시점**의 `projectId` 다. 낙관적 처리라 응답이 늦게 오는데,
-   * 그 사이 다른 프로젝트로 옮겨 갔으면 지금 목록은 남의 휴지통이다.
-   */
+  // 고른 것을 화면에서 뺀다 — 되돌릴 수 있게 뺀 항목을 그대로 돌려준다.
+  // of 는 요청을 시작한 시점의 projectId 다. 낙관적 처리라 응답이 늦게 오는데,
+  // 그 사이 다른 프로젝트로 옮겨 갔으면 지금 목록은 남의 휴지통이다.
   function takeSelected(of: string) {
     const taken = images?.filter((image) => selectedIds.has(image.imgId)) ?? [];
 
@@ -104,13 +96,10 @@ export default function TrashImages() {
     return taken;
   }
 
-  /**
-   * 되돌리기 — 삭제 시각 내림차순 자리를 지킨다.
-   * 순번으로 끼워 넣으면 그 사이 다른 요청이 목록을 바꿨을 때 자리가 어긋난다.
-   *
-   * ⚠️ 프로젝트를 확인하지 않으면 **남의 이미지가 이 휴지통에 꽂힌다** — 그 상태로
-   *    복구 · 영구 삭제까지 누를 수 있어 되돌리기가 조회보다 위험하다.
-   */
+  // 되돌리기 — 삭제 시각 내림차순 자리를 지킨다.
+  // 순번으로 끼워 넣으면 그 사이 다른 요청이 목록을 바꿨을 때 자리가 어긋난다.
+  // 프로젝트를 확인하지 않으면 남의 이미지가 이 휴지통에 꽂힌다 — 그 상태로
+  // 복구·영구 삭제까지 누를 수 있어 되돌리기가 조회보다 위험하다.
   function putBack(of: string, taken: TrashImage[]) {
     if (taken.length === 0) return;
 
@@ -146,7 +135,7 @@ export default function TrashImages() {
       .then((restored) => {
         const restoredIds = new Set(restored.map((image) => image.imgId));
 
-        // 권한을 스텝별로 보므로 **돌아오지 않은 것**은 아직 휴지통에 있다
+        // 권한을 스텝별로 보므로 돌아오지 않은 것은 아직 휴지통에 있다
         const rejected = taken.filter((image) => !restoredIds.has(image.imgId));
         putBack(of, rejected);
 
@@ -177,9 +166,9 @@ export default function TrashImages() {
       .then(() => {
         notifyToast(`이미지 ${taken.length}장을 영구 삭제했습니다.`);
         /*
-         * 응답이 `null` 이라 **몇 장이 실제로 지워졌는지 알 수 없다.**
+         * 응답이 null 이라 몇 장이 실제로 지워졌는지 알 수 없다.
          * 화면에서 뺀 것은 예상일 뿐이라, 성공하면 서버 상태로 맞춘다.
-         * (복구는 응답 `images[]` 가 결과를 알려 줘서 다시 읽지 않는다)
+         * (복구는 응답 images[] 가 결과를 알려 줘서 다시 읽지 않는다)
          */
         if (of === projectId) setReloadCount((count) => count + 1);
       })

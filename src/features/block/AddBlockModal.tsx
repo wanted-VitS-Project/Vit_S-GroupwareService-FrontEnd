@@ -21,10 +21,8 @@ import {
 interface AddBlockModalProps {
   /** 헤더 배지에 노출할 스텝 이름 */
   stepName: string;
-  /**
-   * 현재 스텝의 블록 — 새 블록이 들어갈 자리를 계산하는 데만 쓴다.
-   * 아직 못 불러왔으면 `null`, 이때는 위치를 보내지 않고 서버 기본값(맨 아래)에 맡긴다.
-   */
+  // 현재 스텝의 블록 — 새 블록이 들어갈 자리를 계산하는 데만 쓴다.
+  // 아직 못 불러왔으면 null, 이때는 위치를 보내지 않고 서버 기본값(맨 아래)에 맡긴다.
   blocks: StepBlock[] | null;
   onClose: () => void;
   /** 생성 요청 직전 — 미뤄둔 배치 저장을 먼저 흘려보낼 때 쓴다 */
@@ -33,10 +31,8 @@ interface AddBlockModalProps {
   onCreated?: () => void;
 }
 
-/**
- * 스텝 화면에 블록을 추가하는 모달.
- * `type` 만 필수다 — 제목(`title`)은 비워도 생성된다. (.ai/API.md 9번)
- */
+// 스텝 화면에 블록을 추가하는 모달.
+// type 만 필수다 — 제목(title)은 비워도 생성된다. (.ai/API.md 9번)
 export default function AddBlockModal({
   stepName,
   blocks,

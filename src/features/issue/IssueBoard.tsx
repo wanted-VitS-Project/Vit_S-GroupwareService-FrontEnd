@@ -1,5 +1,9 @@
 'use client';
 
+// CSR - 스텝 이슈 보드: 상태 3열 칸반. 서버가 필터·정렬을 하지 않아 첫 조회만 마감일 순으로 세우고,
+// 이후에는 화면이 들고 있는 순서를 따른다 — 새로 만들거나 상태를 바꾼 이슈가 열 맨 위에 오게 하기 위함.
+// 상태 변경은 드래그로만 한다. 화면을 먼저 옮기고 API 를 호출하며 실패하면 원래 자리로 되돌린다.
+
 import dynamic from 'next/dynamic';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -26,13 +30,9 @@ import {
   type IssueSummary,
 } from './types';
 
-/**
- * 재조회 결과를 **화면에 있던 순서 그대로** 앉힌다.
- *
- * 첫 조회만 마감일 순으로 세운다 — 이후에도 매번 다시 세우면, 마감일 하나만 고쳐도
- * 보드 전체가 뒤섞여 방금 무엇을 고쳤는지 눈으로 좇을 수 없다.
- * 화면에 없던 건(그 사이 남이 만든 이슈)은 마감일 순으로 **뒤에** 붙여 기존 줄을 밀지 않는다.
- */
+// 재조회 결과를 화면에 있던 순서 그대로 앉힌다.
+// 매번 다시 세우면 마감일 하나만 고쳐도 보드 전체가 뒤섞여 무엇을 고쳤는지 좇을 수 없다.
+// 화면에 없던 건(그 사이 남이 만든 이슈)은 마감일 순으로 뒤에 붙여 기존 줄을 밀지 않는다.
 function keepOrder(
   previous: IssueSummary[] | null,
   next: IssueSummary[],
@@ -81,7 +81,7 @@ function preloadIssueModals() {
   void loadIssueFormModal();
 }
 
-/** 지금 열려 있는 모달 — 한 번에 하나만 뜬다 */
+// 지금 열려 있는 모달 — 한 번에 하나만 뜬다.
 type OpenModal =
   | { kind: 'detail'; issueId: number }
   | { kind: 'create' }
@@ -89,12 +89,8 @@ type OpenModal =
   | { kind: 'delete'; issueId: number }
   | null;
 
-/**
- * 알림 딥링크(`?issue=`)를 상세 모달로 바꾼다.
- *
- * 이슈는 단독 화면이 없어 보드까지만 데려가면 어느 이슈였는지 사용자가 다시 찾아야 한다.
- * 못 믿을 값(빈 값 · 음수 · 소수)이면 열지 않는다 — 없는 이슈로 빈 모달을 띄우지 않는다.
- */
+// 알림 딥링크(?issue=)를 상세 모달로 바꾼다 — 이슈는 단독 화면이 없어 보드까지만
+// 데려가면 어느 이슈였는지 다시 찾아야 한다. 못 믿을 값(빈 값·음수·소수)이면 열지 않는다.
 function deepLinkModal(issueParam: string | null): OpenModal {
   if (issueParam === null) return null;
 
@@ -104,16 +100,6 @@ function deepLinkModal(issueParam: string | null): OpenModal {
   return { kind: 'detail', issueId };
 }
 
-/**
- * 스텝 이슈 보드 — 상태 3열 칸반. (.ai/API.md 55~60번)
- *
- * 서버는 필터 · 정렬을 하지 않는다. **첫 조회만 마감일 순(미지정 마지막)** 으로 세우고,
- * 그 뒤로는 화면이 들고 있는 순서를 따른다 — 새로 만들거나 상태를 바꾼 이슈가
- * 해당 열 **맨 위**에 오게 하기 위함이다. (서버에 순서 저장 기능이 없어 새로고침하면 다시 마감일 순)
- *
- * 상태 변경은 **드래그로만** 한다. 상세 모달은 현재 상태를 보여주기만 한다.
- * 드래그는 화면을 먼저 옮기고 API 를 호출하며, 실패하면 원래 자리로 되돌린다.
- */
 export default function IssueBoard() {
   const params = useParams<{ id: string; stepId: string }>();
   const projectId = params.id;
@@ -121,39 +107,31 @@ export default function IssueBoard() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  /** 알림에서 넘어온 이슈 — 있으면 그 상세 모달을 열고 온다 */
+  // 알림에서 넘어온 이슈 — 있으면 그 상세 모달을 열고 온다.
   const requestedIssueId = searchParams.get(ISSUE_PARAM);
 
-  /** 어느 스텝의 응답인지 함께 담는다 — 경로가 바뀌면 즉시 무효가 된다 */
+  // 어느 스텝의 응답인지 함께 담는다 — 경로가 바뀌면 즉시 무효가 된다.
   const [loaded, setLoaded] = useState<{
     stepId: string;
     issues: IssueSummary[];
   } | null>(null);
   const [failedStepId, setFailedStepId] = useState<string | null>(null);
-  /** 값이 바뀌면 목록을 다시 불러온다 */
+  // 값이 바뀌면 목록을 다시 불러온다.
   const [reloadCount, setReloadCount] = useState(0);
-  /** 상태 변경 실패처럼 화면을 막지 않는 오류 */
+  // 상태 변경 실패처럼 화면을 막지 않는 오류.
   const [errorMessage, setErrorMessage] = useState('');
 
-  /**
-   * 스텝 권한 · 이름. **어느 스텝의 응답인지 함께 담는다.**
-   *
-   * ⚠️ 값만 들고 있으면 경로를 옮긴 뒤 도착한 이전 스텝의 응답이 현재 화면을 덮어
-   *    `VIEWER` 에게 생성 · 수정 · 삭제 · 드래그가 열릴 수 있다.
-   */
+  // 스텝 권한·이름. 어느 스텝의 응답인지 함께 담는다 — 값만 들고 있으면 경로를 옮긴 뒤
+  // 도착한 이전 스텝의 응답이 화면을 덮어 VIEWER 에게 생성·수정·삭제·드래그가 열릴 수 있다.
   const [permission, setPermission] = useState<{
     key: string;
     canEdit: boolean;
     stepName: string;
   } | null>(null);
 
-  /**
-   * 열린 모달 + **그 값을 만들어 낸 `?issue=` 파라미터**를 함께 들고 있다.
-   *
-   * 딥링크를 이펙트에서 반영하면 보드가 한 번 그려진 뒤 모달이 뒤늦게 떠 화면이 튄다
-   * (`react-hooks/set-state-in-effect` 도 막는다). 파라미터를 함께 기억해 두고
-   * **렌더 중에** 어긋남을 맞추면, 같은 화면에 머문 채 다른 알림을 눌러도 바로 잡힌다.
-   */
+  // 열린 모달 + 그 값을 만들어 낸 ?issue= 파라미터를 함께 들고 있다.
+  // 딥링크를 이펙트에서 반영하면 보드가 그려진 뒤 모달이 뒤늦게 떠 화면이 튄다.
+  // 파라미터를 함께 기억해 렌더 중에 어긋남을 맞추면 같은 화면에서 다른 알림을 눌러도 바로 잡힌다.
   const [modal, setModal] = useState<{
     fromParam: string | null;
     open: OpenModal;
@@ -171,18 +149,14 @@ export default function IssueBoard() {
 
   const openModal = modal.open;
 
-  /**
-   * `requestedIssueId` 가 의존성이라 **딥링크로 들어온 순간에만** 정체성이 바뀐다 —
-   * 평소에는 고정이라 아래 `openDetail` 등을 통해 `IssueCard` 의 memo 를 깨지 않는다.
-   */
+  // requestedIssueId 가 의존성이라 딥링크로 들어온 순간에만 정체성이 바뀐다 —
+  // 평소에는 고정이라 openDetail 등을 통해 IssueCard 의 memo 를 깨지 않는다.
   const setOpenModal = useCallback(
     (open: OpenModal) => {
       setModal((prev) => ({ ...prev, open }));
 
-      /*
-        딥링크로 열린 모달을 닫으면 주소도 정리한다 —
-        `?issue=` 를 남겨두면 새로고침 · 뒤로 가기에 같은 모달이 계속 되살아난다.
-      */
+      // 딥링크로 열린 모달을 닫으면 주소도 정리한다 —
+      // ?issue= 를 남겨두면 새로고침·뒤로 가기에 같은 모달이 계속 되살아난다.
       if (open === null && requestedIssueId !== null) {
         router.replace(PROJECT_ROUTES.stepIssues(projectId, stepId), {
           scroll: false,
@@ -192,16 +166,13 @@ export default function IssueBoard() {
     [router, projectId, stepId, requestedIssueId],
   );
 
-  // 드래그 상태
+  // 드래그 상태 — 끌고 있는 카드와 지금 올라간 열.
   const [draggingId, setDraggingId] = useState<number | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<IssueStatus | null>(
     null,
   );
-  /**
-   * 드래그 직후의 클릭으로 상세가 열리지 않게 한 박자 물린다.
-   * 화면에 안 보이는 값이라 state 가 아니라 ref 로 둔다 — state 면 드래그마다
-   * 보드 전체가 두 번(잠금 · 해제) 더 그려진다.
-   */
+  // 드래그 직후의 클릭으로 상세가 열리지 않게 한 박자 물린다.
+  // 화면에 안 보이는 값이라 ref 로 둔다 — state 면 드래그마다 보드 전체가 두 번 더 그려진다.
   const didDragRef = useRef(false);
   const moveAnimation = useIssueMoveAnimation();
 
@@ -211,20 +182,17 @@ export default function IssueBoard() {
 
     getStepIssues(stepId, { signal })
       .then((issues) => {
-        /*
-          ⭐ **직전 목록을 지우지 않고 값만 갈아끼운다** — 재조회 중에도 카드가 그대로
-             남아 깜빡이지 않는다. 순서도 화면에 있던 것을 그대로 지킨다 (`keepOrder`).
-        */
+        // 직전 목록을 지우지 않고 값만 갈아끼운다 — 재조회 중에도 카드가 남아 깜빡이지 않는다.
         setLoaded((prev) =>
           keepOrder(prev?.stepId === stepId ? prev.issues : null, issues, {
             stepId,
           }),
         );
-        // 같은 스텝에서 재조회가 성공하면 이전 실패를 지운다
+        // 같은 스텝에서 재조회가 성공하면 이전 실패를 지운다.
         setFailedStepId((failed) => (failed === stepId ? null : failed));
       })
       .catch((caught) => {
-        // 취소는 실패가 아니다
+        // 취소는 실패가 아니다.
         if (!isAbortError(caught)) setFailedStepId(stepId);
       });
 
@@ -233,7 +201,7 @@ export default function IssueBoard() {
 
   const permissionKey = `${projectId}:${stepId}`;
 
-  // 스텝 상세 조회 API 가 없어 프로젝트 스텝 목록에서 권한 · 이름을 찾는다
+  // 스텝 상세 조회 API 가 없어 프로젝트 스텝 목록에서 권한·이름을 찾는다.
   useEffect(() => {
     const controller = new AbortController();
 
@@ -246,13 +214,13 @@ export default function IssueBoard() {
           stepName: step?.name ?? '',
         });
       })
-      // 권한을 못 읽으면 보기 전용으로 둔다 — 눌러도 서버가 403 을 줄 뿐이다
+      // 권한을 못 읽으면 보기 전용으로 둔다 — 눌러도 서버가 403 을 줄 뿐이다.
       .catch(() => undefined);
 
     return () => controller.abort();
   }, [projectId, stepId]);
 
-  // 다른 스텝의 응답은 쓰지 않는다 — 확인되기 전까지는 보기 전용이다
+  // 다른 스텝의 응답은 쓰지 않는다 — 확인되기 전까지는 보기 전용이다.
   const current = permission?.key === permissionKey ? permission : null;
   const canEdit = current?.canEdit ?? false;
   const stepName = current?.stepName ?? '';
@@ -260,19 +228,14 @@ export default function IssueBoard() {
   const issues = loaded?.stepId === stepId ? loaded.issues : null;
   const hasFailed = failedStepId === stepId;
 
-  /**
-   * 서버에서 목록을 다시 읽는다. **깜빡이지 않는다** — 직전 목록을 지우지 않고
-   * 도착한 값으로 덮어쓰기만 하며, 순서도 `keepOrder` 가 그대로 지킨다.
-   *
-   * ⚠️ 생성 · 수정 응답만 믿고 화면을 갈면 **응답에 없는 필드가 옛값으로 남는다**
-   *    (우선순위를 바꿔도 카드가 그대로였던 원인). 낙관적 반영으로 즉시 보여 주되
-   *    곧바로 재조회해 서버 값과 맞춘다.
-   */
+  // 서버에서 목록을 다시 읽는다 — 직전 목록을 지우지 않고 덮어쓰기만 해 깜빡이지 않는다.
+  // 생성·수정 응답만 믿고 화면을 갈면 응답에 없는 필드가 옛값으로 남는다.
+  // 낙관적 반영으로 즉시 보여 주되 곧바로 재조회해 서버 값과 맞춘다.
   function refresh() {
     setReloadCount((count) => count + 1);
   }
 
-  /** 목록을 통째로 갈지 않고 한 건만 갈아끼운다 — 스크롤 · 드래그 상태를 지킨다 */
+  // 목록을 통째로 갈지 않고 한 건만 갈아끼운다 — 스크롤·드래그 상태를 지킨다.
   function replaceIssue(next: IssueDetail | IssueSummary) {
     setLoaded((prev) =>
       prev === null
@@ -286,12 +249,12 @@ export default function IssueBoard() {
     );
   }
 
-  /** 새 이슈는 열 맨 위에 놓는다 — 방금 만든 것이 눈에 보여야 한다 */
+  // 새 이슈는 열 맨 위에 놓는다 — 방금 만든 것이 눈에 보여야 한다.
   function addIssue(created: IssueDetail) {
     setLoaded((prev) =>
       prev === null ? prev : { ...prev, issues: [created, ...prev.issues] },
     );
-    // 이슈 개수가 늘어 스텝 진척률이 바뀐다
+    // 이슈 개수가 늘어 스텝 진척률이 바뀐다.
     notifyIssueChanged();
   }
 
@@ -304,11 +267,11 @@ export default function IssueBoard() {
             issues: prev.issues.filter((issue) => issue.issueId !== issueId),
           },
     );
-    // 삭제분은 집계에서 빠진다 — 진척률이 바뀐다
+    // 삭제분은 집계에서 빠진다 — 진척률이 바뀐다.
     notifyIssueChanged();
   }
 
-  /** 상태를 바꾸고 목록 맨 앞으로 옮긴다 — 옮긴 이슈가 새 열의 맨 위에 보이게 */
+  // 상태를 바꾸고 목록 맨 앞으로 옮긴다 — 옮긴 이슈가 새 열의 맨 위에 보이게.
   function moveToFront(issue: IssueSummary, status: IssueStatus) {
     moveAnimation.capture();
     setLoaded((prev) =>
@@ -326,7 +289,7 @@ export default function IssueBoard() {
     );
   }
 
-  /** 실패 시 원래 상태 · 원래 자리로 되돌린다 */
+  // 실패 시 원래 상태·원래 자리로 되돌린다.
   function restoreAt(issue: IssueSummary, index: number) {
     moveAnimation.capture();
     setLoaded((prev) => {
@@ -340,20 +303,12 @@ export default function IssueBoard() {
     });
   }
 
-  /**
-   * 상태 변경이 나가 있는 이슈. 응답 전에 같은 이슈를 또 옮기면
-   * 먼저 실패한 요청이 나중에 성공한 이동을 되돌려 **서버와 화면이 갈린다.**
-   * 그래서 이슈 단위로 한 번에 하나만 보낸다.
-   */
+  // 상태 변경이 나가 있는 이슈. 응답 전에 같은 이슈를 또 옮기면 먼저 실패한 요청이
+  // 나중에 성공한 이동을 되돌려 서버와 화면이 갈린다 — 이슈 단위로 한 번에 하나만 보낸다.
   const sendingStatusRef = useRef(new Set<number>());
 
-  /**
-   * 화면을 먼저 옮기고 호출한다. 실패하면 되돌린다 (명세 59번)
-   *
-   * ⚠️ **낙관적 락이다** (2026-08-12) — 카드가 든 `version` 을 실어 보낸다.
-   *    409 면 최신값을 읽어, 남이 이미 같은 상태로 바꿔 뒀으면 **버전만 맞추고**
-   *    다른 상태로 바꿨으면 **카드를 그 상태로 되돌린다.**
-   */
+  // 화면을 먼저 옮기고 호출한다. 실패하면 되돌린다.
+  // 낙관적 락이라 카드가 든 version 을 실어 보내고, 409 면 최신값을 읽어 카드를 맞춘다.
   async function changeStatus(issueId: number, status: IssueStatus) {
     const index = issues?.findIndex((issue) => issue.issueId === issueId) ?? -1;
     const before = index >= 0 ? issues?.[index] : undefined;
@@ -366,12 +321,9 @@ export default function IssueBoard() {
 
     try {
       const changed = await updateIssueStatus(issueId, status, before.version);
-      /*
-       * 상태 변경도 issue 버전을 올린다 — 옛 값을 들고 있으면 다음 수정이 409 라
-       * 새 값으로 갈아끼운다.
-       */
+      // 상태 변경도 버전을 올린다 — 옛 값을 들고 있으면 다음 수정이 409 라 새 값으로 갈아끼운다.
       replaceIssue({ ...before, status, version: changed.version });
-      // 스텝 · 프로젝트 진척률이 바뀐다 — 사이드바가 다시 읽게 알린다
+      // 스텝·프로젝트 진척률이 바뀐다 — 사이드바가 다시 읽게 알린다.
       notifyIssueChanged();
     } catch (caught) {
       if (isIssueVersionConflict(caught)) {
@@ -385,7 +337,7 @@ export default function IssueBoard() {
     }
   }
 
-  /** 409 뒷처리 — 최신 상태 · 버전으로 카드를 맞춘다 */
+  // 409 뒷처리 — 최신값을 읽어 카드의 상태·버전을 맞춘다.
   async function syncAfterConflict(
     issueId: number,
     wanted: IssueStatus,
@@ -407,7 +359,7 @@ export default function IssueBoard() {
       return;
     }
 
-    // 남이 이미 같은 상태로 옮겨 뒀다 — 카드는 그대로 두고 버전만 맞춘다
+    // 남이 이미 같은 상태로 옮겨 뒀다 — 카드는 그대로 두고 버전만 맞춘다.
     if (latest.status === wanted) {
       replaceIssue(latest);
       notifyIssueChanged();
@@ -428,7 +380,7 @@ export default function IssueBoard() {
     (event: React.DragEvent, issue: IssueSummary) => {
       setDraggingId(issue.issueId);
       didDragRef.current = true;
-      // 카드 전체 대신 제목만 따라오게 한다 — 열 사이 이동이 한눈에 보인다
+      // 카드 전체 대신 제목만 따라오게 한다 — 열 사이 이동이 한눈에 보인다.
       const ghost = document.createElement('div');
       ghost.textContent = issue.title;
       ghost.style.cssText =
@@ -436,7 +388,7 @@ export default function IssueBoard() {
       document.body.appendChild(ghost);
       event.dataTransfer.setDragImage(ghost, 60, 16);
       event.dataTransfer.effectAllowed = 'move';
-      // 다음 프레임에 지운다 — 즉시 지우면 드래그 이미지가 잡히지 않는다
+      // 다음 프레임에 지운다 — 즉시 지우면 드래그 이미지가 잡히지 않는다.
       requestAnimationFrame(() => ghost.remove());
     },
     [],
@@ -445,16 +397,16 @@ export default function IssueBoard() {
   const handleDragEnd = useCallback(() => {
     setDraggingId(null);
     setDragOverStatus(null);
-    // 클릭 이벤트가 지나간 뒤에 잠금을 푼다
+    // 클릭 이벤트가 지나간 뒤에 잠금을 푼다.
     setTimeout(() => {
       didDragRef.current = false;
     }, 0);
   }, []);
 
-  /** 카드마다 새 함수를 만들지 않도록 대상 ID 를 인자로 받는다 (`IssueCard` 는 memo) */
+  // 카드마다 새 함수를 만들지 않도록 대상 ID 를 인자로 받는다 (IssueCard 는 memo).
   const openDetail = useCallback(
     (issueId: number) => {
-      // 드래그를 끝낸 직후의 클릭은 무시한다
+      // 드래그를 끝낸 직후의 클릭은 무시한다.
       if (didDragRef.current) return;
       setOpenModal({ kind: 'detail', issueId });
     },
@@ -540,17 +492,17 @@ export default function IssueBoard() {
       {!issues ? (
         <IssueBoardSkeleton />
       ) : (
-        // 열을 세로로 끝까지 늘려 카드가 없는 아래쪽에 놓아도 드롭이 잡히게 한다
+        // 열을 세로로 끝까지 늘려 카드가 없는 아래쪽에 놓아도 드롭이 잡히게 한다.
         /*
           좁은 화면에서는 3열을 유지할 수 없다 — 한 열이 100px 남짓이 되어 이슈 제목이
-          한 글자씩 끊긴다. 상태별로 **위에서 아래로** 쌓는다 (`md` = 768px 부터 칸반).
+          한 글자씩 끊긴다. 상태별로 위에서 아래로 쌓는다 (md = 768px 부터 칸반).
           드래그로 상태를 옮기는 조작은 어차피 마우스 전용(HTML5 DnD)이라 잃는 것이 없다.
         */
         <div className="grid grid-cols-1 items-stretch gap-3 md:min-h-[60vh] md:grid-cols-3">
           {ISSUE_STATUS_ORDER.map((status) => {
             const { badge, dot, columnBg, columnRing } =
               ISSUE_STATUS_STYLES[status];
-            // 정렬은 첫 조회에서 끝났다 — 여기서는 목록 순서를 그대로 따른다
+            // 정렬은 첫 조회에서 끝났다 — 여기서는 목록 순서를 그대로 따른다.
             const columnIssues = issues.filter(
               (issue) => issue.status === status,
             );
@@ -567,12 +519,12 @@ export default function IssueBoard() {
                   if (!canEdit) return;
                   event.preventDefault();
                   event.dataTransfer.dropEffect = 'move';
-                  // dragover 는 커서를 멈춰도 계속 들어온다.
-                  // 값이 그대로일 때 setState 를 부르면 보드 전체가 초당 수십 번 다시 그려진다
+                  // dragover 는 커서를 멈춰도 계속 들어온다 — 값이 그대로일 때 setState 를 부르면
+                  // 보드 전체가 초당 수십 번 다시 그려진다.
                   if (dragOverStatus !== status) setDragOverStatus(status);
                 }}
                 onDragLeave={(event) => {
-                  // 자식(카드) 로 옮겨갈 때도 dragleave 가 뜬다 — 열 밖으로 나갈 때만 지운다
+                  // 자식(카드)으로 옮겨갈 때도 dragleave 가 뜬다 — 열 밖으로 나갈 때만 지운다.
                   const next = event.relatedTarget;
                   if (
                     next instanceof Node &&
@@ -586,7 +538,7 @@ export default function IssueBoard() {
                   if (draggingId !== null) changeStatus(draggingId, status);
                   handleDragEnd();
                 }}
-                // 배경 · 테두리만 바꾼다 (ring 은 자리를 차지하지 않아 카드가 밀리지 않는다)
+                // 배경·테두리만 바꾼다 (ring 은 자리를 차지하지 않아 카드가 밀리지 않는다).
                 className={`-m-2 flex flex-col rounded-base p-2 transition-colors ${
                   showDropHint ? `${columnBg} ring-2 ${columnRing}` : ''
                 }`}
@@ -608,11 +560,7 @@ export default function IssueBoard() {
                   )}
                 </div>
 
-                {/*
-                  드롭 자리표시자는 두지 않는다 — 카드 위에 상자가 끼어들면
-                  나머지 카드가 아래로 밀려 화면이 흔들린다. 열 색과 머리 문구로만 알린다.
-                */}
-
+                {/* 드롭 자리표시자는 두지 않는다 — 카드가 아래로 밀려 화면이 흔들린다. 열 색과 머리 문구로만 알린다 */}
                 {/* 남는 공간까지 이 영역이 차지해야 아래쪽 빈 자리도 드롭 대상이 된다 */}
                 <div className="flex flex-1 flex-col gap-2">
                   {columnIssues.map((issue) => (
@@ -671,7 +619,7 @@ export default function IssueBoard() {
           onSaved={(created) => {
             addIssue(created);
             setOpenModal(null);
-            // 생성 응답에 없는 필드까지 서버 값으로 맞춘다
+            // 생성 응답에 없는 필드까지 서버 값으로 맞춘다.
             refresh();
           }}
         />
@@ -687,7 +635,7 @@ export default function IssueBoard() {
           onSaved={(updated) => {
             replaceIssue(updated);
             setOpenModal(null);
-            // 우선순위처럼 수정 응답이 빠뜨리는 값이 옛것으로 남지 않게 다시 읽는다
+            // 우선순위처럼 수정 응답이 빠뜨리는 값이 옛것으로 남지 않게 다시 읽는다.
             refresh();
           }}
         />

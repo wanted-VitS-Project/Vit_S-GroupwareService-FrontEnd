@@ -17,14 +17,11 @@ interface RemoveMemberModalProps {
   onRemoved: () => void;
 }
 
-/**
- * 참여자 제거 확인. (.ai/API.md 127)
- *
- * ⚠️ **되돌릴 수 없다** — `project_member` 에 soft delete 가 없어 행이 물리적으로 사라진다.
- *    그래서 폼 모달이 아니라 `AlertDialog` 로 확인만 받는다.
- * ⭐ **그 프로젝트 스텝의 권한 오버라이드도 함께 지워진다** (2026-08-06) — 문구로 알린다.
- *    이걸 안 알리면 "스텝 권한은 남겠지" 하고 뺐다가 나중에 다시 넣을 때 설정이 사라져 당황한다.
- */
+// 참여자 제거 확인. (.ai/API.md 127)
+// 되돌릴 수 없다 — project_member 에 soft delete 가 없어 행이 물리적으로 사라진다.
+// 그래서 폼 모달이 아니라 AlertDialog 로 확인만 받는다.
+// 그 프로젝트 스텝의 권한 오버라이드도 함께 지워진다 (2026-08-06) — 문구로 알린다.
+// 이걸 안 알리면 "스텝 권한은 남겠지" 하고 뺐다가 나중에 다시 넣을 때 설정이 사라져 당황한다.
 export default function RemoveMemberModal({
   projectId,
   member,

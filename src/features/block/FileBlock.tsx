@@ -1,5 +1,8 @@
 'use client';
 
+// CSR - 문서 업로드 블록: 목록은 blockId 로 바로 조회한다 — 체크리스트·텍스트와 달리
+// detail 의 상세 ID 가 필요하지 않다. 편집 버튼 노출은 응답의 canEdit 을 따른다.
+
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -39,11 +42,8 @@ import BlockCard from './BlockCard';
 import { FileListSkeleton } from './BlockSkeletons';
 import type { StepBlock } from './types';
 
-/**
- * 뷰어는 pdfjs 를 끌고 오므로 초기 번들에서 분리한다.
- * 문서 목록에 마우스를 올리는 순간 `preloadPdfViewer` 가 먼저 받아 두기 때문에
- * 실제로 열 때는 이미 캐시에 있다.
- */
+// 뷰어는 pdfjs 를 끌고 오므로 초기 번들에서 분리한다.
+// 목록에 마우스를 올리는 순간 미리 받아 두기 때문에 실제로 열 때는 이미 캐시에 있다.
 const FileViewerModal = dynamic(
   () => import('@/features/file/FileViewerModal'),
   { ssr: false, loading: () => <FileViewerFallback /> },
@@ -63,13 +63,8 @@ function preloadFileModals() {
   void loadTrashFileModal();
 }
 
-/**
- * 청크가 아직 도착하지 않았을 때의 자리.
- *
- * `loading` 을 넘기지 않으면 `next/dynamic` 이 `null` 을 그려서, 문서를 눌러도
- * **아무 반응이 없는 것처럼** 보인다. hover 프리로드가 대부분 앞서 끝내지만
- * 바로 클릭했거나 회선이 느리면 이 화면이 잠깐 뜬다.
- */
+// 청크가 아직 도착하지 않았을 때의 자리.
+// loading 을 넘기지 않으면 next/dynamic 이 null 을 그려 문서를 눌러도 아무 반응이 없어 보인다.
 function FileViewerFallback() {
   return (
     <Modal
@@ -84,10 +79,10 @@ function FileViewerFallback() {
   );
 }
 
-/** 프리로드는 한 번이면 된다 */
+// 프리로드는 한 번이면 된다.
 let isViewerPreloaded = false;
 
-/** 문서 목록에 마우스가 닿는 순간 뷰어 청크 · pdf.js 워커를 미리 받는다 */
+// 문서 목록에 마우스가 닿는 순간 뷰어 청크·pdf.js 워커를 미리 받는다.
 function preloadViewer() {
   if (isViewerPreloaded) return;
   isViewerPreloaded = true;
@@ -96,18 +91,16 @@ function preloadViewer() {
   preloadPdfViewer();
 }
 
-/** 업로드가 끊긴 지점별 안내 — 사용자가 다음에 뭘 할지 알 수 있게 나눈다 */
+// 업로드가 끊긴 지점별 안내 — 사용자가 다음에 뭘 할지 알 수 있게 나눈다.
 const STAGE_HINT: Record<UploadStage, string> = {
   start: '',
   transfer: ' 저장소 전송 중 끊겼습니다.',
   complete: ' 파일은 올라갔지만 마무리에 실패했습니다. 다시 시도해주세요.',
 };
 
-/**
- * 잡힌 값에서 안내 문구를 꺼낸다.
- * `'stage' in caught` 는 속성 존재만 보장하므로 **값이 실제 키인지 확인**한다 —
- * 단언으로 넘기면 모르는 값이 왔을 때 화면에 `undefined` 가 그대로 붙는다.
- */
+// 잡힌 값에서 안내 문구를 꺼낸다.
+// 'stage' in caught 는 속성 존재만 보장하므로 값이 실제 키인지 확인한다 —
+// 단언으로 넘기면 모르는 값이 왔을 때 화면에 undefined 가 그대로 붙는다.
 function stageHintOf(caught: unknown) {
   if (typeof caught !== 'object' || caught === null || !('stage' in caught)) {
     return '';
@@ -119,15 +112,6 @@ function stageHintOf(caught: unknown) {
     : '';
 }
 
-/**
- * 문서 업로드 블록.
- *
- * 목록은 `blockId` 로 바로 조회한다 — 체크리스트 · 텍스트와 달리 `detail` 의
- * 상세 ID 가 필요하지 않다. 편집 버튼 노출은 응답의 `canEdit` 을 따른다.
- *
- * ⚠️ **휴지통 복구 · 영구 삭제**는 다음 작업 범위다 (휴지통 화면 목업 대기).
- *    휴지통으로 보내는 것과 뷰어 · 미리보기는 이 컴포넌트에서 이미 지원한다.
- */
 export default function FileBlock({ block }: { block: StepBlock }) {
   const [loaded, setLoaded] = useState<BlockFilesResponse | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
@@ -137,26 +121,24 @@ export default function FileBlock({ block }: { block: StepBlock }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [editingFileId, setEditingFileId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState('');
-  /** 뷰어로 열어둔 문서 */
+  // 뷰어로 열어둔 문서.
   const viewerModal = useModalTarget<BlockFile>();
   const trashModal = useModalTarget<BlockFile>();
-  /**
-   * 동명 문서 확인 대기 — 고른 대로 같은 파일을 다시 올린다.
-   * `sameNameFileId` 가 있으면 그 문서의 **새 버전**으로 올리는 길도 함께 연다.
-   */
+  // 동명 문서 확인 대기 — 고른 대로 같은 파일을 다시 올린다.
+  // sameNameFileId 가 있으면 그 문서의 새 버전으로 올리는 길도 함께 연다.
   const duplicateModal = useModalTarget<{
     file: File;
     message: string;
     sameNameFileId?: number;
   }>();
-  /** 이름 저장이 409 로 막힘 — 덮어쓸지 다시 불러올지 묻는다 */
+  // 이름 저장이 409 로 막힘 — 덮어쓸지 다시 불러올지 묻는다.
   const renameConflictModal = useModalTarget<{
     file: BlockFile;
     name: string;
   }>();
 
   const pickerRef = useRef<HTMLInputElement>(null);
-  /** 새 버전을 올릴 대상. 비어 있으면 새 문서 */
+  // 새 버전을 올릴 대상. 비어 있으면 새 문서.
   const versionTargetId = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -177,7 +159,7 @@ export default function FileBlock({ block }: { block: StepBlock }) {
 
   const files = loaded?.content ?? null;
   const canEdit = loaded?.canEdit ?? false;
-  // 지역 상수로 받아야 JSX 안에서 `null` 이 아님이 좁혀진다
+  // 지역 상수로 받아야 JSX 안에서 null 이 아님이 좁혀진다.
   const duplicatePending = duplicateModal.target;
   const renamePending = renameConflictModal.target;
 
@@ -192,13 +174,9 @@ export default function FileBlock({ block }: { block: StepBlock }) {
     pickerRef.current?.click();
   }
 
-  /**
-   * 이름이 겹치는 문서를 **하나로 특정**되면 그 `fileId`, 아니면 `undefined`.
-   *
-   * 표시명(`name`)은 확장자를 뗀 원본명이 기본값이라 그것부터 맞춰 보고,
-   * 이름을 바꾼 문서까지 잡으려고 원본 파일명도 함께 본다.
-   * ⚠️ 후보가 둘 이상이면 **어디에 얹을지 고를 수 없다** — 그때는 새 버전 길을 열지 않는다.
-   */
+  // 이름이 겹치는 문서가 하나로 특정되면 그 fileId, 아니면 undefined.
+  // 표시명은 확장자를 뗀 원본명이 기본값이라 그것부터 맞춰 보고, 원본 파일명도 함께 본다.
+  // 후보가 둘 이상이면 어디에 얹을지 고를 수 없어 새 버전 길을 열지 않는다.
   function sameNameFileIdOf(uploaded: File) {
     const baseName = uploaded.name.replace(/\.[^.]+$/, '');
     const matched = (files ?? []).filter(
@@ -210,10 +188,8 @@ export default function FileBlock({ block }: { block: StepBlock }) {
   }
 
   async function upload(file: File, allowDuplicateName?: boolean) {
-    /**
-     * ⚠️ 대상은 **시작할 때 고정한다.** `await` 뒤에 `versionTargetId.current` 를 다시 읽으면,
-     *    업로드 중 다른 문서의 `새 버전` 을 누른 경우 요청과 안내가 서로 다른 것을 가리킨다.
-     */
+    // 대상은 시작할 때 고정한다 — await 뒤에 다시 읽으면 업로드 중 다른 문서의
+    // 새 버전을 누른 경우 요청과 안내가 서로 다른 것을 가리킨다.
     const targetFileId = versionTargetId.current;
 
     setIsUploading(true);
@@ -234,15 +210,12 @@ export default function FileBlock({ block }: { block: StepBlock }) {
       );
     } catch (caught) {
       if (caught instanceof DuplicateNameError) {
-        // 확인을 받은 뒤 같은 파일로 한 번만 다시 올린다. 아직 실패가 아니라 토스트를 띄우지 않는다
+        // 확인을 받은 뒤 같은 파일로 한 번만 다시 올린다. 아직 실패가 아니라 토스트를 띄우지 않는다.
         duplicateModal.open({
           file,
           message: caught.message,
-          /*
-           * 새 버전은 **새 문서로 올리려다 막힌 경우**에만 권한다.
-           * 이미 특정 문서의 새 버전을 올리는 중이었다면 409 의 원인이 다른 데 있다 —
-           * 여기서 또 새 버전을 권하면 같은 실패를 반복시킨다.
-           */
+          // 새 버전은 새 문서로 올리려다 막힌 경우에만 권한다 —
+          // 이미 새 버전을 올리는 중이었다면 409 의 원인이 다른 데 있어 같은 실패를 반복시킨다.
           sameNameFileId:
             targetFileId === undefined ? sameNameFileIdOf(file) : undefined,
         });
@@ -253,31 +226,26 @@ export default function FileBlock({ block }: { block: StepBlock }) {
             : '업로드에 실패했습니다.';
 
         setErrorMessage(message);
-        /*
-          업로드는 오래 걸려 그 사이 다른 블록을 보고 있을 수 있다 —
-          카드 안 문구만으로는 결과가 닿지 않는다.
-        */
+        // 업로드는 오래 걸려 그 사이 다른 블록을 보고 있을 수 있다 —
+        // 카드 안 문구만으로는 결과가 닿지 않는다.
         notifyToast(message, 'error');
       }
     } finally {
       setIsUploading(false);
-      // 같은 파일을 다시 고를 수 있게 값을 비운다
+      // 같은 파일을 다시 고를 수 있게 값을 비운다.
       if (pickerRef.current) pickerRef.current.value = '';
     }
   }
 
-  /**
-   * 문서명 저장. **낙관적 락**이라 `version` 을 실어 보낸다 (2026-08-11).
-   *
-   * 409 면 조용히 삼키지 않고 **재조회 / 덮어쓰기**를 묻는다 — 이름은 짧아도
-   * 남이 방금 고친 이름을 되돌려 놓으면 원인을 찾기 어렵다.
-   */
+  // 문서명 저장. 낙관적 락이라 version 을 실어 보낸다.
+  // 409 면 조용히 삼키지 않고 재조회/덮어쓰기를 묻는다 — 남이 방금 고친 이름을
+  // 되돌려 놓으면 원인을 찾기 어렵다.
   async function saveName(
     file: BlockFile,
     name: string,
     overwrite = false,
   ): Promise<void> {
-    // 버전 없이 보내면 400 이다 — 요청하지 않고 재조회를 안내한다
+    // 버전 없이 보내면 400 이다 — 요청하지 않고 재조회를 안내한다.
     if (file.version === undefined) {
       setErrorMessage(
         '문서의 버전 정보를 받지 못해 이름을 바꿀 수 없습니다. 새로고침해주세요.',
@@ -345,7 +313,7 @@ export default function FileBlock({ block }: { block: StepBlock }) {
               등록된 문서가 없습니다.
             </p>
           ) : (
-            // 열기 직전 신호 — 여기서 뷰어 청크·pdf.js 워커를 미리 받아 둔다
+            // 열기 직전 신호 — 여기서 뷰어 청크·pdf.js 워커를 미리 받아 둔다.
             <ul
               onPointerEnter={preloadFileModals}
               className="flex flex-col gap-1"
@@ -431,13 +399,13 @@ export default function FileBlock({ block }: { block: StepBlock }) {
           onAddVersion={() => {
             const { file, sameNameFileId } = duplicatePending;
             duplicateModal.close();
-            // 대상을 그 문서로 바꿔 다시 올린다 — 새 버전이라 동명 확인은 필요 없다
+            // 대상을 그 문서로 바꿔 다시 올린다 — 새 버전이라 동명 확인은 필요 없다.
             versionTargetId.current = sameNameFileId;
             void upload(file);
           }}
           onConfirm={() => {
             duplicateModal.close();
-            // 모달이 떠 있는 사이 다른 행의 `새 버전` 이 눌렸을 수 있다 — 새 문서로 못 박는다
+            // 모달이 떠 있는 사이 다른 행의 새 버전이 눌렸을 수 있다 — 새 문서로 못 박는다.
             versionTargetId.current = undefined;
             void upload(duplicatePending.file, true);
           }}
@@ -445,7 +413,7 @@ export default function FileBlock({ block }: { block: StepBlock }) {
       )}
 
       {renamePending && (
-        /* 취소(= Esc · 배경 클릭)를 **다시 불러오기**에 둔다 — 잘못 눌러도 남의 이름이 안 지워진다 */
+        /* 취소(Esc·배경 클릭)를 다시 불러오기에 둔다 — 잘못 눌러도 남의 이름이 안 지워진다 */
         <AlertDialogTwoButton
           icon={DialogIcons.warning}
           title="다른 사람이 먼저 저장했습니다"
@@ -505,15 +473,14 @@ function FileRow({
   return (
     <li
       /*
-        미리보기 fetch 는 서버가 원본을 잘라 주느라 느리다. 행에 머무는 동안
-        미리 시작해 두면 클릭이 그 요청을 이어받는다.
-        뷰어가 여는 버전과 같은 `latestVersionId` 를 미리 받아야 의미가 있다.
+        미리보기 fetch 는 서버가 원본을 잘라 주느라 느리다 — 행에 머무는 동안 미리 시작해
+        두면 클릭이 그 요청을 이어받는다. 뷰어가 여는 latestVersionId 를 받아야 의미가 있다.
       */
       onPointerEnter={() => schedulePreviewPrefetch(file.latestVersionId)}
       onPointerLeave={cancelPreviewPrefetch}
       className="group/file relative flex items-start gap-2 rounded-lg p-1.5 hover:bg-bg-surface"
     >
-      {/* 셀 전체가 뷰어 진입점. 버튼만 위로 올려 클릭을 가로챈다 */}
+      {/* 셀 전체가 뷰어 진입점 — 버튼만 위로 올려 클릭을 가로챈다 */}
       {!isEditing && (
         <button
           type="button"
@@ -579,7 +546,7 @@ function FileRow({
         </p>
       </div>
 
-      {/* 호버 · 포커스 전에는 자리만 차지한다 — 나타날 때 레이아웃이 밀리지 않는다 */}
+      {/* 호버·포커스 전에는 자리만 차지한다 — 나타날 때 레이아웃이 밀리지 않는다 */}
       <div className="pointer-events-auto relative flex shrink-0 items-center gap-0.5 opacity-0 group-focus-within/file:opacity-100 group-hover/file:opacity-100">
         <IconButton label={`${file.name} 다운로드`} onClick={onDownload}>
           <DownloadIcon />
@@ -605,13 +572,8 @@ function FileRow({
   );
 }
 
-/**
- * 문서 행의 아이콘 버튼.
- * 기본색은 모두 같고, 자기 위에 마우스를 올렸을 때만 강조색이 된다.
- *
- * ⚠️ 크기는 **셋이 함께 움직인다** (다운로드 · 새 버전 · `⋯`) — 하나만 키우면 줄이 어긋난다.
- *    24px 은 겨냥하기 좁아 28px 로 둔다 (행 높이는 문서명 · 메타 3줄이 정해 그대로다).
- */
+// 문서 행의 아이콘 버튼. 기본색은 모두 같고 자기 위에 마우스를 올렸을 때만 강조색이 된다.
+// 크기는 셋(다운로드·새 버전·⋯)이 함께 움직인다 — 하나만 키우면 줄이 어긋난다.
 const ICON_BUTTON_CLASS =
   'flex size-7 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-card hover:text-text-primary-blue';
 
@@ -640,18 +602,14 @@ function IconButton({
   );
 }
 
-/** 메뉴 크기 — 화면 밖으로 나가는지 판단할 때 쓴다 */
+// 메뉴 크기 — 화면 밖으로 나가는지 판단할 때 쓴다.
 const MENU_WIDTH = 128;
 const MENU_HEIGHT = 64;
 
-/**
- * 문서 행의 `⋯` 메뉴.
- * 보기 · 다운로드 · 버전 이력 · 새 버전은 아이콘 버튼이 맡고,
- * 여기에는 버튼으로 노출하지 않는 편집 동작만 남긴다.
- *
- * ⚠️ 문서 목록이 `overflow-y-auto` 라 블록 안에서 그리면 메뉴가 잘린다.
- *    `document.body` 로 포털을 띄우고 트리거 위치를 재서 `fixed` 로 붙인다.
- */
+// 문서 행의 ⋯ 메뉴. 보기·다운로드·버전 이력·새 버전은 아이콘 버튼이 맡고
+// 여기에는 버튼으로 노출하지 않는 편집 동작만 남긴다.
+// 문서 목록이 overflow-y-auto 라 블록 안에서 그리면 메뉴가 잘려,
+// document.body 로 포털을 띄우고 트리거 위치를 재서 fixed 로 붙인다.
 function FileRowMenu({
   fileName,
   onStartRename,
@@ -661,7 +619,7 @@ function FileRowMenu({
   onStartRename: () => void;
   onTrash: () => void;
 }) {
-  /** 열린 위치. null 이면 닫힌 상태다 */
+  // 열린 위치. null 이면 닫힌 상태다.
   const [position, setPosition] = useState<{
     top: number;
     left: number;
@@ -675,11 +633,8 @@ function FileRowMenu({
     triggerRef.current?.focus();
   }
 
-  /**
-   * 포털이라 메뉴가 DOM 맨 뒤에 놓인다 — 트리거에서 Tab 을 눌러도 메뉴로 가지 않는다.
-   * 열릴 때 첫 항목으로 직접 옮겨줘야 키보드로 도달할 수 있다.
-   * (닫을 때 트리거로 되돌리는 것은 `close()` 가 한다)
-   */
+  // 포털이라 메뉴가 DOM 맨 뒤에 놓여 트리거에서 Tab 을 눌러도 메뉴로 가지 않는다 —
+  // 열릴 때 첫 항목으로 직접 옮겨줘야 키보드로 도달할 수 있다.
   useEffect(() => {
     if (!isOpen) return;
     menuRef.current?.querySelector('button')?.focus();
@@ -694,17 +649,17 @@ function FileRowMenu({
     const rect = triggerRef.current?.getBoundingClientRect();
     if (!rect) return;
 
-    // 아래 공간이 부족하면 위로 뒤집는다
+    // 아래 공간이 부족하면 위로 뒤집는다.
     const openUpward = rect.bottom + MENU_HEIGHT + 8 > window.innerHeight;
 
     setPosition({
       top: openUpward ? rect.top - MENU_HEIGHT - 4 : rect.bottom + 4,
-      // 오른쪽 끝을 트리거에 맞추되 화면 왼쪽으로 넘어가지 않게 한다
+      // 오른쪽 끝을 트리거에 맞추되 화면 왼쪽으로 넘어가지 않게 한다.
       left: Math.max(8, rect.right - MENU_WIDTH),
     });
   }
 
-  // 스크롤 · 리사이즈로 트리거가 움직이면 좌표가 어긋난다 — 따라가지 않고 닫는다
+  // 스크롤·리사이즈로 트리거가 움직이면 좌표가 어긋난다 — 따라가지 않고 닫는다.
   useEffect(() => {
     if (!isOpen) return;
 
@@ -838,7 +793,7 @@ function UploadIcon() {
   );
 }
 
-/** 행에서 쓰는 선 아이콘 공통 껍데기 (다운로드 · 새 버전) */
+// 행에서 쓰는 선 아이콘 공통 껍데기 (다운로드·새 버전).
 function Glyph({
   className = 'size-4 shrink-0',
   children,
@@ -884,7 +839,7 @@ function MoreIcon() {
       viewBox="0 0 24 24"
       fill="currentColor"
       aria-hidden
-      // 점 세 개라 같은 크기여도 선 아이콘보다 작아 보인다 — 한 단계 덜 줄인다
+      // 점 세 개라 같은 크기여도 선 아이콘보다 작아 보인다 — 한 단계 덜 줄인다.
       className="size-3.5"
     >
       <circle cx="5" cy="12" r="1.6" />

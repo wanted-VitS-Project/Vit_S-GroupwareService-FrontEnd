@@ -1,12 +1,13 @@
 'use client';
 
+// CSR - 스텝 상세 화면 탭: 블록·이슈·활동 기록을 오가며 현재 경로로 선택 상태를 정한다.
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 
 import PermissionBadge from '@/features/project/PermissionBadge';
 import { useProjectPermission } from '@/features/project/useProjectPermission';
 
-/** 스텝 상세 화면의 탭. `href` 는 스텝 경로 뒤에 붙는다 */
+/** 스텝 상세 화면의 탭. href 는 스텝 경로 뒤에 붙는다 */
 const TABS = [
   { segment: '', label: '블록', icon: 'block' },
   { segment: '/issue', label: '이슈', icon: 'schedule' },
@@ -15,10 +16,8 @@ const TABS = [
 
 type TabIcon = (typeof TABS)[number]['icon'];
 
-/**
- * 스텝 상세 화면 상단 탭 내비게이션.
- * `/projects/{id}/steps/{stepId}` 와 그 하위 `issue` · `log` 를 오간다.
- */
+// 스텝 상세 화면 상단 탭 내비게이션.
+// /projects/{id}/steps/{stepId} 와 그 하위 issue·log 를 오간다.
 export default function StepTabs() {
   const params = useParams<{ id: string; stepId: string }>();
   const pathname = usePathname();
@@ -41,7 +40,7 @@ export default function StepTabs() {
       <nav
         aria-label="스텝 화면"
         // 위 10px 을 비워 탭 자체는 42px 이 된다 (시안)
-        // 좁은 화면에서는 가로로 굴린다 — 줄바꿈하면 탭바 높이가 무너진다 (`ProjectTabs` 와 같다)
+        // 좁은 화면에서는 가로로 굴린다 — 줄바꿈하면 탭바 높이가 무너진다 (ProjectTabs 와 같다)
         className="no-scrollbar h-full min-w-0 flex-1 overflow-x-auto px-4 pt-2.5"
       >
         <ul className="flex h-full w-max items-stretch">
@@ -70,7 +69,7 @@ export default function StepTabs() {
         </ul>
       </nav>
 
-      {/* 아직 못 받았으면 아무것도 그리지 않는다 (`PermissionBadge`) */}
+      {/* 아직 못 받았으면 아무것도 그리지 않는다 (PermissionBadge) */}
       <PermissionBadge permission={permission} className="ml-2" />
     </div>
   );

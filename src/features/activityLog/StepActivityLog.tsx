@@ -16,32 +16,24 @@ import { groupByDate } from './time';
 import { ALL_BLOCKS } from './types';
 import { useActivityLogFeed } from './useActivityLogFeed';
 
-/**
- * 스텝 활동 기록 화면. (.ai/API.md 72번)
- *
- * 서버는 **문장을 만들어 주지 않는다** — 원자 데이터만 오고 날짜 그룹 · 상대 시간 ·
- * 문장 조립은 모두 여기서 한다.
- *
- * 목록 조회 · 이어 읽기는 `useActivityLogFeed` 가 맡는다 (블록 팝업과 같은 규칙).
- */
+// 스텝 활동 기록 화면. 서버는 원자 데이터만 주므로 날짜 그룹·상대 시간·문장 조립은 모두 화면에서 한다.
+// 목록 조회·이어 읽기는 useActivityLogFeed 가 맡는다 (블록 팝업과 같은 규칙).
 export default function StepActivityLog() {
   const params = useParams<{ id: string; stepId: string }>();
   const stepId = params.stepId;
 
-  /**
-   * 선택한 블록 · 필터 목록. 둘 다 **어느 스텝의 값인지 함께** 담는다 —
-   * 값만 들고 있으면 스텝을 옮긴 뒤에도 이전 스텝의 블록이 필터에 남는다.
-   */
+  // 선택한 블록·필터 목록. 둘 다 어느 스텝의 값인지 함께 담는다 —
+  // 값만 들고 있으면 스텝을 옮긴 뒤에도 이전 스텝의 블록이 필터에 남는다.
   const [filter, setFilter] = useState({ stepId, value: ALL_BLOCKS });
   const [loadedBlocks, setLoadedBlocks] = useState<{
     stepId: string;
     blocks: StepBlock[];
   } | null>(null);
-  /** 필터 목록 조회 실패 — 목록 본문과 달리 화면을 막지는 않는다 */
+  // 필터 목록 조회 실패 — 목록 본문과 달리 화면을 막지는 않는다.
   const [blocksFailedStepId, setBlocksFailedStepId] = useState<string | null>(
     null,
   );
-  /** 값이 바뀌면 필터 목록을 다시 불러온다 */
+  // 값이 바뀌면 필터 목록을 다시 불러온다.
   const [blocksReloadCount, setBlocksReloadCount] = useState(0);
 
   const blockFilter = filter.stepId === stepId ? filter.value : ALL_BLOCKS;
@@ -49,7 +41,7 @@ export default function StepActivityLog() {
     loadedBlocks?.stepId === stepId ? loadedBlocks.blocks : undefined;
   const hasBlocksFailed = blocksFailedStepId === stepId;
 
-  /** 필터를 바꿨을 때 목록 맨 위로 되돌리기 위한 기준점 */
+  // 필터를 바꿨을 때 목록 맨 위로 되돌리기 위한 기준점.
   const topRef = useRef<HTMLDivElement>(null);
 
   const blockId = blockFilter === ALL_BLOCKS ? undefined : Number(blockFilter);
@@ -65,7 +57,7 @@ export default function StepActivityLog() {
     setSentinel,
   } = useActivityLogFeed(stepId, blockId);
 
-  // 필터 목록
+  // 필터 드롭다운에 세울 블록 목록.
   useEffect(() => {
     const controller = new AbortController();
 
@@ -75,7 +67,7 @@ export default function StepActivityLog() {
         setBlocksFailedStepId((failed) => (failed === stepId ? null : failed));
       })
       .catch((caught) => {
-        // 취소는 실패가 아니다. 필터를 못 읽어도 '전체' 목록은 계속 볼 수 있다
+        // 취소는 실패가 아니다. 필터를 못 읽어도 '전체' 목록은 계속 볼 수 있다.
         if (!isAbortError(caught)) setBlocksFailedStepId(stepId);
       });
 
@@ -87,7 +79,7 @@ export default function StepActivityLog() {
   return (
     <div
       ref={topRef}
-      // 첫 조회 중임을 보조기술에 알린다 — 스켈레톤은 눈으로만 보이는 신호다
+      // 첫 조회 중임을 보조기술에 알린다 — 스켈레톤은 눈으로만 보이는 신호다.
       aria-busy={!visible && !hasFailed}
       className="flex flex-col gap-4"
     >
@@ -96,10 +88,7 @@ export default function StepActivityLog() {
           <h2 className="text-body-m font-semibold text-text-primary">
             활동 기록
           </h2>
-          {/*
-            건수 배지는 목록이 있는 동안 계속 자리를 지킨다 —
-            조건이 바뀔 때마다 사라졌다 나타나면 제목 줄이 흔들린다
-          */}
+          {/* 건수 배지는 목록이 있는 동안 자리를 지킨다 — 조건마다 사라졌다 나타나면 제목 줄이 흔들린다 */}
           {visible && (
             <span className="rounded-pill bg-bg-hover px-2 py-0.5 text-caption text-text-secondary">
               {visible.logs.length}건{visible.hasNext && ' +'}
@@ -133,7 +122,7 @@ export default function StepActivityLog() {
               value={blockFilter}
               onChange={(event) => {
                 setFilter({ stepId, value: event.target.value });
-                // 목록이 통째로 갈리는데 스크롤이 중간에 남아 있으면 아무 데나 떨어진다
+                // 목록이 통째로 갈리는데 스크롤이 중간에 남아 있으면 아무 데나 떨어진다.
                 topRef.current?.scrollIntoView({ block: 'start' });
               }}
               className="cursor-pointer rounded-button-md border border-border-default bg-bg-card px-2 py-1.5 text-detail text-text-primary focus:border-border-primary focus:outline-none"
@@ -171,7 +160,7 @@ export default function StepActivityLog() {
       ) : (
         <div
           aria-busy={isSwitching}
-          // 새 조건을 부르는 동안에는 이전 목록을 흐리게만 둔다 — 지우지 않는다
+          // 새 조건을 부르는 동안에는 이전 목록을 흐리게만 둔다 — 지우지 않는다.
           className={`flex flex-col gap-6 transition-opacity duration-150 ${
             isSwitching ? 'opacity-45' : ''
           }`}
@@ -190,7 +179,7 @@ export default function StepActivityLog() {
                     key={log.activityLogId}
                     log={log}
                     isLast={index === group.logs.length - 1}
-                    // 지금 그려진 목록이 어느 조건의 결과인지를 따른다
+                    // 지금 그려진 목록이 어느 조건의 결과인지를 따른다.
                     showBlock={visible.blockId === undefined}
                   />
                 ))}
@@ -222,10 +211,7 @@ export default function StepActivityLog() {
             <div ref={setSentinel} aria-hidden className="h-px" />
           )}
 
-          {/*
-            더 없을 때만 뜨는 마무리 문구. 이어 읽는 중에는 감춰 두면
-            스켈레톤 ↔ 문구가 번갈아 나타나며 바닥이 깜빡인다
-          */}
+          {/* 이어 읽는 중에는 감춘다 — 스켈레톤과 번갈아 나타나며 바닥이 깜빡인다 */}
           {!visible.hasNext && !isLoadingMore && (
             <p className="text-center text-caption text-text-muted">
               마지막 기록입니다.

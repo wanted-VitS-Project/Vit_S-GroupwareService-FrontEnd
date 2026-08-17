@@ -1,5 +1,7 @@
 'use client';
 
+// CSR - 내 프로젝트 목록: URL 쿼리를 필터 원본으로 삼아 목록·요약·페이지네이션을 그린다.
+// 조회 대상은 서버가 정한다 — 참여하지 않은 프로젝트는 403 이 아니라 응답에서 빠지므로 화면이 다시 거르지 않는다.
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -20,28 +22,24 @@ import { useRefreshProjectCounts } from './useProjectCounts';
 
 const PAGE_SIZE = 10;
 
-/** URL 은 사용자가 손댈 수 있다 — 허용된 값이 아니면 필터가 없는 것으로 본다 */
+// 아래 세 함수는 URL 쿼리를 서버가 받는 값으로만 좁힌다 — 사용자가 손댄 값이 그대로 나가면 400 이 된다.
+
+// 상태 필터. 허용된 값이 아니면 필터가 없는 것으로 본다.
 function pickStatus(value: string | null) {
   return PROJECT_STATUS_OPTIONS.find((status) => status === value);
 }
 
-/** 음수 · 소수 · 문자열이 그대로 서버로 가면 400 이 되어 목록이 실패 화면이 된다 */
+// 정수 파라미터(페이지·사업분류 id). 음수·소수·문자열은 버린다.
 function pickInt(value: string | null, min: number) {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed >= min ? parsed : undefined;
 }
 
-/** 서버가 받는 `yyyy-MM-dd` 형식만 통과시킨다 */
+// 날짜 파라미터. 서버가 받는 yyyy-MM-dd 형식만 통과시킨다.
 function pickDate(value: string | null) {
   return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : undefined;
 }
 
-/**
- * 내 프로젝트 목록 화면. (PRJ-013 · PRJ-015, .ai/API.md 프로젝트 목록)
- *
- * 목록은 서버가 대상을 정한다 — 참여하지 않은 프로젝트는 403 이 아니라 응답에서 빠지므로
- * 화면이 역할별로 다시 거르지 않는다.
- */
 export default function MyProjectList() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -49,7 +47,7 @@ export default function MyProjectList() {
 
   const status = pickStatus(searchParams.get('status'));
 
-  /** URL 이 필터의 원본이다. 같은 쿼리면 같은 객체를 유지해 효과가 헛돌지 않게 한다 */
+  // URL 이 필터의 원본이다. 같은 쿼리면 같은 객체를 유지해 조회 효과가 헛돌지 않게 한다.
   const query = useMemo<ProjectListQuery>(
     () => ({
       status: pickStatus(searchParams.get('status')),
@@ -57,25 +55,25 @@ export default function MyProjectList() {
       startedOnFrom: pickDate(searchParams.get('from')),
       startedOnTo: pickDate(searchParams.get('to')),
       keyword: searchParams.get('keyword') ?? undefined,
-      // 백엔드와 같은 0-based. 값이 이상하면 첫 페이지로 본다
+      // 백엔드와 같은 0-based. 값이 이상하면 첫 페이지로 본다.
       page: pickInt(searchParams.get('page'), 0) ?? 0,
       size: PAGE_SIZE,
     }),
     [searchParams],
   );
 
-  /** 입력 중인 검색어 — 제출해야 URL 에 반영된다 */
+  // 입력 중인 검색어 — 제출해야 URL 에 반영된다.
   const [keywordInput, setKeywordInput] = useState(query.keyword ?? '');
   const [syncedKeyword, setSyncedKeyword] = useState(query.keyword ?? '');
 
-  // 뒤로가기나 검색어가 담긴 링크로 들어오면 URL 만 바뀌고 입력값은 옛것이 남는다
+  // 뒤로가기나 검색어가 담긴 링크로 들어오면 URL 만 바뀌고 입력값은 옛것이 남는다.
   if (syncedKeyword !== (query.keyword ?? '')) {
     setSyncedKeyword(query.keyword ?? '');
     setKeywordInput(query.keyword ?? '');
   }
 
   const [reloadCount, setReloadCount] = useState(0);
-  /** 어떤 요청의 결과인지 `key` 로 들고 있는다 — 조건이 바뀌면 자동으로 로딩 상태가 된다 */
+  // 어떤 요청의 결과인지 key 로 들고 있는다 — 조건이 바뀌면 자동으로 로딩 상태가 된다.
   const [result, setResult] = useState<{
     key: string;
     data?: ProjectPage<ProjectListItem>;
@@ -84,7 +82,7 @@ export default function MyProjectList() {
 
   const requestKey = `${reloadCount} ${searchParams.toString()}`;
   const current = result?.key === requestKey ? result : null;
-  /** 재조회 중에는 직전 결과를 유지한다 — 목록이 통째로 사라지면 스크롤이 튄다 */
+  // 재조회 중에는 직전 결과를 유지한다 — 목록이 통째로 사라지면 스크롤이 튄다.
   const page = current?.data ?? result?.data ?? null;
   const hasFailed = current?.hasFailed ?? false;
   const isLoading = current === null && !hasFailed;
@@ -103,13 +101,9 @@ export default function MyProjectList() {
     return () => controller.abort();
   }, [requestKey, query]);
 
-  /**
-   * 필터를 바꾸면 첫 페이지로 돌아간다 — 3페이지에서 조건을 바꾸면 빈 화면이 된다.
-   *
-   * 히스토리 처리가 갈린다 — **필터는 `replace`, 페이지 이동은 `push`** 다.
-   * 필터를 만질 때마다 쌓으면 뒤로가기가 조작 이력을 되짚느라 목록을 못 벗어나고,
-   * 반대로 페이지까지 `replace` 하면 3페이지에서 뒤로가기가 목록 밖으로 나가버린다.
-   */
+  // URL 쿼리를 갈아끼워 필터·페이지를 반영한다. 필터를 바꾸면 첫 페이지로 돌아간다.
+  // 히스토리는 필터 replace / 페이지 이동 push 로 갈린다 — 필터마다 쌓으면 뒤로가기가 목록을 못 벗어나고,
+  // 페이지까지 replace 하면 3페이지에서 뒤로가기가 목록 밖으로 나가버린다.
   function applyFilter(patch: Record<string, string | undefined>) {
     const next = new URLSearchParams(searchParams.toString());
 
@@ -127,10 +121,7 @@ export default function MyProjectList() {
   }
 
   const rows = page?.content ?? null;
-  /**
-   * ⚠️ `??` 를 쓰면 안 된다 — 빈 문자열은 nullish 가 아니라 거기서 체인이 멈춘다.
-   * `?keyword=` 처럼 값이 비어 들어오면 뒤 항목을 평가하지 않아 판정이 틀어진다.
-   */
+  // ?? 가 아니라 || 다 — ?keyword= 처럼 빈 문자열로 들어오면 ?? 는 거기서 체인이 멈춰 판정이 틀어진다.
   const hasFilter = Boolean(
     status ||
     query.businessCategoryId ||
@@ -150,7 +141,7 @@ export default function MyProjectList() {
         </p>
       </div>
 
-      {/* 카드 · 건수 조회는 대시보드와 같은 것을 쓴다 (`useProjectCounts` 캐시 공유) */}
+      {/* 카드·건수 조회는 대시보드와 같은 것을 쓴다 (useProjectCounts 캐시 공유) */}
       <ProjectSummaryCards
         label="프로젝트 상태 요약"
         wideGapClassName="xl:gap-7"
@@ -163,7 +154,7 @@ export default function MyProjectList() {
         }}
         className="flex flex-wrap items-center gap-3"
       >
-        {/* `min-w-64`(256px) 는 320px 화면에서 좌우 여백과 부딪힌다 — 그 아래에서는 푼다 */}
+        {/* min-w-64(256px)는 320px 화면에서 좌우 여백과 부딪힌다 — 그 아래에서는 푼다 */}
         <div className="relative w-full min-w-0 flex-1 sm:w-auto sm:min-w-64">
           <label htmlFor="projectSearch" className="sr-only">
             프로젝트 검색
@@ -176,16 +167,13 @@ export default function MyProjectList() {
             type="search"
             value={keywordInput}
             onChange={(event) => setKeywordInput(event.target.value)}
-            /* 백엔드 `keyword` 는 과업명뿐 아니라 발주처도 함께 검색한다 */
+            /* 백엔드 keyword 는 과업명뿐 아니라 발주처도 함께 검색한다 */
             placeholder="과업명 · 발주처 검색"
             className="h-[41px] w-full rounded-lg border border-border-default bg-bg-card pr-4 pl-9 text-detail text-text-primary placeholder:text-text-muted focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
           />
         </div>
 
-        {/*
-          `tablist` 가 아니라 `group` 이다 — 연결된 `tabpanel` 도, 화살표 키 이동도 없어
-          탭으로 알리면 스크린리더 사용자가 동작하지 않는 조작을 시도하게 된다
-        */}
+        {/* tablist 가 아니라 group — 연결된 tabpanel 도 화살표 키 이동도 없어 탭으로 알리면 없는 조작을 시도하게 된다 */}
         <div
           role="group"
           aria-label="프로젝트 상태 필터"
@@ -222,7 +210,7 @@ export default function MyProjectList() {
           retryLabel="다시 시도"
           onRetry={() => {
             setReloadCount((count) => count + 1);
-            // 목록이 실패했으면 건수도 못 받았을 공산이 크다 — 함께 다시 읽는다
+            // 목록이 실패했으면 건수도 못 받았을 공산이 크다 — 함께 다시 읽는다.
             void refreshCounts();
           }}
         />
@@ -237,10 +225,7 @@ export default function MyProjectList() {
           </p>
         </Centered>
       ) : (
-        /*
-          재조회 중에는 직전 목록을 그대로 두되 진행 중임을 알린다 —
-          아무 표시가 없으면 응답이 느릴 때 사용자가 같은 조작을 반복한다
-        */
+        /* 재조회 중에는 직전 목록을 두되 흐리게 해 진행 중임을 알린다 — 표시가 없으면 같은 조작을 반복하게 된다 */
         <div
           aria-busy={isLoading}
           className={`flex flex-col gap-3 transition-opacity ${
@@ -272,12 +257,8 @@ export default function MyProjectList() {
   );
 }
 
-/**
- * 기간 · 사업분류 필터 바.
- *
- * 사업분류는 **한 번에 하나만** 고를 수 있다 — 서버가 `businessCategoryId` 를
- * 단수로 받아서 셀렉트로 둔다. `전체` 를 고르면 필터가 풀린다.
- */
+// 기간·사업분류 필터 바.
+// 사업분류는 서버가 businessCategoryId 를 단수로 받아 한 번에 하나만 고른다 — 전체를 고르면 필터가 풀린다.
 function CategoryPeriodFilter({
   categoryId,
   from,
@@ -297,7 +278,7 @@ function CategoryPeriodFilter({
 
     getCategories({}, signal)
       .then(setCategories)
-      // 카테고리를 못 받아도 나머지 필터는 그대로 쓸 수 있다
+      // 카테고리를 못 받아도 나머지 필터는 그대로 쓸 수 있다.
       .catch(() => {
         if (!signal.aborted) setCategories([]);
       });
@@ -305,11 +286,8 @@ function CategoryPeriodFilter({
     return () => controller.abort();
   }, []);
 
-  /**
-   * ⚠️ `??` 가 아니라 `||` 다 — `from` · `to` 는 값이 없으면 **빈 문자열**로 들어온다.
-   * 빈 문자열은 nullish 가 아니라 `??` 체인이 거기서 멈춰,
-   * `to` 만 지정한 경우 초기화 버튼이 나타나지 않는다.
-   */
+  // ?? 가 아니라 || 다 — from·to 는 값이 없으면 빈 문자열이라 ?? 체인이 거기서 멈춰
+  // to 만 지정한 경우 초기화 버튼이 나타나지 않는다.
   const hasValue = Boolean(categoryId || from || to);
 
   return (
@@ -354,7 +332,7 @@ function CategoryPeriodFilter({
           }
           className="w-44 cursor-pointer rounded-[9px] border-[1.5px] border-border-default bg-bg-card px-3 py-1 text-detail font-medium text-gray-text-soft focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
         >
-          {/* 아직 못 받았어도 `전체` 는 고를 수 있어야 한다 — 필터를 지우는 유일한 값이다 */}
+          {/* 아직 못 받았어도 전체는 고를 수 있어야 한다 — 필터를 지우는 유일한 값이다 */}
           <option value="">전체</option>
           {categories.map((category) => (
             <option key={category.categoryId} value={category.categoryId}>
@@ -379,7 +357,7 @@ function CategoryPeriodFilter({
   );
 }
 
-/** 시안의 날짜 `Tag`. 네이티브 날짜 입력을 태그 모양으로 감싼다 */
+// 네이티브 날짜 입력을 시안의 태그 모양으로 감싼다.
 function DateTag({
   label,
   value,
@@ -441,7 +419,7 @@ function Centered({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** 아래 아이콘은 모두 시안의 벡터를 stroke 로 옮긴 것이다 */
+// 아래 아이콘은 모두 시안의 벡터를 stroke 로 옮긴 것이다.
 function iconProps(size: string) {
   return {
     viewBox: '0 0 24 24',
@@ -463,5 +441,3 @@ function SearchIcon() {
     </svg>
   );
 }
-
-/* 요약 카드 아이콘 5종은 `ProjectSummaryCards` 로 옮겼다 — 이 화면에는 검색만 남는다 */

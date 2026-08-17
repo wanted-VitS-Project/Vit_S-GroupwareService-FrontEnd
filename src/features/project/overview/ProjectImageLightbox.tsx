@@ -6,15 +6,11 @@ import { formatDate } from '@/lib/format';
 
 import type { ImageBlockName } from './useImageBlockNames';
 
-/**
- * 프로젝트 이미지 크게 보기.
- *
- * 블록 캐러셀(`features/block/ImageLightbox`)과 달리 **좌우 이동이 없다** —
- * 그쪽은 블록 안의 정렬 번호로 움직이는데 107번 응답에는 `orderIndex` 가 없다.
- *
- * 별도 파일인 이유는 **코드 스플리팅**이다. 목록만 훑고 나가는 사용자가
- * `Modal` 까지 받을 이유가 없어 타일에 마우스가 닿을 때 미리 받는다.
- */
+// 프로젝트 이미지 크게 보기.
+// 블록 캐러셀(features/block/ImageLightbox)과 달리 좌우 이동이 없다 —
+// 그쪽은 블록 안의 정렬 번호로 움직이는데 107번 응답에는 orderIndex 가 없다.
+// 별도 파일인 이유는 코드 스플리팅이다. 목록만 훑고 나가는 사용자가
+// Modal 까지 받을 이유가 없어 타일에 마우스가 닿을 때 미리 받는다.
 export default function ProjectImageLightbox({
   image,
   blockName,

@@ -1,8 +1,5 @@
-/**
- * 이슈 화면에서 반복되는 작은 표시 요소 —
- * 상태 · 우선순위 · 마감 경과 배지, 담당자 아바타, 블록 아이콘 상자.
- * 카드 · 상세 모달 · 폼 모달이 같은 모양을 쓰도록 한 곳에 모았다.
- */
+// 이슈 화면에서 반복되는 작은 표시 요소 — 상태·우선순위·마감 경과 배지, 담당자 아바타, 블록 아이콘.
+// 카드·상세 모달·폼 모달이 같은 모양을 쓰도록 한 곳에 모았다.
 
 import MemberAvatar from '@/components/MemberAvatar';
 import BlockTypeIcon from '@/features/block/BlockTypeIcon';
@@ -32,10 +29,7 @@ export function IssueStatusBadge({ status }: { status: IssueStatus }) {
   );
 }
 
-/**
- * 우선순위 배지.
- * `withPrefix` 는 상세 모달 헤더용 — '우선순위 높음' 처럼 무엇의 등급인지 밝힌다.
- */
+// 우선순위 배지. withPrefix 는 상세 모달 헤더용 — '우선순위 높음' 처럼 무엇의 등급인지 밝힌다.
 export function IssuePriorityBadge({
   priority,
   withPrefix = false,
@@ -58,7 +52,7 @@ export function IssuePriorityBadge({
   );
 }
 
-/** 마감일이 지난 만큼을 짧게 — 'D+3' */
+// 마감일이 지난 만큼을 짧게 — 'D+3' (카드용).
 export function OverdueBadge({ days }: { days: number }) {
   if (days <= 0) return null;
 
@@ -72,7 +66,7 @@ export function OverdueBadge({ days }: { days: number }) {
   );
 }
 
-/** 마감일이 지난 만큼을 문장으로 — '3일 지남' (상세 모달 우측) */
+// 마감일이 지난 만큼을 문장으로 — '3일 지남' (상세 모달 우측).
 export function OverduePill({ days }: { days: number }) {
   if (days <= 0) return null;
 
@@ -85,7 +79,7 @@ export function OverduePill({ days }: { days: number }) {
   );
 }
 
-/** 담당자 여러 명을 겹쳐 보여준다. 지정 전이면 안내 문구를 대신 그린다 */
+// 담당자 여러 명을 겹쳐 보여준다. 지정 전이면 안내 문구를 대신 그린다.
 export function AssigneeAvatars({
   assignees,
   size = 'xs',
@@ -106,10 +100,7 @@ export function AssigneeAvatars({
           key={assignee.userId}
           style={{ marginLeft: index === 0 ? 0 : -6, zIndex: index }}
         >
-          {/*
-            겹친 스택이라 문구를 놓을 자리가 없다 — 흐리게 + `이름 (퇴사자)` tooltip 으로만 알린다.
-            ⚠️ 퇴사자라고 아바타를 빼지 않는다 (담당자 수가 달라 보인다).
-          */}
+          {/* 겹친 스택이라 문구 자리가 없어 흐리게 + tooltip 으로만 알린다. 퇴사자라고 아바타를 빼면 담당자 수가 달라 보인다 */}
           <MemberAvatar
             userId={assignee.userId}
             name={assignee.name}
@@ -122,10 +113,8 @@ export function AssigneeAvatars({
   );
 }
 
-/**
- * 블록 유형 아이콘 상자. 유형별 색은 `BLOCK_TYPES` 를 그대로 쓴다.
- * 명세에 없는 유형이 오면 색 없이 빈 상자만 그린다 — 화면이 깨지지 않게.
- */
+// 블록 유형 아이콘 상자. 유형별 색은 BLOCK_TYPES 를 그대로 쓴다.
+// 명세에 없는 유형이 오면 색 없이 빈 상자만 그린다 — 화면이 깨지지 않게.
 export function IssueBlockIcon({
   type,
   size = 20,

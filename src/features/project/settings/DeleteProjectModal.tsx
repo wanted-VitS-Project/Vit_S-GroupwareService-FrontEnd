@@ -13,25 +13,20 @@ interface DeleteProjectModalProps {
   projectName: string;
   /** 함께 지워질 스텝 수 — 0 이면 개수를 적지 않는다 */
   stepCount: number;
-  /** 서버가 되물을 조건(진행 전 + 스텝 0개가 아님)인가 — 미리 알리고 `confirm` 을 실어 보낸다 */
+  /** 서버가 되물을 조건(진행 전 + 스텝 0개가 아님)인가 — 미리 알리고 confirm 을 실어 보낸다 */
   requiresConfirm: boolean;
   onClose: () => void;
   /** 삭제 성공 — 부르는 쪽이 목록으로 보낸다 (이 화면은 더 이상 열 수 없다) */
   onDeleted: () => void;
 }
 
-/**
- * 프로젝트 삭제 확인 모달. **2단계다.** (.ai/API.md 139)
- *
- * 진행 전 + 스텝 0개면 첫 호출에 바로 지워지고, 아니면 409
- * `PROJECT_DELETE_CONFIRM_REQUIRED` 로 되묻는다.
- *
- * ℹ️ 되물을 조건(`requiresConfirm`)은 상세 응답으로 이미 알 수 있어 **누르기 전에 미리 알리고**,
- *    그 경우 첫 호출부터 `confirm` 을 실어 보낸다 — 이 모달이 곧 확인 단계라 두 번 묻지 않는다.
- * ⛔ **409 를 실패로 끝내면 그 프로젝트는 영영 지울 수 없다** — 경합(그 사이 남이 스텝을 만듦)으로
- *    되물음이 오면 서버 `message` 를 그대로 띄우고 한 번 더 확인받는다. **분기는 `code`, 표시는 `message`.**
- * ℹ️ 논리 삭제이고 연결된 공고는 풀린다 — 그 공고로 다시 프로젝트를 만들 수 있다.
- */
+// 프로젝트 삭제 확인 모달. 2단계다 — 진행 전 + 스텝 0개면 첫 호출에 바로 지워지고,
+// 아니면 409 PROJECT_DELETE_CONFIRM_REQUIRED 로 되묻는다.
+// 되물을 조건(requiresConfirm)은 상세 응답으로 미리 알 수 있어, 그 경우 첫 호출부터 confirm 을
+// 실어 보낸다 — 이 모달이 곧 확인 단계라 두 번 묻지 않는다.
+// 409 를 실패로 끝내면 그 프로젝트를 영영 지울 수 없어, 경합으로 되물음이 오면
+// 서버 message 를 그대로 띄우고 한 번 더 확인받는다 (분기는 code, 표시는 message).
+// 논리 삭제라 연결된 공고는 풀린다 — 그 공고로 다시 프로젝트를 만들 수 있다.
 export default function DeleteProjectModal({
   projectId,
   projectName,

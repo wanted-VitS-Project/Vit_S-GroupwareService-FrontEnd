@@ -14,13 +14,9 @@ interface Spot {
   top: number;
 }
 
-/**
- * 상태 변경 직전/직후 위치 차이만 `transform` 으로 이어 붙이는 이슈 보드 전용 FLIP.
- *
- * 매 렌더 위치를 재지 않고 `capture()` 를 호출한 상태 변경에서만 동작한다.
- * 화면 밖 카드는 제외하고 처리 수도 제한해, 큰 보드에서 한 번의 드롭이 과도한
- * 레이아웃 측정과 애니메이션 생성을 일으키지 않게 한다.
- */
+// 이슈 보드 전용 FLIP — 상태 변경 직전/직후의 위치 차이만 transform 으로 이어 붙인다.
+// 매 렌더 위치를 재지 않고 capture() 를 호출한 상태 변경에서만 동작하며,
+// 화면 밖 카드는 제외하고 처리 수도 제한해 큰 보드에서 드롭 한 번이 과도한 측정을 부르지 않게 한다.
 export function useIssueMoveAnimation() {
   const nodes = useRef(new Map<number, HTMLElement>());
   const callbacks = useRef(

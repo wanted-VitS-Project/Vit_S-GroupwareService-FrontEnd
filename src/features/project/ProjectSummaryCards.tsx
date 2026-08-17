@@ -1,18 +1,13 @@
 'use client';
 
+// CSR - 상태별 프로젝트 요약 카드 5장. 대시보드와 내 프로젝트가 같은 카드·같은 캐시(useProjectCounts)를 쓴다.
+
 import { PROJECT_STATUS_LABELS } from '@/constants/status';
 
 import { PROJECT_SUMMARY_STATUSES } from './projectStatus';
 import type { ProjectStatus } from './types';
 import { useProjectCounts } from './useProjectCounts';
 
-/**
- * 상태별 프로젝트 요약 카드 5장.
- *
- * 대시보드와 `내 프로젝트` 가 **같은 카드**를 각자 그리고 있었다 (아이콘 5종까지 통째로 두 벌).
- * 같은 수를 다른 색 · 다른 자리로 보이면 다른 지표로 읽히므로 한 곳에서만 그린다.
- * 건수는 `useProjectCounts` 가 캐시 한 칸에 모아 두어 화면을 옮겨도 다시 부르지 않는다.
- */
 const ICON_STYLE = {
   ALL: 'bg-purple-bg-soft text-purple-text',
   NOT_STARTED: 'bg-gray-bg-soft text-text-secondary',
@@ -22,14 +17,8 @@ const ICON_STYLE = {
   CLOSED: 'bg-purple-bg-soft text-purple-text-deep',
 } as const;
 
-/**
- * 상태별 아이콘.
- *
- * ⚠️ **자리(배열 순서)가 아니라 상태를 키로 고른다.** 배열로 두면
- *    `PROJECT_SUMMARY_STATUSES` 에 상태를 하나 더 넣는 순간 아이콘이 `undefined` 가 되어
- *    아이콘 없는 카드가 조용히 그려진다 — 타입 검사로도 안 잡힌다.
- *    `Record` 로 두면 상태를 추가할 때 여기서 컴파일이 막힌다 (`ICON_STYLE` 과 같은 방식).
- */
+// 배열이 아니라 Record 로 둔다 — 상태를 하나 더 넣을 때 여기서 컴파일이 막힌다.
+// 배열이면 아이콘이 조용히 undefined 가 되어 타입 검사로도 안 잡힌다.
 const ICON: Record<ProjectStatus, React.ReactNode> = {
   NOT_STARTED: <ClockIcon />,
   IN_PROGRESS: <PlayIcon />,
@@ -39,7 +28,7 @@ const ICON: Record<ProjectStatus, React.ReactNode> = {
 };
 
 export default function ProjectSummaryCards({
-  /** 화면마다 부르는 이름이 조금 다르다 (`프로젝트 요약` · `프로젝트 상태 요약`) */
+  /** 화면마다 부르는 이름이 다르다 (프로젝트 요약·프로젝트 상태 요약) */
   label,
   /** 넓은 화면의 카드 사이 간격만 화면별로 다르다 */
   wideGapClassName = 'xl:gap-6',
@@ -58,10 +47,10 @@ export default function ProjectSummaryCards({
     })),
   ];
 
-  /** 카드 순서(`전체` + 네 상태)에 맞춘 표시값 */
+  // 카드 순서(전체 + 네 상태)에 맞춘 표시값.
   const values = data ? [data.total, ...data.byStatus] : null;
 
-  /** 통계는 보조 정보다 — 실패해도 목록까지 실패 화면으로 만들지 않는다 */
+  // 통계는 보조 정보다 — 실패해도 목록까지 실패 화면으로 만들지 않는다.
   if (isError) {
     return (
       <section
@@ -86,10 +75,7 @@ export default function ProjectSummaryCards({
     /* 좁은 화면에서 5열을 유지하면 카드 폭이 좁아져 숫자가 아이콘과 겹친다 */
     <section
       aria-label={label}
-      /*
-       * 세는 동안은 카드가 `–` 를 보인다. 눈으로 보는 사용자는 아직 값이 없다고 읽지만
-       * 스크린리더에는 `–` 가 **확정된 값**처럼 전해진다 — 진행 중임을 함께 알린다.
-       */
+      /* 세는 동안 보이는 – 가 스크린리더에는 확정된 값처럼 전해져 진행 중임을 함께 알린다 */
       aria-busy={values === null}
       className={`grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5 ${wideGapClassName}`}
     >
@@ -122,7 +108,7 @@ export default function ProjectSummaryCards({
   );
 }
 
-/** 아래 아이콘은 모두 시안의 벡터를 stroke 로 옮긴 것이다 */
+// 아래 아이콘은 모두 시안의 벡터를 stroke 로 옮긴 것이다.
 function iconProps(size: string) {
   return {
     viewBox: '0 0 24 24',

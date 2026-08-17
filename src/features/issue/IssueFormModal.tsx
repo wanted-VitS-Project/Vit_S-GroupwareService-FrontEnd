@@ -1,5 +1,14 @@
 'use client';
 
+// CSR - 이슈 생성·수정 폼. issueId 를 넘기면 수정 모드로, 목록에 content 가 없어 상세를 다시 조회하고
+// 바뀐 필드만 PATCH 로 보낸다. 상태는 여기서 다루지 않는다 (생성은 항상 TODO, 변경은 보드 드래그).
+// 낙관적 락이라 값을 세 벌로 구분해 든다 —
+//   base   : 최초 조회값. 비교 기준이자 요청에 실을 version 의 출처
+//   values : 사용자가 입력 중인 draft. 409 가 와도 건드리지 않는다
+//   latest : 409 뒤 다시 읽은 서버값. conflict 안에만 두고 base 를 바로 덮지 않는다
+// 409 면 내가 고친 필드와 남이 고친 필드의 교집합을 보고, 겹치지 않으면 조용히 병합해 한 번 재시도하고
+// 겹치면 사용자에게 고르게 한다.
+
 import { useEffect, useRef, useState } from 'react';
 
 import MemberAvatar from '@/components/MemberAvatar';
@@ -53,7 +62,7 @@ function FieldLabel({
   );
 }
 
-/** 모달 머리의 이슈 아이콘 (#) */
+// 모달 머리의 이슈 아이콘 (#).
 function IssueMarkIcon() {
   return (
     <span className="flex size-5 shrink-0 items-center justify-center rounded-button-sm border border-purple-bg bg-purple-bg">
@@ -72,7 +81,7 @@ function IssueMarkIcon() {
   );
 }
 
-/** 새 이슈는 항상 `TODO` 로 만든다 — 이후 상태 변경은 보드 드래그로만 한다 */
+// 새 이슈는 항상 TODO 로 만든다 — 이후 상태 변경은 보드 드래그로만 한다.
 const EMPTY_FORM: IssueFormValues = {
   title: '',
   content: '',
@@ -82,23 +91,6 @@ const EMPTY_FORM: IssueFormValues = {
   blockIds: [],
 };
 
-/**
- * 이슈 생성 · 수정 폼. (.ai/API.md 56 · 58번)
- *
- * `issueId` 를 넘기면 수정 모드다 — 목록에는 `content` 가 없어 상세를 다시 조회한다.
- * 수정은 **바뀐 필드만** PATCH 로 보낸다.
- *
- * ⚠️ 상태는 이 폼에서 다루지 않는다. 생성은 항상 `TODO`(시작 전)이고,
- *    이후 변경은 보드에서 드래그로만 한다.
- *
- * ⚠️ **낙관적 락** (2026-08-12 신설) — 세 벌을 구분해서 든다:
- *    - `base` : 최초 조회값. 비교 기준이자 **요청에 실을 `version` 의 출처**다
- *    - `values`(draft) : 사용자가 지금 입력하고 있는 값. 409 가 와도 **건드리지 않는다**
- *    - `latest` : 409 뒤에 다시 읽은 서버값. `conflict` 안에만 두고 `base` 를 바로 덮지 않는다
- *
- *    409 를 받으면 `내가 고친 필드 ∩ 남이 고친 필드` 를 계산해서,
- *    겹치지 않으면 **조용히 병합해 한 번 재시도**하고, 겹치면 **사용자에게 고르게 한다.**
- */
 export default function IssueFormModal({
   projectId,
   stepId,
@@ -117,37 +109,27 @@ export default function IssueFormModal({
   onSaved: (issue: IssueDetail) => void;
 }) {
   const isEdit = issueId !== undefined;
-  /** 생성 모드는 `null` 로 표시한다 — 아래 상태가 어느 이슈의 것인지 가리는 열쇠다 */
+  // 생성 모드는 null — 아래 상태가 어느 이슈의 것인지 가리는 열쇠다.
   const formKey = issueId ?? null;
 
-  /**
-   * 입력값과 비교 원본을 **어느 이슈의 것인지와 함께** 담는다.
-   *
-   * ⚠️ 이렇게 묶지 않으면 `issueId` 가 A → B 로 바뀐 직후(B 상세가 오기 전) 저장했을 때
-   *    A 의 값으로 만든 본문이 B 에 PATCH 되어 **다른 이슈를 덮어쓴다.**
-   */
+  // 입력값과 비교 원본을 어느 이슈의 것인지와 함께 담는다.
+  // 묶지 않으면 issueId 가 A → B 로 바뀐 직후(B 상세가 오기 전) 저장했을 때
+  // A 의 값으로 만든 본문이 B 에 PATCH 되어 다른 이슈를 덮어쓴다.
   const [form, setForm] = useState<{
     key: number | null;
-    /**
-     * 최초 조회값 — 무엇이 바뀌었는지 비교할 기준이고, 요청에 실을 `version` 의 출처다.
-     * (생성 모드는 `null`)
-     */
+    /** 최초 조회값 — 비교 기준이자 요청에 실을 version 의 출처 (생성 모드는 null) */
     base: IssueDetail | null;
     /** 사용자가 입력하고 있는 값(draft). 409 가 와도 초기화하지 않는다 */
     values: IssueFormValues;
   } | null>(isEdit ? null : { key: null, base: null, values: EMPTY_FORM });
-  /**
-   * 409 로 멈춘 뒤 사용자에게 물을 것.
-   *
-   * ⚠️ `latest` 를 `base` 에 바로 꽂지 않는다 — 사용자가 고르기 전에 기준을 옮기면
-   *    "내가 고친 필드" 판정이 달라져 내 입력이 변경 아닌 것으로 보일 수 있다.
-   */
+  // 409 로 멈춘 뒤 사용자에게 물을 것.
+  // latest 를 base 에 바로 꽂지 않는다 — 고르기 전에 기준을 옮기면 "내가 고친 필드" 판정이 달라진다.
   const [conflict, setConflict] = useState<{
     key: number | null;
     latest: IssueDetail;
     fields: IssueEditField[];
   } | null>(null);
-  /** 상세 조회 실패 — 로딩과 구분한다 */
+  // 상세 조회 실패 — 로딩과 구분한다.
   const [failed, setFailed] = useState<{
     key: number | null;
     message: string;
@@ -155,14 +137,14 @@ export default function IssueFormModal({
   const [retryCount, setRetryCount] = useState(0);
   const [members, setMembers] = useState<ProjectMember[]>([]);
   const [blocks, setBlocks] = useState<StepBlock[]>([]);
-  /** 저장 오류도 대상과 함께 담는다 — 대상이 바뀌면 앞선 문구가 저절로 사라진다 */
+  // 저장 오류도 대상과 함께 담는다 — 대상이 바뀌면 앞선 문구가 저절로 사라진다.
   const [saveError, setSaveError] = useState<{
     key: number | null;
     message: string;
   } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // 지금 열려 있는 이슈의 것만 화면에 쓴다 (다른 이슈의 잔상 · 실패는 버린다)
+  // 지금 열려 있는 이슈의 것만 화면에 쓴다 — 다른 이슈의 잔상·실패는 버린다.
   const current = form?.key === formKey ? form : null;
   const values = current?.values ?? null;
   const base = current?.base ?? null;
@@ -170,7 +152,7 @@ export default function IssueFormModal({
   const errorMessage = saveError?.key === formKey ? saveError.message : '';
   const asking = conflict?.key === formKey ? conflict : null;
 
-  /** 저장 오류 문구를 지금 대상에 붙여 둔다 */
+  // 저장 오류 문구를 지금 대상에 붙여 둔다.
   function showError(message: string) {
     setSaveError({ key: formKey, message });
   }
@@ -181,7 +163,7 @@ export default function IssueFormModal({
 
     getIssue(issueId, controller.signal)
       .then((issue) => {
-        // base 와 draft 에 각각 복사한다 — 이후 입력은 draft 만 바꾼다
+        // base 와 draft 에 각각 복사한다 — 이후 입력은 draft 만 바꾼다.
         setForm({
           key: issueId,
           base: issue,
@@ -200,17 +182,14 @@ export default function IssueFormModal({
     return () => controller.abort();
   }, [issueId, retryCount]);
 
-  // 담당자 · 블록 선택지 — 실패해도 나머지 입력은 계속할 수 있게 둔다
+  // 담당자·블록 선택지 — 실패해도 나머지 입력은 계속할 수 있게 둔다.
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
 
     getProjectMembers(projectId, signal)
-      /*
-       * 퇴사자 · **삭제된 사원**은 후보에서 뺀다 — 담당자 검증에서 거절된다 (명세 58번).
-       * `permission !== 'NONE'` 필터는 걷어냈다: `NONE` 이 폐기돼(2026-08-06) 참여자는
-       * 항상 `VIEWER` · `EDITOR` 둘 중 하나다 (명세 45번). 차단은 참여자 제거로 표현된다.
-       */
+      // 퇴사자·삭제된 사원은 후보에서 뺀다 — 담당자 검증에서 거절된다.
+      // NONE 권한이 폐기돼 참여자는 항상 VIEWER·EDITOR 중 하나라 권한 필터는 두지 않는다.
       .then((loaded) =>
         setMembers(
           loaded.filter((member) => !member.resigned && !member.deleted),
@@ -225,22 +204,18 @@ export default function IssueFormModal({
     return () => controller.abort();
   }, [projectId, stepId]);
 
-  /**
-   * 담당자를 넣거나 뺀 **다음 렌더에서** 초점을 옮길 대상.
-   *
-   * 고른 후보 버튼과 방금 뺀 제외 버튼은 DOM 에서 사라진다. 그대로 두면 초점이
-   * 문서로 떨어져 키보드 사용자가 모달을 처음부터 다시 훑어야 한다.
-   */
+  // 담당자를 넣거나 뺀 다음 렌더에서 초점을 옮길 대상.
+  // 고른 후보 버튼과 방금 뺀 제외 버튼은 DOM 에서 사라져, 그대로 두면 초점이 문서로 떨어진다.
   const focusAfterRender = useRef<{
     kind: 'remove' | 'candidate';
     userId: string;
   } | null>(null);
   const removeButtons = useRef(new Map<string, HTMLButtonElement>());
   const candidateButtons = useRef(new Map<string, HTMLButtonElement>());
-  /** 옮길 버튼이 없을 때 붙잡아 둘 자리 (후보 영역) */
+  // 옮길 버튼이 없을 때 초점을 붙잡아 둘 자리 (후보 영역).
   const assigneeBoxRef = useRef<HTMLDivElement>(null);
 
-  // 초점 이동은 DOM 조작이라 렌더가 끝난 뒤에 한다
+  // 초점 이동은 DOM 조작이라 렌더가 끝난 뒤에 한다.
   useEffect(() => {
     const target = focusAfterRender.current;
     if (!target) return;
@@ -258,14 +233,14 @@ export default function IssueFormModal({
 
   function patch(next: Partial<IssueFormValues>) {
     setForm((prev) =>
-      // 대상이 바뀐 뒤 늦게 들어온 입력은 버린다
+      // 대상이 바뀐 뒤 늦게 들어온 입력은 버린다.
       prev === null || prev.key !== formKey
         ? prev
         : { ...prev, values: { ...prev.values, ...next } },
     );
   }
 
-  /** draft 를 지금 base 기준으로 갈아끼운다 — 자동 병합 · 충돌 해소가 함께 쓴다 */
+  // base 와 draft 를 새 기준값으로 함께 갈아끼운다 — 자동 병합·충돌 해소가 같이 쓴다.
   function rebase(nextBase: IssueDetail, nextValues: IssueFormValues) {
     setForm((prev) =>
       prev === null || prev.key !== formKey
@@ -274,12 +249,9 @@ export default function IssueFormModal({
     );
   }
 
-  /**
-   * 수정 저장 — **바뀐 필드만** `base.version` 과 함께 보낸다.
-   *
-   * `isMerged` 는 자동 병합 재시도인지다. 재시도에서 또 409 면 다시 병합하지 않는다 —
-   * 남이 계속 저장하는 동안 화면이 같은 자리를 무한히 돌 수 있다.
-   */
+  // 수정 저장 — 바뀐 필드만 base.version 과 함께 보낸다.
+  // isMerged 는 자동 병합 재시도인지다. 재시도에서 또 409 면 다시 병합하지 않는다 —
+  // 남이 계속 저장하는 동안 화면이 같은 자리를 무한히 돌 수 있다.
   async function saveEdit(
     id: number,
     draft: IssueFormValues,
@@ -288,7 +260,7 @@ export default function IssueFormModal({
   ) {
     const mine = changedIssueFields(draft, toIssueFormValues(from));
 
-    // 바뀐 게 없으면 요청을 보내지 않는다
+    // 바뀐 게 없으면 요청을 보내지 않는다.
     if (mine.length === 0) {
       onSaved(from);
       return;
@@ -299,7 +271,7 @@ export default function IssueFormModal({
         id,
         issuePatchOf(draft, mine, from.version),
       );
-      // 병합해 저장한 것을 모르고 지나가면 안 된다 — 모달은 닫히므로 토스트로 알린다
+      // 병합해 저장한 것을 모르고 지나가면 안 된다 — 모달은 닫히므로 토스트로 알린다.
       if (isMerged) notifyToast(ISSUE_MERGED_MESSAGE);
       onSaved(saved);
       return;
@@ -311,11 +283,11 @@ export default function IssueFormModal({
       }
     }
 
-    // 409 — draft · 입력 화면 · 커서는 그대로 두고 뒷처리만 한다
+    // 409 — draft·입력 화면·커서는 그대로 두고 뒷처리만 한다.
     await resolveConflict(id, draft, from, mine, isMerged);
   }
 
-  /** 409 뒷처리 — 최신값을 읽어 자동 병합하거나, 겹치는 필드를 사용자에게 묻는다 */
+  // 409 뒷처리 — 최신값을 읽어 자동 병합하거나, 겹치는 필드를 사용자에게 묻는다.
   async function resolveConflict(
     id: number,
     draft: IssueFormValues,
@@ -339,25 +311,25 @@ export default function IssueFormModal({
 
     const latestValues = toIssueFormValues(latest);
     const theirs = changedIssueFields(latestValues, toIssueFormValues(from));
-    // 남이 고쳤어도 **결과가 내 값과 같으면** 다툴 게 없다
+    // 남이 고쳤어도 결과가 내 값과 같으면 다툴 게 없다.
     const differs = changedIssueFields(draft, latestValues);
     const clash = mine.filter(
       (field) => theirs.includes(field) && differs.includes(field),
     );
 
     if (clash.length > 0) {
-      // 여기서는 base 를 옮기지 않는다 — 사용자가 고른 뒤에 옮긴다
+      // 여기서는 base 를 옮기지 않는다 — 사용자가 고른 뒤에 옮긴다.
       setConflict({ key: formKey, latest, fields: clash });
       setIsSaving(false);
       return;
     }
 
-    // 겹치는 필드가 없다 — 최신값 위에 내 수정만 얹어 최신 version 으로 다시 보낸다
+    // 겹치는 필드가 없다 — 최신값 위에 내 수정만 얹어 최신 version 으로 다시 보낸다.
     const merged = mergeIssueFields(latestValues, draft, mine);
     rebase(latest, merged);
 
     if (isMerged) {
-      // 병합 재시도까지 밀렸다 — 기준만 최신으로 옮기고 다음 저장은 사용자에게 맡긴다
+      // 병합 재시도까지 밀렸다 — 기준만 최신으로 옮기고 다음 저장은 사용자에게 맡긴다.
       showError(
         '다른 사람이 계속 수정하고 있어 저장이 밀렸습니다. 최신 내용을 반영했으니 다시 저장해주세요.',
       );
@@ -368,14 +340,14 @@ export default function IssueFormModal({
     await saveEdit(id, merged, latest, true);
   }
 
-  /** 비교 UI 에서 고른 결과로 저장한다 — 고르지 않은(겹치지 않는) 필드는 이미 병합 대상이다 */
+  // 비교 UI 에서 고른 결과로 저장한다 — 겹치지 않는 필드는 이미 병합 대상이다.
   async function applyConflictChoice(choices: IssueConflictChoice) {
     if (asking === null || values === null || base === null) return;
     if (issueId === undefined) return;
 
     const { latest } = asking;
     const mine = changedIssueFields(values, toIssueFormValues(base));
-    // `최신값` 을 고른 필드만 내 수정에서 뺀다
+    // 최신값을 고른 필드만 내 수정에서 뺀다.
     const keep = mine.filter((field) => choices[field] !== 'theirs');
     const resolved = mergeIssueFields(toIssueFormValues(latest), values, keep);
 
@@ -383,12 +355,12 @@ export default function IssueFormModal({
     rebase(latest, resolved);
     setSaveError(null);
     setIsSaving(true);
-    // 기준을 최신으로 옮겼으니 또 409 면 자동 병합 대신 다시 묻는다
+    // 기준을 최신으로 옮겼으니 또 409 면 자동 병합 대신 다시 묻는다.
     await saveEdit(issueId, resolved, latest, true);
   }
 
   async function submit() {
-    // 현재 대상의 상세를 아직 못 받았으면 저장하지 않는다 (다른 이슈를 덮어쓸 수 있다)
+    // 현재 대상의 상세를 아직 못 받았으면 저장하지 않는다 — 다른 이슈를 덮어쓸 수 있다.
     if (values === null || isSaving) return;
     if (isEdit && base === null) return;
 
@@ -414,9 +386,9 @@ export default function IssueFormModal({
       const created = await createIssue(stepId, {
         title,
         content: values.content.trim() || null,
-        // ⚠️ 생성만 날짜+시각 형식이다
+        // 생성만 날짜+시각 형식이다.
         dueDate: toCreateDueDate(values.dueDate),
-        // 새 이슈는 언제나 시작 전이다
+        // 새 이슈는 언제나 시작 전이다.
         status: 'TODO',
         priority: values.priority,
         assigneeIds: values.assigneeIds,
@@ -424,7 +396,7 @@ export default function IssueFormModal({
       });
       onSaved(created);
     } catch (caught) {
-      // 수정 실패는 `saveEdit` 이 안내한다 — 여기까지 오는 것은 생성뿐이다
+      // 수정 실패는 saveEdit 이 안내한다 — 여기까지 오는 것은 생성뿐이다.
       showError(messageOf(caught, '이슈를 생성하지 못했습니다.'));
       setIsSaving(false);
     }
@@ -435,18 +407,14 @@ export default function IssueFormModal({
     (member) => !values?.assigneeIds.includes(member.userId),
   );
 
-  /**
-   * 겹친 필드의 비교 문구.
-   *
-   * 담당자 · 블록은 ID 만으로는 무엇이 다른지 알 수 없다 — 이름을 아는 곳이 여기라
-   * 문구를 만들어 넘긴다 (비교 모달은 값을 그리기만 한다).
-   */
+  // 겹친 필드의 비교 문구를 만든다.
+  // 담당자·블록은 ID 만으로 무엇이 다른지 알 수 없어, 이름을 아는 여기서 문구까지 만들어 넘긴다.
   function conflictRows(latest: IssueDetail): IssueConflictRow[] {
     if (values === null) return [];
 
     const latestValues = toIssueFormValues(latest);
 
-    /** 담당자 이름 — 참여자 목록에 없으면(퇴사 · 권한 회수) 최신값의 이름, 없으면 사번 */
+    // 담당자 이름 — 참여자 목록에 없으면(퇴사·권한 회수) 최신값의 이름, 그것도 없으면 사번.
     function assigneeNames(ids: string[]) {
       return (
         ids
@@ -620,10 +588,8 @@ export default function IssueFormModal({
                   </span>
                 ) : (
                   values.assigneeIds.map((userId) => {
-                    /*
-                     * 이미 담당자인 퇴사자는 후보 목록에 없다 (후보에서만 제외한다) —
-                     * 이름과 퇴사 여부는 **이슈 응답**에서 가져와 칩을 그대로 그린다.
-                     */
+                    // 이미 담당자인 퇴사자는 후보 목록에 없다 —
+                    // 이름과 퇴사 여부는 이슈 응답에서 가져와 칩을 그대로 그린다.
                     const assigned = base?.assignees.find(
                       (assignee) => assignee.userId === userId,
                     );
@@ -660,7 +626,7 @@ export default function IssueFormModal({
                           }}
                           aria-label={`${name} 제외`}
                           onClick={() => {
-                            // 이 버튼은 곧 사라진다 — 다시 나타날 후보 버튼으로 초점을 넘긴다
+                            // 이 버튼은 곧 사라진다 — 다시 나타날 후보 버튼으로 초점을 넘긴다.
                             focusAfterRender.current = {
                               kind: 'candidate',
                               userId,
@@ -701,7 +667,7 @@ export default function IssueFormModal({
                         else candidateButtons.current.delete(member.userId);
                       }}
                       onClick={() => {
-                        // 고르면 이 버튼이 사라진다 — 새로 생기는 제외 버튼으로 초점을 넘긴다
+                        // 고르면 이 버튼이 사라진다 — 새로 생기는 제외 버튼으로 초점을 넘긴다.
                         focusAfterRender.current = {
                           kind: 'remove',
                           userId: member.userId,
@@ -806,7 +772,7 @@ export default function IssueFormModal({
           rows={conflictRows(asking.latest)}
           isSaving={isSaving}
           onSave={(choices) => void applyConflictChoice(choices)}
-          // 계속 편집 — draft 를 그대로 두고 닫는다. 다시 저장하면 최신값을 또 확인한다
+          // 계속 편집 — draft 를 그대로 두고 닫는다. 다시 저장하면 최신값을 또 확인한다.
           onCancel={() => setConflict(null)}
         />
       )}

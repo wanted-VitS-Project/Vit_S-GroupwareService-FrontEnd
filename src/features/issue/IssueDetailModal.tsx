@@ -25,7 +25,7 @@ import {
   type IssueDetail,
 } from './types';
 
-/** 섹션 제목 — 상세 모달에서만 쓰는 작은 라벨 */
+// 섹션 제목 — 상세 모달에서만 쓰는 작은 라벨.
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="text-caption font-semibold tracking-[0.5px] text-text-secondary uppercase">
@@ -34,7 +34,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** 날짜 앞 달력 아이콘 */
+// 날짜 앞 달력 아이콘.
 function CalendarIcon() {
   return (
     <svg
@@ -53,11 +53,8 @@ function CalendarIcon() {
   );
 }
 
-/**
- * 이슈 상세. 목록 응답에는 `content` 가 없어 열릴 때 상세를 따로 조회한다. (명세 57번)
- *
- * ⚠️ 상태는 **보여주기만** 한다. 변경은 보드에서 드래그로만 한다.
- */
+// 이슈 상세. 목록 응답에 content 가 없어 열릴 때 상세를 따로 조회한다.
+// 상태는 보여주기만 한다 — 변경은 보드에서 드래그로만 한다.
 export default function IssueDetailModal({
   issueId,
   canEdit,
@@ -66,21 +63,19 @@ export default function IssueDetailModal({
   onDelete,
 }: {
   issueId: number;
-  /** 스텝 `EDITOR` 인지 — 아니면 수정 · 삭제 버튼을 감춘다 */
+  /** 스텝 EDITOR 인지 — 아니면 수정·삭제 버튼을 감춘다 */
   canEdit: boolean;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  /**
-   * 어느 이슈의 응답인지 함께 담는다 — `issueId` 가 바뀌면 즉시 무효가 되어
-   * 새 이슈를 불러오는 동안 **이전 이슈의 제목 · 버튼이 남지 않는다.**
-   */
+  // 어느 이슈의 응답인지 함께 담는다 — issueId 가 바뀌면 즉시 무효가 되어
+  // 새 이슈를 불러오는 동안 이전 이슈의 제목·버튼이 남지 않는다.
   const [loaded, setLoaded] = useState<{
     issueId: number;
     issue: IssueDetail;
   } | null>(null);
-  /** 실패는 로딩과 구분한다 — null 로 두면 스켈레톤이 영원히 돈다 */
+  // 실패는 로딩과 구분한다 — null 로 두면 스켈레톤이 영원히 돈다.
   const [failed, setFailed] = useState<{
     issueId: number;
     message: string;
@@ -110,7 +105,7 @@ export default function IssueDetailModal({
   const failure = failed?.issueId === issueId ? failed.message : null;
 
   const overdue = issue ? overdueDays(issue) : 0;
-  // 완료 시각은 'YYYY-MM-DDTHH:mm:ss' 로 온다 — 종료일은 날짜만 쓴다
+  // 완료 시각은 'YYYY-MM-DDTHH:mm:ss' 로 온다 — 종료일은 날짜만 쓴다.
   const finishedOn = issue?.completedAt
     ? formatDate(issue.completedAt.slice(0, 10))
     : '';
@@ -142,7 +137,7 @@ export default function IssueDetailModal({
                 이슈 상세
               </h2>
             ) : (
-              // 헤더는 본문 스피너가 이미 로딩을 알린다 — 제목만 그대로 둔다
+              // 본문 스피너가 이미 로딩을 알린다 — 헤더는 제목만 그대로 둔다.
               <h2 className="text-body-l font-semibold text-text-primary">
                 이슈 상세
               </h2>

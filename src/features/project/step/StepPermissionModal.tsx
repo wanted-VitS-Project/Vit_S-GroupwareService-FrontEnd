@@ -21,17 +21,13 @@ interface StepPermissionModalProps {
   onClose: () => void;
 }
 
-/**
- * 스텝 권한 관리 모달. (.ai/API.md 134~136)
- *
- * ⚠️ **`overridden: false` 는 차단이 아니라 프로젝트 권한 상속이다** (STP-011) —
- *    화면에서 `상속` · `직접 지정` 을 구분해 보여주지 않으면, 상속 상태를 "권한 없음" 으로
- *    오해해 굳이 `NONE` 을 걸어 잠가버린다.
- * ⚠️ 특정 스텝만 가리려면 **`NONE` 을 명시적으로** 골라야 한다.
- * ⛔ 자기 자신의 행은 바꿀 수 없다 (INV-10) — 백엔드도 403 이지만 화면에서도 잠근다.
- *
- * 이 API 는 **프로젝트 `EDITOR`** 전용이다 (스텝 `EDITOR` 로는 부를 수 없다).
- */
+// 스텝 권한 관리 모달. (.ai/API.md 134~136)
+// overridden: false 는 차단이 아니라 프로젝트 권한 상속이다 (STP-011) —
+// 화면에서 상속·직접 지정 을 구분해 보여주지 않으면, 상속 상태를 "권한 없음" 으로
+// 오해해 굳이 NONE 을 걸어 잠가버린다.
+// 특정 스텝만 가리려면 NONE 을 명시적으로 골라야 한다.
+// 자기 자신의 행은 바꿀 수 없다 (INV-10) — 백엔드도 403 이지만 화면에서도 잠근다.
+// 이 API 는 프로젝트 EDITOR 전용이다 (스텝 EDITOR 로는 부를 수 없다).
 export default function StepPermissionModal({
   stepId,
   stepName,
@@ -110,14 +106,14 @@ export default function StepPermissionModal({
 
     try {
       const saved = await revokeStepPermission(stepId, entry.userId);
-      // 응답의 `permission` 은 **회수 후 상속된 등급**이다
+      // 응답의 permission 은 회수 후 상속된 등급이다
       patchEntry(saved.userId, saved.permission, saved.overridden);
     } catch (caught) {
       const code = caught instanceof ApiError ? caught.code : undefined;
 
       /*
        * 행이 원래 없었다 — 이미 상속 상태라 실패로 보일 이유는 없지만,
-       * ⚠️ **화면 값을 그대로 두면 안 된다.** 지금 보이는 등급은 직접 지정 값이라
+       * 화면 값을 그대로 두면 안 된다. 지금 보이는 등급은 직접 지정 값이라
        *    실제 상속 등급과 다를 수 있고, 그대로 두면 관리자가 잘못된 값으로 판단한다.
        *    서버에서 다시 읽어 맞춘다.
        */

@@ -29,20 +29,15 @@ const PermanentDeleteFileModal = dynamic(loadPermanentDeleteModal, {
   loading: () => <ModalLoadingFallback title="영구 삭제" />,
 });
 
-/**
- * 휴지통 — 문서. (명세 106 · 103 · 104번)
- *
- * 문서함(105번)과 달리 **스텝 → 블록 트리로 묶지 않는다.**
- * 휴지통에서 찾는 기준은 위치가 아니라 "언제 지웠나" 라서 서버도 `deletedAt` 내림차순으로 준다 —
- * 위치는 각 행에 한 줄로 붙여 두면 충분하다.
- *
- * ⚠️ 복구는 **블록이 삭제됐어도** 된다. 그때는 문서만 살아나므로 그 사실을 알려야 한다.
- *
- * 복구 · 영구 삭제는 **낙관적으로 처리한다** — 목록에서 먼저 빼고 요청은 뒤에서 보낸다.
- * 되돌릴 수 없는 동작이지만 확인 모달(영구 삭제) · 명시적 버튼(복구)에서 이미 뜻을 물었고,
- * 여러 건을 잇달아 정리하는 화면이라 매번 응답을 기다리면 손이 멎는다.
- * 끝났는지는 토스트로 알리고, 실패하면 **목록의 원래 자리로 되돌린다.**
- */
+// 휴지통 — 문서. (명세 106·103·104번)
+// 문서함(105번)과 달리 스텝 → 블록 트리로 묶지 않는다.
+// 휴지통에서 찾는 기준은 위치가 아니라 "언제 지웠나" 라서 서버도 deletedAt 내림차순으로 준다 —
+// 위치는 각 행에 한 줄로 붙여 두면 충분하다.
+// 복구는 블록이 삭제됐어도 된다. 그때는 문서만 살아나므로 그 사실을 알려야 한다.
+// 복구·영구 삭제는 낙관적으로 처리한다 — 목록에서 먼저 빼고 요청은 뒤에서 보낸다.
+// 되돌릴 수 없는 동작이지만 확인 모달(영구 삭제)·명시적 버튼(복구)에서 이미 뜻을 물었고,
+// 여러 건을 잇달아 정리하는 화면이라 매번 응답을 기다리면 손이 멎는다.
+// 끝났는지는 토스트로 알리고, 실패하면 목록의 원래 자리로 되돌린다.
 export default function TrashFiles() {
   const params = useParams<{ id: string }>();
   const projectId = params.id;
@@ -80,13 +75,10 @@ export default function TrashFiles() {
   const files = loaded?.projectId === projectId ? loaded.files : null;
   const hasFailed = failedProjectId === projectId;
 
-  /**
-   * 목록을 통째로 다시 읽지 않고 한 건만 뺀다 — 스크롤 자리를 지킨다.
-   *
-   * ⚠️ **어느 프로젝트의 목록인지 확인한다.** 낙관적 처리라 요청이 응답보다 먼저 끝나는데,
-   *    그 사이 다른 프로젝트로 옮겨 갔으면 지금 화면은 남의 휴지통이다.
-   *    `of` 는 **요청을 시작한 시점**의 `projectId` 다 (호출부가 클로저로 잡아 넘긴다).
-   */
+  // 목록을 통째로 다시 읽지 않고 한 건만 뺀다 — 스크롤 자리를 지킨다.
+  // 어느 프로젝트의 목록인지 확인한다. 낙관적 처리라 요청이 응답보다 먼저 끝나는데,
+  // 그 사이 다른 프로젝트로 옮겨 갔으면 지금 화면은 남의 휴지통이다.
+  // of 는 요청을 시작한 시점의 projectId 다 (호출부가 클로저로 잡아 넘긴다).
   function remove(of: string, fileId: number) {
     setLoaded((prev) =>
       prev === null || prev.projectId !== of
@@ -98,10 +90,8 @@ export default function TrashFiles() {
     );
   }
 
-  /**
-   * 실패했을 때 **원래 자리**로 되돌린다 — 맨 위로 올라오면 어디 있던 것인지 잃는다.
-   * 되돌리기는 더 위험하다 — 프로젝트를 확인하지 않으면 **남의 문서가 이 휴지통에 꽂힌다.**
-   */
+  // 실패했을 때 원래 자리로 되돌린다 — 맨 위로 올라오면 어디 있던 것인지 잃는다.
+  // 되돌리기는 더 위험하다 — 프로젝트를 확인하지 않으면 남의 문서가 이 휴지통에 꽂힌다.
   function restoreAt(of: string, file: ProjectTrashFile, index: number) {
     setLoaded((prev) => {
       if (prev === null || prev.projectId !== of) return prev;
@@ -116,10 +106,8 @@ export default function TrashFiles() {
     });
   }
 
-  /**
-   * 복구 — 화면에서 먼저 빼고 요청은 뒤에서 보낸다.
-   * `void` 로 띄워 두므로 사용자는 곧바로 다음 문서를 정리할 수 있다.
-   */
+  // 복구 — 화면에서 먼저 빼고 요청은 뒤에서 보낸다.
+  // void 로 띄워 두므로 사용자는 곧바로 다음 문서를 정리할 수 있다.
   function restore(file: ProjectTrashFile, index: number) {
     // 응답이 늦게 와도 이 요청이 어느 프로젝트의 것인지 잃지 않게 지금 값을 잡아 둔다
     const of = projectId;
@@ -186,7 +174,7 @@ export default function TrashFiles() {
 
   /*
    * 렌더 시점의 대상을 지역 상수로 고정한다.
-   * JSX 안에서 `deleteModal.target!` 로 단언하면, 콜백이 도는 시점에 이미 닫혔을
+   * JSX 안에서 deleteModal.target! 로 단언하면, 콜백이 도는 시점에 이미 닫혔을
    * 가능성을 타입이 감춘다 — 조건부 렌더에 기대는 보장을 코드로 드러낸다.
    */
   const deleteTarget = deleteModal.target;
@@ -228,7 +216,7 @@ export default function TrashFiles() {
   );
 }
 
-/** 휴지통 문서 한 줄 — 위치 · 삭제 시각 · 복구 · 영구 삭제 */
+/** 휴지통 문서 한 줄 — 위치·삭제 시각·복구·영구 삭제 */
 function TrashFileRow({
   file,
   onRestore,

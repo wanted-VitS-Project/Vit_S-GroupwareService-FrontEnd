@@ -4,12 +4,8 @@ import Modal from '@/components/Modal';
 
 import { imageAltText, type BlockImage } from './types';
 
-/**
- * 이미지 크게 보기.
- *
- * 좌우 이동은 카드가 들고 있는 상태를 그대로 쓴다 — 여기서 따로 받아 오면
- * 닫았을 때 카드가 보여 주는 장과 어긋난다.
- */
+// 이미지 크게 보기. 좌우 이동은 카드가 들고 있는 상태를 그대로 쓴다 —
+// 여기서 따로 받아 오면 닫았을 때 카드가 보여 주는 장과 어긋난다.
 export default function ImageLightbox({
   image,
   orderIndex,
@@ -76,10 +72,7 @@ export default function ImageLightbox({
         </NavButton>
 
         <div className="flex min-w-0 flex-1 flex-col items-center gap-2">
-          {/*
-            이미지 칸을 먼저 고정한다 — 캡션이 붙거나 빠질 때, 좌우로 넘길 때
-            이미지 크기가 따라 흔들리지 않게 한다.
-          */}
+          {/* 이미지 칸을 먼저 고정한다 — 캡션이 붙거나 빠질 때 이미지 크기가 따라 흔들리지 않게 */}
           <div className="flex h-[62vh] w-full items-center justify-center">
             {/* eslint-disable-next-line @next/next/no-img-element -- 저장소(S3) 도메인이 확정되지 않아 next/image 원격 패턴을 걸 수 없다 */}
             <img

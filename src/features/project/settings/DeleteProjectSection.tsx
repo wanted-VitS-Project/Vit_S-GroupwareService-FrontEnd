@@ -12,20 +12,17 @@ import SettingsSection from './SettingsSection';
 
 interface DeleteProjectSectionProps {
   projectId: string;
-  /** 아직 도착하지 않았으면 `null` — 버튼을 잠근 채 그린다 */
+  /** 아직 도착하지 않았으면 null — 버튼을 잠근 채 그린다 */
   project: ProjectDetail | null;
   canEdit: boolean;
 }
 
-/**
- * 프로젝트 삭제. 프로젝트 `EDITOR` 전용. (.ai/API.md 139 · PRJ-014)
- *
- * ⛔ **상태 · 스텝 수로 막지 않는다** (2026-08-13 명세 전면 변경) — 종결이든 진행 중이든
- *    언제든 지울 수 있고, 지울 범위 확인은 서버가 409 로 되묻는다(모달에서 처리).
- *    화면에서 미리 잠그면 사용자가 삭제할 방법을 영영 못 찾는다.
- * ℹ️ 되돌릴 수 없는 조작이라 설정 화면 **맨 아래**에 두고 확인 모달을 거친다 —
- *    상태 변경 · 참여자 편집을 하다 실수로 누를 자리에 두지 않는다.
- */
+// 프로젝트 삭제. 프로젝트 EDITOR 전용. (.ai/API.md 139·PRJ-014)
+// 상태·스텝 수로 막지 않는다 (2026-08-13 명세 전면 변경) — 종결이든 진행 중이든
+// 언제든 지울 수 있고, 지울 범위 확인은 서버가 409 로 되묻는다(모달에서 처리).
+// 화면에서 미리 잠그면 사용자가 삭제할 방법을 영영 못 찾는다.
+// 되돌릴 수 없는 조작이라 설정 화면 맨 아래에 두고 확인 모달을 거친다 —
+// 상태 변경·참여자 편집을 하다 실수로 누를 자리에 두지 않는다.
 export default function DeleteProjectSection({
   projectId,
   project,
@@ -34,7 +31,7 @@ export default function DeleteProjectSection({
   const router = useRouter();
   const deleteModal = useModal();
 
-  // 상태 · 스텝 수는 보지 않는다 — 권한과 로딩만 본다
+  // 상태·스텝 수는 보지 않는다 — 권한과 로딩만 본다
   const canDelete = Boolean(project) && canEdit;
 
   return (

@@ -15,19 +15,15 @@ interface StageFormModalProps {
   /** 있으면 이름 수정, 없으면 추가 */
   stage?: ProjectStage;
   onClose: () => void;
-  /** 저장 성공 · 남이 먼저 지운 경우 모두 목록을 다시 읽는다 */
+  /** 저장 성공·남이 먼저 지운 경우 모두 목록을 다시 읽는다 */
   onSaved: () => void;
 }
 
-/**
- * 스테이지 추가 · 이름 수정 모달. (.ai/API.md 112 · 113)
- *
- * 순서는 여기서 못 바꾼다 — 추가는 서버가 맨 뒤(`max+1`)에 붙이고,
- * 기존 스테이지의 순서 변경은 `PATCH /projects/{projectId}/stages/order` 소관이다.
- *
- * ⚠️ 수정은 **낙관적 락**이다. 그 사이 남이 저장했으면 409 가 오고,
- *    그때는 저장을 조용히 버리지 않고 **덮어쓸지 다시 불러올지 사용자에게 묻는다.**
- */
+// 스테이지 추가·이름 수정 모달. (.ai/API.md 112·113)
+// 순서는 여기서 못 바꾼다 — 추가는 서버가 맨 뒤(max+1)에 붙이고,
+// 기존 스테이지의 순서 변경은 PATCH /projects/{projectId}/stages/order 소관이다.
+// 수정은 낙관적 락이다. 그 사이 남이 저장했으면 409 가 오고,
+// 그때는 저장을 조용히 버리지 않고 덮어쓸지 다시 불러올지 사용자에게 묻는다.
 export default function StageFormModal({
   projectId,
   stage,
@@ -42,10 +38,8 @@ export default function StageFormModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConflicting, setIsConflicting] = useState(false);
 
-  /**
-   * 수정에 필요한 `version` 이 목록 응답에 없는 경우.
-   * 그대로 보내면 400 이라 저장 자체를 막고 재조회를 안내한다. (`types.ts` 참고)
-   */
+  // 수정에 필요한 version 이 목록 응답에 없는 경우.
+  // 그대로 보내면 400 이라 저장 자체를 막고 재조회를 안내한다. (types.ts 참고)
   const hasNoVersion = isEditing && stage.version === undefined;
 
   /** 값을 고치면 직전 서버 오류는 더 이상 맞지 않는다 */
@@ -73,7 +67,7 @@ export default function StageFormModal({
 
     try {
       if (stage) {
-        // `canSubmit` 이 막고 있지만 덮어쓰기 경로도 지나므로 여기서 한 번 더 본다
+        // canSubmit 이 막고 있지만 덮어쓰기 경로도 지나므로 여기서 한 번 더 본다
         if (stage.version === undefined) {
           setError('버전 정보가 없어 저장할 수 없습니다. 새로고침해주세요.');
           setIsSubmitting(false);
@@ -215,7 +209,7 @@ export default function StageFormModal({
       {isConflicting && (
         /*
          * 409 를 조용히 삼키면 사용자는 저장된 줄 안다.
-         * 취소(= Esc · 배경 클릭)를 **다시 불러오기**에 두어 잘못 눌러도 남의 값이 지워지지 않게 한다.
+         * 취소(= Esc·배경 클릭)를 다시 불러오기에 두어 잘못 눌러도 남의 값이 지워지지 않게 한다.
          */
         <AlertDialogTwoButton
           icon={DialogIcons.warning}

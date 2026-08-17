@@ -22,11 +22,9 @@ const PATHS: Record<BlockTypeCode, React.ReactNode> = {
       <path d="m6 18 5-5 8 8" />
     </>
   ),
-  /**
-   * 문서 업로드 — 받침 + 위로 향한 화살표.
-   * 화살촉이 너무 넓고 얕아(가로 8 · 세로 4) 화살대에서 떨어져 나온 것처럼 보였다.
-   * 좁고 가파르게(가로 7 · 세로 4) 줄이고 화살대도 짧게 잡아 한 덩어리로 붙인다.
-   */
+  // 문서 업로드 — 받침 + 위로 향한 화살표.
+  // 화살촉이 너무 넓고 얕아(가로 8·세로 4) 화살대에서 떨어져 나온 것처럼 보였다.
+  // 좁고 가파르게(가로 7·세로 4) 줄이고 화살대도 짧게 잡아 한 덩어리로 붙인다.
   FILE: (
     <>
       <path d="M3 15v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4" />
@@ -50,10 +48,8 @@ const PATHS: Record<BlockTypeCode, React.ReactNode> = {
       <path d="M16 15v4" />
     </>
   ),
-  /**
-   * 확성기 — '공고'다.
-   * 예전엔 의사봉(gavel)이었는데 16px 에서 머리 · 자루 · 받침이 뭉쳐 뭔지 알 수 없었다.
-   */
+  // 확성기 — '공고'다.
+  // 예전엔 의사봉(gavel)이었는데 16px 에서 머리·자루·받침이 뭉쳐 뭔지 알 수 없었다.
   BID_NOTICE: (
     <>
       <path d="M3 11.5 20 6v12L3 12.5z" />
@@ -74,7 +70,7 @@ export default function BlockTypeIcon({ code }: { code: BlockTypeCode }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      // 탭바 · 공통 메뉴 아이콘과 같은 굵기다 — 나란히 놓였을 때 한쪽만 두꺼워 보이면 안 된다
+      // 탭바·공통 메뉴 아이콘과 같은 굵기다 — 나란히 놓였을 때 한쪽만 두꺼워 보이면 안 된다
       strokeWidth="1.6"
       strokeLinecap="round"
       strokeLinejoin="round"
