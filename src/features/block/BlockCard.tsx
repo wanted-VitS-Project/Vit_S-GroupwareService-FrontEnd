@@ -317,7 +317,7 @@ function BlockMenu({
             />
             <span
               role="menu"
-              className="absolute top-full right-0 z-20 mt-1 flex w-28 flex-col overflow-hidden rounded-lg border border-border-default bg-bg-card shadow-lg"
+              className="absolute top-full right-0 z-20 mt-1 flex w-32 flex-col overflow-hidden rounded-lg border border-border-default bg-bg-card shadow-lg"
             >
               <button
                 type="button"
@@ -329,7 +329,7 @@ function BlockMenu({
                 className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-caption font-medium text-text-primary hover:bg-bg-surface"
               >
                 <HashIcon />
-                <span className="flex-1 text-left">연결된 이슈</span>
+                <span className="flex-1 whitespace-nowrap text-left">연결된 이슈</span>
                 {block.linkedIssueTotal > 0 && (
                   <span className="rounded-pill bg-blue-bg px-1.5 py-0.5 text-micro font-bold text-btn-primary-hover">
                     {block.linkedIssueTotal}
