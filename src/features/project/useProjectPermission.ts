@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { skipToken, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
 import type { ProjectPermission } from './types';
@@ -31,8 +31,13 @@ export function projectPermissionKey(projectId: string) {
 export function useProjectPermission(projectId: string) {
   const { data } = useQuery<ProjectPermission>({
     queryKey: projectPermissionKey(projectId),
-    // 이 훅은 캐시를 **읽기만** 한다 — 채우는 쪽은 아래 `usePublishProjectPermission` 이다
-    enabled: false,
+    /*
+      이 훅은 캐시를 **읽기만** 한다 — 채우는 쪽은 아래 `usePublishProjectPermission` 이다.
+      ⚠️ `enabled: false` 만으로는 부족하다. `queryFn` 이 없으면 react-query 가
+         "queryFn 이 없다" 며 콘솔에 오류를 남긴다 — 조회하지 않겠다는 뜻은
+         `skipToken` 으로 밝힌다.
+    */
+    queryFn: skipToken,
   });
 
   return data ?? null;
