@@ -414,7 +414,8 @@ export function getSettlementProjects(
 export function getSettlementClients(signal?: AbortSignal) {
   return api
     .get<{ clients: string[] }>(ENDPOINTS.finance.settlements.filters, signal)
-    .then((data) => data.clients);
+    // 필드가 비어 와도 화면이 `map` 에서 죽지 않게 한다
+    .then((data) => data.clients ?? []);
 }
 
 /** 한 프로젝트의 정산 회차. 페이징이 없어 전체가 온다 */
@@ -427,5 +428,6 @@ export function getProjectSettlements(
       ENDPOINTS.finance.settlements.ofProject(projectId),
       signal,
     )
-    .then((data) => data.blocks);
+    // 비어 오면 '회차 없음' 으로 그린다 — 없으면 로딩이 끝나지 않는다
+    .then((data) => data.blocks ?? []);
 }

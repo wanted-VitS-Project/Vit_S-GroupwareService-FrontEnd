@@ -37,32 +37,36 @@ export default function SettlementRoundPanel({
    * 자동으로 로딩이 된다 (효과에서 상태를 비우지 않는다).
    */
   const [result, setResult] = useState<{
-    projectId: number;
+    key: string;
     rounds?: SettlementRound[];
     errorMessage?: string;
   } | null>(null);
   /** 계좌 정보를 펼친 회차 */
   const [openAccountId, setOpenAccountId] = useState<number | null>(null);
+  /** 실패했을 때 다시 부르는 값 — 같은 프로젝트라 키만으로는 효과가 다시 돌지 않는다 */
+  const [reloadCount, setReloadCount] = useState(0);
+
+  const requestKey = `${projectId} ${reloadCount}`;
 
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
 
     getProjectSettlements(projectId, signal)
-      .then((list) => setResult({ projectId, rounds: list }))
+      .then((list) => setResult({ key: requestKey, rounds: list }))
       .catch((caught) => {
         if (signal.aborted) return;
 
         setResult({
-          projectId,
+          key: requestKey,
           errorMessage: messageOf(caught, '회차를 불러오지 못했습니다.'),
         });
       });
 
     return () => controller.abort();
-  }, [projectId]);
+  }, [requestKey, projectId]);
 
-  const current = result?.projectId === projectId ? result : null;
+  const current = result?.key === requestKey ? result : null;
   const rounds = current?.rounds ?? null;
   const errorMessage = current?.errorMessage ?? '';
 
@@ -78,7 +82,14 @@ export default function SettlementRoundPanel({
     >
       {errorMessage ? (
         <p role="alert" className="text-caption text-text-danger">
-          {errorMessage}
+          {errorMessage}{' '}
+          <button
+            type="button"
+            onClick={() => setReloadCount((count) => count + 1)}
+            className="cursor-pointer font-semibold underline"
+          >
+            다시 시도
+          </button>
         </p>
       ) : rounds === null ? (
         <LoadingSpinner label="정산 회차 불러오는 중" className="py-8" />

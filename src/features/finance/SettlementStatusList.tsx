@@ -258,9 +258,49 @@ export default function SettlementStatusList() {
         }
         columns={[
           {
+            /*
+              ⚠️ 행 클릭만으로는 **키보드로 펼칠 수 없다.** 누를 수 있는 단추를 따로 둔다
+                 (`stopRowClick` 이라 행 클릭과 겹치지 않는다).
+            */
+            key: 'toggle',
+            header: '',
+            width: '4%',
+            stopRowClick: true,
+            cell: (row) => {
+              const isOpen = row.projectId === openProjectId;
+
+              return (
+                <button
+                  type="button"
+                  aria-expanded={isOpen}
+                  aria-label={`${row.projectName} 정산 회차 ${isOpen ? '접기' : '펼치기'}`}
+                  onClick={() =>
+                    setOpenProjectId((open) =>
+                      open === row.projectId ? null : row.projectId,
+                    )
+                  }
+                  className="flex size-7 cursor-pointer items-center justify-center rounded-button-md text-text-secondary hover:bg-bg-hover hover:text-text-primary"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                    className={`size-4 transition-transform ${isOpen ? 'rotate-90' : ''}`}
+                  >
+                    <path d="m9 6 6 6-6 6" />
+                  </svg>
+                </button>
+              );
+            },
+          },
+          {
             key: 'project',
             header: '과업명',
-            width: '18%',
+            width: '16%',
             cell: (row) => (
               <div className="min-w-0">
                 {/* 행 클릭은 회차 펼치기라, 프로젝트로 가는 길은 이름에 둔다 */}
@@ -324,7 +364,7 @@ export default function SettlementStatusList() {
           {
             key: 'planned',
             header: '예정 금액',
-            width: '13%',
+            width: '12%',
             align: 'right',
             cell: (row) => (
               <span className="text-label break-all text-text-primary tabular-nums">
@@ -335,7 +375,7 @@ export default function SettlementStatusList() {
           {
             key: 'income',
             header: '수입',
-            width: '12%',
+            width: '11%',
             align: 'right',
             cell: (row) => (
               <span className="text-label break-all text-text-primary tabular-nums">
@@ -346,7 +386,7 @@ export default function SettlementStatusList() {
           {
             key: 'outcome',
             header: '지출',
-            width: '12%',
+            width: '11%',
             align: 'right',
             cell: (row) => (
               <span className="text-label break-all text-text-primary tabular-nums">
@@ -361,7 +401,7 @@ export default function SettlementStatusList() {
             */
             key: 'total',
             header: '합계',
-            width: '12%',
+            width: '11%',
             align: 'right',
             cell: (row) => (
               <span className="text-label font-semibold break-all text-text-primary tabular-nums">
@@ -372,7 +412,7 @@ export default function SettlementStatusList() {
           {
             key: 'state',
             header: '상태',
-            width: '11%',
+            width: '13%',
             cell: (row) => {
               const state = settlementProjectState(row);
 

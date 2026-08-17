@@ -1,3 +1,6 @@
+import type { ProjectStatusCode } from '@/constants/status';
+import type { SettlementStatus } from '@/features/settlement/types';
+
 /**
  * 재무 관리 요약 (`GET /finance/summary`).
  *
@@ -506,7 +509,8 @@ export interface SettlementProjectItem {
   /** 예정일을 넘긴 일수. 0 이면 지연 아님 */
   paymentOverdueDays: number;
   taxInvoiceOverdueDays: number;
-  projectStatus: string;
+  /** 서버가 값을 늘려도 화면이 죽지 않게 열어 둔다 (알려진 값은 자동완성이 된다) */
+  projectStatus: ProjectStatusCode | (string & {});
   /** 종료일 — 진행 중이면 null */
   endedOn: string | null;
 }
@@ -540,7 +544,8 @@ export interface SettlementRound {
   accountHolder: string | null;
   paidDate: string | null;
   paidAmount: number | null;
-  status: string;
+  /** 정산 블록과 같은 4값. 새 값이 와도 화면은 원문을 그대로 적는다 */
+  status: SettlementStatus | (string & {});
   /** 계산서 · 입금을 연결한 사람과 시각 */
   taxLinkedByName: string | null;
   taxLinkedAt: string | null;

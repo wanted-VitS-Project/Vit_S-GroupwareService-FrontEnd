@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment } from 'react';
+import { Fragment, useCallback, useSyncExternalStore } from 'react';
 
 import { Skeleton, SkeletonGroup } from './Skeleton';
 import LoadingSpinner from './Spinner';
@@ -136,6 +136,24 @@ interface DataTableProps<T> {
   loadingLabel?: string;
 }
 
+/** 표로 그릴 폭인지 (`md` 이상). 서버 렌더에서는 표를 기준으로 둔다 */
+const WIDE_SCREEN_QUERY = '(min-width: 768px)';
+
+function useIsWideScreen() {
+  const subscribe = useCallback((onChange: () => void) => {
+    const media = window.matchMedia(WIDE_SCREEN_QUERY);
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
+  }, []);
+
+  return useSyncExternalStore(
+    subscribe,
+    () => window.matchMedia(WIDE_SCREEN_QUERY).matches,
+    // 서버에는 창 폭이 없다 — 표로 그려 두고 마운트 후 실제 폭으로 맞춘다
+    () => true,
+  );
+}
+
 const ALIGN_CLASS = {
   left: 'text-left',
   right: 'text-right',
@@ -185,6 +203,12 @@ export default function DataTable<T>({
   renderExpanded,
   loadingLabel,
 }: DataTableProps<T>) {
+  /*
+    ⚠️ **표와 카드 중 한쪽만 그린다.** 예전에는 `hidden md:block` 으로 감췄는데,
+       CSS 숨김은 렌더를 막지 못해 **양쪽이 모두 마운트**됐다. 펼침 줄(`renderExpanded`)이
+       두 번 붙어 그 안의 조회가 매번 두 번 나갔다.
+  */
+  const isWide = useIsWideScreen();
   warnIfWidthsBroken(columns);
 
   /** 헤더 · 본문 · 빈 상태가 같은 값을 써야 열이 어긋나지 않는다 */
@@ -450,18 +474,20 @@ export default function DataTable<T>({
     rows === null && !showSkeleton && !loadingLabel ? (
       // 자리만 남긴다 — 무엇이 몇 줄 올지 모르는 표에서는 막대가 오히려 화면을 흔든다
       <div className="min-h-40" />
+    ) : isWide ? (
+      table
     ) : (
-      <>
-        {/* 768px 미만은 카드, 이상은 표 — 한쪽만 그린다 */}
-        <div className="hidden md:block">{table}</div>
-        <div className="md:hidden">{cards}</div>
-      </>
+      cards
     );
 
-  // 로딩 중에는 스크린리더가 "불러오는 중" 을 읽도록 묶어 준다
+  /*
+    로딩 중에는 스크린리더가 "불러오는 중" 을 읽도록 묶어 준다.
+    ⚠️ `loadingLabel` 을 쓸 때는 묶지 않는다 — 스피너가 이미 `role="status"` 라
+       상태 영역이 겹쳐 같은 안내가 두 번 읽힌다.
+  */
   return (
     <Shell>
-      {rows === null ? (
+      {rows === null && !loadingLabel ? (
         <SkeletonGroup label={`${caption} 불러오는 중`}>{body}</SkeletonGroup>
       ) : (
         body

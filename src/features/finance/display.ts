@@ -113,7 +113,8 @@ export function settlementProjectStateLabel(
       return '정산 완료';
     case 'IN_PROGRESS':
       return '진행 중';
-    default:
+    /* `default` 를 두지 않는다 — 상태가 늘면 여기서 빠뜨린 것을 타입 검사가 잡는다 */
+    case 'NONE':
       return '정산 없음';
   }
 }
