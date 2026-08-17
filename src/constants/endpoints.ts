@@ -511,6 +511,21 @@ export const ENDPOINTS = {
   finance: {
     /** 재무 관리 허브의 3개 항목 수치 (입출금 · 세금계산서 · 정산 현황) */
     summary: `${V1}/finance/summary`,
+    /**
+     * 정산 현황 — **프로젝트 단위 집계**다.
+     *
+     * ⚠️ 경로가 `/finance` 가 아니라 `/projects` 아래에 있다 (집계 대상이 프로젝트라서).
+     *    다루는 화면은 재무 관리이므로 이 묶음에 둔다.
+     */
+    settlements: {
+      /** 전사 프로젝트 정산 현황 (페이징 · 정렬) */
+      root: `${V1}/projects/settlements`,
+      /** 필터 옵션 — 발주처 이름 목록만 온다 */
+      filters: `${V1}/projects/settlements/filters`,
+      /** 한 프로젝트의 정산 회차 목록 (페이징 없음) */
+      ofProject: (projectId: number | string) =>
+        `${V1}/projects/${projectId}/settlements`,
+    },
     cashFlows: {
       /** 목록 조회(GET) · 직접 등록(POST) · 다건 삭제(DELETE — body 에 id 배열) */
       root: `${V1}/finance/cash-flows`,

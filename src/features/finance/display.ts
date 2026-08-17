@@ -3,7 +3,11 @@
  * 금액 · 배지 색처럼 여러 화면(입출금 · 세금계산서 · 정산 현황)이 함께 쓰는 것만 둔다.
  */
 
-import type { CashFlowLinkStatus, CashFlowType } from './types';
+import type {
+  CashFlowLinkStatus,
+  CashFlowType,
+  SettlementProjectState,
+} from './types';
 
 /**
  * 금액 표기. 재무는 **원 단위 그대로** 쓴다 —
@@ -56,3 +60,60 @@ export const CASH_FLOW_LINK_BADGE: Record<CashFlowLinkStatus, string> = {
   LINKED: 'badge badge-green',
   LINK_BLOCK_DELETED: 'badge badge-yellow',
 };
+
+/* ─────────────── 정산 현황 ─────────────── */
+
+/**
+ * 프로젝트 줄의 상태를 정한다.
+ *
+ * ⚠️ **서버가 주는 값이 아니다.** 프로젝트 단위 상태는 백엔드에 정의가 없어(2026-08-17 확인)
+ *    지연 일수 · 미연결 건수 · 회차 수로 화면이 판단한다. 정의가 생기면 이 함수를 지운다.
+ * ⚠️ 순서가 뜻을 만든다 — **급한 것부터** 본다. 입금 지연이 있으면 그것부터 알린다.
+ */
+export function settlementProjectState(row: {
+  totalRoundCount: number;
+  completedRoundCount: number;
+  paymentOverdueDays: number;
+  taxInvoiceOverdueDays: number;
+  nextPlannedDate: string | null;
+}): SettlementProjectState {
+  if (row.totalRoundCount === 0) return 'NONE';
+  if (row.paymentOverdueDays > 0) return 'PAYMENT_OVERDUE';
+  if (row.taxInvoiceOverdueDays > 0) return 'TAX_OVERDUE';
+  if (row.completedRoundCount >= row.totalRoundCount) return 'DONE';
+  if (row.nextPlannedDate === null) return 'NO_PLANNED_DATE';
+  return 'IN_PROGRESS';
+}
+
+export const SETTLEMENT_PROJECT_STATE_BADGE: Record<
+  SettlementProjectState,
+  string
+> = {
+  PAYMENT_OVERDUE: 'bg-red-bg-soft text-text-danger',
+  TAX_OVERDUE: 'bg-yellow-bg-soft text-yellow-text',
+  NO_PLANNED_DATE: 'bg-bg-hover text-text-secondary',
+  DONE: 'bg-green-bg text-green-text',
+  IN_PROGRESS: 'bg-blue-bg-soft text-text-primary-blue',
+  NONE: 'bg-bg-hover text-text-secondary',
+};
+
+/** 지연 일수는 상태에 따라 문구에 들어간다 — 라벨을 만드는 쪽에서 함께 받는다 */
+export function settlementProjectStateLabel(
+  state: SettlementProjectState,
+  row: { paymentOverdueDays: number; taxInvoiceOverdueDays: number },
+) {
+  switch (state) {
+    case 'PAYMENT_OVERDUE':
+      return `입금 대기 ${row.paymentOverdueDays}일`;
+    case 'TAX_OVERDUE':
+      return `계산서 미발행 ${row.taxInvoiceOverdueDays}일`;
+    case 'NO_PLANNED_DATE':
+      return '예정일 미입력';
+    case 'DONE':
+      return '정산 완료';
+    case 'IN_PROGRESS':
+      return '진행 중';
+    default:
+      return '정산 없음';
+  }
+}

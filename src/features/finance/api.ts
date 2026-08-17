@@ -19,6 +19,9 @@ import type {
   CsvUploadResult,
   FinanceSummary,
   MatchCandidateResponse,
+  SettlementProjectPage,
+  SettlementProjectQuery,
+  SettlementRound,
   TaxInvoiceCsvPreview,
   TaxInvoiceCsvUploadRequest,
   TaxInvoiceCsvUploadResult,
@@ -374,4 +377,55 @@ export function uploadTaxInvoiceCsv(
     form,
     signal,
   );
+}
+
+/* ─────────────── 정산 현황 ─────────────── */
+
+/**
+ * 프로젝트 단위 정산 현황. **페이징이 있다** (입출금 · 세금계산서 목록과 다르다).
+ *
+ * ⚠️ 정렬은 서버가 두 값만 받는다 — 표 머리글로 아무 열이나 정렬할 수 없다.
+ */
+export function getSettlementProjects(
+  query: SettlementProjectQuery = {},
+  signal?: AbortSignal,
+) {
+  const params = new URLSearchParams();
+
+  if (query.startDate) params.set('startDate', query.startDate);
+  if (query.endDate) params.set('endDate', query.endDate);
+  if (query.client) params.set('client', query.client);
+  // 기본값(false)과 구분해야 해서 값이 있을 때만 싣는다
+  if (query.includeCompleted) params.set('includeCompleted', 'true');
+  if (query.page !== undefined) params.set('page', String(query.page));
+  if (query.size !== undefined) params.set('size', String(query.size));
+  if (query.sort) params.set('sort', query.sort);
+
+  const search = params.toString();
+  const path = ENDPOINTS.finance.settlements.root;
+
+  return api.get<SettlementProjectPage>(
+    search ? `${path}?${search}` : path,
+    signal,
+  );
+}
+
+/** 발주처 필터 선택지. 응답이 `{ clients: [...] }` 라 벗겨 반환한다 */
+export function getSettlementClients(signal?: AbortSignal) {
+  return api
+    .get<{ clients: string[] }>(ENDPOINTS.finance.settlements.filters, signal)
+    .then((data) => data.clients);
+}
+
+/** 한 프로젝트의 정산 회차. 페이징이 없어 전체가 온다 */
+export function getProjectSettlements(
+  projectId: number | string,
+  signal?: AbortSignal,
+) {
+  return api
+    .get<{ blocks: SettlementRound[] }>(
+      ENDPOINTS.finance.settlements.ofProject(projectId),
+      signal,
+    )
+    .then((data) => data.blocks);
 }

@@ -59,8 +59,6 @@ const ITEMS: FinanceItem[] = [
     label: '정산 현황',
     description: '정산이 끝나지 않은 프로젝트를 한눈에 확인합니다.',
     href: FINANCE_ROUTES.settlements,
-    // ⛔ 화면 미구현 (#18)
-    isComingSoon: true,
     // 정산 현황만 두 번째 수치가 '진행 중 프로젝트' 다
     pick: (summary) => ({
       unlinkedCount: summary.settlement.unlinkedCount,

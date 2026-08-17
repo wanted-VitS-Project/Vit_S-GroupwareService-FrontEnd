@@ -447,3 +447,103 @@ export interface TaxInvoiceCsvDuplicateRow {
   /** 서버가 준 사유 문구를 그대로 보여준다 */
   reason: string;
 }
+
+/* ─────────────── 정산 현황 (프로젝트 단위) ─────────────── */
+
+/**
+ * 정렬 기준. 서버가 두 가지만 받는다.
+ * ⚠️ 표 머리글 클릭 정렬을 붙이면 안 된다 — 다른 열은 정렬 값이 없다.
+ */
+export type SettlementSort = 'NEXT_PLANNED_DATE_ASC' | 'TOTAL_AMOUNT_DESC';
+
+export interface SettlementProjectQuery {
+  /** yyyy-MM-dd — 정산 예정일 기준 */
+  startDate?: string;
+  endDate?: string;
+  /** 발주처 이름 (필터 옵션에서 고른 값) */
+  client?: string;
+  /** 기본은 종료 프로젝트를 뺀다. true 면 함께 본다 */
+  includeCompleted?: boolean;
+  page?: number;
+  size?: number;
+  sort?: SettlementSort;
+}
+
+/**
+ * 프로젝트 줄에 세우는 상태.
+ *
+ * ⚠️ **서버 값이 아니다** — 응답의 지연 일수 · 미연결 건수 · 회차 수로 화면이 정한다.
+ *    (프로젝트 단위 상태는 백엔드에 정의가 없다. 2026-08-17 팀 확인)
+ */
+export type SettlementProjectState =
+  | 'PAYMENT_OVERDUE'
+  | 'TAX_OVERDUE'
+  | 'NO_PLANNED_DATE'
+  | 'DONE'
+  | 'IN_PROGRESS'
+  | 'NONE';
+
+/** 정산 현황 한 줄 — 프로젝트 하나의 집계다 */
+export interface SettlementProjectItem {
+  projectId: number;
+  projectName: string;
+  clientName: string | null;
+  /** PM 이름 (스냅샷) */
+  projectManager: string;
+  /** 계약(예정) 총액 — 정산 항목을 아직 안 썼으면 null */
+  totalPlannedAmount: number | null;
+  /** 실제 수금 · 지출 합계와 순액 */
+  totalIncome: number;
+  totalOutcome: number;
+  totalAmount: number;
+  completedRoundCount: number;
+  totalRoundCount: number;
+  /** 다음 정산 예정일 — 남은 회차가 없으면 null */
+  nextPlannedDate: string | null;
+  /** 연결되지 않은 입금 · 계산서 건수 */
+  paymentUnlinkedCount: number;
+  taxInvoiceUnlinkedCount: number;
+  /** 예정일을 넘긴 일수. 0 이면 지연 아님 */
+  paymentOverdueDays: number;
+  taxInvoiceOverdueDays: number;
+  projectStatus: string;
+  /** 종료일 — 진행 중이면 null */
+  endedOn: string | null;
+}
+
+export interface SettlementProjectPage {
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  projects: SettlementProjectItem[];
+}
+
+/**
+ * 프로젝트 안의 정산 회차 한 줄. (`GET /projects/{projectId}/settlements`)
+ *
+ * ⚠️ 거의 모든 값이 nullable 이다 — 정산 블록을 만들었지만 아직 안 쓴 회차가 있다.
+ */
+export interface SettlementRound {
+  settleId: number;
+  roundNo: number | null;
+  roundName: string | null;
+  plannedDate: string | null;
+  plannedAmount: number | null;
+  plannedTaxAmount: number | null;
+  taxInvoiceDate: string | null;
+  taxInvoiceAmount: number | null;
+  /** 수금 방식 — 자유 문자열이라 그대로 적는다 */
+  paidType: string | null;
+  bankName: string | null;
+  accountNumber: string | null;
+  accountHolder: string | null;
+  paidDate: string | null;
+  paidAmount: number | null;
+  status: string;
+  /** 계산서 · 입금을 연결한 사람과 시각 */
+  taxLinkedByName: string | null;
+  taxLinkedAt: string | null;
+  cashFlowLinkedByName: string | null;
+  cashFlowLinkedAt: string | null;
+}

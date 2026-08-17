@@ -1,8 +1,8 @@
 # 연동 API 명세서
 
+**최종 업데이트**: 2026-08-17 (정산 현황 — 프로젝트 집계 · 회차 조회 3종 추가)
 **최종 업데이트**: 2026-08-16 (전사 파일 탐색기 151~~154 신설, 블록 삭제 D안 — 파일 동반 휴지통행 반영)
 **최종 업데이트**: 2026-08-13 (프로젝트 인원 편집 · 설정 · 스텝 권한 — 125~~137 추가, 45번 `deleted` · `NONE` 폐기 반영)
-**최종 업데이트**: 2026-08-11 (입찰 — 공고 직접 등록 · 수정 본문, 수동 수집 호출 순서 추가)
 
 > 📌 이 파일은 **프론트가 연동하는 백엔드 API**를 정리하는 곳이에요. (내가 만드는 게 아니라 **호출하는** 입장)
 > AI는 API 연동 코드를 작성하기 전에 이 파일을 먼저 읽어요. (잘못된 경로/필드/타입으로 fetch 짜는 실수 방지)
@@ -5703,6 +5703,50 @@ data: {
 > ❗ **페이징이 없다.** `{ "cashFlows": [...] }` 배열 하나가 통째로 온다 — 화면에 페이지네이션을 붙이지 않는다.
 > ❗ **구분 · 출처 필터는 서버에 없다.** 화면에서 거른다.
 > ❗ **`bankName` 이 목록에 없다** (단건 조회 API 도 없다). 수정 폼은 `bankTxnId` 앞부분으로 되읽는다 — 필드가 추가되면 `display.ts` 의 `bankNameFromTxnId` 를 지운다.
+
+### 정산 현황 (2026-08-17 연동)
+
+프로젝트 단위로 정산 진행을 모아 보는 화면이다. 경로가 `/finance` 가 아니라 **`/projects` 아래**에 있다.
+
+| Method | Path                                    | 용도                        |
+| ------ | --------------------------------------- | --------------------------- |
+| `GET`  | `/projects/settlements`                 | 프로젝트 집계 (**페이징 있음**) |
+| `GET`  | `/projects/settlements/filters`         | 발주처 선택지 (`clients[]`) |
+| `GET`  | `/projects/{projectId}/settlements`     | 회차(정산 블록) 목록 (페이징 없음) |
+
+**목록 Query** — `startDate` · `endDate` · `client` · `includeCompleted` · `page` · `size` · `sort`
+`sort` 는 **`NEXT_PLANNED_DATE_ASC` · `TOTAL_AMOUNT_DESC` 둘뿐이다** — 표 머리글 정렬을 붙이면 안 된다.
+
+**목록 응답** — `projects[]` + `page` · `size` · `totalElements` · `totalPages`
+
+| 필드                                              | 설명                                     |
+| ------------------------------------------------- | ---------------------------------------- |
+| `projectId` · `projectName` · `clientName?`       | 프로젝트 · 발주처                         |
+| `projectManager`                                  | 담당자(PM) 이름                           |
+| `totalPlannedAmount?`                             | **회차 예정 금액 합계** (계약금액이 아니다) |
+| `totalIncome` · `totalOutcome` · `totalAmount`    | 수입 · 지출 · 합계 — 합계는 **서버 값을 그대로 쓴다** |
+| `completedRoundCount` / `totalRoundCount`         | 정산 진행                                 |
+| `nextPlannedDate?`                                | 다음 예정일                               |
+| `paymentUnlinkedCount` · `taxInvoiceUnlinkedCount` | 미연결 건수                              |
+| `paymentOverdueDays` · `taxInvoiceOverdueDays`    | 지연 일수 (0 이면 지연 아님)              |
+| `projectStatus` · `endedOn?`                      | 프로젝트 상태 · 종료일                    |
+
+**회차 응답** — `blocks[]`
+
+`settleId` · `roundNo?` · `roundName?` · `plannedDate?` · `plannedAmount?` · `plannedTaxAmount?` ·
+`taxInvoiceDate?` · `taxInvoiceAmount?` · `paidType?`(`INCOME`·`OUTCOME`) · `bankName?` · `accountNumber?` ·
+`accountHolder?` · `paidDate?` · `paidAmount?` · `status` ·
+`taxLinkedBy?` · `taxLinkedByName?` · `taxLinkedAt?` · `cashFlowLinkedBy?` · `cashFlowLinkedByName?` · `cashFlowLinkedAt?`
+
+회차 상태는 정산 블록과 같은 4값이다 — `PENDING`(미연결) · `WAITING`(정산 대기) · `PARTIAL`(부분 정산) · `COMPLETED`(정산 완료).
+
+> ⚠️ **프로젝트 단위 상태 값은 없다** (2026-08-17 팀 확인). 화면이 지연 일수 · 미연결 건수 · 회차 수로
+>    `입금 대기 N일` · `계산서 미발행 N일` · `예정일 미입력` · `정산 완료` · `진행 중` 을 판정한다
+>    (`features/finance/display.ts` → `settlementProjectState`). 서버 정의가 생기면 그 함수를 지운다.
+> ⚠️ **계약 금액 · 미계획 금액 필드가 없다** — 와이어프레임의 `미계획 N원` 배지는 계산 근거가 없어 뺐다.
+> ⚠️ 회차의 **계좌 정보는 출금에만** 있다 — 표의 열로 두지 않고 `계좌 보기` 로 펼친다.
+
+---
 
 ### 수정 (`PATCH /finance/cash-flows/{cashFlowId}`)
 

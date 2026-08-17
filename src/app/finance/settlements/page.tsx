@@ -1,3 +1,5 @@
+import SettlementStatusList from '@/features/finance/SettlementStatusList';
+
 export default function Page() {
-  return <div>finance/settlements</div>;
+  return <SettlementStatusList />;
 }
