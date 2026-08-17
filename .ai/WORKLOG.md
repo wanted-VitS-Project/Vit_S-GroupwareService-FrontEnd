@@ -6,6 +6,40 @@
 
 ---
 
+## [2026-08-17] 모달에 남은 스켈레톤 제거 — 스피너로 통일 ✅
+
+브랜치: `ref-ys` · API: 변경 없음 · 이슈: #186
+(#172 모달 로딩 스피너 통일의 **누락분 정리**)
+
+#172 는 `Skeleton` 컴포넌트를 쓰는 자리만 훑어서, **`animate-pulse` 로 직접 만든 뼈대**를 쓰던 모달 10곳이 그대로 남아 있었다. 크기가 제각각인 모달에서 어긋난 뼈대는 내용이 도착할 때 오히려 창을 튀게 만들므로 남은 곳도 모두 `LoadingSpinner` 로 맞췄다.
+
+### 변경 파일
+
+| 파일 | 변경 |
+| ---- | ---- |
+| `src/features/file/FileViewerModal.tsx` | 수정 (버전 이력 · 미리보기) |
+| `src/features/file/LazyFileViewer.tsx` · `block/FileBlock.tsx` | 수정 (문서 뷰어 청크 폴백) |
+| `src/features/companyDocument/CompanyDocumentViewerModal.tsx` | 수정 (버전 목록 · 미리보기 2곳) |
+| `src/features/approval/ApprovalDocumentModal.tsx` | 수정 (PDF 뷰어 폴백) |
+| `src/features/block/ImageEditModal.tsx` | 수정 (이미지 목록) |
+| `src/features/vitamate/AnalysisRunModal.tsx` · `FileVersionPickerModal.tsx` | 수정 (검토 유형 · 문서 목록) |
+| `src/features/vitamate/AnalysisHistoryPanel.tsx` | 수정 (분석 이력 · 결과) |
+| `src/features/bidding/NoticeSummaryCard.tsx` | 수정 (`SummarySkeleton` 함수 삭제 — `AI 요약` 모달 전용 컴포넌트) |
+
+### 주요 작업 내용
+
+- **누락분을 `animate-pulse` 로 찾았다** — `Skeleton` 만 훑으면 손으로 만든 뼈대가 걸리지 않는다. 이후 스윕에서도 두 가지를 함께 봐야 한다
+- **뷰어 자리는 높이를 유지한 채 스피너만** — `h-[600px]` · `h-[560px]` 같은 뷰어 자리는 그대로 두고 안쪽만 스피너로 바꿨다. 자리까지 없애면 미리보기가 도착할 때 모달이 통째로 늘어난다
+- **`SummarySkeleton` 은 함수째 삭제** — `NoticeSummaryCard` 는 `AI 요약` 모달에서만 쓰이는 컴포넌트라 남길 이유가 없다
+
+### 부수 결정
+
+- **`SidePanelFallbackHeader` 는 유지 (A안)** — 유지 대상인 곁패널(`연결된 이슈` · `블록 활동 기록`)의 헤더 자리라 떼면 청크 도착 때 헤더가 튄다. `비타메이트 분석 이력` 도 같은 헤더를 쓰지만, 그것만 떼려고 파라미터를 늘리지 않는다
+- **"진행 중" 점은 스켈레톤이 아니다** — `NoticeReviewModal` · `NoticeSummaryCard` 의 `size-3 animate-pulse rounded-pill bg-btn-primary` 는 폴링 중임을 알리는 표시라 대상에서 뺐다
+- **블록 본문은 모달이 아니다** — `TextBlock` · `ImageBlock` · `BlockBoard` · `AiBlock` 의 자리막이는 스텝 화면 위의 요소라 그대로 둔다. 사이드바 · 페이지 스켈레톤도 마찬가지
+
+---
+
 ## [2026-08-16] 전사 파일 탐색기 API 전환 · 블록 삭제 동작 반영 ✅
 
 브랜치: `feat/admin-file-tree` · API: `.ai/API.md` 151~154 신설 · 47 · 105 · 106 갱신

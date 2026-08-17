@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import Modal, { SIDE_PANEL_WIDE } from '@/components/Modal';
+import LoadingSpinner from '@/components/Spinner';
 import { formatDateTime } from '@/lib/format';
 import { messageOf } from '@/lib/api';
 
@@ -105,15 +106,10 @@ export default function AnalysisHistoryPanel({
             onBack={() => setOpenId(null)}
           />
         ) : analyses === null ? (
-          <ul className="flex flex-col gap-1.5">
-            {[0, 1, 2].map((row) => (
-              <li
-                key={row}
-                aria-hidden
-                className="h-14 animate-pulse rounded-lg bg-bg-hover"
-              />
-            ))}
-          </ul>
+          <LoadingSpinner
+            label="분석 이력을 불러오는 중입니다"
+            className="py-16"
+          />
         ) : listError ? (
           // 빈 목록과 같은 모양이면 실패를 "아직 없음" 으로 오해한다
           <p
@@ -225,9 +221,9 @@ function AnalysisDetail({
           {error}
         </p>
       ) : !analysis ? (
-        <div
-          aria-hidden
-          className="h-40 animate-pulse rounded-lg bg-bg-hover"
+        <LoadingSpinner
+          label="분석 결과를 불러오는 중입니다"
+          className="h-40"
         />
       ) : (
         <>

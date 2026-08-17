@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import LoadingSpinner from '@/components/Spinner';
 import { ApiError, messageOf } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 
@@ -315,7 +316,7 @@ export default function NoticeSummaryCard({
             : 'rounded-base border border-border-default bg-bg-card p-5'
         }
       >
-        <SummarySkeleton />
+        <LoadingSpinner label="AI 요약을 불러오는 중입니다" className="py-20" />
       </section>
     );
   }
@@ -542,30 +543,6 @@ export default function NoticeSummaryCard({
         </div>
       )}
     </section>
-  );
-}
-
-/**
- * 이력을 기다리는 동안의 자리막이.
- *
- * 실제로 그려질 것과 **비슷한 높이**로 둔다 — 너무 짧으면 내용이 들어올 때
- * 창이 튀어 오르고, 너무 길면 반대로 꺼진다.
- */
-function SummarySkeleton() {
-  return (
-    <div aria-hidden className="animate-pulse">
-      <div className="h-4 w-24 rounded-button-sm bg-bg-hover" />
-      <div className="mt-4 h-16 rounded-lg bg-bg-hover" />
-      <div className="mt-6 flex flex-col gap-4">
-        {[0, 1, 2].map((row) => (
-          <div key={row}>
-            <div className="h-3 w-16 rounded-button-sm bg-bg-hover" />
-            <div className="mt-2 h-3 rounded-button-sm bg-bg-hover" />
-            <div className="mt-1.5 h-3 w-4/5 rounded-button-sm bg-bg-hover" />
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }
 
