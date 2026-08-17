@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import Modal from '@/components/Modal';
+import LoadingSpinner from '@/components/Spinner';
 import { messageOf } from '@/lib/api';
 
 import { downloadVersion, getFileVersions } from './api';
@@ -280,19 +281,10 @@ export default function FileViewerModal({
                   </button>
                 </div>
               ) : !versions ? (
-                <div
-                  role="status"
-                  aria-label="버전 이력을 불러오는 중입니다"
-                  className="flex flex-col gap-2"
-                >
-                  {[0, 1].map((row) => (
-                    <div
-                      key={row}
-                      aria-hidden
-                      className="h-28 animate-pulse rounded-lg bg-bg-surface"
-                    />
-                  ))}
-                </div>
+                <LoadingSpinner
+                  label="버전 이력을 불러오는 중입니다"
+                  className="py-16"
+                />
               ) : (
                 <ul className="flex flex-col gap-2">
                   {versions.content.map((version) => (
@@ -380,10 +372,9 @@ function PreviewPane({
 }) {
   if (preview.kind === 'loading') {
     return (
-      <div
-        role="status"
-        aria-label="미리보기를 불러오는 중입니다"
-        className="h-[600px] w-full max-w-[576px] animate-pulse rounded-button-sm border border-border-default bg-bg-card shadow-sm"
+      <LoadingSpinner
+        label="미리보기를 불러오는 중입니다"
+        className="h-[600px] w-full max-w-[576px]"
       />
     );
   }

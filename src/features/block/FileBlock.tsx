@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import Modal from '@/components/Modal';
 import ModalLoadingFallback from '@/components/ModalLoadingFallback';
+import LoadingSpinner from '@/components/Spinner';
 import { notifyToast } from '@/components/Toast';
 import {
   downloadVersion,
@@ -75,16 +76,10 @@ function FileViewerFallback() {
       title="문서 보기"
       className="flex h-[85vh] w-full max-w-[820px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
     >
-      <div
-        role="status"
-        aria-label="문서 뷰어를 불러오는 중입니다"
-        className="flex min-h-0 flex-1 justify-center bg-bg-surface p-6"
-      >
-        <div
-          aria-hidden
-          className="h-[600px] w-full max-w-[576px] animate-pulse rounded-button-sm border border-border-default bg-bg-card shadow-sm"
-        />
-      </div>
+      <LoadingSpinner
+        label="문서 뷰어를 불러오는 중입니다"
+        className="min-h-0 flex-1 bg-bg-surface p-6"
+      />
     </Modal>
   );
 }

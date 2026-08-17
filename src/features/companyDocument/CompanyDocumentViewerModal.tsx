@@ -3,6 +3,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 
 import Modal from '@/components/Modal';
+import LoadingSpinner from '@/components/Spinner';
 import { messageOf } from '@/lib/api';
 import { formatDate } from '@/lib/format';
 
@@ -190,14 +191,10 @@ export default function CompanyDocumentViewerModal({
           )}
 
           {!versions && !versionsError && (
-            <div aria-hidden className="flex flex-col gap-1.5">
-              {[0, 1].map((index) => (
-                <span
-                  key={index}
-                  className="h-12 animate-pulse rounded-button-md bg-bg-hover"
-                />
-              ))}
-            </div>
+            <LoadingSpinner
+              label="버전 목록을 불러오는 중입니다"
+              className="py-10"
+            />
           )}
 
           <ul className="flex flex-col gap-1.5">
@@ -245,19 +242,18 @@ export default function CompanyDocumentViewerModal({
         {/* 미리보기 — 서버가 앞 5페이지만 잘라 준다 */}
         <div className="min-w-0 flex-1 overflow-y-auto bg-bg-surface p-4">
           {preview.kind === 'loading' && (
-            <div
-              role="status"
-              aria-label="미리보기를 불러오는 중입니다"
-              className="mx-auto h-[560px] w-full max-w-[560px] animate-pulse rounded-button-sm bg-bg-hover"
+            <LoadingSpinner
+              label="미리보기를 불러오는 중입니다"
+              className="mx-auto h-[560px] w-full max-w-[560px]"
             />
           )}
 
           {preview.kind === 'ready' && (
             <Suspense
               fallback={
-                <div
-                  aria-hidden
-                  className="mx-auto h-[560px] w-full max-w-[560px] animate-pulse rounded-button-sm bg-bg-hover"
+                <LoadingSpinner
+                  label="미리보기 뷰어를 불러오는 중입니다"
+                  className="mx-auto h-[560px] w-full max-w-[560px]"
                 />
               }
             >

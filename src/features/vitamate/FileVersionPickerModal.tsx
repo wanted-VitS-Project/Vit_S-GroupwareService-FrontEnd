@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import Modal from '@/components/Modal';
 import { ModalFooter } from '@/components/PanelModal';
+import LoadingSpinner from '@/components/Spinner';
 import { extensionLabel, extensionStyle } from '@/features/file/format';
 import type { IndexStatus, ProjectFileVersion } from '@/features/file/types';
 
@@ -103,18 +104,10 @@ export default function FileVersionPickerModal({
 
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-3">
         {versions === null ? (
-          <ul className="flex flex-col gap-1.5">
-            {[0, 1, 2, 3].map((row) => (
-              <li
-                key={row}
-                aria-hidden
-                className="h-11 animate-pulse rounded-lg bg-bg-hover"
-              />
-            ))}
-            <li className="sr-only" role="status">
-              문서 목록을 불러오는 중입니다
-            </li>
-          </ul>
+          <LoadingSpinner
+            label="문서 목록을 불러오는 중입니다"
+            className="py-16"
+          />
         ) : loadError ? (
           <p className="py-10 text-center text-label text-text-secondary">
             {loadError}
