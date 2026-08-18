@@ -140,7 +140,12 @@ export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
           </span>
           {user.departmentPath && (
             <span
-              className={`block truncate text-caption ${
+              /*
+                좁은 화면에서는 부서 경로를 접는다 — 헤더 오른쪽에 세션 · 종까지 서면서
+                375px 에서는 이 줄이 이름을 두세 글자로 잘라 버린다. 부서는 마이페이지 ·
+                사이드바 프로필에 그대로 있고, 여기서 급히 확인할 정보가 아니다.
+              */
+              className={`hidden truncate text-caption sm:block ${
                 isDark ? 'text-text-muted' : 'text-text-secondary'
               }`}
             >

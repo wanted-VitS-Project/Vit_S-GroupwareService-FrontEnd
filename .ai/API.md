@@ -1,8 +1,8 @@
 # 연동 API 명세서
 
+**최종 업데이트**: 2026-08-18 (세션 조회 · 연장 159 신설 — 조회 자체가 연장이라 폴링 금지)
 **최종 업데이트**: 2026-08-17 (사원 검색 `departmentId` 허용 · 목록 · 검색에 `profileImageUrl` · 사진 캐시 헤더 · 결재 첨부 열람 예외)
 **최종 업데이트**: 2026-08-17 (전공 · 자격증 마스터 155~158 신설, 사원 등록 · 상세 · 수정에 학력 · 자격증 반영)
-**최종 업데이트**: 2026-08-17 (정산 현황 — 프로젝트 집계 · 회차 조회 3종 추가)
 
 > 📌 이 파일은 **프론트가 연동하는 백엔드 API**를 정리하는 곳이에요. (내가 만드는 게 아니라 **호출하는** 입장)
 > AI는 API 연동 코드를 작성하기 전에 이 파일을 먼저 읽어요. (잘못된 경로/필드/타입으로 fetch 짜는 실수 방지)
@@ -13,152 +13,153 @@
 
 ## 목차
 
-| #                                            | API                  | Method · Path                                                | 연동                                  |
-| -------------------------------------------- | -------------------- | ------------------------------------------------------------ | ------------------------------------- |
-| [1](#1-로그인)                               | 로그인               | `POST /auth/login`                                           | ✅ `features/auth/api.ts`             |
-| [2](#2-로그아웃)                             | 로그아웃             | `POST /auth/logout`                                          | ✅ `features/auth/api.ts`             |
-| [3](#3-내-정보-조회)                         | 내 정보 조회         | `GET /auth/me`                                               | ✅ `features/auth/api.ts`             |
-| [4](#4-약관-동의)                            | 약관 동의            | `POST /auth/terms-agreements`                                | ✅ `features/auth/api.ts`             |
-| [5](#5-비밀번호-변경)                        | 비밀번호 변경        | `PATCH /auth/password`                                       | ✅ `features/auth/api.ts`             |
-| [6](#6-프로젝트-상세-조회)                   | 프로젝트 상세        | `GET /projects/{projectId}`                                  | ✅ `features/project/api.ts`          |
-| [7](#7-프로젝트-스테이지-목록)               | 스테이지 목록        | `GET /projects/{projectId}/stages`                           | ✅ `features/project/api.ts`          |
-| [8](#8-프로젝트-스텝-목록)                   | 스텝 목록            | `GET /projects/{projectId}/steps`                            | ✅ `features/project/api.ts`          |
-| [9](#9-블록-생성)                            | 블록 생성            | `POST /steps/{stepId}/blocks`                                | ✅ `features/block/api.ts`            |
-| [10](#10-스텝-블록-일괄-조회)                | 블록 일괄 조회       | `GET /steps/{stepId}/blocks`                                 | ✅ `features/block/api.ts`            |
-| [11](#11-텍스트-본문-수정)                   | 텍스트 본문 수정     | `PATCH /blocks/texts/{txtId}`                                | ✅ `features/block/api.ts`            |
-| [12](#12-체크리스트-항목-생성)               | 체크리스트 생성      | `POST /blocks/checklists/{chkBlockId}/items`                 | ✅ `features/block/api.ts`            |
-| [13](#13-체크리스트-항목-수정)               | 체크리스트 수정      | `PATCH /blocks/checklists/items/{chkId}`                     | ✅ `features/block/api.ts`            |
-| [14](#14-체크리스트-항목-삭제)               | 체크리스트 삭제      | `DELETE /blocks/checklists/items/{chkId}`                    | ✅ `features/block/api.ts`            |
-| [15](#15-사업-카테고리-목록-조회)            | 카테고리 목록        | `GET /business-categories`                                   | ✅ `features/businessCategory/api.ts` |
-| [16](#16-사업-카테고리-생성)                 | 카테고리 생성        | `POST /business-categories`                                  | ✅ `features/businessCategory/api.ts` |
-| [17](#17-사업-카테고리-수정)                 | 카테고리 수정        | `PATCH /business-categories/{categoryId}`                    | ✅ `features/businessCategory/api.ts` |
-| [18](#18-사업-카테고리-삭제)                 | 카테고리 삭제        | `DELETE /business-categories/{categoryId}`                   | ✅ `features/businessCategory/api.ts` |
-| [19](#19-전역-권한-변경)                     | 권한 변경            | `PATCH /accounts/{userId}/role`                              | ✅ `features/employee/api.ts`         |
-| [20](#20-계정-상태-변경)                     | 계정 상태 변경       | `PATCH /accounts/{userId}/status`                            | ✅ `features/employee/api.ts`         |
-| [21](#21-비밀번호-재설정-개인--다중-공용)    | 비밀번호 재설정      | `POST /accounts/password-resets`                             | ✅ `features/employee/api.ts`         |
-| [22](#22-부서-목록-조회)                     | 부서 목록            | `GET /departments`                                           | ✅ `features/department/api.ts`       |
-| [23](#23-부서-생성-최상위--하위-공용)        | 부서 생성            | `POST /departments`                                          | ✅ `features/department/api.ts`       |
-| [24](#24-부서명-수정)                        | 부서명 수정          | `PATCH /departments/{departmentId}`                          | ✅ `features/department/api.ts`       |
-| [25](#25-부서-삭제)                          | 부서 삭제            | `DELETE /departments/{departmentId}`                         | ✅ `features/department/api.ts`       |
-| [26](#26-직급-목록-조회)                     | 직급 목록            | `GET /job-positions`                                         | ✅ `features/jobPosition/api.ts`      |
-| [27](#27-직급-생성)                          | 직급 생성            | `POST /job-positions`                                        | ✅ `features/jobPosition/api.ts`      |
-| [28](#28-직급-수정-직급명--순서)             | 직급 수정            | `PATCH /job-positions/{jobPositionId}`                       | ✅ `features/jobPosition/api.ts`      |
-| [29](#29-직급-삭제)                          | 직급 삭제            | `DELETE /job-positions/{jobPositionId}`                      | ✅ `features/jobPosition/api.ts`      |
-| [30](#30-사원-목록-조회-인사관리)            | 사원 목록            | `GET /employees`                                             | ✅ `features/employee/api.ts`         |
-| [31](#31-사원-상세-조회)                     | 사원 상세            | `GET /employees/{userId}`                                    | ✅ `features/employee/api.ts`         |
-| [32](#32-사원-등록-계정-동시-발급)           | 사원 등록            | `POST /employees`                                            | ✅ `features/employee/api.ts`         |
-| [33](#33-사원-정보-수정)                     | 사원 수정            | `PATCH /employees/{userId}`                                  | ✅ `features/employee/api.ts`         |
-| [34](#34-퇴사-처리)                          | 퇴사 처리            | `PATCH /employees/{userId}/resignation`                      | ✅ `features/employee/api.ts`         |
-| [35](#35-사원-이름-검색-결재선-지정용)       | 사원 이름 검색       | `GET /employees/search`                                      | ✅ `EmployeeSearchInput` (#41)        |
-| [36](#36-블록-파일-목록-조회)                | 블록 파일 목록       | `GET /blocks/{blockId}/files`                                | ✅ `features/file/api.ts`             |
-| [37](#37-파일-업로드-시작)                   | 업로드 시작          | `POST /files/uploads`                                        | ✅ `features/file/api.ts`             |
-| [38](#38-업로드-완료-통보)                   | 업로드 완료 통보     | `POST /files/uploads/{fileVersionId}/complete`               | ✅ `features/file/api.ts`             |
-| [39](#39-문서명-수정)                        | 문서명 수정          | `PATCH /files/{fileId}`                                      | ✅ `features/file/api.ts`             |
-| [40](#40-휴지통으로-이동)                    | 휴지통으로 이동      | `DELETE /files/{fileId}`                                     | ✅ `features/file/api.ts`             |
-| [41](#41-버전-이력-조회)                     | 버전 이력            | `GET /files/{fileId}/versions`                               | ✅ `features/file/api.ts`             |
-| [42](#42-다운로드-url-발급)                  | 다운로드 URL         | `GET /file-versions/{id}/download`                           | ✅ `features/file/api.ts`             |
-| [43](#43-미리보기-조회-pdf-바이너리)         | 미리보기 (PDF)       | `GET /file-versions/{id}/preview`                            | ✅ `features/file/api.ts`             |
-| [44](#44-블록-배치-변경)                     | 블록 배치 변경       | `PATCH /steps/{stepId}/blocks/layout`                        | ✅ `features/block/api.ts`            |
-| [45](#45-프로젝트-참여자-목록-조회)          | 참여자 목록          | `GET /projects/{projectId}/members`                          | ✅ `features/project/api.ts`          |
-| [46](#46-블록-수정)                          | 블록 수정            | `PATCH /blocks/{blockId}`                                    | ✅ `features/block/api.ts`            |
-| [47](#47-블록-삭제)                          | 블록 삭제            | `DELETE /blocks/{blockId}`                                   | ✅ `features/block/api.ts`            |
-| [48](#48-결재-회차-상세조회)                 | 결재 회차 상세       | `GET /approvals/{id}/revisions/{revId}`                      | ✅ `features/approval/api.ts`         |
-| [49](#49-결재-제목--내용-수정)               | 제목 · 내용 수정     | `PATCH /approvals/{id}/revisions/{revId}`                    | ✅ `features/approval/api.ts`         |
-| [50](#50-재상신-회차-생성)                   | 재상신 회차 생성     | `POST /approvals/{id}/revisions`                             | ✅ `features/approval/api.ts`         |
-| [51](#51-결재-상신)                          | 결재 상신            | `POST /approvals/{id}/revisions/{revId}/submit`              | ✅ `features/approval/api.ts`         |
-| [52](#52-결재-문서-추가)                     | 결재 문서 추가       | `POST /approvals/{id}/revisions/{revId}/documents`           | ✅ `features/approval/api.ts`         |
-| [53](#53-결재-문서-제거)                     | 결재 문서 제거       | `DELETE /approvals/{id}/revisions/{revId}/documents/{docId}` | ✅ `features/approval/api.ts`         |
-| [54](#54-결재선-등록--수정)                  | 결재선 등록·수정     | `PUT /approvals/{id}/revisions/{revId}/lines`                | ✅ `features/approval/api.ts`         |
-| [55](#55-스텝별-이슈-목록-조회)              | 이슈 목록            | `GET /steps/{stepId}/issues`                                 | ✅ `features/issue/api.ts`            |
-| [56](#56-이슈-생성)                          | 이슈 생성            | `POST /steps/{stepId}/issues`                                | ✅ `features/issue/api.ts`            |
-| [57](#57-이슈-상세-조회)                     | 이슈 상세            | `GET /issues/{issueId}`                                      | ✅ `features/issue/api.ts`            |
-| [58](#58-이슈-부분-수정)                     | 이슈 부분 수정       | `PATCH /issues/{issueId}`                                    | ✅ `features/issue/api.ts`            |
-| [59](#59-이슈-상태-변경)                     | 이슈 상태 변경       | `PATCH /issues/{issueId}/status`                             | ✅ `features/issue/api.ts`            |
-| [60](#60-이슈-삭제)                          | 이슈 삭제            | `DELETE /issues/{issueId}`                                   | ✅ `features/issue/api.ts`            |
-| [61](#61-결재관리-목록조회)                  | 결재 목록            | `GET /approvals`                                             | ✅ `features/approval/api.ts`         |
-| [62](#62-결재-상세조회)                      | 결재 상세            | `GET /approvals/{id}`                                        | ✅ `features/approval/api.ts`         |
-| [63](#63-결재-승인)                          | 결재 승인            | `POST /approval-lines/{lineId}/approve`                      | ✅ `features/approval/api.ts`         |
-| [64](#64-결재-반려)                          | 결재 반려            | `POST /approval-lines/{lineId}/reject`                       | ✅ `features/approval/api.ts`         |
-| [65](#65-버전-단건-조회-결재용)              | 버전 단건 조회       | `GET /file-versions/{fileVersionId}`                         | ✅ `features/file/api.ts`             |
-| [66](#66-이미지-항목-조회-한-장)             | 이미지 한 장 조회    | `GET /blocks/images/{id}/items/{orderIndex}`                 | ✅ `features/block/api.ts`            |
-| [67](#67-이미지-항목-생성)                   | 이미지 생성          | `POST /blocks/images/{id}/items`                             | ✅ `features/block/api.ts`            |
-| [68](#68-이미지-순서--캡션-수정)             | 이미지 순서·캡션     | `PATCH /blocks/images/items/{imgBlockId}`                    | ✅ `features/block/api.ts`            |
-| [69](#69-이미지-항목-삭제)                   | 이미지 삭제          | `DELETE /blocks/images/items/{imgId}`                        | ✅ `features/block/api.ts`            |
-| [70](#70-이미지-다운로드)                    | 이미지 다운로드      | `GET /blocks/images/{id}/download`                           | ✅ `features/block/api.ts`            |
-| [71](#71-이미지-항목-전체-조회)              | 이미지 전체 조회     | `GET /blocks/images/{id}/items`                              | ✅ `features/block/api.ts`            |
-| [73](#73-결재-이력조회)                      | 결재 이력            | `GET /approvals/{id}/revisions`                              | ✅ `features/approval/api.ts`         |
-| [74](#74-프로젝트-파일-버전-목록)            | 프로젝트 버전 목록   | `GET /projects/{projectId}/file-versions`                    | ✅ `features/file/api.ts`             |
-| [75](#75-검토-템플릿-목록)                   | 검토 템플릿          | `GET /vitamate/review-templates`                             | ✅ `features/vitamate/api.ts`         |
-| [76](#76-비타메이트-분석-요청)               | 분석 요청            | `POST /blocks/{blockId}/vitamate/analyses`                   | ✅ `features/vitamate/api.ts`         |
-| [77](#77-비타메이트-분석-단건-조회)          | 분석 단건 조회       | `GET /vitamate/analyses/{analysisId}`                        | ✅ `features/vitamate/api.ts`         |
-| [78](#78-블록별-분석-이력)                   | 분석 이력            | `GET /blocks/{blockId}/vitamate/analyses`                    | ✅ `features/vitamate/api.ts`         |
-| [79](#79-알림-목록-조회)                     | 알림 목록            | `GET /notifications`                                         | ✅ `features/notification/api.ts`     |
-| [80](#80-알림-이동-대상-조회)                | 알림 이동 대상       | `GET /notifications/{id}/target`                             | ✅ `features/notification/api.ts`     |
-| [81](#81-알림-읽음-처리)                     | 알림 읽음            | `PATCH /notifications/{id}/read`                             | ✅ `features/notification/api.ts`     |
-| [82](#82-알림-전체-읽음-처리)                | 알림 전체 읽음       | `PATCH /notifications/read-all`                              | ✅ `features/notification/api.ts`     |
-| [83](#83-알림-삭제)                          | 알림 삭제            | `DELETE /notifications/{id}`                                 | ✅ `features/notification/api.ts`     |
-| [84](#84-프로젝트-목록-조회)                 | 프로젝트 목록        | `GET /projects`                                              | ✅ `features/project/api.ts`          |
-| [85](#85-정산-항목-수정-시-조회)             | 정산 수정 조회       | `GET /blocks/settlements/{id}/items`                         | ✅ `features/settlement/api.ts`       |
-| [86](#86-정산-항목-작성--수정)               | 정산 작성·수정       | `PATCH /blocks/settlements/{id}/items`                       | ✅ `features/settlement/api.ts`       |
-| [87](#87-사원-엑셀-템플릿-다운로드)          | 엑셀 템플릿          | `GET /employees/bulk-template`                               | ✅ `features/employee/api.ts`         |
-| [88](#88-사원-엑셀-일괄-등록-검증)           | 일괄 등록 검증       | `POST /employees/bulk/validate`                              | ✅ `features/employee/api.ts`         |
-| [89](#89-사원-엑셀-일괄-등록)                | 일괄 등록            | `POST /employees/bulk`                                       | ✅ `features/employee/api.ts`         |
-| [90](#90-직급별-사원-목록)                   | 직급별 사원 목록     | `GET /job-positions/{id}/employees`                          | ✅ `features/jobPosition/api.ts`      |
-| [91](#91-사원-그룹-목록-조회)                | 그룹 목록            | `GET /employee-groups`                                       | ✅ `features/employeeGroup/api.ts`    |
-| [92](#92-사원-그룹-생성)                     | 그룹 생성            | `POST /employee-groups`                                      | ✅ `features/employeeGroup/api.ts`    |
-| [93](#93-사원-그룹-수정)                     | 그룹 수정            | `PATCH /employee-groups/{groupId}`                           | ✅ `features/employeeGroup/api.ts`    |
-| [94](#94-사원-그룹-삭제)                     | 그룹 삭제            | `DELETE /employee-groups/{groupId}`                          | ✅ `features/employeeGroup/api.ts`    |
-| [95](#95-그룹-구성원-목록-조회)              | 구성원 목록          | `GET /employee-groups/{groupId}/members`                     | ✅ `features/employeeGroup/api.ts`    |
-| [96](#96-그룹-구성원-추가)                   | 구성원 추가          | `POST /employee-groups/{groupId}/members`                    | ✅ `features/employeeGroup/api.ts`    |
-| [97](#97-그룹-구성원-제거)                   | 구성원 제거          | `DELETE /employee-groups/{id}/members/{userId}`              | ✅ `features/employeeGroup/api.ts`    |
-| [98](#98-내-페이지-목록-조회)                | 내 페이지 목록       | `GET /my/pages`                                              | ✅ `features/pagePermission/api.ts`   |
-| [99](#99-페이지-목록-조회-권한-부여용)       | 페이지 목록          | `GET /pages`                                                 | ✅ `features/pagePermission/api.ts`   |
-| [100](#100-페이지-접근-가능자-목록)          | 접근 가능자 목록     | `GET /pages/{pageCode}/permissions`                          | ✅ `features/pagePermission/api.ts`   |
-| [101](#101-페이지-권한-부여--등급-변경)      | 권한 부여·변경       | `POST /pages/{pageCode}/permissions`                         | ✅ `features/pagePermission/api.ts`   |
-| [102](#102-페이지-권한-회수)                 | 권한 회수            | `DELETE /pages/{pageCode}/permissions/{userId}`              | ✅ `features/pagePermission/api.ts`   |
-| [103](#103-휴지통에서-복구)                  | 파일 복구            | `POST /files/{fileId}/restore`                               | ✅ `features/file/api.ts`             |
-| [104](#104-파일-영구-삭제)                   | 파일 영구 삭제       | `POST /files/{fileId}/permanent-deletion`                    | ✅ `features/file/api.ts`             |
-| [105](#105-프로젝트-문서함-전체-파일)        | 프로젝트 문서함      | `GET /projects/{projectId}/files`                            | ✅ `features/file/api.ts`             |
-| [106](#106-프로젝트-휴지통-모아보기)         | 프로젝트 휴지통      | `GET /projects/{projectId}/files/trash`                      | ✅ `features/file/api.ts`             |
-| [107](#107-프로젝트-이미지-모아보기)         | 이미지 모아보기      | `GET /projects/{projectId}/images`                           | ✅ `features/block/api.ts`            |
-| [108](#108-프로젝트-단위-이슈-목록-조회)     | 프로젝트 이슈        | `GET /projects/{projectId}/issues`                           | ✅ `features/issue/api.ts`            |
-| [109](#109-이미지-휴지통-조회)               | 이미지 휴지통        | `GET /projects/{projectId}/images/trash`                     | ✅ `features/block/api.ts`            |
-| [110](#110-이미지-복구-다건)                 | 이미지 복구          | `PATCH /blocks/images/items/restore`                         | ✅ `features/block/api.ts`            |
-| [111](#111-이미지-영구-삭제-다건)            | 이미지 영구 삭제     | `DELETE /blocks/images/items/hard`                           | ✅ `features/block/api.ts`            |
-| [112](#112-스테이지-생성)                    | 스테이지 생성        | `POST /projects/{projectId}/stages`                          | ✅ `features/project/api.ts`          |
-| [113](#113-스테이지-수정)                    | 스테이지 수정        | `PATCH /stages/{stageId}`                                    | ✅ `features/project/api.ts`          |
-| [114](#114-스테이지-삭제)                    | 스테이지 삭제        | `DELETE /stages/{stageId}`                                   | ✅ `features/project/api.ts`          |
-| [115](#115-스텝-생성)                        | 스텝 생성            | `POST /projects/{projectId}/steps`                           | ✅ `features/project/api.ts`          |
-| [116](#116-스텝-수정)                        | 스텝 수정            | `PATCH /steps/{stepId}`                                      | ✅ `features/project/api.ts`          |
-| [117](#117-스텝-삭제)                        | 스텝 삭제            | `DELETE /steps/{stepId}`                                     | ✅ `features/project/api.ts`          |
-| [118](#118-스텝-완료-처리)                   | 스텝 완료 처리       | `POST /steps/{stepId}/complete`                              | ✅ `features/project/api.ts`          |
-| [119](#119-스테이지-순서-변경)               | 스테이지 순서        | `PATCH /projects/{projectId}/stages/order`                   | ✅ `features/project/api.ts`          |
-| [120](#120-스텝-순서-변경)                   | 스텝 순서 · 소속     | `PATCH /projects/{projectId}/steps/order`                    | ✅ `features/project/api.ts`          |
-| [121](#121-블록-스텝-이동)                   | 블록 스텝 이동       | `PATCH /blocks/{blockId}/step`                               | ✅ `features/block/api.ts`            |
-| [122](#122-입찰-공고-목록-조회)              | 입찰 공고 목록       | `GET /bidding/notices`                                       | ✅ `features/bidding/api.ts`          |
-| [123](#123-입찰-공고-상세-조회)              | 입찰 공고 상세       | `GET /bidding/notices/{noticeId}`                            | ✅ `features/bidding/api.ts`          |
-| [124](#124-스텝-상세-조회)                   | 스텝 상세            | `GET /steps/{stepId}`                                        | ❌ 미연동                             |
-| [125](#125-참여자-추가)                      | 참여자 추가          | `POST /projects/{projectId}/members`                         | ✅ `features/project/api.ts`          |
-| [126](#126-참여자-권한-변경)                 | 참여자 권한 변경     | `PATCH /projects/{projectId}/members/{memberId}`             | ✅ `features/project/api.ts`          |
-| [127](#127-참여자-제거)                      | 참여자 제거          | `DELETE /projects/{projectId}/members/{memberId}`            | ✅ `features/project/api.ts`          |
-| [128](#128-하위-스텝-권한-일괄-적용)         | 스텝 권한 기본값     | `POST /stages/{stageId}/step-permissions`                    | ✅ `features/project/api.ts`          |
-| [129](#129-프로젝트-수정)                    | 프로젝트 수정        | `PATCH /projects/{projectId}`                                | ✅ `features/project/api.ts`          |
-| [130](#130-프로젝트-상태-변경)               | 프로젝트 상태 변경   | `PATCH /projects/{projectId}/status`                         | ✅ `features/project/api.ts`          |
-| [131](#131-프로젝트-종결)                    | 프로젝트 종결        | `POST /projects/{projectId}/close`                           | ✅ `features/project/api.ts`          |
-| [132](#132-사업-카테고리-연결)               | 카테고리 연결        | `POST /projects/{projectId}/business-categories`             | ✅ `features/project/api.ts`          |
-| [133](#133-사업-카테고리-해제)               | 카테고리 해제        | `DELETE /projects/{projectId}/business-categories/{id}`      | ✅ `features/project/api.ts`          |
-| [134](#134-스텝-권한-목록-조회)              | 스텝 권한 목록       | `GET /steps/{stepId}/permissions`                            | ✅ `features/project/api.ts`          |
-| [135](#135-스텝-권한-부여--변경)             | 스텝 권한 부여       | `PUT /steps/{stepId}/permissions/{userId}`                   | ✅ `features/project/api.ts`          |
-| [136](#136-스텝-권한-회수)                   | 스텝 권한 회수       | `DELETE /steps/{stepId}/permissions/{userId}`                | ✅ `features/project/api.ts`          |
-| [137](#137-스텝-상태-변경)                   | 스텝 상태 변경       | `PATCH /steps/{stepId}/status`                               | ✅ `features/project/api.ts`          |
-| [138](#138-프로젝트-직접-생성)               | 프로젝트 생성        | `POST /projects`                                             | ✅ `features/project/api.ts`          |
-| [139](#139-프로젝트-삭제)                    | 프로젝트 삭제        | `DELETE /projects/{projectId}`                               | ✅ `features/project/api.ts`          |
-| [140](#140-내-프로젝트-파일-모아보기)        | 내 파일              | `GET /files/my`                                              | ✅ `features/file/api.ts`             |
-| [141](#141-알림-실시간-수신-sse)             | 알림 실시간 수신     | `GET /notifications/stream`                                  | ✅ `features/notification/stream.ts`  |
-| [142](#142-전사-파일-목록-admin)             | 전사 파일 목록       | `GET /admin/files`                                           | ✅ `features/file/api.ts`             |
-| [143~150](#143150-사내-문서함-admin)         | 사내 문서함          | `/admin/company-documents …`                                 | ✅ `features/companyDocument/api.ts`  |
-| [151~154](#151154-전사-파일-탐색기-admin)    | 전사 파일 탐색기     | `/admin/files/projects …`                                    | ✅ `features/file/api.ts`             |
-| [155~158](#155158-전공--자격증-마스터-admin) | 전공 · 자격증 마스터 | `/majors` · `/certificates`                                  | ✅ `features/masterItem/api.ts`       |
+| #                                         | API                | Method · Path                                                | 연동                                  |
+| ----------------------------------------- | ------------------ | ------------------------------------------------------------ | ------------------------------------- |
+| [1](#1-로그인)                            | 로그인             | `POST /auth/login`                                           | ✅ `features/auth/api.ts`             |
+| [2](#2-로그아웃)                          | 로그아웃           | `POST /auth/logout`                                          | ✅ `features/auth/api.ts`             |
+| [3](#3-내-정보-조회)                      | 내 정보 조회       | `GET /auth/me`                                               | ✅ `features/auth/api.ts`             |
+| [4](#4-약관-동의)                         | 약관 동의          | `POST /auth/terms-agreements`                                | ✅ `features/auth/api.ts`             |
+| [5](#5-비밀번호-변경)                     | 비밀번호 변경      | `PATCH /auth/password`                                       | ✅ `features/auth/api.ts`             |
+| [6](#6-프로젝트-상세-조회)                | 프로젝트 상세      | `GET /projects/{projectId}`                                  | ✅ `features/project/api.ts`          |
+| [7](#7-프로젝트-스테이지-목록)            | 스테이지 목록      | `GET /projects/{projectId}/stages`                           | ✅ `features/project/api.ts`          |
+| [8](#8-프로젝트-스텝-목록)                | 스텝 목록          | `GET /projects/{projectId}/steps`                            | ✅ `features/project/api.ts`          |
+| [9](#9-블록-생성)                         | 블록 생성          | `POST /steps/{stepId}/blocks`                                | ✅ `features/block/api.ts`            |
+| [10](#10-스텝-블록-일괄-조회)             | 블록 일괄 조회     | `GET /steps/{stepId}/blocks`                                 | ✅ `features/block/api.ts`            |
+| [11](#11-텍스트-본문-수정)                | 텍스트 본문 수정   | `PATCH /blocks/texts/{txtId}`                                | ✅ `features/block/api.ts`            |
+| [12](#12-체크리스트-항목-생성)            | 체크리스트 생성    | `POST /blocks/checklists/{chkBlockId}/items`                 | ✅ `features/block/api.ts`            |
+| [13](#13-체크리스트-항목-수정)            | 체크리스트 수정    | `PATCH /blocks/checklists/items/{chkId}`                     | ✅ `features/block/api.ts`            |
+| [14](#14-체크리스트-항목-삭제)            | 체크리스트 삭제    | `DELETE /blocks/checklists/items/{chkId}`                    | ✅ `features/block/api.ts`            |
+| [15](#15-사업-카테고리-목록-조회)         | 카테고리 목록      | `GET /business-categories`                                   | ✅ `features/businessCategory/api.ts` |
+| [16](#16-사업-카테고리-생성)              | 카테고리 생성      | `POST /business-categories`                                  | ✅ `features/businessCategory/api.ts` |
+| [17](#17-사업-카테고리-수정)              | 카테고리 수정      | `PATCH /business-categories/{categoryId}`                    | ✅ `features/businessCategory/api.ts` |
+| [18](#18-사업-카테고리-삭제)              | 카테고리 삭제      | `DELETE /business-categories/{categoryId}`                   | ✅ `features/businessCategory/api.ts` |
+| [19](#19-전역-권한-변경)                  | 권한 변경          | `PATCH /accounts/{userId}/role`                              | ✅ `features/employee/api.ts`         |
+| [20](#20-계정-상태-변경)                  | 계정 상태 변경     | `PATCH /accounts/{userId}/status`                            | ✅ `features/employee/api.ts`         |
+| [21](#21-비밀번호-재설정-개인--다중-공용) | 비밀번호 재설정    | `POST /accounts/password-resets`                             | ✅ `features/employee/api.ts`         |
+| [22](#22-부서-목록-조회)                  | 부서 목록          | `GET /departments`                                           | ✅ `features/department/api.ts`       |
+| [23](#23-부서-생성-최상위--하위-공용)     | 부서 생성          | `POST /departments`                                          | ✅ `features/department/api.ts`       |
+| [24](#24-부서명-수정)                     | 부서명 수정        | `PATCH /departments/{departmentId}`                          | ✅ `features/department/api.ts`       |
+| [25](#25-부서-삭제)                       | 부서 삭제          | `DELETE /departments/{departmentId}`                         | ✅ `features/department/api.ts`       |
+| [26](#26-직급-목록-조회)                  | 직급 목록          | `GET /job-positions`                                         | ✅ `features/jobPosition/api.ts`      |
+| [27](#27-직급-생성)                       | 직급 생성          | `POST /job-positions`                                        | ✅ `features/jobPosition/api.ts`      |
+| [28](#28-직급-수정-직급명--순서)          | 직급 수정          | `PATCH /job-positions/{jobPositionId}`                       | ✅ `features/jobPosition/api.ts`      |
+| [29](#29-직급-삭제)                       | 직급 삭제          | `DELETE /job-positions/{jobPositionId}`                      | ✅ `features/jobPosition/api.ts`      |
+| [30](#30-사원-목록-조회-인사관리)         | 사원 목록          | `GET /employees`                                             | ✅ `features/employee/api.ts`         |
+| [31](#31-사원-상세-조회)                  | 사원 상세          | `GET /employees/{userId}`                                    | ✅ `features/employee/api.ts`         |
+| [32](#32-사원-등록-계정-동시-발급)        | 사원 등록          | `POST /employees`                                            | ✅ `features/employee/api.ts`         |
+| [33](#33-사원-정보-수정)                  | 사원 수정          | `PATCH /employees/{userId}`                                  | ✅ `features/employee/api.ts`         |
+| [34](#34-퇴사-처리)                       | 퇴사 처리          | `PATCH /employees/{userId}/resignation`                      | ✅ `features/employee/api.ts`         |
+| [35](#35-사원-이름-검색-결재선-지정용)    | 사원 이름 검색     | `GET /employees/search`                                      | ✅ `EmployeeSearchInput` (#41)        |
+| [36](#36-블록-파일-목록-조회)             | 블록 파일 목록     | `GET /blocks/{blockId}/files`                                | ✅ `features/file/api.ts`             |
+| [37](#37-파일-업로드-시작)                | 업로드 시작        | `POST /files/uploads`                                        | ✅ `features/file/api.ts`             |
+| [38](#38-업로드-완료-통보)                | 업로드 완료 통보   | `POST /files/uploads/{fileVersionId}/complete`               | ✅ `features/file/api.ts`             |
+| [39](#39-문서명-수정)                     | 문서명 수정        | `PATCH /files/{fileId}`                                      | ✅ `features/file/api.ts`             |
+| [40](#40-휴지통으로-이동)                 | 휴지통으로 이동    | `DELETE /files/{fileId}`                                     | ✅ `features/file/api.ts`             |
+| [41](#41-버전-이력-조회)                  | 버전 이력          | `GET /files/{fileId}/versions`                               | ✅ `features/file/api.ts`             |
+| [42](#42-다운로드-url-발급)               | 다운로드 URL       | `GET /file-versions/{id}/download`                           | ✅ `features/file/api.ts`             |
+| [43](#43-미리보기-조회-pdf-바이너리)      | 미리보기 (PDF)     | `GET /file-versions/{id}/preview`                            | ✅ `features/file/api.ts`             |
+| [44](#44-블록-배치-변경)                  | 블록 배치 변경     | `PATCH /steps/{stepId}/blocks/layout`                        | ✅ `features/block/api.ts`            |
+| [45](#45-프로젝트-참여자-목록-조회)       | 참여자 목록        | `GET /projects/{projectId}/members`                          | ✅ `features/project/api.ts`          |
+| [46](#46-블록-수정)                       | 블록 수정          | `PATCH /blocks/{blockId}`                                    | ✅ `features/block/api.ts`            |
+| [47](#47-블록-삭제)                       | 블록 삭제          | `DELETE /blocks/{blockId}`                                   | ✅ `features/block/api.ts`            |
+| [48](#48-결재-회차-상세조회)              | 결재 회차 상세     | `GET /approvals/{id}/revisions/{revId}`                      | ✅ `features/approval/api.ts`         |
+| [49](#49-결재-제목--내용-수정)            | 제목 · 내용 수정   | `PATCH /approvals/{id}/revisions/{revId}`                    | ✅ `features/approval/api.ts`         |
+| [50](#50-재상신-회차-생성)                | 재상신 회차 생성   | `POST /approvals/{id}/revisions`                             | ✅ `features/approval/api.ts`         |
+| [51](#51-결재-상신)                       | 결재 상신          | `POST /approvals/{id}/revisions/{revId}/submit`              | ✅ `features/approval/api.ts`         |
+| [52](#52-결재-문서-추가)                  | 결재 문서 추가     | `POST /approvals/{id}/revisions/{revId}/documents`           | ✅ `features/approval/api.ts`         |
+| [53](#53-결재-문서-제거)                  | 결재 문서 제거     | `DELETE /approvals/{id}/revisions/{revId}/documents/{docId}` | ✅ `features/approval/api.ts`         |
+| [54](#54-결재선-등록--수정)               | 결재선 등록·수정   | `PUT /approvals/{id}/revisions/{revId}/lines`                | ✅ `features/approval/api.ts`         |
+| [55](#55-스텝별-이슈-목록-조회)           | 이슈 목록          | `GET /steps/{stepId}/issues`                                 | ✅ `features/issue/api.ts`            |
+| [56](#56-이슈-생성)                       | 이슈 생성          | `POST /steps/{stepId}/issues`                                | ✅ `features/issue/api.ts`            |
+| [57](#57-이슈-상세-조회)                  | 이슈 상세          | `GET /issues/{issueId}`                                      | ✅ `features/issue/api.ts`            |
+| [58](#58-이슈-부분-수정)                  | 이슈 부분 수정     | `PATCH /issues/{issueId}`                                    | ✅ `features/issue/api.ts`            |
+| [59](#59-이슈-상태-변경)                  | 이슈 상태 변경     | `PATCH /issues/{issueId}/status`                             | ✅ `features/issue/api.ts`            |
+| [60](#60-이슈-삭제)                       | 이슈 삭제          | `DELETE /issues/{issueId}`                                   | ✅ `features/issue/api.ts`            |
+| [61](#61-결재관리-목록조회)               | 결재 목록          | `GET /approvals`                                             | ✅ `features/approval/api.ts`         |
+| [62](#62-결재-상세조회)                   | 결재 상세          | `GET /approvals/{id}`                                        | ✅ `features/approval/api.ts`         |
+| [63](#63-결재-승인)                       | 결재 승인          | `POST /approval-lines/{lineId}/approve`                      | ✅ `features/approval/api.ts`         |
+| [64](#64-결재-반려)                       | 결재 반려          | `POST /approval-lines/{lineId}/reject`                       | ✅ `features/approval/api.ts`         |
+| [65](#65-버전-단건-조회-결재용)           | 버전 단건 조회     | `GET /file-versions/{fileVersionId}`                         | ✅ `features/file/api.ts`             |
+| [66](#66-이미지-항목-조회-한-장)          | 이미지 한 장 조회  | `GET /blocks/images/{id}/items/{orderIndex}`                 | ✅ `features/block/api.ts`            |
+| [67](#67-이미지-항목-생성)                | 이미지 생성        | `POST /blocks/images/{id}/items`                             | ✅ `features/block/api.ts`            |
+| [68](#68-이미지-순서--캡션-수정)          | 이미지 순서·캡션   | `PATCH /blocks/images/items/{imgBlockId}`                    | ✅ `features/block/api.ts`            |
+| [69](#69-이미지-항목-삭제)                | 이미지 삭제        | `DELETE /blocks/images/items/{imgId}`                        | ✅ `features/block/api.ts`            |
+| [70](#70-이미지-다운로드)                 | 이미지 다운로드    | `GET /blocks/images/{id}/download`                           | ✅ `features/block/api.ts`            |
+| [71](#71-이미지-항목-전체-조회)           | 이미지 전체 조회   | `GET /blocks/images/{id}/items`                              | ✅ `features/block/api.ts`            |
+| [73](#73-결재-이력조회)                   | 결재 이력          | `GET /approvals/{id}/revisions`                              | ✅ `features/approval/api.ts`         |
+| [74](#74-프로젝트-파일-버전-목록)         | 프로젝트 버전 목록 | `GET /projects/{projectId}/file-versions`                    | ✅ `features/file/api.ts`             |
+| [75](#75-검토-템플릿-목록)                | 검토 템플릿        | `GET /vitamate/review-templates`                             | ✅ `features/vitamate/api.ts`         |
+| [76](#76-비타메이트-분석-요청)            | 분석 요청          | `POST /blocks/{blockId}/vitamate/analyses`                   | ✅ `features/vitamate/api.ts`         |
+| [77](#77-비타메이트-분석-단건-조회)       | 분석 단건 조회     | `GET /vitamate/analyses/{analysisId}`                        | ✅ `features/vitamate/api.ts`         |
+| [78](#78-블록별-분석-이력)                | 분석 이력          | `GET /blocks/{blockId}/vitamate/analyses`                    | ✅ `features/vitamate/api.ts`         |
+| [79](#79-알림-목록-조회)                  | 알림 목록          | `GET /notifications`                                         | ✅ `features/notification/api.ts`     |
+| [80](#80-알림-이동-대상-조회)             | 알림 이동 대상     | `GET /notifications/{id}/target`                             | ✅ `features/notification/api.ts`     |
+| [81](#81-알림-읽음-처리)                  | 알림 읽음          | `PATCH /notifications/{id}/read`                             | ✅ `features/notification/api.ts`     |
+| [82](#82-알림-전체-읽음-처리)             | 알림 전체 읽음     | `PATCH /notifications/read-all`                              | ✅ `features/notification/api.ts`     |
+| [83](#83-알림-삭제)                       | 알림 삭제          | `DELETE /notifications/{id}`                                 | ✅ `features/notification/api.ts`     |
+| [84](#84-프로젝트-목록-조회)              | 프로젝트 목록      | `GET /projects`                                              | ✅ `features/project/api.ts`          |
+| [85](#85-정산-항목-수정-시-조회)          | 정산 수정 조회     | `GET /blocks/settlements/{id}/items`                         | ✅ `features/settlement/api.ts`       |
+| [86](#86-정산-항목-작성--수정)            | 정산 작성·수정     | `PATCH /blocks/settlements/{id}/items`                       | ✅ `features/settlement/api.ts`       |
+| [87](#87-사원-엑셀-템플릿-다운로드)       | 엑셀 템플릿        | `GET /employees/bulk-template`                               | ✅ `features/employee/api.ts`         |
+| [88](#88-사원-엑셀-일괄-등록-검증)        | 일괄 등록 검증     | `POST /employees/bulk/validate`                              | ✅ `features/employee/api.ts`         |
+| [89](#89-사원-엑셀-일괄-등록)             | 일괄 등록          | `POST /employees/bulk`                                       | ✅ `features/employee/api.ts`         |
+| [90](#90-직급별-사원-목록)                | 직급별 사원 목록   | `GET /job-positions/{id}/employees`                          | ✅ `features/jobPosition/api.ts`      |
+| [91](#91-사원-그룹-목록-조회)             | 그룹 목록          | `GET /employee-groups`                                       | ✅ `features/employeeGroup/api.ts`    |
+| [92](#92-사원-그룹-생성)                  | 그룹 생성          | `POST /employee-groups`                                      | ✅ `features/employeeGroup/api.ts`    |
+| [93](#93-사원-그룹-수정)                  | 그룹 수정          | `PATCH /employee-groups/{groupId}`                           | ✅ `features/employeeGroup/api.ts`    |
+| [94](#94-사원-그룹-삭제)                  | 그룹 삭제          | `DELETE /employee-groups/{groupId}`                          | ✅ `features/employeeGroup/api.ts`    |
+| [95](#95-그룹-구성원-목록-조회)           | 구성원 목록        | `GET /employee-groups/{groupId}/members`                     | ✅ `features/employeeGroup/api.ts`    |
+| [96](#96-그룹-구성원-추가)                | 구성원 추가        | `POST /employee-groups/{groupId}/members`                    | ✅ `features/employeeGroup/api.ts`    |
+| [97](#97-그룹-구성원-제거)                | 구성원 제거        | `DELETE /employee-groups/{id}/members/{userId}`              | ✅ `features/employeeGroup/api.ts`    |
+| [98](#98-내-페이지-목록-조회)             | 내 페이지 목록     | `GET /my/pages`                                              | ✅ `features/pagePermission/api.ts`   |
+| [99](#99-페이지-목록-조회-권한-부여용)    | 페이지 목록        | `GET /pages`                                                 | ✅ `features/pagePermission/api.ts`   |
+| [100](#100-페이지-접근-가능자-목록)       | 접근 가능자 목록   | `GET /pages/{pageCode}/permissions`                          | ✅ `features/pagePermission/api.ts`   |
+| [101](#101-페이지-권한-부여--등급-변경)   | 권한 부여·변경     | `POST /pages/{pageCode}/permissions`                         | ✅ `features/pagePermission/api.ts`   |
+| [102](#102-페이지-권한-회수)              | 권한 회수          | `DELETE /pages/{pageCode}/permissions/{userId}`              | ✅ `features/pagePermission/api.ts`   |
+| [103](#103-휴지통에서-복구)               | 파일 복구          | `POST /files/{fileId}/restore`                               | ✅ `features/file/api.ts`             |
+| [104](#104-파일-영구-삭제)                | 파일 영구 삭제     | `POST /files/{fileId}/permanent-deletion`                    | ✅ `features/file/api.ts`             |
+| [105](#105-프로젝트-문서함-전체-파일)     | 프로젝트 문서함    | `GET /projects/{projectId}/files`                            | ✅ `features/file/api.ts`             |
+| [106](#106-프로젝트-휴지통-모아보기)      | 프로젝트 휴지통    | `GET /projects/{projectId}/files/trash`                      | ✅ `features/file/api.ts`             |
+| [107](#107-프로젝트-이미지-모아보기)      | 이미지 모아보기    | `GET /projects/{projectId}/images`                           | ✅ `features/block/api.ts`            |
+| [108](#108-프로젝트-단위-이슈-목록-조회)  | 프로젝트 이슈      | `GET /projects/{projectId}/issues`                           | ✅ `features/issue/api.ts`            |
+| [109](#109-이미지-휴지통-조회)            | 이미지 휴지통      | `GET /projects/{projectId}/images/trash`                     | ✅ `features/block/api.ts`            |
+| [110](#110-이미지-복구-다건)              | 이미지 복구        | `PATCH /blocks/images/items/restore`                         | ✅ `features/block/api.ts`            |
+| [111](#111-이미지-영구-삭제-다건)         | 이미지 영구 삭제   | `DELETE /blocks/images/items/hard`                           | ✅ `features/block/api.ts`            |
+| [112](#112-스테이지-생성)                 | 스테이지 생성      | `POST /projects/{projectId}/stages`                          | ✅ `features/project/api.ts`          |
+| [113](#113-스테이지-수정)                 | 스테이지 수정      | `PATCH /stages/{stageId}`                                    | ✅ `features/project/api.ts`          |
+| [114](#114-스테이지-삭제)                 | 스테이지 삭제      | `DELETE /stages/{stageId}`                                   | ✅ `features/project/api.ts`          |
+| [115](#115-스텝-생성)                     | 스텝 생성          | `POST /projects/{projectId}/steps`                           | ✅ `features/project/api.ts`          |
+| [116](#116-스텝-수정)                     | 스텝 수정          | `PATCH /steps/{stepId}`                                      | ✅ `features/project/api.ts`          |
+| [117](#117-스텝-삭제)                     | 스텝 삭제          | `DELETE /steps/{stepId}`                                     | ✅ `features/project/api.ts`          |
+| [118](#118-스텝-완료-처리)                | 스텝 완료 처리     | `POST /steps/{stepId}/complete`                              | ✅ `features/project/api.ts`          |
+| [119](#119-스테이지-순서-변경)            | 스테이지 순서      | `PATCH /projects/{projectId}/stages/order`                   | ✅ `features/project/api.ts`          |
+| [120](#120-스텝-순서-변경)                | 스텝 순서 · 소속   | `PATCH /projects/{projectId}/steps/order`                    | ✅ `features/project/api.ts`          |
+| [121](#121-블록-스텝-이동)                | 블록 스텝 이동     | `PATCH /blocks/{blockId}/step`                               | ✅ `features/block/api.ts`            |
+| [122](#122-입찰-공고-목록-조회)           | 입찰 공고 목록     | `GET /bidding/notices`                                       | ✅ `features/bidding/api.ts`          |
+| [123](#123-입찰-공고-상세-조회)           | 입찰 공고 상세     | `GET /bidding/notices/{noticeId}`                            | ✅ `features/bidding/api.ts`          |
+| [124](#124-스텝-상세-조회)                | 스텝 상세          | `GET /steps/{stepId}`                                        | ❌ 미연동                             |
+| [125](#125-참여자-추가)                   | 참여자 추가        | `POST /projects/{projectId}/members`                         | ✅ `features/project/api.ts`          |
+| [126](#126-참여자-권한-변경)              | 참여자 권한 변경   | `PATCH /projects/{projectId}/members/{memberId}`             | ✅ `features/project/api.ts`          |
+| [127](#127-참여자-제거)                   | 참여자 제거        | `DELETE /projects/{projectId}/members/{memberId}`            | ✅ `features/project/api.ts`          |
+| [128](#128-하위-스텝-권한-일괄-적용)      | 스텝 권한 기본값   | `POST /stages/{stageId}/step-permissions`                    | ✅ `features/project/api.ts`          |
+| [129](#129-프로젝트-수정)                 | 프로젝트 수정      | `PATCH /projects/{projectId}`                                | ✅ `features/project/api.ts`          |
+| [130](#130-프로젝트-상태-변경)            | 프로젝트 상태 변경 | `PATCH /projects/{projectId}/status`                         | ✅ `features/project/api.ts`          |
+| [131](#131-프로젝트-종결)                 | 프로젝트 종결      | `POST /projects/{projectId}/close`                           | ✅ `features/project/api.ts`          |
+| [132](#132-사업-카테고리-연결)            | 카테고리 연결      | `POST /projects/{projectId}/business-categories`             | ✅ `features/project/api.ts`          |
+| [133](#133-사업-카테고리-해제)            | 카테고리 해제      | `DELETE /projects/{projectId}/business-categories/{id}`      | ✅ `features/project/api.ts`          |
+| [134](#134-스텝-권한-목록-조회)           | 스텝 권한 목록     | `GET /steps/{stepId}/permissions`                            | ✅ `features/project/api.ts`          |
+| [135](#135-스텝-권한-부여--변경)          | 스텝 권한 부여     | `PUT /steps/{stepId}/permissions/{userId}`                   | ✅ `features/project/api.ts`          |
+| [136](#136-스텝-권한-회수)                | 스텝 권한 회수     | `DELETE /steps/{stepId}/permissions/{userId}`                | ✅ `features/project/api.ts`          |
+| [137](#137-스텝-상태-변경)                | 스텝 상태 변경     | `PATCH /steps/{stepId}/status`                               | ✅ `features/project/api.ts`          |
+| [138](#138-프로젝트-직접-생성)            | 프로젝트 생성      | `POST /projects`                                             | ✅ `features/project/api.ts`          |
+| [139](#139-프로젝트-삭제)                 | 프로젝트 삭제      | `DELETE /projects/{projectId}`                               | ✅ `features/project/api.ts`          |
+| [140](#140-내-프로젝트-파일-모아보기)     | 내 파일            | `GET /files/my`                                              | ✅ `features/file/api.ts`             |
+| [141](#141-알림-실시간-수신-sse)          | 알림 실시간 수신   | `GET /notifications/stream`                                  | ✅ `features/notification/stream.ts`  |
+| [142](#142-전사-파일-목록-admin)          | 전사 파일 목록     | `GET /admin/files`                                           | ✅ `features/file/api.ts`             |
+| [143~150](#143150-사내-문서함-admin)      | 사내 문서함        | `/admin/company-documents …`                                 | ✅ `features/companyDocument/api.ts`  |
+| [151~154](#151154-전사-파일-탐색기-admin) | 전사 파일 탐색기   | `/admin/files/projects …`                                    | ✅ `features/file/api.ts`             |
+| [155~158](#155158-전공--자격증-마스터-admin) | 전공 · 자격증 마스터 | `/majors` · `/certificates`                                 | ✅ `features/masterItem/api.ts`       |
+| [159](#159-세션-조회--연장)               | 세션 조회 · 연장   | `GET /auth/session`                                          | ✅ `features/auth/api.ts`             |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
 > 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통) · [이미지 도메인 — 공통](#이미지-도메인--공통) · [사원 그룹 도메인 — 공통](#사원-그룹-도메인--공통) · [페이지 권한 도메인 — 공통](#페이지-권한-도메인--공통) · [스테이지 · 스텝 도메인 — 공통](#스테이지--스텝-도메인--공통) · [이슈 도메인 — 공통](#이슈-도메인--공통) · [입찰 도메인 — 공통](#입찰-도메인--공통) · [프로젝트 참여자 · 설정 도메인 — 공통](#프로젝트-참여자--설정-도메인--공통)
@@ -415,6 +416,67 @@ interface ChangePasswordRequest {
 | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
 | 400    | `AUTH_INVALID_REQUEST` · `AUTH_CURRENT_PASSWORD_REQUIRED` · `AUTH_CURRENT_PASSWORD_INVALID` · `AUTH_PASSWORD_CONFIRM_MISMATCH` · `AUTH_PASSWORD_POLICY_VIOLATION` · `AUTH_PASSWORD_UNCHANGED` | 폼 필드 에러 표시    |
 | 401    | `AUTH_UNAUTHENTICATED`                                                                                                                                                                        | 로그인 화면으로 이동 |
+
+---
+
+## 159. 세션 조회 · 연장
+
+| 항목          | 내용                                                                |
+| ------------- | ------------------------------------------------------------------- |
+| **Method**    | `GET`                                                               |
+| **Path**      | `/api/v1/auth/session`                                              |
+| **인증 필요** | ✅                                                                  |
+| **권한**      | 전체 사용자                                                         |
+| **사용 위치** | `src/features/auth/api.ts` → `getSession()` · `SessionTimer` (PR #424) |
+
+**⚠️ 이 API 는 "조회 겸 연장" 이다.** 세션은 4시간 유휴 슬라이딩이라 서버가 세션을 만지는
+모든 요청이 만료를 뒤로 미는데, 이 API 도 예외가 아니다 — **부르는 순간 만료가 다시 4시간 뒤로 밀린다.**
+그래서 `remainingSeconds` 는 항상 호출 직후 기준값(= 사실상 `timeoutSeconds`)이다.
+"건드리지 않고 남은 시간만 읽는" 모드는 **없다.**
+
+**Response (200 OK)**
+
+| 필드                   | 타입     | 설명                                                                          |
+| ---------------------- | -------- | ----------------------------------------------------------------------------- |
+| `data.timeoutSeconds`  | `int`    | 유휴 타임아웃 **정책값**(초). 기본 14400(4시간) — 배포 환경변수를 따라가므로 **하드코딩 금지** |
+| `data.expiresAt`       | `String` | 만료 예정 시각 `yyyy-MM-dd HH:mm:ss` (**서버 시각**). **표시 전용**            |
+| `data.remainingSeconds`| `long`   | 만료까지 남은 초 (호출 직후 기준). **카운트다운 기준값**                       |
+
+```json
+{
+  "httpStatus": 200,
+  "message": "조회 성공",
+  "data": {
+    "timeoutSeconds": 14400,
+    "expiresAt": "2026-08-18 15:43:31",
+    "remainingSeconds": 14400
+  }
+}
+```
+
+**에러 응답**
+
+| status | code                   | 언제                                                          |
+| ------ | ---------------------- | -------------------------------------------------------------- |
+| 401    | `AUTH_UNAUTHENTICATED` | 세션 없음 / 만료. 다른 API 와 같은 코드 — 공통 인터셉터가 처리 |
+
+### 부르는 자리 — 딱 두 곳
+
+| 시점                          | 무엇을 하나                                                       |
+| ----------------------------- | ------------------------------------------------------------------ |
+| 로그인 · 새로고침 직후 (시드) | 1회 호출 → `remainingSeconds` 로 로컬 카운트다운 시작              |
+| "세션 연장" 버튼              | 재호출 → 응답값으로 타이머 리셋                                    |
+| ~~다른 API 를 부를 때마다~~   | **호출하지 않는다.** 서버는 이미 늘어나 있으니 로컬 타이머만 리셋   |
+| ~~카운트다운 0 도달~~         | **아무것도 안 한다.** 다음 요청의 401 을 공통 인터셉터가 받아 처리 |
+
+> 🚫 **주기 조회(폴링) 금지.** 호출이 곧 연장이라 세션이 영원히 안 죽어 4시간 유휴 만료 정책이 무력화된다.
+> 🚫 **`expiresAt` 으로 카운트다운하지 않는다.** 서버 시각이라 클라이언트 시계가 어긋나 있으면 몇 분씩 틀린다.
+> `remainingSeconds` 는 시계와 무관하다. `expiresAt` 은 "15:43 에 만료" 같은 **표시에만** 쓴다.
+> ℹ️ **게이트 통과** — 약관 동의(`AUTH_TERMS_AGREEMENT_REQUIRED`) · 초기 비밀번호 변경
+> (`AUTH_PASSWORD_RESET_REQUIRED`) 게이트의 **예외 경로**다. 두 화면에서도 만료 위젯을 그려도 403 이 나지 않는다.
+> ⚠️ **다른 탭 주의** — 옆 탭이 요청을 쏘면 서버 세션은 늘어나지만 이 탭의 로컬 타이머는 모른다.
+> 그래서 "0 도달 = 즉시 로그아웃 UI" 로 처리하지 않는다. 프론트는 `BroadcastChannel` 로 탭끼리
+> 연장 사실을 나누고(`src/features/auth/sessionExpiry.ts`), 최종 판단은 다음 요청의 401 에 맡긴다.
 
 ---
 
