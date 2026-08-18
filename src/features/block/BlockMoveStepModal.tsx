@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
+import ModalLoadingFallback, {
+  useSlowLoading,
+} from '@/components/ModalLoadingFallback';
 import PanelModal, { ModalFooter } from '@/components/PanelModal';
-import LoadingSpinner from '@/components/Spinner';
 import { getProjectSteps } from '@/features/project/api';
 import type { ProjectStep } from '@/features/project/types';
 import { ApiError, messageOf } from '@/lib/api';
@@ -76,9 +78,7 @@ export default function BlockMoveStepModal({
     (step) => step.myPermission === 'EDITOR',
   );
 
-  const isLoading = steps === null;
-  const canSubmit =
-    !isLoading && !isSubmitting && !hasNoVersion && targetStepId !== '';
+  const canSubmit = !isSubmitting && !hasNoVersion && targetStepId !== '';
 
   async function move(overwrite: boolean) {
     if (block.version === undefined) {
@@ -124,6 +124,23 @@ export default function BlockMoveStepModal({
     if (!isSubmitting) onClose();
   }
 
+  /** 아직 스텝 목록을 기다리는 중인지 — 조회에 실패하면 steps 가 빈 배열로 채워진다 */
+  const isPending = steps === null;
+  const isSlow = useSlowLoading(isPending);
+
+  // 값이 다 온 뒤에 한 번에 펼친다 — 스피너 자리(py-8)가 선택 상자로 바뀌면서
+  // 창이 그만큼 줄어든다. 권한 모달들과 같은 규칙이다.
+  if (isPending) {
+    if (!isSlow) return null;
+
+    return (
+      <ModalLoadingFallback
+        title="다른 스텝으로 이동"
+        className="w-full max-w-[420px] rounded-base p-6 shadow-2xl"
+      />
+    );
+  }
+
   return (
     <>
       <PanelModal title="다른 스텝으로 이동" onClose={requestClose}>
@@ -137,9 +154,7 @@ export default function BlockMoveStepModal({
             </span>
           </div>
 
-          {isLoading ? (
-            <LoadingSpinner label="스텝 목록 불러오는 중" className="py-8" />
-          ) : haveStepsFailed ? (
+          {haveStepsFailed ? (
             <p className="rounded-lg bg-red-bg-soft px-3 py-2.5 text-detail break-keep text-text-danger">
               스텝 목록을 불러오지 못했습니다. 닫고 다시 시도해주세요.
             </p>

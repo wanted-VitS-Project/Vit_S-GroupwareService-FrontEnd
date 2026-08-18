@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 
+import ModalLoadingFallback, {
+  useSlowLoading,
+} from '@/components/ModalLoadingFallback';
 import PanelModal, { ModalFooter } from '@/components/PanelModal';
 import { notifyToast } from '@/components/Toast';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
@@ -102,6 +105,23 @@ export default function StagePermissionModal({
 
   // 자기 자신은 대상이 될 수 없다 (INV-10) — 후보에서 미리 뺀다
   const candidates = members?.filter((member) => member.userId !== me.userId);
+
+  /** 아직 참여자 목록을 기다리는 중인지 — 이 동안에는 창을 열지 않는다 */
+  const isPending = !members && !hasFailed;
+  const isSlow = useSlowLoading(isPending);
+
+  // 값이 다 온 뒤에 한 번에 펼친다 — 후보 칩이 늦게 채워지면 그만큼 창이 늘어난다.
+  // 스텝 권한 모달과 같은 규칙이다. 나란히 열리는 형제 모달이라 동작이 같아야 한다.
+  if (isPending) {
+    if (!isSlow) return null;
+
+    return (
+      <ModalLoadingFallback
+        title="스테이지 권한"
+        className="w-full max-w-[420px] rounded-base p-6 shadow-2xl"
+      />
+    );
+  }
 
   return (
     <PanelModal title="스테이지 권한" onClose={requestClose}>
