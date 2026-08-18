@@ -5,8 +5,13 @@ import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { memo, useMemo, useEffect, useState } from 'react';
 
+import Pagination, { PaginationPlaceholder } from '@/components/Pagination';
 import { getProjectImages } from '@/features/block/api';
-import { projectImageAltText, type ProjectImage } from '@/features/block/types';
+import {
+  projectImageAltText,
+  type ImagePage,
+  type ProjectImage,
+} from '@/features/block/types';
 import { isAbortError } from '@/lib/api';
 import { formatDate } from '@/lib/format';
 import { useModalTarget } from '@/lib/useModal';
@@ -23,19 +28,37 @@ import {
 const loadLightbox = () => import('./ProjectImageLightbox');
 const ProjectImageLightbox = dynamic(loadLightbox);
 
+/** 한 판에 20장 — xl 그리드(5열) 기준 딱 4줄이다 */
+const PAGE_SIZE = 20;
+
 // 프로젝트 이미지 모아보기. (명세 107번)
 // 응답에 스텝 정보도 orderIndex 도 없다 — 아는 것은 imgBlockId 뿐이다.
 // 그래서 문서함처럼 스텝 → 블록 트리로 접지 못하고 블록 단위 묶음까지만 만든다.
 // 블록 제목도 오지 않아 머리에는 블록 #3 처럼 ID 로만 적는다.
 // 조회 전용이다. 등록·캡션 수정·삭제는 이미지 블록(스텝 화면)에서 한다.
+// 2026-08-18 부터 한 판 20장씩 받는다 (107번 page·size) — 블록 묶음도 그 판 안에서만 만든다.
 export default function ProjectImages() {
   const params = useParams<{ id: string }>();
   const projectId = params.id;
 
-  /** 어느 프로젝트의 응답인지 함께 담는다 — 경로가 바뀌면 즉시 무효가 된다 */
+  /*
+   * 보고 있는 장(0-base)에 프로젝트를 함께 묶어 둔다 — 경로가 바뀌면 값이 어긋나
+   * 저절로 첫 장으로 돌아간다. 3페이지에서 다른 프로젝트로 넘어가면 없는 장을 부른다.
+   * 효과 안에서 되돌리지 않으므로 `react-hooks/set-state-in-effect` 에 걸리지 않는다.
+   */
+  const [pageOf, setPageOf] = useState({ projectId, page: 0 });
+  const page = pageOf.projectId === projectId ? pageOf.page : 0;
+
+  /**
+   * 어느 프로젝트 · 어느 장의 응답인지 함께 담는다.
+   * `projectId` 가 어긋나면 남의 목록이라 버리고, `key` 만 어긋나면 **같은 프로젝트의
+   * 이전 장**이라 새 장이 올 때까지 그대로 두고 페이지 줄만 잠근다 —
+   * 넘길 때마다 통째로 뼈대로 바뀌면 그리드가 접혔다 펴져 화면이 튄다.
+   */
   const [loaded, setLoaded] = useState<{
+    key: string;
     projectId: string;
-    images: ProjectImage[];
+    imagePage: ImagePage<ProjectImage>;
   } | null>(null);
   const [failedProjectId, setFailedProjectId] = useState<string | null>(null);
   const [reloadCount, setReloadCount] = useState(0);
@@ -44,13 +67,16 @@ export default function ProjectImages() {
 
   const lightbox = useModalTarget<ProjectImage>();
 
+  /** 무엇을 받아야 하는지 — 다시 읽기(reloadCount)까지 담아 이 값 하나로 요청을 돌린다 */
+  const requestKey = `${projectId} ${page} ${reloadCount}`;
+
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
 
-    getProjectImages(projectId, signal)
-      .then((images) => {
-        setLoaded({ projectId, images });
+    getProjectImages(projectId, { page, size: PAGE_SIZE }, signal)
+      .then((imagePage) => {
+        setLoaded({ key: requestKey, projectId, imagePage });
         setFailedProjectId((failed) => (failed === projectId ? null : failed));
       })
       .catch((caught) => {
@@ -58,9 +84,12 @@ export default function ProjectImages() {
       });
 
     return () => controller.abort();
-  }, [projectId, reloadCount]);
+  }, [projectId, page, requestKey]);
 
-  const images = loaded?.projectId === projectId ? loaded.images : null;
+  const imagePage = loaded?.projectId === projectId ? loaded.imagePage : null;
+  const images = imagePage?.images ?? null;
+  /** 지금 조건의 응답이 아직 안 왔다 — 보이는 것은 이전 장이다 */
+  const isPending = loaded?.key !== requestKey;
   const hasFailed = failedProjectId === projectId;
 
   /*
@@ -107,7 +136,17 @@ export default function ProjectImages() {
     );
   }
 
-  if (!images) return <ProjectImagesSkeleton />;
+  // 첫 판을 받는 중 — 페이지 줄 자리까지 잡아 둬야 결과가 올 때 아래가 밀리지 않는다
+  if (!imagePage) {
+    return (
+      <div className="flex flex-col gap-4">
+        <ProjectImagesSkeleton />
+        <div className="overflow-hidden rounded-base border border-border-default bg-bg-card">
+          <PaginationPlaceholder />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -117,10 +156,11 @@ export default function ProjectImages() {
             이미지
           </h2>
           <span className="rounded-pill bg-bg-hover px-2 py-0.5 text-caption text-text-secondary">
-            총 {images.length}장
+            총 {imagePage.totalElements}장
           </span>
+          {/* 묶음은 지금 페이지 안에서만 만든다 — 같은 블록의 이미지가 여러 장에 걸칠 수 있다 */}
           <span className="text-caption text-text-secondary">
-            블록 {blocks.length}개
+            이 페이지 블록 {blocks.length}개
           </span>
         </div>
         {/*
@@ -128,7 +168,7 @@ export default function ProjectImages() {
           (`블록별로 보기` 를 누르면 묶인다) 눌림 여부를 실으면 "전체 보기, 눌림" 처럼
           뜻이 뒤집혀 읽힌다. 상태를 말하려면 라벨부터 상태로 바꿔야 한다.
         */}
-        {images.length > 0 && (
+        {imagePage.images.length > 0 && (
           <button
             type="button"
             onClick={() => setGroupByBlock((grouped) => !grouped)}
@@ -139,7 +179,7 @@ export default function ProjectImages() {
         )}
       </div>
 
-      {images.length === 0 ? (
+      {imagePage.images.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border-default px-4 py-12 text-center text-label text-text-secondary">
           등록된 이미지가 없습니다.
         </p>
@@ -167,7 +207,20 @@ export default function ProjectImages() {
           </section>
         ))
       ) : (
-        <ImageGrid images={images} onOpen={lightbox.open} />
+        <ImageGrid images={imagePage.images} onOpen={lightbox.open} />
+      )}
+
+      {/* 빈 화면에는 넘길 장이 없다 — 페이지 줄도 두지 않는다 */}
+      {imagePage.totalElements > 0 && (
+        <div className="overflow-hidden rounded-base border border-border-default bg-bg-card">
+          <Pagination
+            page={imagePage.page}
+            totalPages={imagePage.totalPages}
+            // 응답이 도는 동안 잠근다 — 연달아 누르면 늦게 온 장이 화면을 덮는다
+            disabled={isPending}
+            onChange={(next) => setPageOf({ projectId, page: next })}
+          />
+        </div>
       )}
 
       {lightbox.target && (
