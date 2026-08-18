@@ -6,10 +6,10 @@ import {
 } from './display';
 import type { NoticeStatus } from './types';
 
-/** 모양은 `globals.css` 의 공용 `.badge`, 색만 도메인 규칙(`display.ts`)에서 고른다 */
+/** 모양은 globals.css 의 공용 .badge, 색만 display.ts 에서 고른다 */
 const BADGE_BASE = 'badge shrink-0';
 
-/** 공고 검토 상태. **전환 여부와 다른 축**이라 따로 그린다 */
+/** 공고 검토 상태. 전환 여부와 다른 축이라 따로 그린다 */
 export function NoticeStatusBadge({ status }: { status: NoticeStatus }) {
   return (
     <span className={`${BADGE_BASE} ${NOTICE_STATUS_CLASS[status]}`}>
@@ -19,8 +19,8 @@ export function NoticeStatusBadge({ status }: { status: NoticeStatus }) {
 }
 
 /**
- * 투찰 마감 배지. `dDay` 가 없는 공고는 아무것도 그리지 않는다 —
- * `-` 를 배지 모양으로 그리면 상태가 있는 것처럼 읽힌다.
+ * 투찰 마감 배지. dDay 가 없는 공고는 아무것도 그리지 않는다.
+ * - 를 배지 모양으로 그리면 상태가 있는 것처럼 읽힌다.
  */
 export function DeadlineBadge({ dDay }: { dDay: number | null }) {
   const badge = toDeadlineBadge(dDay);
@@ -34,8 +34,7 @@ export function DeadlineBadge({ dDay }: { dDay: number | null }) {
 }
 
 /**
- * 프로젝트 전환 여부. 미전환은 배지를 만들지 않는다 —
- * 대부분이 미전환이라 전부 배지가 붙으면 전환된 건이 묻힌다.
+ * 프로젝트 전환 여부. 대부분이 미전환이라 미전환은 배지를 만들지 않는다.
  */
 export function ConvertedBadge({ projectId }: { projectId: number | null }) {
   if (projectId === null) return null;

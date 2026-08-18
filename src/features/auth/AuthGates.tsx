@@ -14,11 +14,8 @@ interface AuthGatesProps {
 }
 
 /**
- * 통과하지 못한 게이트를 단계로 보여준다. (1 약관 → 2 비밀번호)
- *
- * 비밀번호 단계가 남아 있으면 약관은 **이미 동의했어도 확인 단계로 함께 둔다** —
- * 그래서 동의 직후 새로고침해도 `2 / 2` 가 유지되고, 이전/다음으로 약관을 다시 읽을 수 있다.
- * 단계 이동은 로컬 상태라 /me 재조회가 끼어들지 않고, 재조회는 마지막에 한 번만 한다.
+ * 통과하지 못한 게이트를 단계로 보여준다 (1 약관 → 2 비밀번호).
+ * 단계 이동은 로컬 상태로 처리하고 /me 재조회는 마지막에 한 번만 한다.
  */
 export default function AuthGates({
   needsTerms,
@@ -26,10 +23,10 @@ export default function AuthGates({
   onDone,
 }: AuthGatesProps) {
   const [hasAgreed, setHasAgreed] = useState(!needsTerms);
-  // 이미 동의한 약관을 다시 읽게 강요하지 않는다 — 남은 단계에서 시작한다
+  // 이미 동의한 약관은 건너뛰고 남은 단계에서 시작한다
   const [isOnTerms, setIsOnTerms] = useState(needsTerms);
 
-  // 약관 하나뿐이면 진행 표시가 군더더기다
+  // 약관 하나뿐이면 진행 표시를 두지 않는다
   const stepLabelOf = (current: number) =>
     needsPassword ? `${current} / 2` : undefined;
 

@@ -5,6 +5,47 @@
 > 최신 기록이 위로 오도록 **위에 쌓아** 가세요.
 
 ---
+
+## [2026-08-18] 직접 등록 공고 수정 · 알림 분류 정리 · 주석 정리 2차 ✅
+
+브랜치: `chore/comment-cleanup`
+
+앞선 세션에서 결재 · 재무 · 알림 · 마이페이지 · 로그인 주석을 정리했고, 이번에는
+입찰 · 전사 관리로 이어갔다. 그 사이 요청받은 화면 작업 두 건을 함께 처리했다.
+
+### 변경 파일
+
+| 파일                                                                                                                                                                     | 변경                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| `src/features/bidding/NoticeForm.tsx`                                                                                                                                    | 신규 — `NoticeCreateForm` 을 등록 · 수정 겸용으로 옮김 |
+| `src/features/bidding/NoticeCreateForm.tsx`                                                                                                                              | 삭제 — 위 파일로 대체                                  |
+| `src/app/notices/[id]/edit/page.tsx`                                                                                                                                     | 신규 — 공고 수정 라우트                                |
+| `src/app/notices/new/page.tsx`                                                                                                                                           | 수정 — `NoticeForm` 사용                               |
+| `src/features/bidding/{routes.ts,NoticeDetail.tsx}`                                                                                                                      | 수정 — `edit` 경로 · 상세의 `공고 관리` 카드           |
+| `src/components/bidding/NoticeSkeletons.tsx`                                                                                                                             | 수정 — `NoticeFormSkeleton` 추가                       |
+| `src/features/notification/{display.ts,NotificationSection.tsx}`                                                                                                         | 수정 — 댓글 칩 제거 · 시스템 칩 화면 분류              |
+| `src/features/bidding/*` · `src/features/{department,jobPosition,businessCategory,masterItem,pagePermission,employee,companyDocument}/*` · `src/features/file/Admin*` 외 | 수정 — 주석 정리                                       |
+| `src/app/settings/*` · `src/components/settings/SettingsSkeletons.tsx`                                                                                                   | 수정 — 주석 정리                                       |
+| `src/features/employee/BulkUploadModal.tsx`                                                                                                                              | 수정 — 학력 · 자격증 구분자 안내 문구                  |
+
+### 주요 작업 내용
+
+- **직접 등록 공고 수정** — `PATCH /bidding/notices/{noticeId}` 연동. 등록 폼을 `NoticeForm` 으로 합치고 `noticeId` 를 주면 수정 모드가 된다. 상세에는 `sourceCode === 'MANUAL'` 일 때만 `공고 수정` 버튼이 뜬다
+- **알림 유형 칩 정리** — `댓글` 칩을 없애고, 결재 · 이슈가 아닌 알림(프로젝트 관련 포함)은 모두 `시스템` 으로 모았다
+- **엑셀 일괄 등록 안내 문구** — 학력 · 자격증 구분자가 쌍반점 하나인 것처럼 적혀 있었다. 쉼표 · 셀 안 줄바꿈도 되고, 대신 항목 이름에 쉼표가 있으면 쪼개진다는 주의를 함께 적었다
+- **주석 정리** — 입찰 · 전사 관리 전 파일. 이모지 · 강조 표기를 걷고 한 줄, 길어도 두 줄로 줄였다. 없어도 되는 주석은 지웠다
+
+### 트러블슈팅
+
+- **수정 폼에 못 채우는 칸** — 공고 상세 응답에 `internationalBidType` · `bidMethod` 가 없다. 빈 칸으로 두면 저장할 때 기존 값을 덮어쓰므로 **수정 화면에서는 두 칸을 감추고 요청에서도 뺐다**
+- **첨부는 교체가 아니라 추가만** — `attachments` 를 보내면 통째로 교체돼 기존 첨부가 사라진다. 수정 본문에서 아예 빼고, 이미 올라간 첨부는 목록으로만 보여준다 (첨부 삭제 API 가 없다)
+
+### 부수 결정
+
+- **시스템 칩은 화면에서 나눈다** — 서버 `category` 는 `notificationType` 접두어라 "결재 · 이슈가 아닌 나머지" 를 한 값으로 부를 수 없다. 시스템 칩만 조건 없이 받아 화면에서 고르고 쪽을 나눈다 (한 번에 100건)
+
+---
+
 ## [2026-08-18] 입찰 관심 · 제외 · 요약 중단 연동 + 화면 점검 ✅
 
 브랜치: `feat/education-certificate` · API: `.ai/API.md` 입찰 도메인에 관심 · 제외 · 복구 · 요약 중단 추가
@@ -15,19 +56,19 @@
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/constants/endpoints.ts` | 수정 — 관심 · 해제 · 제외 · 복구 · 요약 중단 5경로 |
-| `src/features/bidding/{types,api,errorCodes}.ts` | 수정 — `isFavorite` · `favorite` 쿼리 · 상태 응답 · 첨부 409 코드 |
-| `src/features/bidding/NoticeList.tsx` | 수정 — 관심 별 열 · 관심 필터 · 상태 셀렉트 복원 |
-| `src/features/bidding/NoticeDetail.tsx` | 수정 — `검토 상태` 카드 · 제외 사유 모달 · 복구 확인 |
-| `src/features/bidding/NoticeSummaryCard.tsx` | 수정 — `멈추기` → `중단` (서버 abandon 호출) |
-| `src/features/bidding/NoticeCreateForm.tsx` | 수정 — 첨부 10개 상한 · 폼 폭을 프로젝트 생성과 통일 |
-| `src/components/PageTitle.tsx` | 수정 — `variant="top"` (최상위 화면 제목 크기) |
-| `src/features/{approval/ApprovalList,finance/FinanceHub,bidding/NoticeList}.tsx` · `src/app/settings/page.tsx` · `src/app/mypage/page.tsx` | 수정 — 최상위 제목 토큰 통일 |
-| `src/components/MemberAvatar` 관련 (`CurrentUserProvider` · `Sidebar` · `ProfileMenu`) | 수정 — 하이드레이션 불일치 해소 |
-| `src/features/file/format.ts` | 수정 — 확장자 색 하드코딩 → 토큰(`var(--color-*)`) |
-| 스피너 교체 9곳 · `#12B76A` 6곳 · 그림자 3곳 | 수정 — 아래 `점검 결과` 참고 |
+| 파일                                                                                                                                       | 변경                                                              |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| `src/constants/endpoints.ts`                                                                                                               | 수정 — 관심 · 해제 · 제외 · 복구 · 요약 중단 5경로                |
+| `src/features/bidding/{types,api,errorCodes}.ts`                                                                                           | 수정 — `isFavorite` · `favorite` 쿼리 · 상태 응답 · 첨부 409 코드 |
+| `src/features/bidding/NoticeList.tsx`                                                                                                      | 수정 — 관심 별 열 · 관심 필터 · 상태 셀렉트 복원                  |
+| `src/features/bidding/NoticeDetail.tsx`                                                                                                    | 수정 — `검토 상태` 카드 · 제외 사유 모달 · 복구 확인              |
+| `src/features/bidding/NoticeSummaryCard.tsx`                                                                                               | 수정 — `멈추기` → `중단` (서버 abandon 호출)                      |
+| `src/features/bidding/NoticeCreateForm.tsx`                                                                                                | 수정 — 첨부 10개 상한 · 폼 폭을 프로젝트 생성과 통일              |
+| `src/components/PageTitle.tsx`                                                                                                             | 수정 — `variant="top"` (최상위 화면 제목 크기)                    |
+| `src/features/{approval/ApprovalList,finance/FinanceHub,bidding/NoticeList}.tsx` · `src/app/settings/page.tsx` · `src/app/mypage/page.tsx` | 수정 — 최상위 제목 토큰 통일                                      |
+| `src/components/MemberAvatar` 관련 (`CurrentUserProvider` · `Sidebar` · `ProfileMenu`)                                                     | 수정 — 하이드레이션 불일치 해소                                   |
+| `src/features/file/format.ts`                                                                                                              | 수정 — 확장자 색 하드코딩 → 토큰(`var(--color-*)`)                |
+| 스피너 교체 9곳 · `#12B76A` 6곳 · 그림자 3곳                                                                                               | 수정 — 아래 `점검 결과` 참고                                      |
 
 ### 주요 작업 내용
 
@@ -63,8 +104,8 @@
 
 ### 변경 파일
 
-| 파일                                                | 변경 |
-| --------------------------------------------------- | ---- |
+| 파일                                                  | 변경 |
+| ----------------------------------------------------- | ---- |
 | `src/components/ModalLoadingFallback.tsx`             | 수정 |
 | `src/features/project/step/StepPermissionModal.tsx`   | 수정 |
 | `src/features/project/stage/StagePermissionModal.tsx` | 수정 |
@@ -101,9 +142,9 @@
 
 ### 변경 파일
 
-| 파일                             | 변경 |
-| -------------------------------- | ---- |
-| `src/features/vitamate/api.ts`   | 수정 |
+| 파일                                | 변경 |
+| ----------------------------------- | ---- |
+| `src/features/vitamate/api.ts`      | 수정 |
 | `src/features/vitamate/AiBlock.tsx` | 수정 |
 
 ### 주요 작업 내용
@@ -155,14 +196,14 @@
 
 ### 변경 파일
 
-| 범위                                       | 변경 |
-| ------------------------------------------ | ---- |
-| `src/app/page.tsx` · `src/features/dashboard/*` | 수정 |
-| `src/app/projects/**` · `src/features/project/**` | 수정 |
-| `src/features/issue/*`                     | 수정 |
-| `src/features/activityLog/*`               | 수정 |
-| `src/features/vitamate/*` (AI 블록)        | 수정 |
-| `src/features/block/**` (블록 도메인 전체)  | 수정 |
+| 범위                                                            | 변경 |
+| --------------------------------------------------------------- | ---- |
+| `src/app/page.tsx` · `src/features/dashboard/*`                 | 수정 |
+| `src/app/projects/**` · `src/features/project/**`               | 수정 |
+| `src/features/issue/*`                                          | 수정 |
+| `src/features/activityLog/*`                                    | 수정 |
+| `src/features/vitamate/*` (AI 블록)                             | 수정 |
+| `src/features/block/**` (블록 도메인 전체)                      | 수정 |
 | `src/components/project/*` · 사이드바·탭·프로필·스켈레톤·스피너 | 수정 |
 
 총 165개 파일 · 주석 라인 약 5,500줄 → 약 3,100줄.
@@ -223,7 +264,7 @@
 
 ## [2026-08-17] 학력 · 자격증 연동 — 마스터 항목 관리 · 사원 등록/상세/수정 ✅
 
-브랜치: `feat/education-certificate` · API: `.ai/API.md` 155~158 신설 · 31 · 32 · 33 · 87~89 갱신
+브랜치: `feat/education-certificate` · API: `.ai/API.md` 155~~158 신설 · 31 · 32 · 33 · 87~~89 갱신
 
 사원에 학력 · 자격증을 붙였다. 값은 **관리자가 만든 목록에서 고른다** — 자유입력을 두면
 `컴퓨터공학` · `컴퓨터 공학` 처럼 같은 뜻이 여러 표기로 쌓여 나중에 묶을 수 없다.
@@ -231,17 +272,17 @@
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/features/masterItem/{types,api,errorCodes}.ts` | **생성** — 전공 · 자격증 공용 계층 |
-| `src/features/masterItem/MasterItemPanel.tsx` | **생성** — 목록 한 벌 (추가 · 이름 수정 · 삭제) |
-| `src/features/masterItem/QualificationScreen.tsx` | **생성** — 두 목록을 한 화면에 |
-| `src/features/masterItem/QualificationFields.tsx` | **생성** — 사원 폼이 함께 쓰는 입력 섹션 |
-| `src/app/settings/qualifications/page.tsx` | **생성** — 라우트 |
-| `src/app/settings/page.tsx` · `src/constants/endpoints.ts` | 수정 — 허브 카드 · 경로 |
-| `src/features/employee/types.ts` | 수정 — 등록 · 수정 요청 · 상세 응답 필드 |
-| `src/features/employee/{EmployeeCreateForm,EmployeeDetail,EmployeeEditForm}.tsx` | 수정 — 입력 · 표시 · 수정 |
-| `src/features/employee/BulkUploadModal.tsx` | 수정 — 템플릿 8열 → 10열 안내 |
+| 파일                                                                             | 변경                                            |
+| -------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `src/features/masterItem/{types,api,errorCodes}.ts`                              | **생성** — 전공 · 자격증 공용 계층              |
+| `src/features/masterItem/MasterItemPanel.tsx`                                    | **생성** — 목록 한 벌 (추가 · 이름 수정 · 삭제) |
+| `src/features/masterItem/QualificationScreen.tsx`                                | **생성** — 두 목록을 한 화면에                  |
+| `src/features/masterItem/QualificationFields.tsx`                                | **생성** — 사원 폼이 함께 쓰는 입력 섹션        |
+| `src/app/settings/qualifications/page.tsx`                                       | **생성** — 라우트                               |
+| `src/app/settings/page.tsx` · `src/constants/endpoints.ts`                       | 수정 — 허브 카드 · 경로                         |
+| `src/features/employee/types.ts`                                                 | 수정 — 등록 · 수정 요청 · 상세 응답 필드        |
+| `src/features/employee/{EmployeeCreateForm,EmployeeDetail,EmployeeEditForm}.tsx` | 수정 — 입력 · 표시 · 수정                       |
+| `src/features/employee/BulkUploadModal.tsx`                                      | 수정 — 템플릿 8열 → 10열 안내                   |
 
 ### 주요 작업 내용
 

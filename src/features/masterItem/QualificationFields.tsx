@@ -14,12 +14,8 @@ import type {
 import { DEGREE_LABELS, DEGREES, newRowKey } from './types';
 
 /**
- * 사원의 학력 · 자격증 입력 칸. 등록 폼과 수정 폼이 **같은 것을 쓴다.**
- *
- * ⭐ 값은 **마스터 목록에서 고른다** — 자유입력을 두면 `컴퓨터공학` · `컴퓨터 공학` 처럼
- *    같은 뜻이 여러 표기로 쌓여 나중에 묶을 수 없다.
- * ⚠️ 그래서 목록이 비어 있으면 **고를 것이 없다** — 항목 관리 화면으로 가는 길을 함께 둔다.
- * ℹ️ 여러 개를 담을 수 있고, 줄 단위로 추가 · 삭제한다.
+ * 사원의 학력 · 자격증 입력 칸. 등록 폼과 수정 폼이 같은 것을 쓴다.
+ * 표기가 갈리지 않게 마스터 목록에서 고르고, 비어 있으면 항목 관리로 가는 길을 준다.
  */
 export default function QualificationFields({
   educations,
@@ -91,8 +87,7 @@ export default function QualificationFields({
         </div>
 
         {/*
-          ⚠️ **새 탭으로 연다.** 이 칸은 사원 등록 · 수정 폼 안에 있어, 같은 탭으로 옮기면
-             작성하던 내용이 사라진다. 항목을 만들고 돌아와 새로고침하면 목록에 반영된다.
+          새 탭으로 연다. 사원 폼 안이라 같은 탭으로 옮기면 작성하던 내용이 사라진다.
         */}
         <Link
           href="/settings/qualifications"
@@ -192,7 +187,7 @@ export default function QualificationFields({
           onClick={() =>
             onChange({
               certificates,
-              // 학위는 비워 둘 수 없어 첫 값으로 시작한다 — 전공만 고르면 된다
+              // 학위는 비워 둘 수 없어 첫 값으로 시작한다. 전공만 고르면 된다
               educations: [
                 ...educations,
                 { rowKey: newRowKey(), majorId: 0, degree: 'BACHELOR' },
@@ -235,7 +230,7 @@ export default function QualificationFields({
               <input
                 type="date"
                 aria-label={`${index + 1}번째 자격증 취득일`}
-                /* 상한이 없으면 브라우저가 연도를 6자리까지 받는다 (사원 등록 입사일과 같은 이유) */
+                /* 상한이 없으면 브라우저가 연도를 6자리까지 받는다 */
                 min="1900-01-01"
                 max="2999-12-31"
                 value={row.acquiredDate ?? ''}
@@ -277,11 +272,8 @@ export default function QualificationFields({
 }
 
 /**
- * 보낼 값만 남긴다.
- *
- * ⚠️ 고르지 않은 줄(`majorId: 0` · `certificateId: 0`)은 **빼고 보낸다** —
- *    0 을 그대로 보내면 404 가 오고, 사용자는 어느 줄이 문제인지 알 수 없다.
- * ⚠️ 빈 문자열도 빼야 한다 — `school: ''` · `acquiredDate: ''` 는 값이 아니라 미입력이다.
+ * 보낼 값만 남긴다. 고르지 않은 줄(id 0)은 빼고 보낸다. 0 을 보내면 404 다.
+ * 빈 문자열도 값이 아니라 미입력이라 함께 뺀다.
  */
 export function toQualificationPayload(next: {
   educations: EducationInput[];
@@ -325,7 +317,7 @@ function AddButton({
   );
 }
 
-/** 줄 삭제 — 터치 기기를 위해 **항상 보인다** (hover 로 감추지 않는다) */
+/** 줄 삭제. 터치 기기를 위해 항상 보인다 */
 function RemoveButton({
   label,
   onClick,

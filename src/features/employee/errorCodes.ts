@@ -1,4 +1,4 @@
-/** 사원 · 계정 응답 코드 단일 소스. (.ai/API.md 19~21 · 30~34) */
+/** 사원 · 계정 응답 코드 단일 소스 */
 
 export const EMPLOYEE_CODES = {
   /** 400 — 허용되지 않는 필터 값 */
@@ -28,8 +28,8 @@ export const EMPLOYEE_CODES = {
 } as const;
 
 /**
- * 파일 자체 문제 3종 — **행 오류와 다르다.**
- * 이건 검증 표를 그릴 게 아니라 파일을 다시 고르게 해야 한다.
+ * 파일 자체 문제 3종. 행 오류와 다르다.
+ * 검증 표를 그릴 게 아니라 파일을 다시 고르게 해야 한다.
  */
 export const BULK_FILE_CODES: string[] = [
   EMPLOYEE_CODES.fileRequired,
@@ -58,7 +58,7 @@ export const ACCOUNT_CODES = {
   notFound: 'ACC_NOT_FOUND',
 } as const;
 
-/** 비밀번호 재설정 실패 사유 문구 — 뒤처리가 달라 문장을 나눈다 */
+/** 비밀번호 재설정 실패 사유 문구. 뒤처리가 달라 문장을 나눈다 */
 export const PASSWORD_RESET_FAILURE_LABELS = {
   EMAIL_NOT_REGISTERED: '이메일 미등록 — 이메일을 먼저 등록해야 합니다',
   MAIL_SEND_FAILED: '메일 발송 실패 — 재발송이 필요합니다',

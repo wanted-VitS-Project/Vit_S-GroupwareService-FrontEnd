@@ -197,7 +197,7 @@ export default function StageFormModal({
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className="btn btn-md btn-primary min-w-[104px]"
+                className="btn btn-md btn-primary min-w-26"
               >
                 {isSubmitting ? '저장 중…' : isEditing ? '저장' : '추가'}
               </button>

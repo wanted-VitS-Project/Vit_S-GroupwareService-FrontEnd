@@ -1,12 +1,11 @@
 /**
- * 인증 응답 코드 단일 소스. (.ai/API.md)
- * status 는 같은 값이 여러 의미로 쓰여서(400·403) 분기는 항상 code 로 한다.
+ * 인증 응답 코드 단일 소스 (.ai/API.md).
+ * 같은 status 가 여러 의미로 쓰여 분기는 항상 code 로 한다.
  */
 
 /**
- * 세션이 없거나 만료됐다 — 어느 API 에서 와도 로그인 화면으로 보내야 한다.
- * ⚠️ 같은 401 이어도 `AUTH_LOGIN_FAILED`(로그인 실패)는 **전역 처리하면 안 된다.**
- *    로그인 화면이 직접 문구를 띄워야 하는데 화면이 전환돼 버린다.
+ * 세션 없음 · 만료. 어느 API 에서 와도 로그인 화면으로 보낸다.
+ * 같은 401 이라도 로그인 실패는 전역 처리하지 않는다.
  */
 export const UNAUTHENTICATED_CODE = 'AUTH_UNAUTHENTICATED';
 
@@ -21,16 +20,13 @@ export const GATE_CODES = {
 } as const;
 
 /**
- * 게이트가 아니라 권한이 모자란 403 — 다시 불러도 결과가 같다.
- *
- * ⚠️ **편집 권한 부족(`FINANCE_EDIT_ACCESS_DENIED`)은 넣지 않는다.** 그건 화면은 볼 수 있는데
- *    저장만 막힌 경우라, `/forbidden` 으로 보내면 보던 목록까지 사라진다 — 서버 문구를
- *    그 자리에 띄우는 게 맞다. 여기 넣는 것은 **화면 자체를 볼 수 없는** 코드뿐이다.
+ * 권한 부족 403 코드. 화면 자체를 볼 수 없는 경우만 넣는다.
+ * 저장만 막히는 편집 권한 부족은 넣지 않는다.
  */
 const PERMISSION_CODES: string[] = [
   'ACC_ADMIN_REQUIRED',
   'BUSINESS_CATEGORY_ADMIN_ONLY',
-  // 재무 화면 접근 권한 없음 — 목록이 '불러오지 못했습니다' 로 보이던 원인 (2026-08-12)
+  // 재무 화면 접근 권한 없음
   'FINANCE_ACCESS_DENIED',
 ];
 
@@ -42,29 +38,26 @@ export function isPermissionCode(code?: string) {
 const GATES: string[] = Object.values(GATE_CODES);
 
 /**
- * 게이트 미통과 403 인지. (권한 부족 403 과 구분해야 한다)
- * 이 코드가 왔다는 것은 **세션은 살아 있다**는 뜻이기도 하다.
+ * 게이트 미통과 403 인지. 권한 부족 403 과 구분한다.
+ * 이 코드가 왔다면 세션은 살아 있다는 뜻이다.
  */
 export function isGateCode(code?: string): code is string {
   return code !== undefined && GATES.includes(code);
 }
 
 /**
- * 프로필 사진 응답 코드. 경로는 `/auth/me/...` 지만 데이터가 사원 속성이라
- * **소유 도메인이 employee** 여서 접두어가 `EMP_` 다.
- *
- * ⚠️ 404 두 개(`NOT_FOUND`)는 **서빙(`<img>`)에서만** 난다 — 화면이 잡을 수 없고
- *    잡을 필요도 없다. `onError` 로 이니셜 아바타로 돌리면 끝이다.
+ * 프로필 사진 응답 코드. 데이터가 사원 속성이라 접두어가 EMP_ 다.
+ * 404 는 img 서빙에서만 나므로 onError 로 기본 아바타 처리한다.
  */
 export const PROFILE_IMAGE_ERROR_MESSAGES: Record<string, string> = {
   EMP_PROFILE_IMAGE_REQUIRED: '이미지 파일을 선택해주세요.',
-  // 형식 · 확장자 위장 · 손상 · 픽셀 과다가 전부 이 한 코드로 온다
+  // 형식 · 위장 · 손상 · 픽셀 과다가 모두 이 코드로 온다
   EMP_PROFILE_IMAGE_TYPE_INVALID:
     'jpg · jpeg · png · gif 형식의 이미지만 올릴 수 있어요.',
   EMP_PROFILE_IMAGE_SIZE_EXCEEDED: '5MB 이하 이미지만 올릴 수 있어요.',
 };
 
-/** 로그인 실패 문구. 없는 코드는 백엔드 message 를 그대로 쓴다. */
+/** 로그인 실패 문구. 없는 코드는 백엔드 message 를 그대로 쓴다 */
 export const LOGIN_ERROR_MESSAGES: Record<string, string> = {
   AUTH_INVALID_REQUEST: '아이디와 비밀번호를 모두 입력해주세요.',
   // 사번 존재 여부가 드러나지 않도록 한 문장으로만 안내한다
@@ -73,5 +66,5 @@ export const LOGIN_ERROR_MESSAGES: Record<string, string> = {
     '비활성화된 계정입니다. 시스템 관리자에게 문의해주세요.',
   AUTH_TOO_MANY_REQUESTS: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
   AUTH_HASHING_BUSY: '서버가 혼잡합니다. 잠시 후 다시 시도해주세요.',
-  // AUTH_ACCOUNT_LOCKED(423) 은 해제 시각이 담긴 백엔드 문구가 더 정확해서 덮지 않는다
+  // 계정 잠금은 해제 시각이 담긴 백엔드 문구를 그대로 쓴다
 };

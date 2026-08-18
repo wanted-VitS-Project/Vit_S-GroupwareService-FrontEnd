@@ -1,6 +1,6 @@
 export const JOB_POSITION_NAME_MAX_LENGTH = 30;
 
-/** 직급 — 사원에게 지정하는 직위 분류 (.ai/API.md 26~29) */
+/** 직급. 사원에게 지정하는 직위 분류다 */
 export interface JobPosition {
   jobPositionId: number;
   name: string;
@@ -22,18 +22,18 @@ export interface UpdateJobPositionRequest {
   sortOrder?: number;
 }
 
-/** 직급별 사원 한 줄 (.ai/API.md 90) */
+/** 직급별 사원 한 줄 */
 export interface JobPositionEmployee {
   userId: string;
   name: string;
   departmentName: string | null;
-  /** 2단 경로 (예: `기술본부 / 개발팀`) */
+  /** 2단 경로 (예: 기술본부 / 개발팀) */
   departmentPath: string | null;
 }
 
 /**
  * 직급별 사원 목록 응답.
- * `employeeCount` 와 같은 기준이다 — **재직자만** (시스템 계정 · 퇴사자 제외).
+ * employeeCount 와 같은 기준이라 재직자만 온다 (시스템 계정 · 퇴사자 제외).
  */
 export interface JobPositionEmployeePage {
   jobPositionId: number;

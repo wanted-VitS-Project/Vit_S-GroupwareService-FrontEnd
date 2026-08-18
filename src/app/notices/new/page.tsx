@@ -1,5 +1,5 @@
-import NoticeCreateForm from '@/features/bidding/NoticeCreateForm';
+import NoticeForm from '@/features/bidding/NoticeForm';
 
 export default function Page() {
-  return <NoticeCreateForm />;
+  return <NoticeForm />;
 }

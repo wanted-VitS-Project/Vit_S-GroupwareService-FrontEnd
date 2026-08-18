@@ -9,8 +9,8 @@ import type {
 } from './types';
 
 /**
- * 이름 오름차순 · 페이징 없음 — 전체를 받아 화면에서 스크롤로 보여준다.
- * 응답이 `{ categories: [...] }` 로 한 겹 더 감싸져 있어 여기서 벗겨 반환한다.
+ * 이름 오름차순 · 페이징 없음. 전체를 받아 화면에서 스크롤로 보여준다.
+ * 응답이 { categories: [...] } 로 감싸져 있어 여기서 벗겨 반환한다.
  */
 export function getCategories(
   { keyword, includeDeleted }: CategoryListQuery = {},

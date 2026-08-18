@@ -17,8 +17,8 @@ interface JobPositionFormModalProps {
 }
 
 /**
- * 직급 추가 · 수정 모달. (.ai/API.md 27 · 28)
- * 순서는 목록의 ↑↓ 버튼이 담당해서 여기서는 이름만 다룬다.
+ * 직급 추가 · 수정 모달.
+ * 순서는 목록의 화살표 버튼이 담당해 여기서는 이름만 다룬다.
  */
 export default function JobPositionFormModal({
   position,
@@ -32,7 +32,7 @@ export default function JobPositionFormModal({
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  /** 값을 고치면 직전 서버 오류는 더 이상 맞지 않는다 — 중복 · 일반 오류 모두 지운다 */
+  /** 값을 고치면 직전 서버 오류는 더 이상 맞지 않아 함께 지운다 */
   function changeName(value: string) {
     setName(value);
     setNameError('');
@@ -133,7 +133,7 @@ export default function JobPositionFormModal({
         </div>
 
         <ModalFooter>
-          {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 — role 을 함께 붙이면 놓친다 */}
+          {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}
           <p
             role="alert"
             className="mr-auto text-caption break-keep text-text-danger"

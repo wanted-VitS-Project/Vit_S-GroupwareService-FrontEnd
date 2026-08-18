@@ -31,9 +31,7 @@ function flatten(departments: Department[]) {
 }
 
 /**
- * 부서 관리 화면. (.ai/API.md 22~25)
- *
- * 조회는 전체 사용자, 추가 · 수정 · 삭제는 ADMIN 만 할 수 있다.
+ * 부서 관리 화면. 조회는 전체, 추가 · 수정 · 삭제는 ADMIN 만 할 수 있다.
  * 상위 부서 이동 API 가 없어 메뉴에도 넣지 않는다.
  */
 export default function DepartmentList() {
@@ -41,7 +39,7 @@ export default function DepartmentList() {
   const canManage = role === 'ADMIN';
 
   const [reloadCount, setReloadCount] = useState(0);
-  /** 어떤 요청의 결과인지 `key` 로 들고 있는다 — 재조회하면 자동으로 로딩 상태가 된다 */
+  /** 어떤 요청의 결과인지 key 로 들고 있는다. 재조회하면 자동으로 로딩 상태가 된다 */
   const [result, setResult] = useState<{
     key: string;
     list?: Department[];
@@ -52,7 +50,7 @@ export default function DepartmentList() {
 
   const requestKey = String(reloadCount);
   const current = result?.key === requestKey ? result : null;
-  /** 재조회 중에는 직전 목록을 유지한다 — 표가 통째로 사라지면 스크롤이 튄다 */
+  /** 재조회 중에는 직전 목록을 유지한다. 표가 사라지면 스크롤이 튄다 */
   const departments = current?.list ?? result?.list ?? null;
   const hasFailed = current?.hasFailed ?? false;
 
@@ -117,7 +115,7 @@ export default function DepartmentList() {
         columns={departmentColumns(canManage, menuItems)}
         rows={hasFailed ? [] : rows}
         rowKey={({ department }) => department.departmentId}
-        // 목록이 길어지면 표 영역만 스크롤된다 (헤더는 `DataTable` 이 고정한다)
+        // 목록이 길어지면 표 영역만 스크롤된다 (헤더는 DataTable 이 고정한다)
         maxHeight="60vh"
         errorMessage={hasFailed ? '부서를 불러오지 못했습니다.' : undefined}
         onRetry={reload}
@@ -156,7 +154,7 @@ export default function DepartmentList() {
   );
 }
 
-/** 2단 트리를 평면 행으로 편 것 — 들여쓰기는 `depth` 로만 표현한다 */
+/** 2단 트리를 평면 행으로 편 것. 들여쓰기는 depth 로만 표현한다 */
 interface DepartmentRow {
   department: Department;
   depth: number;
@@ -164,7 +162,7 @@ interface DepartmentRow {
 
 /**
  * 부서 표의 열 정의.
- * 권한(`canManage`)에 따라 관리 열이 붙었다 빠지므로 함수로 만든다.
+ * 권한에 따라 관리 열이 붙었다 빠지므로 함수로 만든다.
  */
 function departmentColumns(
   canManage: boolean,
@@ -176,10 +174,8 @@ function departmentColumns(
       header: '부서명',
       skeletonWidth: 'w-40',
       /**
-       * 하위 부서는 **들여쓰기 + 잇는 선 + 같은 글자색**으로 보인다.
-       *
-       * 예전에는 들여쓰고 글자를 흐리게(`text-secondary`) 두었는데, 흐린 글자가 비활성으로
-       * 읽혀 하위 부서가 눈에 잘 들어오지 않았다. 계층은 **자리**로 말하고 글자는 또렷하게 둔다.
+       * 하위 부서는 들여쓰기와 잇는 선으로 보인다.
+       * 글자를 흐리게 두면 비활성으로 읽혀 계층은 자리로만 말한다.
        */
       cell: ({ department, depth }) => (
         <span className="flex min-w-0 items-center gap-2">

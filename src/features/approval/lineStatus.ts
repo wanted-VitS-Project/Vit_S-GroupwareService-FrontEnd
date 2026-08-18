@@ -1,9 +1,6 @@
 import type { ApprovalLineStatus } from './types';
 
-/**
- * 결재선 한 명의 처리 상태 표기. 목록 아바타 · 블록 스텝퍼 · 상세 타임라인이 함께 쓴다.
- * 색과 문구를 화면마다 따로 두면 같은 상태가 다르게 보인다.
- */
+/** 결재선 한 명의 처리 상태 표기. 목록 · 블록 · 상세가 함께 쓴다 */
 export const LINE_STATUS_LABELS: Record<ApprovalLineStatus, string> = {
   WAITING: '대기',
   ACTIVE: '결재 차례',

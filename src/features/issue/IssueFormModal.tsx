@@ -463,7 +463,7 @@ export default function IssueFormModal({
       <Modal
         title={modalTitle}
         onClose={isSaving ? undefined : onClose}
-        className="flex max-h-[90vh] w-full max-w-[560px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
+        className="flex max-h-[90vh] w-full max-w-140 flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
         header={
           <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border-default px-5 py-3.5">
             <div className="flex min-w-0 items-center gap-2">
@@ -581,7 +581,7 @@ export default function IssueFormModal({
 
             <div>
               <FieldLabel>담당자 (다중 지정)</FieldLabel>
-              <div className="flex min-h-[40px] flex-wrap gap-1.5 rounded-lg border border-border-default bg-bg-surface p-2.5">
+              <div className="flex min-h-10 flex-wrap gap-1.5 rounded-lg border border-border-default bg-bg-surface p-2.5">
                 {values.assigneeIds.length === 0 ? (
                   <span className="text-caption text-text-secondary">
                     아래에서 담당자를 선택하세요
@@ -759,7 +759,7 @@ export default function IssueFormModal({
               type="button"
               onClick={submit}
               disabled={isSaving || values === null || loadFailure !== null}
-              className="btn btn-md btn-primary min-w-[104px]"
+              className="btn btn-md btn-primary min-w-26"
             >
               {isSaving ? '저장 중…' : isEdit ? '수정 완료' : '이슈 생성'}
             </button>

@@ -8,16 +8,16 @@ import { messageOf } from '@/lib/api';
 import { agreeToTerms } from './api';
 
 interface TermsGateProps {
-  /** '1 / 2' 처럼 남은 단계를 알려준다 */
+  /** '1 / 2' 처럼 남은 단계를 알려주는 문구 */
   stepLabel?: string;
-  /** 이미 동의한 약관을 다시 열어본 경우 — 확인만 하고 넘어간다 */
+  /** 이미 동의한 경우. 확인만 하고 넘어간다 */
   hasAgreed?: boolean;
   onDone: () => void;
 }
 
 /**
- * 약관 동의 게이트 (termsStatus=REQUIRED).
- * 다음에 무엇을 할지는 여기서 정하지 않고 onDone 을 받은 쪽이 정한다.
+ * 약관 동의 게이트.
+ * 다음 동작은 여기서 정하지 않고 onDone 을 받은 쪽이 정한다.
  */
 export default function TermsGate({
   stepLabel,
@@ -28,7 +28,7 @@ export default function TermsGate({
   const [isPending, setIsPending] = useState(false);
 
   async function handleAgree() {
-    // 확인만 하고 온 경우 — 멱등이지만 헛호출은 피한다
+    // 확인만 한 경우. 불필요한 호출을 피한다
     if (hasAgreed) {
       onDone();
       return;

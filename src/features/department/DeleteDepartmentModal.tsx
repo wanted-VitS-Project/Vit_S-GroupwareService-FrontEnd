@@ -28,8 +28,8 @@ function blockedReason({ directEmployeeCount, children }: Department) {
 }
 
 /**
- * 부서 삭제 모달. (.ai/API.md 25)
- * 목록 값으로 미리 차단하고, 그 사이 사원 · 하위 부서가 생긴 경우는 409 로 다시 차단한다.
+ * 부서 삭제 모달.
+ * 목록 값으로 미리 막고, 그 사이 사원 · 하위 부서가 생기면 409 로 다시 막는다.
  */
 export default function DeleteDepartmentModal({
   department,
@@ -123,7 +123,7 @@ export default function DeleteDepartmentModal({
             <button
               type="button"
               onClick={onClose}
-              className="btn btn-md btn-primary min-w-[104px]"
+              className="btn btn-md btn-primary min-w-26"
             >
               확인
             </button>

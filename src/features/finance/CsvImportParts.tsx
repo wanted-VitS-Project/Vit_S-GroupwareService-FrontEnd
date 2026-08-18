@@ -6,23 +6,18 @@ import DataTable, { type DataTableColumn } from '@/components/DataTable';
 import { SelectField, TextField } from '@/features/bidding/FormFields';
 
 /**
- * CSV 수집 화면의 공용 부품.
- *
- * 입출금(#13)과 세금계산서(#16)는 **같은 세 단계**를 걷는다 —
- * 파일을 고르면 컬럼 추천을 받고, 사람이 매핑을 확정하면 저장한다.
- * 다른 것은 **매핑할 항목과 결과 표**뿐이라 껍데기를 여기 모은다.
- *
- * ⚠️ 도메인 문구(은행명 · 승인번호 등)를 여기 두지 않는다 — 두 화면이 갈린다.
+ * CSV 수집 화면의 공용 부품. 입출금과 세금계산서가 같은 세 단계를 걷는다.
+ * 도메인 문구는 각 화면에 두고 여기에는 껍데기만 모은다.
  */
 
-/** 셀렉트의 특별한 두 값 — 컬럼명과 겹치지 않게 화살괄호를 쓴다 */
+/** 셀렉트의 특별한 두 값. 컬럼명과 겹치지 않게 화살괄호를 쓴다 */
 export const NONE = '';
 export const CUSTOM = '<직접 입력>';
 
-/** 받을 수 있는 파일 — 백엔드가 CSV · 엑셀 둘 다 파싱한다 */
+/** 받을 수 있는 파일. 백엔드가 CSV · 엑셀 둘 다 파싱한다 */
 export const CSV_ACCEPT = '.csv,.xlsx,.xls';
 
-/** 지금 어디쯤인지 — 세 단계는 되돌아갈 수 있어 숫자만으로도 충분하다 */
+/** 지금 어느 단계인지 보여주는 표시 */
 export function StepBar({
   steps,
   current,
@@ -33,10 +28,7 @@ export function StepBar({
   return (
     <ol className="flex flex-wrap items-center gap-2">
       {steps.map((label, index) => (
-        /**
-         * ⚠️ 지금 단계를 **색과 굵기로만** 알리지 않는다 —
-         *    스크린리더로는 셋 다 똑같이 읽혀 어디쯤인지 알 수 없다.
-         */
+        /* 색과 굵기만으로는 보조기술에 전달되지 않아 상태를 함께 준다 */
         <li
           key={label}
           aria-current={index === current ? 'step' : undefined}
@@ -72,10 +64,8 @@ export function StepBar({
 }
 
 /**
- * 파일 선택 — 클릭과 드래그 앤 드롭을 함께 받는다.
- *
- * ⚠️ 라벨로 감싸 **영역 전체가 파일 선택 버튼**이 되게 한다. `<input>` 을 숨기고
- *    별도 버튼에 `click()` 을 흉내 내면 키보드 접근이 끊긴다.
+ * 파일 선택. 클릭과 드래그 앤 드롭을 함께 받는다.
+ * 키보드 접근이 끊기지 않도록 라벨로 감싸 영역 전체를 선택 버튼으로 둔다.
  */
 export function FilePicker({
   file,
@@ -100,7 +90,7 @@ export function FilePicker({
         setIsOver(false);
         onPick(event.dataTransfer.files[0] ?? null);
       }}
-      /** `<input>` 이 `sr-only` 라 포커스가 보이지 않는다 — 라벨에 `focus-within` 으로 드러낸다 */
+      /* 입력이 감춰져 있어 포커스를 라벨에서 드러낸다 */
       className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-5 py-10 text-center transition-colors focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-border-primary ${
         isOver
           ? 'border-border-primary bg-blue-bg-soft'
@@ -157,7 +147,7 @@ export function ModeGroup<T extends string>({
   options,
   onChange,
 }: {
-  /** ⚠️ 같은 그룹의 라디오는 `name` 이 같아야 방향키로 옮겨 다닐 수 있다 */
+  /** 같은 그룹의 라디오는 name 이 같아야 방향키로 옮겨 다닐 수 있다 */
   name: string;
   label: string;
   value: T;
@@ -195,12 +185,8 @@ export function ModeGroup<T extends string>({
 }
 
 /**
- * 컬럼 한 칸.
- *
- * 셀렉트에는 파일의 컬럼 목록에 더해 `직접 입력` 이 있고, 필수가 아닌 칸에는
- * `선택 안 함` 이 함께 있다. `직접 입력` 을 고르면 글자 칸으로 바뀐다.
- *
- * ℹ️ 매핑 타입은 화면마다 다르다 — **키를 제네릭으로** 받아 호출부의 오타를 그대로 잡는다.
+ * 컬럼 한 칸. 직접 입력을 고르면 셀렉트가 글자 칸으로 바뀐다.
+ * 매핑 타입이 화면마다 달라 키를 제네릭으로 받는다.
  */
 export function ColumnField<F extends string>({
   field,
@@ -238,7 +224,7 @@ export function ColumnField<F extends string>({
           hint={hint}
           onChange={(next) => onChange(field, next)}
         />
-        {/* ⚠️ 되돌릴 길이 없으면 잘못 골랐을 때 파일부터 다시 올려야 한다 */}
+        {/* 되돌릴 길이 없으면 잘못 골랐을 때 파일부터 다시 올려야 한다 */}
         <button
           type="button"
           onClick={() => onCustomChange(field, false)}
@@ -281,11 +267,7 @@ export function SamplePreview({
   columns: string[];
   rows: Record<string, string>[];
 }) {
-  /**
-   * ⚠️ 여기서는 **가로 스크롤을 허용한다** (`minWidth`) — 목록 표와 달리 컬럼 수가
-   *    파일마다 다르고 화면 절반만 쓰기 때문에, 나눠 담으면 값이 읽히지 않는다.
-   *    한 열에 최소 8rem 을 준다.
-   */
+  /* 컬럼 수가 파일마다 달라 여기서는 가로 스크롤을 허용한다 */
   const tableColumns: DataTableColumn<Record<string, string>>[] = columns.map(
     (column) => ({
       key: column,

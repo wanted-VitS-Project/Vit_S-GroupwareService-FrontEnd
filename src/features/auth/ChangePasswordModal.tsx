@@ -10,9 +10,9 @@ import { changePassword } from './api';
 import { isValidPassword, PASSWORD_RULES } from './password';
 
 interface ChangePasswordModalProps {
-  /** 강제 변경(RESET_REQUIRED) — 현재 비밀번호를 묻지 않고 닫을 수도 없다 */
+  /** 강제 변경 모드. 현재 비밀번호를 묻지 않고 닫을 수도 없다 */
   forced?: boolean;
-  /** 약관 동의에서 이어질 때 '2 / 2' 처럼 남은 단계를 알려준다 */
+  /** '2 / 2' 처럼 남은 단계를 알려주는 문구 */
   stepLabel?: string;
   /** 있으면 약관 단계로 돌아가는 '이전' 버튼을 보여준다 */
   onBack?: () => void;
@@ -34,7 +34,7 @@ export default function ChangePasswordModal({
   const [isPending, setIsPending] = useState(false);
   const [isDone, setIsDone] = useState(false);
 
-  // 입력 중에 바로 알려준다 — 제출해야 알 수 있으면 늦다
+  // 제출 전에 알 수 있도록 입력 중에 검사한다
   const isMismatched =
     passwordConfirm !== '' && newPassword !== passwordConfirm;
 
@@ -60,11 +60,11 @@ export default function ChangePasswordModal({
         newPasswordConfirm: passwordConfirm,
       });
 
-      // 완료 화면을 어떻게 닫든 재조회가 유실되지 않게 성공 시점에 부른다
+      // 완료 화면을 어떻게 닫든 유실되지 않게 성공 시점에 부른다
       onDone();
       if (!forced) setIsDone(true);
     } catch (caught) {
-      // 현재 비밀번호 불일치 · 정책 위반은 백엔드 문구가 가장 정확하다
+      // 불일치 · 정책 위반은 백엔드 문구를 그대로 쓴다
       setError(
         messageOf(
           caught,
@@ -176,7 +176,7 @@ interface PasswordFieldProps {
   onChange: (value: string) => void;
   autoComplete?: string;
   invalid?: boolean;
-  /** 입력 아래에 붙는 안내. invalid 와 함께 스크린리더에 전달된다 */
+  /** 입력 아래에 붙는 안내. 스크린리더에도 전달된다 */
   description?: string;
 }
 
@@ -206,7 +206,7 @@ function PasswordField({
           autoComplete={autoComplete}
           aria-invalid={invalid}
           aria-describedby={description ? descriptionId : undefined}
-          // pr-10 — 토글 버튼과 입력 글자가 겹치지 않게 자리를 비운다
+          // 토글 버튼과 입력 글자가 겹치지 않게 오른쪽 여백을 준다
           className={`w-full rounded-button-sm border py-2 pr-10 pl-3 text-body-m outline-none ${
             invalid
               ? 'border-red-border'

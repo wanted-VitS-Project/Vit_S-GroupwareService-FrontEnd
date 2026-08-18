@@ -7,7 +7,7 @@ import {
   SetProfileImageContext,
 } from './CurrentUserProvider';
 
-/** 프로바이더가 불러오기를 마친 뒤에만 children 을 그리므로 항상 값이 있다. */
+/** 프로바이더가 로딩을 마친 뒤에만 children 을 그리므로 항상 값이 있다 */
 export function useCurrentUser() {
   const user = useContext(CurrentUserContext);
 
@@ -17,7 +17,6 @@ export function useCurrentUser() {
   return user;
 }
 
-/** 프로필 사진을 바꾼 뒤 헤더 아바타까지 함께 갱신할 때 쓴다 */
 export function useSetProfileImage() {
   const setProfileImage = useContext(SetProfileImageContext);
 

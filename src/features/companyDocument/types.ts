@@ -1,20 +1,13 @@
 /**
- * 사내 문서함 (`CompanyDocument` · ADMIN 전용).
- *
- * 프로젝트 파일과 **저장소가 다른 별도 도메인**이다 — 회사 재정 · 소개 · 실적 자료로
- * AI 공고 검토의 비교 기준이 된다. 그래서 프로젝트 · 스텝 · 블록에 매이지 않는다.
- * (`.ai/API.md` 143~150 · CompanyDocument)
+ * 사내 문서함 (ADMIN 전용). 프로젝트 파일과 저장소가 다른 별도 도메인이다.
+ * 회사 재정 · 소개 · 실적 자료로 AI 공고 검토의 비교 기준이 된다.
  */
 
 /** 분류. 값은 서버 enum 그대로다 */
 export type CompanyDocumentCategory =
-  | 'FINANCE'
-  | 'COMPANY_INTRO'
-  | 'PERFORMANCE'
-  | 'CERTIFICATE'
-  | 'ETC';
+  'FINANCE' | 'COMPANY_INTRO' | 'PERFORMANCE' | 'CERTIFICATE' | 'ETC';
 
-/** 화면 표기 — 목록 배지 · 필터 · 업로드 선택지가 모두 이 표를 쓴다 */
+/** 화면 표기. 목록 배지 · 필터 · 업로드 선택지가 모두 이 표를 쓴다 */
 export const COMPANY_DOCUMENT_CATEGORY_LABELS: Record<
   CompanyDocumentCategory,
   string
@@ -26,7 +19,7 @@ export const COMPANY_DOCUMENT_CATEGORY_LABELS: Record<
   ETC: '기타',
 };
 
-/** 필터 · 선택지에 세우는 순서 (`Object.keys` 순서에 기대지 않는다) */
+/** 필터 · 선택지에 세우는 순서 */
 export const COMPANY_DOCUMENT_CATEGORIES: CompanyDocumentCategory[] = [
   'FINANCE',
   'COMPANY_INTRO',
@@ -35,12 +28,12 @@ export const COMPANY_DOCUMENT_CATEGORIES: CompanyDocumentCategory[] = [
   'ETC',
 ];
 
-/** 서버 상한 (`CDOC_SIZE_EXCEEDED`) — 헛되게 올려보내지 않으려고 화면에서도 본다 */
+/** 서버 상한. 헛되게 올려보내지 않으려고 화면에서도 본다 */
 export const COMPANY_DOCUMENT_MAX_SIZE_BYTES = 50 * 1024 * 1024;
 
 /**
  * 화면 안내에 쓰는 허용 확장자.
- * ⚠️ **판정은 서버가 한다** (`CDOC_EXTENSION_BLOCKED`) — 여기서 막지 않고 안내만 한다.
+ * 판정은 서버가 하므로 여기서 막지 않고 안내만 한다.
  */
 export const COMPANY_DOCUMENT_EXTENSIONS = ['pdf', 'hwp', 'docx', 'xlsx'];
 
@@ -56,7 +49,7 @@ export interface CompanyDocument {
   extension: string;
   sizeBytes: number;
   previewable: boolean;
-  /** 업로더가 ADMIN 이면 오지 않는다 — 사원 레코드가 없다. 화면은 `—` 로 둔다 */
+  /** 업로더가 ADMIN 이면 오지 않는다. 화면은 — 로 둔다 */
   uploaderName?: string | null;
   updatedAt: string;
 }
@@ -77,7 +70,7 @@ export interface StartCompanyUploadRequest {
   sizeBytes: number;
   name?: string;
   comment?: string;
-  /** 주면 그 문서의 **새 버전** */
+  /** 주면 그 문서의 새 버전이다 */
   companyDocumentId?: number;
 }
 
@@ -102,7 +95,7 @@ export interface CompleteCompanyUploadResponse {
   completedAt: string;
 }
 
-/** 버전 이력 한 줄 — **완료된 버전만** 온다 (append-only · 되돌리기 없음) */
+/** 버전 이력 한 줄. 완료된 버전만 온다 (append-only) */
 export interface CompanyDocumentVersion {
   versionId: number;
   versionNo: number;
@@ -146,18 +139,13 @@ export interface CompanyDownloadUrlResponse {
   sizeBytes: number;
 }
 
-
 /* ---------------------------------------------------------------------------
  * 입찰 AI 검토에서 **비교 기준으로 고르는** 목록 (#161)
  * ------------------------------------------------------------------------- */
 
 /**
- * 검토 참조로 고를 수 있는 문서 한 줄. (`GET /company-documents/selectable`)
- *
- * ⭐ 검토에 넘기는 값은 `companyDocumentId` 가 아니라 **`companyDocumentVersionId`** 다 —
- *    참조를 **버전으로 고정**해야 나중에 문서를 고쳐도 검토 근거가 흔들리지 않는다.
- * ℹ️ 회사 스코프 · **완료된 최신 버전만** 내려온다. 회사 소속이면 `MEMBER` 도 조회한다.
- * ℹ️ 원본 파일 키(`storageKey`)는 응답에 없다 — 원본 접근은 서버(검토 워커)만 한다.
+ * 검토 참조로 고를 수 있는 문서 한 줄.
+ * 검토에 넘기는 값은 문서 id 가 아니라 버전 id 다. 근거를 버전으로 고정한다.
  */
 export interface SelectableDocument {
   companyDocumentId: number;
@@ -167,7 +155,7 @@ export interface SelectableDocument {
   versionNo: number;
   /**
    * AI 인덱스 상태.
-   * ⚠️ **현재 항상 `null`** 이다 — 이 값으로 선택을 막으면 아무것도 못 고른다.
+   * 현재 항상 null 이라 이 값으로 선택을 막으면 아무것도 못 고른다.
    */
   indexStatus: string | null;
 }

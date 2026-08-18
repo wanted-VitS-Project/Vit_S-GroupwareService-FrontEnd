@@ -13,26 +13,23 @@ import CategoryFormModal from './CategoryFormModal';
 import DeleteCategoryModal from './DeleteCategoryModal';
 import type { BusinessCategory } from './types';
 
-/** 폼 모달 대상 — 'create' 는 추가, 객체는 그 카테고리 수정 */
+/** 폼 모달 대상. 'create' 는 추가, 객체는 그 카테고리 수정 */
 type FormTarget = 'create' | BusinessCategory;
 
 /**
- * 사업 카테고리 관리 화면. (ADMIN 전용, .ai/API.md 15~18)
- *
- * 목록 API 가 이름 오름차순 전체를 주고 페이징이 없어 스크롤로 보여준다.
- * 검색은 백엔드 `keyword` 를 쓰므로 화면에서 다시 걸러내지 않는다.
+ * 사업 카테고리 관리 화면 (ADMIN 전용).
+ * 목록 API 가 전체를 주고 검색도 백엔드가 하므로 화면에서 다시 거르지 않는다.
  */
 export default function CategoryList() {
   const [keyword, setKeyword] = useState('');
-  /** 실제 요청에 쓰는 검색어 — 돋보기 버튼 · 엔터로만 반영한다 */
+  /** 실제 요청에 쓰는 검색어. 돋보기 버튼 · 엔터로만 반영한다 */
   const [search, setSearch] = useState('');
-  /** ADMIN 만 삭제분을 볼 수 있다 (BCT-008) */
+  /** ADMIN 만 삭제분을 볼 수 있다 */
   const [includeDeleted, setIncludeDeleted] = useState(false);
   const [reloadCount, setReloadCount] = useState(0);
   /**
-   * 어떤 요청의 결과인지 `key` 로 들고 있는다.
-   * 조건이 바뀌면 key 가 어긋나 자동으로 로딩 상태가 되므로,
-   * 효과 본문에서 상태를 되돌릴 필요가 없다 (`react-hooks/set-state-in-effect`).
+   * 어떤 요청의 결과인지 key 로 들고 있는다.
+   * 조건이 바뀌면 key 가 어긋나 자동으로 로딩 상태가 된다.
    */
   const [result, setResult] = useState<{
     key: string;
@@ -49,12 +46,11 @@ export default function CategoryList() {
   }
 
   const requestKey = `${reloadCount} ${includeDeleted} ${search}`;
-  /** 지금 조건의 결과만 화면에 쓴다 — 이전 요청 결과는 로딩으로 본다 */
+  /** 지금 조건의 결과만 화면에 쓴다. 이전 요청 결과는 로딩으로 본다 */
   const current = result?.key === requestKey ? result : null;
   /**
-   * 🗑️ 삭제분은 이력일 뿐이라 활성 행 아래로 내린다 — 삭제한 이름을 다시 등록할 수 있어
-   * 같은 이름이 두 줄 보일 수 있고, 그때 위쪽이 지금 쓰는 행이어야 한다.
-   * `sort` 는 안정 정렬이라 백엔드의 이름 오름차순은 각 묶음 안에서 유지된다.
+   * 삭제분은 이력일 뿐이라 활성 행 아래로 내린다. 같은 이름이 두 줄 보일 수 있다.
+   * sort 는 안정 정렬이라 백엔드의 이름 오름차순은 묶음 안에서 유지된다.
    */
   const categories = current?.list
     ? [...current.list].sort(
@@ -213,7 +209,7 @@ export default function CategoryList() {
         ]}
         rows={hasFailed ? [] : categories}
         rowKey={(category) => category.categoryId}
-        // 삭제 행은 흐리게 — 이름이 겹치면 배지만으론 덜 띈다
+        // 삭제 행은 흐리게 둔다. 이름이 겹치면 배지만으론 덜 띈다
         rowClassName={(category) => (category.deletedAt ? 'opacity-60' : '')}
         // 목록이 길어지면 표 영역만 스크롤된다
         maxHeight="60vh"
@@ -282,16 +278,13 @@ function AddButton({
   );
 }
 
-/** 열 위치를 미리 계산해야 해서 크기를 값으로 갖고 있는다 (w-24 · 항목 2개) */
+/** 열 위치를 미리 계산해야 해서 크기를 값으로 갖고 있는다 */
 const MENU_WIDTH = 96;
 const MENU_HEIGHT = 72;
 
 /**
  * 행별 수정 · 삭제 메뉴. 바깥 클릭 · ESC 로 닫는다.
- *
- * 표가 스크롤 영역 안이라 `absolute` 로 띄우면 아래쪽 행에서 잘린다.
- * body 로 빼서 `fixed` 로 띄우고 좌표는 열 때 버튼 위치에서 계산한다 —
- * 좌표가 굳으므로 스크롤 · 리사이즈가 생기면 닫는다.
+ * 표가 스크롤 영역 안이라 body 로 빼서 띄우고 스크롤 · 리사이즈가 생기면 닫는다.
  */
 function RowMenu({
   name,

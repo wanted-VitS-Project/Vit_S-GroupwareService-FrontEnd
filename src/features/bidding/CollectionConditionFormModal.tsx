@@ -21,7 +21,7 @@ import {
   type CreateCollectionConditionRequest,
 } from './types';
 
-/** 폼 대상 — `'create'` 는 등록, 객체는 그 조건 수정 */
+/** 폼 대상. 'create' 는 등록, 객체는 그 조건 수정 */
 export type ConditionFormTarget = 'create' | CollectionCondition;
 
 /** 수집처. 지금은 나라장터뿐이고 등록 후에는 바꿀 수 없다 */
@@ -33,9 +33,8 @@ const SCHEDULE_TYPE_OPTIONS = [
 ];
 
 /**
- * 조회 기간. **라벨 맵에서 파생시킨다** — 목록 화면과 값 집합이 갈리면
- * 한쪽만 고쳤을 때 다른 쪽이 조용히 엉뚱한 기간을 보여준다.
- * 순서는 맵에 적은 순서(짧은 것부터)를 그대로 따른다.
+ * 조회 기간. 목록 화면과 값 집합이 갈리지 않게 라벨 맵에서 파생시킨다.
+ * 순서는 맵에 적은 순서(짧은 것부터)를 따른다.
  */
 const LOOKBACK_OPTIONS = Object.entries(COLLECTION_LOOKBACK_LABELS).map(
   ([value, label]) => ({ value, label }),
@@ -54,16 +53,15 @@ interface FormState {
   sourceCode: string;
   conditionName: string;
   /**
-   * 공고 유형. **입력 UI 는 없다** — `industryCodes` 와 같은 이유로 상태로만 들고 있다.
-   * 수정이 **전체 교체**라 빼고 보내면 서버에 저장된 값이 지워진다.
+   * 공고 유형. 입력 UI 는 없지만 수정이 전체 교체라 상태로 들고 있는다.
+   * 빼고 보내면 서버에 저장된 값이 지워진다.
    */
   noticeTypes: string[];
   keywords: string[];
   regionCodes: string[];
   /**
-   * 업종코드. **입력 UI 는 없다** (2026-08-11) — 우리 사업 카테고리와 체계가 달라 뺐다.
-   * 그래도 상태로 들고 있는 이유는 수정이 **전체 교체**라서다 —
-   * 빼고 보내면 서버에 저장돼 있던 값이 지워진다.
+   * 업종코드. 우리 사업 카테고리와 체계가 달라 입력 UI 는 뺐다.
+   * 수정이 전체 교체라 빼고 보내면 저장된 값이 지워져 상태로만 들고 있는다.
    */
   industryCodes: string[];
   minimumEstimatedPrice: string;
@@ -75,7 +73,7 @@ interface FormState {
   lookbackPeriod: string;
   autoCollectionEnabled: boolean;
   scheduleType: string;
-  /** `HH:mm` — 응답(`HH:mm:ss`) 을 그대로 쓰면 안 된다 */
+  /** HH:mm. 응답(HH:mm:ss) 을 그대로 쓰면 안 된다 */
   scheduledTime: string;
 }
 
@@ -99,7 +97,7 @@ const EMPTY_STATE: FormState = {
   scheduledTime: DEFAULT_SCHEDULED_TIME,
 };
 
-/** 조회값을 폼 상태로 되돌린다. `scheduledTime` 의 초를 떼는 곳이 여기다 */
+/** 조회값을 폼 상태로 되돌린다. scheduledTime 의 초를 떼는 곳이 여기다 */
 function toFormState(condition: CollectionCondition): FormState {
   const { filters } = condition;
 
@@ -115,7 +113,7 @@ function toFormState(condition: CollectionCondition): FormState {
     excludeClosed: filters.excludeClosed,
     internationalBidType: filters.internationalBidType,
     isActive: condition.isActive,
-    // 옛 조건에는 값이 없다 — 서버 기본값과 같은 것으로 채운다
+    // 옛 조건에는 값이 없어 서버 기본값과 같은 것으로 채운다
     lookbackPeriod: condition.lookbackPeriod ?? 'ONE_WEEK',
     autoCollectionEnabled: condition.autoCollectionEnabled,
     scheduleType: condition.scheduleType ?? 'WEEKDAYS',
@@ -125,11 +123,8 @@ function toFormState(condition: CollectionCondition): FormState {
 }
 
 /**
- * 수집 조건 등록 · 수정 모달. (.ai/API.md 입찰 도메인 공통 `수집 조건`)
- *
- * ⚠️ **수정은 부분 수정이 아니다.** `noticeTypes` · `filters` · 자동 수집 설정이 통째로 교체되므로
- *    조회값을 전부 폼에 채워 다시 보낸다. 한 항목만 고쳐 보내면 나머지가 비워진다.
- * ⚠️ `sourceCode` 는 등록 때만 정한다 — 수정 본문에는 아예 없다.
+ * 수집 조건 등록 · 수정 모달. 수정은 부분 수정이 아니라 통째로 교체다.
+ * 조회값을 전부 폼에 채워 다시 보내고, sourceCode 는 등록 때만 정한다.
  */
 export default function CollectionConditionFormModal({
   target,
@@ -187,7 +182,7 @@ export default function CollectionConditionFormModal({
     const min = Number(form.minimumEstimatedPrice);
     const max = Number(form.maximumEstimatedPrice);
 
-    // 자릿수가 지나치면 `Number()` 가 `Infinity` 가 되고 JSON 에서 `null` 로 바뀐다
+    // 자릿수가 지나치면 Number() 가 Infinity 가 되고 JSON 에서 null 로 바뀐다
     if (form.minimumEstimatedPrice && !Number.isFinite(min)) {
       return '추정가격 최소가 너무 큽니다.';
     }
@@ -227,7 +222,7 @@ export default function CollectionConditionFormModal({
       isActive: form.isActive,
       lookbackPeriod: form.lookbackPeriod,
       autoCollectionEnabled: auto,
-      // 자동 수집이 꺼져 있으면 스케줄 3개를 모두 null 로 보낸다 (응답도 그렇게 온다)
+      // 자동 수집이 꺼져 있으면 스케줄 3개를 모두 null 로 보낸다
       scheduleType: auto ? form.scheduleType : null,
       scheduledTime: auto ? form.scheduledTime : null,
       timezone: auto ? TIMEZONE : null,
@@ -251,7 +246,7 @@ export default function CollectionConditionFormModal({
       if (isCreate) {
         await createCollectionCondition({ sourceCode, ...rest });
       } else {
-        // 수정 본문에는 `sourceCode` 를 실을 수 없다 — 빼고 보낸다
+        // 수정 본문에는 sourceCode 를 실을 수 없어 빼고 보낸다
         await updateCollectionCondition(target.conditionId, rest);
       }
 
@@ -267,12 +262,12 @@ export default function CollectionConditionFormModal({
       title={isCreate ? '수집 조건 등록' : '수집 조건 수정'}
       onClose={onClose}
       dismissOnBackdrop={false}
-      // 스크롤은 패널이 아니라 **안쪽 목록**이 한다 — 패널이 스크롤하면 스크롤바가
-      // 둥근 모서리를 잘라 먹어 위아래 모서리가 짝짝이로 보인다
+      // 스크롤은 패널이 아니라 안쪽 목록이 한다.
+      // 패널이 스크롤하면 스크롤바가 둥근 모서리를 잘라 먹는다
       className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-base p-8 shadow-2xl"
     >
       <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
-        {/* 필드만 스크롤한다 — 제목과 하단 버튼은 제자리에 남는다 */}
+        {/* 필드만 스크롤한다. 제목과 하단 버튼은 제자리에 남는다 */}
         <div className="-mr-3 min-h-0 flex-1 space-y-5 overflow-y-auto pr-3">
           <div className="grid gap-4 sm:grid-cols-2">
             <SelectField
@@ -324,7 +319,7 @@ export default function CollectionConditionFormModal({
                 }}
                 className="input flex-1"
               />
-              {/* 입력칸(`.input` 40px)과 **같은 높이**여야 나란히 선다 — `btn-md` 는 34px 이다 */}
+              {/* 입력칸(40px)과 같은 높이여야 나란히 선다. btn-md 는 34px 이다 */}
               <button
                 type="button"
                 onClick={addKeyword}
@@ -368,7 +363,7 @@ export default function CollectionConditionFormModal({
             <AmountField
               id="minimumEstimatedPrice"
               label="추정가격 최소"
-              // `0` 을 두면 **0원으로 지정한 것**처럼 읽힌다 — 제한 없음을 그대로 적는다
+              // 0 을 두면 0원으로 지정한 것처럼 읽혀 제한 없음을 그대로 적는다
               placeholder="제한 없음"
               value={form.minimumEstimatedPrice}
               onChange={(value) => patch({ minimumEstimatedPrice: value })}
@@ -396,7 +391,7 @@ export default function CollectionConditionFormModal({
               onChange={(checked) => patch({ isActive: checked })}
             />
             {/**
-             * 조회 기간은 자동 · 수동 수집에 **모두** 적용된다 —
+             * 조회 기간은 자동 · 수동 수집에 모두 적용된다.
              * 자동 수집 칸 안에 넣으면 수동 실행에는 안 걸리는 것처럼 읽힌다.
              */}
             <SelectField
@@ -464,7 +459,7 @@ export default function CollectionConditionFormModal({
   );
 }
 
-/** 여러 개를 고르는 체크박스 묶음 — 유형 · 지역 · 카테고리가 같은 모양을 쓴다 */
+/** 여러 개를 고르는 체크박스 묶음. 유형 · 지역 · 카테고리가 같은 모양을 쓴다 */
 function CheckGroup({
   label,
   required,
@@ -500,7 +495,7 @@ function CheckGroup({
                     type="button"
                     onClick={() => onToggle(option.value)}
                     aria-pressed={isOn}
-                    // 공용 `.tag` 를 토글로 쓴다 — 켜짐은 blue, 꺼짐은 gray
+                    // 공용 .tag 를 토글로 쓴다. 켜짐은 blue, 꺼짐은 gray
                     className={`tag cursor-pointer transition-colors ${
                       isOn ? 'tag-blue' : 'tag-gray hover:bg-bg-hover'
                     }`}
@@ -522,7 +517,7 @@ function CheckGroup({
   );
 }
 
-/** 400 세 종류는 원인이 달라 문구를 나눈다 — 백엔드 문구만으로는 무엇을 고칠지 알 수 없다 */
+/** 400 세 종류는 원인이 달라 문구를 나눈다. 백엔드 문구만으로는 알 수 없다 */
 function toErrorMessage(error: unknown) {
   const code = error instanceof ApiError ? error.code : undefined;
 

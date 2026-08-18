@@ -2,14 +2,20 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
+import { NoticeFormSkeleton } from '@/components/bidding/NoticeSkeletons';
 import PageTitle from '@/components/PageTitle';
 import { notifyToast } from '@/components/Toast';
 import { formatFileSize } from '@/features/file/format';
 import { ApiError, messageOf } from '@/lib/api';
 
-import { createNotice, uploadNoticeAttachment } from './api';
+import {
+  createNotice,
+  getNoticeDetail,
+  updateNotice,
+  uploadNoticeAttachment,
+} from './api';
 import { BIDDING_CODES } from './errorCodes';
 import {
   AlertBanner,
@@ -21,16 +27,14 @@ import {
   TextField,
 } from './FormFields';
 import { BIDDING_ROUTES } from './routes';
-import type { CreateNoticeRequest } from './types';
+import type {
+  BidNoticeDetail,
+  CreateNoticeRequest,
+  NoticeAttachment,
+  UpdateNoticeRequest,
+} from './types';
 
-/**
- * 공고 유형 선택지 — 나라장터의 `업무구분` 에 대응한다.
- *
- * ⚠️ 스웨거가 `noticeType` 을 `string` 으로만 주고 예시에 `CONSTRUCTION` · `SERVICE` 둘만 나온다.
- *    실제 나라장터 목록에는 **물품 · 기술용역**도 있어 `GOODS` 를 추정으로 넣어 뒀다.
- *    등록 시 400(`BIDDING_INVALID_MANUAL_NOTICE`) 이 나면 백엔드 enum 에 없는 값이니 지운다.
- *    (수집 조건의 `noticeTypes` 와 같은 축이라 값이 확정되면 양쪽이 이 상수를 함께 쓴다)
- */
+/** 공고 유형 선택지. 수집 조건의 `noticeTypes` 와 같은 축이다 */
 const NOTICE_TYPE_OPTIONS = [
   { value: 'SERVICE', label: '용역' },
   { value: 'CONSTRUCTION', label: '공사' },
@@ -42,7 +46,7 @@ const INTERNATIONAL_OPTIONS = [
   { value: 'INTERNATIONAL', label: '국제입찰' },
 ];
 
-/** 폼은 전부 문자열로 다룬다 — 셀렉트 · 일시 · 금액 입력이 모두 문자열이라 변환 지점을 한 곳에 모은다 */
+/** 폼은 전부 문자열로 다룬다. 변환 지점을 한 곳에 모으기 위해서다 */
 interface FormValues {
   noticeName: string;
   noticeType: string;
@@ -90,11 +94,7 @@ const EMPTY_VALUES: FormValues = {
   sourceUrl: '',
 };
 
-/**
- * 필수 항목 — 400(`BIDDING_INVALID_MANUAL_NOTICE`) 을 미리 막는다.
- *
- * ⚠️ 스웨거에 필수 표시가 없어 **최소한만** 잡았다. 400 이 나면 이 표를 늘린다.
- */
+/** 필수 항목. 400(`BIDDING_INVALID_MANUAL_NOTICE`) 을 미리 막는다 */
 const REQUIRED_MESSAGES: Partial<Record<FieldName, string>> = {
   noticeName: '공고명을 입력해주세요.',
   noticeType: '공고 유형을 선택해주세요.',
@@ -102,27 +102,17 @@ const REQUIRED_MESSAGES: Partial<Record<FieldName, string>> = {
 };
 
 /**
- * ⚠️ **원문 URL 은 선택 입력이다** (2026-08-14 변경).
- *
- * 한동안 화면 정책으로 필수로 잡았는데, 원문 링크가 없는 공고(구두 · 내부 건)를
- * 등록할 방법이 사라졌다. 백엔드도 처음부터 `null` 을 허용한다.
- * 대신 **적었을 때 형식만** 본다 — `example.org` 처럼 적으면 링크가 열리지 않는다.
- */
-
-/**
- * 첨부 개수 상한 — 서버와 **같은 값**이다.
- * 넘겨 보내면 409(`BIDDING_MANUAL_NOTICE_ATTACHMENT_LIMIT_EXCEEDED`) 인데,
- * 첨부는 공고를 만든 **뒤에** 올라가므로 그때 막히면 공고만 덩그러니 남는다.
- * 그래서 고르는 자리에서 먼저 막는다.
+ * 첨부 개수 상한. 서버와 같은 값이다.
+ * 첨부는 공고를 저장한 뒤 올라가 그때 막히면 늦으므로 고르는 자리에서 먼저 막는다.
  */
 const MAX_ATTACHMENTS = 10;
 
-/** `http(s)://` 로 시작하는 주소인지. 원문 URL · 첨부 URL 이 같은 규칙을 쓴다 */
+/** `http(s)://` 로 시작하는 주소인지. 원문 URL 이 이 규칙을 쓴다 */
 function isHttpUrl(value: string) {
   return /^https?:\/\/.+/.test(value.trim());
 }
 
-/** 빈 문자열은 보내지 않는다 — 백엔드가 빈 값을 값으로 저장한다 */
+/** 빈 문자열은 보내지 않는다. 백엔드가 빈 값을 값으로 저장한다 */
 function orNull(value: string) {
   const trimmed = value.trim();
   return trimmed === '' ? null : trimmed;
@@ -130,11 +120,16 @@ function orNull(value: string) {
 
 /**
  * `datetime-local` 값(`2026-08-11T09:00`) 을 API 포맷(`2026-08-11T09:00:00`) 으로 바꾼다.
- * 백엔드가 초까지 받고 오프셋은 붙이지 않는다.
+ * 백엔드는 초까지 받고 오프셋은 붙이지 않는다.
  */
 function toApiDateTime(value: string) {
   if (value === '') return null;
   return value.length === 16 ? `${value}:00` : value;
+}
+
+/** 반대 방향. `datetime-local` 은 초를 받지 않아 앞 16자만 쓴다 */
+function toInputDateTime(value: string | null) {
+  return value ? value.slice(0, 16) : '';
 }
 
 function toNumber(value: string) {
@@ -142,30 +137,87 @@ function toNumber(value: string) {
 }
 
 /**
- * 입찰 공고 직접 등록 화면. (입찰 `EDITOR`, .ai/API.md `입찰 도메인 — 공통`)
- *
- * 수집이 못 가져온 공고를 사람이 넣는 화면이다. 등록해도 상태는 `COLLECTED` 라
- * 목록에서 수집분과 함께 보이고, 구분은 `sourceCode` 로 한다.
- *
- * 첨부는 **파일 업로드**다 (2026-08-17 백엔드 전환 — 예전에는 원문 URL 등록이었다).
- * 업로드 경로에 공고 번호가 들어가므로 **공고를 만든 뒤** 파일을 올린다.
+ * 조회한 공고를 폼 값으로 옮긴다.
+ * 상세 응답에 없는 국내·국제 구분과 입찰 방식은 빈 값으로 두고 수정 화면에서 감춘다.
  */
-export default function NoticeCreateForm() {
+function toValues(notice: BidNoticeDetail): FormValues {
+  return {
+    ...EMPTY_VALUES,
+    noticeName: notice.noticeName,
+    noticeType: notice.noticeType ?? 'SERVICE',
+    noticeAgency: notice.noticeAgency,
+    demandAgency: notice.demandAgency ?? '',
+    announcedAt: toInputDateTime(notice.announcedAt),
+    bidStartAt: toInputDateTime(notice.bidStartAt),
+    bidDeadlineAt: toInputDateTime(notice.bidDeadlineAt),
+    openingAt: toInputDateTime(notice.openingAt),
+    baseAmount: notice.baseAmount === null ? '' : String(notice.baseAmount),
+    estimatedAmount:
+      notice.estimatedAmount === null ? '' : String(notice.estimatedAmount),
+    contractMethod: notice.contractMethod ?? '',
+    participationQualificationText: notice.participationQualificationText ?? '',
+    regionLimitText: notice.regionLimitText ?? '',
+    businessLimitText: notice.businessLimitText ?? '',
+    jointContractText: notice.jointContractText ?? '',
+    evaluationMethod: notice.evaluationMethod ?? '',
+    sourceUrl: notice.sourceUrl ?? '',
+  };
+}
+
+/**
+ * 공고 직접 등록 · 수정 화면. (입찰 `EDITOR`)
+ *
+ * `noticeId` 를 주면 수정이다. 수정은 직접 등록한 공고(`sourceCode === 'MANUAL'`)만 되고
+ * 수집 공고를 보내면 409(`BIDDING_NOTICE_EDIT_NOT_ALLOWED`) 다.
+ */
+export default function NoticeForm({ noticeId }: { noticeId?: number }) {
+  const isEdit = noticeId !== undefined;
   const router = useRouter();
   const [values, setValues] = useState<FormValues>(EMPTY_VALUES);
   const [jointContractAllowed, setJointContractAllowed] = useState(false);
-  /**
-   * 올릴 첨부 파일.
-   *
-   * ⚠️ **등록 버튼을 누를 때 한꺼번에 올린다** — 업로드 경로에 `noticeId` 가 들어가서
-   *    공고를 먼저 만들어야 한다 (`POST /bidding/notices` → 파일 업로드).
-   */
+  /** 올릴 첨부 파일. 저장 버튼을 누른 뒤 한꺼번에 올린다 */
   const [files, setFiles] = useState<File[]>([]);
-  /** 숨긴 파일 입력 — `파일 선택` 버튼이 대신 연다 */
+  /** 이미 올라가 있는 첨부. 삭제 API 가 없어 목록만 보여준다 */
+  const [savedAttachments, setSavedAttachments] = useState<NoticeAttachment[]>(
+    [],
+  );
+  /** 숨긴 파일 입력. `파일 선택` 버튼이 대신 연다 */
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(isEdit);
+  /** 폼을 아예 열 수 없는 경우. 없는 공고이거나 수집 공고다 */
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (noticeId === undefined) return;
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    getNoticeDetail(noticeId, signal)
+      .then((notice) => {
+        // 수집 공고는 서버가 막는다. 상세로 돌려보내고 폼을 열지 않는다
+        if (notice.sourceCode !== 'MANUAL') {
+          setLoadError('수집된 공고는 수정할 수 없습니다.');
+          return;
+        }
+        setValues(toValues(notice));
+        setJointContractAllowed(notice.jointContractAllowed ?? false);
+        setSavedAttachments(notice.attachments);
+      })
+      .catch((caught: unknown) => {
+        // 취소는 실패가 아니다
+        if (signal.aborted) return;
+        setLoadError(messageOf(caught, '공고를 불러오지 못했습니다.'));
+      })
+      .finally(() => {
+        if (!signal.aborted) setIsLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [noticeId]);
 
   function change(name: FieldName) {
     return (value: string) => {
@@ -179,21 +231,20 @@ export default function NoticeCreateForm() {
     if (!picked || picked.length === 0) return;
 
     /*
-      ⚠️ 계산을 `setFiles` 업데이터 **밖**에서 한다 — 업데이터는 순수해야 하고,
-         React 가 두 번 실행할 수 있어(StrictMode) 그 안에서 다른 상태를 건드리면
-         안내가 두 번 세워진다. 이벤트 핸들러라 `files` 는 이미 최신 값이다.
+      계산을 `setFiles` 업데이터 밖에서 한다. 업데이터는 순수해야 하고,
+      React 가 두 번 실행하면(StrictMode) 안내가 두 번 세워진다.
     */
     // 같은 파일을 두 번 고르면 그대로 두 번 올라간다 — 이름+크기로 걸러낸다
     const keys = new Set(files.map((file) => `${file.name} ${file.size}`));
     const added = Array.from(picked).filter(
       (file) => !keys.has(`${file.name} ${file.size}`),
     );
-    const room = Math.max(MAX_ATTACHMENTS - files.length, 0);
+    const room = Math.max(
+      MAX_ATTACHMENTS - savedAttachments.length - files.length,
+      0,
+    );
 
-    /*
-      상한을 넘겨 고르면 **앞에서부터 담을 수 있는 만큼만** 담는다.
-      통째로 되돌리면 방금 고른 것이 하나도 안 들어온 것처럼 보인다.
-    */
+    // 상한을 넘기면 담을 수 있는 만큼만 담는다. 통째로 되돌리면 하나도 안 들어온 것처럼 보인다
     setFormError(
       added.length > room
         ? `첨부는 최대 ${MAX_ATTACHMENTS}개까지 올릴 수 있습니다. ${added.length - room}개는 목록에 넣지 않았습니다.`
@@ -218,7 +269,7 @@ export default function NoticeCreateForm() {
 
     const { announcedAt, bidDeadlineAt, openingAt, sourceUrl } = values;
 
-    // 비워 두는 것은 괜찮다 — 적었을 때만 형식을 본다
+    // 원문 URL 은 선택 입력이다 — 적었을 때만 형식을 본다
     if (sourceUrl.trim() !== '' && !isHttpUrl(sourceUrl)) {
       next.sourceUrl = 'http:// 또는 https:// 로 시작하는 주소를 넣어주세요.';
     }
@@ -240,15 +291,14 @@ export default function NoticeCreateForm() {
 
   /**
    * 첫 오류 항목으로 포커스를 옮긴다.
-   *
-   * 구획 5개에 항목이 20개 가까워 제출 버튼에서 첫 오류가 보이지 않는다.
-   * 포커스를 옮기면 스크롤과 스크린리더 안내가 함께 처리된다.
+   * 항목이 20개 가까워 제출 버튼 자리에서는 첫 오류가 보이지 않는다.
    */
   function focusField(name: string) {
     document.getElementById(name)?.focus();
   }
 
-  function toPayload(): CreateNoticeRequest {
+  /** 공통 입력값. 첨부는 저장한 뒤 파일 업로드로 붙이므로 비워 보낸다 */
+  function toCreatePayload(): CreateNoticeRequest {
     return {
       noticeName: values.noticeName.trim(),
       noticeType: values.noticeType,
@@ -275,9 +325,37 @@ export default function NoticeCreateForm() {
         : null,
       evaluationMethod: orNull(values.evaluationMethod),
       sourceUrl: orNull(values.sourceUrl),
-      // 첨부는 공고를 만든 뒤 파일 업로드로 붙인다 (아래 `handleSubmit`)
       attachments: [],
     };
+  }
+
+  /**
+   * 수정 본문은 보낸 필드만 바뀐다.
+   * `attachments` 는 통째로 교체라 싣지 않고, 상세 응답에 없는 두 항목도 뺀다.
+   */
+  function toUpdatePayload(): UpdateNoticeRequest {
+    const payload: UpdateNoticeRequest = toCreatePayload();
+
+    delete payload.attachments;
+    delete payload.internationalBidType;
+    delete payload.bidMethod;
+
+    return payload;
+  }
+
+  /** 고른 파일을 차례로 올리고 실패한 이름만 돌려준다 */
+  async function uploadPickedFiles(targetId: number) {
+    const failed: string[] = [];
+
+    for (const file of files) {
+      try {
+        await uploadNoticeAttachment(targetId, file);
+      } catch {
+        failed.push(file.name);
+      }
+    }
+
+    return failed;
   }
 
   async function submit(event: React.FormEvent) {
@@ -289,52 +367,66 @@ export default function NoticeCreateForm() {
     setIsSubmitting(true);
 
     try {
-      const result = await createNotice(toPayload());
-
       /*
-        ⚠️ 공고는 이미 만들어졌다 — 여기서 실패해도 **되돌리지 않는다.**
-           지운 뒤 다시 만들게 하면 입력한 20여 개 항목을 또 채워야 한다.
-           올리지 못한 파일만 알려주고 상세로 보낸다 (거기서 다시 붙일 수 있다).
+        공고는 여기서 이미 저장됐다. 첨부가 실패해도 되돌리지 않는다 —
+        지운 뒤 다시 만들게 하면 입력한 20여 개 항목을 또 채워야 한다.
       */
-      const failed: string[] = [];
+      let targetId = noticeId ?? 0;
 
-      for (const file of files) {
-        try {
-          await uploadNoticeAttachment(result.noticeId, file);
-        } catch {
-          failed.push(file.name);
-        }
+      if (noticeId === undefined) {
+        targetId = (await createNotice(toCreatePayload())).noticeId;
+      } else {
+        await updateNotice(noticeId, toUpdatePayload());
       }
+
+      const failed = await uploadPickedFiles(targetId);
 
       if (failed.length > 0) {
         notifyToast(
-          `공고는 등록됐지만 첨부 ${failed.length}개를 올리지 못했습니다: ${failed.join(', ')}`,
+          `${isEdit ? '공고는 수정됐지만' : '공고는 등록됐지만'} 첨부 ${failed.length}개를 올리지 못했습니다: ${failed.join(', ')}`,
           'error',
         );
+      } else if (isEdit) {
+        notifyToast('공고를 수정했습니다.');
       }
 
-      router.replace(BIDDING_ROUTES.detail(result.noticeId));
+      router.replace(BIDDING_ROUTES.detail(targetId));
     } catch (error) {
-      // 중복은 입력을 고칠 여지가 있어 폼을 유지한 채 알려준다
-      const isDuplicated =
-        error instanceof ApiError &&
-        error.code === BIDDING_CODES.manualNoticeDuplicated;
-
-      setFormError(
-        isDuplicated
-          ? '같은 공고가 이미 등록돼 있습니다. 목록에서 확인해주세요.'
-          : messageOf(
-              error,
-              '공고 등록에 실패했습니다. 잠시 후 다시 시도해주세요.',
-            ),
-      );
+      setFormError(submitErrorOf(error, isEdit));
       setIsSubmitting(false);
     }
   }
 
+  if (isLoading) return <NoticeFormSkeleton />;
+
+  if (loadError) {
+    return (
+      <div className="mx-auto w-full max-w-[820px]">
+        <PageTitle title="공고 수정" />
+        <AlertBanner tone="danger">{loadError}</AlertBanner>
+        <div className="mt-4">
+          <Link
+            href={
+              noticeId === undefined
+                ? BIDDING_ROUTES.list
+                : BIDDING_ROUTES.detail(noticeId)
+            }
+            className="btn btn-md btn-gray"
+          >
+            돌아가기
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const cancelHref =
+    isEdit && noticeId !== undefined
+      ? BIDDING_ROUTES.detail(noticeId)
+      : BIDDING_ROUTES.list;
+
   return (
-    /* 폭 · 경로 글씨는 프로젝트 생성(`ProjectCreateForm`)과 같은 값이다 — 두 화면 모두
-       한 줄짜리 입력 폼이라 폭이 다르면 오갈 때 화면이 넓어졌다 좁아진다 */
+    /* 폭 · 경로 글씨는 프로젝트 생성 화면과 같은 값이다 — 오갈 때 폭이 흔들리지 않게 맞춘다 */
     <div className="mx-auto w-full max-w-[820px]">
       <p className="mb-2 text-caption text-text-secondary">
         <Link
@@ -343,14 +435,18 @@ export default function NoticeCreateForm() {
         >
           입찰 공고
         </Link>
-        {' › 직접 등록'}
+        {isEdit ? ' › 수정' : ' › 직접 등록'}
       </p>
-      <PageTitle title="공고 직접 등록" />
+      <PageTitle title={isEdit ? '공고 수정' : '공고 직접 등록'} />
 
       <form onSubmit={submit} className="space-y-4 pb-10">
         <FormSection
           title="기본 정보"
-          description="수집으로 가져오지 못한 공고를 직접 등록합니다. 등록 후에도 수정할 수 있습니다."
+          description={
+            isEdit
+              ? '직접 등록한 공고만 수정할 수 있습니다. 수집으로 가져온 공고는 원문이 기준입니다.'
+              : '수집으로 가져오지 못한 공고를 직접 등록합니다. 등록 후에도 수정할 수 있습니다.'
+          }
         >
           <div className="sm:col-span-2">
             <TextField
@@ -373,13 +469,16 @@ export default function NoticeCreateForm() {
             error={errors.noticeType}
             onChange={change('noticeType')}
           />
-          <SelectField
-            id="internationalBidType"
-            label="국내 · 국제"
-            options={INTERNATIONAL_OPTIONS}
-            value={values.internationalBidType}
-            onChange={change('internationalBidType')}
-          />
+          {/* 국내 · 국제 구분은 상세 응답에 없어 수정 화면에서는 감춘다 (보내지도 않는다) */}
+          {!isEdit && (
+            <SelectField
+              id="internationalBidType"
+              label="국내 · 국제"
+              options={INTERNATIONAL_OPTIONS}
+              value={values.internationalBidType}
+              onChange={change('internationalBidType')}
+            />
+          )}
           <TextField
             id="noticeAgency"
             label="발주처"
@@ -483,13 +582,16 @@ export default function NoticeCreateForm() {
             value={values.businessLimitText}
             onChange={change('businessLimitText')}
           />
-          <TextField
-            id="bidMethod"
-            label="입찰 방식"
-            placeholder="예) 전자입찰"
-            value={values.bidMethod}
-            onChange={change('bidMethod')}
-          />
+          {/* 입찰 방식도 상세 응답에 없어 수정 화면에서는 감춘다 */}
+          {!isEdit && (
+            <TextField
+              id="bidMethod"
+              label="입찰 방식"
+              placeholder="예) 전자입찰"
+              value={values.bidMethod}
+              onChange={change('bidMethod')}
+            />
+          )}
           <TextField
             id="contractMethod"
             label="계약 방법"
@@ -527,7 +629,7 @@ export default function NoticeCreateForm() {
 
         <FormSection
           title="원문 · 첨부"
-          description="공고문 · 과업지시서 같은 파일을 올립니다. 등록을 누르면 함께 저장됩니다."
+          description="공고문 · 과업지시서 같은 파일을 올립니다. 저장을 누르면 함께 올라갑니다."
         >
           <div className="sm:col-span-2">
             <TextField
@@ -546,9 +648,28 @@ export default function NoticeCreateForm() {
             <p className="text-detail font-semibold text-text-primary">
               첨부 파일{' '}
               <span className="font-normal text-text-secondary">
-                ({files.length} / {MAX_ATTACHMENTS})
+                ({savedAttachments.length + files.length} / {MAX_ATTACHMENTS})
               </span>
             </p>
+
+            {/* 이미 올라간 첨부는 삭제 API 가 없어 목록만 보여준다 */}
+            {savedAttachments.length > 0 && (
+              <ul className="flex flex-col gap-1.5">
+                {savedAttachments.map((attachment) => (
+                  <li
+                    key={attachment.attachmentOrder}
+                    className="flex items-center gap-2 rounded-lg border border-border-default bg-bg-hover px-3 py-2"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-detail text-text-primary">
+                      {attachment.fileName}
+                    </span>
+                    <span className="shrink-0 text-caption text-text-secondary">
+                      등록됨
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
 
             {files.length > 0 && (
               <ul className="flex flex-col gap-1.5">
@@ -577,10 +698,7 @@ export default function NoticeCreateForm() {
               </ul>
             )}
 
-            {/*
-              ⚠️ 파일은 **등록을 누른 뒤에** 올라간다 — 업로드 경로에 공고 번호가 들어가서
-                 공고를 먼저 만들어야 한다. 그래서 여기서는 고르기만 한다.
-            */}
+            {/* 파일은 저장을 누른 뒤 올라간다 — 업로드 경로에 공고 번호가 들어가기 때문이다 */}
             <input
               ref={fileInputRef}
               type="file"
@@ -595,7 +713,10 @@ export default function NoticeCreateForm() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              disabled={isSubmitting || files.length >= MAX_ATTACHMENTS}
+              disabled={
+                isSubmitting ||
+                savedAttachments.length + files.length >= MAX_ATTACHMENTS
+              }
               className="btn btn-sm btn-gray"
             >
               파일 선택
@@ -606,7 +727,7 @@ export default function NoticeCreateForm() {
         {formError && <AlertBanner tone="danger">{formError}</AlertBanner>}
 
         <div className="flex justify-end gap-2">
-          <Link href={BIDDING_ROUTES.list} className="btn btn-md btn-gray">
+          <Link href={cancelHref} className="btn btn-md btn-gray">
             취소
           </Link>
           <button
@@ -614,10 +735,37 @@ export default function NoticeCreateForm() {
             disabled={isSubmitting}
             className="btn btn-md btn-primary min-w-[104px]"
           >
-            {isSubmitting ? '등록 중…' : '등록'}
+            {submitLabel(isEdit, isSubmitting)}
           </button>
         </div>
       </form>
     </div>
+  );
+}
+
+function submitLabel(isEdit: boolean, isSubmitting: boolean) {
+  if (isEdit) return isSubmitting ? '저장 중…' : '저장';
+  return isSubmitting ? '등록 중…' : '등록';
+}
+
+/**
+ * 저장 실패 안내.
+ * 중복 · 수정 불가는 원인이 뚜렷해 따로 알리고, 나머지는 서버 메시지를 그대로 쓴다.
+ */
+function submitErrorOf(error: unknown, isEdit: boolean) {
+  if (error instanceof ApiError) {
+    if (error.code === BIDDING_CODES.manualNoticeDuplicated) {
+      return '같은 공고가 이미 등록돼 있습니다. 목록에서 확인해주세요.';
+    }
+    if (error.code === BIDDING_CODES.noticeEditNotAllowed) {
+      return '수집된 공고는 수정할 수 없습니다.';
+    }
+  }
+
+  return messageOf(
+    error,
+    isEdit
+      ? '공고 수정에 실패했습니다. 잠시 후 다시 시도해주세요.'
+      : '공고 등록에 실패했습니다. 잠시 후 다시 시도해주세요.',
   );
 }

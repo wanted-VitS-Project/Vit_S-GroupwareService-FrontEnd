@@ -23,21 +23,18 @@ const FIELD_CLASS =
 interface ApprovalDraftFormProps {
   approvalId: number;
   revisionId: number;
-  /** 파일을 어느 블록에 붙일지 — 업로드 API 가 블록 단위다 */
+  /** 파일을 붙일 블록. 업로드 API 가 블록 단위다 */
   blockId: number;
   revision: ApprovalRevision;
-  /** 편집 화면을 닫는다 — 남은 입력은 폼이 먼저 저장하고 부른다 */
+  /** 편집 화면을 닫는다. 남은 입력은 폼이 먼저 저장한다 */
   onClose: () => void;
-  /** 바뀐 항목을 상위 회차에 반영한다 — 상신 가능 여부 판정에 쓰인다 */
+  /** 바뀐 항목을 상위 회차에 반영한다 */
   onChanged: (next: Partial<ApprovalRevision>) => void;
 }
 
 /**
- * 결재 초안 작성 · 수정 폼. (AP-005~020)
- *
- * ⚠️ **모든 항목이 즉시 저장된다.** 제목 · 내용은 블러 시 `PATCH` 하고,
- * 문서 · 결재선은 조작 즉시 각자의 API 를 부른다.
- * 하단 `저장` 은 아직 블러되지 않은 입력만 흘려보내고 화면을 닫는다.
+ * 결재 초안 작성 · 수정 폼. 모든 항목이 즉시 저장된다.
+ * 하단 저장 버튼은 아직 블러되지 않은 입력만 보내고 화면을 닫는다.
  */
 export default function ApprovalDraftForm({
   approvalId,
@@ -49,26 +46,18 @@ export default function ApprovalDraftForm({
 }: ApprovalDraftFormProps) {
   const [title, setTitle] = useState(revision.title ?? '');
   const [content, setContent] = useState(revision.content ?? '');
-  /**
-   * 마지막으로 서버에 보낸 값 — 값이 그대로면 블러마다 요청하지 않는다.
-   * 이탈 확인이 이 값과 비교해야 해서 ref 가 아니라 state 로 둔다 (렌더 중에 읽는다).
-   */
+  /** 마지막으로 서버에 보낸 값. 값이 그대로면 블러마다 요청하지 않는다 */
   const [saved, setSaved] = useState({
     title: revision.title ?? '',
     content: revision.content ?? '',
   });
   const [error, setError] = useState('');
 
-  /** 아직 서버에 못 보낸 입력이 있는지 — 이탈 확인과 닫기 전 저장의 기준이다 */
+  /** 아직 서버에 못 보낸 입력이 있는지 */
   const isDirty =
     title.trim() !== saved.title || content.trim() !== saved.content;
 
-  /**
-   * 저장 전에 창을 닫거나 새로고침하면 입력이 사라진다 (AP-006·007).
-   *
-   * ⚠️ 막을 수 있는 것은 **브라우저 이탈뿐**이다 — App Router 에는 라우팅 차단 API 가 없어
-   * 앱 안에서 뒤로가기를 누르면 그대로 나간다. 백로그에 올려둔 항목이다.
-   */
+  /* 저장 전 이탈을 막는다. 앱 내부 라우팅은 차단 API 가 없어 막지 못한다 */
   useEffect(() => {
     if (!isDirty) return;
 
@@ -85,14 +74,14 @@ export default function ApprovalDraftForm({
     try {
       await updateRevision(approvalId, revisionId, { [field]: value });
       setSaved((prev) => ({ ...prev, [field]: value }));
-      // 상위가 상신 가능 여부를 다시 판정해야 한다 — 제목 · 내용도 검증 대상이다
+      // 제목 · 내용도 검증 대상이라 상위가 상신 가능 여부를 다시 판정한다
       onChanged({ [field]: value });
     } catch (caught) {
       setError(messageOf(caught, '저장하지 못했습니다.'));
     }
   }
 
-  /** 닫기 전에 아직 블러되지 않은 입력을 흘려보낸다 — 안 그러면 마지막 타이핑이 날아간다 */
+  /** 닫기 전에 아직 블러되지 않은 입력을 저장한다 */
   async function closeAfterSave() {
     await saveField('title', title.trim());
     await saveField('content', content.trim());
@@ -168,10 +157,7 @@ function Field({
   );
 }
 
-/**
- * 결재 문서. 파일 자체는 공용 파일 API 로 먼저 올리고,
- * 거기서 받은 `fileVersionId` 만 결재에 연결한다 (AP-009 · AP-010).
- */
+/** 결재 문서. 공용 파일 API 로 올린 뒤 받은 파일 버전만 결재에 연결한다 */
 function DocumentSection({
   approvalId,
   revisionId,
@@ -196,7 +182,7 @@ function DocumentSection({
     setError('');
 
     try {
-      // 1) 공용 업로드 3단계 → 2) 받은 파일 버전을 결재 문서로 연결
+      // 공용 업로드를 끝낸 뒤 받은 파일 버전을 결재 문서로 연결한다
       const uploaded = await uploadFile({ blockId, file });
       const added = await addDocument(approvalId, revisionId, {
         fileVersionId: uploaded.fileVersionId,
@@ -208,7 +194,7 @@ function DocumentSection({
       const message = messageOf(caught, '문서를 추가하지 못했습니다.');
 
       setError(message);
-      // 업로드가 오래 걸려 폼 위쪽을 보고 있을 수 있다 — 결과는 어디서든 닿아야 한다
+      // 폼 위쪽을 보고 있을 수 있어 토스트로 알린다
       notifyToast(message, 'error');
     } finally {
       setIsBusy(false);
@@ -245,7 +231,7 @@ function DocumentSection({
               className="flex items-center gap-2 rounded-button-sm border border-border-default px-2 py-1.5"
             >
               <span className="min-w-0 flex-1 truncate text-caption text-text-primary">
-                {/* 회차 상세에는 파일명이 없다 — 그때는 버전 번호로 구분한다 */}
+                {/* 회차 상세에는 파일명이 없어 버전 번호로 구분한다 */}
                 {document.fileName ?? `파일 버전 #${document.fileVersionId}`}
               </span>
               <button
@@ -286,11 +272,7 @@ function DocumentSection({
   );
 }
 
-/**
- * 결재선 등록(`PUT`) 응답에 처리 상태가 오는지는 아직 확인 전이다.
- * **DRAFT 회차라 아직 아무도 처리하지 않았으므로** 없으면 대기로 채운다 —
- * 조회 응답과 모양을 맞춰야 상위가 한 가지 타입만 다룬다.
- */
+/** 조회 응답과 모양을 맞춘다. 처리 상태가 없으면 대기로 채운다 */
 function toDetailLines(lines: ApprovalLine[]): ApprovalDetailLine[] {
   return lines.map((line) => ({
     ...line,
@@ -301,8 +283,8 @@ function toDetailLines(lines: ApprovalLine[]): ApprovalDetailLine[] {
 }
 
 /**
- * 결재선. `PUT` 은 **전체 치환**이라 한 명만 바꿔도 목록 전체를 보낸다 (AP-015~020).
- * 순서는 목록의 위치대로 1부터 다시 매긴다 — 빈 번호가 생기면 400 이 된다.
+ * 결재선. 전체 치환이라 한 명만 바꿔도 목록 전체를 보낸다.
+ * 순서는 목록 위치대로 1부터 다시 매긴다.
  */
 function LineSection({
   approvalId,
@@ -320,10 +302,7 @@ function LineSection({
 
   const ordered = [...lines].sort((a, b) => a.order - b.order);
 
-  /**
-   * 결재 차수를 한 칸 옮긴다 (AP-018).
-   * 드래그 대신 ↑↓ 로 간다 — 블록이 좁고, 블록 자체의 드래그와 겹친다.
-   */
+  /** 결재 차수를 한 칸 옮긴다. 블록 드래그와 겹쳐 화살표 버튼으로 둔다 */
   function move(index: number, step: -1 | 1) {
     const target = index + step;
     if (target < 0 || target >= ordered.length) return;
@@ -348,7 +327,7 @@ function LineSection({
       });
       onChanged(toDetailLines(result.lines));
     } catch (caught) {
-      // 프로젝트 member 가 아니거나 순서가 어긋난 경우 백엔드 문구가 가장 정확하다
+      // 실패 사유는 백엔드 문구가 가장 정확하다
       setError(messageOf(caught, '결재선을 저장하지 못했습니다.'));
     } finally {
       setIsBusy(false);
@@ -412,7 +391,7 @@ function LineSection({
         </ol>
       )}
 
-      {/* 선택 즉시 결재선 맨 뒤에 붙는다 — 별도 `추가` 버튼이 없다 (#41) */}
+      {/* 선택 즉시 결재선 맨 뒤에 붙는다 (별도 추가 버튼 없음) */}
       <EmployeeSearchInput
         excludedIds={ordered.map((line) => line.approverId)}
         disabled={isBusy}
@@ -425,10 +404,7 @@ function LineSection({
         }}
       />
 
-      {/**
-       * 권한 안내는 걷어냈다 — 응답에 `role` 이 없어 화면이 확인해줄 수 없는 문구였다.
-       * 지킬 수 없는 조건을 적어두면 사용자가 무엇을 고쳐야 할지 알 수 없다.
-       */}
+      {/* 응답에 role 이 없어 권한 안내는 두지 않는다 */}
       {ordered.length > 1 && (
         <p className="mt-1 text-caption break-keep text-text-secondary">
           순서는 ↑↓ 로 바꿀 수 있습니다.
@@ -440,7 +416,7 @@ function LineSection({
   );
 }
 
-/** 결재 차수 이동 버튼. 아이콘만 있어 스크린리더용 이름을 따로 준다 */
+/** 결재 차수 이동 버튼. 아이콘만 있어 대체 텍스트를 따로 준다 */
 function MoveButton({
   label,
   onClick,
