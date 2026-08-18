@@ -324,22 +324,15 @@ export default function CollectionConditionFormModal({
                 }}
                 className="input flex-1"
               />
-              {/*
-                입력칸과 **같은 높이**여야 한다 — `btn-sm`(28px)은 입력칸(38px)보다 낮아
-                버튼만 떠 보였다. 글자도 잘리지 않게 최소 폭을 준다.
-              */}
+              {/* 입력칸(`.input` 40px)과 **같은 높이**여야 나란히 선다 — `btn-md` 는 34px 이다 */}
               <button
                 type="button"
                 onClick={addKeyword}
-                className="btn btn-md btn-gray min-w-16 shrink-0"
+                className="btn btn-gray min-w-16 shrink-0"
               >
                 추가
               </button>
             </div>
-
-            <p className="mt-1 text-caption break-keep text-text-secondary">
-              키워드가 없으면 조회 조합이 커져 수집 상한을 넘길 수 있습니다.
-            </p>
 
             {form.keywords.length > 0 && (
               <ul className="mt-2 flex flex-wrap gap-1.5">

@@ -1,7 +1,11 @@
 import { ENDPOINTS } from '@/constants/endpoints';
+import { putToStorage } from '@/features/file/api';
 import { api } from '@/lib/api';
 
 import type {
+  NoticeAttachmentUploadResult,
+  NoticeAttachmentUploadStart,
+  StartNoticeAttachmentUploadRequest,
   BidNoticeDetail,
   BidNoticeListItem,
   ConvertNoticeToProjectRequest,
@@ -22,10 +26,13 @@ import type {
   CollectionRun,
   CollectionRunAccepted,
   CreateCollectionConditionRequest,
+  AbandonSummaryResult,
   CreateNoticeRequest,
+  DismissNoticeRequest,
   NoticeListQuery,
   NoticeMutationResult,
   NoticePage,
+  NoticeStatusResult,
   UpdateCollectionConditionRequest,
   UpdateNoticeRequest,
 } from './types';
@@ -48,6 +55,7 @@ function toSearch(query: NoticeListQuery) {
     deadlineSoon,
     keyword,
     noticeStatus,
+    favorite,
     sort,
     page,
     size,
@@ -63,6 +71,8 @@ function toSearch(query: NoticeListQuery) {
   if (deadlineSoon) params.set('deadlineSoon', 'true');
   if (keyword) params.set('keyword', keyword);
   if (noticeStatus) params.set('noticeStatus', noticeStatus);
+  // 켰을 때만 싣는다 — `false` 는 `관심 아닌 것만` 이 아니라 조건 없음이다
+  if (favorite) params.set('favorite', 'true');
   if (sort) params.set('sort', sort);
   // 0 페이지는 유효한 값이라 `if (page)` 로 거르면 안 된다
   if (page !== undefined) params.set('page', String(page));
@@ -126,6 +136,61 @@ export function updateNotice(
   return api.patch<NoticeMutationResult>(
     ENDPOINTS.bidding.notice(noticeId),
     body,
+    signal,
+  );
+}
+
+/* ─────────────────── 관심 · 제외 · 복구 ─────────────────── */
+
+/**
+ * 공고 **관심 등록** (입찰 `EDITOR`).
+ *
+ * ⚠️ 개인 즐겨찾기가 아니라 **회사 공용**이다 — 누가 눌러도 회사 전원 화면에서 함께 켜진다.
+ * ℹ️ 네 API 모두 바뀐 뒤의 상태를 그대로 돌려준다 — 목록을 다시 읽지 않고 그 줄만 갱신한다.
+ */
+export function favoriteNotice(noticeId: number | string, signal?: AbortSignal) {
+  return api.patch<NoticeStatusResult>(
+    ENDPOINTS.bidding.noticeFavorite(noticeId),
+    undefined,
+    signal,
+  );
+}
+
+/** 공고 관심 해제 (입찰 `EDITOR`) */
+export function unfavoriteNotice(
+  noticeId: number | string,
+  signal?: AbortSignal,
+) {
+  return api.patch<NoticeStatusResult>(
+    ENDPOINTS.bidding.noticeUnfavorite(noticeId),
+    undefined,
+    signal,
+  );
+}
+
+/**
+ * 공고 **제외** — 검토 대상에서 뺀다 (`noticeStatus: DISMISSED`).
+ *
+ * ⚠️ 사유(`reason`)가 **필수**다. 상세 화면이 사유를 그대로 보여 주므로
+ *    무엇 때문에 뺐는지가 나중에 남는다.
+ */
+export function dismissNotice(
+  noticeId: number | string,
+  body: DismissNoticeRequest,
+  signal?: AbortSignal,
+) {
+  return api.patch<NoticeStatusResult>(
+    ENDPOINTS.bidding.noticeDismiss(noticeId),
+    body,
+    signal,
+  );
+}
+
+/** 제외한 공고를 되돌린다 (`noticeStatus: COLLECTED`) — 본문이 없다 */
+export function restoreNotice(noticeId: number | string, signal?: AbortSignal) {
+  return api.patch<NoticeStatusResult>(
+    ENDPOINTS.bidding.noticeRestore(noticeId),
+    undefined,
     signal,
   );
 }
@@ -302,6 +367,23 @@ export function confirmSummary(
   );
 }
 
+/**
+ * AI 요약 **중단** (2026-08-18 신설).
+ *
+ * 검토의 `abandonReview()` 와 짝이다 — 예전에는 요약에 대응 API 가 없어 화면이
+ * 잠금만 풀고 서버 작업은 그대로 돌게 두었다. 이제 서버에서도 끝낸다.
+ */
+export function abandonSummary(
+  summaryId: number | string,
+  signal?: AbortSignal,
+) {
+  return api.patch<AbandonSummaryResult>(
+    ENDPOINTS.bidding.summaryAbandon(summaryId),
+    undefined,
+    signal,
+  );
+}
+
 /* ────────────────────────── AI 문서 검토 ────────────────────────── */
 
 /** 검토 화면에서 고를 공고 첨부 — `supported: false` 는 고를 수 없다 */
@@ -343,13 +425,15 @@ export function getNoticeReviews(
   noticeId: number | string,
   signal?: AbortSignal,
 ) {
-  return api
-    .get<{ content: ReviewHistoryItem[] }>(
-      ENDPOINTS.bidding.noticeReviews(noticeId),
-      signal,
-    )
-    // ⚠️ `content` 가 빠져 와도 화면이 `history[0]` 에서 터지지 않게 빈 배열로 맞춘다
-    .then((data) => data.content ?? []);
+  return (
+    api
+      .get<{ content: ReviewHistoryItem[] }>(
+        ENDPOINTS.bidding.noticeReviews(noticeId),
+        signal,
+      )
+      // ⚠️ `content` 가 빠져 와도 화면이 `history[0]` 에서 터지지 않게 빈 배열로 맞춘다
+      .then((data) => data.content ?? [])
+  );
 }
 
 /**
@@ -380,3 +464,63 @@ export function convertNoticeToProject(
   );
 }
 
+/* ─────────────── 공고 첨부 파일 업로드 ─────────────── */
+
+/**
+ * ① 업로드 시작 — presigned URL 을 받는다. (입찰 `EDITOR`)
+ *
+ * ⚠️ 공고를 먼저 만들어야 한다 — `noticeId` 가 경로에 들어간다.
+ * ℹ️ 프로젝트 문서(37 · 38번)와 같은 2단계다: 발급 → 저장소 PUT → 완료 통보.
+ */
+export function startNoticeAttachmentUpload(
+  noticeId: number | string,
+  body: StartNoticeAttachmentUploadRequest,
+  signal?: AbortSignal,
+) {
+  return api.post<NoticeAttachmentUploadStart>(
+    ENDPOINTS.bidding.noticeAttachmentUploads(noticeId),
+    body,
+    signal,
+  );
+}
+
+/**
+ * ③ 완료 통보. **이 호출이 빠지면 첨부가 목록에 나오지 않는다** —
+ * 저장소에 파일은 올라가 있어도 서버가 완료로 보지 않는다.
+ */
+export function completeNoticeAttachmentUpload(
+  noticeId: number | string,
+  attachmentId: number | string,
+  signal?: AbortSignal,
+) {
+  return api.post<NoticeAttachmentUploadResult>(
+    ENDPOINTS.bidding.noticeAttachmentUploadComplete(noticeId, attachmentId),
+    {},
+    signal,
+  );
+}
+
+/**
+ * 파일 하나를 끝까지 올린다 (발급 → PUT → 완료).
+ *
+ * 저장소로 나가는 PUT 은 우리 API 래퍼를 쓰지 않는다 — 파일 도메인의 `putToStorage` 를
+ * 그대로 빌려 쓴다 (세션 쿠키를 실으면 안 되고 응답도 우리 봉투가 아니다).
+ */
+export async function uploadNoticeAttachment(
+  noticeId: number | string,
+  file: File,
+) {
+  const { attachmentId, uploadUrl } = await startNoticeAttachmentUpload(
+    noticeId,
+    {
+      fileName: file.name,
+      // 브라우저가 확장자를 못 알아보는 파일이 있다 — 서버가 판단하도록 기본값을 준다
+      mimeType: file.type || 'application/octet-stream',
+      sizeBytes: file.size,
+    },
+  );
+
+  await putToStorage(uploadUrl, file);
+
+  return completeNoticeAttachmentUpload(noticeId, attachmentId);
+}

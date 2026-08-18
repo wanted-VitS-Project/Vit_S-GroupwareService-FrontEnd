@@ -4,13 +4,15 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import { NoticeDetailSkeleton } from '@/components/bidding/NoticeSkeletons';
 import Modal from '@/components/Modal';
+import { notifyToast } from '@/components/Toast';
 import { PROJECT_ROUTES } from '@/features/project/routes';
 import { ApiError, messageOf } from '@/lib/api';
 import { formatDate, formatDateTime } from '@/lib/format';
 
-import { getNoticeDetail } from './api';
+import { dismissNotice, getNoticeDetail, restoreNotice } from './api';
 import { formatAmount, orDash } from './display';
 import { BIDDING_CODES } from './errorCodes';
 import {
@@ -22,6 +24,7 @@ import NoticeProjectConvertModal from './NoticeProjectConvertModal';
 import NoticeReviewModal from './NoticeReviewModal';
 import NoticeSummaryCard from './NoticeSummaryCard';
 import { BIDDING_ROUTES } from './routes';
+import { DISMISS_REASON_MAX_LENGTH } from './types';
 import type { BidNoticeDetail, NoticeAttachment } from './types';
 
 /**
@@ -79,6 +82,21 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
   const [showsConvert, setShowsConvert] = useState(false);
   /** 전환의 근거가 될 검토 — 검토 결과 화면에서만 넘어온다 */
   const [convertReviewId, setConvertReviewId] = useState<number | null>(null);
+  /** 제외 사유 입력 창 · 복구 확인 창 */
+  const [showsDismiss, setShowsDismiss] = useState(false);
+  const [showsRestore, setShowsRestore] = useState(false);
+
+  /**
+   * 제외 · 복구 결과를 **화면의 공고에 곧바로 반영**한다.
+   * 상세를 다시 부르지 않는 이유는 응답이 바뀐 값을 그대로 주기 때문이다 —
+   * 다시 부르면 화면이 스켈레톤으로 한 번 내려갔다 올라온다.
+   */
+  function applyStatus(next: {
+    noticeStatus: BidNoticeDetail['noticeStatus'];
+    dismissReason: string | null;
+  }) {
+    setNotice((current) => (current ? { ...current, ...next } : current));
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -317,8 +335,81 @@ export default function NoticeDetail({ noticeId }: { noticeId: number }) {
               </Link>
             )}
           </Card>
+
+          {/**
+           * 검토 상태(공고중 · 제외)를 바꾸는 자리.
+           *
+           * 분석 · 전환 카드와 섞지 않는다 — 저쪽은 `이 공고로 무엇을 할까`, 여기는
+           * `이 공고를 계속 볼까` 라 성격이 다르고, 제외는 목록에서 공고가 빠지는 동작이다.
+           */}
+          <Card title="검토 상태">
+            {notice.noticeStatus === 'DISMISSED' ? (
+              <>
+                <p className="text-caption break-keep text-text-secondary">
+                  검토 대상에서 빠져 있습니다. 되돌리면 공고 목록에 다시
+                  나타납니다.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowsRestore(true)}
+                  className="btn btn-sm btn-gray-outlined mt-2 w-full"
+                >
+                  제외 해제
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-caption break-keep text-text-secondary">
+                  검토할 필요가 없는 공고는 제외해 둡니다. 사유가 함께 남고,
+                  언제든 되돌릴 수 있습니다.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowsDismiss(true)}
+                  className="btn btn-sm btn-gray-outlined mt-2 w-full"
+                >
+                  공고 제외
+                </button>
+              </>
+            )}
+          </Card>
         </div>
       </div>
+
+      {showsDismiss && (
+        <DismissNoticeModal
+          noticeId={noticeId}
+          onClose={() => setShowsDismiss(false)}
+          onDismissed={(result) => {
+            applyStatus(result);
+            setShowsDismiss(false);
+            notifyToast('공고를 제외했습니다.');
+          }}
+        />
+      )}
+
+      {showsRestore && (
+        <AlertDialogTwoButton
+          icon={DialogIcons.info}
+          title="제외를 해제할까요?"
+          description="공고 목록에 다시 나타나고, 남아 있던 제외 사유는 지워집니다."
+          confirmLabel="제외 해제"
+          onCancel={() => setShowsRestore(false)}
+          onConfirm={async () => {
+            try {
+              const result = await restoreNotice(noticeId);
+              applyStatus(result);
+              setShowsRestore(false);
+              notifyToast('제외를 해제했습니다.');
+            } catch (caught) {
+              notifyToast(
+                messageOf(caught, '제외를 해제하지 못했습니다.'),
+                'error',
+              );
+            }
+          }}
+        />
+      )}
 
       {showsConvert && convertReviewId !== null && (
         <NoticeProjectConvertModal
@@ -514,6 +605,113 @@ function LongField({ label, value }: { label: string; value: string | null }) {
         {orDash(value)}
       </p>
     </div>
+  );
+}
+
+/**
+ * 제외 사유 입력 창.
+ *
+ * ⚠️ 사유는 **서버가 요구하는 필수 값**이다 (`reason`). 비워 두면 400 이 오므로
+ *    보내기 전에 화면에서 막고, 왜 막혔는지 그 자리에 적는다.
+ */
+function DismissNoticeModal({
+  noticeId,
+  onClose,
+  onDismissed,
+}: {
+  noticeId: number;
+  onClose: () => void;
+  onDismissed: (result: {
+    noticeStatus: BidNoticeDetail['noticeStatus'];
+    dismissReason: string | null;
+  }) => void;
+}) {
+  const [reason, setReason] = useState('');
+  const [error, setError] = useState('');
+  const [isPending, setIsPending] = useState(false);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+
+    const trimmed = reason.trim();
+
+    if (!trimmed) {
+      setError('제외 사유를 입력해주세요.');
+      return;
+    }
+
+    setIsPending(true);
+    setError('');
+
+    try {
+      const result = await dismissNotice(noticeId, { reason: trimmed });
+      onDismissed(result);
+    } catch (caught) {
+      setError(messageOf(caught, '공고를 제외하지 못했습니다.'));
+    } finally {
+      setIsPending(false);
+    }
+  }
+
+  return (
+    <Modal
+      title="공고 제외"
+      onClose={onClose}
+      /* 사유를 쓰다 바깥을 잘못 눌러 날리지 않게 한다 (닫기 · Esc 는 살아 있다) */
+      dismissOnBackdrop={false}
+      className="w-full max-w-md rounded-base p-8 shadow-2xl"
+    >
+      <form onSubmit={submit}>
+        <p className="text-caption break-keep text-text-secondary">
+          검토 대상에서 뺍니다. 사유는 공고 상세에 그대로 남고, 언제든 제외를
+          해제할 수 있습니다.
+        </p>
+
+        <label
+          htmlFor="dismissReason"
+          className="mt-4 block text-detail font-semibold text-text-primary"
+        >
+          제외 사유
+        </label>
+        <textarea
+          id="dismissReason"
+          value={reason}
+          onChange={(event) => setReason(event.target.value)}
+          maxLength={DISMISS_REASON_MAX_LENGTH}
+          placeholder="예: 회사 사업 범위와 맞지 않는 공고입니다."
+          className={`input textarea mt-1.5 text-caption ${error ? 'input-error' : ''}`}
+        />
+        <p className="mt-1 text-right text-micro text-text-muted">
+          {reason.length} / {DISMISS_REASON_MAX_LENGTH}
+        </p>
+
+        {error && (
+          <p
+            role="alert"
+            className="mt-2 text-caption break-keep text-text-danger"
+          >
+            {error}
+          </p>
+        )}
+
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn btn-md btn-gray-outlined"
+          >
+            취소
+          </button>
+          <button
+            type="submit"
+            disabled={isPending}
+            className="btn btn-md btn-primary"
+          >
+            {isPending ? '제외하는 중…' : '제외'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 

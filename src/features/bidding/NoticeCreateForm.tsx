@@ -2,12 +2,14 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import PageTitle from '@/components/PageTitle';
+import { notifyToast } from '@/components/Toast';
+import { formatFileSize } from '@/features/file/format';
 import { ApiError, messageOf } from '@/lib/api';
 
-import { createNotice } from './api';
+import { createNotice, uploadNoticeAttachment } from './api';
 import { BIDDING_CODES } from './errorCodes';
 import {
   AlertBanner,
@@ -19,7 +21,7 @@ import {
   TextField,
 } from './FormFields';
 import { BIDDING_ROUTES } from './routes';
-import type { CreateNoticeRequest, NoticeAttachmentInput } from './types';
+import type { CreateNoticeRequest } from './types';
 
 /**
  * 공고 유형 선택지 — 나라장터의 `업무구분` 에 대응한다.
@@ -107,6 +109,14 @@ const REQUIRED_MESSAGES: Partial<Record<FieldName, string>> = {
  * 대신 **적었을 때 형식만** 본다 — `example.org` 처럼 적으면 링크가 열리지 않는다.
  */
 
+/**
+ * 첨부 개수 상한 — 서버와 **같은 값**이다.
+ * 넘겨 보내면 409(`BIDDING_MANUAL_NOTICE_ATTACHMENT_LIMIT_EXCEEDED`) 인데,
+ * 첨부는 공고를 만든 **뒤에** 올라가므로 그때 막히면 공고만 덩그러니 남는다.
+ * 그래서 고르는 자리에서 먼저 막는다.
+ */
+const MAX_ATTACHMENTS = 10;
+
 /** `http(s)://` 로 시작하는 주소인지. 원문 URL · 첨부 URL 이 같은 규칙을 쓴다 */
 function isHttpUrl(value: string) {
   return /^https?:\/\/.+/.test(value.trim());
@@ -137,19 +147,24 @@ function toNumber(value: string) {
  * 수집이 못 가져온 공고를 사람이 넣는 화면이다. 등록해도 상태는 `COLLECTED` 라
  * 목록에서 수집분과 함께 보이고, 구분은 `sourceCode` 로 한다.
  *
- * 첨부는 **파일 업로드가 아니라 원문 URL 등록**이다 — 우리 저장소에 올라가지 않는다.
+ * 첨부는 **파일 업로드**다 (2026-08-17 백엔드 전환 — 예전에는 원문 URL 등록이었다).
+ * 업로드 경로에 공고 번호가 들어가므로 **공고를 만든 뒤** 파일을 올린다.
  */
 export default function NoticeCreateForm() {
   const router = useRouter();
   const [values, setValues] = useState<FormValues>(EMPTY_VALUES);
   const [jointContractAllowed, setJointContractAllowed] = useState(false);
-  const [attachments, setAttachments] = useState<NoticeAttachmentInput[]>([]);
+  /**
+   * 올릴 첨부 파일.
+   *
+   * ⚠️ **등록 버튼을 누를 때 한꺼번에 올린다** — 업로드 경로에 `noticeId` 가 들어가서
+   *    공고를 먼저 만들어야 한다 (`POST /bidding/notices` → 파일 업로드).
+   */
+  const [files, setFiles] = useState<File[]>([]);
+  /** 숨긴 파일 입력 — `파일 선택` 버튼이 대신 연다 */
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
   const [formError, setFormError] = useState<string | null>(null);
-  /** 첨부 행별 오류 — 어느 줄이 잘못됐는지 그 줄에 붙여 보여준다 */
-  const [attachmentErrors, setAttachmentErrors] = useState<
-    Record<number, string>
-  >({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   function change(name: FieldName) {
@@ -160,26 +175,36 @@ export default function NoticeCreateForm() {
     };
   }
 
-  function addAttachment() {
-    setAttachments((prev) => [...prev, { fileName: '', sourceUrl: '' }]);
+  function addFiles(picked: FileList | null) {
+    if (!picked || picked.length === 0) return;
+
+    setFormError(null);
+    // 같은 파일을 두 번 고르면 그대로 두 번 올라간다 — 이름+크기로 걸러낸다
+    setFiles((prev) => {
+      const keys = new Set(prev.map((file) => `${file.name} ${file.size}`));
+      const added = Array.from(picked).filter(
+        (file) => !keys.has(`${file.name} ${file.size}`),
+      );
+      const room = MAX_ATTACHMENTS - prev.length;
+
+      /*
+        상한을 넘겨 고르면 **앞에서부터 담을 수 있는 만큼만** 담는다.
+        통째로 되돌리면 방금 고른 것이 하나도 안 들어온 것처럼 보인다.
+      */
+      if (added.length > room) {
+        setFormError(
+          `첨부는 최대 ${MAX_ATTACHMENTS}개까지 올릴 수 있습니다. ${added.length - room}개는 목록에 넣지 않았습니다.`,
+        );
+      }
+
+      return [...prev, ...added.slice(0, Math.max(room, 0))];
+    });
   }
 
-  function changeAttachment(
-    index: number,
-    key: keyof NoticeAttachmentInput,
-    value: string,
-  ) {
-    setAttachments((prev) =>
-      prev.map((item, at) => (at === index ? { ...item, [key]: value } : item)),
-    );
-    setAttachmentErrors((prev) => ({ ...prev, [index]: '' }));
+  function removeFile(index: number) {
+    setFiles((prev) => prev.filter((_, at) => at !== index));
   }
 
-  function removeAttachment(index: number) {
-    setAttachments((prev) => prev.filter((_, at) => at !== index));
-  }
-
-  /** 마감일이 공고일보다 앞서는 등 순서가 뒤집힌 입력을 잡는다 */
   function validate() {
     const next: Partial<Record<FieldName, string>> = {};
 
@@ -205,35 +230,10 @@ export default function NoticeCreateForm() {
 
     setErrors(next);
 
-    /**
-     * 첨부는 **파일명과 URL 이 짝**이어야 한다.
-     * 한쪽만 채우면 링크 없는 첨부(열 수 없음) · 이름 없는 첨부(구분 불가) 가 저장된다.
-     */
-    const attachmentIssues: Record<number, string> = {};
-
-    attachments.forEach((item, index) => {
-      const fileName = item.fileName.trim();
-      const url = item.sourceUrl.trim();
-
-      // 둘 다 비어 있으면 전송 전에 걸러내므로 오류가 아니다
-      if (fileName === '' && url === '') return;
-
-      if (fileName === '') attachmentIssues[index] = '파일명을 넣어주세요.';
-      else if (url === '') attachmentIssues[index] = '파일 URL 을 넣어주세요.';
-      else if (!isHttpUrl(url))
-        attachmentIssues[index] =
-          'http:// 또는 https:// 로 시작하는 주소를 넣어주세요.';
-    });
-
-    setAttachmentErrors(attachmentIssues);
-
     const firstInvalid = Object.keys(next)[0];
     if (firstInvalid) focusField(firstInvalid);
 
-    return (
-      Object.keys(next).length === 0 &&
-      Object.keys(attachmentIssues).length === 0
-    );
+    return Object.keys(next).length === 0;
   }
 
   /**
@@ -244,19 +244,6 @@ export default function NoticeCreateForm() {
    */
   function focusField(name: string) {
     document.getElementById(name)?.focus();
-  }
-
-  /**
-   * 이름 · URL 이 **둘 다 채워진 행만** 보낸다.
-   * 빈 행(추가만 하고 안 채운 것)은 조용히 버리고, 한쪽만 채운 행은 검증에서 이미 막힌다.
-   */
-  function toAttachmentPayload() {
-    return attachments
-      .map((item) => ({
-        fileName: item.fileName.trim(),
-        sourceUrl: item.sourceUrl.trim(),
-      }))
-      .filter((item) => item.fileName !== '' && item.sourceUrl !== '');
   }
 
   function toPayload(): CreateNoticeRequest {
@@ -286,7 +273,8 @@ export default function NoticeCreateForm() {
         : null,
       evaluationMethod: orNull(values.evaluationMethod),
       sourceUrl: orNull(values.sourceUrl),
-      attachments: toAttachmentPayload(),
+      // 첨부는 공고를 만든 뒤 파일 업로드로 붙인다 (아래 `handleSubmit`)
+      attachments: [],
     };
   }
 
@@ -300,6 +288,29 @@ export default function NoticeCreateForm() {
 
     try {
       const result = await createNotice(toPayload());
+
+      /*
+        ⚠️ 공고는 이미 만들어졌다 — 여기서 실패해도 **되돌리지 않는다.**
+           지운 뒤 다시 만들게 하면 입력한 20여 개 항목을 또 채워야 한다.
+           올리지 못한 파일만 알려주고 상세로 보낸다 (거기서 다시 붙일 수 있다).
+      */
+      const failed: string[] = [];
+
+      for (const file of files) {
+        try {
+          await uploadNoticeAttachment(result.noticeId, file);
+        } catch {
+          failed.push(file.name);
+        }
+      }
+
+      if (failed.length > 0) {
+        notifyToast(
+          `공고는 등록됐지만 첨부 ${failed.length}개를 올리지 못했습니다: ${failed.join(', ')}`,
+          'error',
+        );
+      }
+
       router.replace(BIDDING_ROUTES.detail(result.noticeId));
     } catch (error) {
       // 중복은 입력을 고칠 여지가 있어 폼을 유지한 채 알려준다
@@ -320,8 +331,10 @@ export default function NoticeCreateForm() {
   }
 
   return (
-    <>
-      <p className="text-micro text-text-secondary">
+    /* 폭 · 경로 글씨는 프로젝트 생성(`ProjectCreateForm`)과 같은 값이다 — 두 화면 모두
+       한 줄짜리 입력 폼이라 폭이 다르면 오갈 때 화면이 넓어졌다 좁아진다 */
+    <div className="mx-auto w-full max-w-[820px]">
+      <p className="mb-2 text-caption text-text-secondary">
         <Link
           href={BIDDING_ROUTES.list}
           className="hover:text-text-primary hover:underline"
@@ -512,7 +525,7 @@ export default function NoticeCreateForm() {
 
         <FormSection
           title="원문 · 첨부"
-          description="첨부는 파일 업로드가 아니라 원문 사이트의 링크를 적어두는 것입니다."
+          description="공고문 · 과업지시서 같은 파일을 올립니다. 등록을 누르면 함께 저장됩니다."
         >
           <div className="sm:col-span-2">
             <TextField
@@ -528,52 +541,62 @@ export default function NoticeCreateForm() {
           </div>
 
           <div className="space-y-2 sm:col-span-2">
-            {attachments.map((attachment, index) => (
-              <div
-                // 값으로 key 를 만들면 입력 중에 순서가 바뀐다 — 인덱스가 맞다
-                key={index}
-                className="flex items-end gap-2"
-              >
-                <div className="w-52 shrink-0">
-                  <TextField
-                    id={`attachment-name-${index}`}
-                    label="파일명"
-                    placeholder="공고문.pdf"
-                    value={attachment.fileName}
-                    onChange={(value) =>
-                      changeAttachment(index, 'fileName', value)
-                    }
-                  />
-                </div>
-                <div className="flex-1">
-                  <TextField
-                    id={`attachment-url-${index}`}
-                    label="파일 URL"
-                    type="url"
-                    placeholder="https://"
-                    value={attachment.sourceUrl}
-                    error={attachmentErrors[index] || undefined}
-                    onChange={(value) =>
-                      changeAttachment(index, 'sourceUrl', value)
-                    }
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeAttachment(index)}
-                  className="btn btn-sm btn-gray"
-                >
-                  삭제
-                </button>
-              </div>
-            ))}
+            <p className="text-detail font-semibold text-text-primary">
+              첨부 파일{' '}
+              <span className="font-normal text-text-secondary">
+                ({files.length} / {MAX_ATTACHMENTS})
+              </span>
+            </p>
 
+            {files.length > 0 && (
+              <ul className="flex flex-col gap-1.5">
+                {files.map((file, index) => (
+                  <li
+                    // 이름이 같은 파일도 있을 수 있어 자리(인덱스)로 구분한다
+                    key={`${file.name}-${index}`}
+                    className="flex items-center gap-2 rounded-lg border border-border-default px-3 py-2"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-detail text-text-primary">
+                      {file.name}
+                    </span>
+                    <span className="shrink-0 text-caption text-text-secondary">
+                      {formatFileSize(file.size)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(index)}
+                      disabled={isSubmitting}
+                      className="btn btn-sm btn-gray shrink-0"
+                    >
+                      삭제
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/*
+              ⚠️ 파일은 **등록을 누른 뒤에** 올라간다 — 업로드 경로에 공고 번호가 들어가서
+                 공고를 먼저 만들어야 한다. 그래서 여기서는 고르기만 한다.
+            */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={(event) => {
+                addFiles(event.target.files);
+                // 같은 파일을 다시 고를 수 있게 값을 비운다
+                event.target.value = '';
+              }}
+            />
             <button
               type="button"
-              onClick={addAttachment}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isSubmitting || files.length >= MAX_ATTACHMENTS}
               className="btn btn-sm btn-gray"
             >
-              첨부 추가
+              파일 선택
             </button>
           </div>
         </FormSection>
@@ -593,6 +616,6 @@ export default function NoticeCreateForm() {
           </button>
         </div>
       </form>
-    </>
+    </div>
   );
 }

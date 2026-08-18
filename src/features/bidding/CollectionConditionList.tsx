@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import { ErrorStateTwoButton } from '@/components/ErrorState';
 import PageTitle from '@/components/PageTitle';
-import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
+import LoadingSpinner from '@/components/Spinner';
 import { ApiError, messageOf } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import { useModalTarget } from '@/lib/useModal';
@@ -346,11 +346,13 @@ export default function CollectionConditionList() {
           }}
         />
       ) : conditions === null ? (
-        <SkeletonGroup label="수집 조건을 불러오는 중" className="space-y-3">
-          {[0, 1, 2].map((key) => (
-            <Skeleton key={key} className="h-28 w-full" />
-          ))}
-        </SkeletonGroup>
+        /*
+          ⚠️ 자리표시 막대를 쓰지 않는다 — 조건 카드는 키워드 · 지역 수에 따라 높이가
+             제각각이라 `h-28` 막대와 어긋나고, 결과가 오는 순간 목록이 늘었다 줄며 튄다.
+        */
+        <div className="rounded-base border border-border-default bg-bg-card">
+          <LoadingSpinner label="수집 조건을 불러오는 중" className="py-16" />
+        </div>
       ) : conditions.length === 0 ? (
         <EmptyState />
       ) : visible?.length === 0 ? (

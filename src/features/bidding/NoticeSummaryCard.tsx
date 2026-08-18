@@ -7,6 +7,7 @@ import { ApiError, messageOf } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 
 import {
+  abandonSummary,
   confirmSummary,
   getNoticeSummaries,
   getSummary,
@@ -138,6 +139,40 @@ export default function NoticeSummaryCard({
   }, [noticeId]);
 
   /** `COMPLETED` · `FAILED` 가 될 때까지 물어본다 */
+  /**
+   * 진행 중인 요약을 **서버에서도** 끝낸다.
+   *
+   * ⚠️ 예약된 폴링을 먼저 끊는다 — 안 끊으면 중단한 뒤에도 조회가 계속 나간다.
+   * ⚠️ `isBusy` 도 함께 푼다 — `hasGivenUp` 만 세우면 요청 버튼이 `disabled` 에 걸려
+   *    중단한 뒤에 아무것도 못 하게 된다.
+   * ℹ️ 서버 호출이 실패해도 **화면 잠금은 푼다** — 기다림을 멈추는 것이 이 버튼의 목적이고,
+   *    남은 작업은 다시 요청할 때 409 로 드러난다.
+   */
+  async function stopWaiting() {
+    if (timer.current !== null) {
+      window.clearTimeout(timer.current);
+      timer.current = null;
+    }
+
+    setHasGivenUp(true);
+    setIsBusy(false);
+
+    const runningId = summary?.summaryId;
+
+    if (runningId === undefined) {
+      setNotice('요약 대기를 멈췄습니다.');
+      return;
+    }
+
+    try {
+      await abandonSummary(runningId);
+      setNotice('요약을 중단했습니다. 필요하면 다시 요청할 수 있습니다.');
+    } catch (caught) {
+      setNotice('');
+      setError(messageOf(caught, '요약을 중단하지 못했습니다.'));
+    }
+  }
+
   function poll(summaryId: number, attempt: number) {
     /**
      * ⚠️ 새 체인을 걸기 전에 **앞 체인을 끊는다.** 타이머 슬롯이 하나뿐이라
@@ -497,32 +532,17 @@ export default function NoticeSummaryCard({
 
           <div className="mt-3 flex flex-wrap justify-end gap-2">
             {/**
-             * ⚠️ 요약에는 **검토의 `abandon` 같은 취소 API 가 없다.**
-             *    서버 작업은 계속 도니 "취소" 라고 쓰지 않는다 — 화면 잠금만 푼다.
-             *    그 사이 새로 요청하면 `409` 로 막힐 수 있고, 그건 아래 `ask()` 가 받는다.
+             * 요약 **중단** — 검토의 `abandon` 과 짝인 API 가 2026-08-18 에 생겼다.
+             * 예전에는 화면 잠금만 풀고 서버 작업은 계속 돌았는데, 그러면 다시 요청할 때
+             * `409 BIDDING_SUMMARY_ALREADY_PROCESSING` 으로 막혔다. 이제 서버에서도 끝낸다.
              */}
             {isWaiting && (
               <button
                 type="button"
-                onClick={() => {
-                  /**
-                   * ⚠️ `isBusy` 까지 함께 푼다 — `hasGivenUp` 만 세우면 요청 버튼이
-                   *    `disabled={isBusy || …}` 에 걸려 멈춘 뒤에도 아무것도 못 한다.
-                   * ⚠️ 예약된 폴링도 끊는다 — 안 그러면 멈춘 뒤에도 요청이 계속 나간다.
-                   */
-                  if (timer.current !== null) {
-                    window.clearTimeout(timer.current);
-                    timer.current = null;
-                  }
-                  setHasGivenUp(true);
-                  setIsBusy(false);
-                  setNotice(
-                    '대기를 멈췄습니다. 진행 중인 요약이 끝나면 결과가 표시됩니다.',
-                  );
-                }}
+                onClick={() => void stopWaiting()}
                 className="btn btn-sm btn-gray-outlined"
               >
-                멈추기
+                중단
               </button>
             )}
             <button

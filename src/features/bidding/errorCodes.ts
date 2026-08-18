@@ -20,6 +20,28 @@ export const BIDDING_CODES = {
   /** 409 — 같은 공고를 이미 직접 등록함 */
   manualNoticeDuplicated: 'BIDDING_MANUAL_NOTICE_DUPLICATED',
   /**
+   * 409 — 직접 등록 공고의 첨부가 **10개를 넘었다** (2026-08-18 스웨거).
+   * 화면에서도 먼저 막지만, 다른 탭에서 먼저 올렸을 수 있어 서버 코드도 받아 둔다.
+   */
+  manualNoticeAttachmentLimitExceeded:
+    'BIDDING_MANUAL_NOTICE_ATTACHMENT_LIMIT_EXCEEDED',
+  /** 409 — 완료 통보가 이미 끝난 첨부 */
+  manualNoticeAttachmentAlreadyCompleted:
+    'BIDDING_MANUAL_NOTICE_ATTACHMENT_ALREADY_COMPLETED',
+  /**
+   * 409 — 저장소에 올라간 파일이 없거나 크기가 요청과 다르다.
+   * 저장소 PUT 이 조용히 실패한 경우라 **다시 올려야** 한다.
+   */
+  manualNoticeAttachmentUploadFailed:
+    'BIDDING_MANUAL_NOTICE_ATTACHMENT_UPLOAD_FAILED',
+  manualNoticeAttachmentObjectNotFound:
+    'BIDDING_MANUAL_NOTICE_ATTACHMENT_OBJECT_NOT_FOUND',
+  manualNoticeAttachmentSizeMismatch:
+    'BIDDING_MANUAL_NOTICE_ATTACHMENT_SIZE_MISMATCH',
+  /** 404 — 업로드 슬롯이 없다 (다른 공고의 첨부 ID 등) */
+  manualNoticeAttachmentNotFound:
+    'BIDDING_MANUAL_NOTICE_ATTACHMENT_NOT_FOUND',
+  /**
    * 409 — 수정할 수 없는 공고.
    *
    * ⚠️ **수집된 공고(`sourceCode !== 'MANUAL'`)는 수정할 수 없다** — 직접 등록한 것만 고친다.
