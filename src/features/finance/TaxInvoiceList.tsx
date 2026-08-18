@@ -249,7 +249,11 @@ export default function TaxInvoiceList() {
       ) : (
         <DataTable
           caption="세금계산서 목록"
-          loadingLabel="세금계산서를 불러오는 중"
+          /*
+            ⚠️ `loadingLabel` 을 주지 않는다 — 첫 조회는 위 스피너가 맡고,
+               재조회 중에는 **직전 목록을 그대로 둔다**(`rows` 가 비지 않는다).
+               표가 스스로 로딩을 그릴 일이 없어 라벨만 남으면 계약이 어긋난다.
+          */
           columns={columns}
           rows={error ? [] : rows}
           rowKey={(row) => row.taxId}

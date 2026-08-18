@@ -356,15 +356,15 @@ function Loaded({
               </button>
             )}
 
-            {/* 완료 표시용 버튼. 누를 일이 없어 동작을 달지 않는다 */}
+            {/*
+              완료는 **표시**다 — 누를 일이 없어 버튼으로 두지 않는다.
+              `aria-disabled` 만 붙인 버튼은 키보드 초점이 그대로 잡혀,
+              눌러 보고서야 동작이 없다는 것을 알게 된다.
+            */}
             {isCompleted && (
-              <button
-                type="button"
-                aria-disabled
-                className="btn btn-md btn-primary w-full"
-              >
+              <p className="btn btn-md btn-primary w-full cursor-default">
                 결재 승인 확인
-              </button>
+              </p>
             )}
           </>
         )}

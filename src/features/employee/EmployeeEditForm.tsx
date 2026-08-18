@@ -23,6 +23,7 @@ import type {
   CertificateInput,
   EducationInput,
 } from '@/features/masterItem/types';
+import { newRowKey } from '@/features/masterItem/types';
 import { ApiError, messageOf } from '@/lib/api';
 import { formatPhone } from '@/lib/format';
 
@@ -61,12 +62,15 @@ function toFormValues(employee: EmployeeDetail): FormValues {
  */
 function toQualifications(employee: EmployeeDetail) {
   return {
+    // 줄을 지웠을 때 입력 상태가 옆줄로 새지 않도록 화면 전용 키를 붙인다
     educations: (employee.educations ?? []).map((education) => ({
+      rowKey: newRowKey(),
       majorId: education.majorId,
       degree: education.degree,
       school: education.school,
     })),
     certificates: (employee.certificates ?? []).map((certificate) => ({
+      rowKey: newRowKey(),
       certificateId: certificate.certificateId,
       acquiredDate: certificate.acquiredDate,
     })),

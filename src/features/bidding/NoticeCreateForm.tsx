@@ -178,27 +178,29 @@ export default function NoticeCreateForm() {
   function addFiles(picked: FileList | null) {
     if (!picked || picked.length === 0) return;
 
-    setFormError(null);
+    /*
+      ⚠️ 계산을 `setFiles` 업데이터 **밖**에서 한다 — 업데이터는 순수해야 하고,
+         React 가 두 번 실행할 수 있어(StrictMode) 그 안에서 다른 상태를 건드리면
+         안내가 두 번 세워진다. 이벤트 핸들러라 `files` 는 이미 최신 값이다.
+    */
     // 같은 파일을 두 번 고르면 그대로 두 번 올라간다 — 이름+크기로 걸러낸다
-    setFiles((prev) => {
-      const keys = new Set(prev.map((file) => `${file.name} ${file.size}`));
-      const added = Array.from(picked).filter(
-        (file) => !keys.has(`${file.name} ${file.size}`),
-      );
-      const room = MAX_ATTACHMENTS - prev.length;
+    const keys = new Set(files.map((file) => `${file.name} ${file.size}`));
+    const added = Array.from(picked).filter(
+      (file) => !keys.has(`${file.name} ${file.size}`),
+    );
+    const room = Math.max(MAX_ATTACHMENTS - files.length, 0);
 
-      /*
-        상한을 넘겨 고르면 **앞에서부터 담을 수 있는 만큼만** 담는다.
-        통째로 되돌리면 방금 고른 것이 하나도 안 들어온 것처럼 보인다.
-      */
-      if (added.length > room) {
-        setFormError(
-          `첨부는 최대 ${MAX_ATTACHMENTS}개까지 올릴 수 있습니다. ${added.length - room}개는 목록에 넣지 않았습니다.`,
-        );
-      }
+    /*
+      상한을 넘겨 고르면 **앞에서부터 담을 수 있는 만큼만** 담는다.
+      통째로 되돌리면 방금 고른 것이 하나도 안 들어온 것처럼 보인다.
+    */
+    setFormError(
+      added.length > room
+        ? `첨부는 최대 ${MAX_ATTACHMENTS}개까지 올릴 수 있습니다. ${added.length - room}개는 목록에 넣지 않았습니다.`
+        : null,
+    );
 
-      return [...prev, ...added.slice(0, Math.max(room, 0))];
-    });
+    setFiles((prev) => [...prev, ...added.slice(0, room)]);
   }
 
   function removeFile(index: number) {

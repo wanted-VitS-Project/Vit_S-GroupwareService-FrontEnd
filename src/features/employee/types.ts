@@ -1,8 +1,8 @@
 import type { Role } from '@/features/auth/types';
 import type {
-  CertificateInput,
+  CertificateValue,
   CertificateView,
-  EducationInput,
+  EducationValue,
   EducationView,
 } from '@/features/masterItem/types';
 
@@ -117,8 +117,8 @@ export interface CreateEmployeeRequest {
    * 학력 · 자격증 — **마스터 항목에서 고른 id** 를 보낸다 (자유입력이 아니다).
    * 없는 id 를 보내면 404 `MAJOR_NOT_FOUND` · `CERT_NOT_FOUND` 가 온다.
    */
-  educations?: EducationInput[];
-  certificates?: CertificateInput[];
+  educations?: EducationValue[];
+  certificates?: CertificateValue[];
 }
 
 /** 등록 응답 (201) */
@@ -153,8 +153,8 @@ export interface UpdateEmployeeRequest {
    * ⚠️ 보낸 배열이 최종 상태가 된다 — **생략하면 기존 유지, `[]` 면 전부 삭제**다.
    *    "안 건드림" 과 "다 지움" 이 다른 요청이라, 폼은 편집 여부를 구분해 보내야 한다.
    */
-  educations?: EducationInput[];
-  certificates?: CertificateInput[];
+  educations?: EducationValue[];
+  certificates?: CertificateValue[];
 }
 
 /** 권한 변경 응답 (.ai/API.md 19) */

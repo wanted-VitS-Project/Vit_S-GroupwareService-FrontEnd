@@ -255,7 +255,11 @@ export default function ApprovalDetailView({
             {viewing ? (
               viewing.title || '제목 없음'
             ) : (
-              <Spinner className="inline-block size-4 align-middle" />
+              <>
+                <Spinner className="inline-block size-4 align-middle" />
+                {/* 스피너는 `aria-hidden` 이라 제목 자리가 통째로 비어 읽힌다 */}
+                <span className="sr-only">제목을 불러오는 중</span>
+              </>
             )}
           </h2>
           <p className="mt-1.5 text-label text-text-secondary">

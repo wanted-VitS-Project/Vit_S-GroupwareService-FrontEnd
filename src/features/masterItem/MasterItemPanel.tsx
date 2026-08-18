@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import LoadingSpinner from '@/components/Spinner';
@@ -50,6 +50,10 @@ export default function MasterItemPanel({
     null,
   );
   const deleteModal = useModalTarget<MasterItem>();
+  /** 이름 수정이 오가는 중인지 — 화면에 그리지 않아 상태가 아니라 ref 로 둔다 */
+  const isRenaming = useRef(false);
+  /** 지역 상수로 받아야 JSX 안에서 `null` 이 아님이 좁혀진다 (단언을 쓰지 않는다) */
+  const deletePending = deleteModal.target;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -67,6 +71,12 @@ export default function MasterItemPanel({
   }, [kind, reloadCount]);
 
   function reload() {
+    /*
+      실패 표시를 **먼저 내린다** — 그냥 두면 다시 시도 를 눌러도 실패 문구가 그대로 남아
+      버튼이 안 먹는 것으로 읽힌다. 목록도 비워 스피너가 뜨게 한다.
+    */
+    setHasFailed(false);
+    setItems(null);
     setReloadCount((count) => count + 1);
   }
 
@@ -102,7 +112,11 @@ export default function MasterItemPanel({
   }
 
   async function rename() {
-    if (editing === null) return;
+    /*
+      Enter 와 포커스 아웃 두 경로에서 불린다 — 실패하면 입력칸이 그대로 남아,
+      그 상태로 칸을 벗어나면 같은 값으로 한 번 더 나간다 (토스트도 두 번 뜬다).
+    */
+    if (editing === null || isRenaming.current) return;
 
     const next = editing.name.trim();
     const before = items?.find((item) => item.id === editing.id)?.name;
@@ -112,6 +126,8 @@ export default function MasterItemPanel({
       setEditing(null);
       return;
     }
+
+    isRenaming.current = true;
 
     try {
       const saved = await updateMasterItem(kind, editing.id, next);
@@ -129,6 +145,8 @@ export default function MasterItemPanel({
           : messageOf(caught, '이름을 바꾸지 못했습니다.'),
         'error',
       );
+    } finally {
+      isRenaming.current = false;
     }
   }
 
@@ -273,21 +291,21 @@ export default function MasterItemPanel({
         </p>
       )}
 
-      {deleteModal.target && (
+      {deletePending !== null && (
         <AlertDialogTwoButton
           icon={DialogIcons.danger}
           title="항목을 삭제할까요?"
           description={
             <>
               <strong className="text-text-primary">
-                {deleteModal.target.name}
+                {deletePending.name}
               </strong>{' '}
               항목을 삭제합니다. 이후 사원 등록에서 고를 수 없습니다.
             </>
           }
           confirmLabel="삭제"
           isDanger
-          onConfirm={() => remove(deleteModal.target as MasterItem)}
+          onConfirm={() => remove(deletePending)}
           onCancel={deleteModal.close}
         />
       )}

@@ -39,29 +39,52 @@ export const DEGREE_LABELS: Record<Degree, string> = {
 /** 셀렉트 · 엑셀 안내가 함께 쓰는 순서 (낮은 학위부터) */
 export const DEGREES: Degree[] = ['BACHELOR', 'MASTER', 'DOCTOR'];
 
-/** 사원 등록 · 수정에 실어 보내는 학력 한 줄 */
-export interface EducationInput {
+/**
+ * 줄을 가르는 **화면 전용 키**. 서버로 보내지 않는다 (`toQualificationPayload` 가 뺀다).
+ *
+ * 배열 자리(index)를 `key` 로 쓰면 가운데 줄을 지웠을 때 뒤 줄들의 자리가 한 칸씩 당겨져,
+ * React 가 같은 DOM 을 재사용한다 — 지운 줄의 포커스 · 입력 중이던 날짜 · 한글 조합이
+ * 다음 줄에 남아 값이 뒤바뀐 것처럼 보인다.
+ */
+export interface QualificationRowKey {
+  rowKey: string;
+}
+
+/** 줄을 새로 만들 때 붙인다 — 값이 같아도 줄은 서로 다르다 */
+export function newRowKey() {
+  return crypto.randomUUID();
+}
+
+/** 서버와 주고받는 학력 한 줄 — 화면 전용 키가 섞이지 않는다 */
+export interface EducationValue {
   majorId: number;
   degree: Degree;
   /** 학교명 — 선택 */
   school?: string;
 }
 
-/** 사원 등록 · 수정에 실어 보내는 자격증 한 줄 */
-export interface CertificateInput {
+/** 서버와 주고받는 자격증 한 줄 */
+export interface CertificateValue {
   certificateId: number;
   /** 취득일 `YYYY-MM-DD` — 선택 */
   acquiredDate?: string;
 }
 
+/** 폼이 들고 있는 학력 한 줄 — 값 + 화면 전용 키 */
+export interface EducationInput extends EducationValue, QualificationRowKey {}
+
+/** 폼이 들고 있는 자격증 한 줄 */
+export interface CertificateInput
+  extends CertificateValue, QualificationRowKey {}
+
 /**
  * 사원 상세 응답의 학력 — 마스터를 조인해 **표시명이 함께** 온다.
  * 화면은 이름을 다시 찾지 않고 이 값을 그대로 적는다.
  */
-export interface EducationView extends EducationInput {
+export interface EducationView extends EducationValue {
   majorName: string;
 }
 
-export interface CertificateView extends CertificateInput {
+export interface CertificateView extends CertificateValue {
   certificateName: string;
 }

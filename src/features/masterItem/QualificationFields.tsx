@@ -11,7 +11,7 @@ import type {
   EducationInput,
   MasterItem,
 } from './types';
-import { DEGREE_LABELS, DEGREES } from './types';
+import { DEGREE_LABELS, DEGREES, newRowKey } from './types';
 
 /**
  * 사원의 학력 · 자격증 입력 칸. 등록 폼과 수정 폼이 **같은 것을 쓴다.**
@@ -129,7 +129,7 @@ export default function QualificationFields({
 
         <ul className="flex flex-col gap-1.5">
           {educations.map((row, index) => (
-            <li key={index} className="flex flex-wrap items-center gap-2">
+            <li key={row.rowKey} className="flex flex-wrap items-center gap-2">
               <select
                 aria-label={`${index + 1}번째 학력 전공`}
                 value={row.majorId || ''}
@@ -193,7 +193,10 @@ export default function QualificationFields({
             onChange({
               certificates,
               // 학위는 비워 둘 수 없어 첫 값으로 시작한다 — 전공만 고르면 된다
-              educations: [...educations, { majorId: 0, degree: 'BACHELOR' }],
+              educations: [
+                ...educations,
+                { rowKey: newRowKey(), majorId: 0, degree: 'BACHELOR' },
+              ],
             })
           }
         />
@@ -210,7 +213,7 @@ export default function QualificationFields({
 
         <ul className="flex flex-col gap-1.5">
           {certificates.map((row, index) => (
-            <li key={index} className="flex flex-wrap items-center gap-2">
+            <li key={row.rowKey} className="flex flex-wrap items-center gap-2">
               <select
                 aria-label={`${index + 1}번째 자격증`}
                 value={row.certificateId || ''}
@@ -261,7 +264,10 @@ export default function QualificationFields({
           onClick={() =>
             onChange({
               educations,
-              certificates: [...certificates, { certificateId: 0 }],
+              certificates: [
+                ...certificates,
+                { rowKey: newRowKey(), certificateId: 0 },
+              ],
             })
           }
         />

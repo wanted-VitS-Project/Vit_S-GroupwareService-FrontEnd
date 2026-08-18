@@ -509,6 +509,11 @@ export function completeNoticeAttachmentUpload(
 export async function uploadNoticeAttachment(
   noticeId: number | string,
   file: File,
+  /**
+   * 세 단계에 그대로 넘긴다 — 첨부는 최대 10개가 **차례로** 올라가서,
+   * 화면을 떠난 뒤에도 남은 파일이 계속 올라가면 기다림만 길어진다.
+   */
+  signal?: AbortSignal,
 ) {
   const { attachmentId, uploadUrl } = await startNoticeAttachmentUpload(
     noticeId,
@@ -518,9 +523,10 @@ export async function uploadNoticeAttachment(
       mimeType: file.type || 'application/octet-stream',
       sizeBytes: file.size,
     },
+    signal,
   );
 
-  await putToStorage(uploadUrl, file);
+  await putToStorage(uploadUrl, file, signal);
 
-  return completeNoticeAttachmentUpload(noticeId, attachmentId);
+  return completeNoticeAttachmentUpload(noticeId, attachmentId, signal);
 }
