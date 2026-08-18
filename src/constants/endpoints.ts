@@ -18,6 +18,13 @@ export const ENDPOINTS = {
     profileImage: `${V1}/auth/me/profile-image`,
     password: `${V1}/auth/password`,
     termsAgreements: `${V1}/auth/terms-agreements`,
+    /**
+     * 세션 남은 시간 조회. **조회 겸 연장**이다 — 부르는 순간 만료가 다시 뒤로 밀린다.
+     *
+     * ⚠️ 주기 조회(폴링) 금지. 호출이 곧 연장이라 세션이 영영 안 끊겨
+     *    "4시간 유휴면 끊는다" 는 정책이 무력화된다. 시드 · 연장 버튼에서만 부른다.
+     */
+    session: `${V1}/auth/session`,
   },
   projects: {
     /** 내 프로젝트 목록 — 권한 밖 건은 403 이 아니라 목록에서 빠진다 */

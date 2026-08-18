@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import Logo from '@/components/Logo';
 import ProfileMenu from '@/components/ProfileMenu';
 import { findActiveMenu, isProjectScope, isUnder } from '@/constants/menu';
+import SessionTimer from '@/features/auth/SessionTimer';
 import NotificationBell from '@/features/notification/NotificationBell';
 import {
   type ResolvedMenuItem,
@@ -109,7 +110,17 @@ export default function Header() {
         <h1 className="sr-only">{titleOf(pathname, items)}</h1>
       </div>
 
-      <div className="flex items-center gap-3">
+      {/*
+        오른쪽 묶음은 좁아질수록 자리 다툼이 심해진다 — 375px 에서는 세 덩어리가
+        나란히 서야 해서 간격부터 한 단계 줄인다. 각 덩어리는 자기 안에서 다시 줄어든다
+        (`SessionTimer` 는 꼬리말, `ProfileMenu` 는 부서 경로 줄).
+      */}
+      <div className="flex min-w-0 items-center gap-1.5 md:gap-3">
+        {/*
+          세션 만료 시각. 종 · 프로필보다 **왼쪽**에 둔다 — 눌러야 하는 순간(5분 경고)에
+          손이 먼저 닿는 자리이고, 오른쪽 끝은 이미 익숙한 두 개가 자리를 잡고 있다.
+        */}
+        <SessionTimer isDark={isDark} />
         <NotificationBell isDark={isDark} />
         {/* 로그아웃은 이 안 드롭다운에 있다 — 헤더에 버튼으로 내놓지 않는다 */}
         <ProfileMenu isDark={isDark} />

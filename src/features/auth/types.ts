@@ -56,6 +56,30 @@ export interface CurrentUser extends LoginResponse {
   profileImageUrl: string | null;
 }
 
+/**
+ * `GET /auth/session` 응답 — 세션 남은 시간.
+ *
+ * ⚠️ 이 API 는 **조회 겸 연장**이다. 서버가 세션을 만지는 모든 요청이 만료를 뒤로 미는데
+ *    이 API 도 예외가 아니라서, `remainingSeconds` 는 늘 "호출 직후" 기준값
+ *    (= 사실상 `timeoutSeconds` 와 같다). "건드리지 않고 읽기" 모드는 없다.
+ */
+export interface SessionInfo {
+  /**
+   * 유휴 타임아웃 정책값(초). 기본 14400(4시간)이지만 **배포 환경변수를 따라간다** —
+   * 하드코딩하지 말고 이 값으로 타이머를 리셋한다.
+   */
+  timeoutSeconds: number;
+  /**
+   * 만료 예정 시각 `yyyy-MM-dd HH:mm:ss` (**서버 시각**).
+   *
+   * ⚠️ 이 값으로 카운트다운하지 않는다 — 클라이언트 시계가 어긋나 있으면 몇 분씩 틀린다.
+   *    카운트다운은 시계와 무관한 `remainingSeconds` 로 한다.
+   */
+  expiresAt: string;
+  /** 만료까지 남은 초 (호출 직후 기준). 카운트다운 기준값 */
+  remainingSeconds: number;
+}
+
 /** 프로필 사진 등록 · 변경 응답 — 교체돼도 경로는 그대로다 */
 export interface ProfileImageResponse {
   profileImageUrl: string;
