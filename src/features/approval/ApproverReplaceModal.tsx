@@ -233,7 +233,7 @@ function TargetRow({
                 type="button"
                 onClick={() => onDecide(null)}
                 disabled={disabled}
-                className="cursor-pointer text-text-primary-blue underline disabled:cursor-not-allowed disabled:text-text-muted"
+                className="cursor-pointer text-text-primary-blue underline hover:text-btn-primary-hover disabled:cursor-not-allowed disabled:text-text-muted"
               >
                 다시 고르기
               </button>

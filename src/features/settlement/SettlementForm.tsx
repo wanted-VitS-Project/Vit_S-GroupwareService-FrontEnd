@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import { ApiError, messageOf } from '@/lib/api';
+import { dateInputProps } from '@/lib/dateInput';
 
 import { getSettlementDraft, saveSettlement } from './api';
 import {
@@ -382,6 +383,7 @@ function Field({
       <span className="min-w-0 flex-1">
         <input
           type={type}
+          {...dateInputProps(type)}
           value={value}
           placeholder={placeholder}
           onChange={(event) => onChange(event.target.value)}

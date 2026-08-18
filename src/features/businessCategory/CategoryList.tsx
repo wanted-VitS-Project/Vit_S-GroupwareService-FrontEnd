@@ -126,7 +126,7 @@ export default function CategoryList() {
           role="switch"
           aria-checked={includeDeleted}
           onClick={() => setIncludeDeleted((current) => !current)}
-          className="flex cursor-pointer items-center gap-2 text-label text-text-secondary"
+          className="flex cursor-pointer items-center gap-2 text-label text-text-secondary hover:text-text-primary"
         >
           <span
             className={`flex h-5 w-9 shrink-0 items-center rounded-pill p-0.5 transition-colors ${
@@ -449,7 +449,7 @@ function FolderIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className="mb-2 size-10 text-text-muted"
+      className="mx-auto mb-2 size-10 text-text-muted"
     >
       <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
     </svg>

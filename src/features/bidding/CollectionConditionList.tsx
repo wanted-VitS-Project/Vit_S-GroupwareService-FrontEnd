@@ -337,10 +337,7 @@ export default function CollectionConditionList() {
           }}
         />
       ) : conditions === null ? (
-        /*
-          ⚠️ 자리표시 막대를 쓰지 않는다 — 조건 카드는 키워드 · 지역 수에 따라 높이가
-             제각각이라 `h-28` 막대와 어긋나고, 결과가 오는 순간 목록이 늘었다 줄며 튄다.
-        */
+        /* 조건 카드는 높이가 제각각이라 자리표시 막대와 어긋난다 — 스피너를 쓴다 */
         <div className="rounded-base border border-border-default bg-bg-card">
           <LoadingSpinner label="수집 조건을 불러오는 중" className="py-16" />
         </div>
@@ -590,7 +587,7 @@ function ConditionCard({
             type="button"
             onClick={onDismissToggleError}
             aria-label="닫기"
-            className="cursor-pointer font-bold"
+            className="cursor-pointer font-bold hover:text-text-primary"
           >
             ✕
           </button>

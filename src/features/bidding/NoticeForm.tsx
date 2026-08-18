@@ -9,6 +9,7 @@ import PageTitle from '@/components/PageTitle';
 import { notifyToast } from '@/components/Toast';
 import { formatFileSize } from '@/features/file/format';
 import { ApiError, messageOf } from '@/lib/api';
+import { focusInvalidField } from '@/lib/focusField';
 
 import {
   createNotice,
@@ -165,10 +166,8 @@ function toValues(notice: BidNoticeDetail): FormValues {
 }
 
 /**
- * 공고 직접 등록 · 수정 화면. (입찰 `EDITOR`)
- *
- * `noticeId` 를 주면 수정이다. 수정은 직접 등록한 공고(`sourceCode === 'MANUAL'`)만 되고
- * 수집 공고를 보내면 409(`BIDDING_NOTICE_EDIT_NOT_ALLOWED`) 다.
+ * 공고 직접 등록 · 수정 화면. `noticeId` 를 주면 수정이다.
+ * 수정은 직접 등록한 공고만 되고 수집 공고를 보내면 409 다.
  */
 export default function NoticeForm({ noticeId }: { noticeId?: number }) {
   const isEdit = noticeId !== undefined;
@@ -294,7 +293,7 @@ export default function NoticeForm({ noticeId }: { noticeId?: number }) {
    * 항목이 20개 가까워 제출 버튼 자리에서는 첫 오류가 보이지 않는다.
    */
   function focusField(name: string) {
-    document.getElementById(name)?.focus();
+    focusInvalidField(name);
   }
 
   /** 공통 입력값. 첨부는 저장한 뒤 파일 업로드로 붙이므로 비워 보낸다 */

@@ -519,14 +519,43 @@ input:disabled {
     border-color: var(--color-border-primary);
   }
 
+  /*
+    셀렉트는 **눌러야 열리는 조작**인데 마우스를 올려도 아무 변화가 없으면
+    고를 수 있는 자리인지 모른다. 화면마다 클래스가 제각각이라(필터 바 · 폼 · 모달)
+    요소 자체에 한 번만 준다. 막힌 셀렉트는 뺀다.
+  */
+  select:not(:disabled):hover {
+    background-color: var(--color-bg-hover);
+  }
+
+  /*
+    날짜 · 일시 칸도 **눌러서 여는 조작**이다 (`lib/dateInput.ts` 가 칸 아무 데나
+    눌러도 달력을 연다). 글자 커서만 뜨면 눌러도 되는지 알 수 없어
+    손가락 커서와 호버를 셀렉트와 똑같이 준다.
+  */
+  input[type='date']:not(:disabled),
+  input[type='datetime-local']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  input[type='date']:not(:disabled):hover,
+  input[type='datetime-local']:not(:disabled):hover {
+    background-color: var(--color-bg-hover);
+  }
+
   .input:disabled {
     background-color: var(--color-bg-hover);
     color: var(--color-text-muted);
     cursor: not-allowed;
   }
 
+  /*
+    미입력·형식 오류 칸. 테두리 색만 바꾸면 옆 칸과 구별이 약해
+    옅은 링을 함께 둘러 어느 칸인지 한눈에 보이게 한다.
+  */
   .input-error {
     border-color: var(--color-border-danger);
+    box-shadow: 0 0 0 3px var(--color-red-bg-soft);
   }
 
   /* textarea 는 높이만 다르고 나머지는 .input 과 같다 */

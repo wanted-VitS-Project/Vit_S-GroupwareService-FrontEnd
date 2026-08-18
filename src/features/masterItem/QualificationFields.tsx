@@ -12,6 +12,7 @@ import type {
   MasterItem,
 } from './types';
 import { DEGREE_LABELS, DEGREES, newRowKey } from './types';
+import { dateInputProps } from '@/lib/dateInput';
 
 /**
  * 사원의 학력 · 자격증 입력 칸. 등록 폼과 수정 폼이 같은 것을 쓴다.
@@ -229,6 +230,7 @@ export default function QualificationFields({
 
               <input
                 type="date"
+                {...dateInputProps('date')}
                 aria-label={`${index + 1}번째 자격증 취득일`}
                 /* 상한이 없으면 브라우저가 연도를 6자리까지 받는다 */
                 min="1900-01-01"

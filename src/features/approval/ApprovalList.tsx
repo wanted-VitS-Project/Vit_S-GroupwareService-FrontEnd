@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
-import LoadingSpinner from '@/components/Spinner';
 import PageTitle from '@/components/PageTitle';
+import LoadingSpinner from '@/components/Spinner';
 import Pagination from '@/components/Pagination';
 import { APPROVAL_STATUS_LABELS } from '@/constants/status';
 import type { Role } from '@/features/auth/types';
@@ -131,14 +131,22 @@ export default function ApprovalList() {
   /** 어떤 요청의 결과인지 key 로 들고 있어 조건이 바뀌면 로딩 상태가 된다 */
   const [result, setResult] = useState<{
     key: string;
+    /** 어느 탭의 결과인지. 탭이 바뀌면 직전 목록을 이어 쓰지 않는 기준이다 */
+    scope: ApprovalScope;
     data?: ApprovalPage<ApprovalListItem>;
     hasFailed?: boolean;
   } | null>(null);
 
   const requestKey = `${reloadCount} ${scope} ${searchParams.toString()}`;
   const current = result?.key === requestKey ? result : null;
-  /** 재조회 중에는 직전 결과를 유지해 스크롤이 튀지 않게 한다 */
-  const page = current?.data ?? result?.data ?? null;
+
+  /**
+   * 재조회 중에는 직전 결과를 유지한다. 탭이 다르면 이어 쓰지 않는다 —
+   * 이전 탭 줄에 새 탭의 동작 버튼이 잠깐 붙었다 사라진다.
+   */
+  const isSameScope = result?.scope === scope;
+  const page = current?.data ?? (isSameScope ? (result?.data ?? null) : null);
+
   const hasFailed = current?.hasFailed ?? false;
   const isLoading = current === null && !hasFailed;
 
@@ -147,14 +155,16 @@ export default function ApprovalList() {
     const { signal } = controller;
 
     getApprovals(query, signal)
-      .then((data) => setResult({ key: requestKey, data }))
+      .then((data) => setResult({ key: requestKey, scope, data }))
       .catch(() => {
         // 취소는 실패가 아니다
-        if (!signal.aborted) setResult({ key: requestKey, hasFailed: true });
+        if (!signal.aborted)
+          setResult({ key: requestKey, scope, hasFailed: true });
       });
 
     return () => controller.abort();
-  }, [requestKey, query]);
+    // `scope` 는 `requestKey` 에 이미 들어 있다 — 결과에 표시만 하려고 읽는다
+  }, [requestKey, query, scope]);
 
   /** 필터를 바꾸면 첫 페이지로 돌아간다 */
   function applyFilter(patch: Record<string, string | undefined>) {
@@ -271,7 +281,7 @@ export default function ApprovalList() {
           </button>
         </Centered>
       ) : isLoading && !rows ? (
-        /* 건수가 적을 때 화면이 크게 흔들려 자리표시 막대 대신 스피너를 쓴다 */
+        /* 뼈대를 쓰지 않는다 — 몇 줄이 올지 몰라 실제보다 많이 깔면 화면이 줄어든다 */
         <div className="rounded-base border border-border-default bg-bg-card">
           <LoadingSpinner label="결재를 불러오는 중" className="py-16" />
         </div>

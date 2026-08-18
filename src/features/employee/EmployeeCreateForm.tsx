@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import PageTitle from '@/components/PageTitle';
 import { ROLE_LABELS } from '@/constants/status';
 import { getDepartments } from '@/features/department/api';
@@ -23,6 +24,7 @@ import type {
   EducationInput,
 } from '@/features/masterItem/types';
 import { ApiError, messageOf } from '@/lib/api';
+import { focusInvalidField } from '@/lib/focusField';
 import { formatPhone } from '@/lib/format';
 
 import { createEmployee } from './api';
@@ -89,6 +91,8 @@ export default function EmployeeCreateForm() {
     Partial<Record<FieldName, string>>
   >({});
   const [error, setError] = useState('');
+  /** 등록 확인 모달 */
+  const [isConfirming, setIsConfirming] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   /**
    * 학력 · 자격증. 줄 단위 배열이라 문자열 폼과 따로 담는다.
@@ -181,7 +185,11 @@ export default function EmployeeCreateForm() {
     return missing;
   }
 
-  async function handleSubmit(event: React.FormEvent) {
+  /**
+   * 제출 버튼. 검증만 하고 **등록은 확인을 받은 뒤**에 한다 —
+   * 계정이 함께 발급되고 초기 비밀번호 메일까지 나가서 되돌리기가 번거롭다.
+   */
+  function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (isSubmitting) return;
 
@@ -190,24 +198,29 @@ export default function EmployeeCreateForm() {
     if (Object.keys(missing).length > 0) {
       setFieldErrors(missing);
 
-      /*
-        빠뜨린 첫 칸으로 포커스를 옮긴다. 문구만 띄우면 그 칸이 화면 밖일 때
-        아무 일도 안 일어난 것처럼 보인다. 스크롤과 낭독이 함께 따라온다.
-      */
-      document.getElementById(Object.keys(missing)[0])?.focus();
+      // 빠뜨린 첫 칸을 화면 가운데로 옮기고 포커스한다 (낭독도 함께 따라온다)
+      focusInvalidField(Object.keys(missing)[0]);
       return;
     }
 
     // 셀렉트 값은 문자열이라 여기서 좁힌다. 캐스팅하면 ADMIN 이 실려도 통과한다
-    const role = ROLE_OPTIONS.find((option) => option === values.role);
-
-    if (!role) {
+    if (!ROLE_OPTIONS.find((option) => option === values.role)) {
       setFieldErrors({ role: '권한을 다시 선택해주세요.' });
       return;
     }
 
     setFieldErrors({});
     setError('');
+    setIsConfirming(true);
+  }
+
+  async function create() {
+    if (isSubmitting) return;
+
+    const role = ROLE_OPTIONS.find((option) => option === values.role);
+    if (!role) return;
+
+    setIsConfirming(false);
     setIsSubmitting(true);
 
     try {
@@ -342,6 +355,8 @@ export default function EmployeeCreateForm() {
                 options={departmentOptions.map((option) => ({
                   value: String(option.id),
                   label: option.label,
+                  // 하위를 가진 상위 부서는 머리글일 뿐이다 — 사원은 말단 부서에 속한다
+                  disabled: option.hasChildren,
                 }))}
                 isLoading={areOptionsLoading}
                 onChange={(value) => change('departmentId', value)}
@@ -367,7 +382,7 @@ export default function EmployeeCreateForm() {
                   <button
                     type="button"
                     onClick={reloadOptions}
-                    className="cursor-pointer font-semibold underline"
+                    className="cursor-pointer font-semibold underline hover:text-text-primary"
                   >
                     다시 시도
                   </button>
@@ -447,6 +462,18 @@ export default function EmployeeCreateForm() {
             </button>
           </div>
         </form>
+      )}
+
+      {isConfirming && (
+        <AlertDialogTwoButton
+          icon={DialogIcons.info}
+          title="사원을 등록할까요?"
+          description={`${values.name.trim()} 님의 계정이 함께 발급되고, 사번과 초기 비밀번호가 입력한 이메일로 발송됩니다.`}
+          confirmLabel="등록"
+          isBusy={isSubmitting}
+          onConfirm={() => void create()}
+          onCancel={() => setIsConfirming(false)}
+        />
       )}
     </>
   );

@@ -218,7 +218,11 @@ export default function NotificationBell({
         <div
           role="dialog"
           aria-label="알림"
-          className="absolute top-full right-0 z-20 mt-2 w-95 overflow-hidden rounded-base border border-border-default bg-bg-card shadow-lg"
+          /*
+            폭이 고정이라 좁은 화면에서는 오른쪽 붙박이로 두면 잘린다.
+            `sm` 아래에서는 화면 가운데에 띄우고 좌우 16px 을 남긴다.
+          */
+          className="fixed top-14 left-1/2 z-20 w-[calc(100vw-2rem)] max-w-95 -translate-x-1/2 overflow-hidden rounded-base border border-border-default bg-bg-card shadow-lg sm:absolute sm:top-full sm:right-0 sm:left-auto sm:mt-2 sm:w-95 sm:max-w-none sm:translate-x-0"
         >
           {/* 읽음 취소 API 가 없어 '모두 읽음' 은 두지 않는다 */}
           <div className="px-4 py-3">
@@ -249,7 +253,8 @@ export default function NotificationBell({
           )}
 
           {items && items.length > 0 && (
-            <ul className="border-t border-border-default">
+            /* 내용이 길면 줄이 늘어난다 — 드롭다운이 화면을 넘지 않게 여기서 굴린다 */
+            <ul className="max-h-[60vh] overflow-y-auto border-t border-border-default">
               {items.map((item) => (
                 <li key={item.notificationId}>
                   <NotificationRow
