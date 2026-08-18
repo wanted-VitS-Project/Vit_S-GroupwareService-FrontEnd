@@ -33,7 +33,6 @@ export function toLinesRequest(
   return {
     lines: lines
       .map((line) => {
-
         const replaced = replacements.has(line.lineId)
           ? replacements.get(line.lineId)
           : line.approverId;

@@ -1,6 +1,6 @@
 /**
  * 재무 도메인 API (.ai/API.md 재무 절).
- * 입출금 목록은 페이징이 없고 다건 처리는 부분 성공이 정상이다.
+ * 목록은 모두 페이징이고 다건 처리는 부분 성공이 정상이다.
  */
 import { ENDPOINTS } from '@/constants/endpoints';
 import { api, postForm } from '@/lib/api';
@@ -42,24 +42,50 @@ export function getFinanceSummary(signal?: AbortSignal) {
 function toSearch(query: CashFlowListQuery) {
   const params = new URLSearchParams();
 
-  const { startDate, endDate, unlinked, projectId, keyword } = query;
+  const { startDate, endDate, unlinked, projectId, keyword, page, size } =
+    query;
 
   if (startDate) params.set('startDate', startDate);
   if (endDate) params.set('endDate', endDate);
   if (unlinked) params.set('unlinked', 'true');
   if (projectId !== undefined) params.set('projectId', String(projectId));
   if (keyword) params.set('keyword', keyword);
+  // 0 페이지도 유효한 값이라 값 유무로 판단한다
+  if (page !== undefined) params.set('page', String(page));
+  if (size !== undefined) params.set('size', String(size));
 
   const search = params.toString();
   return search ? `?${search}` : '';
 }
 
-/** 입출금 내역 목록. 페이징 없이 배열 하나가 통째로 온다 */
+/** 입출금 내역 목록. 세금계산서와 같은 페이징 응답이다 (page 는 0부터) */
 export function getCashFlows(query: CashFlowListQuery, signal?: AbortSignal) {
   return api.get<CashFlowListResponse>(
     `${ENDPOINTS.finance.cashFlows.root}${toSearch(query)}`,
     signal,
   );
+}
+
+/**
+ * 입출금 한 건을 찾는다.
+ * 단건 조회 API 가 없어 목록 페이지를 넘기며 찾는다 (세금계산서와 같은 방식).
+ * 건수가 늘면 요청도 함께 늘어 백엔드에 단건 조회를 요청해 둔 상태다.
+ */
+export async function findCashFlow(cashFlowId: number, signal?: AbortSignal) {
+  const size = 100;
+
+  /* 임의 상한을 두지 않고 서버가 준 totalPages 까지만 넘긴다 */
+  let totalPages = 1;
+
+  for (let page = 0; page < totalPages; page++) {
+    const data = await getCashFlows({ page, size }, signal);
+    totalPages = data.totalPages;
+
+    const found = data.cashFlows.find((item) => item.cashFlowId === cashFlowId);
+    if (found) return found;
+  }
+
+  return null;
 }
 
 /** 입출금 필터 옵션. 프로젝트 목록만 내려온다 */
@@ -356,10 +382,12 @@ export function getSettlementProjects(
 
 /** 발주처 필터 선택지. 응답 껍데기를 벗겨 배열로 돌려준다 */
 export function getSettlementClients(signal?: AbortSignal) {
-  return api
-    .get<{ clients: string[] }>(ENDPOINTS.finance.settlements.filters, signal)
-    // 필드가 비어 와도 화면이 죽지 않게 한다
-    .then((data) => data.clients ?? []);
+  return (
+    api
+      .get<{ clients: string[] }>(ENDPOINTS.finance.settlements.filters, signal)
+      // 필드가 비어 와도 화면이 죽지 않게 한다
+      .then((data) => data.clients ?? [])
+  );
 }
 
 /** 한 프로젝트의 정산 회차. 페이징이 없어 전체가 온다 */
@@ -367,11 +395,13 @@ export function getProjectSettlements(
   projectId: number | string,
   signal?: AbortSignal,
 ) {
-  return api
-    .get<{ blocks: SettlementRound[] }>(
-      ENDPOINTS.finance.settlements.ofProject(projectId),
-      signal,
-    )
-    // 비어 오면 '회차 없음' 으로 그린다
-    .then((data) => data.blocks ?? []);
+  return (
+    api
+      .get<{ blocks: SettlementRound[] }>(
+        ENDPOINTS.finance.settlements.ofProject(projectId),
+        signal,
+      )
+      // 비어 오면 '회차 없음' 으로 그린다
+      .then((data) => data.blocks ?? [])
+  );
 }

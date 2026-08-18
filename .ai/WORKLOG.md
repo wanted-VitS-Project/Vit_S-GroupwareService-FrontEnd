@@ -6,6 +6,90 @@
 
 ---
 
+## [2026-08-18] 정산 세금계산서 기한 · 정산 현황 태그 · 재무 목록 페이징 ✅
+
+브랜치: `feat/settlement-tax-due` · 백엔드 스웨거(`/v3/api-docs`) 대조
+
+정산 블록에 세금계산서 기한 · 연결 여부가 추가되고, 정산 현황의 `summary` 문자열이
+지표 4개로 갈렸다. 그 과정에서 입출금 목록이 페이징인데 화면이 한 쪽만 받아
+총 건수가 어긋나던 것도 함께 고쳤다.
+
+### 변경 파일
+
+| 파일                                            | 변경                                                      |
+| ----------------------------------------------- | --------------------------------------------------------- |
+| `src/features/settlement/types.ts`              | 수정 — `taxInvoiceDueDate` · `taxInvoiceLinked` 읽기      |
+| `src/features/settlement/SettlementForm.tsx`    | 수정 — 세금계산서 기한 입력 (비우면 `null`)               |
+| `src/features/settlement/SettlementBlock.tsx`   | 수정 — 기한 행 · 정산 상태 옆 연결 배지                   |
+| `src/features/finance/{display,types}.ts`       | 수정 — `settlementProjectState` → `settlementProjectTags` |
+| `src/features/finance/SettlementStatusList.tsx` | 수정 — 상태 열을 태그 여러 개로, 열 폭 재분배             |
+| `src/features/finance/SettlementRoundPanel.tsx` | 수정 — 회차명 옆 입금 · 출금 배지, 머리글 `입출금 기한`   |
+| `src/features/finance/{api,types}.ts`           | 수정 — 입출금 목록 페이징 · `findCashFlow()`              |
+| `src/features/finance/CashFlowList.tsx`         | 수정 — 페이지네이션 · 총 건수 · 화면 필터 안내            |
+| `src/features/finance/CashFlowDetail.tsx`       | 수정 — 페이지를 넘겨 단건을 찾도록                        |
+| `src/features/finance/TaxInvoiceList.tsx`       | 수정 — 자체 `Pager` → 공용 `Pagination`, 총 건수          |
+| `src/features/approval/ApprovalBlock.tsx`       | 수정 — `결재 승인 확인` 제거, 제목 · 내용 분리            |
+
+### 주요 작업 내용
+
+- **세금계산서 기한** — 폼 입력 · 요약 카드 표시 · 저장까지 연결. 면세처럼 받지 않는 회차는 비워 두면 `null` 로 나간다
+- **세금계산서 연결 배지** — 블록 목록 `detail.taxInvoiceLinked` 를 정산 상태 옆에 배지로 붙인다. 작성 전 블록에는 그리지 않는다
+- **정산 현황 태그** — 미연결 2종 · 지연 2종을 태그 여러 개로 그린다. 손댈 것이 없으면 `정산 완료` · `기한 미입력` · `진행 중` 하나만 남는다
+- **재무 목록 페이징** — 입출금은 페이지네이션과 총 건수를 새로 붙이고, 세금계산서는 이전 · 다음뿐이던 자체 페이저를 공용 컴포넌트로 바꿨다
+- **결재 블록** — 완료 배너와 겹치던 `결재 승인 확인` 버튼을 없애고, 제목 · 내용을 나눠 내용이 잘리지 않게 했다
+
+### 트러블슈팅
+
+- **입출금 총 건수가 어긋났다** — 서버는 페이징인데 화면이 `cashFlows` 만 읽고 `page` · `size` 를 보내지 않았다. 기본 20건만 받아 놓고 목록 길이를 총 건수로 세고 있었다
+- **21번째 건부터 상세가 열리지 않았다** — 상세가 목록 전체를 받아 찾는 구조였는데 실제로는 한 쪽만 왔다. 세금계산서와 같은 방식(`findCashFlow`)으로 쪽을 넘겨 찾게 고쳤다
+
+### 부수 결정
+
+- **연결 배지는 작성 전 블록에 그리지 않는다** — `taxInvoiceLinked` 는 작성 전에도 `false` 로 오지만, 다른 칸이 모두 비어 있는 카드에 배지만 홀로 뜨면 어색하다
+- **구분 · 출처 필터는 현재 쪽 기준임을 화면에 적는다** — 서버에 그 조건이 없어 받아온 쪽에서만 걸러진다. 페이징이 붙으면서 오해할 여지가 커졌다
+
+---
+
+## [2026-08-18] 직접 등록 공고 수정 · 알림 분류 정리 · 주석 정리 2차 ✅
+
+브랜치: `chore/comment-cleanup`
+
+앞선 세션에서 결재 · 재무 · 알림 · 마이페이지 · 로그인 주석을 정리했고, 이번에는
+입찰 · 전사 관리로 이어갔다. 그 사이 요청받은 화면 작업 두 건을 함께 처리했다.
+
+### 변경 파일
+
+| 파일                                                                                                                                                                     | 변경                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| `src/features/bidding/NoticeForm.tsx`                                                                                                                                    | 신규 — `NoticeCreateForm` 을 등록 · 수정 겸용으로 옮김 |
+| `src/features/bidding/NoticeCreateForm.tsx`                                                                                                                              | 삭제 — 위 파일로 대체                                  |
+| `src/app/notices/[id]/edit/page.tsx`                                                                                                                                     | 신규 — 공고 수정 라우트                                |
+| `src/app/notices/new/page.tsx`                                                                                                                                           | 수정 — `NoticeForm` 사용                               |
+| `src/features/bidding/{routes.ts,NoticeDetail.tsx}`                                                                                                                      | 수정 — `edit` 경로 · 상세의 `공고 관리` 카드           |
+| `src/components/bidding/NoticeSkeletons.tsx`                                                                                                                             | 수정 — `NoticeFormSkeleton` 추가                       |
+| `src/features/notification/{display.ts,NotificationSection.tsx}`                                                                                                         | 수정 — 댓글 칩 제거 · 시스템 칩 화면 분류              |
+| `src/features/bidding/*` · `src/features/{department,jobPosition,businessCategory,masterItem,pagePermission,employee,companyDocument}/*` · `src/features/file/Admin*` 외 | 수정 — 주석 정리                                       |
+| `src/app/settings/*` · `src/components/settings/SettingsSkeletons.tsx`                                                                                                   | 수정 — 주석 정리                                       |
+| `src/features/employee/BulkUploadModal.tsx`                                                                                                                              | 수정 — 학력 · 자격증 구분자 안내 문구                  |
+
+### 주요 작업 내용
+
+- **직접 등록 공고 수정** — `PATCH /bidding/notices/{noticeId}` 연동. 등록 폼을 `NoticeForm` 으로 합치고 `noticeId` 를 주면 수정 모드가 된다. 상세에는 `sourceCode === 'MANUAL'` 일 때만 `공고 수정` 버튼이 뜬다
+- **알림 유형 칩 정리** — `댓글` 칩을 없애고, 결재 · 이슈가 아닌 알림(프로젝트 관련 포함)은 모두 `시스템` 으로 모았다
+- **엑셀 일괄 등록 안내 문구** — 학력 · 자격증 구분자가 쌍반점 하나인 것처럼 적혀 있었다. 쉼표 · 셀 안 줄바꿈도 되고, 대신 항목 이름에 쉼표가 있으면 쪼개진다는 주의를 함께 적었다
+- **주석 정리** — 입찰 · 전사 관리 전 파일. 이모지 · 강조 표기를 걷고 한 줄, 길어도 두 줄로 줄였다. 없어도 되는 주석은 지웠다
+
+### 트러블슈팅
+
+- **수정 폼에 못 채우는 칸** — 공고 상세 응답에 `internationalBidType` · `bidMethod` 가 없다. 빈 칸으로 두면 저장할 때 기존 값을 덮어쓰므로 **수정 화면에서는 두 칸을 감추고 요청에서도 뺐다**
+- **첨부는 교체가 아니라 추가만** — `attachments` 를 보내면 통째로 교체돼 기존 첨부가 사라진다. 수정 본문에서 아예 빼고, 이미 올라간 첨부는 목록으로만 보여준다 (첨부 삭제 API 가 없다)
+
+### 부수 결정
+
+- **시스템 칩은 화면에서 나눈다** — 서버 `category` 는 `notificationType` 접두어라 "결재 · 이슈가 아닌 나머지" 를 한 값으로 부를 수 없다. 시스템 칩만 조건 없이 받아 화면에서 고르고 쪽을 나눈다 (한 번에 100건)
+
+---
+
 ## [2026-08-18] 헤더 세션 만료 표시 · 연장 (+ 헤더 반응형) ✅
 
 브랜치: `feat/session` · API: `.ai/API.md` **159 신설** (`GET /auth/session`, 백엔드 PR #424) · 이슈: #210
@@ -24,17 +108,17 @@
 
 ### 변경 파일
 
-| 파일                                  | 변경                                                                            |
-| ------------------------------------- | --------------------------------------------------------------------------------- |
-| `src/features/auth/SessionTimer.tsx`  | **신규** — 헤더 위젯 (만료 시각 · 30분 카운트다운 + 연장 버튼 · 5분 붉은 강조)   |
-| `src/features/auth/sessionExpiry.ts`  | **신규** — 눈금 2개(`30분` · `5분`) · 포맷(`15:43` · `29:59`/`04:59` · `3시간 52분`) · 탭 간 연장 공유(`BroadcastChannel`) |
-| `src/features/auth/api.ts`            | 수정 — `getSession()` 추가                                                       |
-| `src/features/auth/types.ts`          | 수정 — `SessionInfo` 추가                                                        |
-| `src/constants/endpoints.ts`          | 수정 — `auth.session` 추가                                                       |
-| `src/lib/api.ts`                      | 수정 — `SESSION_TOUCH_EVENT` · `touchSession()` (401 제외)                       |
-| `src/components/Header.tsx`           | 수정 — 위젯 배치 + 오른쪽 묶음 간격 `gap-1.5 md:gap-3`                           |
-| `src/components/ProfileMenu.tsx`      | 수정 — 부서 경로 줄 `hidden sm:block`                                            |
-| `.ai/API.md`                          | 수정 — **159번 신설** (목차 · 본문)                                              |
+| 파일                                 | 변경                                                                                                                       |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `src/features/auth/SessionTimer.tsx` | **신규** — 헤더 위젯 (만료 시각 · 30분 카운트다운 + 연장 버튼 · 5분 붉은 강조)                                             |
+| `src/features/auth/sessionExpiry.ts` | **신규** — 눈금 2개(`30분` · `5분`) · 포맷(`15:43` · `29:59`/`04:59` · `3시간 52분`) · 탭 간 연장 공유(`BroadcastChannel`) |
+| `src/features/auth/api.ts`           | 수정 — `getSession()` 추가                                                                                                 |
+| `src/features/auth/types.ts`         | 수정 — `SessionInfo` 추가                                                                                                  |
+| `src/constants/endpoints.ts`         | 수정 — `auth.session` 추가                                                                                                 |
+| `src/lib/api.ts`                     | 수정 — `SESSION_TOUCH_EVENT` · `touchSession()` (401 제외)                                                                 |
+| `src/components/Header.tsx`          | 수정 — 위젯 배치 + 오른쪽 묶음 간격 `gap-1.5 md:gap-3`                                                                     |
+| `src/components/ProfileMenu.tsx`     | 수정 — 부서 경로 줄 `hidden sm:block`                                                                                      |
+| `.ai/API.md`                         | 수정 — **159번 신설** (목차 · 본문)                                                                                        |
 
 ### 주요 작업 내용
 
@@ -51,10 +135,10 @@
 
 ### 트러블슈팅
 
-| 문제                                                        | 원인                                                                                                                | 해결                                                                                    |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `Module … has no default export` — 빌드만 깨지고 에디터는 멀쩡 | 헬퍼를 `sessionTimer.ts` 로 두어 같은 폴더의 `SessionTimer.tsx` 와 **대소문자만 다른 이름**이 됐다. Windows 는 둘을 구분하지 않는다 | `sessionExpiry.ts` 로 이름을 바꿨다. 같은 폴더에 대소문자만 다른 파일을 두지 않는다      |
-| `react-hooks/refs` — 렌더 중 ref 접근                       | 마우스 올림 문구(`title`)를 만들려고 렌더에서 `expiresAt.current` 를 읽었다. ref 는 바뀌어도 다시 그리지 않아 화면과 어긋난다 | 만료 시각 문자열을 `clockText` 상태로 따로 들었다 (`refresh()` 안에서 함께 갱신)         |
+| 문제                                                           | 원인                                                                                                                                | 해결                                                                                |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `Module … has no default export` — 빌드만 깨지고 에디터는 멀쩡 | 헬퍼를 `sessionTimer.ts` 로 두어 같은 폴더의 `SessionTimer.tsx` 와 **대소문자만 다른 이름**이 됐다. Windows 는 둘을 구분하지 않는다 | `sessionExpiry.ts` 로 이름을 바꿨다. 같은 폴더에 대소문자만 다른 파일을 두지 않는다 |
+| `react-hooks/refs` — 렌더 중 ref 접근                          | 마우스 올림 문구(`title`)를 만들려고 렌더에서 `expiresAt.current` 를 읽었다. ref 는 바뀌어도 다시 그리지 않아 화면과 어긋난다       | 만료 시각 문자열을 `clockText` 상태로 따로 들었다 (`refresh()` 안에서 함께 갱신)    |
 
 ### 부수 결정
 
@@ -95,7 +179,7 @@
 
 - **문제**: 마지막 장의 이미지를 전부 영구 삭제하면 빈 화면에 갇힌다
 - **원인**: 서버는 범위를 벗어난 `page` 에 빈 목록을 주는데, 화면이 그 자리를 그대로 붙잡고 있었다
-- **해결**: 응답을 받을 때 `page >= totalPages` 면 마지막 장으로 물러선다 (코드 리뷰 지적으로 **모아보기에도 같은 보정**을 넣었다 — 이미지가 지워져 장이 줄면 같은 증상이 난다)
+- **해결**: 응답을 받을 때 `page >= totalPages` 면 마지막 장으로 물러선다
 - **문제**: 장을 넘길 때마다 그리드가 접혔다 펴져 화면이 튐
 - **원인**: 새 조건이 되는 순간 목록이 `null` 이 되어 스켈레톤으로 갈아끼워졌다
 - **해결**: 같은 프로젝트면 **이전 장을 그대로 두고** 페이지 줄만 잠근다(`disabled={isPending}`). 첫 판에는 `PaginationPlaceholder` 로 높이를 잡아 둔다
@@ -103,7 +187,6 @@
 ### 부수 결정
 
 - **선택은 페이지 단위로 가둔다** — 안 보이는 이미지가 골라진 채 남으면 복구 · 영구 삭제가 무엇에 닿는지 알 수 없다
-- **선택에 `projectId` 를 함께 붙인다** (코드 리뷰 지적) — 프로젝트를 옮겨도 선택이 남아 남의 휴지통에서 버튼이 켜진 채 열렸다. 페이지 상태와 같은 방식으로 묶어 경로가 바뀌면 저절로 빈 선택이 된다
 - **낙관적 처리에서 `totalElements` 도 함께 ±** — 머리의 총 장수가 목록보다 늦게 따라오면 어긋나 보인다
 - **`ImagePage<T>` 를 `FilePage<T>` 와 따로 둔다** — 모양은 같지만 목록 필드가 `content` 가 아니라 `images` 라 재사용하면 어긋난다
 - **`ImagePageQuery` 는 `types.ts` 에** — 다른 도메인의 `*Query` 타입과 같은 자리다
