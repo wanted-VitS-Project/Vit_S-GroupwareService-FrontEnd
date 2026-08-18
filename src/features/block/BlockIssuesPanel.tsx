@@ -1,5 +1,7 @@
 'use client';
 
+// CSR - 블록 연결 이슈 팝업: 이 블록에 걸린 이슈만 상태 필터와 함께 보여준다.
+// 활동 기록 패널과 같은 자리·같은 크기로 뜬다.
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 
@@ -85,7 +87,7 @@ export default function BlockIssuesPanel({
               #
             </span>
             <div className="min-w-0 flex-1">
-              {/* 배지 · 닫기 버튼에 밀려 `연결된 / 이슈` 로 접히지 않게 한 줄로 붙든다 */}
+              {/* 배지·닫기 버튼에 밀려 연결된 / 이슈 로 접히지 않게 한 줄로 붙든다 */}
               <h2 className="truncate text-label font-semibold text-text-primary">
                 연결된 이슈
               </h2>
@@ -271,7 +273,7 @@ export default function BlockIssuesPanel({
                             key={assignee.userId}
                             /*
                              * 겹친 아바타라 문구 자리가 없다 — 흐리게 + tooltip 으로 알린다.
-                             * 뒤쪽 아바타는 `decorative`(aria-hidden) 라 감싼 쪽이 이름을 읽힌다.
+                             * 뒤쪽 아바타는 decorative(aria-hidden) 라 감싼 쪽이 이름을 읽힌다.
                              */
                             {...(index > 0
                               ? {

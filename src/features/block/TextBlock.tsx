@@ -30,11 +30,9 @@ const TextBlockModal = dynamic(loadTextBlockModal, {
   ),
 });
 
-/**
- * 텍스트 블록.
- * 카드에는 서식이 적용된 결과만 보이고, 마크다운 원문은 노출하지 않는다.
- * 생성 직후에는 `autoEdit` 으로 편집 모달이 곧바로 열린다.
- */
+// 텍스트 블록.
+// 카드에는 서식이 적용된 결과만 보이고, 마크다운 원문은 노출하지 않는다.
+// 생성 직후에는 autoEdit 으로 편집 모달이 곧바로 열린다.
 export default function TextBlock({
   block,
   autoEdit = false,
@@ -47,17 +45,14 @@ export default function TextBlock({
   const serverVersion = detail?.version;
 
   const [content, setContent] = useState(serverContent);
-  /**
-   * 저장에 실을 낙관적 락 버전.
-   *
-   * ⚠️ 응답의 새 값을 여기에 꽂아야 **연달아 두 번 저장**할 수 있다 —
-   *    블록 목록을 다시 읽지 않으므로 `detail.version` 은 옛 값에 머문다.
-   */
+  // 저장에 실을 낙관적 락 버전.
+  // 응답의 새 값을 여기에 꽂아야 연달아 두 번 저장할 수 있다 —
+  // 블록 목록을 다시 읽지 않으므로 detail.version 은 옛 값에 머문다.
   const [version, setVersion] = useState(serverVersion);
   const canEdit = useBlockCanEdit();
   /*
-   * `autoEdit` 는 **방금 만든 블록**에만 켜진다 — 만들 수 있었다는 것은 권한이 있다는 뜻이라
-   * 여기서 다시 막지 않는다. 아래 `편집` 버튼만 권한을 본다.
+   * autoEdit 는 방금 만든 블록에만 켜진다 — 만들 수 있었다는 것은 권한이 있다는 뜻이라
+   * 여기서 다시 막지 않는다. 아래 편집 버튼만 권한을 본다.
    */
   const [isEditing, setIsEditing] = useState(autoEdit);
 
@@ -139,7 +134,7 @@ export default function TextBlock({
             // 응답에 버전이 없으면 비운다 — 옛 값을 들고 있으면 다음 저장이 무조건 409 다
             setVersion(savedVersion);
           }}
-          // 409 에서 `다시 불러오기` — 목록을 다시 읽어 새 본문 · 새 버전을 받는다
+          // 409 에서 다시 불러오기 — 목록을 다시 읽어 새 본문·새 버전을 받는다
           onRefetch={notifyBlockChanged}
         />
       )}

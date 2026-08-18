@@ -16,16 +16,9 @@ import {
   type ActivityLog,
 } from './types';
 
-/**
- * 활동 기록 한 줄. 서버가 주는 원자 데이터를 화면에서 문장으로 조립한다. (.ai/API.md 72번)
- *
- * 윗줄 — 수행자 · 블록(제목 · 유형)
- * 아랫줄 — `displayName` + 동작, 수정이면 어떤 필드가 어떻게 바뀌었는지
- *
- * `memo` — 이어 읽기 · 스크롤로 목록 상태가 바뀔 때마다 이미 그린 줄까지 다시 그리면
- * 목록이 길어질수록 스크롤이 끊긴다. 기록은 한 번 오면 바뀌지 않아 그대로 재사용된다.
- * (펼친 `<details>` 상태도 유지된다 — 다시 그리면 접혀 버린다)
- */
+// 활동 기록 한 줄 — 서버가 주는 원자 데이터를 화면에서 문장으로 조립한다.
+// 윗줄은 수행자·블록, 아랫줄은 displayName + 동작(수정이면 바뀐 필드까지).
+// memo 로 감싼다 — 이어 읽기마다 그린 줄을 다시 그리면 스크롤이 끊기고 펼친 <details> 도 접힌다.
 function ActivityLogItem({
   log,
   isLast,
@@ -40,7 +33,7 @@ function ActivityLogItem({
   const actionLabel = ACTIVITY_ACTION_LABELS[log.action];
   const style = ACTIVITY_ACTION_STYLES[log.action];
 
-  // 스냅샷 이름이 비어 있을 수 있다 — 빈칸 대신 대체 문구를 둔다
+  // 스냅샷 이름이 비어 있을 수 있다 — 빈칸 대신 대체 문구를 둔다.
   const targetName = log.displayName || log.block.title || '이름 없음';
   const targetKind = log.targetType === 'BLOCK' ? '블록' : '항목';
   const blockTitle = log.block.title || '제목 없는 블록';
@@ -92,12 +85,9 @@ function ActivityLogItem({
             {actionLabel}
           </span>
 
-          {/*
-            시간 문구는 '방금' → '32분 전' 처럼 길이가 변한다. 폭을 고정해 두지 않으면
-            같은 줄의 블록 칩이 다시 접혀 줄 전체가 흔들린다.
-          */}
+          {/* 시간 문구는 '방금' → '32분 전' 처럼 길이가 변한다 — 폭을 고정하지 않으면 줄 전체가 흔들린다 */}
           <span
-            // 읽을 수 없는 값이면 빈칸으로 두지 않는다 — 시각이 왜 없는지 알 수 있게
+            // 읽을 수 없는 값이면 빈칸으로 두지 않는다 — 시각이 왜 없는지 알 수 있게.
             title={time?.full ?? `시각을 읽을 수 없습니다 (${log.createdAt})`}
             className="ml-auto w-14 shrink-0 text-right text-caption text-text-muted"
           >
@@ -125,12 +115,8 @@ function ActivityLogItem({
 
 export default memo(ActivityLogItem);
 
-/**
- * 변경 내용. 필드에 따라 두 가지로 갈린다.
- *
- * - `title` · `content` · `caption` — 길어질 수 있어 펼쳐서 전문을 본다
- * - 그 외 — 값 사전으로 짧게 바꿔 한 줄에 인라인 표시
- */
+// 수정 기록의 변경 내용. title·content·caption 은 길어질 수 있어 펼쳐 전문을 보이고,
+// 그 외는 값 사전으로 짧게 바꿔 한 줄에 인라인으로 붙인다.
 function FieldChange({ log }: { log: ActivityLog }) {
   if (log.action !== 'MODIFY' || !log.fieldName) return null;
 
@@ -177,7 +163,7 @@ function FieldChange({ log }: { log: ActivityLog }) {
   );
 }
 
-/** 값이 비어 있으면 '없음' 으로 채운다 — 빈칸은 무엇이 바뀌었는지 알 수 없다 */
+// 인라인 값 한 칸. 값이 비어 있으면 '없음' 으로 채운다 — 빈칸은 무엇이 바뀌었는지 알 수 없다.
 function InlineValue({
   value,
   tone,
@@ -198,7 +184,7 @@ function InlineValue({
   );
 }
 
-/** 전문 표시 — 줄바꿈을 살리고, 너무 길면 상자 안에서만 스크롤한다 */
+// 펼침 표시 — 줄바꿈을 살리고, 너무 길면 상자 안에서만 스크롤한다.
 function FullValue({
   label,
   value,
@@ -215,7 +201,7 @@ function FullValue({
       </p>
       {/*
         자체 스크롤 영역이라 포커스를 받을 수 있어야 한다 —
-        그렇지 않으면 키보드 사용자는 잘린 뒷부분을 볼 방법이 없다
+        그렇지 않으면 키보드 사용자는 잘린 뒷부분을 볼 방법이 없다.
 
         ⚠️ `font-sans` 를 반드시 준다. `<pre>` 는 브라우저 기본값이 **고정폭 글꼴**이라
            그냥 두면 본문(Pretendard)과 글씨체가 갈려, 텍스트 블록을 고친 기록만
@@ -237,7 +223,7 @@ function FullValue({
   );
 }
 
-/** 동작 아이콘 — 추가(+) · 수정(연필) · 삭제(휴지통) */
+// 동작 아이콘 — 추가(+)·수정(연필)·삭제(휴지통).
 function ActionIcon({ action }: { action: ActivityLog['action'] }) {
   return (
     <svg

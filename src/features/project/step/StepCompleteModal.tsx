@@ -32,24 +32,18 @@ const ACTIONS: {
   },
 ];
 
-/**
- * 스텝 완료 처리 모달. (.ai/API.md 118)
- *
- * **이슈가 미완료여도 스텝을 완료할 수 있다** (STP-005) — 다만 남은 이슈를
- * 그대로 둘지 함께 종료할지(`openIssueAction`)는 **반드시 골라야 한다** (없으면 400).
- *
- * ℹ️ 멱등이라 낙관적 락 대상이 아니다. 이미 완료된 스텝을 다시 완료해도
- *    최초 완료자·완료시각을 덮어쓰지 않는다.
- */
+// 스텝 완료 처리 모달. (.ai/API.md 118)
+// 이슈가 미완료여도 스텝을 완료할 수 있다 (STP-005) — 다만 남은 이슈를
+// 그대로 둘지 함께 종료할지(openIssueAction)는 반드시 골라야 한다 (없으면 400).
+// 멱등이라 낙관적 락 대상이 아니다. 이미 완료된 스텝을 다시 완료해도
+// 최초 완료자·완료시각을 덮어쓰지 않는다.
 export default function StepCompleteModal({
   step,
   onClose,
   onCompleted,
 }: StepCompleteModalProps) {
-  /**
-   * 목록이 주는 카운트로 미리 셈한다 — 정확한 값은 응답의 `openIssueCount` 다.
-   * (진행 중 + 진행 전을 합친 수라 `total - done` 으로 잡는다)
-   */
+  // 목록이 주는 카운트로 미리 셈한다 — 정확한 값은 응답의 openIssueCount 다.
+  // (진행 중 + 진행 전을 합친 수라 total - done 으로 잡는다)
   const openIssueCount = Math.max(
     step.totalIssueCount - step.doneIssueCount,
     0,
@@ -67,7 +61,7 @@ export default function StepCompleteModal({
     setIsSubmitting(true);
 
     try {
-      // 미완료 이슈가 없어도 파라미터는 필수다 — 기본값 `KEEP` 을 그대로 보낸다
+      // 미완료 이슈가 없어도 파라미터는 필수다 — 기본값 KEEP 을 그대로 보낸다
       const result = await completeStep(step.stepId, action);
       onCompleted(result);
       onClose();

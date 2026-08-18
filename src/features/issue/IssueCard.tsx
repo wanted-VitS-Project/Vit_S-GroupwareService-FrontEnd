@@ -12,24 +12,12 @@ import {
 } from './IssueBadges';
 import { overdueDays, type IssueSummary } from './types';
 
-/**
- * 이슈 보드의 카드 한 장.
- *
- * 카드 전체가 드래그 손잡이다 — 열 사이로 끌어 상태를 바꾼다.
- * `⋯` 은 수정 · 삭제만 담는다 (스텝 `EDITOR` 에게만 보인다).
- *
- * ⚠️ 상세 열기는 **제목 버튼**이 맡는다. 카드에 메뉴 버튼이 들어 있어 겉껍데기를
- *    `role="button"` 으로 만들면 중첩 대화형 요소가 되어 보조기술에서 뜻이 어긋난다.
- *    (마우스 편의를 위해 카드 여백 클릭도 상세를 열지만, 초점·키보드는 제목 버튼이 받는다)
- * ⚠️ **상태 변경은 드래그&드롭 하나로만 한다** (2026-08-07 결정).
- *    메뉴에 있던 `~(으)로 이동` 항목을 없앴다 — 경로가 둘이면 어느 쪽이 정본인지 흐려진다.
- *    대신 드래그를 쓸 수 없는 사용자는 상태를 바꿀 수단이 없다.
- *
- * ⚠️ `memo` 로 감싼다. 드래그 중에는 보드가 자주 다시 그려지는데, 그때마다
- *    카드 전부를 다시 그리면 이슈가 많은 스텝에서 화면이 버벅인다.
- *    그래서 콜백 prop 은 **호출 때 대상을 넘기는 고정 함수**를 받는다
- *    (카드마다 새로 만든 화살표 함수를 넘기면 `memo` 가 무력해진다).
- */
+// 이슈 보드의 카드 한 장. 카드 전체가 드래그 손잡이고, ⋯ 메뉴에는 수정·삭제만 담는다.
+// 상태 변경은 드래그&드롭 하나로만 한다 — 경로가 둘이면 어느 쪽이 정본인지 흐려진다.
+// 상세 열기는 제목 버튼이 맡는다. 겉껍데기를 role="button" 으로 만들면 메뉴 버튼과
+// 중첩 대화형 요소가 되어 보조기술에서 뜻이 어긋난다.
+// memo 로 감싼다 — 드래그 중 보드가 자주 다시 그려져 카드까지 매번 그리면 화면이 버벅인다.
+// 그래서 콜백 prop 은 호출 때 대상을 넘기는 고정 함수를 받는다 (매번 새 화살표 함수면 memo 가 무력해진다).
 function IssueCard({
   issue,
   canEdit,
@@ -41,7 +29,7 @@ function IssueCard({
   onDragEnd,
 }: {
   issue: IssueSummary;
-  /** 스텝 `EDITOR` 인지 — 아니면 드래그 · 메뉴를 막는다 */
+  /** 스텝 EDITOR 인지 — 아니면 드래그·메뉴를 막는다 */
   canEdit: boolean;
   /** 지금 끌고 있는 카드 */
   isDragging: boolean;
@@ -56,9 +44,9 @@ function IssueCard({
       draggable={canEdit}
       onDragStart={(event) => onDragStart(event, issue)}
       onDragEnd={onDragEnd}
-      // 카드 위에서도 열(section)이 dragover 를 받아야 한다 — 여기서 막지 않는다
+      // 카드 위에서도 열(section)이 dragover 를 받아야 한다 — 여기서 막지 않는다.
       onClick={() => onOpen(issue.issueId)}
-      // 크기 · 위치를 바꾸는 효과는 쓰지 않는다 — 드래그 중 카드가 흔들려 보인다
+      // 크기·위치를 바꾸는 효과는 쓰지 않는다 — 드래그 중 카드가 흔들려 보인다.
       className={`rounded-lg border bg-bg-card p-3 transition-colors select-none ${
         canEdit ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
       } ${
@@ -73,7 +61,7 @@ function IssueCard({
           <OverdueBadge days={overdueDays(issue)} />
         </span>
         {canEdit && (
-          // 카드 클릭(상세 열기)까지 번지지 않게 메뉴 영역에서 멈춘다
+          // 카드 클릭(상세 열기)까지 번지지 않게 메뉴 영역에서 멈춘다.
           <div
             className="shrink-0"
             onClick={(event) => event.stopPropagation()}
@@ -81,7 +69,7 @@ function IssueCard({
           >
             <RowMenu
               label={issue.title}
-              // 상태 이동 항목이 빠져 `수정` · `삭제` 두 줄만 남는다
+              // 상태 이동 항목이 빠져 수정·삭제 두 줄만 남는다.
               width={112}
               items={[
                 { label: '수정', onSelect: () => onEdit(issue.issueId) },
@@ -96,7 +84,7 @@ function IssueCard({
         )}
       </div>
 
-      {/* 상세 열기의 진짜 주체 — 초점 · Enter · 스크린리더가 여기를 잡는다 */}
+      {/* 상세 열기의 진짜 주체 — 초점·Enter·스크린리더가 여기를 잡는다 */}
       <button
         type="button"
         onClick={(event) => {

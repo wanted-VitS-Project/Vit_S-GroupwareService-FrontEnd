@@ -18,27 +18,23 @@ interface StepDeleteModalProps {
   /** 블록을 옮길 후보 — 자기 자신은 여기서 걸러낸다 */
   steps: ProjectStep[];
   onClose: () => void;
-  /** 삭제 성공 · 이미 삭제된 경우 모두 재조회한다 */
+  /** 삭제 성공·이미 삭제된 경우 모두 재조회한다 */
   onDeleted: (result: { movedBlockCount: number }) => void;
 }
 
-/**
- * 스텝 삭제 모달. (.ai/API.md 117)
- *
- * 하위 블록은 **골라서 살릴 수 있다** — 고른 것만 다른 스텝으로 옮기고 나머지는 삭제한다.
- * 그래서 열 때 블록 목록을 한 번 조회한다 (`moveBlockIds` 에 실을 ID 가 필요하다).
- *
- * ⛔ **이슈는 선택지가 없다** — 스텝을 지우면 하위 이슈는 무조건 함께 삭제된다 (STP-013).
- * ⚠️ 옮긴 블록의 **이슈 연결은 끊긴다** (BLK-014 · INV-06) — 블록과 이슈는 같은 스텝이어야 한다.
- * ⛔ 낙관적 락 대상이 아니다 — `version` 을 받지 않는다.
- */
+// 스텝 삭제 모달. (.ai/API.md 117)
+// 하위 블록은 골라서 살릴 수 있다 — 고른 것만 다른 스텝으로 옮기고 나머지는 삭제한다.
+// 그래서 열 때 블록 목록을 한 번 조회한다 (moveBlockIds 에 실을 ID 가 필요하다).
+// 이슈는 선택지가 없다 — 스텝을 지우면 하위 이슈는 무조건 함께 삭제된다 (STP-013).
+// 옮긴 블록의 이슈 연결은 끊긴다 (BLK-014·INV-06) — 블록과 이슈는 같은 스텝이어야 한다.
+// 낙관적 락 대상이 아니다 — version 을 받지 않는다.
 export default function StepDeleteModal({
   step,
   steps,
   onClose,
   onDeleted,
 }: StepDeleteModalProps) {
-  /** `null` = 아직 조회 중 */
+  /** null = 아직 조회 중 */
   const [blocks, setBlocks] = useState<StepBlock[] | null>(null);
   const [haveBlocksFailed, setHaveBlocksFailed] = useState(false);
   const [movingIds, setMovingIds] = useState<number[]>([]);

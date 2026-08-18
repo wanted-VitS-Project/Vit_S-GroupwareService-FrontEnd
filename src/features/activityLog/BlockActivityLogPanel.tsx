@@ -14,15 +14,8 @@ import {
 import { groupByDate } from './time';
 import { useActivityLogFeed } from './useActivityLogFeed';
 
-/**
- * 블록 활동 기록 팝업. (.ai/API.md 72번)
- *
- * ⚠️ **블록 전용 API 는 없다** — 스텝 활동 기록 API 에 `?blockId=` 를 붙여 쓴다.
- * 목록 · 커서 규칙은 스텝 화면과 같아 `useActivityLogFeed` 를 공유한다.
- *
- * 블록이 고정이라 줄마다 블록 이름을 반복하지 않는다 (`showBlock={false}`).
- * 연결 이슈 패널(`BlockIssuesPanel`)과 같은 자리 · 같은 크기로 뜬다.
- */
+// 블록 활동 기록 팝업. 블록 전용 API 가 없어 스텝 활동 기록 API 에 ?blockId= 를 붙여 쓴다.
+// 목록·커서 규칙은 스텝 화면과 같아 useActivityLogFeed 를 공유하고, 연결 이슈 패널과 같은 자리에 뜬다.
 export default function BlockActivityLogPanel({
   stepId,
   blockId,
@@ -34,10 +27,8 @@ export default function BlockActivityLogPanel({
   blockTitle: string;
   onClose: () => void;
 }) {
-  /**
-   * 팝업은 화면이 아니라 **자기 안에서** 스크롤한다.
-   * 감시 지점을 화면 기준으로 재면 목록이 짧을 때 계속 걸려 이어 읽기가 멈추지 않는다.
-   */
+  // 팝업은 화면이 아니라 자기 안에서 스크롤한다 — 감시 지점을 화면 기준으로 재면
+  // 목록이 짧을 때 계속 걸려 이어 읽기가 멈추지 않는다.
   const [scrollArea, setScrollArea] = useState<HTMLDivElement | null>(null);
 
   const {
@@ -63,7 +54,7 @@ export default function BlockActivityLogPanel({
             <ActivityIcon />
           </span>
           <div className="min-w-0 flex-1">
-            {/* 배지 · 닫기 버튼에 밀려 접히지 않게 한 줄로 붙든다 (`BlockIssuesPanel` 과 같은 규칙) */}
+            {/* 배지·닫기 버튼에 밀려 접히지 않게 한 줄로 붙든다 (BlockIssuesPanel 과 같은 규칙) */}
             <h2 className="truncate text-label font-semibold text-text-primary">
               블록 활동 기록
             </h2>
@@ -92,7 +83,7 @@ export default function BlockActivityLogPanel({
     >
       <div
         ref={setScrollArea}
-        // 첫 조회 중임을 보조기술에 알린다 — 스켈레톤은 눈으로만 보이는 신호다
+        // 첫 조회 중임을 보조기술에 알린다 — 스켈레톤은 눈으로만 보이는 신호다.
         aria-busy={!visible && !hasFailed}
         className="min-h-0 flex-1 [scrollbar-gutter:stable] overflow-y-auto p-3"
       >
@@ -139,7 +130,7 @@ export default function BlockActivityLogPanel({
                       key={log.activityLogId}
                       log={log}
                       isLast={index === group.logs.length - 1}
-                      // 블록이 고정이라 줄마다 같은 이름을 반복하지 않는다
+                      // 블록이 고정이라 줄마다 같은 이름을 반복하지 않는다.
                       showBlock={false}
                     />
                   ))}

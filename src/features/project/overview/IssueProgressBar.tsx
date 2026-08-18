@@ -1,12 +1,9 @@
 import type { IssueProgress } from '@/features/issue/types';
 import { todoIssueCount } from '@/features/issue/types';
 
-/**
- * 진행 중(노랑) · 완료(파랑) · 진행 전(회색) 이슈 비율을 한 줄로.
- *
- * ⚠️ 색은 `ProjectSidebar` 의 스텝 진척 바와 **같은 토큰**(`--color-step-*`)을 쓴다 —
- *    사이드바에서 보던 스텝이 이 화면에서 다른 색이면 같은 값으로 읽히지 않는다.
- */
+// 진행 중(노랑)·완료(파랑)·진행 전(회색) 이슈 비율을 한 줄로.
+// 색은 ProjectSidebar 의 스텝 진척 바와 같은 토큰(--color-step-*)을 쓴다 —
+// 사이드바에서 보던 스텝이 이 화면에서 다른 색이면 같은 값으로 읽히지 않는다.
 export default function IssueProgressBar({
   progress,
   className = 'h-1.5',
@@ -54,7 +51,7 @@ export default function IssueProgressBar({
   );
 }
 
-/** 진행 중 · 완료 · 진행 전 개수를 한 줄로. 0인 항목도 자리를 지킨다 */
+/** 진행 중·완료·진행 전 개수를 한 줄로. 0인 항목도 자리를 지킨다 */
 export function IssueProgressCounts({ progress }: { progress: IssueProgress }) {
   return (
     <span className="flex items-center gap-2.5 text-caption">

@@ -15,12 +15,9 @@ import type { ProjectDetail, ProjectStatusChange } from '../types';
 import CloseProjectModal from './CloseProjectModal';
 import SettingsSection from './SettingsSection';
 
-/**
- * 고를 수 있는 상태 4가지.
- *
- * ⛔ **`CLOSED` 는 없다** — 종결은 사유가 필수라 전용 API(131)를 쓴다.
- *    여기에 끼워 넣으면 사유 없이 종결하려다 400 을 맞는다.
- */
+// 고를 수 있는 상태 4가지.
+// CLOSED 는 없다 — 종결은 사유가 필수라 전용 API(131)를 쓴다.
+// 여기에 끼워 넣으면 사유 없이 종결하려다 400 을 맞는다.
 const CHOICES: ProjectStatusChange[] = [
   'NOT_STARTED',
   'IN_PROGRESS',
@@ -33,17 +30,14 @@ interface ProjectStatusSectionProps {
   project: ProjectDetail | null;
   canEdit: boolean;
   onSaved: (version: number) => void;
-  /** 종결은 `version` 을 주지 않아 상세를 다시 읽는다 */
+  /** 종결은 version 을 주지 않아 상세를 다시 읽는다 */
   onClosed: () => void;
   onReload: () => void;
 }
 
-/**
- * 진행 상태 변경 · 종결. (.ai/API.md 130 · 131)
- *
- * 두 API 는 성격이 다르다 — 상태 변경은 **낙관적 락 대상**이고, 종결은 아니다.
- * 그래서 한 섹션에 두되 버튼과 안내를 나눠 둔다.
- */
+// 진행 상태 변경·종결. (.ai/API.md 130·131)
+// 두 API 는 성격이 다르다 — 상태 변경은 낙관적 락 대상이고, 종결은 아니다.
+// 그래서 한 섹션에 두되 버튼과 안내를 나눠 둔다.
 export default function ProjectStatusSection({
   projectId,
   project,
@@ -81,7 +75,7 @@ export default function ProjectStatusSection({
         ...(overwrite ? { overwrite: true } : {}),
       });
       onSaved(saved.version);
-      // 상태는 화면 곳곳(사이드바 · 목록)에 걸려 있어 상세를 다시 읽는 편이 안전하다
+      // 상태는 화면 곳곳(사이드바·목록)에 걸려 있어 상세를 다시 읽는 편이 안전하다
       onReload();
       notifyToast(
         `상태를 '${PROJECT_STATUS_LABELS[saved.status]}' 로 바꿨습니다.`,

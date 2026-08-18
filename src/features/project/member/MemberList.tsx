@@ -18,7 +18,7 @@ import RemoveMemberModal from './RemoveMemberModal';
 
 interface MemberListProps {
   projectId: string;
-  /** 아직 도착하지 않았으면 `null` */
+  /** 아직 도착하지 않았으면 null */
   members: ProjectMember[] | null;
   hasFailed: boolean;
   canEdit: boolean;
@@ -27,19 +27,15 @@ interface MemberListProps {
   showAddButton?: boolean;
 }
 
-/**
- * 참여자 목록 · 권한 변경 · 제거 · 추가. (.ai/API.md 45 · 125~127)
- *
- * **설정 화면과 사이드바가 같은 것을 쓴다** — 진입점이 둘이라 복제하면 한쪽만 고쳐진다.
- * 바깥 껍데기(설정 섹션 / 모달)만 다르고 안쪽 조작은 여기 한 벌뿐이다.
- *
- * ⛔ **자기 자신의 행은 권한 변경 · 제거를 막는다** (PRJ-011 · INV-10) —
- *    백엔드가 403 으로 막지만, 눌러 보고 실패를 보는 것보다 아예 잠가 두는 편이 낫다.
- *    (혼자 남은 `EDITOR` 가 스스로 권한을 낮춰 프로젝트가 잠기는 것도 이걸로 막힌다)
- * ⛔ **차단은 `NONE` 이 아니라 제거로 표현한다** — `NONE` 은 폐기됐다 (2026-08-06).
- * 🗑️ 삭제된 사원(`deleted`)은 배지를 달되 행을 지우지 않는다 — **정리하라는 표시**다.
- *    권한 변경은 404 로 막히므로 셀렉트를 잠그고 제거만 남긴다.
- */
+// 참여자 목록·권한 변경·제거·추가. (.ai/API.md 45·125~127)
+// 설정 화면과 사이드바가 같은 것을 쓴다 — 진입점이 둘이라 복제하면 한쪽만 고쳐진다.
+// 바깥 껍데기(설정 섹션 / 모달)만 다르고 안쪽 조작은 여기 한 벌뿐이다.
+// 자기 자신의 행은 권한 변경·제거를 막는다 (PRJ-011·INV-10) —
+// 백엔드가 403 으로 막지만, 눌러 보고 실패를 보는 것보다 아예 잠가 두는 편이 낫다.
+// (혼자 남은 EDITOR 가 스스로 권한을 낮춰 프로젝트가 잠기는 것도 이걸로 막힌다)
+// 차단은 NONE 이 아니라 제거로 표현한다 — NONE 은 폐기됐다 (2026-08-06).
+// 🗑️ 삭제된 사원(deleted)은 배지를 달되 행을 지우지 않는다 — 정리하라는 표시다.
+// 권한 변경은 404 로 막히므로 셀렉트를 잠그고 제거만 남긴다.
 export default function MemberList({
   projectId,
   members,
@@ -56,10 +52,8 @@ export default function MemberList({
   /** 권한을 바꾸는 중인 행 — 그 줄만 막는다 */
   const [savingMemberId, setSavingMemberId] = useState<number | null>(null);
 
-  /**
-   * `참여자 추가` — 편집 권한이면 보인다 (`VIEWER` 에게만 감춘다).
-   * 전사 `ADMIN` 은 프로젝트 권한과 무관하게 예외다 (`permissions.ts`).
-   */
+  // 참여자 추가 — 편집 권한이면 보인다 (VIEWER 에게만 감춘다).
+  // 전사 ADMIN 은 프로젝트 권한과 무관하게 예외다 (permissions.ts).
   const canAdd = canManageMembers({ role: me.role, canEdit });
 
   async function changePermission(
@@ -177,10 +171,10 @@ export default function MemberList({
                       id={`permission-${member.memberId}`}
                       value={member.permission}
                       /*
-                       * 저장 중에는 **모든 행**을 잠근다 — `changePermission` 이
-                       * `savingMemberId !== null` 이면 그냥 돌아서기 때문에, 저장 중인 행만
+                       * 저장 중에는 모든 행을 잠근다 — changePermission 이
+                       * savingMemberId !== null 이면 그냥 돌아서기 때문에, 저장 중인 행만
                        * 잠그면 다른 행을 바꿔도 값만 되돌아가고 아무 안내가 없다.
-                       * (`StepPermissionModal` 과 같은 규칙)
+                       * (StepPermissionModal 과 같은 규칙)
                        */
                       disabled={savingMemberId !== null}
                       onChange={(event) =>

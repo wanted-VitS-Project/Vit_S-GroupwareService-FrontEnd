@@ -1,5 +1,6 @@
 'use client';
 
+// CSR - 프로젝트 직접 생성 폼: 공고와 연결되지 않은 프로젝트만 만든다.
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -26,7 +27,7 @@ import { PROJECT_ROUTES } from './routes';
 import type { CreateProjectRequest, ProjectPermission } from './types';
 import { CLIENT_NAME_MAX_LENGTH, PROJECT_NAME_MAX_LENGTH } from './types';
 
-/** 폼은 전부 문자열로 다룬다 — 날짜 · 금액 입력이 문자열이라 변환 지점을 한 곳에 모은다 */
+/** 폼은 전부 문자열로 다룬다 — 날짜·금액 입력이 문자열이라 변환 지점을 한 곳에 모은다 */
 interface FormValues {
   name: string;
   clientName: string;
@@ -62,21 +63,17 @@ function orUndefined(value: string) {
   return trimmed === '' ? undefined : trimmed;
 }
 
-/**
- * 프로젝트 직접 생성 화면. (.ai/API.md 138 · PRJ-001)
- *
- * ⭐ **이 화면은 공고와 연결되지 않은 프로젝트만 만든다** — `bidNoticeId` 를 보내지 않는다.
- *    공고에서 시작하는 생성은 입찰 화면 소관이고, 같은 엔드포인트에 `bidNoticeId` 만 더 실린다.
- * ℹ️ 상태는 시스템이 `NOT_STARTED` 로 정하고, 만든 사람은 자동으로 `EDITOR` 참여자가 된다.
- *    회사도 로그인 사용자 것이 자동으로 박혀 화면이 고를 것이 없다.
- *
- * ⚠️ **참여자는 생성 요청 본문에 없다** (138) — 화면은 시안대로 한 화면에서 받되,
- *    저장은 **생성(138) → 참여자 추가(125) 한 명씩** 두 단계로 나눠 보낸다.
- *    프로젝트는 이미 만들어졌으므로, 참여자 추가가 실패해도 상세로 넘겨 다시 시도하게 한다
- *    (폼에 머물면 같은 프로젝트를 또 만들게 된다).
- * ⚠️ 시안에서 `발주처` · `사업 카테고리` 에 붙은 필수 표시(`*`)는 따르지 않는다 —
- *    명세상 선택 필드라 화면만 막으면 만들 수 있는 프로젝트를 못 만들게 된다.
- */
+// 프로젝트 직접 생성 화면. (.ai/API.md 138·PRJ-001)
+// 이 화면은 공고와 연결되지 않은 프로젝트만 만든다 — bidNoticeId 를 보내지 않는다.
+// 공고에서 시작하는 생성은 입찰 화면 소관이고, 같은 엔드포인트에 bidNoticeId 만 더 실린다.
+// 상태는 시스템이 NOT_STARTED 로 정하고, 만든 사람은 자동으로 EDITOR 참여자가 된다.
+// 회사도 로그인 사용자 것이 자동으로 박혀 화면이 고를 것이 없다.
+// 참여자는 생성 요청 본문에 없다 (138) — 화면은 시안대로 한 화면에서 받되,
+// 저장은 생성(138) → 참여자 추가(125) 한 명씩 두 단계로 나눠 보낸다.
+// 프로젝트는 이미 만들어졌으므로, 참여자 추가가 실패해도 상세로 넘겨 다시 시도하게 한다
+// (폼에 머물면 같은 프로젝트를 또 만들게 된다).
+// 시안에서 발주처·사업 카테고리 에 붙은 필수 표시(*)는 따르지 않는다 —
+// 명세상 선택 필드라 화면만 막으면 만들 수 있는 프로젝트를 못 만들게 된다.
 export default function ProjectCreateForm() {
   const router = useRouter();
   const [values, setValues] = useState<FormValues>(EMPTY_VALUES);
@@ -84,7 +81,7 @@ export default function ProjectCreateForm() {
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  /** 아직 안 왔으면 `null` — 불러오지 못했으면 `hasCategoryFailed` 로 구분한다 */
+  /** 아직 안 왔으면 null — 불러오지 못했으면 hasCategoryFailed 로 구분한다 */
   const [categories, setCategories] = useState<MasterCategory[] | null>(null);
   const [hasCategoryFailed, setHasCategoryFailed] = useState(false);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
@@ -94,7 +91,7 @@ export default function ProjectCreateForm() {
     const controller = new AbortController();
     const { signal } = controller;
 
-    // 삭제분(`includeDeleted`)은 애초에 요청하지 않는다 — 연결하면 404 다
+    // 삭제분(includeDeleted)은 애초에 요청하지 않는다 — 연결하면 404 다
     getCategories({}, signal)
       .then(setCategories)
       .catch(() => {
@@ -182,10 +179,8 @@ export default function ProjectCreateForm() {
     return body;
   }
 
-  /**
-   * 참여자 추가(125). **일괄 API 가 없어 한 명씩 부른다** (PRJ-009 · INV-07).
-   * 실패해도 프로젝트는 이미 생겼으므로 몇 명까지 됐는지만 돌려주고 이동은 막지 않는다.
-   */
+  // 참여자 추가(125). 일괄 API 가 없어 한 명씩 부른다 (PRJ-009·INV-07).
+  // 실패해도 프로젝트는 이미 생겼으므로 몇 명까지 됐는지만 돌려주고 이동은 막지 않는다.
   async function addMembers(projectId: number) {
     let addedCount = 0;
     let failedCount = 0;
@@ -244,7 +239,7 @@ export default function ProjectCreateForm() {
           : '프로젝트를 생성했습니다.',
     );
 
-    // 뒤로 가기로 빈 폼에 돌아오지 않게 `replace` 로 상세를 연다
+    // 뒤로 가기로 빈 폼에 돌아오지 않게 replace 로 상세를 연다
     router.replace(PROJECT_ROUTES.detail(created.projectId));
   }
 
@@ -381,7 +376,7 @@ export default function ProjectCreateForm() {
 
         <FormCard title="참여자" columns={1}>
           <EmployeeSearchInput
-            // 이미 고른 사람은 목록에 남되 `이미 추가됨` 으로 선택만 막힌다
+            // 이미 고른 사람은 목록에 남되 이미 추가됨 으로 선택만 막힌다
             excludedIds={members.map((member) => member.userId)}
             placeholder="사원 검색 (이름 · 부서)"
             disabled={isSubmitting}

@@ -14,21 +14,18 @@ import SettingsSection from './SettingsSection';
 
 interface ProjectCategorySectionProps {
   projectId: string;
-  /** 아직 도착하지 않았으면 `null` */
+  /** 아직 도착하지 않았으면 null */
   categories: BusinessCategory[] | null;
   canEdit: boolean;
-  /** 연결 · 해제 후 상세를 다시 읽는 신호 */
+  /** 연결·해제 후 상세를 다시 읽는 신호 */
   onChanged: () => void;
 }
 
-/**
- * 프로젝트에 붙은 사업 카테고리 관리. (.ai/API.md 132 · 133)
- *
- * ⛔ 카테고리 **자체**를 만들거나 지우는 곳이 아니다 — 그건 전사 관리(15~18) 소관이다.
- *    여기서는 이미 있는 카테고리를 프로젝트에 붙이고 뗄 뿐이다.
- * 🗑️ 마스터가 삭제된 카테고리(`deleted`)도 연결 행은 남아 보인다 (D-3) —
- *    배지를 붙이되 **해제는 막지 않는다.** 정리할 수 있어야 하기 때문이다.
- */
+// 프로젝트에 붙은 사업 카테고리 관리. (.ai/API.md 132·133)
+// 카테고리 자체를 만들거나 지우는 곳이 아니다 — 그건 전사 관리(15~18) 소관이다.
+// 여기서는 이미 있는 카테고리를 프로젝트에 붙이고 뗄 뿐이다.
+// 🗑️ 마스터가 삭제된 카테고리(deleted)도 연결 행은 남아 보인다 (D-3) —
+// 배지를 붙이되 해제는 막지 않는다. 정리할 수 있어야 하기 때문이다.
 export default function ProjectCategorySection({
   projectId,
   categories,
@@ -37,13 +34,10 @@ export default function ProjectCategorySection({
 }: ProjectCategorySectionProps) {
   const linkModal = useModal();
   const [error, setError] = useState('');
-  /**
-   * 해제 중인 카테고리.
-   *
-   * 요청이 나가 있는 동안에는 **모든 줄의 버튼을 막는다** — 목록이 곧 갈릴 예정이라
-   * 다른 줄을 눌러도 어느 것이 지워졌는지 알기 어렵다. 대신 처리 중인 줄에는
-   * `aria-busy` 를 붙여 왜 안 눌리는지 알 수 있게 한다.
-   */
+  // 해제 중인 카테고리.
+  // 요청이 나가 있는 동안에는 모든 줄의 버튼을 막는다 — 목록이 곧 갈릴 예정이라
+  // 다른 줄을 눌러도 어느 것이 지워졌는지 알기 어렵다. 대신 처리 중인 줄에는
+  // aria-busy 를 붙여 왜 안 눌리는지 알 수 있게 한다.
   const [unlinkingId, setUnlinkingId] = useState<number | null>(null);
 
   async function unlink(category: BusinessCategory) {

@@ -19,21 +19,17 @@ interface StepPermissionSectionProps {
   stages: ProjectStage[] | null;
   steps: ProjectStep[] | null;
   hasFailed: boolean;
-  /** 프로젝트 `EDITOR` — 스텝 권한 API 는 스텝 권한이 아니라 이 값을 본다 */
+  /** 프로젝트 EDITOR — 스텝 권한 API 는 스텝 권한이 아니라 이 값을 본다 */
   canEdit: boolean;
   /** 기존 스텝에 기본값을 적용했으면 목록을 다시 읽는다 */
   onChanged: () => void;
 }
 
-/**
- * 스텝별 권한을 **설정 화면에서도** 관리한다. (.ai/API.md 128 · 134~136)
- *
- * 사이드바 `⋯` 메뉴에 같은 진입점이 있지만, 그쪽은 **스텝 하나를 다룰 때** 쓰는 자리다.
- * "이 사람에게 어느 스텝을 열어줄지" 를 훑어보며 정하려면 스텝을 하나씩 찾아 호버해야 해서
- * 여기 **전체 목록**을 함께 둔다 — 참여자 관리 바로 아래라 흐름이 이어진다.
- *
- * ⚠️ 진입점이 둘이지만 **모달은 같은 것을 쓴다** — 화면마다 다르게 동작하면 안 된다.
- */
+// 스텝별 권한을 설정 화면에서도 관리한다. (.ai/API.md 128·134~136)
+// 사이드바 ⋯ 메뉴에 같은 진입점이 있지만, 그쪽은 스텝 하나를 다룰 때 쓰는 자리다.
+// "이 사람에게 어느 스텝을 열어줄지" 를 훑어보며 정하려면 스텝을 하나씩 찾아 호버해야 해서
+// 여기 전체 목록을 함께 둔다 — 참여자 관리 바로 아래라 흐름이 이어진다.
+// 진입점이 둘이지만 모달은 같은 것을 쓴다 — 화면마다 다르게 동작하면 안 된다.
 export default function StepPermissionSection({
   projectId,
   stages,
@@ -44,7 +40,7 @@ export default function StepPermissionSection({
 }: StepPermissionSectionProps) {
   const modal = useModalTarget<PermissionTarget>();
 
-  /** 스테이지별로 묶는다. `미분류` 는 스텝이 있을 때만 맨 뒤에 붙인다 */
+  /** 스테이지별로 묶는다. 미분류 는 스텝이 있을 때만 맨 뒤에 붙인다 */
   const buckets = stages
     ? [
         ...stages.map((stage) => ({
@@ -90,8 +86,8 @@ export default function StepPermissionSection({
         <ul className="space-y-2">
           {buckets.map((bucket) => {
             /*
-             * 지역 변수로 받아 좁힘을 유지한다 — `bucket.stage &&` 로 건 좁힘은
-             * `onClick` 콜백 안까지 따라오지 않아 `ProjectStage | null` 로 되돌아간다.
+             * 지역 변수로 받아 좁힘을 유지한다 — bucket.stage && 로 건 좁힘은
+             * onClick 콜백 안까지 따라오지 않아 ProjectStage | null 로 되돌아간다.
              */
             const { stage } = bucket;
 

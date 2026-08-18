@@ -1,5 +1,7 @@
 'use client';
 
+// CSR - 프로젝트 목록 카드: 머리글을 눌러 접었다 펼치고, 펼친 영역은 그때 처음 조회한다.
+// 목록 10건이 한꺼번에 부르면 첫 화면에서 31콜이 되기 때문이다.
 import Link from 'next/link';
 import { useEffect, useId, useState } from 'react';
 
@@ -22,33 +24,20 @@ import type {
   ProjectStep,
 } from './types';
 
-/** 카드에 한 줄로 세우는 아바타 수. 넘치면 마지막 자리를 `+N` 으로 접는다 */
+// 카드에 한 줄로 세우는 아바타 수. 넘치면 마지막 자리를 +N 으로 접는다.
 const AVATAR_LIMIT = 4;
 
-/**
- * 머리글에 세우는 카테고리 태그 수. 나머지는 `+N` 으로 접는다.
- * 태그 칸이 `PROJECT_ROW_GRID` 에서 `8rem` 고정이라 2개를 세우면 이름이 거의 다 잘려 1개만 둔다.
- */
+// 태그 칸이 PROJECT_ROW_GRID 에서 8rem 고정이라 2개를 세우면 이름이 거의 다 잘려 1개만 둔다.
 const CATEGORY_TAG_LIMIT = 1;
 
-/**
- * 목록 카드 한 장. 머리글을 누르면 접었다 펼칠 수 있다.
- *
- * 펼친 영역(설명 · 내 이슈 · 내 결재 · 스테이지별 스텝 타임라인)은
- * **펼칠 때 처음 조회한다** — 목록 10건이 한꺼번에 부르면 첫 화면에서 31콜이 된다.
- * 한 번 받은 뒤에는 다시 접었다 펴도 재조회하지 않는다.
- */
 export default function ProjectCard({ row }: { row: ProjectListItem }) {
   const panelId = useId();
   const [isOpen, setIsOpen] = useState(false);
-  /**
-   * 한 번이라도 펼쳤으면 패널을 **언마운트하지 않는다** —
-   * 접을 때 지워버리면 받아둔 상세 · 스테이지 · 스텝이 함께 사라져
-   * 다시 펼칠 때마다 3콜이 새로 나간다.
-   */
+  // 한 번이라도 펼쳤으면 패널을 언마운트하지 않는다 — 지우면 받아둔 상세·스테이지·스텝이
+  // 함께 사라져 다시 펼칠 때마다 3콜이 새로 나간다.
   const [hasOpened, setHasOpened] = useState(false);
 
-  /** 백엔드가 새 상태값을 보내도 화면이 죽지 않게 기본값을 둔다 (응답 런타임 검증이 없다) */
+  // 응답 런타임 검증이 없어, 백엔드가 새 상태값을 보내도 화면이 죽지 않게 기본값을 둔다.
   const style =
     PROJECT_STATUS_STYLE[row.status] ?? PROJECT_STATUS_STYLE.NOT_STARTED;
   const shown = row.members.slice(0, AVATAR_LIMIT);
@@ -62,11 +51,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
         isOpen ? 'border-border-default' : 'border-border-default'
       }`}
     >
-      {/**
-       * 머리글은 **두 영역**이다 —
-       * 넓은 왼쪽은 프로젝트로 들어가는 링크, 오른쪽 화살표 버튼은 펼침 토글.
-       * 링크 안에 버튼을 넣을 수 없어 형제로 나란히 둔다.
-       */}
+      {/* 왼쪽은 프로젝트 진입 링크, 오른쪽 화살표는 펼침 토글 — 링크 안에 버튼을 넣을 수 없어 형제로 둔다 */}
       <div
         className={`flex items-center gap-2 pr-3 ${isOpen ? 'bg-bg-hover' : ''}`}
       >
@@ -75,28 +60,12 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
           className={`${PROJECT_ROW_GRID} min-w-0 flex-1 px-4 py-3.5 hover:bg-black/[0.03] xl:px-5 xl:py-4`}
         >
           {/*
-            ⭐ 값마다 **`sr-only` 칸 이름**을 붙인다. 머리글 줄(`ProjectListHeader`)은
-               `aria-hidden` 이고 접힌 폭에서는 아예 사라져, 그것만으로는 어느 값이
-               발주처이고 어느 것이 기간인지 알 방법이 없다.
+            값마다 sr-only 칸 이름을 붙인다 — 머리글 줄(ProjectListHeader)은 aria-hidden 이고
+            접힌 폭에서는 사라져, 어느 값이 발주처이고 어느 것이 기간인지 알 방법이 없다.
+            칸 너비는 PROJECT_ROW_GRID 가 정한다 — 내용 길이로 정해지면 카드마다 열이 어긋난다.
 
-            칸 너비는 `PROJECT_ROW_GRID` 가 정한다 — 여기서는 폭을 손대지 않는다.
-            내용 길이(상태 라벨 · 카테고리 이름 · 참여자 수)로 폭이 정해지면
-            카드마다 열이 어긋난다.
-          */}
-          {/*
-            ── 접힌 폭(1280px 미만)의 규칙 ──────────────────────────────
-            네 줄 모두 **왼쪽 값 · 오른쪽 값** 한 쌍으로 읽히게 맞춘다.
-
-              [상태]───────────[분류]
-              과업명 (두 칸을 다 쓴다)
-              발주처───────────[기간]
-              [참여자]─────────[진척률]
-
-            칸이 반반이라 그냥 두면 값이 죄다 왼쪽에 붙어, 가운데가 텅 빈
-            어중간한 표처럼 보인다 — 오른쪽 값은 칸 끝에 붙여 선을 만든다.
-
-            2열로 접히면 칸이 배지보다 훨씬 넓다 — 늘려 두면 알약이 칸을 다 채워
-            배지가 아니라 띠로 보인다. 접힌 폭에서만 글자만큼으로 줄인다.
+            접힌 폭(1280px 미만)에서는 네 줄을 왼쪽 값·오른쪽 값 한 쌍으로 맞춘다.
+            그냥 두면 값이 죄다 왼쪽에 붙어 가운데가 텅 빈 표처럼 보인다.
           */}
           <span
             className={`flex justify-center justify-self-start rounded-pill px-2 py-0.5 text-label font-medium xl:justify-self-stretch ${style.badge}`}
@@ -105,11 +74,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
             {PROJECT_STATUS_LABELS[row.status]}
           </span>
 
-          {/**
-           * 카테고리는 이름에 괄호로 붙이지 않고 별도 태그로 세운다 (시안 `Tag`).
-           * ⚠️ 개수 상한이 없으면 머리글이 가로로 넘쳐 본문에 가로 스크롤바가 생긴다 —
-           *    `CATEGORY_TAG_LIMIT` 까지만 세우고 나머지는 `+N` 으로 접는다.
-           */}
+          {/* 카테고리는 별도 태그로 세운다. 상한이 없으면 머리글이 넘쳐 가로 스크롤바가 생긴다 */}
           <span
             title={row.businessCategories.map((item) => item.name).join(' · ')}
             className="flex min-w-0 items-center gap-1.5 max-xl:justify-self-end"
@@ -148,8 +113,8 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
           </span>
 
           {/*
-            한 줄 격자에서는 `2026.01.02 ~ 2026.03.31` 이 끊기면 안 된다 (칸이 10rem 고정).
-            2열로 접히면 칸이 그보다 좁아질 수 있어 `~` 에서 줄이 바뀌게 풀어준다 —
+            한 줄 격자에서는 2026.01.02 ~ 2026.03.31 이 끊기면 안 된다 (칸이 10rem 고정).
+            2열로 접히면 칸이 그보다 좁아질 수 있어 ~ 에서 줄이 바뀌게 풀어준다 —
             못을 박아 두면 카드가 가로로 넘쳐 목록에 가로 스크롤바가 생긴다.
           */}
           <span className="text-detail text-gray-text-soft max-xl:justify-self-end max-xl:text-right xl:whitespace-nowrap">
@@ -157,10 +122,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
             {formatDateRange(row.startedOn, row.endedOn)}
           </span>
 
-          {/*
-            `relative` 가 필요하다 — 안쪽 `sr-only` 는 `position: absolute` 인데
-            좌표 기준(컨테이닝 블록)이 없으면 문서 전체를 기준으로 잡혀 문서 높이를 늘린다
-          */}
+          {/* relative 가 필요하다 — 안쪽 sr-only 는 absolute 라 기준이 없으면 문서 높이를 늘린다 */}
           <span className="relative flex items-center -space-x-1.5">
             {shown.map((member) => (
               <MemberAvatar
@@ -168,7 +130,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
                 userId={member.userId}
                 name={member.name}
                 decorative
-                // 목록 카드는 사진 대신 이니셜 + 단색으로 구별한다 (카드 전용)
+                // 목록 카드는 사진 대신 이니셜 + 단색으로 구별한다.
                 initialsOnly
               />
             ))}
@@ -196,7 +158,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
           </span>
         </Link>
 
-        {/* 펼침 방향을 화살표로 알린다 — `aria-expanded` 만으로는 눈에 보이지 않는다 */}
+        {/* 펼침 방향을 화살표로 알린다 — aria-expanded 만으로는 눈에 보이지 않는다 */}
         <button
           type="button"
           onClick={() => {
@@ -212,10 +174,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
         </button>
       </div>
 
-      {/*
-        펼치기 전에는 아예 그리지 않고, 한 번 펼친 뒤에는 **감추기만** 한다 —
-        받아둔 데이터를 유지해 접었다 펼 때마다 재조회하지 않기 위함이다
-      */}
+      {/* 펼치기 전에는 그리지 않고, 한 번 펼친 뒤에는 감추기만 한다 — 받아둔 데이터를 유지하려는 것 */}
       {hasOpened && (
         <div
           id={panelId}
@@ -223,10 +182,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
           className="border-t border-border-default px-4 py-4 sm:px-5"
         >
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-            {/**
-             * ⚠️ 시안 라벨은 `결재 대기` 지만 이 값은 **기안자 관점**이다 —
-             * 내가 올려서 아직 안 끝난 건이라 결재함 대기 건수와 다르다. 라벨을 바꿔 단다.
-             */}
+            {/* 시안 라벨은 결재 대기지만 이 값은 기안자 관점(내가 올려 안 끝난 건)이라 라벨을 바꿔 단다 */}
             <CountItem
               label="내 이슈"
               count={row.myIssueInProgressCount}
@@ -243,7 +199,7 @@ export default function ProjectCard({ row }: { row: ProjectListItem }) {
               href={PROJECT_ROUTES.detail(row.projectId)}
               /*
                 좁은 화면에서는 줄이 접혀 버튼만 다음 줄로 내려간다 —
-                `ml-auto` 로 오른쪽 끝에 매달아 두면 그 줄이 통째로 비어 보인다.
+                ml-auto 로 오른쪽 끝에 매달아 두면 그 줄이 통째로 비어 보인다.
                 한 줄을 다 쓰고 가운데 정렬해 **누르는 곳**으로 읽히게 한다.
               */
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-btn-primary px-5 py-2.5 text-detail font-medium text-text-white hover:bg-btn-primary-hover sm:ml-auto sm:w-auto sm:justify-start sm:py-2"
@@ -284,7 +240,7 @@ function CountItem({
 
 type StageState = 'DONE' | 'IN_PROGRESS' | 'NOT_STARTED';
 
-/** 스테이지 머리글 배지. 스텝 배지와 달리 미착수를 `진행전` 이라 부른다 (시안) */
+// 스테이지 머리글 배지. 스텝 배지와 달리 미착수를 진행전이라 부른다 (시안).
 const STAGE_BADGE: Record<StageState, { className: string; label: string }> = {
   DONE: { className: 'bg-green-bg text-green-text', label: '완료' },
   IN_PROGRESS: {
@@ -321,10 +277,8 @@ const STEP_STYLE: Record<
   },
 };
 
-/**
- * 스테이지 상태는 **스텝에서 파생한다** — 스테이지 API(7번)에 상태 필드가 없다.
- * 스텝이 하나도 없는 스테이지는 아직 시작하지 않은 것으로 본다.
- */
+// 스테이지 상태를 스텝에서 파생한다 — 스테이지 API 에 상태 필드가 없다.
+// 스텝이 하나도 없는 스테이지는 아직 시작하지 않은 것으로 본다.
 function stageStateOf(steps: ProjectStep[]): StageState {
   if (steps.length === 0) return 'NOT_STARTED';
   if (steps.every((step) => step.status === 'DONE')) return 'DONE';
@@ -338,23 +292,23 @@ interface PanelData {
   steps: ProjectStep[];
 }
 
-/** 펼친 영역 본문 — 프로젝트 설명 + 스테이지별 스텝 타임라인 */
+// 펼친 영역 본문 — 프로젝트 설명 + 스테이지별 스텝 타임라인.
 function ProjectPanel({ projectId }: { projectId: number }) {
   const [data, setData] = useState<PanelData | null>(null);
   const [reloadCount, setReloadCount] = useState(0);
-  /** 몇 번째 시도가 실패했는지 들고 있는다 — `다시 시도` 를 누르면 자동으로 실패가 풀린다 */
+  // 몇 번째 시도가 실패했는지 — 다시 시도를 누르면 reloadCount 가 올라가 실패가 자동으로 풀린다.
   const [failedAt, setFailedAt] = useState<number | null>(null);
   const hasFailed = failedAt === reloadCount;
 
   useEffect(() => {
-    // 한 번 받아 두면 접었다 펴도 다시 부르지 않는다
+    // 한 번 받아 두면 접었다 펴도 다시 부르지 않는다.
     if (data) return;
 
     const controller = new AbortController();
     const { signal } = controller;
 
     Promise.all([
-      // 설명(`description`)은 목록 응답에 없어 상세를 한 번 더 부른다
+      // description 은 목록 응답에 없어 상세를 한 번 더 부른다.
       getProject(projectId, signal),
       getProjectStages(projectId, signal),
       getProjectSteps(projectId, signal),
@@ -370,7 +324,7 @@ function ProjectPanel({ projectId }: { projectId: number }) {
 
   if (hasFailed) {
     return (
-      // 패널을 연 뒤 비동기로 바뀌는 상태라, 알리지 않으면 스크린리더가 실패를 못 읽는다
+      // 패널을 연 뒤 비동기로 바뀌는 상태라 role 이 없으면 스크린리더가 실패를 못 읽는다.
       <p
         role="alert"
         className="mt-5 flex items-center gap-3 text-detail text-text-secondary"
@@ -395,7 +349,7 @@ function ProjectPanel({ projectId }: { projectId: number }) {
     );
   }
 
-  /** 스테이지에 배정되지 않은 스텝(`stageId === null`)도 감추지 않고 마지막에 모아 둔다 */
+  // 스테이지에 배정되지 않은 스텝(stageId === null)도 감추지 않고 마지막에 모아 둔다.
   const unassigned = data.steps.filter((step) => step.stageId === null);
 
   return (
@@ -433,10 +387,10 @@ function ProjectPanel({ projectId }: { projectId: number }) {
   );
 }
 
-/** 스테이지 한 칸. 머리글을 눌러 안쪽 스텝 타임라인을 접을 수 있다 */
+// 스테이지 한 칸. 머리글을 눌러 안쪽 스텝 타임라인을 접을 수 있다.
 function StageBox({ name, steps }: { name: string; steps: ProjectStep[] }) {
   const bodyId = useId();
-  // 카드를 펼치면 스테이지는 전부 닫힌 채로 시작한다 — 머리글만 훑고 필요한 것만 편다
+  // 카드를 펼치면 스테이지는 전부 닫힌 채로 시작한다 — 머리글만 훑고 필요한 것만 편다.
   const [isOpen, setIsOpen] = useState(false);
 
   const badge = STAGE_BADGE[stageStateOf(steps)];
@@ -463,21 +417,14 @@ function StageBox({ name, steps }: { name: string; steps: ProjectStep[] }) {
       </button>
 
       {isOpen && (
-        /**
-         * 높이를 고정한다 — 스텝 수 · 이름 길이가 달라도 박스가 같은 높이라
-         * 스테이지를 접었다 펼 때 아래 박스들이 들썩이지 않는다.
-         *
-         * ⚠️ `overflow-x-auto` 만 주면 **y 축이 `auto` 로 계산된다** (CSS Overflow 명세 —
-         * 한쪽만 `visible` 이 아니면 `visible` 쪽이 `auto` 가 된다).
-         * 그러면 높이를 고정한 이 박스가 자체 세로 스크롤을 갖게 돼 페이지 스크롤과 겹친다.
-         * y 축을 명시적으로 잠가 가로로만 굴러가게 한다.
-         */
+        /*
+          높이를 고정해 스텝 수·이름 길이가 달라도 아래 박스들이 들썩이지 않게 한다.
+          overflow-x-auto 만 주면 CSS Overflow 명세상 y 축이 auto 로 계산돼 자체 세로 스크롤이
+          생기므로, y 축을 명시적으로 잠가 가로로만 굴러가게 한다.
+        */
         <div
           id={bodyId}
-          /*
-            스텝이 많으면 가로로 굴러가는데 안에 포커스 받을 요소가 하나도 없다 —
-            `tabIndex` 가 없으면 키보드만 쓰는 사용자는 화면 밖 스텝을 볼 방법이 없다
-          */
+          /* 가로로 굴러가는데 안에 포커스 받을 요소가 없다 — tabIndex 가 없으면 키보드로 화면 밖 스텝을 볼 수 없다 */
           tabIndex={0}
           role="group"
           aria-label={`${name} 스텝 진행 상황`}
@@ -490,7 +437,7 @@ function StageBox({ name, steps }: { name: string; steps: ProjectStep[] }) {
           ) : (
             <ol className="flex w-full items-start">
               {sorted.map((step, index) => {
-                // 상태 배지와 같은 이유로 기본값을 둔다 — 모르는 상태에 화면이 죽지 않게
+                // 상태 배지와 같은 이유로 기본값을 둔다 — 모르는 상태에 화면이 죽지 않게.
                 const style = STEP_STYLE[step.status] ?? STEP_STYLE.NOT_STARTED;
                 const isLast = index === sorted.length - 1;
 
@@ -521,7 +468,7 @@ function StageBox({ name, steps }: { name: string; steps: ProjectStep[] }) {
                       </span>
                     </div>
 
-                    {/* 연결선 색은 **앞 스텝** 기준이다 — 상태 색으로 지나온 구간을 표시한다 */}
+                    {/* 연결선 색은 앞 스텝 기준 — 상태 색으로 지나온 구간을 표시한다 */}
                     {!isLast && (
                       <span
                         aria-hidden

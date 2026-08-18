@@ -8,24 +8,19 @@ const EDGE_PX = 96;
 const MAX_STEP_PX = 20;
 
 interface AutoScrollOptions {
-  /**
-   * 반응하기 시작하는 가장자리 폭.
-   * 모달처럼 굴릴 영역이 짧으면 좁혀야 한다 — 기본값이면 위아래 띠가 만나 버려
-   * 가운데에 "안 굴러가는 구간" 이 남지 않는다.
-   */
+  // 반응하기 시작하는 가장자리 폭.
+  // 모달처럼 굴릴 영역이 짧으면 좁혀야 한다 — 기본값이면 위아래 띠가 만나 버려
+  // 가운데에 "안 굴러가는 구간" 이 남지 않는다.
   edgePx?: number;
   /** 가장자리에 붙었을 때의 한 프레임 이동량 */
   maxStepPx?: number;
 }
 
-/**
- * 블록 보드를 **실제로 굴릴 수 있는** 조상을 찾는다. 없으면 `null` — 문서(창)가 굴러간다.
- *
- * ⚠️ `overflow-y: auto` 만 보고 고르면 안 된다. 본문 래퍼가 여러 겹이라
- *    그중 **실제로 넘치는** 것만이 굴러간다. 넘치지 않는 래퍼를 잡으면
- *    `scrollTop` 을 아무리 밀어도 화면이 따라오지 않는다.
- *    (셸이 화면 높이에 고정돼 있으므로 보통은 본문 래퍼가 잡힌다 — `AppShell` 참고)
- */
+// 블록 보드를 실제로 굴릴 수 있는 조상을 찾는다. 없으면 null — 문서(창)가 굴러간다.
+// overflow-y: auto 만 보고 고르면 안 된다. 본문 래퍼가 여러 겹이라
+// 그중 실제로 넘치는 것만이 굴러간다. 넘치지 않는 래퍼를 잡으면
+// scrollTop 을 아무리 밀어도 화면이 따라오지 않는다.
+// (셸이 화면 높이에 고정돼 있으므로 보통은 본문 래퍼가 잡힌다 — AppShell 참고)
 function findScrollParent(node: HTMLElement | null) {
   for (
     let parent = node?.parentElement;
@@ -49,15 +44,11 @@ function stepFor(distance: number, edgePx: number, maxStepPx: number) {
   return Math.ceil(closeness * maxStepPx);
 }
 
-/**
- * 드래그 중 위·아래 끝으로 커서를 가져가면 스크롤이 따라온다.
- *
- * HTML5 드래그 중에는 휠·키보드 스크롤이 먹지 않아, 보이는 범위 밖으로는
- * 항목을 옮길 수 없다. `dragover` 의 커서 위치를 보고 직접 굴린다.
- *
- * 굴릴 대상은 `boardRef` 의 **조상 중 실제로 넘치는 것**이다 —
- * 페이지 본문이든 모달 안 목록이든 같은 방식으로 찾는다.
- */
+// 드래그 중 위·아래 끝으로 커서를 가져가면 스크롤이 따라온다.
+// HTML5 드래그 중에는 휠·키보드 스크롤이 먹지 않아, 보이는 범위 밖으로는
+// 항목을 옮길 수 없다. dragover 의 커서 위치를 보고 직접 굴린다.
+// 굴릴 대상은 boardRef 의 조상 중 실제로 넘치는 것이다 —
+// 페이지 본문이든 모달 안 목록이든 같은 방식으로 찾는다.
 export function useDragAutoScroll(
   isDragging: boolean,
   boardRef: RefObject<HTMLElement | null>,
@@ -80,9 +71,9 @@ export function useDragAutoScroll(
 
     function handleDragOver(event: DragEvent) {
       /*
-       * 굴러가는 주체는 드래그 중에 바뀐다 — 드래그를 시작하면 빈 칸 · 꼬리 자리가 붙어
-       * 보드가 그때부터 넘치기 시작한다. 그래서 **못 찾았을 때도** 매번 다시 본다.
-       * `container` 가 null 인 채로 굳으면 문서를 굴리려 하는데,
+       * 굴러가는 주체는 드래그 중에 바뀐다 — 드래그를 시작하면 빈 칸·꼬리 자리가 붙어
+       * 보드가 그때부터 넘치기 시작한다. 그래서 못 찾았을 때도 매번 다시 본다.
+       * container 가 null 인 채로 굳으면 문서를 굴리려 하는데,
        * 셸이 화면 높이에 고정돼 있어 문서는 움직이지 않는다 (화면이 안 따라온다).
        */
       if (!container || container.scrollHeight <= container.clientHeight + 1) {

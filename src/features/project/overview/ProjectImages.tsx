@@ -1,5 +1,6 @@
 'use client';
 
+// CSR - 프로젝트 이미지 모아보기: 블록에 흩어진 이미지를 한 판에 모아 크게 볼 수 있게 한다.
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { memo, useMemo, useEffect, useState } from 'react';
@@ -17,21 +18,16 @@ import {
   useImageBlockNames,
 } from './useImageBlockNames';
 
-/**
- * 크게 보기는 별도 청크로 뺀다 — 목록만 훑고 나가는 사용자가 `Modal` 까지 받을 이유가 없다.
- * 타일에 마우스가 닿으면 미리 받아 두므로 실제로 열 때는 이미 캐시에 있다.
- */
+// 크게 보기는 별도 청크로 뺀다 — 목록만 훑고 나가는 사용자가 Modal 까지 받을 이유가 없다.
+// 타일에 마우스가 닿으면 미리 받아 두므로 실제로 열 때는 이미 캐시에 있다.
 const loadLightbox = () => import('./ProjectImageLightbox');
 const ProjectImageLightbox = dynamic(loadLightbox);
 
-/**
- * 프로젝트 이미지 모아보기. (명세 107번)
- *
- * ⚠️ 응답에 **스텝 정보도 `orderIndex` 도 없다** — 아는 것은 `imgBlockId` 뿐이다.
- *    그래서 문서함처럼 스텝 → 블록 트리로 접지 못하고 **블록 단위 묶음**까지만 만든다.
- *    블록 제목도 오지 않아 머리에는 `블록 #3` 처럼 ID 로만 적는다.
- * ⚠️ 조회 전용이다. 등록 · 캡션 수정 · 삭제는 이미지 블록(스텝 화면)에서 한다.
- */
+// 프로젝트 이미지 모아보기. (명세 107번)
+// 응답에 스텝 정보도 orderIndex 도 없다 — 아는 것은 imgBlockId 뿐이다.
+// 그래서 문서함처럼 스텝 → 블록 트리로 접지 못하고 블록 단위 묶음까지만 만든다.
+// 블록 제목도 오지 않아 머리에는 블록 #3 처럼 ID 로만 적는다.
+// 조회 전용이다. 등록·캡션 수정·삭제는 이미지 블록(스텝 화면)에서 한다.
 export default function ProjectImages() {
   const params = useParams<{ id: string }>();
   const projectId = params.id;
@@ -70,10 +66,10 @@ export default function ProjectImages() {
   /*
    * 블록 이름은 두 갈래로 얻는다.
    *
-   * 1. **응답에 실려 오면 그대로 쓴다** — 백엔드에 요청해 둔 `blockTitle` · `stepId` ·
-   *    `stepName` 이 배포되면 이 길로 붙고, 아래 N+1 조회는 **켜지지 않는다.**
+   * 1. 응답에 실려 오면 그대로 쓴다 — 백엔드에 요청해 둔 blockTitle·stepId ·
+   *    stepName 이 배포되면 이 길로 붙고, 아래 N+1 조회는 켜지지 않는다.
    * 2. 아직 안 오면 스텝마다 블록 목록을 불러 모은다 (요청이 스텝 수만큼 늘어난다).
-   *    그래서 **이름을 실제로 쓰는 순간**(블록별 보기 · 크게 보기)에만 켠다.
+   *    그래서 이름을 실제로 쓰는 순간(블록별 보기·크게 보기)에만 켠다.
    */
   const embeddedNames = useMemo(
     () => (images ? readImageBlockNames(images) : null),
@@ -185,10 +181,8 @@ export default function ProjectImages() {
   );
 }
 
-/**
- * 정사각 타일 그리드 — 캡션 줄은 항상 자리를 잡아 둔다.
- * `memo` — `블록별로 보기` 를 켜고 끌 때 다른 묶음의 타일까지 다시 그리지 않는다.
- */
+// 정사각 타일 그리드 — 캡션 줄은 항상 자리를 잡아 둔다.
+// memo — 블록별로 보기 를 켜고 끌 때 다른 묶음의 타일까지 다시 그리지 않는다.
 const ImageGrid = memo(function ImageGrid({
   images,
   onOpen,

@@ -7,10 +7,8 @@ import { messageOf } from '@/lib/api';
 
 import { deleteIssue } from './api';
 
-/**
- * 이슈 삭제 확인. 브라우저 기본 확인창 대신 `BlockDeleteModal` 과 같은 모양을 쓴다.
- * 서버는 soft delete 라 담당자 · 블록은 남고 연결만 끊긴다. (명세 60번)
- */
+// 이슈 삭제 확인. 브라우저 기본 확인창 대신 BlockDeleteModal 과 같은 모양을 쓴다.
+// 서버는 soft delete 라 담당자·블록은 남고 연결만 끊긴다.
 export default function DeleteIssueModal({
   issueId,
   issueTitle,

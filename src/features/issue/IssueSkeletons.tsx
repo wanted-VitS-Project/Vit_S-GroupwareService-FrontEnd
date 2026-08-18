@@ -1,9 +1,9 @@
 import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
 
-/** 열마다 다른 장수를 두어 실제 보드와 높이가 비슷하게 보이게 한다 */
+// 열마다 다른 장수를 두어 실제 보드와 높이가 비슷하게 보이게 한다.
 const CARDS_PER_COLUMN = [2, 3, 2];
 
-/** 이슈 보드 로딩 — 열 머리 + 카드 자리를 지킨다 */
+// 이슈 보드 로딩 — 열 머리 + 카드 자리를 지킨다.
 export function IssueBoardSkeleton() {
   return (
     <SkeletonGroup

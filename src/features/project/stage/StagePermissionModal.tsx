@@ -21,16 +21,13 @@ interface StagePermissionModalProps {
   onApplied: () => void;
 }
 
-/**
- * 스테이지의 **새 스텝 권한 기본값** 설정. (.ai/API.md 128)
- *
- * ⚠️ **판정에 쓰이는 값이 아니다.** `stage_permission` 테이블은 없고, 여기서 정한 값은
- *    스텝이 **새로 생길 때** `step_permission` 행으로 복사될 뿐이다 (STG-004 · INV-01).
- *    그래서 이미 만들어진 스텝에는 소급되지 않는다 — 지금 반영하려면 아래 체크박스를 켠다.
- * ⚠️ **현재 기본값을 조회하는 API 가 없다** — 이 모달은 "무엇으로 두겠다" 를 정할 뿐,
- *    지금 무엇으로 돼 있는지 보여주지 못한다. 문구로 분명히 알린다.
- * ⛔ 자기 자신의 권한 행은 바꿀 수 없다 (INV-10).
- */
+// 스테이지의 새 스텝 권한 기본값 설정. (.ai/API.md 128)
+// 판정에 쓰이는 값이 아니다. stage_permission 테이블은 없고, 여기서 정한 값은
+// 스텝이 새로 생길 때 step_permission 행으로 복사될 뿐이다 (STG-004·INV-01).
+// 그래서 이미 만들어진 스텝에는 소급되지 않는다 — 지금 반영하려면 아래 체크박스를 켠다.
+// 현재 기본값을 조회하는 API 가 없다 — 이 모달은 "무엇으로 두겠다" 를 정할 뿐,
+// 지금 무엇으로 돼 있는지 보여주지 못한다. 문구로 분명히 알린다.
+// 자기 자신의 권한 행은 바꿀 수 없다 (INV-10).
 export default function StagePermissionModal({
   projectId,
   stageId,
@@ -42,14 +39,12 @@ export default function StagePermissionModal({
 
   const [members, setMembers] = useState<ProjectMember[] | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
-  /** 대상은 한 명이다 — `MemberPicker` 는 배열을 받으므로 0~1개만 담는다 */
+  /** 대상은 한 명이다 — MemberPicker 는 배열을 받으므로 0~1개만 담는다 */
   const [selected, setSelected] = useState<PickablePerson | null>(null);
   const [permission, setPermission] = useState<StepPermission>('VIEWER');
-  /**
-   * ⚠️ **기본값은 끔.** 켠 채로 두면 "새 스텝 기본값만 정하려던" 저장이
-   * 이 스테이지의 **기존 스텝 권한을 전부 덮어쓴다** — 되돌리는 화면이 없다.
-   * 안내문("이미 있는 스텝은 아래를 켜야 함께 바뀝니다")과도 이 상태가 맞다.
-   */
+  // 기본값은 끔. 켠 채로 두면 "새 스텝 기본값만 정하려던" 저장이
+  // 이 스테이지의 기존 스텝 권한을 전부 덮어쓴다 — 되돌리는 화면이 없다.
+  // 안내문("이미 있는 스텝은 아래를 켜야 함께 바뀝니다")과도 이 상태가 맞다.
   const [applyToExistingSteps, setApplyToExistingSteps] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -82,7 +77,7 @@ export default function StagePermissionModal({
       const result = await applyStepPermissions(stageId, {
         userId: selected.userId,
         permission,
-        // 생략하면 백엔드 기본값이 `true` 지만, 화면의 뜻을 분명히 하려고 항상 싣는다
+        // 생략하면 백엔드 기본값이 true 지만, 화면의 뜻을 분명히 하려고 항상 싣는다
         applyToExistingSteps,
       });
 

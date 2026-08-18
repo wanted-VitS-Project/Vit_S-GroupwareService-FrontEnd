@@ -1,5 +1,6 @@
 'use client';
 
+// CSR - 프로젝트 설정 화면: 기본 정보·사업분류·상태·스텝 권한·삭제 구역을 한 화면에 모은다.
 import { useEffect, useState } from 'react';
 
 import { mobileSidebarClasses } from '@/components/mobileSidebarClasses';
@@ -25,35 +26,28 @@ import ProjectInfoForm from './ProjectInfoForm';
 import ProjectStatusSection from './ProjectStatusSection';
 import StepPermissionSection from './StepPermissionSection';
 
-/**
- * 화면 껍데기 — **정상 · 실패 두 갈래가 함께 쓴다.**
- *
- * 이 화면은 자기 여백을 직접 잡는다 (`projects/[id]/layout` 의 오른쪽 칸에는 여백이 없다).
- * 갈래마다 따로 적으면 한쪽만 고쳐져 실패 화면에서만 여백이 튄다 — 실제로 그랬다.
- */
+// 화면 껍데기 — 정상·실패 두 갈래가 함께 쓴다.
+// 이 화면은 자기 여백을 직접 잡는다 (projects/[id]/layout 의 오른쪽 칸에는 여백이 없다).
+// 갈래마다 따로 적으면 한쪽만 고쳐져 실패 화면에서만 여백이 튄다 — 실제로 그랬다.
 const SETTINGS_CONTAINER = `mx-auto max-w-[880px] p-4 md:p-6 ${mobileSidebarClasses.contentBottomGap}`;
 
-/**
- * 프로젝트 설정 화면. (.ai/API.md 125~133)
- *
- * 한 화면에 **기본 정보 · 상태 · 사업 카테고리 · 참여자** 네 가지가 들어간다 —
- * 전부 프로젝트 `EDITOR` 만 쓸 수 있고, 서로 다른 API 를 부르지만
- * "이 프로젝트를 어떻게 두느냐" 라는 한 가지 판단이라 화면을 나누지 않는다.
- *
- * ⚠️ **상세를 한 번만 읽고 각 섹션에 나눠준다.** 낙관적 락 때문에 `version` 이 한 벌이어야 하고,
- *    섹션마다 따로 읽으면 저장 직후 다른 섹션이 옛 `version` 을 들고 있어 무조건 409 가 된다.
- *    그래서 저장한 섹션이 `onSaved(version)` 으로 **새 값을 여기로 올려** 함께 갈아끼운다.
- */
+// 프로젝트 설정 화면. (.ai/API.md 125~133)
+// 한 화면에 기본 정보·상태·사업 카테고리·참여자 네 가지가 들어간다 —
+// 전부 프로젝트 EDITOR 만 쓸 수 있고, 서로 다른 API 를 부르지만
+// "이 프로젝트를 어떻게 두느냐" 라는 한 가지 판단이라 화면을 나누지 않는다.
+// 상세를 한 번만 읽고 각 섹션에 나눠준다. 낙관적 락 때문에 version 이 한 벌이어야 하고,
+// 섹션마다 따로 읽으면 저장 직후 다른 섹션이 옛 version 을 들고 있어 무조건 409 가 된다.
+// 그래서 저장한 섹션이 onSaved(version) 으로 새 값을 여기로 올려 함께 갈아끼운다.
 export default function ProjectSettings({ projectId }: { projectId: string }) {
   const [reloadCount, setReloadCount] = useState(0);
   const [membersReloadCount, setMembersReloadCount] = useState(0);
 
   /*
-   * 어떤 요청의 결과인지 `key` 로 들고 있는다.
+   * 어떤 요청의 결과인지 key 로 들고 있는다.
    * 조건이 바뀌면 key 가 어긋나 저절로 로딩 상태가 되므로,
-   * 효과 본문에서 상태를 되돌릴 필요가 없다 (`react-hooks/set-state-in-effect`).
+   * 효과 본문에서 상태를 되돌릴 필요가 없다 (react-hooks/set-state-in-effect).
    *
-   * `projectId` 를 함께 들고 있는 이유는 아래 `keepLastSeen` 주석 참고.
+   * projectId 를 함께 들고 있는 이유는 아래 keepLastSeen 주석 참고.
    */
   const [result, setResult] = useState<{
     key: string;
@@ -79,15 +73,12 @@ export default function ProjectSettings({ projectId }: { projectId: string }) {
   const requestKey = `${projectId}#${reloadCount}`;
   const membersRequestKey = `${projectId}#${membersReloadCount}`;
 
-  /**
-   * **다시 읽는 동안에도 직전 값을 그대로 보여준다** (stale-while-revalidate).
-   *
-   * ⚠️ 열쇠가 어긋난 순간 `null` 로 떨어뜨리면, 상태 변경 한 번에 네 섹션이 전부
-   *    `불러오는 중…` 으로 접혔다가 다시 펴진다 — 화면 높이가 크게 출렁이고
-   *    스크롤 위치까지 밀린다. 값이 바뀌지 않은 재조회가 대부분이라 손해가 크다.
-   * ⛔ **다른 프로젝트의 값은 절대 보여주지 않는다** — 열쇠가 아니라 `projectId` 로
-   *    한 번 더 거른다 (사이드바로 다른 프로젝트에 들어가면 즉시 비운다).
-   */
+  // 다시 읽는 동안에도 직전 값을 그대로 보여준다 (stale-while-revalidate).
+  // 열쇠가 어긋난 순간 null 로 떨어뜨리면, 상태 변경 한 번에 네 섹션이 전부
+  // 불러오는 중… 으로 접혔다가 다시 펴진다 — 화면 높이가 크게 출렁이고
+  // 스크롤 위치까지 밀린다. 값이 바뀌지 않은 재조회가 대부분이라 손해가 크다.
+  // 다른 프로젝트의 값은 절대 보여주지 않는다 — 열쇠가 아니라 projectId 로
+  // 한 번 더 거른다 (사이드바로 다른 프로젝트에 들어가면 즉시 비운다).
   function keepLastSeen<T extends { projectId: string }>(value: T | null) {
     return value?.projectId === projectId ? value : null;
   }
@@ -100,7 +91,7 @@ export default function ProjectSettings({ projectId }: { projectId: string }) {
   const members = currentMembers?.members ?? null;
 
   /*
-   * 실패 화면은 **이번 요청이 실패했을 때만** 띄운다.
+   * 실패 화면은 이번 요청이 실패했을 때만 띄운다.
    * 낡은 값이 남아 있어도 방금 조회가 깨졌으면 그대로 알린다 (조용히 옛 값을 보여주지 않는다).
    */
   const hasFailed = result?.key === requestKey && Boolean(result.hasFailed);
@@ -129,7 +120,7 @@ export default function ProjectSettings({ projectId }: { projectId: string }) {
   }, [projectId, requestKey]);
 
   /*
-   * 스테이지 · 스텝 목록. 상세와 같은 열쇠를 쓰므로 `다시 불러오기` 한 번에 함께 갱신된다.
+   * 스테이지·스텝 목록. 상세와 같은 열쇠를 쓰므로 다시 불러오기 한 번에 함께 갱신된다.
    * 실패해도 위쪽 네 섹션은 그대로 쓸 수 있어야 해서 상세와 나눠 둔다.
    */
   useEffect(() => {
@@ -187,14 +178,11 @@ export default function ProjectSettings({ projectId }: { projectId: string }) {
     setMembersReloadCount((count) => count + 1);
   }
 
-  /**
-   * 저장 응답이 준 **새 `version`** 을 화면 상태에 꽂는다.
-   * 이걸 빼먹으면 같은 화면에서의 다음 저장이 전부 409 다.
-   *
-   * ⚠️ **이것만으로는 화면 값이 최신이 되지 않는다.** 수정 응답에는 `description` 처럼
-   *    빠진 필드가 있어 다른 필드까지 갈아끼울 수 없다 — 값을 바꾼 섹션은 이 함수와 함께
-   *    `onReload()` 로 상세를 다시 읽어 서버 값에 맞춘다 (`ProjectInfoForm` · `ProjectStatusSection`).
-   */
+  // 저장 응답이 준 새 version 을 화면 상태에 꽂는다.
+  // 이걸 빼먹으면 같은 화면에서의 다음 저장이 전부 409 다.
+  // 이것만으로는 화면 값이 최신이 되지 않는다. 수정 응답에는 description 처럼
+  // 빠진 필드가 있어 다른 필드까지 갈아끼울 수 없다 — 값을 바꾼 섹션은 이 함수와 함께
+  // onReload() 로 상세를 다시 읽어 서버 값에 맞춘다 (ProjectInfoForm·ProjectStatusSection).
   function syncVersion(version: number) {
     setResult((previous) =>
       previous?.project
@@ -205,7 +193,7 @@ export default function ProjectSettings({ projectId }: { projectId: string }) {
 
   if (hasFailed) {
     return (
-      // 실패 화면도 **정상 화면과 같은 껍데기**를 쓴다 — 여백이 갈리면 폭이 튄다
+      // 실패 화면도 정상 화면과 같은 껍데기를 쓴다 — 여백이 갈리면 폭이 튄다
       <div className={SETTINGS_CONTAINER}>
         <p className="rounded-lg bg-red-bg-soft px-4 py-3 text-label break-keep text-text-danger">
           프로젝트를 불러오지 못했습니다. 삭제됐거나 접근 권한이 없을 수
@@ -293,7 +281,7 @@ export default function ProjectSettings({ projectId }: { projectId: string }) {
           onChanged={reloadProject}
         />
 
-        {/* 되돌릴 수 없는 조작이라 맨 아래 — `EDITOR` 에게만 보인다 */}
+        {/* 되돌릴 수 없는 조작이라 맨 아래 — EDITOR 에게만 보인다 */}
         {canEdit && (
           <DeleteProjectSection
             projectId={projectId}

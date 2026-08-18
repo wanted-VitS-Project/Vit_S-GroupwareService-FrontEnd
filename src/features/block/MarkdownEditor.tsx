@@ -9,10 +9,8 @@ import {
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from 'tiptap-markdown';
 
-/**
- * 마크다운 렌더 스타일. 편집 화면과 카드 미리보기가 같은 모습이어야 해서 공유한다.
- * `@tailwindcss/typography` 를 도입하지 않고 필요한 요소만 직접 지정한다.
- */
+// 마크다운 렌더 스타일. 편집 화면과 카드 미리보기가 같은 모습이어야 해서 공유한다.
+// @tailwindcss/typography 를 도입하지 않고 필요한 요소만 직접 지정한다.
 export const MARKDOWN_CLASS = [
   'text-detail leading-[18px] text-text-primary',
   '[&_p]:my-0 [&_p+p]:mt-2',
@@ -31,10 +29,8 @@ export const MARKDOWN_CLASS = [
   '[&_hr]:my-2 [&_hr]:border-t [&_hr]:border-border-default',
 ].join(' ');
 
-/**
- * `tiptap-markdown` 이 `editor.storage` 타입을 확장하지 않아 여기서 좁혀 쓴다.
- * 확장이 등록돼 있으면 항상 존재하는 값이다.
- */
+// 에디터 내용을 마크다운 원문으로 뽑는다.
+// tiptap-markdown 이 editor.storage 타입을 확장하지 않아 여기서 좁혀 쓴다 (확장이 있으면 항상 존재).
 function toMarkdown(editor: Editor) {
   const { markdown } = editor.storage as unknown as {
     markdown: { getMarkdown: () => string };
@@ -42,7 +38,7 @@ function toMarkdown(editor: Editor) {
   return markdown.getMarkdown();
 }
 
-/** 마크다운 원문을 화면에 노출하지 않는 WYSIWYG 에디터 + 서식 툴바 */
+// 마크다운 원문을 화면에 노출하지 않는 WYSIWYG 에디터 + 서식 툴바.
 export default function MarkdownEditor({
   value,
   onChange,
@@ -56,7 +52,7 @@ export default function MarkdownEditor({
   const editor = useEditor({
     extensions: [StarterKit, Markdown],
     content: value,
-    // SSR 에서 즉시 렌더하면 하이드레이션이 어긋난다
+    // SSR 에서 즉시 렌더하면 하이드레이션이 어긋난다.
     immediatelyRender: false,
     editorProps: {
       attributes: {
@@ -89,13 +85,9 @@ export default function MarkdownEditor({
   );
 }
 
-/**
- * 서식 툴바.
- *
- * ⚠️ TipTap 3 의 기본값이 `shouldRerenderOnTransaction: false` 라서
- *    `editor.isActive(...)` 를 렌더 중에 그냥 읽으면 선택 영역이 바뀌어도 갱신되지 않는다.
- *    `useEditorState` 로 필요한 값만 구독해야 활성 표시가 따라온다.
- */
+// 서식 툴바. TipTap 3 은 shouldRerenderOnTransaction 이 기본 false 라
+// editor.isActive(...) 를 렌더 중에 그냥 읽으면 선택 영역이 바뀌어도 갱신되지 않는다 —
+// useEditorState 로 필요한 값만 구독해야 활성 표시가 따라온다.
 function Toolbar({ editor }: { editor: Editor }) {
   const active = useEditorState({
     editor,

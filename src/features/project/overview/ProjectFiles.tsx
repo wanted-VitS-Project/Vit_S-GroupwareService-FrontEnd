@@ -1,5 +1,6 @@
 'use client';
 
+// CSR - 프로젝트 문서함: 전체 문서를 스텝 → 블록 트리로 훑는 조회 전용 화면.
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
@@ -28,13 +29,10 @@ import { ProjectFilesSkeleton } from './ProjectOverviewSkeletons';
 import StageSection from './StageSection';
 import { groupByStage, useProjectStages } from './useProjectStages';
 
-/**
- * 프로젝트 문서함 — 전체 문서를 스텝 → 블록 트리로 본다. (명세 105번)
- *
- * ⚠️ **조회 전용이다.** 업로드 · 이름 수정 · 삭제는 문서가 붙은 블록(스텝 화면)에서 한다 —
- *    문서함은 프로젝트를 가로질러 훑는 곳이라 여기서 고치면 어느 블록을 건드렸는지 잘 안 보인다.
- * ⚠️ presigned 가 실려 오지 않아 다운로드는 **누를 때** 발급 API(42번)를 부른다.
- */
+// 프로젝트 문서함 — 전체 문서를 스텝 → 블록 트리로 본다. (명세 105번)
+// 조회 전용이다. 업로드·이름 수정·삭제는 문서가 붙은 블록(스텝 화면)에서 한다 —
+// 문서함은 프로젝트를 가로질러 훑는 곳이라 여기서 고치면 어느 블록을 건드렸는지 잘 안 보인다.
+// presigned 가 실려 오지 않아 다운로드는 누를 때 발급 API(42번)를 부른다.
 export default function ProjectFiles() {
   const params = useParams<{ id: string }>();
   const projectId = params.id;
@@ -49,13 +47,13 @@ export default function ProjectFiles() {
   /** 다운로드 실패처럼 화면을 막지 않는 오류 */
   const [errorMessage, setErrorMessage] = useState('');
 
-  /** 접어 둔 스텝. 기본이 펼침이라 **닫은 것만** 담는다 */
+  /** 접어 둔 스텝. 기본이 펼침이라 닫은 것만 담는다 */
   const [closedStepIds, setClosedStepIds] = useState<Set<number>>(new Set());
   const viewerModal = useModalTarget<ProjectFile>();
 
   /*
-   * 105번 응답에 `stageId` 가 없어 따로 읽는다. 실패해도 목록은 그대로 보인다.
-   * 다만 **판정이 끝나기 전에는 그리지 않는다** (`isSettled`) — 색인 없이 먼저 그리면
+   * 105번 응답에 stageId 가 없어 따로 읽는다. 실패해도 목록은 그대로 보인다.
+   * 다만 판정이 끝나기 전에는 그리지 않는다 (isSettled) — 색인 없이 먼저 그리면
    * 스텝이 한 덩어리로 늘어섰다가 색인이 도착하는 순간 스테이지별로 다시 묶여
    * 제목이 끼어들고 높이가 바뀐다.
    */
@@ -83,7 +81,7 @@ export default function ProjectFiles() {
 
   /*
    * 평면 목록 → 스텝/블록 트리 → 스테이지 묶음.
-   * 접기 · 다운로드 실패처럼 목록과 무관한 렌더에서 전체를 다시 훑지 않게 기억해 둔다.
+   * 접기·다운로드 실패처럼 목록과 무관한 렌더에서 전체를 다시 훑지 않게 기억해 둔다.
    */
   const steps = useMemo(() => (files ? groupFilesByStep(files) : []), [files]);
   const stageGroups = useMemo(
@@ -91,7 +89,7 @@ export default function ProjectFiles() {
     [steps, stageIndex],
   );
 
-  /** 행마다 새 화살표 함수를 넘기면 `memo(FileRow)` 가 무력해진다 */
+  /** 행마다 새 화살표 함수를 넘기면 memo(FileRow) 가 무력해진다 */
   const download = useCallback((file: ProjectFile) => {
     downloadVersion(file.latestVersionId)
       // 성공하면 지난 실패 문구를 지운다 — 남겨 두면 방금 성공한 동작을 실패로 오해한다
@@ -129,7 +127,7 @@ export default function ProjectFiles() {
     );
   }
 
-  // 스테이지 색인까지 기다렸다가 **묶인 모습으로 한 번에** 그린다
+  // 스테이지 색인까지 기다렸다가 묶인 모습으로 한 번에 그린다
   if (!files || !isStageSettled) return <ProjectFilesSkeleton />;
 
   const areAllClosed = steps.every((step) => closedStepIds.has(step.stepId));
@@ -137,7 +135,7 @@ export default function ProjectFiles() {
   return (
     <div
       className="flex flex-col gap-4"
-      // 열기 직전 신호 — 여기서 뷰어 청크 · pdf.js 워커를 미리 받아 둔다
+      // 열기 직전 신호 — 여기서 뷰어 청크·pdf.js 워커를 미리 받아 둔다
       onPointerEnter={preloadViewer}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -260,10 +258,8 @@ export default function ProjectFiles() {
   );
 }
 
-/**
- * 블록 하나 — 제목 줄 + 그 아래 문서 목록.
- * `memo` — 다른 스텝을 접었다 펼 때 이 블록의 문서 행까지 다시 그리지 않는다.
- */
+// 블록 하나 — 제목 줄 + 그 아래 문서 목록.
+// memo — 다른 스텝을 접었다 펼 때 이 블록의 문서 행까지 다시 그리지 않는다.
 const BlockGroup = memo(function BlockGroup({
   block,
   onOpen,
@@ -312,10 +308,8 @@ const BlockGroup = memo(function BlockGroup({
   );
 });
 
-/**
- * 문서 한 줄 — 누르면 뷰어가 열린다 (조회 전용).
- * `memo` 라서 콜백은 **대상을 인자로 받는** 고정 함수를 받는다.
- */
+// 문서 한 줄 — 누르면 뷰어가 열린다 (조회 전용).
+// memo 라서 콜백은 대상을 인자로 받는 고정 함수를 받는다.
 const FileRow = memo(function FileRow({
   file,
   onOpen,
@@ -378,7 +372,7 @@ const FileRow = memo(function FileRow({
         </p>
       </div>
 
-      {/* 호버 · 포커스 전에는 자리만 차지한다 — 나타날 때 레이아웃이 밀리지 않는다 */}
+      {/* 호버·포커스 전에는 자리만 차지한다 — 나타날 때 레이아웃이 밀리지 않는다 */}
       <div className="pointer-events-auto relative flex shrink-0 items-center opacity-0 group-focus-within/file:opacity-100 group-hover/file:opacity-100">
         <button
           type="button"

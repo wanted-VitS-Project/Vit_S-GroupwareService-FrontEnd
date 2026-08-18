@@ -1,5 +1,6 @@
 'use client';
 
+// CSR - 프로젝트 상세 사이드바: 개요·스테이지·참여자를 세우고 하위 화면 전환의 기준이 된다.
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
@@ -53,14 +54,11 @@ import {
   ProjectStagesSkeleton,
 } from './project/ProjectSidebarSkeleton';
 
-/**
- * 프로젝트 상세 화면 왼쪽 사이드바.
- * 프로젝트 개요 · 스테이지 · 참여자를 보여주고 하위 화면 전환의 기준이 된다.
- *
- */
+// 프로젝트 상세 화면 왼쪽 사이드바.
+// 프로젝트 개요·스테이지·참여자를 보여주고 하위 화면 전환의 기준이 된다.
 
 /*
- * 스테이지 · 스텝 편집 모달은 **누를 때 받아온다**.
+ * 스테이지·스텝 편집 모달은 누를 때 받아온다.
  * 사이드바는 프로젝트 하위 모든 화면에 항상 떠 있어, 여기서 정적으로 물면
  * 편집 권한이 없는 사용자까지 모달 6개를 매번 내려받게 된다.
  */
@@ -84,7 +82,7 @@ const loadStagePermissionModal = () =>
 const loadProjectMembersModal = () =>
   import('@/features/project/member/ProjectMembersModal');
 
-/** `PanelModal` 과 같은 폭 — 청크가 도착할 때 패널이 흔들리지 않게 한다 */
+/** PanelModal 과 같은 폭 — 청크가 도착할 때 패널이 흔들리지 않게 한다 */
 const PANEL_FALLBACK = 'w-full max-w-[420px] rounded-base p-6 shadow-2xl';
 
 const StageManageModal = dynamic(loadStageManageModal, {
@@ -156,12 +154,9 @@ function preloadStepChunks() {
   void loadStepStatusModal();
 }
 
-/**
- * 지금 열려 있는 편집 모달.
- *
- * 불리언 6개를 따로 두면 두 개가 동시에 참인 상태를 타입이 막지 못한다 —
- * 대상까지 함께 든 값 **하나**로 들면 그 상태가 아예 만들어지지 않는다. (`lib/useModal`)
- */
+// 지금 열려 있는 편집 모달.
+// 불리언 6개를 따로 두면 두 개가 동시에 참인 상태를 타입이 막지 못한다 —
+// 대상까지 함께 든 값 하나로 들면 그 상태가 아예 만들어지지 않는다. (lib/useModal)
 type SidebarModal =
   | { kind: 'stageManage' }
   | { kind: 'stageCreate' }
@@ -171,47 +166,37 @@ type SidebarModal =
   | { kind: 'stepEdit'; step: ProjectStep }
   | { kind: 'stepDelete'; step: ProjectStep }
   | { kind: 'stepComplete'; step: ProjectStep }
-  /** 스텝 권한 오버라이드 — **프로젝트 EDITOR** 전용이다 (스텝 EDITOR 로는 못 부른다) */
+  /** 스텝 권한 오버라이드 — 프로젝트 EDITOR 전용이다 (스텝 EDITOR 로는 못 부른다) */
   | { kind: 'stepPermission'; step: ProjectStep }
-  /** 상태 변경 — 바꿀 상태는 **모달 안에서** 고른다 (`DONE` 은 완료 처리로 넘어간다) */
+  /** 상태 변경 — 바꿀 상태는 모달 안에서 고른다 (DONE 은 완료 처리로 넘어간다) */
   | { kind: 'stepStatus'; step: ProjectStep }
   /** 이 스테이지에 새로 생길 스텝의 권한 기본값 */
   | { kind: 'stagePermission'; stage: ProjectStage }
   /** 참여자 명단 — 사이드바 아바타 줄에서 바로 연다 */
   | { kind: 'members' };
 
-/** `stageId: null` 인 스텝을 모아 보여줄 가상 스테이지 */
+/** stageId: null 인 스텝을 모아 보여줄 가상 스테이지 */
 const UNASSIGNED_STAGE_ID = -1;
 
 /** 이슈 변경이 몰려 올 때 진척률 재조회를 합치는 대기 시간 */
 const REFRESH_QUIET_MS = 300;
 
-/**
- * 접힌 사이드바에서 스테이지 하나가 보여줄 점의 최대 개수.
- *
- * 스텝이 스무 개쯤 되는 스테이지가 몇 개만 있어도 세로로 한없이 길어져,
- * 접은 이유(한눈에 보기)가 사라진다. 넘치는 만큼은 `+N` 으로만 알린다.
- * 3의 배수 — 한 줄에 3개씩 놓여 딱 3줄로 떨어진다.
- */
+// 접힌 사이드바에서 스테이지 하나가 보여줄 점의 최대 개수.
+// 스텝이 스무 개쯤 되는 스테이지가 몇 개만 있어도 세로로 한없이 길어져,
+// 접은 이유(한눈에 보기)가 사라진다. 넘치는 만큼은 +N 으로만 알린다.
+// 3의 배수 — 한 줄에 3개씩 놓여 딱 3줄로 떨어진다.
 const MAX_COLLAPSED_DOTS = 9;
 
-/**
- * 참여자 줄에 그릴 아바타 최대 개수.
- *
- * 아바타는 24px 이고 8px 씩 겹치므로 **한 명마다 16px** 늘어난다 —
- * 사이드바는 고정 폭이라 열 명을 넘기면 줄이 영역을 벗어나고 `+` 표시를 밀어낸다.
- * 넘치는 만큼은 `+N` 으로만 알리고, 전체 명단은 눌러서 여는 모달이 맡는다.
- */
+// 참여자 줄에 그릴 아바타 최대 개수.
+// 아바타는 24px 이고 8px 씩 겹치므로 한 명마다 16px 늘어난다 —
+// 사이드바는 고정 폭이라 열 명을 넘기면 줄이 영역을 벗어나고 + 표시를 밀어낸다.
+// 넘치는 만큼은 +N 으로만 알리고, 전체 명단은 눌러서 여는 모달이 맡는다.
 const MAX_MEMBER_AVATARS = 8;
 
-/**
- * 스텝 상태 → 색. `GET /projects/{projectId}/steps` 의 `status` 를 그대로 쓴다.
- *
- * 실제 색값은 `globals.css` 의 `--color-step-*` 한 곳뿐이다 —
- * 점(접힘 · 펼침) · 진척 바 · 범례가 모두 이 표를 거치므로 토큰만 고치면 세 곳이 함께 움직인다.
- *
- * ⚠️ Tailwind 는 조합된 클래스명을 못 읽는다 — 완성된 문자열로 적어야 한다.
- */
+// 스텝 상태 → 색. GET /projects/{projectId}/steps 의 status 를 그대로 쓴다.
+// 실제 색값은 globals.css 의 --color-step-* 한 곳뿐이다 —
+// 점(접힘·펼침)·진척 바·범례가 모두 이 표를 거치므로 토큰만 고치면 세 곳이 함께 움직인다.
+// Tailwind 는 조합된 클래스명을 못 읽는다 — 완성된 문자열로 적어야 한다.
 const STEP_STATUS_BG: Record<StepStatus, string> = {
   NOT_STARTED: 'bg-step-not-started',
   IN_PROGRESS: 'bg-step-in-progress',
@@ -219,7 +204,7 @@ const STEP_STATUS_BG: Record<StepStatus, string> = {
 };
 
 export default function ProjectSidebar() {
-  // 스텝 화면(`/projects/{id}/steps/{stepId}`)이면 stepId 도 함께 들어온다
+  // 스텝 화면(/projects/{id}/steps/{stepId})이면 stepId 도 함께 들어온다
   const params = useParams<{ id: string; stepId?: string }>();
   const projectId = params.id;
   /** 이탈 경로 — 스텝 화면이면 그 프로젝트로, 프로젝트 화면이면 홈으로 */
@@ -229,47 +214,38 @@ export default function ProjectSidebar() {
   const me = useCurrentUser();
   const { isCollapsed, toggle, expand } = useProjectSidebarCollapse();
 
-  /**
-   * 좁은 화면(1024px 미만)에서만 쓰이는 열림 상태 — 공통 사이드바와 같은 방식이다.
-   * 넓은 화면에서는 클래스가 통째로 꺼져 있어 이 값이 화면에 영향을 주지 않는다.
-   */
+  // 좁은 화면(1024px 미만)에서만 쓰이는 열림 상태 — 공통 사이드바와 같은 방식이다.
+  // 넓은 화면에서는 클래스가 통째로 꺼져 있어 이 값이 화면에 영향을 주지 않는다.
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   /** 판이 실제로 떠 있는 상태 — 이때만 모달로 알린다 (넓은 화면에서는 제자리 사이드바다) */
   const isNarrow = useNarrowScreen();
   const isModal = isPanelOpen && isNarrow;
   const panelRef = useRef<HTMLElement>(null);
 
-  /**
-   * 좁은 화면에서는 **언제나 펼친 모습**으로 연다.
-   *
-   * 접힌 모습(58px 레일)은 옆에 본문이 나란히 있을 때 쓸모가 있다 — 떠 있는 판에서는
-   * 이름 없는 점만 남아 무엇을 고르는지 알 수 없다. 여는 순간 함께 펼쳐 둔다.
-   */
+  // 좁은 화면에서는 언제나 펼친 모습으로 연다.
+  // 접힌 모습(58px 레일)은 옆에 본문이 나란히 있을 때 쓸모가 있다 — 떠 있는 판에서는
+  // 이름 없는 점만 남아 무엇을 고르는지 알 수 없다. 여는 순간 함께 펼쳐 둔다.
   function openPanel() {
     expand();
     setIsPanelOpen(true);
   }
 
-  /** 스테이지 · 스텝을 고친 뒤 목록을 다시 읽는 신호 */
+  /** 스테이지·스텝을 고친 뒤 목록을 다시 읽는 신호 */
   const [reloadCount, setReloadCount] = useState(0);
   const modal = useModalTarget<SidebarModal>();
   /** 스텝 이름을 캐시에서 꺼내 쓰는 화면(스텝 헤더)에도 변경을 알린다 */
   const refreshSteps = useRefreshProjectSteps(projectId);
 
-  /**
-   * 스텝 · 스테이지를 고친 직후 부르는 단일 창구.
-   * 사이드바 자신의 목록과 **캐시에 담긴 스텝 목록**을 함께 갱신한다 —
-   * 여기를 빼먹으면 이름을 바꿔도 스텝 화면 헤더가 옛 이름을 들고 있다.
-   */
+  // 스텝·스테이지를 고친 직후 부르는 단일 창구.
+  // 사이드바 자신의 목록과 캐시에 담긴 스텝 목록을 함께 갱신한다 —
+  // 여기를 빼먹으면 이름을 바꿔도 스텝 화면 헤더가 옛 이름을 들고 있다.
   function reload() {
     setReloadCount((count) => count + 1);
     void refreshSteps();
   }
 
-  /**
-   * 스텝 목록은 **스텝 화면 헤더와 같은 캐시**를 본다 (`['project-steps', projectId]`).
-   * 나란히 떠 있는 두 화면이 같은 목록을 두 번 받지 않는다.
-   */
+  // 스텝 목록은 스텝 화면 헤더와 같은 캐시를 본다 (['project-steps', projectId]).
+  // 나란히 떠 있는 두 화면이 같은 목록을 두 번 받지 않는다.
   const { data: steps = null, isError: haveStepsFailed } =
     useProjectSteps(projectId);
 
@@ -305,16 +281,13 @@ export default function ProjectSidebar() {
       });
 
     return () => controller.abort();
-    // 스테이지를 고치면 `reloadCount` 가 올라 같은 조회를 다시 태운다 (스텝은 캐시가 맡는다)
+    // 스테이지를 고치면 reloadCount 가 올라 같은 조회를 다시 태운다 (스텝은 캐시가 맡는다)
   }, [projectId, reloadCount]);
 
-  /**
-   * 이슈가 바뀌면 스텝 진척률 · 전체 진척률을 다시 읽는다.
-   *
-   * 화면이 깜빡이지 않게 **가진 값을 지우지 않고** 도착한 값만 덮어쓴다.
-   * (`loaded` 를 null 로 되돌리면 스켈레톤이 다시 떠서 사이드바가 흔들린다)
-   * 스테이지는 이슈와 무관하므로 다시 읽지 않는다.
-   */
+  // 이슈가 바뀌면 스텝 진척률·전체 진척률을 다시 읽는다.
+  // 화면이 깜빡이지 않게 가진 값을 지우지 않고 도착한 값만 덮어쓴다.
+  // (loaded 를 null 로 되돌리면 스켈레톤이 다시 떠서 사이드바가 흔들린다)
+  // 스테이지는 이슈와 무관하므로 다시 읽지 않는다.
   useEffect(() => {
     let controller: AbortController | null = null;
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -379,19 +352,17 @@ export default function ProjectSidebar() {
     loadedMembers?.projectId === projectId ? loadedMembers.members : null;
 
   /*
-   * 받아 둔 내 권한을 캐시에 얹어 **사이드바 밖에서도** 쓸 수 있게 한다.
+   * 받아 둔 내 권한을 캐시에 얹어 사이드바 밖에서도 쓸 수 있게 한다.
    * 좁은 화면에서는 이 사이드바가 자리에서 빠져 배지가 함께 사라지므로,
-   * 탭바(`ProjectTabs` · `StepTabs`)가 이 값을 읽어 같은 배지를 세운다.
+   * 탭바(ProjectTabs·StepTabs)가 이 값을 읽어 같은 배지를 세운다.
    */
   usePublishProjectPermission(projectId, project?.myPermission);
   // 스텝만 실패해도 스테이지 탐색이 통째로 비어 이전과 같은 오류 화면을 띄운다
   const hasFailed = failedProjectId === projectId || haveStepsFailed;
   const haveMembersFailed = failedMembersProjectId === projectId;
 
-  /**
-   * 선택 상태로 표시할 스텝.
-   * 스텝 화면이면 URL 의 스텝, 아니면 진행 중인 첫 스텝을 잡는다.
-   */
+  // 선택 상태로 표시할 스텝.
+  // 스텝 화면이면 URL 의 스텝, 아니면 진행 중인 첫 스텝을 잡는다.
   const activeStepId = params.stepId
     ? Number(params.stepId)
     : (steps?.find((step) => step.status === 'IN_PROGRESS')?.stepId ?? null);
@@ -414,16 +385,12 @@ export default function ProjectSidebar() {
   const progressRate = project?.progressRate ?? 0;
   const category = project?.businessCategories.map((c) => c.name).join(' · ');
   const canEdit = project?.myPermission === 'EDITOR';
-  /**
-   * 참여자를 **들일 수 있는지** — 편집 권한 + 전사 `ADMIN` 예외 (`permissions.ts`).
-   * 아래 `+` 표시가 이 값을 따라야 모달 안의 `참여자 추가` 버튼과 어긋나지 않는다.
-   */
+  // 참여자를 들일 수 있는지 — 편집 권한 + 전사 ADMIN 예외 (permissions.ts).
+  // 아래 + 표시가 이 값을 따라야 모달 안의 참여자 추가 버튼과 어긋나지 않는다.
   const canAddMembers = canManageMembers({ role: me.role, canEdit });
 
-  /**
-   * 스텝을 지우면 하위 이슈도 함께 사라진다 —
-   * 이슈 보드가 열려 있을 수 있으므로 전역 이벤트로도 알린다. (`features/issue/events`)
-   */
+  // 스텝을 지우면 하위 이슈도 함께 사라진다 —
+  // 이슈 보드가 열려 있을 수 있으므로 전역 이벤트로도 알린다. (features/issue/events)
   function handleStepDeleted(step: ProjectStep, movedBlockCount: number) {
     notifyToast(
       movedBlockCount > 0
@@ -433,7 +400,7 @@ export default function ProjectSidebar() {
     reload();
     if (step.totalIssueCount > 0) notifyIssueChanged();
     /*
-     * 블록을 옮겼으면 **도착 스텝의 목록이 달라진다** —
+     * 블록을 옮겼으면 도착 스텝의 목록이 달라진다 —
      * 그 보드가 열려 있으면 알리지 않는 한 옛 목록을 계속 보여준다.
      */
     if (movedBlockCount > 0) notifyBlockChanged();
@@ -470,17 +437,17 @@ export default function ProjectSidebar() {
       : []),
   ];
 
-  /** 좁히기 전에 한 번 꺼내 둔다 — 조건마다 `modal.target?` 을 다시 좁히지 않아도 된다 */
+  /** 좁히기 전에 한 번 꺼내 둔다 — 조건마다 modal.target? 을 다시 좁히지 않아도 된다 */
   const openModal = modal.target;
 
   /*
-   * 폭만 전환한다 (`transition-all` 은 색 · 그림자까지 매 프레임 계산한다).
+   * 폭만 전환한다 (transition-all 은 색·그림자까지 매 프레임 계산한다).
    *
-   * 안쪽 트리는 **고정 폭**을 그대로 들고 `overflow-hidden` 으로 잘린다 —
+   * 안쪽 트리는 고정 폭을 그대로 들고 overflow-hidden 으로 잘린다 —
    * 이러면 전환 중에 사이드바 내용이 매 프레임 다시 배치되지 않는다.
-   * (안쪽까지 폭을 따라가게 두면 줄바꿈 · 말줄임이 프레임마다 다시 계산돼 끊긴다)
+   * (안쪽까지 폭을 따라가게 두면 줄바꿈·말줄임이 프레임마다 다시 계산돼 끊긴다)
    *
-   * `will-change` 는 걸지 않는다 — 항상 켜 두면 레이어가 계속 떠 있어 손해다.
+   * will-change 는 걸지 않는다 — 항상 켜 두면 레이어가 계속 떠 있어 손해다.
    */
   return (
     <>
@@ -498,7 +465,7 @@ export default function ProjectSidebar() {
 
       <aside
         ref={panelRef}
-        /* 떠 있는 동안에는 모달로 알린다 (`Sidebar` 와 같은 규칙) */
+        /* 떠 있는 동안에는 모달로 알린다 (Sidebar 와 같은 규칙) */
         role={isModal ? 'dialog' : undefined}
         aria-modal={isModal || undefined}
         aria-label={isModal ? '프로젝트 메뉴' : undefined}
@@ -548,7 +515,7 @@ export default function ProjectSidebar() {
               {`${upLink.label} 돌아가기`}
             </Link>
 
-            {/* 스크롤 영역 — 참여자 · 설정은 위아래에 고정한다. 폭이 좁아 스크롤바는 숨긴다 */}
+            {/* 스크롤 영역 — 참여자·설정은 위아래에 고정한다. 폭이 좁아 스크롤바는 숨긴다 */}
             <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto">
               <div className="flex flex-col gap-2 border-b border-border-default px-4 py-3">
                 <div className="flex items-center gap-2">
@@ -680,7 +647,7 @@ export default function ProjectSidebar() {
                       : step.stageId === stage.stageId,
                   );
 
-                  // 미분류는 실제 스테이지가 아니라 이름 수정 · 삭제 · 스텝 추가 대상이 아니다
+                  // 미분류는 실제 스테이지가 아니라 이름 수정·삭제·스텝 추가 대상이 아니다
                   const isEditable =
                     canEdit && stage.stageId !== UNASSIGNED_STAGE_ID;
 
@@ -723,7 +690,7 @@ export default function ProjectSidebar() {
                                 })
                               }
                               onPointerEnter={preloadStepChunks}
-                              // 노출 · 호버 · 아이콘 색을 RowMenu 의 ⋯ 버튼과 동일하게 맞춘다.
+                              // 노출·호버·아이콘 색을 RowMenu 의 ⋯ 버튼과 동일하게 맞춘다.
                               // group-focus-within 은 쓰지 않는다 — 스테이지를 클릭한 뒤
                               // 포커스가 남아 버튼이 계속 보인다
                               className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-button-sm text-text-secondary opacity-0 group-hover:opacity-100 hover:bg-black/5 focus-visible:opacity-100"
@@ -851,8 +818,8 @@ export default function ProjectSidebar() {
               ) : (
                 /*
                  * 영역 전체가 버튼이다 — 아바타만 겹쳐 놓아서는 누가 무슨 권한인지 알 수 없어
-                 * 눌러서 명단을 연다. 편집 권한이 없으면 모달이 **읽기 전용**으로 열린다.
-                 * (`관리` · `+` 를 따로 두지 않는다 — 좁은 폭에서 누를 곳이 셋으로 갈린다)
+                 * 눌러서 명단을 연다. 편집 권한이 없으면 모달이 읽기 전용으로 열린다.
+                 * (관리·+ 를 따로 두지 않는다 — 좁은 폭에서 누를 곳이 셋으로 갈린다)
                  */
                 <button
                   type="button"
@@ -1021,7 +988,7 @@ export default function ProjectSidebar() {
         <StepStatusModal
           step={openModal.step}
           onClose={modal.close}
-          // 새 `version` 과 상태가 목록에 반영돼야 다음 조작이 409 가 되지 않는다
+          // 새 version 과 상태가 목록에 반영돼야 다음 조작이 409 가 되지 않는다
           onChanged={reload}
           // 완료는 미완료 이슈 처리를 물어야 해서 전용 모달이 이어받는다
           onRequestComplete={() =>
@@ -1036,7 +1003,7 @@ export default function ProjectSidebar() {
           hasFailed={haveMembersFailed}
           canEdit={canEdit}
           onClose={modal.close}
-          // 권한 · 명단이 바뀌면 아바타 줄도 함께 맞춰야 한다
+          // 권한·명단이 바뀌면 아바타 줄도 함께 맞춰야 한다
           onChanged={() => {
             setFailedMembersProjectId(null);
             setMembersReloadCount((count) => count + 1);
@@ -1049,7 +1016,7 @@ export default function ProjectSidebar() {
           stageId={openModal.stage.stageId}
           stageName={openModal.stage.name}
           onClose={modal.close}
-          // 기존 스텝에 적용됐으면 내 스텝 권한(`myPermission`)도 달라질 수 있다
+          // 기존 스텝에 적용됐으면 내 스텝 권한(myPermission)도 달라질 수 있다
           onApplied={reload}
         />
       )}
@@ -1057,13 +1024,10 @@ export default function ProjectSidebar() {
   );
 }
 
-/**
- * 접힌 사이드바 (58px).
- *
- * 폭이 좁아 개요 · 참여자는 들어가지 않는다 — **어디까지 왔는지**만 남긴다.
- * 스테이지 이름 아래 점이 스텝 하나씩이고, 색이 그 스텝의 상태다.
- * 지금 보고 있는 스텝이 든 스테이지만 이름을 파랗게 둔다.
- */
+// 접힌 사이드바 (58px).
+// 폭이 좁아 개요·참여자는 들어가지 않는다 — 어디까지 왔는지만 남긴다.
+// 스테이지 이름 아래 점이 스텝 하나씩이고, 색이 그 스텝의 상태다.
+// 지금 보고 있는 스텝이 든 스테이지만 이름을 파랗게 둔다.
 function CollapsedSidebar({
   groups,
   steps,
@@ -1079,7 +1043,7 @@ function CollapsedSidebar({
   hasFailed: boolean;
   activeStageId: number | null;
   projectId: string;
-  /** 펼친 쪽과 **같은 이탈 경로**여야 한다 — 접었다고 나가는 곳이 달라지면 안 된다 */
+  /** 펼친 쪽과 같은 이탈 경로여야 한다 — 접었다고 나가는 곳이 달라지면 안 된다 */
   upLink: { href: string; label: string };
   onExpandStage: (stageId: number) => void;
   onExpand: () => void;
@@ -1210,10 +1174,8 @@ function CollapsedSidebar({
   );
 }
 
-/**
- * 접힌 사이드바의 스텝 점을 **글로 옮긴다**.
- * 점은 색으로만 상태를 말해 스크린리더에도, 색 대비가 약한 회색에도 기댈 수 없다.
- */
+// 접힌 사이드바의 스텝 점을 글로 옮긴다.
+// 점은 색으로만 상태를 말해 스크린리더에도, 색 대비가 약한 회색에도 기댈 수 없다.
 function describeSteps(stageSteps: ProjectStep[]) {
   if (stageSteps.length === 0) return '스텝 없음';
 
@@ -1245,14 +1207,11 @@ function StepCard({
   projectId: string;
   step: ProjectStep;
   isActive: boolean;
-  /**
-   * 스텝 권한 관리 가능 여부 — **프로젝트 `EDITOR`** 다.
-   *
-   * ⚠️ 스텝 권한 API(134~136)는 스텝 권한이 아니라 프로젝트 권한을 본다.
-   *    그래서 아래 `step.myPermission` 과 **다른 값이다** — 둘 다 참일 때만 항목을 넣는다.
-   *    이 스텝이 열람 전용인 프로젝트 편집자는 여기 대신 **프로젝트 설정**에서 관리한다
-   *    (메뉴 자체를 세우지 않기로 했다 — 아래 `canEditStep` 분기 주석 참고).
-   */
+  // 스텝 권한 관리 가능 여부 — 프로젝트 EDITOR 다.
+  // 스텝 권한 API(134~136)는 스텝 권한이 아니라 프로젝트 권한을 본다.
+  // 그래서 아래 step.myPermission 과 다른 값이다 — 둘 다 참일 때만 항목을 넣는다.
+  // 이 스텝이 열람 전용인 프로젝트 편집자는 여기 대신 프로젝트 설정에서 관리한다
+  // (메뉴 자체를 세우지 않기로 했다 — 아래 canEditStep 분기 주석 참고).
   canManagePermissions: boolean;
   onEdit: () => void;
   onDelete: () => void;
@@ -1292,7 +1251,7 @@ function StepCard({
           >
             {step.name}
           </span>
-          {/* 숫자 · `%` 를 한 문자열로 — 나뉘면 좁은 칸에서 `100` / `%` 로 끊긴다 */}
+          {/* 숫자·% 를 한 문자열로 — 나뉘면 좁은 칸에서 100 / % 로 끊긴다 */}
           <span
             className={`text-label whitespace-nowrap ${isActive ? 'text-text-primary-blue' : 'text-text-secondary'}`}
           >
@@ -1318,7 +1277,7 @@ function StepCard({
                     onSelect: onEdit,
                   },
                   /*
-                   * 상태는 **항목 하나로 묶는다** — 진행 전 · 진행중 · 완료를 각각 두면
+                   * 상태는 항목 하나로 묶는다 — 진행 전·진행중·완료를 각각 두면
                    * 메뉴가 스텝 상태에 따라 늘었다 줄었다 해서 매번 읽어야 한다.
                    * 무엇으로 바꿀지는 모달 안에서 고른다 (완료만 완료 처리 모달로 넘어간다).
                    */
@@ -1359,12 +1318,10 @@ function StepCard({
   );
 }
 
-/**
- * 메뉴 크기 — 열기 전에 위치를 계산해야 해서 값으로 들고 있다.
- * `스텝 권한 기본값` 처럼 긴 항목이 줄바꿈되지 않도록 넉넉히 잡는다.
- */
+// 메뉴 크기 — 열기 전에 위치를 계산해야 해서 값으로 들고 있다.
+// 스텝 권한 기본값 처럼 긴 항목이 줄바꿈되지 않도록 넉넉히 잡는다.
 const MENU_WIDTH = 156;
-/** 항목 하나 높이(`py-1.5` + 본문) · 위아래 `py-1` */
+/** 항목 하나 높이(py-1.5 + 본문)·위아래 py-1 */
 const MENU_ITEM_HEIGHT = 30;
 const MENU_PADDING = 8;
 
@@ -1376,14 +1333,12 @@ interface RowMenuItem {
   onSelect: () => void;
 }
 
-/**
- * 스테이지 · 스텝 공통 `⋯` 메뉴. 항목은 쓰는 쪽이 정한다.
- * 평소에는 투명하게 자리만 차지하고, 행에 호버하거나 포커스가 들어오면 보인다.
- */
+// 스테이지·스텝 공통 ⋯ 메뉴. 항목은 쓰는 쪽이 정한다.
+// 평소에는 투명하게 자리만 차지하고, 행에 호버하거나 포커스가 들어오면 보인다.
 function RowMenu({
   label,
   items,
-  // ⚠️ Tailwind 는 조합된 클래스명을 못 읽는다. 완성된 문자열로 넘겨야 한다
+  // Tailwind 는 조합된 클래스명을 못 읽는다. 완성된 문자열로 넘겨야 한다
   revealClass = 'group-hover:opacity-100',
   onOpen,
 }: {
@@ -1393,13 +1348,10 @@ function RowMenu({
   /** 열자마자 모달 청크를 받아 둔다 — 항목을 고를 때는 이미 도착해 있다 */
   onOpen?: () => void;
 }) {
-  /**
-   * 열린 위치. `null` 이면 닫혀 있다.
-   *
-   * ⚠️ **`absolute` 로는 안 된다** — 사이드바가 `overflow-y-auto` 라 메뉴가 목록 안에서
-   *    잘린다 (아래쪽 행일수록 심하다). `body` 로 빼서 `fixed` 로 띄우고 좌표는 열 때 잰다.
-   *    좌표가 굳으므로 스크롤 · 리사이즈가 생기면 닫는다. (`CategoryList` 의 `RowMenu` 와 같은 방식)
-   */
+  // 열린 위치. null 이면 닫혀 있다.
+  // absolute 로는 안 된다 — 사이드바가 overflow-y-auto 라 메뉴가 목록 안에서
+  // 잘린다 (아래쪽 행일수록 심하다). body 로 빼서 fixed 로 띄우고 좌표는 열 때 잰다.
+  // 좌표가 굳으므로 스크롤·리사이즈가 생기면 닫는다. (CategoryList 의 RowMenu 와 같은 방식)
   const [position, setPosition] = useState<{
     top: number;
     left: number;
@@ -1435,7 +1387,7 @@ function RowMenu({
 
     function dismiss() {
       /*
-       * 메뉴 항목에 초점이 있는 채로 사라지면 초점이 `body` 로 떨어져,
+       * 메뉴 항목에 초점이 있는 채로 사라지면 초점이 body 로 떨어져,
        * 키보드 사용자는 사이드바를 처음부터 다시 훑어야 한다 —
        * 이때만 트리거로 돌려준다 (그 외에는 스크롤 위치를 건드리지 않는다).
        */
@@ -1455,12 +1407,9 @@ function RowMenu({
     };
   }, [isOpen]);
 
-  /**
-   * 항목 사이를 화살표로 옮긴다 (WAI-ARIA 메뉴 패턴).
-   *
-   * Tab 만으로도 닿기는 하지만, 메뉴는 **위아래로 훑는 것**이 표준 동작이다.
-   * 끝에서 한 번 더 누르면 반대쪽으로 돌아간다 — 목록이 짧아 되돌아가는 편이 빠르다.
-   */
+  // 항목 사이를 화살표로 옮긴다 (WAI-ARIA 메뉴 패턴).
+  // Tab 만으로도 닿기는 하지만, 메뉴는 위아래로 훑는 것이 표준 동작이다.
+  // 끝에서 한 번 더 누르면 반대쪽으로 돌아간다 — 목록이 짧아 되돌아가는 편이 빠르다.
   function focusItem(step: 1 | -1) {
     const buttons = menuRef.current?.querySelectorAll('[role="menuitem"]');
     if (!buttons?.length) return;
@@ -1569,7 +1518,7 @@ function RowMenu({
   );
 }
 
-/** 진행 중(노랑) · 완료(파랑) · 진행 전(회색) 이슈 비율을 한 줄로 보여준다 */
+/** 진행 중(노랑)·완료(파랑)·진행 전(회색) 이슈 비율을 한 줄로 보여준다 */
 function StepProgressBar({ step }: { step: ProjectStep }) {
   const notStarted = Math.max(
     step.totalIssueCount - step.doneIssueCount - step.inProgressIssueCount,
@@ -1701,10 +1650,8 @@ function ChevronIcon({ isOpen }: { isOpen: boolean }) {
   );
 }
 
-/**
- * 사이드바 접기 · 펼치기 아이콘.
- * 화살표가 **일어날 일**을 가리킨다 — 접을 때는 왼쪽, 펼칠 때는 오른쪽.
- */
+// 사이드바 접기·펼치기 아이콘.
+// 화살표가 일어날 일을 가리킨다 — 접을 때는 왼쪽, 펼칠 때는 오른쪽.
 function PanelIcon({ direction }: { direction: 'left' | 'right' }) {
   return (
     <Svg strokeWidth={1.6} className="size-4 text-text-secondary">
@@ -1788,7 +1735,7 @@ function UsersIcon() {
   );
 }
 
-/** 공통 사이드바(`MenuIcon` 의 `settings`)와 같은 톱니바퀴다 — 두 곳이 달라 보이면 안 된다 */
+/** 공통 사이드바(MenuIcon 의 settings)와 같은 톱니바퀴다 — 두 곳이 달라 보이면 안 된다 */
 function SettingsIcon() {
   return (
     <Svg strokeWidth={1.6} className="size-4 shrink-0 text-text-secondary">

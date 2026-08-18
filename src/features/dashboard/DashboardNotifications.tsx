@@ -1,5 +1,6 @@
 'use client';
 
+// CSR - 대시보드 알림: 미확인을 위로 올려 훑기만 하는 카드. 읽음·삭제 처리는 알림 화면 몫이다.
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -17,27 +18,14 @@ import { NOTIFICATION_ROUTES } from '@/features/notification/routes';
 import type { NotificationItem } from '@/features/notification/types';
 import { messageOf } from '@/lib/api';
 
-/**
- * 대시보드에 세우는 알림 수. 카드 높이가 옆 일정 카드와 맞아야 해서 상한을 둔다 —
- * 더 보려면 `전체보기` 로 알림 화면에 간다.
- */
+// 옆 일정 카드와 높이를 맞춰야 해서 상한을 둔다 — 더 보려면 전체보기로 알림 화면에 간다.
 const LIMIT = 7;
 
-/**
- * 대시보드 `알림`.
- *
- * ⭐ **미확인이 항상 위다.** 서버는 읽음 여부와 무관하게 최신순으로만 주므로
- *    `안 읽음` · `읽음` 을 따로 받아 이어 붙인다 — 오래된 미확인이 새 알림에 밀려
- *    아래로 내려가면 처리해야 할 것을 놓친다.
- * ⭐ 다 읽은 사용자에게 빈 상자를 보이지 않으려고 읽은 알림으로 남은 자리를 채운다.
- * ℹ️ 읽음 · 삭제 같은 처리는 두지 않는다 — 여기는 훑는 자리고, 처리는 알림 화면 몫이다.
- *    (이동 대상 조회가 읽음 처리를 겸하므로 **누르면 읽음이 된다**)
- */
 export default function DashboardNotifications() {
   const router = useRouter();
 
   const [items, setItems] = useState<NotificationItem[] | null>(null);
-  /** 제목 옆 배지 — 목록 길이가 아니라 **안 읽은 전체 건수**다 */
+  // 제목 옆 배지 — 목록 길이가 아니라 안 읽은 전체 건수다.
   const [unreadCount, setUnreadCount] = useState<number | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
   const [error, setError] = useState('');
@@ -53,9 +41,9 @@ export default function DashboardNotifications() {
       getNotifications({ isRead: true, page: 0, size: LIMIT }, signal),
     ])
       .then(([unread, read]) => {
-        // 미확인을 먼저 깔고 남은 자리만 읽은 알림으로 채운다
+        // 서버는 읽음 여부와 무관하게 최신순으로만 주므로 안 읽음·읽음을 따로 받아 이어 붙인다.
+        // 오래된 미확인이 새 알림에 밀려 내려가면 처리할 것을 놓친다.
         setItems([...unread.content, ...read.content].slice(0, LIMIT));
-        // 배지는 목록 길이가 아니라 **안 읽은 전체 건수**다 — 목록은 `size` 에 잘린다
         setUnreadCount(unread.totalElements);
         setHasFailed(false);
       })
@@ -64,17 +52,14 @@ export default function DashboardNotifications() {
         if (signal.aborted) return;
 
         setHasFailed(true);
-        /*
-          배지도 함께 지운다 — 한 번 받아 둔 뒤 새로고침이 실패하면
-          본문은 실패를 알리는데 배지만 낡은 건수를 물고 있다.
-        */
+        // 배지도 비운다 — 안 그러면 본문은 실패를 알리는데 배지만 낡은 건수를 물고 있다.
         setUnreadCount(null);
       });
 
     return () => controller.abort();
   }, [refreshKey]);
 
-  /** 헤더 드롭다운에서 `모두 읽음` 을 눌러도 이 카드가 낡은 채로 남지 않게 한다 */
+  // 헤더 드롭다운에서 모두 읽음을 눌러도 이 카드가 낡은 채로 남지 않게 한다.
   useEffect(
     () => onNotificationChanged(() => setRefreshKey((key) => key + 1)),
     [],
@@ -91,7 +76,7 @@ export default function DashboardNotifications() {
         const target = await getNotificationTarget(notification.notificationId);
         const route = routeOf(target);
 
-        // 이동하든 말든 **읽음은 이미 됐다** — 알리지 않으면 헤더 배지가 낡은 수를 문다
+        // 대상 조회가 읽음 처리를 겸한다 — 이동 여부와 무관하게 알려야 헤더 배지가 낡지 않는다.
         notifyNotificationChanged();
         if (route) router.push(route);
       } catch (caught) {
@@ -106,7 +91,7 @@ export default function DashboardNotifications() {
   return (
     <section
       aria-labelledby="dashboardNotifications"
-      /* 옆 두 상자(캘린더 · 이슈)와 높이를 맞춘다 — 넘치는 목록은 상자 안에서만 굴린다 */
+      /* 옆 상자(캘린더·이슈)와 높이를 맞추고 넘치는 목록은 상자 안에서만 굴린다 */
       className="flex h-full min-h-0 flex-col overflow-hidden rounded-base border border-border-default bg-bg-card"
     >
       <div className="flex items-end justify-between border-b border-border-default px-6 py-4">
@@ -115,7 +100,7 @@ export default function DashboardNotifications() {
           className="flex items-center gap-2 text-logo leading-8 font-semibold text-gray-text-soft"
         >
           알림
-          {/* 안 읽은 게 없으면 배지를 세우지 않는다 — `0` 은 알릴 것이 없다는 뜻이다 */}
+          {/* 0 은 알릴 것이 없다는 뜻이라 배지를 아예 세우지 않는다 */}
           {unreadCount !== null && unreadCount > 0 && (
             <span className="rounded-pill bg-blue-bg-soft px-2.5 py-0.5 text-label font-medium text-text-primary-blue">
               {unreadCount}
@@ -142,7 +127,7 @@ export default function DashboardNotifications() {
       )}
 
       {hasFailed ? (
-        /* 조회가 끝난 뒤 바뀌는 상태라, 알리지 않으면 스크린리더가 실패를 못 읽는다 */
+        /* 조회가 끝난 뒤 바뀌는 상태라 role 이 없으면 스크린리더가 실패를 못 읽는다 */
         <p
           role="alert"
           className="flex flex-1 items-center justify-center px-6 py-16 text-detail text-text-secondary"
@@ -177,10 +162,8 @@ export default function DashboardNotifications() {
   );
 }
 
-/**
- * 유형 배지. `notificationType` 의 **접두어**로 가른다 (`APPROVAL_REQUESTED` → `결재`) —
- * 종류 전체 목록을 받지 못해, 모르는 값은 아래 기본 배지로 떨어진다.
- */
+// notificationType 의 접두어로 가른다 (APPROVAL_REQUESTED → 결재).
+// 종류 전체 목록을 받지 못해 모르는 값은 DEFAULT_BADGE 로 떨어진다.
 const TYPE_BADGES: Record<string, { label: string; className: string }> = {
   ISSUE: { label: '이슈', className: 'bg-red-bg text-red-text' },
   APPROVAL: { label: '결재', className: 'bg-yellow-bg-soft text-yellow-text' },
@@ -201,12 +184,8 @@ function badgeOf(notificationType: string) {
   return TYPE_BADGES[notificationType.split('_')[0]] ?? DEFAULT_BADGE;
 }
 
-/**
- * 알림 한 줄. 알림 화면(`NotificationRow`)과 달리 **한 줄에 눕힌다** —
- * 대시보드는 훑는 자리라 세 줄짜리 카드가 여덟 개면 상자를 넘긴다.
- *
- * 안 읽음은 **왼쪽 점**으로 알린다. 배경색까지 칠하면 옆 캘린더 · 이슈 상자보다 시끄럽다.
- */
+// 알림 화면의 행과 달리 한 줄에 눕힌다 — 세 줄짜리 카드가 일곱 개면 상자를 넘긴다.
+// 안 읽음은 왼쪽 점으로만 알린다. 배경색까지 칠하면 옆 캘린더·이슈 상자보다 시끄럽다.
 function NotificationRow({
   notification,
   disabled,
@@ -242,12 +221,7 @@ function NotificationRow({
         {badge.label}
       </span>
 
-      {/*
-        제목(`title`)은 세우지 않는다 — `결재 요청` 처럼 **유형을 되풀이하는 말**이라
-        옆 배지와 같은 것을 두 번 읽히고, 좁은 칸에서 정작 내용을 밀어낸다.
-        폭도 고정하지 않는다 — 남는 자리를 전부 내용이 쓰고 넘치면 말줄임한다.
-      */}
-      {/* 날짜도 세우지 않는다 — 여기는 훑는 자리다. 언제 왔는지는 알림 화면에서 본다 */}
+      {/* title 은 결재 요청처럼 옆 배지를 되풀이하는 말이라 빼고 내용에 남는 폭을 전부 준다. 날짜는 알림 화면에서 본다 */}
       <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-gray-text-soft">
         {notification.message}
       </span>

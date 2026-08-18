@@ -6,7 +6,7 @@ import Modal from '@/components/Modal';
 
 import type { IssueEditField } from './types';
 
-/** 같은 필드를 서로 고친 한 줄. 값 문구는 부르는 쪽이 만든다 (담당자 · 블록 이름을 아는 곳이 거기다) */
+// 같은 필드를 서로 고친 한 줄. 값 문구는 부르는 쪽이 만든다 (담당자·블록 이름을 아는 곳이 거기다).
 export interface IssueConflictRow {
   field: IssueEditField;
   label: string;
@@ -18,19 +18,14 @@ export interface IssueConflictRow {
 
 export type IssueConflictChoice = Record<IssueEditField, 'mine' | 'theirs'>;
 
-/** 값이 비어 있으면 빈 칸이 되어 무엇이 다른지 안 보인다 — 눈에 보이는 문구로 바꾼다 */
+// 값이 비어 있으면 무엇이 다른지 안 보인다 — 눈에 보이는 문구로 바꾼다.
 function shown(value: string) {
   return value.trim() || '(비어 있음)';
 }
 
-/**
- * 낙관적 락 충돌 해소 — **같은 필드**를 나와 남이 함께 고쳤을 때만 뜬다.
- * (겹치지 않는 필드는 화면이 자동으로 병합해 다시 저장하므로 여기까지 오지 않는다)
- *
- * ⚠️ 취소는 `계속 편집` 이다 — Esc · 배경 클릭도 취소로 흘러 들어오므로,
- *    잘못 누른 한 번에 입력이 사라지거나 남의 값이 지워지면 안 된다.
- *    `dismissOnBackdrop` 을 끄고 배경 클릭은 아예 받지 않는다.
- */
+// 낙관적 락 충돌 해소 — 같은 필드를 나와 남이 함께 고쳤을 때만 뜬다.
+// (겹치지 않는 필드는 화면이 자동 병합해 다시 저장하므로 여기까지 오지 않는다)
+// 취소는 계속 편집이라, 잘못 누른 한 번에 입력이 사라지지 않게 배경 클릭은 받지 않는다.
 export default function IssueConflictModal({
   rows,
   isSaving,
@@ -42,10 +37,8 @@ export default function IssueConflictModal({
   onSave: (choices: IssueConflictChoice) => void;
   onCancel: () => void;
 }) {
-  /**
-   * 기본값은 **내 값 유지**다 — 방금 입력한 것을 잠자코 남의 값으로 바꿔치기하면
-   * 사용자는 자기가 쓴 내용이 사라진 줄 안다.
-   */
+  // 기본값은 내 값 유지 — 방금 입력한 것을 잠자코 남의 값으로 바꿔치기하면
+  // 사용자는 자기가 쓴 내용이 사라진 줄 안다.
   const [choices, setChoices] = useState<IssueConflictChoice>(
     () =>
       Object.fromEntries(

@@ -1,5 +1,6 @@
 'use client';
 
+// CSR - 헤더 오른쪽 프로필: 누르면 마이페이지·로그아웃이 드롭다운으로 열린다.
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -10,17 +11,12 @@ import { clearShellCookie, readShellCookie } from '@/features/auth/shellCache';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { ApiError } from '@/lib/api';
 
-/**
- * 헤더 오른쪽 프로필. 누르면 `마이페이지` · `로그아웃` 이 드롭다운으로 열린다.
- *
- * 로그아웃을 헤더에 버튼으로 내놓으면 프로필과 한 덩어리로 붙어 보이고,
- * 자주 쓰지 않는 동작이 늘 자리를 차지한다 — 시안대로 프로필 안으로 넣었다.
- *
- * 글자 크기는 사이드바 프로필과 같다 — 이름 18/600 · 부가정보 14/400.
- *
- * `isDark` 는 프로젝트 화면의 어두운 헤더 위에 놓일 때만 켠다. **색만 갈아끼우고**
- * 구조 · 크기는 그대로다 — 드롭다운은 떠 있는 판이라 양쪽 모두 흰 배경을 쓴다.
- */
+// 헤더 오른쪽 프로필. 누르면 마이페이지·로그아웃 이 드롭다운으로 열린다.
+// 로그아웃을 헤더에 버튼으로 내놓으면 프로필과 한 덩어리로 붙어 보이고,
+// 자주 쓰지 않는 동작이 늘 자리를 차지한다 — 시안대로 프로필 안으로 넣었다.
+// 글자 크기는 사이드바 프로필과 같다 — 이름 18/600·부가정보 14/400.
+// isDark 는 프로젝트 화면의 어두운 헤더 위에 놓일 때만 켠다. 색만 갈아끼우고
+// 구조·크기는 그대로다 — 드롭다운은 떠 있는 판이라 양쪽 모두 흰 배경을 쓴다.
 export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
   const router = useRouter();
   const user = useCurrentUser();
@@ -34,11 +30,9 @@ export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
   const [thumbnail] = useState(() => readShellCookie()?.avatar ?? null);
   const [error, setError] = useState('');
 
-  /**
-   * 소속이 없는 계정(ADMIN 등)이 있다 — 직급 · 부서가 `null` 로 온다.
-   * 그때 이름만 18px 로 남으면 60px 헤더 안에서 혼자 커 보인다 —
-   * **한 줄짜리 이름은 16px** 로 떨어뜨려 무게를 맞춘다.
-   */
+  // 소속이 없는 계정(ADMIN 등)이 있다 — 직급·부서가 null 로 온다.
+  // 그때 이름만 18px 로 남으면 60px 헤더 안에서 혼자 커 보인다 —
+  // 한 줄짜리 이름은 16px 로 떨어뜨려 무게를 맞춘다.
   const hasSubInfo = Boolean(user.jobPositionName || user.departmentPath);
 
   /** 바깥을 누르거나 Esc 를 누르면 닫는다 (알림 종과 같은 규칙) */
@@ -83,7 +77,7 @@ export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
       }
     }
 
-    // 셸 캐시도 함께 비운다 — 다음 사람이 로그인할 때 내 이름 · 메뉴가 잠깐 비치면 안 된다
+    // 셸 캐시도 함께 비운다 — 다음 사람이 로그인할 때 내 이름·메뉴가 잠깐 비치면 안 된다
     clearShellCookie();
     // refresh 로 라우터 캐시를 비워야 프록시가 쿠키를 다시 판단한다
     router.replace('/login');
@@ -96,12 +90,10 @@ export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
         ref={triggerRef}
         type="button"
         onClick={() => setIsOpen((open) => !open)}
-        /**
-         * `role="menu"` 도 `aria-haspopup` 도 쓰지 않는다 — 둘 다 **화살표 키 이동 ·
-         * 항목 포커스 관리**를 함께 구현해야 하는 메뉴 규약이다. 여기는 링크 · 버튼
-         * 하나씩 든 평범한 펼침(disclosure)이라 `aria-expanded` 만으로 충분하고,
-         * 기본 Tab 이동이 더 잘 맞는다.
-         */
+        // role="menu" 도 aria-haspopup 도 쓰지 않는다 — 둘 다 화살표 키 이동 ·
+        // 항목 포커스 관리를 함께 구현해야 하는 메뉴 규약이다. 여기는 링크·버튼
+        // 하나씩 든 평범한 펼침(disclosure)이라 aria-expanded 만으로 충분하고,
+        // 기본 Tab 이동이 더 잘 맞는다.
         aria-expanded={isOpen}
         className={`flex max-w-60 cursor-pointer items-center gap-3 rounded-sidebar px-2 py-1 ${
           isDark ? 'hover:bg-bg-sidebar-hover' : 'hover:bg-bg-hover'
@@ -120,13 +112,11 @@ export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
 
         <span className="min-w-0 text-left">
           <span className="flex items-baseline gap-1.5">
-            {/* `min-w-0` 이 없으면 flex 가 글자 폭 아래로 안 줄여 말줄임이 안 걸린다 */}
+            {/* min-w-0 이 없으면 flex 가 글자 폭 아래로 안 줄여 말줄임이 안 걸린다 */}
             <span
-              /**
-               * 헤더 · 사이드바 모두 **보조 정보가 함께 붙는 자리**라 제목 크기가 필요 없다.
-               * 표 본문(`DataTable`) · 폼 입력과 같은 14px 로 맞춘다.
-               * 보조 정보가 없을 때만 12px 로 한 단계 더 내린다.
-               */
+              // 헤더·사이드바 모두 보조 정보가 함께 붙는 자리라 제목 크기가 필요 없다.
+              // 표 본문(DataTable)·폼 입력과 같은 14px 로 맞춘다.
+              // 보조 정보가 없을 때만 12px 로 한 단계 더 내린다.
               className={`min-w-0 truncate font-semibold ${
                 hasSubInfo ? 'text-label' : 'text-caption'
               } ${isDark ? 'text-text-white' : 'text-text-primary'}`}
