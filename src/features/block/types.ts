@@ -393,6 +393,30 @@ export interface TrashImage {
   imageUrl: string;
   caption: string;
   deletedAt: string;
+  /**
+   * 상위 블록도 지워졌는지. 문서 휴지통(106번)의 같은 이름 필드와 뜻이 같다 —
+   * 블록·스텝·스테이지 삭제로 **딸려 들어온** 이미지라는 표시다.
+   */
+  blockDeleted: boolean;
+}
+
+// 107 · 109번의 페이지 봉투. (2026-08-16 page · size 추가)
+// 파일 쪽 FilePage 와 모양은 같지만 목록 필드 이름이 `content` 가 아니라 `images` 다 —
+// 그대로 재사용하면 필드가 어긋나 따로 둔다.
+export interface ImagePage<T> {
+  /** 0-base */
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  images: T[];
+}
+
+export interface ImagePageQuery {
+  /** 0-base. 생략하면 0 */
+  page?: number;
+  /** 기본 20 · 최대 100 */
+  size?: number;
 }
 
 // PATCH /blocks/images/items/restore 의 복구 결과 한 건. (명세 110번)

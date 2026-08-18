@@ -11,6 +11,8 @@ import type {
   DeleteChecklistItemResponse,
   ImageItemResponse,
   ImageItemsResponse,
+  ImagePage,
+  ImagePageQuery,
   MoveBlockRequest,
   MoveBlockResponse,
   ProjectImage,
@@ -205,32 +207,46 @@ export function getImageItems(
   );
 }
 
+/**
+ * 페이징 쿼리 조립 — 이미지 목록 두 곳(모아보기 107 · 휴지통 109)이 함께 쓴다.
+ * ⚠️ `0` 도 유효한 페이지라 값의 **유무**로 판단한다 (falsy 검사를 쓰면 첫 장이 빠진다).
+ *    범위(`page` ≥ 0 · 0 < `size` ≤ 100)를 벗어나면 서버가 `400 IMG-012` 로 막는다.
+ */
+function withPaging(path: string, { page, size }: ImagePageQuery) {
+  const params = new URLSearchParams();
+  if (page !== undefined) params.set('page', String(page));
+  if (size !== undefined) params.set('size', String(size));
+
+  const search = params.toString();
+
+  return search ? `${path}?${search}` : path;
+}
+
 // 프로젝트 전체 이미지 모아보기. (명세 107번)
 // 블록 목록(71번)과 달리 열람 권한이면 볼 수 있고, 대신 orderIndex 가 없다 —
 // 블록 안에서 몇 번째 장인지는 알 수 없어 화면도 순서를 표기하지 않는다.
+// 2026-08-16 부터 페이징이다 — 봉투째 돌려준다 (총 장수 · 총 페이지를 화면이 쓴다).
 export function getProjectImages(
   projectId: number | string,
+  query: ImagePageQuery = {},
   signal?: AbortSignal,
 ) {
-  return api
-    .get<{ images: ProjectImage[] }>(
-      ENDPOINTS.projects.images(projectId),
-      signal,
-    )
-    .then((data) => data.images);
+  return api.get<ImagePage<ProjectImage>>(
+    withPaging(ENDPOINTS.projects.images(projectId), query),
+    signal,
+  );
 }
 
-/** 이미지 휴지통. 삭제 시각 내림차순 평면 목록이다 (명세 109번) */
+/** 이미지 휴지통. 삭제 시각 내림차순 평면 목록이다 (명세 109번 · 2026-08-16 페이징) */
 export function getProjectTrashImages(
   projectId: number | string,
+  query: ImagePageQuery = {},
   signal?: AbortSignal,
 ) {
-  return api
-    .get<{ images: TrashImage[] }>(
-      ENDPOINTS.projects.imagesTrash(projectId),
-      signal,
-    )
-    .then((data) => data.images);
+  return api.get<ImagePage<TrashImage>>(
+    withPaging(ENDPOINTS.projects.imagesTrash(projectId), query),
+    signal,
+  );
 }
 
 // 이미지 복구 — 다건. (명세 110번)
