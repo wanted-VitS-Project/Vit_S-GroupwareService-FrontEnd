@@ -157,6 +157,17 @@ export function applyLayouts(
   );
 }
 
+// 화면에 보이는 순서를 그대로 좌표(rowIndex·sortOrder)에 새긴다.
+// 아직 서버에 저장하지 않은 배치를 캐시에 꽂을 때 쓴다 — 순서만 바꿔 넣으면
+// 블록들은 옛 좌표를 그대로 들고 있어, 그 목록을 다시 읽는 쪽이 어긋난다.
+// (toFlatOrder() 로 다시 세우면 이동 전 순서로 돌아가고,
+//  nextPosition() 은 옛 좌표 기준으로 새 블록 자리를 고른다)
+// 좌표를 매기는 규칙은 저장 요청과 같다 (toLayouts) — 보이는 배치가 곧 좌표다.
+// version 은 layouts 에 없어 그대로 남는다 (덮이면 다음 저장이 전부 409 다).
+export function renumber(blocks: StepBlock[]): StepBlock[] {
+  return applyLayouts(blocks, toLayouts(computeRows(blocks)));
+}
+
 // 새 블록이 들어갈 자리 — 초안과 같이 평면 순서의 맨 뒤다.
 // 마지막 행에 칸이 남으면 그 행 오른쪽에 붙고, 모자라면 새 행으로 내려간다.
 // 좌표는 서버가 준 값이 아니라 다시 패킹한 행 기준으로 매긴다.

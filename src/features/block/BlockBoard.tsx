@@ -21,6 +21,7 @@ import {
   hasSameOrder,
   moveAfter,
   moveTo,
+  renumber,
   toFlatOrder,
   toSpan,
 } from './blockLayout';
@@ -167,7 +168,8 @@ export default function BlockBoard({
   arrangeRef?: RefObject<ArrangeHandle | null>;
   // 바뀐 순서를 목록 주인에게 돌려준다 — 놓는 즉시 한 번, 저장 응답이 오면 또 한 번.
   // 새 블록 자리 계산(nextPosition)이 옛 좌표를 보지 않게 하려면 즉시 알려야 한다.
-  onOrderChanged?: (blocks: StepBlock[]) => void;
+  // 목록 주인이 캐시에 넣은 배열을 돌려주면 그걸 메아리로 잡는다 (구조 공유 대응).
+  onOrderChanged?: (blocks: StepBlock[]) => StepBlock[] | void;
   /** 대기 중인 배치를 지금 보내는 손잡이를 넘겨준다 (블록 생성 직전에 쓴다) */
   flushLayoutRef?: RefObject<(() => void) | null>;
 }) {
@@ -244,9 +246,17 @@ export default function BlockBoard({
   /** 우리가 위로 올려보낸 목록 — 그게 blocks 로 되돌아온 것은 재조회가 아니다 */
   const [echoed, setEchoed] = useState<StepBlock[] | null>(null);
 
+  // 바뀐 순서를 목록 주인에게 올려보낸다.
+  // 좌표를 화면 기준으로 다시 새겨서(renumber) 보낸다 — 순서만 바꿔 보내면
+  // 목록은 저장 전 옛 rowIndex·sortOrder 를 그대로 들고 있어, 그걸 읽는 쪽이
+  // 이동 전 배치를 본다 (새 블록 자리 계산 nextPosition · 목록을 다시 세우는 경로).
+  // 메아리로 잡아 둘 배열은 **캐시에 실제로 들어간 것**이다 (useSetStepBlocks 반환값) —
+  // 구조 공유가 참조를 갈아끼우기 때문에 올려보낸 배열을 그대로 들고 있으면
+  // 아래 isEcho 가 언제나 어긋난다.
   const publish = useCallback((next: StepBlock[]) => {
-    setEchoed(next);
-    onOrderChangedRef.current?.(next);
+    const numbered = renumber(next);
+    const stored = onOrderChangedRef.current?.(numbered);
+    setEchoed(stored ?? numbered);
   }, []);
 
   const slide = useSlideOnReorder(draggingId);
@@ -286,6 +296,7 @@ export default function BlockBoard({
   // 그대로 두면 방금 옮긴 결과가 통째로 뒤집힌다.
   // 블록 ID 나열만 비교하면 안 된다. 다른 사람이 이름·담당자만 바꾼 목록은
   // ID 순서가 같아서 "내가 올린 것" 으로 오인되고, 그 변경을 통째로 무시하게 된다.
+  // echoed 는 우리가 올려보낸 배열이 아니라 **캐시가 실제로 보관한 배열**이다 (publish).
   const isEcho = blocks === echoed;
 
   /** 밖에서 목록이 새로 오면 로컬 순서를 버리고 서버 순서를 따른다 */
