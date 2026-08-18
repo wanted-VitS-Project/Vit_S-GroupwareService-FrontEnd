@@ -1,4 +1,10 @@
 import type { Role } from '@/features/auth/types';
+import type {
+  CertificateInput,
+  CertificateView,
+  EducationInput,
+  EducationView,
+} from '@/features/masterItem/types';
 
 /** 목록 필터의 상태 값 — `accountStatus` · `passwordStatus` 를 서버가 하나로 받는다 */
 export type EmployeeStatusFilter = 'ACTIVE' | 'RESET_REQUIRED' | 'INACTIVE';
@@ -25,6 +31,14 @@ export interface EmployeeSummary {
   passwordStatus: 'NORMAL' | 'RESET_REQUIRED';
   /** 퇴사일. null 이면 재직 중 */
   resignedAt: string | null;
+  /**
+   * 사진 서빙 경로 (`/api/v1/employees/{userId}/profile-image`). 사진이 없으면 `null`.
+   *
+   * ⚠️ presigned 가 아니라 **만료되지 않는 우리 경로**다 — 그대로 `<img src>` 에 넣는다.
+   * ℹ️ 2026-08-17 추가. 이전에는 화면이 사번으로 경로를 만들어 붙였고, 사진이 없는 사람은
+   *    매번 404 를 받았다.
+   */
+  profileImageUrl: string | null;
 }
 
 /** 사원 상세 (.ai/API.md 31) — 목록 필드 + 수정 폼 초기값 */
@@ -37,6 +51,12 @@ export interface EmployeeDetail extends EmployeeSummary {
   hiredAt: string | null;
   /** yyyy-MM-dd HH:mm:ss */
   lastLoginAt: string | null;
+  /**
+   * 학력 · 자격증. 마스터를 조인해 **표시명이 함께** 온다.
+   * ⚠️ 예전 응답에는 없던 필드라 선택으로 둔다 — 없으면 빈 목록으로 본다.
+   */
+  educations?: EducationView[];
+  certificates?: CertificateView[];
 }
 
 /**
@@ -52,6 +72,8 @@ export interface EmployeeSearchResult {
   /** 동명이인 구분용. 미지정이면 null */
   department: string | null;
   position: string | null;
+  /** 사진 서빙 경로. 없으면 null (2026-08-17 추가) */
+  profileImageUrl: string | null;
 }
 
 export interface EmployeeListQuery {
@@ -91,6 +113,12 @@ export interface CreateEmployeeRequest {
   /** 초기 비밀번호를 이 주소로 보낸다. 없으면 로그인할 수 없는 계정이 된다 */
   email?: string;
   phone?: string;
+  /**
+   * 학력 · 자격증 — **마스터 항목에서 고른 id** 를 보낸다 (자유입력이 아니다).
+   * 없는 id 를 보내면 404 `MAJOR_NOT_FOUND` · `CERT_NOT_FOUND` 가 온다.
+   */
+  educations?: EducationInput[];
+  certificates?: CertificateInput[];
 }
 
 /** 등록 응답 (201) */
@@ -119,6 +147,14 @@ export interface UpdateEmployeeRequest {
   jobPositionId?: number | null;
   /** yyyy-MM-dd */
   hiredAt?: string;
+  /**
+   * 학력 · 자격증은 **부분 수정이 아니라 전체 교체**다.
+   *
+   * ⚠️ 보낸 배열이 최종 상태가 된다 — **생략하면 기존 유지, `[]` 면 전부 삭제**다.
+   *    "안 건드림" 과 "다 지움" 이 다른 요청이라, 폼은 편집 여부를 구분해 보내야 한다.
+   */
+  educations?: EducationInput[];
+  certificates?: CertificateInput[];
 }
 
 /** 권한 변경 응답 (.ai/API.md 19) */

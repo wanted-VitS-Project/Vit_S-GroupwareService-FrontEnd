@@ -48,16 +48,27 @@ export function getEmployees(query: EmployeeListQuery, signal?: AbortSignal) {
 }
 
 /**
- * 이름 검색 (로그인 사용자 전체 — **ADMIN 전용 아님**). 결재선 지정에서 쓴다.
+ * 사원 찾기 (로그인 사용자 전체 — **ADMIN 전용 아님**). 결재선 · 참여자 지정에서 쓴다.
  *
- * ⚠️ 응답이 `content` 래퍼 없는 **배열**이고, 빈 `name` 은 400 이라 호출 측이 막아야 한다.
- * 시스템 계정 · 퇴사자는 후보에 나오지 않는다.
+ * ⭐ 2026-08-17 부터 **이름 또는 부서** 중 하나만 있으면 된다 — 이름을 모를 때
+ *    부서로 후보를 펼칠 수 있다. 전 사원 목록(`GET /employees`)은 ADMIN 전용이라 못 쓴다.
+ * ⚠️ 응답이 `content` 래퍼 없는 **배열**이고, **둘 다 비면 400** `EMP_INVALID_PARAMETER` 다.
+ * ℹ️ `%` · `_` 는 리터럴이라 와일드카드로 동작하지 않는다 (전 사원 열람 차단).
+ * ℹ️ 시스템 계정 · 퇴사자는 후보에 나오지 않는다.
  */
-export function searchEmployees(name: string, signal?: AbortSignal) {
-  const search = new URLSearchParams({ name }).toString();
+export function searchEmployees(
+  query: { name?: string; departmentId?: number },
+  signal?: AbortSignal,
+) {
+  const params = new URLSearchParams();
+
+  if (query.name) params.set('name', query.name);
+  if (query.departmentId !== undefined) {
+    params.set('departmentId', String(query.departmentId));
+  }
 
   return api.get<EmployeeSearchResult[]>(
-    `${ENDPOINTS.employees.search}?${search}`,
+    `${ENDPOINTS.employees.search}?${params}`,
     signal,
   );
 }

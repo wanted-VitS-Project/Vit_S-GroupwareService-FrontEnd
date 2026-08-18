@@ -51,13 +51,30 @@ const TEMPLATE_COLUMNS: {
   {
     name: '이메일',
     required: false,
-    format: '없으면 초기 비밀번호 미발송',
+    format: '없으면 계정 메일 미발송',
   },
   { name: '연락처', required: false, format: '' },
   {
     name: '권한',
     required: true,
     format: 'MASTER · MEMBER',
+  },
+  /*
+    학력 · 자격증은 **한 칸에 여러 개**를 담는다 — 행을 늘리면 사번이 중복된다.
+    등록된 항목 이름과 다르면 그 행이 검증에서 빠진다.
+    ℹ️ 구분자는 `;` · `,` · 셀 안 줄바꿈 셋 다 된다 (2026-08-17 백엔드 확대).
+    ⚠️ 그래서 **마스터 이름에 쉼표를 넣으면** 두 항목으로 쪼개진다.
+  */
+  {
+    name: '학력',
+    // 규칙(`전공:학위`)을 적어 두면 읽고 다시 해석해야 한다 — 그대로 따라 쓸 예시를 준다
+    required: false,
+    format: '컴퓨터공학:학사',
+  },
+  {
+    name: '자격증',
+    required: false,
+    format: '정보처리기사',
   },
 ];
 
@@ -289,7 +306,8 @@ export default function BulkUploadModal({
           title={`${validation.validCount}명을 등록할까요?`}
           description={
             <>
-              계정이 함께 발급되고 <b>초기 비밀번호 메일이 바로 발송</b>됩니다.
+              계정이 함께 발급되고 <b>사번 · 초기 비밀번호 메일이 바로 발송</b>
+              됩니다.
               <br />
               {validation.errorCount > 0 && (
                 <>
@@ -383,6 +401,11 @@ function PickStep({
         <p className="mt-2 text-label text-text-secondary">
           <span className="text-text-danger">*</span> 는 필수 항목입니다.
         </p>
+        <p className="mt-1 text-label break-keep text-text-secondary">
+          학력은 <b className="font-semibold">전공:학위</b> 순으로 적습니다.
+          학력 · 자격증 모두 등록된 항목 이름과 같아야 하고, 여러 개는
+          쌍반점(;)으로 구분합니다.
+        </p>
       </section>
 
       <section>
@@ -425,7 +448,7 @@ function PickStep({
         </label>
 
         <p className="mt-2 text-label text-text-secondary">
-          {file ? `선택됨 — ${file.name}` : '선택된 파일이 없습니다.'}
+          {file ? `선택된 파일: ${file.name}` : '선택된 파일이 없습니다.'}
         </p>
       </section>
     </div>

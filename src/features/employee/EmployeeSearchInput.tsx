@@ -2,10 +2,16 @@
 
 import { useEffect, useId, useState } from 'react';
 
-import { useCurrentUser } from '@/features/auth/useCurrentUser';
+import { getDepartments } from '@/features/department/api';
 import { isAbortError, messageOf } from '@/lib/api';
 
-import { getEmployees, searchEmployees } from './api';
+import {
+  toDepartmentOptions,
+  type DepartmentOption,
+} from '@/features/department/options';
+
+import { searchEmployees } from './api';
+import { readCachedDepartments, writeCachedDepartments } from './optionCache';
 import type { EmployeeSearchResult } from './types';
 
 /** 타이핑마다 부르지 않기 위한 대기 시간 */
@@ -47,43 +53,55 @@ export default function EmployeeSearchInput({
    * 아무것도 치지 않았을 때 보여줄 **전 사원 목록**.
    *
    * ⭐ 검색어를 넣어야만 후보가 나오면, 이름을 모르는 사람은 사원 관리 화면을 다녀와야 한다.
-   *    칸을 누르면 바로 목록이 펴지고 훑어 고를 수 있어야 한다.
-   * ⚠️ 검색 API 는 이름이 비면 400 이라 **목록 API** 를 따로 쓴다.
-   * ⛔ 그 목록 API 는 ADMIN 전용이라 **관리자에게만 채워진다** (아래 효과 참고).
+   *    **부서를 고르면** 그 부서 재직자가 목록으로 펴진다.
+   * ⚠️ 이름 · 부서 **둘 다 비면 400** 이라 어느 쪽도 없으면 부르지 않는다.
    */
   const [allEmployees, setAllEmployees] = useState<EmployeeSearchResult[]>([]);
 
   const name = keyword.trim();
 
-  const role = useCurrentUser().role;
+  /** 부서로 후보를 펼칠 때 고른 부서 */
+  const [departmentId, setDepartmentId] = useState('');
+  /** 캐시된 부서를 **초기값으로** 읽는다 — 효과에서 넣으면 셀렉트가 한 번 비었다 채워진다 */
+  const [departments, setDepartments] = useState<DepartmentOption[]>(() =>
+    toDepartmentOptions(readCachedDepartments() ?? []),
+  );
 
   /**
-   * ⛔ **ADMIN 이 아니면 부르지 않는다** — 403 을 `.catch` 로 삼켜도 늦다.
-   *    403 은 앱 전체가 반응하는 이벤트(`lib/api.ts`)라, 이 칸이 놓인 화면
-   *    (프로젝트 생성 · 결재 블록 …)이 통째로 권한 오류로 넘어갔다.
-   *    이름 검색은 전원 쓸 수 있어 빈 칸 목록만 관리자 한정이 된다.
+   * 부서 선택지. 목록을 못 받아도 이름 검색은 그대로 쓸 수 있어 실패를 삼킨다.
+   * ⚠️ 캐시된 값을 먼저 그려 셀렉트 폭이 늦게 바뀌지 않게 한다.
    */
   useEffect(() => {
-    if (role !== 'ADMIN') return;
-
     const controller = new AbortController();
 
-    // 재직자만 · 한 번만 받는다. 실패해도 검색은 그대로 쓸 수 있다
-    getEmployees({ page: 0, size: 200 }, controller.signal)
-      .then((data) =>
-        setAllEmployees(
-          data.content.map((employee) => ({
-            userId: employee.userId,
-            name: employee.name,
-            department: employee.departmentName,
-            position: employee.jobPositionName,
-          })),
-        ),
-      )
+    getDepartments(controller.signal)
+      .then((list) => {
+        setDepartments(toDepartmentOptions(list));
+        writeCachedDepartments(list);
+      })
       .catch(() => {});
 
     return () => controller.abort();
-  }, [role]);
+  }, []);
+
+  /**
+   * ⭐ 이름을 모를 때 **부서로 후보를 펼친다** (2026-08-17 백엔드가 `departmentId` 를 받는다).
+   *
+   * 예전에는 전 사원 목록(`GET /employees`)을 받아 뒀는데 그건 ADMIN 전용이라,
+   * 일반 사원이 이 칸을 열면 403 이 화면 전체를 덮었다. 이제 같은 검색 API 를 쓴다.
+   */
+  useEffect(() => {
+    // 고른 부서가 없으면 부를 것이 없다 (아래 `listed` 가 부서 유무로 판단한다)
+    if (departmentId === '') return;
+
+    const controller = new AbortController();
+
+    searchEmployees({ departmentId: Number(departmentId) }, controller.signal)
+      .then(setAllEmployees)
+      .catch(() => {});
+
+    return () => controller.abort();
+  }, [departmentId]);
 
   useEffect(() => {
     // 빈 입력은 400 이 확정이라 요청 자체를 만들지 않는다
@@ -94,7 +112,7 @@ export default function EmployeeSearchInput({
 
     const timer = setTimeout(async () => {
       try {
-        const found = await searchEmployees(name, controller.signal);
+        const found = await searchEmployees({ name }, controller.signal);
         setResults(found);
         setActiveIndex(-1);
         setError('');
@@ -118,11 +136,9 @@ export default function EmployeeSearchInput({
    * 이미 결재선에 있는 사람은 **숨기지 않고 `이미 추가됨` 으로 보여준다** —
    * 목록에서 사라지면 "검색이 안 되는 것" 처럼 보인다.
    */
-  /**
-   * ⚠️ 빈 칸 목록은 **ADMIN 일 때만** 쓴다 — 역할이 내려간 뒤에도 지난 목록이 남아
-   *    보이지 않게, 받아둔 값이 아니라 지금 역할로 판단한다.
-   */
-  const listed = name === '' ? (role === 'ADMIN' ? allEmployees : []) : results;
+  /** 이름을 치면 검색 결과, 비어 있으면 **고른 부서**의 후보를 보여준다 */
+  const listed =
+    name !== '' ? results : departmentId === '' ? [] : allEmployees;
   const options = listed.map((employee) => ({
     ...employee,
     isAdded: excludedIds.includes(employee.userId),
@@ -173,6 +189,33 @@ export default function EmployeeSearchInput({
 
   return (
     <div className="relative">
+      {/*
+        ⭐ 이름을 모를 때 쓰는 길이다 — 부서를 고르면 그 부서 재직자가 목록으로 펴진다.
+           고르지 않으면 예전처럼 이름 검색만 동작한다.
+      */}
+      <div className="mb-1.5 flex items-center gap-1.5">
+        <label htmlFor={`${listId}-department`} className="sr-only">
+          부서로 찾기
+        </label>
+        <select
+          id={`${listId}-department`}
+          value={departmentId}
+          disabled={disabled}
+          onChange={(event) => {
+            setDepartmentId(event.target.value);
+            setIsOpen(true);
+          }}
+          className="input w-40 cursor-pointer py-1 text-caption disabled:cursor-not-allowed"
+        >
+          <option value="">부서로 찾기</option>
+          {departments.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <input
         type="text"
         role="combobox"
