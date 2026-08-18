@@ -13,6 +13,7 @@ import LoadingSpinner from '@/components/Spinner';
 import { notifyToast } from '@/components/Toast';
 import { messageOf } from '@/lib/api';
 import { formatDate } from '@/lib/format';
+import { dateInputProps } from '@/lib/dateInput';
 
 import {
   deleteTaxInvoices,
@@ -36,12 +37,8 @@ import {
 const PAGE_SIZE = 20;
 
 /**
- * 세금계산서 목록. (#17)
- *
- * 입출금 목록과 하는 일은 같지만 **다른 점이 셋** 있다.
- * 1. **페이징이 있다** — 배열 하나가 통째로 오지 않는다
- * 2. **직접 등록이 없다** — CSV 로만 들어와 `등록` 버튼 대신 `CSV 수집` 을 둔다
- * 3. **수정은 메모만** 된다 — 나머지는 파일이 원본이라 상세에서만 고친다
+ * 세금계산서 목록. (#17) 입출금 목록과 하는 일은 같지만 페이징이 있고,
+ * 직접 등록이 없으며(CSV 만), 수정은 메모만 된다.
  */
 export default function TaxInvoiceList() {
   const router = useRouter();
@@ -128,9 +125,7 @@ export default function TaxInvoiceList() {
     setPicked(new Set());
 
     /**
-     * ⚠️ **첫 페이지로 되돌린다.** 마지막 페이지의 항목을 모두 지우면 `totalPages` 가
-     *    줄어 지금 `page` 가 범위를 벗어난다 — 빈 목록만 남고 `totalPages <= 1` 이면
-     *    페이저마저 사라져 되돌아갈 길이 없다.
+     * 첫 페이지로 되돌린다 — 마지막 쪽을 다 지우면 페이저까지 사라져 돌아갈 길이 없다.
      */
     setQuery((prev) => ({ ...prev, page: 0 }));
     setReloadKey((key) => key + 1);
@@ -151,10 +146,7 @@ export default function TaxInvoiceList() {
     }
   }
 
-  /**
-   * ⚠️ 삭제와 **같은 잠금**을 쓴다 — 가드가 없으면 버튼을 연달아 눌러 같은 요청이
-   *    여러 번 나가고, 응답 순서에 따라 제외 상태가 뒤집힌다.
-   */
+  /** 삭제와 같은 잠금을 쓴다 — 연달아 누르면 응답 순서에 따라 상태가 뒤집힌다 */
   async function exclude(isExcluded: boolean) {
     if (isBusy) return;
 
@@ -193,10 +185,7 @@ export default function TaxInvoiceList() {
         title="세금계산서"
         description="수집한 세금계산서를 정산 블록에 연결합니다."
       >
-        {/**
-         * 직접 등록이 없어 **버튼이 하나뿐**이다 — 입출금은 `CSV 등록`(보조) 옆에
-         * `입출금 등록`(주)이 있어 아웃라인이지만, 여기서는 이것이 주 동작이다.
-         */}
+        {/* 직접 등록이 없어 버튼이 하나뿐이라 이것이 주 동작이다 */}
         <Link
           href={FINANCE_ROUTES.taxInvoiceImport}
           className="btn btn-sm btn-primary shrink-0"
@@ -249,20 +238,13 @@ export default function TaxInvoiceList() {
         </div>
       )}
 
-      {/**
-       * ⚠️ **첫 조회 중에는 표를 아예 그리지 않는다** (입출금 목록과 같은 판단).
-       *    스켈레톤을 깔면 결과가 2건일 때 표가 떴다가 줄어들어 화면이 튄다.
-       */}
+      {/* 첫 조회 중에는 표를 그리지 않는다 — 결과가 적으면 표가 떴다가 줄어든다 */}
       {rows === null && !error ? (
         <LoadingSpinner label="세금계산서를 불러오는 중" className="py-20" />
       ) : (
         <DataTable
           caption="세금계산서 목록"
-          /*
-            ⚠️ `loadingLabel` 을 주지 않는다 — 첫 조회는 위 스피너가 맡고,
-               재조회 중에는 **직전 목록을 그대로 둔다**(`rows` 가 비지 않는다).
-               표가 스스로 로딩을 그릴 일이 없어 라벨만 남으면 계약이 어긋난다.
-          */
+          /* `loadingLabel` 을 주지 않는다 — 첫 조회는 위 스피너, 재조회는 직전 목록이 맡는다 */
           columns={columns}
           rows={error ? [] : rows}
           rowKey={(row) => row.taxId}
@@ -293,11 +275,8 @@ export default function TaxInvoiceList() {
 }
 
 /**
- * 기간 · 프로젝트 · 미연결 · 검색어.
- *
- * ⚠️ 입출금 필터 바와 **같은 부품 · 같은 높이(`h-9`)** 를 쓴다 — 두 목록을 오가며
- *    쓰는 자리라 칸 크기가 다르면 화면이 어긋나 보인다.
- * ℹ️ 검색어만 폼 제출로 적용한다 — 글자마다 요청을 보내면 목록이 계속 깜빡인다.
+ * 기간 · 프로젝트 · 미연결 · 검색어. 입출금 필터 바와 같은 부품 · 같은 높이를 쓴다.
+ * 검색어만 폼 제출로 적용한다 — 글자마다 요청을 보내면 목록이 깜빡인다.
  */
 function Filters({
   query,
@@ -438,6 +417,7 @@ function DateInput({
       <span className="sr-only">{label}</span>
       <input
         type="date"
+        {...dateInputProps('date')}
         value={value}
         aria-label={label}
         onChange={(event) => onChange(event.target.value || undefined)}
@@ -465,7 +445,7 @@ function SearchIcon() {
   );
 }
 
-/** ⚠️ 삭제는 되돌릴 수 없다 — 한 번 묻는다 */
+/** 삭제는 되돌릴 수 없어 한 번 묻는다 */
 function DeleteButton({
   count,
   isBusy,

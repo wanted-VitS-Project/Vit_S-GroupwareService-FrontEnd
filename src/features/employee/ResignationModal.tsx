@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import PanelModal, { ModalFooter } from '@/components/PanelModal';
 import { ApiError, messageOf } from '@/lib/api';
+import { dateInputProps } from '@/lib/dateInput';
 
 import { resignEmployee } from './api';
 import { EMPLOYEE_CODES } from './errorCodes';
@@ -94,6 +95,7 @@ export default function ResignationModal({
             <input
               id="resignedAt"
               type="date"
+              {...dateInputProps('date')}
               value={resignedAt}
               // 입사일보다 앞선 날짜는 애초에 고를 수 없게 한다
               min={employee.hiredAt ?? undefined}

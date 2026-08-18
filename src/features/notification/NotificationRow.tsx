@@ -27,7 +27,8 @@ export default function NotificationRow({
 
   return (
     <div
-      className={`flex items-start gap-3 px-4 py-3 ${
+      /* 줄 전체가 누르는 자리다 — 안 읽은 줄(파란 바탕)에도 호버가 얹히게 둔다 */
+      className={`flex items-start gap-3 px-4 py-3 hover:bg-bg-hover ${
         unread ? 'bg-blue-bg-soft' : 'bg-bg-card'
       }`}
     >
@@ -44,11 +45,14 @@ export default function NotificationRow({
         disabled={disabled}
         className="min-w-0 flex-1 cursor-pointer text-left disabled:cursor-not-allowed"
       >
-        <p className="truncate text-caption font-bold text-text-primary">
+        {/*
+          자르지 않는다 — 한 줄로 자르면 무슨 알림인지가 잘려 눌러 봐야 알 수 있었다.
+          단어 단위로 끊되 띄어쓰기 없는 긴 값은 아무 데서나 끊어 칸을 넘지 않게 한다.
+        */}
+        <p className="text-caption font-bold [overflow-wrap:anywhere] break-keep text-text-primary">
           {notification.title}
         </p>
-        {/* 길이가 제각각이라 한 줄로 자른다 */}
-        <p className="mt-0.5 truncate text-caption text-text-secondary">
+        <p className="mt-0.5 text-caption [overflow-wrap:anywhere] break-keep text-text-secondary">
           {notification.message}
         </p>
         {/* 형식이 어긋나면 빈 값이라 줄이 접힌다 */}

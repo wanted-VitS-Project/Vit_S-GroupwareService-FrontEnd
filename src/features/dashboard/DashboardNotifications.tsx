@@ -17,6 +17,7 @@ import {
 import { NOTIFICATION_ROUTES } from '@/features/notification/routes';
 import type { NotificationItem } from '@/features/notification/types';
 import { messageOf } from '@/lib/api';
+import LoadingSpinner from '@/components/Spinner';
 
 // 옆 일정 카드와 높이를 맞춰야 해서 상한을 둔다 — 더 보려면 전체보기로 알림 화면에 간다.
 const LIMIT = 7;
@@ -135,12 +136,10 @@ export default function DashboardNotifications() {
           알림을 불러오지 못했습니다.
         </p>
       ) : items === null ? (
-        <p
-          aria-live="polite"
-          className="flex flex-1 items-center justify-center px-6 py-16 text-detail text-text-muted"
-        >
-          불러오는 중…
-        </p>
+        <LoadingSpinner
+          label="알림을 불러오는 중"
+          className="flex-1 px-6 py-16"
+        />
       ) : items.length === 0 ? (
         <p className="flex flex-1 items-center justify-center px-6 py-16 text-detail text-text-secondary">
           받은 알림이 없습니다.

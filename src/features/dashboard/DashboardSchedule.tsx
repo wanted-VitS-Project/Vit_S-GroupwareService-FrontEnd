@@ -9,6 +9,7 @@ import { getIssueCalendar } from '@/features/issue/api';
 import type { CalendarIssue } from '@/features/issue/types';
 import { PROJECT_ROUTES } from '@/features/project/routes';
 import { useModal } from '@/lib/useModal';
+import LoadingSpinner from '@/components/Spinner';
 
 // 응답에 색이 없어 화면이 projectId 기준으로 매긴다. 모자라면 앞에서부터 다시 쓴다.
 const PROJECT_COLORS = [
@@ -149,9 +150,7 @@ export default function DashboardSchedule() {
         aria-label="일정 · 이슈"
         className="flex h-full flex-col rounded-base border border-border-default bg-bg-card p-6"
       >
-        <p className="flex flex-1 items-center justify-center py-16 text-detail text-text-muted">
-          불러오는 중…
-        </p>
+        <LoadingSpinner label="일정을 불러오는 중" className="flex-1 py-16" />
       </section>
     );
   }
@@ -328,12 +327,7 @@ export default function DashboardSchedule() {
             이슈를 불러오지 못했습니다.
           </p>
         ) : issues === null ? (
-          <p
-            aria-live="polite"
-            className="flex flex-1 items-center justify-center py-16 text-detail text-text-muted"
-          >
-            불러오는 중…
-          </p>
+          <LoadingSpinner label="이슈를 불러오는 중" className="flex-1 py-16" />
         ) : selectedIssues.length === 0 ? (
           <p className="flex flex-1 items-center justify-center py-16 text-detail text-text-secondary">
             이 날짜에 마감인 담당 이슈가 없습니다.
@@ -368,10 +362,7 @@ export default function DashboardSchedule() {
                 <ul className="mt-3 flex flex-col gap-2">
                   {group.issues.map((issue) => (
                     <li key={issue.issueId}>
-                      {/*
-                        이슈는 단독 화면이 없다 — 스텝의 이슈 보드로 가면서
-                        `issueId` 를 실어 상세 모달이 열린 채로 도착하게 한다
-                      */}
+                      {/* 이슈는 단독 화면이 없다 — 보드로 가며 `issueId` 를 실어 모달을 연다 */}
                       <Link
                         href={PROJECT_ROUTES.stepIssues(
                           issue.projectId,
@@ -496,11 +487,11 @@ function DayCell({
       aria-label={`${formatFullDate(dateKey)}${
         issues.length > 0 ? ` — 이슈 ${issues.length}건` : ''
       }`}
-      className="flex h-13 cursor-pointer flex-col items-center justify-center"
+      className="group flex h-13 cursor-pointer flex-col items-center justify-center"
     >
-      {/* 날짜는 동그라미 안에 넣는다 — 네모 배경은 옆 칸과 붙어 한 덩어리로 보인다 */}
+      {/* 날짜와 마우스 반응 모두 동그라미에 준다 — 네모 배경은 옆 칸과 붙어 보인다 */}
       <span
-        className={`flex size-9 items-center justify-center rounded-pill border text-[15px] ${
+        className={`flex size-9 items-center justify-center rounded-pill border text-[15px] group-hover:bg-bg-hover ${
           isSelected
             ? 'border-blue-border-soft bg-blue-bg-soft font-semibold text-text-primary-blue'
             : isToday

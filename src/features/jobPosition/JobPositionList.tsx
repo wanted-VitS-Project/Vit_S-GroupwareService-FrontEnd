@@ -150,7 +150,7 @@ export default function JobPositionList() {
                 <button
                   type="button"
                   onClick={() => employeesModal.open(position)}
-                  className="cursor-pointer font-medium text-text-primary-blue underline underline-offset-2"
+                  className="cursor-pointer font-medium text-text-primary-blue underline underline-offset-2 hover:text-btn-primary-hover"
                 >
                   {position.employeeCount}명
                 </button>
@@ -317,7 +317,7 @@ function BadgeIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className="mb-2 size-10 text-text-muted"
+      className="mx-auto mb-2 size-10 text-text-muted"
     >
       <circle cx="12" cy="9" r="5" />
       <path d="m8.5 13.5-1 7 4.5-2.5 4.5 2.5-1-7" />

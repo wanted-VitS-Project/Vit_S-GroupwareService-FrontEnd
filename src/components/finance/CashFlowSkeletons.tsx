@@ -1,8 +1,8 @@
 import { Skeleton, SkeletonGroup } from '@/components/Skeleton';
+import LoadingSpinner from '@/components/Spinner';
 
 /**
- * 입출금 화면 로딩 껍데기. 권한 판단 대기와 Suspense 폴백이 함께 쓴다.
- * 결과 건수를 몰라 화면이 튀므로 표는 그리지 않고 제목 · 필터 바만 잡아 둔다.
+ * 입출금 화면 로딩 껍데기. 건수를 몰라 표는 그리지 않고 제목 · 필터 바만 잡아 둔다.
  */
 export function CashFlowListSkeleton() {
   return (
@@ -31,9 +31,7 @@ export function CashFlowListSkeleton() {
         </div>
       </div>
 
-      <p className="py-20 text-center text-caption text-text-secondary">
-        입출금 내역을 불러오는 중입니다.
-      </p>
+      <LoadingSpinner label="입출금 내역을 불러오는 중" className="py-20" />
     </SkeletonGroup>
   );
 }

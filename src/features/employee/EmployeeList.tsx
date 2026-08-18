@@ -303,7 +303,7 @@ export default function EmployeeList() {
             <button
               type="button"
               onClick={() => setDepartmentReloadCount((count) => count + 1)}
-              className="cursor-pointer font-semibold underline"
+              className="cursor-pointer font-semibold underline hover:text-text-primary"
             >
               다시 시도
             </button>
@@ -585,7 +585,7 @@ function PeopleIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className="mb-2 size-10 text-text-muted"
+      className="mx-auto mb-2 size-10 text-text-muted"
     >
       <circle cx="9" cy="8" r="3.5" />
       <path d="M2 20a7 7 0 0 1 14 0" />
