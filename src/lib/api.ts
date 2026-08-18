@@ -54,6 +54,29 @@ export const FORBIDDEN_EVENT = 'api:forbidden';
  */
 export const UNAUTHORIZED_EVENT = 'api:unauthorized';
 
+/**
+ * 세션 만료가 뒤로 밀렸다는 신호. 구독은 헤더의 `SessionTimer` 한 곳뿐이다.
+ *
+ * 세션은 **4시간 유휴 슬라이딩**이라 서버가 세션을 만지는 요청마다 만료가 다시 밀린다.
+ * 그러면 화면의 남은 시간도 같이 밀려야 하는데, 그걸 서버에 물어보면
+ * `GET /auth/session` **자체가 또 연장**이라 폴링이 곧 무한 연장이 된다 —
+ * 그래서 물어보지 않고, 내가 쏜 요청을 여기서 세어 **로컬 타이머만 리셋**한다.
+ */
+export const SESSION_TOUCH_EVENT = 'api:session-touch';
+
+/**
+ * 응답을 받은 직후 부른다. 성공 · 실패를 가리지 않는다 —
+ * 400 · 409 처럼 **서버까지 닿은** 요청은 결과와 무관하게 세션을 이미 늘려 놓았다.
+ *
+ * ⚠️ 401 만 예외다. 그때는 세션이 없어서 거절당한 것이라 만료를 미루면 안 된다
+ *    (미루면 이미 끊긴 세션을 화면이 "아직 살아 있다" 고 표시한다).
+ */
+function touchSession(status: number) {
+  if (typeof window === 'undefined' || status === 401) return;
+
+  window.dispatchEvent(new CustomEvent(SESSION_TOUCH_EVENT));
+}
+
 /** 백엔드 문구가 가장 정확하다. 응답이 없을 때만 fallback 을 쓴다. */
 export function messageOf(error: unknown, fallback: string) {
   return error instanceof ApiError ? error.message : fallback;
@@ -126,6 +149,8 @@ async function request<T>(
     throw toNetworkError(caught);
   }
 
+  touchSession(response.status);
+
   if (!response.ok) await throwFailure(response);
 
   const envelope = (await response
@@ -180,6 +205,8 @@ async function sendForm<T>(
     throw toNetworkError(caught);
   }
 
+  touchSession(response.status);
+
   if (!response.ok) await throwFailure(response);
 
   const envelope = (await response
@@ -206,6 +233,8 @@ export async function requestRaw(path: string, signal?: AbortSignal) {
   } catch (caught) {
     throw toNetworkError(caught);
   }
+
+  touchSession(response.status);
 
   if (!response.ok) await throwFailure(response);
 
