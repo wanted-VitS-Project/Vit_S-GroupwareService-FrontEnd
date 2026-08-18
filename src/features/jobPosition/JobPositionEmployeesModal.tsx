@@ -10,12 +10,8 @@ import { getJobPositionEmployees } from './api';
 import type { JobPosition, JobPositionEmployee } from './types';
 
 /**
- * 직급별 사원 목록 패널. (.ai/API.md 90)
- *
- * 목록의 `employeeCount` 와 **같은 기준**이다 — 재직자만 세고 시스템 계정 · 퇴사자는
- * 빠진다. 그래서 숫자와 목록 길이가 어긋나지 않는다.
- *
- * ℹ️ 0명이어도 404 가 아니라 빈 배열이라, 없는 직급과 빈 직급을 구분할 수 있다.
+ * 직급별 사원 목록 패널. 목록의 employeeCount 와 같은 기준이라 숫자와 길이가 맞는다.
+ * 0명이어도 404 가 아니라 빈 배열이라 없는 직급과 구분된다.
  */
 export default function JobPositionEmployeesModal({
   position,

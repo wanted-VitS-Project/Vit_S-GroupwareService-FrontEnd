@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/Skeleton';
 
 /**
  * 입력에 연결할 설명 요소.
- * 에러가 있으면 에러를, 없으면 안내 문구를 읽어준다 — 화면에 보이는 것과 같은 것을 가리킨다.
+ * 에러가 있으면 에러를, 없으면 안내 문구를 읽어준다.
  */
 function describedBy(id: string, error?: string, hint?: string) {
   if (error) return `${id}-error`;
@@ -21,7 +21,7 @@ interface FieldShellProps {
   label: string;
   required?: boolean;
   error?: string;
-  /** 에러가 없을 때만 보인다 — 둘이 동시에 뜨면 시선이 갈린다 */
+  /** 에러가 없을 때만 보인다. 둘이 동시에 뜨면 시선이 갈린다 */
   hint?: string;
   children: React.ReactNode;
 }
@@ -65,7 +65,7 @@ function FieldShell({
   );
 }
 
-/** 에러가 있을 때만 테두리를 빨갛게 — 입력 · 셀렉트가 같은 규칙을 쓴다 */
+/** 에러가 있을 때만 테두리를 빨갛게 한다. 입력 · 셀렉트가 같은 규칙을 쓴다 */
 function controlClass(hasError: boolean) {
   return `w-full rounded-lg border bg-bg-surface px-3 py-2 text-detail text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 ${
     hasError
@@ -95,9 +95,8 @@ export function TextField({
   placeholder?: string;
   maxLength?: number;
   /**
-   * 날짜 입력의 상 · 하한 (`yyyy-MM-dd`).
-   * ⚠️ `<input type="date">` 는 상한이 없으면 **연도를 6자리까지** 받는다 (`200000-01-01`).
-   *    서버는 4자리만 받으므로 눈에 보이는 자리에서 먼저 막는다.
+   * 날짜 입력의 상 · 하한.
+   * 상한이 없으면 브라우저가 연도를 6자리까지 받아 서버에서 400 이 된다.
    */
   min?: string;
   max?: string;
@@ -149,7 +148,7 @@ export function SelectField({
   required?: boolean;
   /**
    * 빈 값 선택지 문구.
-   * 수정 폼은 `미지정`(고르면 배정을 지운다), 등록 폼의 필수 항목은 `선택해주세요`.
+   * 수정 폼은 미지정(고르면 배정을 지운다), 등록 폼 필수 항목은 선택해주세요 다.
    */
   emptyLabel: string;
   value: string;

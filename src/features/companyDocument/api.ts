@@ -16,7 +16,7 @@ import type {
   UpdateCompanyDocumentRequest,
 } from './types';
 
-/** 사내 문서 목록. 분류 · 검색 · 페이징 (ADMIN 아니면 403 `ACC_ADMIN_REQUIRED`) */
+/** 사내 문서 목록. 분류 · 검색 · 페이징 (ADMIN 아니면 403) */
 export function getCompanyDocuments(
   query: CompanyDocumentQuery = {},
   signal?: AbortSignal,
@@ -39,7 +39,7 @@ export function getCompanyDocuments(
   );
 }
 
-/** ① 업로드 시작 — `companyDocumentId` 를 주면 그 문서의 새 버전, 없으면 새 문서 */
+/** 업로드 1단계. companyDocumentId 를 주면 그 문서의 새 버전이다 */
 export function startCompanyUpload(
   body: StartCompanyUploadRequest,
   signal?: AbortSignal,
@@ -52,8 +52,8 @@ export function startCompanyUpload(
 }
 
 /**
- * ③ 업로드 완료 통보. 서버가 저장소를 직접 확인(HEAD)한다.
- * 이 호출이 빠지면 버전이 `UPLOADING` 으로 남아 목록에 나오지 않는다.
+ * 업로드 3단계. 서버가 저장소를 직접 확인한다.
+ * 이 호출이 빠지면 버전이 UPLOADING 으로 남아 목록에 나오지 않는다.
  */
 export function completeCompanyUpload(
   versionId: number | string,
@@ -67,7 +67,7 @@ export function completeCompanyUpload(
   );
 }
 
-/** 버전 이력 — 완료 버전만 차수 내림차순으로 온다 */
+/** 버전 이력. 완료 버전만 차수 내림차순으로 온다 */
 export function getCompanyDocumentVersions(
   documentId: number | string,
   signal?: AbortSignal,
@@ -78,7 +78,7 @@ export function getCompanyDocumentVersions(
   );
 }
 
-/** 표시명 · 분류 수정. 둘 중 최소 하나는 보내야 한다 (400 `CDOC_INVALID_REQUEST`) */
+/** 표시명 · 분류 수정. 둘 중 최소 하나는 보내야 한다 */
 export function updateCompanyDocument(
   documentId: number | string,
   body: UpdateCompanyDocumentRequest,
@@ -91,7 +91,7 @@ export function updateCompanyDocument(
   );
 }
 
-/** 삭제 — soft delete 라 복구할 수 있다 */
+/** 삭제. soft delete 라 복구할 수 있다 */
 export function deleteCompanyDocument(
   documentId: number | string,
   signal?: AbortSignal,
@@ -104,9 +104,7 @@ export function deleteCompanyDocument(
 
 /**
  * 삭제 복구.
- *
- * ⚠️ **목록에 삭제분을 부르는 조건이 없다** — 지운 직후 화면이 들고 있는 id 로만
- *    되돌릴 수 있다. 그래서 삭제 후 `되돌리기` 를 띄운다.
+ * 목록에 삭제분을 부르는 조건이 없어 지운 직후 화면이 들고 있는 id 로만 되돌린다.
  */
 export function restoreCompanyDocument(
   documentId: number | string,
@@ -132,10 +130,7 @@ export function getCompanyDownloadUrl(
 
 /**
  * 다운로드 URL 을 받아 새 탭으로 넘긴다.
- *
- * ⚠️ **창을 먼저 열고 나중에 주소를 넣는다** — URL 발급(`await`)이 끝난 뒤에 여는
- *    `window.open` 은 사용자 클릭과 끊긴 것으로 보여 팝업 차단에 걸린다.
- *    발급이 실패하면 열어 둔 빈 창을 닫는다.
+ * 창을 먼저 열고 주소를 나중에 넣는다. 발급 뒤에 열면 팝업 차단에 걸린다.
  */
 export async function downloadCompanyVersion(versionId: number) {
   const opened = window.open('', '_blank', 'noopener,noreferrer');
@@ -153,11 +148,8 @@ export async function downloadCompanyVersion(versionId: number) {
 }
 
 /**
- * 미리보기 — 서버가 앞 5페이지만 잘라 **PDF 바이너리**로 준다.
- * (프로젝트 파일 미리보기와 같은 방식이지만 경로 · 에러코드가 다른 도메인이다)
- *
- * ⚠️ **지금 화면은 쓰지 않는다** — 사내 문서함은 훑는 화면이 아니라 최신본을 받아 쓰는
- *    화면이라 미리보기 영역을 두지 않았다. 명세(148번)에 있는 창구라 남겨 둔다.
+ * 미리보기. 서버가 앞 5페이지만 잘라 PDF 바이너리로 준다.
+ * 지금 화면은 쓰지 않지만 명세에 있는 창구라 남겨 둔다.
  */
 export async function getCompanyPreview(
   versionId: number | string,
@@ -170,7 +162,7 @@ export async function getCompanyPreview(
 
   return {
     blob: await response.blob(),
-    /** 실제로 잘라 보낸 페이지 수 (≤5) */
+    /** 실제로 잘라 보낸 페이지 수 */
     previewPageCount: readCount(response.headers.get('X-Preview-Page-Count')),
     /** 원본 전체 페이지 수 */
     totalPageCount: readCount(response.headers.get('X-Total-Page-Count')),
@@ -182,10 +174,9 @@ function readCount(header: string | null) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
-
 /**
  * 검토 참조로 고를 수 있는 사내 문서 목록.
- * 응답 `data` 가 배열 그대로다 (없으면 빈 배열).
+ * 응답 data 가 배열 그대로다.
  */
 export function getSelectableDocuments(
   query: SelectableQuery = {},

@@ -9,7 +9,7 @@ import { trashFile } from './api';
 
 /**
  * 문서를 휴지통으로 옮기기 전 확인.
- * 진행 중 결재의 대상이면 409 로 막히고, 그때 `message` 에 결재 정보가 실려 온다.
+ * 진행 중 결재의 대상이면 409 로 막히고 message 에 결재 정보가 실려 온다.
  */
 export default function TrashFileModal({
   fileId,

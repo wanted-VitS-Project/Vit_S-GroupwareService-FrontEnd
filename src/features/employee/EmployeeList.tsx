@@ -33,29 +33,27 @@ import type {
 
 const PAGE_SIZE = 20;
 
-/** 셀렉트 옵션 — 값은 백엔드 enum 그대로 */
+/** 셀렉트 옵션. 값은 백엔드 enum 그대로다 */
 const ROLE_OPTIONS: ManagedRole[] = ['MASTER', 'MEMBER'];
 const STATUS_OPTIONS: EmployeeStatusFilter[] = [
   'ACTIVE',
   'RESET_REQUIRED',
   'INACTIVE',
 ];
-/** URL 은 사용자가 손댈 수 있다 — 허용된 값이 아니면 필터가 없는 것으로 본다 */
+/** URL 은 사용자가 손댈 수 있다. 허용된 값이 아니면 필터가 없는 것으로 본다 */
 function pickOption<T extends string>(value: string | null, options: T[]) {
   return options.find((option) => option === value);
 }
 
-/** 음수 · 소수 · 문자열이 그대로 서버로 가면 400 이 되어 목록이 실패 화면이 된다 */
+/** 음수 · 문자열이 그대로 서버로 가면 400 이 되어 목록이 실패 화면이 된다 */
 function pickInt(value: string | null, min: number) {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed >= min ? parsed : undefined;
 }
 
 /**
- * 사원 관리 목록 화면. (ADMIN 전용, .ai/API.md 30)
- *
- * 필터는 URL 쿼리를 원본으로 삼는다 — 부서 관리의 '사원 보기' 로 들어오는 링크와
- * 새로고침 · 뒤로가기를 같은 방식으로 처리할 수 있다.
+ * 사원 관리 목록 화면 (ADMIN 전용).
+ * 필터는 URL 쿼리를 원본으로 삼아 링크 · 새로고침 · 뒤로가기를 같게 다룬다.
  */
 export default function EmployeeList() {
   const router = useRouter();
@@ -76,13 +74,13 @@ export default function EmployeeList() {
     [searchParams],
   );
 
-  /** 입력 중인 검색어 — 제출해야 URL 에 반영된다 */
+  /** 입력 중인 검색어. 제출해야 URL 에 반영된다 */
   const [keywordInput, setKeywordInput] = useState(query.keyword ?? '');
-  /** 입력값을 맞춰 둔 시점의 URL 검색어 — 아래 비교용 */
+  /** 입력값을 맞춰 둔 시점의 URL 검색어. 아래 비교용이다 */
   const [syncedKeyword, setSyncedKeyword] = useState(query.keyword ?? '');
 
-  // 뒤로가기 · 검색어가 담긴 링크로 들어오면 URL 만 바뀌고 입력값은 옛것이 남는다.
-  // 렌더 중에 맞춰 두면 화면에 어긋난 상태가 한 번도 보이지 않는다 (효과로 하면 한 프레임 늦다)
+  // 링크나 뒤로가기로 들어오면 URL 만 바뀌고 입력값은 옛것이 남는다.
+  // 렌더 중에 맞추면 어긋난 상태가 한 번도 보이지 않는다
   if (syncedKeyword !== (query.keyword ?? '')) {
     setSyncedKeyword(query.keyword ?? '');
     setKeywordInput(query.keyword ?? '');
@@ -94,13 +92,13 @@ export default function EmployeeList() {
   const [hasDepartmentFailed, setHasDepartmentFailed] = useState(false);
   const [reloadCount, setReloadCount] = useState(0);
   const [departmentReloadCount, setDepartmentReloadCount] = useState(0);
-  /** 어떤 요청의 결과인지 `key` 로 들고 있는다 — 조건이 바뀌면 자동으로 로딩 상태가 된다 */
+  /** 어떤 요청의 결과인지 key 로 들고 있는다. 조건이 바뀌면 자동으로 로딩 상태가 된다 */
   const [result, setResult] = useState<{
     key: string;
     data?: EmployeePage;
     hasFailed?: boolean;
   } | null>(null);
-  /** 체크한 사번. 페이지를 옮기면 비운다 — 안 보이는 대상까지 처리하면 위험하다 */
+  /** 체크한 사번. 페이지를 옮기면 비운다. 안 보이는 대상까지 처리하면 위험하다 */
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   /** 여러 명을 한 번에 초기화할 수 있어 대상이 배열이다 */
   const resetModal = useModalTarget<EmployeeSummary[]>();
@@ -108,7 +106,7 @@ export default function EmployeeList() {
 
   const requestKey = `${reloadCount} ${searchParams.toString()}`;
   const current = result?.key === requestKey ? result : null;
-  /** 재조회 중에는 직전 결과를 유지한다 — 표가 통째로 사라지면 스크롤이 튄다 */
+  /** 재조회 중에는 직전 결과를 유지한다. 표가 사라지면 스크롤이 튄다 */
   const page = current?.data ?? result?.data ?? null;
   const hasFailed = current?.hasFailed ?? false;
 
@@ -145,7 +143,7 @@ export default function EmployeeList() {
     return () => controller.abort();
   }, [departmentReloadCount]);
 
-  /** 필터를 바꾸면 첫 페이지로 돌아간다 — 3페이지에서 조건을 바꾸면 빈 화면이 된다 */
+  /** 필터를 바꾸면 첫 페이지로 돌아간다. 3페이지에서 조건을 바꾸면 빈 화면이 된다 */
   function applyFilter(patch: Record<string, string | undefined>) {
     const next = new URLSearchParams(searchParams.toString());
 
@@ -160,7 +158,7 @@ export default function EmployeeList() {
   }
 
   const employees = page?.content ?? null;
-  /** DB 콜레이션이 가나다 순이 아니라 화면에서 정렬한다 (지금 페이지 안에서만) */
+  /** DB 콜레이션이 가나다 순이 아니라 지금 페이지 안에서만 화면이 정렬한다 */
   const rows = employees
     ? [...employees].sort((a, b) => a.name.localeCompare(b.name, 'ko'))
     : null;
@@ -189,7 +187,7 @@ export default function EmployeeList() {
 
   /**
    * 행 아무 곳이나 눌러도 상세로 간다.
-   * 이메일을 드래그해 복사하는 중이면 이동하지 않는다 — 놓는 순간 화면이 바뀌면 곤란하다.
+   * 이메일을 드래그해 복사하는 중이면 이동하지 않는다.
    */
   function openDetail(userId: string) {
     if (window.getSelection()?.toString()) return;
@@ -294,8 +292,7 @@ export default function EmployeeList() {
             className="size-3.5 cursor-pointer accent-btn-primary"
           />
           {/*
-            `퇴사자 포함` 은 재직자까지 함께 나오는 것처럼 읽혔다 —
-            실제 동작(퇴사자만 조회)을 그대로 적는다.
+            퇴사자 포함 은 재직자까지 나오는 것처럼 읽혀 실제 동작을 그대로 적는다.
           */}
           퇴사자만 조회
         </label>
@@ -373,8 +370,8 @@ export default function EmployeeList() {
             width: '22%',
             skeletonWidth: 'w-24',
             /*
-              행 클릭과 별개로 링크를 남긴다 — 키보드 이동 · 새 탭 열기가 되어야 한다.
-              전파를 막지 않으면 `Ctrl+클릭` 이 새 탭을 열면서 현재 탭까지 이동시킨다
+              행 클릭과 별개로 링크를 남긴다. 키보드 이동 · 새 탭 열기가 되어야 한다.
+              전파를 막지 않으면 Ctrl+클릭 이 새 탭을 열면서 현재 탭까지 이동시킨다
             */
             stopRowClick: true,
             cell: (employee) => (
@@ -490,14 +487,14 @@ export default function EmployeeList() {
         }
       />
 
-      {/* 받아오는 동안에도 같은 높이를 잡아 둔다 — 결과가 올 때 아래가 밀리지 않게 */}
+      {/* 받아오는 동안에도 같은 높이를 잡아 둔다. 결과가 올 때 아래가 밀리지 않게 */}
       {!hasFailed && !page && (
         <div className="mt-3 overflow-hidden rounded-base border border-border-default bg-bg-card">
           <PaginationPlaceholder />
         </div>
       )}
 
-      {/* 표 바깥에 둔다 — 실패 · 빈 상태에서는 넘길 페이지가 없다 */}
+      {/* 표 바깥에 둔다. 실패 · 빈 상태에서는 넘길 페이지가 없다 */}
       {!hasFailed && page && page.totalElements > 0 && (
         <div className="mt-3 overflow-hidden rounded-base border border-border-default bg-bg-card">
           <Pagination
@@ -511,7 +508,7 @@ export default function EmployeeList() {
       {bulkModal.isOpen && (
         <BulkUploadModal
           onClose={bulkModal.close}
-          // 일부만 등록돼도 목록은 달라진다 — 모달을 닫기 전에 갱신해 둔다
+          // 일부만 등록돼도 목록은 달라져 모달을 닫기 전에 갱신해 둔다
           onRegistered={reload}
         />
       )}
@@ -541,7 +538,7 @@ function FilterSelect({
   onChange: (value?: string) => void;
   options: { value: string; label: string }[];
 }) {
-  /* 폭을 고정한다 — 선택지가 늦게 오면 칸이 넓어졌다 좁아져 필터바가 흔들린다 */
+  /* 폭을 고정한다. 선택지가 늦게 오면 칸이 넓어졌다 좁아져 필터바가 흔들린다 */
   return (
     <label className="flex items-center gap-1.5">
       <span className="sr-only">{label}</span>

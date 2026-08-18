@@ -11,8 +11,8 @@ import { isGateCode, LOGIN_ERROR_MESSAGES } from '@/features/auth/errorCodes';
 import { ApiError, messageOf } from '@/lib/api';
 
 /**
- * status 는 같은 값에 여러 의미가 실려서(403 = 비활성 · 잠금 아님) code 로 분기한다.
- * 목록에 없는 코드는 해제 시각이 담긴 423 처럼 백엔드 문구가 더 정확하다.
+ * 같은 status 에 여러 의미가 실려 있어 code 로 분기한다.
+ * 목록에 없는 코드는 백엔드 문구를 그대로 쓴다.
  */
 function loginErrorOf(error: unknown) {
   const known =
@@ -72,7 +72,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isPending, setIsPending] = useState(false);
-  /** 로고가 자리를 잡았는지 — 아래 폼은 그 뒤에 편다 */
+  /** 로고가 뜬 뒤에 폼을 보여주기 위한 플래그 */
   const [isLogoReady, setIsLogoReady] = useState(false);
 
   const canSubmit = userId.trim() !== '' && password !== '' && !isPending;
@@ -86,11 +86,10 @@ export default function LoginPage() {
 
     try {
       await login({ userId: userId.trim(), password });
-      // 최초 로그인(RESET_REQUIRED)은 CurrentUserProvider 가 약관·비밀번호 변경으로 가둔다
+      // 최초 로그인 처리는 CurrentUserProvider 가 맡는다
       router.push('/');
     } catch (caught) {
-      // 게이트 코드로 로그인이 거부되면(예: '초기 비밀번호를 먼저 변경해 주세요')
-      // 에러로 막아버리면 변경할 방법이 없어진다 — 게이트 화면으로 보낸다
+      // 게이트 코드는 에러로 막지 않고 처리 화면으로 보낸다
       if (caught instanceof ApiError && isGateCode(caught.code)) {
         router.push('/');
         return;
@@ -104,19 +103,16 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
       <div className="w-full max-w-md rounded-base border border-border-default px-10 py-12">
-        {/* 밝은 화면이라 어두운 글자 자산을 쓴다 — 로고를 감싸는 판을 두지 않는다 */}
+        {/* 배경이 밝아 어두운 톤 로고를 쓴다 */}
         <h1 className="flex justify-center">
           <span className="sr-only">VitaS</span>
           <Logo tone="onLight" onReady={() => setIsLogoReady(true)} />
         </h1>
 
-        {/**
-         * ⭐ **로고가 자리를 잡은 뒤 폼을 편다.**
-         *
-         * 셋이 동시에 뜨면 로고 · 입력칸 · 버튼이 제각기 다른 시점에 나타나 화면이 어수선하다.
-         * 로고를 먼저 세우고 나머지를 한 번에 올리면 들어오는 순서가 하나로 읽힌다.
-         * ⚠️ 자리는 처음부터 차지한다(`opacity`) — `display` 로 감추면 폼이 뜰 때 창이 늘어난다.
-         */}
+        {/*
+          로고가 뜬 뒤 폼을 함께 보여준다.
+          display 대신 opacity 로 감춰 레이아웃이 흔들리지 않게 한다.
+        */}
         <form
           onSubmit={handleSubmit}
           className={`mt-10 space-y-6 transition-opacity duration-300 ${
@@ -137,7 +133,7 @@ export default function LoginPage() {
             secret
           />
 
-          {/* min-h-10 — 에러가 떠도 버튼 위치가 흔들리지 않게 자리를 잡아둔다 */}
+          {/* 에러 문구가 떠도 버튼이 밀리지 않도록 높이를 잡아둔다 */}
           <p role="alert" className="min-h-10 text-body-m text-text-danger">
             {error}
           </p>
@@ -145,11 +141,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={!canSubmit}
-            /*
-              ⚠️ 비활성일 때 **배경만 밝게 바꾸지 않는다** — 흰 글씨가 연회색 배경에 묻혀
-                 버튼에 글자가 없는 것처럼 보였다. 어두운 배경을 그대로 두고 흐리게만 해
-                 글자가 계속 읽히게 한다. 0.6 은 흰 글씨 대비 4.5:1 을 넘기는 값이다.
-            */
+            /* 비활성일 때 배경색은 두고 투명도만 낮춘다 (흰 글씨 대비 확보) */
             className="w-full cursor-pointer rounded-lg bg-text-primary py-3.5 text-body-m font-bold text-text-white transition-colors hover:bg-bg-sidebar-hover disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-text-primary"
           >
             {isPending ? (

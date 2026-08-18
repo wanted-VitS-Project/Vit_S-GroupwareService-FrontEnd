@@ -17,8 +17,8 @@ interface DeleteJobPositionModalProps {
 }
 
 /**
- * 직급 삭제 모달. (.ai/API.md 29)
- * `employeeCount > 0` 이면 미리 차단하고, 그 사이 배정된 경우는 409 로 다시 차단한다.
+ * 직급 삭제 모달.
+ * 인원이 있으면 미리 막고, 그 사이 배정되면 409 로 다시 막는다.
  */
 export default function DeleteJobPositionModal({
   position,
@@ -98,7 +98,7 @@ export default function DeleteJobPositionModal({
           </p>
         )}
 
-        {/* 폼 모달과 같은 방식 — 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}
+        {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}
         <p
           role="alert"
           className="text-caption break-keep text-text-danger empty:hidden"

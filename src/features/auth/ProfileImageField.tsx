@@ -17,13 +17,8 @@ import {
 import { useCurrentUser, useSetProfileImage } from './useCurrentUser';
 
 /**
- * 마이페이지 프로필 사진 — 미리보기 + 변경 · 삭제.
- *
- * 파일 입력은 화면에서 감추고 버튼이 대신 연다. 기본 `<input type="file">` 은
- * 브라우저마다 생김새가 달라 토큰으로 맞출 수가 없다.
- *
- * 서버가 다시 검증하지만 **형식 · 용량은 여기서 먼저 거른다** — 5MB 를 다 올려놓고
- * 400 으로 돌아오는 왕복이 사용자에게는 그냥 느린 실패로 보인다.
+ * 마이페이지 프로필 사진 미리보기 · 변경 · 삭제.
+ * 파일 입력은 감추고 버튼으로 열며, 형식 · 용량은 올리기 전에 먼저 거른다.
  */
 export default function ProfileImageField() {
   const user = useCurrentUser();
@@ -44,7 +39,7 @@ export default function ProfileImageField() {
   async function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
 
-    // 같은 파일을 다시 고를 수 있게 값을 비운다 — 안 그러면 change 가 안 뜬다
+    // 같은 파일을 다시 고를 수 있게 값을 비운다
     event.target.value = '';
     if (!file) return;
 
@@ -61,14 +56,10 @@ export default function ProfileImageField() {
     try {
       const { profileImageUrl } = await uploadProfileImage(file);
 
-      // 다른 화면의 내 아바타가 404 로 기억돼 있으면 지운다
+      // 404 로 기억된 아바타 기록을 지운다
       forgetMissingAvatar(user.userId);
 
-      /**
-       * 사진을 바꿔도 **서빙 경로는 그대로**다. 같은 문자열을 그대로 넣으면
-       * `<img src>` 가 안 바뀌어 브라우저가 다시 부르지 않는다 — 방금 올린 사진이
-       * 아니라 이전 사진이 계속 보인다. 시각을 붙여 강제로 새로 부르게 한다.
-       */
+      // 사진을 바꿔도 경로가 같아 브라우저가 다시 부르지 않는다. 시각을 붙여 갱신한다
       setProfileImage(`${profileImageUrl}?t=${Date.now()}`);
       notifyToast('프로필 사진을 올렸습니다.');
     } catch (caught) {
@@ -172,9 +163,8 @@ export default function ProfileImageField() {
 }
 
 /**
- * 올리기 전에 거를 수 있는 것만 본다 — 위장 · 손상 · 픽셀 과다는 서버가 판단한다.
- * 문구는 서버 코드별 문구를 그대로 쓴다 — 먼저 걸렸는지 나중에 걸렸는지가
- * 사용자에게 다르게 보일 이유가 없다.
+ * 올리기 전에 거를 수 있는 것만 검사한다. 위장 · 손상은 서버가 판단한다.
+ * 문구는 서버 코드별 문구와 동일하게 맞춘다.
  */
 function validate(file: File) {
   const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
@@ -188,10 +178,7 @@ function validate(file: File) {
   return '';
 }
 
-/**
- * 우리 문구가 있는 코드면 그것을, 없으면 서버 문구를 그대로 쓴다.
- * (`lib/api` 의 `messageOf` 는 코드별 문구를 모르므로 여기서 한 겹 더 감싼다)
- */
+/** 정의된 코드면 그 문구를, 없으면 서버 문구를 그대로 쓴다 */
 function profileMessageOf(caught: unknown, fallback: string) {
   const known =
     caught instanceof ApiError && caught.code

@@ -6,14 +6,8 @@ import PageTitle from '@/components/PageTitle';
 import MasterItemPanel from './MasterItemPanel';
 
 /**
- * 학력 · 자격증 **항목 관리** 화면. (ADMIN 전용)
- *
- * 사원 등록 · 수정은 여기 등록된 항목에서 **골라서** 넣는다 —
- * 자유입력을 두지 않아 표기가 갈리지 않는다(`컴퓨터공학` · `컴퓨터 공학` 처럼).
- * 그래서 목록에 없는 값이 필요하면 이 화면을 먼저 거쳐야 한다.
- *
- * ⭐ 두 목록을 **한 화면에** 둔다 — 성격이 같고 같이 관리되는 자료라
- *    화면을 갈라 두면 오갈 일만 늘어난다.
+ * 학력 · 자격증 항목 관리 화면 (ADMIN 전용).
+ * 사원 등록 · 수정은 여기 등록된 항목에서 골라 넣어 표기가 갈리지 않는다.
  */
 export default function QualificationScreen() {
   return (

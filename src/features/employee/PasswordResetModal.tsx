@@ -18,10 +18,8 @@ interface PasswordResetModalProps {
 }
 
 /**
- * 비밀번호 재설정 확인 · 결과 모달. (.ai/API.md 21)
- *
- * 실패가 섞여도 200 이라 집계를 반드시 보여준다.
- * `passwordChanged: true` 는 비밀번호만 바뀌고 메일이 안 간 상태다 — 재발송하지 않으면 로그인할 수 없다.
+ * 비밀번호 재설정 확인 · 결과 모달. 실패가 섞여도 200 이라 집계를 반드시 보여준다.
+ * passwordChanged 가 true 면 메일만 안 간 상태라 재발송해야 로그인할 수 있다.
  */
 export default function PasswordResetModal({
   targets,
@@ -45,9 +43,9 @@ export default function PasswordResetModal({
 
     try {
       const next = await resetPasswords(userIds);
-      // 재발송 응답은 재발송 대상만 담고 온다 — 그대로 갈아치우면 나머지 실패가 사라진다
+      // 재발송 응답은 재발송 대상만 담고 온다. 갈아치우면 나머지 실패가 사라진다
       setResult((prev) => (prev ? merge(prev, next, userIds) : next));
-      // 성공분이 있으면 목록을 갱신한다. 실패만 있으면 바뀐 게 없다
+      // 성공분이 있으면 목록을 갱신한다
       if (next.successCount > 0) onDone();
     } catch (caught) {
       setError(messageOf(caught, '비밀번호를 재설정하지 못했습니다.'));
@@ -61,7 +59,7 @@ export default function PasswordResetModal({
     if (!isSubmitting) onClose();
   }
 
-  /** 메일만 실패한 사원 — 이들만 다시 보내면 된다 */
+  /** 메일만 실패한 사원. 이들만 다시 보내면 된다 */
   const resendTargets =
     result?.failures.filter((failure) => failure.passwordChanged) ?? [];
 
@@ -204,8 +202,7 @@ export default function PasswordResetModal({
 }
 
 /**
- * 재발송 결과를 최초 결과 위에 덮어쓴다.
- * 다시 시도한 사원만 최신 상태로 갈고, 손대지 않은 실패(이메일 미등록 등)는 그대로 남긴다 —
+ * 재발송 결과를 최초 결과 위에 덮어쓴다. 다시 시도한 사원만 최신 상태로 간다.
  * 집계는 최초 요청 건수를 기준으로 다시 센다.
  */
 function merge(

@@ -1,15 +1,13 @@
 'use client';
 
 /**
- * 입찰 공고 직접 등록 · 수정 폼이 함께 쓰는 입력 컴포넌트.
- *
- * 사원 폼(`features/employee/FormFields.tsx`)과 라벨 · 에러 · 간격 규칙이 같다.
- * 도메인끼리 import 하지 않기로 해 모양만 맞추고 필요한 종류(숫자 · 일시 · 여러 줄)를 더 둔다.
+ * 공고 직접 등록 · 수정 폼이 함께 쓰는 입력 컴포넌트.
+ * 사원 폼과 라벨 · 에러 · 간격 규칙이 같지만 도메인끼리 import 하지 않아 따로 둔다.
  */
 
 /**
  * 입력에 연결할 설명 요소.
- * 에러가 있으면 에러를, 없으면 안내 문구를 읽어준다 — 화면에 보이는 것과 같은 것을 가리킨다.
+ * 에러가 있으면 에러를, 없으면 안내 문구를 읽어준다.
  */
 function describedBy(id: string, error?: string, hint?: string) {
   if (error) return `${id}-error`;
@@ -28,7 +26,7 @@ function FieldShell({
   label: string;
   required?: boolean;
   error?: string;
-  /** 에러가 없을 때만 보인다 — 둘이 동시에 뜨면 시선이 갈린다 */
+  /** 에러가 없을 때만 보인다. 둘이 동시에 뜨면 시선이 갈린다 */
   hint?: string;
   children: React.ReactNode;
 }) {
@@ -54,9 +52,8 @@ function FieldShell({
           <p
             id={`${id}-hint`}
             /**
-             * ⚠️ `break-keep` 만 두면 `신한은행-20260807143000-999EA4` 처럼 **띄어쓰기 없는
-             *    긴 값**이 줄바꿈되지 못하고 칸 밖으로 넘친다. 한글은 단어 단위로 끊되
-             *    끊을 곳이 없으면 아무 데서나 끊게 한다.
+             * break-keep 만 두면 띄어쓰기 없는 긴 값이 칸 밖으로 넘친다.
+             * 한글은 단어 단위로 끊되 끊을 곳이 없으면 아무 데서나 끊게 한다.
              */
             className="mt-1 text-micro [overflow-wrap:anywhere] break-keep text-text-secondary"
           >
@@ -69,12 +66,8 @@ function FieldShell({
 }
 
 /**
- * 입력 스타일은 `globals.css` 의 공용 `.input` 을 쓴다 —
- * 테두리 · 높이 · 포커스 색을 화면마다 다시 정하지 않는다.
- *
- * 글자만 `text-label`(14px)로 덮는다 — `.input` 기본이 16px 라 항목이 20개 가까운
- * 이 폼에서는 과하게 크다. 표 본문(`DataTable`)과 같은 크기로 맞춘다.
- * (`.input` 은 `@layer components` 라 유틸리티가 이긴다)
+ * 입력 스타일은 globals.css 의 공용 .input 을 쓴다.
+ * 글자만 text-label(14px)로 덮는다. 항목이 많은 폼이라 기본 16px 는 과하다.
  */
 function controlClass(hasError: boolean) {
   return `input text-label ${hasError ? 'input-error' : ''}`;
@@ -92,10 +85,8 @@ interface BaseProps {
 }
 
 /**
- * 한 줄 입력. `type` 으로 일시(`datetime-local`) · URL 까지 겸한다.
- *
- * ⚠️ `datetime-local` 값은 `yyyy-MM-ddTHH:mm` 이고 백엔드는 초까지 받는다 —
- *    전송 직전에 `:00` 을 붙인다 (`toApiDateTime()`).
+ * 한 줄 입력. type 으로 일시(datetime-local) · URL 까지 겸한다.
+ * datetime-local 값은 초가 없어 전송 직전에 :00 을 붙인다.
  */
 export function TextField({
   type = 'text',
@@ -130,15 +121,12 @@ export function TextField({
   );
 }
 
-/** 금액 입력의 최대 자릿수 — 15자리(약 999조)면 계약금액에 충분하다 */
+/** 금액 입력의 최대 자릿수. 15자리면 계약금액에 충분하다 */
 export const AMOUNT_MAX_DIGITS = 15;
 
 /**
  * 문자열 그대로 천 단위 구분을 넣는다.
- *
- * ⚠️ `Number(value).toLocaleString()` 을 쓰지 않는다 —
- *    숫자가 아닌 초기값이 오면 화면에 `NaN` 이 뜨고,
- *    `Number.MAX_SAFE_INTEGER` 를 넘으면 정밀도가 조용히 깎인다.
+ * toLocaleString() 은 숫자가 아닌 값에 NaN 을 띄우고 큰 수의 정밀도를 깎는다.
  */
 function groupDigits(value: string) {
   const digits = value.replace(/\D/g, '');
@@ -146,8 +134,8 @@ function groupDigits(value: string) {
 }
 
 /**
- * 금액 입력. 값은 문자열로 다루고 화면에만 콤마를 넣는다 —
- * `<input type="number">` 는 자릿수가 큰 금액에서 읽기 어렵다.
+ * 금액 입력. 값은 문자열로 다루고 화면에만 콤마를 넣는다.
+ * input type=number 는 자릿수가 큰 금액에서 읽기 어렵다.
  */
 export function AmountField({
   placeholder,
@@ -172,8 +160,8 @@ export function AmountField({
           value={display}
           placeholder={placeholder}
           disabled={disabled}
-          // 숫자만 남긴다 — 콤마를 지우고 다시 넣는 편이 커서 튐이 적다.
-          // 자릿수를 막지 않으면 `Number()` 가 `Infinity` 가 되어 `null` 로 전송된다
+          // 숫자만 남긴다. 콤마를 지우고 다시 넣는 편이 커서 튐이 적다
+          // 자릿수를 막지 않으면 Number() 가 Infinity 가 되어 null 로 전송된다
           onChange={(event) =>
             onChange(
               event.target.value.replace(/\D/g, '').slice(0, AMOUNT_MAX_DIGITS),
@@ -192,7 +180,7 @@ export function AmountField({
   );
 }
 
-/** 여러 줄 입력 — 참가 자격 · 제한 사항처럼 원문을 그대로 담는 항목에 쓴다 */
+/** 여러 줄 입력. 참가 자격처럼 원문을 그대로 담는 항목에 쓴다 */
 export function TextareaField({
   placeholder,
   rows = 3,
@@ -230,7 +218,7 @@ export function SelectField({
   ...props
 }: BaseProps & {
   options: { value: string; label: string }[];
-  /** 빈 값 선택지 문구. 필수 항목은 `선택해주세요` */
+  /** 빈 값 선택지 문구. 필수 항목은 선택해주세요 */
   emptyLabel?: string;
 }) {
   const { id, label, required, value, error, hint, disabled, onChange } = props;
@@ -264,7 +252,7 @@ export function SelectField({
   );
 }
 
-/** 체크박스 — 라벨이 오른쪽이라 `FieldShell` 을 쓰지 않는다 */
+/** 체크박스. 라벨이 오른쪽이라 FieldShell 을 쓰지 않는다 */
 export function CheckboxField({
   id,
   label,
@@ -304,10 +292,8 @@ export function CheckboxField({
 }
 
 /**
- * 폼 · 카드 위에 뜨는 안내 띠. 같은 모양이 네 곳에 흩어져 있어 한 곳으로 모은다.
- *
- * `danger` 는 사용자가 고쳐야 하는 것(검증 실패 · 저장 실패),
- * `warning` 은 고칠 게 없는 상황 안내(이미 진행 중 · 시간 초과)에 쓴다.
+ * 폼 · 카드 위에 뜨는 안내 띠.
+ * danger 는 사용자가 고쳐야 하는 것, warning 은 고칠 게 없는 상황 안내에 쓴다.
  */
 export function AlertBanner({
   tone,
@@ -333,7 +319,7 @@ export function AlertBanner({
   );
 }
 
-/** 폼 안의 구획 — 항목이 20개 가까워 묶어주지 않으면 읽기 어렵다 */
+/** 폼 안의 구획. 항목이 20개 가까워 묶어주지 않으면 읽기 어렵다 */
 export function FormSection({
   title,
   description,

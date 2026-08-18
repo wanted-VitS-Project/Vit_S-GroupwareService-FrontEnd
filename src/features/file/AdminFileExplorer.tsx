@@ -12,44 +12,29 @@ import {
 import type { AdminTreeProject, AdminTreeStage, AdminTreeStep } from './types';
 
 /**
- * 전사 파일을 **탐색기처럼** 훑는 화면 (`프로젝트 → 스테이지 → 스텝 → 파일`).
- *
- * ⭐ **탐색 전용 API 를 쓴다** (§14 · 2026-08-16 신설) — 노드를 열 때마다 **자식만** 부른다.
- *    `GET /admin/files/projects` · `…/{projectId}/stages` · `…/{projectId}/steps` 셋 모두 ADMIN 전용이다.
- *
- * 예전엔 일반 프로젝트 API 로 훑었는데 두 가지가 걸렸다 — 둘 다 이 API 로 사라졌다.
- * - 관리자라도 **참여하지 않은 프로젝트**의 스테이지 · 스텝에서 403 이 났다
- * - 스텝 필터가 없어 프로젝트 파일 **500건을 미리 받아** 화면에서 나눴다 (넘으면 뒤가 안 보였다)
- *
- * ⚠️ **검색 · 확장자 필터는 이 트리가 하지 않는다** — 조건으로 찾을 때는 전사 목록(142번)을 쓴다.
+ * 전사 파일을 탐색기처럼 훑는 화면 (프로젝트 → 스테이지 → 스텝 → 파일).
+ * 탐색 전용 ADMIN API 를 써 노드를 열 때마다 자식만 부른다.
  */
 
 /**
- * 프로젝트 목록 상한.
- *
- * ⚠️ **서버가 100 으로 자른다** (2026-08-16 실측 — `size=200` 을 보내도 응답 `size` 가 100).
- *    더 큰 값을 보내면 안 받아온 프로젝트가 있는데도 다 받은 것처럼 보이므로 실제 상한을 적는다.
- *    전사 프로젝트가 100 개를 넘으면 페이지 넘김이나 검색을 붙여야 한다.
+ * 프로젝트 목록 상한. 서버가 100 으로 자른다.
+ * 더 큰 값을 보내면 못 받은 프로젝트가 있는데도 다 받은 것처럼 보인다.
  */
 const PROJECT_LIMIT = 100;
 
 /**
  * 스테이지에 배정되지 않은 스텝을 담는 칸.
- *
- * ⚠️ 서버는 이 칸을 `stageId: null` 로 준다. 여기서 `'none'` 으로 바꿔 쓰는 이유는
- *    **위치가 URL 에 담기기 때문**이다(`?stageId=none`) — `null` 은 주소로 실을 수 없다.
+ * 서버는 null 로 주지만 위치가 URL 에 담겨 문자열로 바꿔 쓴다.
  */
 const NO_STAGE = 'none';
 
 /**
- * 지금 위치 — **id 만** 담는다.
- *
- * ⚠️ 이름을 함께 담지 않는다. 이 값은 URL 로 오가는데(`?projectId=…`), 이름까지 실으면
- *    주소가 길어지고 프로젝트명을 바꾼 뒤 옛 이름이 남는다. 이름은 받아온 목록에서 찾는다.
+ * 지금 위치. id 만 담는다.
+ * 이름까지 실으면 주소가 길어지고 이름을 바꾼 뒤 옛 이름이 남는다.
  */
 export interface ExplorerPath {
   projectId?: number;
-  /** `NO_STAGE`(`'none'`) 면 스테이지에 배정되지 않은 스텝 묶음 */
+  /** NO_STAGE 면 스테이지에 배정되지 않은 스텝 묶음이다 */
   stageId?: number | typeof NO_STAGE;
   stepId?: number;
 }
@@ -60,16 +45,14 @@ export default function AdminFileExplorer({
   path,
   onChange,
 }: {
-  /** 지금 위치. 상태는 **부모가 들고 있다** — 파일 표도 같은 값을 봐야 한다 */
+  /** 지금 위치. 상태는 부모가 들고 있다. 파일 표도 같은 값을 봐야 한다 */
   path: ExplorerPath;
   onChange: (next: ExplorerPath) => void;
 }) {
   const [projects, setProjects] = useState<AdminTreeProject[] | null>(null);
   /**
-   * 상한에 걸려 **못 받은 프로젝트 수**. 0 이면 다 받았다.
-   *
-   * ⚠️ 잘린 사실을 적지 않으면 관리자는 그 프로젝트가 **없다고 읽는다** — 찾다 지칠 뿐
-   *    다음에 뭘 해야 하는지 알 수 없다. 검색이 되는 전사 목록으로 안내한다.
+   * 상한에 걸려 못 받은 프로젝트 수. 0 이면 다 받았다.
+   * 잘린 사실을 적지 않으면 그 프로젝트가 없다고 읽는다.
    */
   const [hiddenProjectCount, setHiddenProjectCount] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
@@ -96,19 +79,17 @@ export default function AdminFileExplorer({
 
   /**
    * 2단계 — 고른 프로젝트의 스테이지.
-   *
-   * ⚠️ 결과에 **어느 프로젝트의 것인지**를 함께 담는다. 프로젝트를 옮기면 키가 어긋나
-   *    자동으로 로딩 상태가 되므로, 효과 본문에서 상태를 비울 필요가 없다.
+   * 결과에 어느 프로젝트의 것인지 함께 담아 옮기면 자동으로 로딩 상태가 되게 한다.
    */
   const [stageResult, setStageResult] = useState<{
     projectId: number;
     stages?: AdminTreeStage[];
-    /** 못 본 이유 — 권한 없음과 조회 실패는 사용자가 할 일이 다르다 */
+    /** 못 본 이유. 권한 없음과 조회 실패는 사용자가 할 일이 다르다 */
     blockedReason?: string;
   } | null>(null);
 
   const projectId = path.projectId;
-  /** 지금 프로젝트의 결과만 화면에 쓴다 — 옮기는 중이면 로딩으로 본다 */
+  /** 지금 프로젝트의 결과만 화면에 쓴다. 옮기는 중이면 로딩으로 본다 */
   const currentStages =
     stageResult !== null && stageResult.projectId === projectId
       ? stageResult
@@ -137,8 +118,7 @@ export default function AdminFileExplorer({
 
   /**
    * 3단계 — 고른 스테이지의 스텝.
-   *
-   * ⭐ 미분류 칸(`NO_STAGE`)이면 `stageId` 를 **빼고** 부른다 — 그게 미분류 스텝을 받는 방법이다.
+   * 미분류 칸이면 stageId 를 빼고 부른다. 그게 미분류 스텝을 받는 방법이다.
    */
   const [stepResult, setStepResult] = useState<{
     key: string;
@@ -174,7 +154,7 @@ export default function AdminFileExplorer({
     return () => controller.abort();
   }, [stepKey, projectId, stageId]);
 
-  /** 경로 막대에 쓸 이름 — 목록이 오기 전에는 비워 두고 자리만 잡는다 */
+  /** 경로 막대에 쓸 이름. 목록이 오기 전에는 자리만 잡는다 */
   const projectName = projects?.find(
     (project) => project.projectId === projectId,
   )?.name;
@@ -204,7 +184,7 @@ export default function AdminFileExplorer({
         </p>
       )}
 
-      {/* 목록 대신 나오는 안내라 눈으로만 보이면 화면 낭독에서는 빈 목록으로 읽힌다 */}
+      {/* 목록 대신 나오는 안내라 눈으로만 보이면 낭독에서는 빈 목록으로 읽힌다 */}
       {levelBlockedReason && (
         <p
           role="status"
@@ -215,11 +195,8 @@ export default function AdminFileExplorer({
       )}
 
       {/**
-       * ⭐ **고른 뒤에도 형제 목록을 그대로 둔다.**
-       *
-       * 스텝을 고르면 목록을 치우던 때에는 옆 스텝을 보려고 경로 막대로 한 번 올라갔다
-       * 다시 내려와야 했다. 지금 자리를 표시(`aria-current`)만 하고 목록은 남겨 두면
-       * 한 번 눌러 옆으로 옮길 수 있다.
+       * 고른 뒤에도 형제 목록을 그대로 둔다.
+       * 자리만 표시하고 목록을 남기면 한 번 눌러 옆으로 옮길 수 있다.
        */}
       <ul className="mt-3 flex flex-col gap-1.5">
         {path.projectId === undefined
@@ -284,7 +261,7 @@ export default function AdminFileExplorer({
 
 /**
  * 지금 위치. 각 조각을 누르면 그 단계로 되돌아간다.
- * ⚠️ 마지막 조각은 누를 수 없다 — 이미 그 자리라 눌러도 아무 일이 없으면 고장으로 읽힌다.
+ * 마지막 조각은 이미 그 자리라 누를 수 없다.
  */
 function PathBar({
   path,
@@ -292,7 +269,7 @@ function PathBar({
   onMove,
 }: {
   path: ExplorerPath;
-  /** 아직 목록이 안 왔으면 `undefined` — 그 조각은 자리만 잡는다 */
+  /** 아직 목록이 안 왔으면 그 조각은 자리만 잡는다 */
   names: { project?: string; stage?: string; step?: string };
   onMove: (next: ExplorerPath) => void;
 }) {
@@ -360,7 +337,7 @@ function PathBar({
   );
 }
 
-/** 한 줄 = 들어갈 수 있는 자리 하나 */
+/** 한 줄은 들어갈 수 있는 자리 하나다 */
 function EntryRow({
   icon,
   label,
@@ -404,7 +381,7 @@ function EntryRow({
   );
 }
 
-/** 단계마다 다른 색을 준다 — 경로를 안 읽어도 지금 어느 깊이인지 알 수 있다 */
+/** 단계마다 다른 색을 준다. 경로를 안 읽어도 지금 어느 깊이인지 알 수 있다 */
 function FolderIcon({ tone }: { tone: 'project' | 'stage' | 'step' }) {
   const toneClass =
     tone === 'project'
@@ -434,13 +411,8 @@ function FolderIcon({ tone }: { tone: 'project' | 'stage' | 'step' }) {
 }
 
 /**
- * 못 본 이유를 사용자가 할 일로 옮긴다.
- *
- * ⚠️ 403 은 **실패가 아니다** — 관리자가 아니면 이 화면 자체를 볼 수 없다.
- *    `불러오지 못했습니다` 로 알리면 고장으로 읽혀 새로고침만 반복하게 된다.
- * ⚠️ 404 를 **어디서 받았는지가 문구를 가른다.** 스테이지 · 스텝은 프로젝트 id 를 찍어 부르니
- *    404 면 그 사이 지워진 것이지만, **맨 위 프로젝트 목록엔 찍은 id 가 없다** — 거기서
- *    `삭제되었거나 없는 항목` 이라고 하면 무엇이 지워졌다는 건지 알 수 없다.
+ * 못 본 이유를 사용자가 할 일로 옮긴다. 403 은 실패가 아니다.
+ * 404 는 어디서 받았는지가 문구를 가른다. 프로젝트 목록에는 찍은 id 가 없다.
  */
 function explorerErrorMessage(
   caught: unknown,

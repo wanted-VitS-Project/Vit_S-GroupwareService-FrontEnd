@@ -8,7 +8,7 @@ import {
   type CompleteCompanyUploadResponse,
 } from './types';
 
-/** 업로드가 중단된 지점 — 화면이 문구를 고를 때 쓴다 */
+/** 업로드가 중단된 지점. 화면이 문구를 고를 때 쓴다 */
 export type CompanyUploadStage = 'start' | 'transfer' | 'complete';
 
 export class CompanyUploadError extends Error {
@@ -24,9 +24,9 @@ export class CompanyUploadError extends Error {
 
 interface CompanyUploadOptions {
   file: File;
-  /** 새 문서일 때 필수. 새 버전이면 서버가 기존 분류를 따르므로 보내지 않는다 */
+  /** 새 문서일 때 필수. 새 버전이면 서버가 기존 분류를 따른다 */
   category?: CompanyDocumentCategory;
-  /** 주면 그 문서의 **새 버전** */
+  /** 주면 그 문서의 새 버전이다 */
   companyDocumentId?: number;
   name?: string;
   comment?: string;
@@ -34,14 +34,8 @@ interface CompanyUploadOptions {
 }
 
 /**
- * 사내 문서 업로드 3단계. (프로젝트 파일 `features/file/upload.ts` 와 같은 흐름)
- *
- * 1. `POST /admin/company-documents/uploads` — presigned 발급 (버전이 `UPLOADING` 으로 생성)
- * 2. presigned URL 로 저장소에 직접 PUT
- * 3. `POST …/uploads/{versionId}/complete` — 서버가 저장소를 확인하고 확정
- *
- * 2 · 3 이 빠지면 버전이 `UPLOADING` 으로 남아 목록에 나오지 않는다.
- * 중간 실패를 되돌리는 API 는 없으므로 어디서 끊겼는지를 `stage` 로 알린다.
+ * 사내 문서 업로드 3단계. presigned 발급 → 저장소 PUT → 완료 통보.
+ * 뒤 두 단계가 빠지면 버전이 UPLOADING 으로 남아 목록에 나오지 않는다.
  */
 export async function uploadCompanyDocument({
   file,
@@ -51,12 +45,9 @@ export async function uploadCompanyDocument({
   comment,
   signal,
 }: CompanyUploadOptions): Promise<CompleteCompanyUploadResponse> {
-  // 서버도 막지만(`CDOC_SIZE_EXCEEDED`), 50MB 를 헛되게 올려보내지 않는다
+  // 서버도 막지만 50MB 를 헛되게 올려보내지 않는다
   if (file.size > COMPANY_DOCUMENT_MAX_SIZE_BYTES) {
-    throw new CompanyUploadError(
-      'start',
-      '50MB 이하 파일만 올릴 수 있습니다.',
-    );
+    throw new CompanyUploadError('start', '50MB 이하 파일만 올릴 수 있습니다.');
   }
 
   let started;
@@ -73,7 +64,7 @@ export async function uploadCompanyDocument({
       signal,
     );
   } catch (caught) {
-    // 확장자 차단(`CDOC_EXTENSION_BLOCKED`)도 여기로 온다 — 서버 문구를 그대로 쓴다
+    // 확장자 차단도 여기로 온다. 서버 문구를 그대로 쓴다
     throw toUploadError('start', caught, '업로드를 시작하지 못했습니다.');
   }
 
@@ -103,7 +94,11 @@ function toUploadError(
   if (isAbortError(caught)) throw caught;
 
   if (caught instanceof ApiError) {
-    return new CompanyUploadError(stage, caught.message || fallback, caught.code);
+    return new CompanyUploadError(
+      stage,
+      caught.message || fallback,
+      caught.code,
+    );
   }
   return new CompanyUploadError(stage, fallback);
 }

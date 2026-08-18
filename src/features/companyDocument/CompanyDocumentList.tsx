@@ -29,12 +29,11 @@ import {
 } from './types';
 import { uploadCompanyDocument, type CompanyUploadStage } from './upload';
 
-/** 한 페이지 20행 — 명세 기본값이다 (최대 100) */
+/** 한 페이지 20행. 명세 기본값이다 */
 const PAGE_SIZE = 20;
 
 /**
- * 업로드가 끊긴 지점별 안내 — 사용자가 다음에 뭘 할지 알 수 있게 나눈다.
- * (문서 블록 `FileBlock` 과 같은 문구다 — 같은 3단계 흐름이다)
+ * 업로드가 끊긴 지점별 안내. 사용자가 다음에 뭘 할지 알 수 있게 나눈다.
  */
 const STAGE_HINT: Record<CompanyUploadStage, string> = {
   start: '',
@@ -44,8 +43,7 @@ const STAGE_HINT: Record<CompanyUploadStage, string> = {
 
 /**
  * 잡힌 값에서 안내 문구를 꺼낸다.
- * `'stage' in caught` 는 속성 존재만 보장하므로 **값이 실제 키인지 확인**한다 —
- * 단언으로 넘기면 모르는 값이 왔을 때 화면에 `undefined` 가 그대로 붙는다.
+ * 속성 존재만으로는 부족해 값이 실제 키인지 확인한다.
  */
 function stageHintOf(caught: unknown) {
   if (typeof caught !== 'object' || caught === null || !('stage' in caught)) {
@@ -59,7 +57,7 @@ function stageHintOf(caught: unknown) {
     : '';
 }
 
-/** 분류 배지 색. `globals.css` 의 `.tag-*` 를 그대로 쓴다 */
+/** 분류 배지 색. globals.css 의 .tag-* 를 그대로 쓴다 */
 const CATEGORY_TAG: Record<CompanyDocumentCategory, string> = {
   FINANCE: 'tag-blue',
   COMPANY_INTRO: 'tag-purple',
@@ -69,17 +67,12 @@ const CATEGORY_TAG: Record<CompanyDocumentCategory, string> = {
 };
 
 /**
- * 사내 문서함 — `전사 파일 관리 › 사내 문서함` 탭. (`.ai/API.md` 143~150 · ADMIN 전용)
- *
- * 프로젝트 파일과 **별도 저장소**다. 회사 재정 · 소개 · 실적 자료로 AI 공고 검토의
- * 비교 기준이 되므로, 업로드 · 조회 · 삭제가 모두 이 화면 안에서 끝난다.
- *
- * 미리보기 · 버전 이력은 **행을 눌러 뷰어 모달**에서 본다 (문서 블록 `FileBlock` 과 같은 자리).
- * 업로드는 숨긴 파일 입력 하나를 `새 문서 추가` 와 행의 `새 버전 올리기` 가 함께 쓴다.
+ * 사내 문서함 (ADMIN 전용). 프로젝트 파일과 별도 저장소다.
+ * 미리보기 · 버전 이력은 행을 눌러 뷰어 모달에서 본다.
  */
 export default function CompanyDocumentList() {
   const [keyword, setKeyword] = useState('');
-  /** 실제 요청에 쓰는 검색어 — 돋보기 버튼 · 엔터로만 반영한다 */
+  /** 실제 요청에 쓰는 검색어. 돋보기 버튼 · 엔터로만 반영한다 */
   const [search, setSearch] = useState('');
   /** 빈 문자열이면 전체 */
   const [category, setCategory] = useState<CompanyDocumentCategory | ''>('');
@@ -87,7 +80,7 @@ export default function CompanyDocumentList() {
   const [reloadCount, setReloadCount] = useState(0);
 
   /**
-   * 어떤 요청의 결과인지 `key` 로 들고 있는다.
+   * 어떤 요청의 결과인지 key 로 들고 있는다.
    * 조건이 바뀌면 key 가 어긋나 자동으로 로딩 상태가 된다.
    */
   const [result, setResult] = useState<{
@@ -98,13 +91,13 @@ export default function CompanyDocumentList() {
   /** 다운로드 실패처럼 화면을 막지 않는 오류 */
   const [errorMessage, setErrorMessage] = useState('');
   /**
-   * 방금 지운 문서 — soft delete 라 되돌릴 수 있는데,
-   * **목록에 삭제분을 부르는 조건이 없어** 여기서 id 를 들고 있어야만 복구할 수 있다.
+   * 방금 지운 문서. soft delete 라 되돌릴 수 있는데
+   * 목록에 삭제분을 부르는 조건이 없어 여기서 id 를 들고 있어야 복구된다.
    */
   const [justDeleted, setJustDeleted] = useState<CompanyDocument | null>(null);
   const deleteDialog = useModalTarget<CompanyDocument>();
   const editModal = useModalTarget<CompanyDocument>();
-  /** 문서 뷰어 — 미리보기 + 버전 이력. 문서 블록이 뷰어 모달에서 보여주는 것과 같다 */
+  /** 문서 뷰어. 미리보기와 버전 이력을 함께 본다 */
   const viewerModal = useModalTarget<CompanyDocument>();
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -114,7 +107,7 @@ export default function CompanyDocumentList() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const pickerRef = useRef<HTMLInputElement>(null);
-  /** 새 버전을 올릴 대상. 비어 있으면 새 문서 (`FileBlock` 과 같은 방식) */
+  /** 새 버전을 올릴 대상. 비어 있으면 새 문서다 */
   const versionTargetId = useRef<number | undefined>(undefined);
 
   const hasFilter = search !== '' || category !== '';
@@ -122,7 +115,7 @@ export default function CompanyDocumentList() {
   const current = result?.key === requestKey ? result : null;
   const documentPage = current?.page ?? null;
   const documents = documentPage?.content ?? null;
-  /** 지역 상수로 받아야 JSX 안에서 `null` 이 아님이 좁혀진다 (단언을 쓰지 않는다) */
+  /** 지역 상수로 받아야 JSX 안에서 null 이 아님이 좁혀진다 */
   const deletePending = deleteDialog.target;
 
   useEffect(() => {
@@ -144,7 +137,7 @@ export default function CompanyDocumentList() {
         if (signal.aborted) return;
         setResult({
           key: requestKey,
-          // 403(`ACC_ADMIN_REQUIRED`)이 여기로 온다
+          // 403 이 여기로 온다
           errorMessage: messageOf(caught, '문서를 불러오지 못했습니다.'),
         });
       });
@@ -156,13 +149,13 @@ export default function CompanyDocumentList() {
     setReloadCount((count) => count + 1);
   }
 
-  /** 조건이 바뀌면 첫 페이지로 돌아간다 — 3페이지에서 거르면 빈 화면이 나온다 */
+  /** 조건이 바뀌면 첫 페이지로 돌아간다. 3페이지에서 거르면 빈 화면이 나온다 */
   function applyFilter(change: () => void) {
     change();
     setPage(0);
   }
 
-  /** 파일 선택 창을 연다. `documentId` 를 주면 그 문서의 **새 버전**이다 */
+  /** 파일 선택 창을 연다. documentId 를 주면 그 문서의 새 버전이다 */
   function pickFile(documentId?: number) {
     versionTargetId.current = documentId;
     setUploadError('');
@@ -179,10 +172,10 @@ export default function CompanyDocumentList() {
       await uploadCompanyDocument({
         file,
         companyDocumentId: documentId,
-        // 새 버전은 기존 문서의 분류를 따른다 — 보내면 안 된다
+        // 새 버전은 기존 문서의 분류를 따라 보내면 안 된다
         category: documentId === undefined ? uploadCategory : undefined,
       });
-      // 새 문서는 최신 순 맨 앞에 오므로 첫 페이지로 돌아간다 (검색 · 분류는 그대로 둔다)
+      // 새 문서는 최신 순 맨 앞에 와 첫 페이지로 돌아간다
       if (documentId === undefined) setPage(0);
       reload();
       notifyToast(
@@ -246,8 +239,8 @@ export default function CompanyDocumentList() {
   return (
     <div>
       {/*
-        파일 입력은 감춰 두고 버튼이 대신 연다 — 문서 블록(`FileBlock`)과 같은 방식이다.
-        새 문서 · 새 버전이 **같은 입력 하나**를 쓰고, 대상은 `versionTargetId` 가 정한다.
+        파일 입력은 감춰 두고 버튼이 대신 연다.
+        새 문서 · 새 버전이 같은 입력 하나를 쓰고 대상은 versionTargetId 가 정한다.
       */}
       <input
         ref={pickerRef}
@@ -321,9 +314,8 @@ export default function CompanyDocumentList() {
         </div>
 
         {/*
-          업로드 분류는 **파일을 고르기 전에** 정해 둔다 — 시작 요청(①)에 분류가 필요하고,
-          올린 뒤 고르게 하면 잘못 분류된 문서가 목록에 먼저 나타났다 고쳐진다.
-          (새 버전은 기존 문서의 분류를 따르므로 이 값을 쓰지 않는다)
+          업로드 분류는 파일을 고르기 전에 정해 둔다. 시작 요청에 분류가 필요하다.
+          새 버전은 기존 문서의 분류를 따르므로 이 값을 쓰지 않는다.
         */}
         <div className="flex shrink-0 items-center gap-2">
           <label htmlFor="companyDocumentUploadCategory" className="sr-only">
@@ -382,7 +374,7 @@ export default function CompanyDocumentList() {
         </p>
       )}
 
-      {/* 삭제는 soft delete 다 — 되돌릴 길을 이 자리에서만 줄 수 있다 */}
+      {/* 삭제는 soft delete 라 되돌릴 길을 이 자리에서만 줄 수 있다 */}
       {justDeleted && (
         <div
           role="status"
@@ -421,7 +413,7 @@ export default function CompanyDocumentList() {
             rowKey={(item) => item.companyDocumentId}
             errorMessage={current?.errorMessage}
             onRetry={reload}
-            // 행을 누르면 뷰어(미리보기 + 버전 이력)가 열린다 — 액션 칸만 예외다
+            // 행을 누르면 뷰어가 열린다. 액션 칸만 예외다
             onRowClick={(item) => viewerModal.open(item)}
             emptyState={
               <>
@@ -460,7 +452,7 @@ export default function CompanyDocumentList() {
                 width: '7%',
                 cell: (item) => (
                   <span
-                    // 이력은 행을 눌러 뷰어에서 본다 — 배지는 최신 차수 표시다
+                    // 이력은 행을 눌러 뷰어에서 본다. 배지는 최신 차수 표시다
                     title={`버전 ${item.versionCount}개`}
                     className="rounded-button-sm bg-blue-bg-soft px-1.5 py-0.5 font-mono text-caption font-semibold text-text-primary-blue"
                   >
@@ -507,7 +499,7 @@ export default function CompanyDocumentList() {
                 // 칸 자체에 동작이 있어 행 클릭으로 새면 안 된다
                 stopRowClick: true,
                 cell: (item) => (
-                  // 순서: 보기 → 고치기 → 새 버전 → 받기 → 지우기 (왼쪽일수록 가벼운 동작)
+                  // 순서: 보기 → 고치기 → 새 버전 → 받기 → 지우기
                   <div className="flex items-center justify-end gap-1.5">
                     <IconButton
                       label={`${item.name} 미리보기`}
@@ -521,7 +513,7 @@ export default function CompanyDocumentList() {
                     >
                       <PencilIcon />
                     </IconButton>
-                    {/* 새 버전은 기존 문서를 덮지 않고 이력에 쌓인다 (append-only) */}
+                    {/* 새 버전은 기존 문서를 덮지 않고 이력에 쌓인다 */}
                     <IconButton
                       label={`${item.name} 새 버전 올리기`}
                       onClick={() => pickFile(item.companyDocumentId)}
@@ -548,14 +540,14 @@ export default function CompanyDocumentList() {
             ]}
           />
 
-          {/* 받아오는 동안에도 같은 높이를 잡아 둔다 — 결과가 올 때 아래가 밀리지 않게 */}
+          {/* 받아오는 동안에도 같은 높이를 잡아 둔다. 결과가 올 때 아래가 밀리지 않게 */}
           {!documentPage && (
             <div className="mt-3 overflow-hidden rounded-base border border-border-default bg-bg-card">
               <PaginationPlaceholder />
             </div>
           )}
 
-          {/* 표 바깥에 둔다 — 실패 · 빈 상태에서는 넘길 페이지가 없다 */}
+          {/* 표 바깥에 둔다. 실패 · 빈 상태에서는 넘길 페이지가 없다 */}
           {documentPage && documentPage.totalElements > 0 && (
             <div className="mt-3 overflow-hidden rounded-base border border-border-default bg-bg-card">
               <Pagination
@@ -602,7 +594,7 @@ export default function CompanyDocumentList() {
   );
 }
 
-/** ⚠️ prop 이름을 `document` 로 두지 않는다 — 브라우저 전역 `document` 를 가린다 */
+/** prop 이름을 document 로 두지 않는다. 브라우저 전역 document 를 가린다 */
 function NameCell({ item }: { item: CompanyDocument }) {
   const style = extensionStyle(item.extension);
 

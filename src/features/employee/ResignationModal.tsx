@@ -16,7 +16,7 @@ interface ResignationModalProps {
   onSaved: () => void;
 }
 
-/** 오늘 날짜를 `yyyy-MM-dd` 로. `toISOString()` 은 UTC 라 하루가 밀린다 */
+/** 오늘 날짜를 yyyy-MM-dd 로. toISOString() 은 UTC 라 하루가 밀린다 */
 function today() {
   const now = new Date();
   const pad = (value: number) => String(value).padStart(2, '0');
@@ -25,8 +25,8 @@ function today() {
 }
 
 /**
- * 퇴사 처리 모달. (.ai/API.md 34)
- * 퇴사일 기록 + 계정 비활성이 한 번에 일어난다 — 계정 상태 API 를 따로 부르지 않는다.
+ * 퇴사 처리 모달.
+ * 퇴사일 기록과 계정 비활성이 한 번에 일어나 상태 API 를 따로 부르지 않는다.
  */
 export default function ResignationModal({
   employee,
@@ -58,7 +58,7 @@ export default function ResignationModal({
     } catch (caught) {
       const code = caught instanceof ApiError ? caught.code : undefined;
 
-      // 이미 퇴사 처리됐거나 사원이 사라졌다 — 상세를 다시 받아 현재 상태를 보여준다
+      // 이미 퇴사 처리됐거나 사원이 사라졌다. 상세를 다시 받아 보여준다
       if (
         code === EMPLOYEE_CODES.alreadyResigned ||
         code === EMPLOYEE_CODES.notFound

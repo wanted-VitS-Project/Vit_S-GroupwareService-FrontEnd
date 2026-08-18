@@ -11,10 +11,10 @@ import { extensionLabel, extensionStyle, formatFileSize } from '../file/format';
 import { getCompanyDocumentVersions, getCompanyPreview } from './api';
 import type { CompanyDocument, CompanyDocumentVersionsResponse } from './types';
 
-/** PDF 뷰어는 pdfjs 를 끌고 온다 — 문서를 열지 않는 사용자에게 내려보내지 않는다 */
+/** PDF 뷰어는 pdfjs 를 끌고 와 문서를 열지 않는 사용자에게 내려보내지 않는다 */
 const PdfPages = lazy(() => import('../file/PdfPages'));
 
-/** 미리보기 상태 — 로딩 · 지원 안 함 · 실패를 화면에서 구분해야 한다 */
+/** 미리보기 상태. 로딩 · 지원 안 함 · 실패를 화면에서 구분해야 한다 */
 type Preview =
   | { kind: 'loading' }
   | { kind: 'ready'; blob: Blob; shown: number | null; total: number | null }
@@ -22,14 +22,11 @@ type Preview =
   | { kind: 'failed'; message: string };
 
 /**
- * 사내 문서 뷰어. **버전 이력 + 미리보기**를 한 모달에서 본다.
- * (프로젝트 파일의 `FileViewerModal` 과 같은 구성이다 — 도메인만 다르다)
- *
- * 미리보기는 서버가 앞 5페이지만 잘라 PDF 로 준다 (`.ai/API.md` 148).
- * 이력은 **append-only** 라 버전을 고르면 미리보기 · 다운로드 대상만 바뀐다.
+ * 사내 문서 뷰어. 버전 이력과 미리보기를 한 모달에서 본다.
+ * 미리보기는 서버가 앞 5페이지만 잘라 PDF 로 준다.
  */
 export default function CompanyDocumentViewerModal({
-  // ⚠️ prop 이름을 `document` 로 두지 않는다 — 브라우저 전역 `document` 를 가린다
+  // prop 이름을 document 로 두지 않는다. 브라우저 전역 document 를 가린다
   item,
   onClose,
   onDownload,
@@ -41,11 +38,10 @@ export default function CompanyDocumentViewerModal({
   const [versionId, setVersionId] = useState(item.latestVersionId);
   const [versions, setVersions] =
     useState<CompanyDocumentVersionsResponse | null>(null);
-  /** 이력 실패는 로딩과 구분해야 한다 — null 로 두면 스켈레톤이 계속 돈다 */
+  /** 이력 실패는 로딩과 구분해야 한다. null 로 두면 스켈레톤이 계속 돈다 */
   const [versionsError, setVersionsError] = useState('');
   /**
-   * 어느 버전의 미리보기인지 함께 담는다 — 버전을 바꾸면 즉시 무효가 된다.
-   * effect 본문에서 로딩으로 되돌리면 `react-hooks/set-state-in-effect` 에 걸린다.
+   * 어느 버전의 미리보기인지 함께 담는다. 버전을 바꾸면 즉시 무효가 된다.
    */
   const [previewOf, setPreviewOf] = useState<{
     versionId: number;
@@ -93,7 +89,7 @@ export default function CompanyDocumentViewerModal({
         setPreviewOf({
           versionId,
           preview:
-            // 409 `CDOC_PREVIEW_NOT_SUPPORTED` — 형식 문제라 다시 시도할 것이 없다
+            // 형식 문제라 다시 시도할 것이 없다
             code === 'CDOC_PREVIEW_NOT_SUPPORTED'
               ? { kind: 'unsupported' }
               : {
@@ -106,7 +102,7 @@ export default function CompanyDocumentViewerModal({
     return () => controller.abort();
   }, [versionId]);
 
-  /** 목록이 준 값으로 시작하고, 이력이 도착하면 고른 버전의 값으로 바뀐다 */
+  /** 목록이 준 값으로 시작하고 이력이 도착하면 고른 버전의 값으로 바뀐다 */
   const current = versions?.content.find(
     (version) => version.versionId === versionId,
   );
@@ -122,9 +118,8 @@ export default function CompanyDocumentViewerModal({
       title={`${item.name} 문서 보기`}
       onClose={onClose}
       /**
-       * 창 크기 — **화면을 다 먹지 않는다.** 넓은 모니터에서 `85vh` · `860px` 로 두면
-       * 뒤 화면이 거의 가려져 창이 아니라 페이지처럼 보였다. 미리보기는 내용을 확인하는
-       * 자리이지 작업하는 자리가 아니라, 뒤가 비쳐 보이는 편이 낫다.
+       * 창 크기는 화면을 다 먹지 않는다.
+       * 미리보기는 내용을 확인하는 자리라 뒤가 비쳐 보이는 편이 낫다.
        */
       className="flex h-[min(72vh,680px)] w-full max-w-[720px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
       header={
@@ -157,7 +152,7 @@ export default function CompanyDocumentViewerModal({
             </p>
           </div>
 
-          {/* 문서 뷰어(`FileViewerModal`)와 같은 모양 — 아이콘 + `다운로드` */}
+          {/* 문서 뷰어와 같은 모양이다 */}
           <button
             type="button"
             onClick={() => onDownload(versionId)}
@@ -178,7 +173,7 @@ export default function CompanyDocumentViewerModal({
       }
     >
       <div className="flex min-h-0 flex-1">
-        {/* 버전 이력 — 고르면 오른쪽 미리보기가 그 버전으로 바뀐다 */}
+        {/* 버전 이력. 고르면 오른쪽 미리보기가 그 버전으로 바뀐다 */}
         <div className="no-scrollbar w-60 shrink-0 overflow-y-auto border-r border-border-default p-3">
           <p className="mb-2 px-1 text-caption font-semibold text-text-secondary">
             버전 이력 ({versions?.versionCount ?? item.versionCount})
@@ -239,7 +234,7 @@ export default function CompanyDocumentViewerModal({
           </ul>
         </div>
 
-        {/* 미리보기 — 서버가 앞 5페이지만 잘라 준다 */}
+        {/* 미리보기. 서버가 앞 5페이지만 잘라 준다 */}
         <div className="min-w-0 flex-1 overflow-y-auto bg-bg-surface p-4">
           {preview.kind === 'loading' && (
             <LoadingSpinner
@@ -286,7 +281,7 @@ export default function CompanyDocumentViewerModal({
   );
 }
 
-/** 문서 뷰어(`FileViewerModal`)와 같은 벡터 · 크기다 */
+/** 문서 뷰어와 같은 벡터 · 크기다 */
 function DownloadIcon() {
   return (
     <svg

@@ -3,10 +3,8 @@ import Breadcrumb from '@/components/Breadcrumb';
 import CompanyDocumentList from './CompanyDocumentList';
 
 /**
- * 사내 문서함 화면. 전사 관리 허브(`/settings`)의 `파일 › 사내 문서함` 으로 들어온다.
- *
- * ℹ️ 프로젝트 파일과 **저장소가 다른 별도 도메인**이다 (143~150번 `/admin/company-documents`).
- *    회사 재정 · 소개 · 실적 자료로 AI 공고 검토의 비교 기준이 된다.
+ * 사내 문서함 화면. 전사 관리 허브의 파일 › 사내 문서함 으로 들어온다.
+ * 프로젝트 파일과 저장소가 다른 별도 도메인이다.
  */
 export default function CompanyDocumentScreen() {
   return (

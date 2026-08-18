@@ -14,23 +14,22 @@ import JobPositionEmployeesModal from './JobPositionEmployeesModal';
 import JobPositionFormModal from './JobPositionFormModal';
 import type { JobPosition } from './types';
 
-/** 폼 모달 대상 — 'create' 는 추가, 객체는 그 직급 수정 */
+/** 폼 모달 대상. 'create' 는 추가, 객체는 그 직급 수정 */
 type FormTarget = 'create' | JobPosition;
 
 /**
- * 직급 관리 화면. (ADMIN 전용, .ai/API.md 26~29)
- *
- * 백엔드가 `sortOrder` → 직급명 순으로 정렬해 주므로 화면에서 다시 정렬하지 않는다.
+ * 직급 관리 화면 (ADMIN 전용).
+ * 백엔드가 순서 · 이름 순으로 정렬해 줘 화면에서 다시 정렬하지 않는다.
  */
 export default function JobPositionList() {
   const [reloadCount, setReloadCount] = useState(0);
-  /** 어떤 요청의 결과인지 `key` 로 들고 있는다 — 재조회하면 자동으로 로딩 상태가 된다 */
+  /** 어떤 요청의 결과인지 key 로 들고 있는다. 재조회하면 자동으로 로딩 상태가 된다 */
   const [result, setResult] = useState<{
     key: string;
     list?: JobPosition[];
     hasFailed?: boolean;
   } | null>(null);
-  /** 순서 변경 중 — 연타로 순서가 꼬이지 않게 잠근다 */
+  /** 순서 변경 중. 연타로 순서가 꼬이지 않게 잠근다 */
   const [isMoving, setIsMoving] = useState(false);
   const [moveError, setMoveError] = useState('');
   const formModal = useModalTarget<FormTarget>();
@@ -39,7 +38,7 @@ export default function JobPositionList() {
 
   const requestKey = String(reloadCount);
   const current = result?.key === requestKey ? result : null;
-  /** 재조회 중에는 직전 목록을 유지한다 — 표가 통째로 사라지면 스크롤이 튄다 */
+  /** 재조회 중에는 직전 목록을 유지한다. 표가 사라지면 스크롤이 튄다 */
   const positions = current?.list ?? result?.list ?? null;
   const hasFailed = current?.hasFailed ?? false;
 
@@ -62,11 +61,8 @@ export default function JobPositionList() {
   }
 
   /**
-   * 이웃 직급과 자리를 바꾼다.
-   *
-   * 값만 맞바꾸면 동률(`sortOrder` 는 UNIQUE 가 아니다)일 때 한 칸이 아니라
-   * 목록 끝까지 밀려난다. 그래서 옮긴 뒤의 화면 순서대로 1부터 다시 매기고,
-   * 값이 달라진 직급만 보낸다 — 동률이 몇 개든 결과가 확정된다.
+   * 이웃 직급과 자리를 바꾼다. 값만 맞바꾸면 동률일 때 목록 끝까지 밀려난다.
+   * 옮긴 뒤의 화면 순서대로 1부터 다시 매기고 값이 달라진 직급만 보낸다.
    */
   async function move(index: number, direction: -1 | 1) {
     if (!positions) return;
@@ -89,7 +85,7 @@ export default function JobPositionList() {
         await updateJobPosition(position.jobPositionId, { sortOrder });
       }
     } catch {
-      // 중간에 끊기면 순서가 어긋난 채로 남는다 — 재조회 결과가 진실이다
+      // 중간에 끊기면 순서가 어긋난 채로 남는다. 재조회 결과가 진실이다
       setMoveError('순서를 바꾸지 못했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setIsMoving(false);
@@ -150,7 +146,7 @@ export default function JobPositionList() {
             skeletonWidth: 'w-12',
             cell: (position) =>
               position.employeeCount > 0 ? (
-                // 누가 그 직급인지 여기서 바로 확인한다 (.ai/API.md 90)
+                // 누가 그 직급인지 여기서 바로 확인한다
                 <button
                   type="button"
                   onClick={() => employeesModal.open(position)}

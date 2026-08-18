@@ -29,11 +29,8 @@ const PAGE_SIZE = 10;
 const STATUS_OPTIONS: NoticeStatus[] = ['COLLECTED', 'DISMISSED'];
 
 /**
- * 정렬 옵션.
- *
- * ⚠️ Spring 규약(`필드,방향`)이 아니라 **자체 enum** 이다 —
- *    `bidDeadlineAt,asc` 를 보내면 400(`BIDDING_INVALID_NOTICE_QUERY`) 이 난다.
- *    서버 기본값은 `ANNOUNCED_DESC` 라 첫 옵션에 `(기본)` 을 붙이지 않고 그대로 둔다.
+ * 정렬 옵션. Spring 규약이 아니라 자체 enum 이라 필드,방향 으로 보내면 400 이다.
+ * 서버 기본값이 ANNOUNCED_DESC 다.
  */
 const SORT_OPTIONS: { value: NoticeSort; label: string }[] = [
   { value: 'ANNOUNCED_DESC', label: '최신 공고순' },
@@ -42,27 +39,25 @@ const SORT_OPTIONS: { value: NoticeSort; label: string }[] = [
   { value: 'DEADLINE_DESC', label: '마감 늦은순' },
 ];
 
-/** URL 은 사용자가 손댈 수 있다 — 허용된 값이 아니면 필터가 없는 것으로 본다 */
+/** URL 은 사용자가 손댈 수 있다. 허용된 값이 아니면 필터가 없는 것으로 본다 */
 function pickOption<T extends string>(value: string | null, options: T[]) {
   return options.find((option) => option === value);
 }
 
-/** 음수 · 소수 · 문자열이 그대로 서버로 가면 400 이 되어 목록이 실패 화면이 된다 */
+/** 음수 · 문자열이 그대로 서버로 가면 400 이 되어 목록이 실패 화면이 된다 */
 function pickInt(value: string | null, min: number) {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed >= min ? parsed : undefined;
 }
 
-/** `yyyy-MM-dd` 형태만 서버로 보낸다 (date 인풋 값이지만 URL 로도 들어온다) */
+/** yyyy-MM-dd 형태만 서버로 보낸다 (URL 로도 들어온다) */
 function pickDate(value: string | null) {
   return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : undefined;
 }
 
 /**
- * 입찰 공고 목록 화면. (.ai/API.md 103)
- *
- * ⚠️ **상태와 전환 여부는 다른 축이다** — `noticeStatus` 는 검토 상태(공고중 · 제외)이고,
- *    프로젝트 전환 여부는 `projectId` 로만 안다. 한 배지로 합치지 않고 열을 나눠 그린다.
+ * 입찰 공고 목록 화면.
+ * 검토 상태(noticeStatus)와 전환 여부(projectId)는 다른 축이라 열을 나눠 그린다.
  */
 export default function NoticeList() {
   const router = useRouter();
@@ -81,8 +76,7 @@ export default function NoticeList() {
       noticeStatus: pickOption(searchParams.get('status'), STATUS_OPTIONS),
       favorite: searchParams.get('favorite') === 'true' || undefined,
       /**
-       * ⚠️ 기본값을 두지 않는다 — 화면에 들어오기만 해도 `sort` 가 붙어
-       * 값이 규약과 다르면 **첫 조회부터 400** 이 된다 (`BIDDING_INVALID_NOTICE_QUERY`).
+       * 기본값을 두지 않는다. 값이 규약과 다르면 첫 조회부터 400 이 난다.
        * 고르지 않으면 서버 기본 정렬에 맡긴다.
        */
       sort: pickOption(
@@ -96,7 +90,7 @@ export default function NoticeList() {
     [searchParams],
   );
 
-  /** 입력 중인 검색어 — 제출해야 URL 에 반영된다 */
+  /** 입력 중인 검색어. 제출해야 URL 에 반영된다 */
   const [keywordInput, setKeywordInput] = useState(query.keyword ?? '');
   const [syncedKeyword, setSyncedKeyword] = useState(query.keyword ?? '');
 
@@ -107,9 +101,9 @@ export default function NoticeList() {
   }
 
   const [reloadCount, setReloadCount] = useState(0);
-  /** 관심 토글이 오가는 중인 공고 — 두 번 눌러 요청이 겹치지 않게 잠근다 */
+  /** 관심 토글이 오가는 중인 공고. 두 번 눌러 요청이 겹치지 않게 잠근다 */
   const [pendingFavorite, setPendingFavorite] = useState<number | null>(null);
-  /** 어떤 요청의 결과인지 `key` 로 들고 있는다 — 조건이 바뀌면 자동으로 로딩 상태가 된다 */
+  /** 어떤 요청의 결과인지 key 로 들고 있는다. 조건이 바뀌면 자동으로 로딩 상태가 된다 */
   const [result, setResult] = useState<{
     key: string;
     data?: NoticePage<BidNoticeListItem>;
@@ -118,7 +112,7 @@ export default function NoticeList() {
 
   const requestKey = `${reloadCount} ${searchParams.toString()}`;
   const current = result?.key === requestKey ? result : null;
-  /** 재조회 중에는 직전 결과를 유지한다 — 목록이 통째로 사라지면 스크롤이 튄다 */
+  /** 재조회 중에는 직전 결과를 유지한다. 목록이 사라지면 스크롤이 튄다 */
   const page = current?.data ?? result?.data ?? null;
   const hasFailed = current?.hasFailed ?? false;
   const isLoading = current === null && !hasFailed;
@@ -137,7 +131,7 @@ export default function NoticeList() {
     return () => controller.abort();
   }, [requestKey, query]);
 
-  /** 필터를 바꾸면 첫 페이지로 돌아간다 — 3페이지에서 조건을 바꾸면 빈 화면이 된다 */
+  /** 필터를 바꾸면 첫 페이지로 돌아간다. 3페이지에서 조건을 바꾸면 빈 화면이 된다 */
   function applyFilter(patch: Record<string, string | undefined>) {
     const next = new URLSearchParams(searchParams.toString());
 
@@ -154,14 +148,11 @@ export default function NoticeList() {
   const hasFilter = [...searchParams.keys()].some((key) => key !== 'page');
 
   /**
-   * 관심 토글.
-   *
-   * 응답이 바뀐 뒤의 상태를 그대로 주므로 **그 줄만** 갈아끼운다 — 목록을 다시 읽으면
-   * 스크롤이 튀고, 관심 필터가 켜져 있을 때는 방금 누른 줄이 사라져 무엇을 눌렀는지 놓친다.
-   * (관심 필터를 켜 둔 채 해제하면 다음 조회에서 빠진다 — 그때는 사라지는 것이 맞다.)
+   * 관심 토글. 응답이 바뀐 뒤의 상태를 그대로 줘 그 줄만 갈아끼운다.
+   * 목록을 다시 읽으면 스크롤이 튀고 방금 누른 줄이 사라진다.
    */
   async function toggleFavorite(row: BidNoticeListItem) {
-    // 오가는 중에 또 누르면 무시한다 — 버튼을 잠그면 금지 커서가 떠 못 누르는 것처럼 보인다
+    // 오가는 중에 또 누르면 무시한다. 버튼을 잠그면 못 누르는 것처럼 보인다
     if (pendingFavorite === row.noticeId) return;
 
     setPendingFavorite(row.noticeId);
@@ -195,7 +186,7 @@ export default function NoticeList() {
 
   return (
     <>
-      {/* 액션 버튼은 필터 바의 검색 오른쪽에 둔다 (`NoticeFilterBar`) */}
+      {/* 액션 버튼은 필터 바의 검색 오른쪽에 둔다 */}
       <PageTitle
         variant="top"
         title="공고 조회"
@@ -216,14 +207,12 @@ export default function NoticeList() {
         rows={hasFailed ? [] : isLoading && !rows ? null : (rows ?? [])}
         rowKey={(row) => row.noticeId}
         /**
-         * 행 어디를 눌러도 상세로 간다 — 공고명 링크만 열어 두면 발주처 · 금액 칸을
-         * 눌렀을 때 아무 일도 일어나지 않아, 표가 눌리는 것인지 아닌지 매번 가늠하게 된다.
-         * 공고명 `<Link>` 는 그대로 둔다 — 새 탭 열기 · 주소 복사가 되는 곳이 하나는 있어야 한다.
+         * 행 어디를 눌러도 상세로 간다. 공고명 링크만 열어 두면 다른 칸이 죽은 것처럼 보인다.
+         * 공고명 Link 는 새 탭 열기 · 주소 복사를 위해 그대로 둔다.
          */
         onRowClick={(row) => router.push(BIDDING_ROUTES.detail(row.noticeId))}
         /**
-         * ⚠️ **가로 스크롤을 두지 않는다** (2026-08-12) — `minWidth` 를 뺐다.
-         *    대신 여백을 줄이고(`dense`) 날짜 · 시각을 두 줄로 쌓아 자리를 만든다.
+         * 가로 스크롤을 두지 않는다. 대신 여백을 줄이고 날짜 · 시각을 쌓아 자리를 만든다.
          */
         dense
         skeletonRows={PAGE_SIZE}
@@ -249,14 +238,14 @@ export default function NoticeList() {
         }
       />
 
-      {/* 받아오는 동안에도 같은 높이를 잡아 둔다 — 결과가 올 때 아래가 밀리지 않게 */}
+      {/* 받아오는 동안에도 같은 높이를 잡아 둔다. 결과가 올 때 아래가 밀리지 않게 */}
       {!hasFailed && !page && (
         <div className="mt-3 overflow-hidden rounded-base border border-border-default bg-bg-card">
           <PaginationPlaceholder />
         </div>
       )}
 
-      {/* 표 바깥에 둔다 — 실패 · 빈 상태에서는 넘길 페이지가 없다 */}
+      {/* 표 바깥에 둔다. 실패 · 빈 상태에서는 넘길 페이지가 없다 */}
       {!hasFailed && page && page.totalElements > 0 && (
         <div className="mt-3 overflow-hidden rounded-base border border-border-default bg-bg-card">
           <Pagination
@@ -271,10 +260,8 @@ export default function NoticeList() {
 }
 
 /**
- * 열 정의. 폭 합계는 100% 여야 한다 (`DataTable` 이 개발 모드에서 검사한다).
- *
- * ⚠️ 사업 카테고리 열은 두지 않는다 — 우리 카테고리는 **회사 내부 분류**고
- *    나라장터는 **업종코드(수천 개)** 라 체계가 다르다. 프로젝트를 만들 때 사람이 지정한다.
+ * 열 정의. 폭 합계는 100% 여야 한다.
+ * 사업 카테고리 열은 두지 않는다. 우리 분류와 나라장터 업종코드는 체계가 다르다.
  */
 function noticeColumns(
   onToggleFavorite: (row: BidNoticeListItem) => void,
@@ -283,8 +270,8 @@ function noticeColumns(
   return [
     {
       /**
-       * 관심 열을 **맨 앞**에 둔다 — 훑어 내려가며 별만 따라 읽을 수 있어야 한다.
-       * 회사 공용이라 누가 눌렀는지는 표시하지 않는다 (서버가 주지 않는다).
+       * 관심 열을 맨 앞에 둔다. 훑어 내려가며 별만 따라 읽을 수 있어야 한다.
+       * 회사 공용이라 누가 눌렀는지는 표시하지 않는다.
        */
       key: 'isFavorite',
       header: '관심',
@@ -303,21 +290,14 @@ function noticeColumns(
     },
     {
       key: 'noticeName',
-      // ⚠️ 링크가 행 클릭까지 타면 `router.push` 가 두 번 돈다 (Ctrl+클릭도 새 탭 대신 이동)
+      // 링크가 행 클릭까지 타면 router.push 가 두 번 돈다
       stopRowClick: true,
       header: '공고명',
       width: '27%',
       skeletonWidth: 'w-64',
       /**
-       * 공고명만 **두 줄까지** 편다 — `[TEST] …`, `(협상에 의한 계약)` 처럼
-       * 뒤에 붙는 말이 공고를 가르는 정보라 잘라내면 구분이 안 된다.
-       * `break-keep` 이라 단어 중간이 아니라 **단어 단위로** 끊긴다.
-       */
-      /**
-       * ⚠️ `break-keep` — **단어 중간에서 끊지 않는다.** `실시설계기술용역` 같은 말이
-       *    `실시설계기` / `술용역` 으로 갈리면 훑어 읽을 수가 없다.
-       * ⚠️ `text-balance` — 두 줄의 **길이를 비슷하게** 나눈다. 그냥 두면 첫 줄이 꽉 차고
-       *    둘째 줄에 `분석 용역` 두 마디만 남아, 붙어 읽혀야 할 말이 갈린다.
+       * 공고명은 두 줄까지 편다. 뒤에 붙는 말이 공고를 가르는 정보라 잘라내면 구분이 안 된다.
+       * break-keep 으로 단어 단위로 끊고 text-balance 로 두 줄 길이를 비슷하게 나눈다.
        */
       cell: (row) => (
         <Link
@@ -335,9 +315,8 @@ function noticeColumns(
       width: '15%',
       skeletonWidth: 'w-28',
       /**
-       * 발주처는 **공고명과 함께 유일하게 두 줄을 허용**한다 —
-       * `경상남도교육청 경상남도밀양교육지원청` 처럼 긴 기관명이 흔하다.
-       * 잘라 감추지 않고 두 줄까지 편다 — 넘치면 `line-clamp-2` 가 받는다.
+       * 발주처는 공고명과 함께 두 줄을 허용한다. 긴 기관명이 흔하다.
+       * 넘치면 line-clamp-2 가 받는다.
        */
       cell: (row) => (
         <span
@@ -389,11 +368,8 @@ function noticeColumns(
       width: '18%',
       skeletonWidth: 'w-24',
       /**
-       * 날짜 · 시각 · 남은 기간을 **한 줄**에 둔다 — 마감을 볼 때 셋은 한 덩어리로 읽힌다.
-       *
-       * ⚠️ 줄바꿈을 허용하지 않는다. 예전에는 날짜 칸에 고정 폭(`w-32`)을 주고 넘치면
-       *    다음 줄로 흐르게 두었는데, 표가 좁아지자 **배지만 아래로 떨어져** 줄마다 높이가
-       *    달라지고 고장난 것처럼 보였다. 배지 세로 맞춤보다 한 줄 유지가 먼저다.
+       * 날짜 · 시각 · 남은 기간을 한 줄에 둔다. 마감을 볼 때 셋은 한 덩어리로 읽힌다.
+       * 줄바꿈을 허용하면 배지만 아래로 떨어져 줄마다 높이가 달라진다.
        */
       cell: (row) => (
         <span className="inline-flex items-center gap-2 whitespace-nowrap">
@@ -420,9 +396,8 @@ function noticeColumns(
 }
 
 /**
- * 관심 별. 켜짐 · 꺼짐이 **색만으로** 갈리지 않게 채운 별 · 빈 별로 모양까지 바꾼다.
- *
- * `aria-pressed` 로 눌린 상태를 알린다 — 보조기술에는 별 모양이 보이지 않는다.
+ * 관심 별. 색만으로 갈리지 않게 채운 별 · 빈 별로 모양까지 바꾼다.
+ * 보조기술에는 별 모양이 안 보여 aria-pressed 로 눌린 상태를 알린다.
  */
 function FavoriteButton({
   row,
@@ -439,9 +414,8 @@ function FavoriteButton({
       aria-pressed={row.isFavorite}
       aria-label={`${row.noticeName} 관심 ${row.isFavorite ? '해제' : '등록'}`}
       /**
-       * ⚠️ **잠그지 않는다** (`disabled` · `aria-disabled` 둘 다) — 잠그면 전역 규칙이
-       *    금지 커서를 씌우는데, 오가는 동안 잠깐 뜨는 그 표시가 못 누르는 버튼처럼 읽힌다.
-       *    요청이 겹치는 것은 `onToggle` 쪽에서 흘려보낸다.
+       * 잠그지 않는다. 잠그면 오가는 동안 금지 커서가 떠 못 누르는 버튼처럼 읽힌다.
+       * 요청이 겹치는 것은 onToggle 쪽에서 흘려보낸다.
        */
       onClick={() => onToggle(row)}
       className={`inline-flex size-7 cursor-pointer items-center justify-center rounded-button-sm hover:bg-bg-hover ${
@@ -472,8 +446,8 @@ function StarIcon({ filled }: { filled: boolean }) {
 }
 
 /**
- * 필터 바. 값의 원본은 URL 이라 상태를 따로 들지 않는다
- * (검색어만 예외 — 타이핑마다 조회하면 요청이 쏟아진다).
+ * 필터 바. 값의 원본은 URL 이라 상태를 따로 들지 않는다.
+ * 검색어만 예외다. 타이핑마다 조회하면 요청이 쏟아진다.
  */
 function NoticeFilterBar({
   searchParams,
@@ -510,11 +484,8 @@ function NoticeFilterBar({
       />
 
       {/**
-       * 상태 셀렉트는 **제외 기능이 붙은 뒤** 다시 두었다 (2026-08-18) —
-       * 제외한 공고는 기본 목록에 섞여 있어, 되돌리려면 골라 볼 길이 있어야 한다.
-       *
-       * ⚠️ 정렬 셀렉트는 여전히 두지 않는다 — 서버 기본값(`ANNOUNCED_DESC`)으로 충분하고,
-       *    나머지 정렬값은 아직 추정이다 (`SORT_OPTIONS` 는 URL 로 들어올 때만 쓰인다).
+       * 상태 셀렉트는 제외 기능이 붙은 뒤 다시 두었다. 제외한 공고를 골라 봐야 되돌릴 수 있다.
+       * 정렬 셀렉트는 두지 않는다. 서버 기본값으로 충분하고 나머지 값은 아직 추정이다.
        */}
       <label className="sr-only" htmlFor="noticeStatusFilter">
         공고 상태
@@ -540,11 +511,10 @@ function NoticeFilterBar({
         onCommit={(value) => onApply({ noticeAgency: value })}
       />
       {/**
-       * ⚠️ 지역 검색은 화면에서 뺐다 (2026-08-11) — 공고의 지역 제한이 원문 텍스트라
-       *    입력값과 맞아떨어지는 경우가 드물다. `region` 파라미터 자체는 명세에 남아 있어
-       *    `NoticeListQuery` 에는 그대로 두고, URL 로 들어오면 계속 동작한다.
+       * 지역 검색은 화면에서 뺐다. 공고의 지역 제한이 원문 텍스트라 잘 맞지 않는다.
+       * region 파라미터는 남아 있어 URL 로 들어오면 계속 동작한다.
        */}
-      {/* 토글은 값이 하나뿐이라 켜면 `true`, 끄면 파라미터 자체를 뺀다 */}
+      {/* 토글은 값이 하나뿐이라 켜면 true, 끄면 파라미터 자체를 뺀다 */}
       <button
         type="button"
         aria-pressed={isDeadlineSoon}
@@ -560,7 +530,7 @@ function NoticeFilterBar({
         마감 임박
       </button>
 
-      {/* 관심은 회사 공용이라 `내 관심` 이 아니라 `관심` 이다 */}
+      {/* 관심은 회사 공용이라 내 관심 이 아니라 관심 이다 */}
       <button
         type="button"
         aria-pressed={isFavoriteOnly}
@@ -598,14 +568,13 @@ function NoticeFilterBar({
       </div>
 
       {/**
-       * 조회 조건이 아니라 **다음 행동**이라 검색 오른쪽에 붙인다.
-       * `type="button"` 이 아니라 링크라 Enter 로 폼이 제출되는 것과 섞이지 않는다.
+       * 조회 조건이 아니라 다음 행동이라 검색 오른쪽 끝에 붙인다.
+       * 버튼이 아니라 링크라 Enter 로 폼이 제출되는 것과 섞이지 않는다.
        */}
-      {/* `ml-auto` 로 남은 공간을 밀어 오른쪽 끝에 붙인다 */}
       <div className="ml-auto flex shrink-0 gap-2">
         {/**
-         * 둘 다 파란 채움이면 무엇이 주 동작인지 사라진다 —
-         * `수집 조건` 은 외곽선으로 강조하고 채움은 `공고 등록` 하나만 쓴다.
+         * 둘 다 파란 채움이면 무엇이 주 동작인지 사라진다.
+         * 수집 조건 은 외곽선으로 두고 채움은 공고 등록 하나만 쓴다.
          */}
         <Link
           href={BIDDING_ROUTES.conditions}
@@ -698,7 +667,7 @@ function DateInput({
   );
 }
 
-/** 결재 목록 · 사원 목록과 같은 아이콘 — 검색바 모양을 화면마다 다르게 두지 않는다 */
+/** 결재 · 사원 목록과 같은 아이콘. 검색바 모양을 화면마다 다르게 두지 않는다 */
 function SearchIcon() {
   return (
     <svg

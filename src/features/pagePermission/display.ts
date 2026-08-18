@@ -11,13 +11,13 @@ export const PERMISSION_LABEL: Record<PagePermission, string> = {
 /** `globals.css` 의 `.badge-*` 를 그대로 쓴다 */
 export const PERMISSION_BADGE: Record<PagePermission, string> = {
   NONE: 'badge-gray',
-  // 열람만 되는 쪽을 눈에 띄게 — 편집이 기본이고 뷰어가 제한이라는 것이 한눈에 갈린다
+  // 열람만 되는 쪽을 눈에 띄게 둔다. 편집이 기본이고 뷰어가 제한이다
   VIEWER: 'badge-red',
   EDITOR: 'badge-blue',
 };
 
 export const SOURCE_LABEL: Record<PageAccessSource, string> = {
-  /** 화면이 만든 줄 — 아직 아무 권한도 없는 사원 */
+  /** 화면이 만든 줄. 아직 아무 권한도 없는 사원 */
   NONE: '권한 없음',
   GRANTED: '직접 부여',
   GLOBAL_ROLE: '자동 부여',
@@ -26,8 +26,8 @@ export const SOURCE_LABEL: Record<PageAccessSource, string> = {
 };
 
 /**
- * 왜 회수할 수 없는지 — 버튼을 그냥 없애면 "왜 안 되지" 로 남는다.
- * `GRANTED` 만 회수 대상이라 나머지는 이유를 문장으로 준다.
+ * 왜 회수할 수 없는지. 버튼을 그냥 없애면 왜 안 되지 로 남는다.
+ * GRANTED 만 회수 대상이라 나머지는 이유를 문장으로 준다.
  */
 export const NOT_REVOCABLE_REASON: Record<PageAccessSource, string> = {
   NONE: '아직 권한이 없습니다.',
