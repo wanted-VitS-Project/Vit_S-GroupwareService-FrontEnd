@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 
+import ModalLoadingFallback, {
+  useSlowLoading,
+} from '@/components/ModalLoadingFallback';
 import PanelModal, { ModalFooter } from '@/components/PanelModal';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { ApiError, messageOf } from '@/lib/api';
@@ -42,6 +45,9 @@ export default function StepPermissionModal({
   const [savingUserId, setSavingUserId] = useState<string | null>(null);
   /** 목록을 다시 읽는 신호 */
   const [reloadCount, setReloadCount] = useState(0);
+  /** 아직 목록을 기다리는 중인지 — 이 동안에는 창을 열지 않는다 */
+  const isPending = !entries && !hasFailed;
+  const isSlow = useSlowLoading(isPending);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -127,6 +133,18 @@ export default function StepPermissionModal({
     }
   }
 
+  // 값이 다 온 뒤에 한 번에 펼친다 — 정말 느릴 때만 같은 크기의 스피너 창을 대신 띄운다.
+  if (isPending) {
+    if (!isSlow) return null;
+
+    return (
+      <ModalLoadingFallback
+        title="스텝 권한 관리"
+        className="w-full max-w-[420px] rounded-base p-6 shadow-2xl"
+      />
+    );
+  }
+
   return (
     <PanelModal title="스텝 권한 관리" onClose={onClose}>
       <div className="max-h-[55vh] overflow-y-auto p-5">
@@ -134,10 +152,13 @@ export default function StepPermissionModal({
           {stepName}
         </p>
 
+        {/* 문장 단위로 줄을 나눈다 — 뜻풀이와 해야 할 일이 한 덩어리로 붙으면 안 읽힌다 */}
         <p className="mt-3 text-caption leading-relaxed break-keep text-text-secondary">
-          <strong>상속</strong>은 프로젝트 참여자 권한을 그대로 따른다는
-          뜻입니다. 이 스텝만 가리려면 <strong>차단</strong>을 골라주세요 —
-          아무것도 지정하지 않은 상태는 차단이 아닙니다.
+          <strong>상속</strong>은 프로젝트에서 가진 권한을 이 스텝에서도 그대로
+          쓰는 상태입니다.
+          <br />
+          따로 지정하지 않으면 상속이 되므로, 이 스텝만 못 보게 하려면{' '}
+          <strong>차단</strong>을 직접 골라야 합니다.
         </p>
 
         {hasFailed ? (
@@ -145,9 +166,7 @@ export default function StepPermissionModal({
             권한 목록을 불러오지 못했습니다. 프로젝트 편집 권한이 있어야 조회할
             수 있습니다.
           </p>
-        ) : !entries ? (
-          <p className="mt-3 text-detail text-text-secondary">불러오는 중…</p>
-        ) : entries.length === 0 ? (
+        ) : !entries?.length ? (
           <p className="mt-3 rounded-lg bg-bg-surface px-3 py-2.5 text-detail break-keep text-text-secondary">
             참여자가 없습니다.
           </p>

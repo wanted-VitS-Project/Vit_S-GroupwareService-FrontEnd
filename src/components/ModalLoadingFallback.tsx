@@ -46,6 +46,30 @@ export function SidePanelFallbackHeader({
  */
 const FALLBACK_DELAY_MS = 300;
 
+/*
+ * 값이 다 온 뒤에 창을 펼치는 모달이 스피너를 띄우기까지 기다리는 시간(ms).
+ *
+ * 청크 지연용 FALLBACK_DELAY_MS 로는 API 응답이 거의 매번 걸려,
+ * 스피너 창 → 실물 창 두 번 열리는 덜컥임이 그대로 남는다.
+ * 죽은 클릭처럼 보이지 않게 하는 안전망일 뿐이라 넉넉히 잡는다.
+ */
+const SLOW_LOADING_MS = 1_200;
+
+// 값이 이만큼 늦게 오는지. 참이 될 때만 실물 대신 스피너 창을 띄운다 —
+// 그 전에는 아무것도 그리지 않아야 창이 한 번만 열린다.
+export function useSlowLoading(isPending: boolean) {
+  const [isSlow, setIsSlow] = useState(false);
+
+  useEffect(() => {
+    if (!isPending) return;
+
+    const timer = setTimeout(() => setIsSlow(true), SLOW_LOADING_MS);
+    return () => clearTimeout(timer);
+  }, [isPending]);
+
+  return isSlow;
+}
+
 /** 동적 모달 청크가 늦게 올 때만 기존 모달과 같은 top-layer와 크기를 유지한다. */
 export default function ModalLoadingFallback({
   title,
