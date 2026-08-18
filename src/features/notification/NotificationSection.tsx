@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import Pagination from '@/components/Pagination';
+import LoadingSpinner from '@/components/Spinner';
 import { groupByDate } from '@/features/activityLog/time';
 import { messageOf } from '@/lib/api';
 
@@ -13,7 +14,7 @@ import {
   getNotificationTarget,
   readNotification,
 } from './api';
-import { routeOf } from './display';
+import { isSystemNotification, routeOf, SYSTEM_CATEGORY } from './display';
 import { notifyNotificationChanged } from './events';
 import NotificationMenu from './NotificationMenu';
 import NotificationRow from './NotificationRow';
@@ -23,19 +24,18 @@ import {
   type NotificationPage,
 } from './types';
 
-/**
- * 한 구역에 보여줄 개수.
- *
- * 두 구역이 위아래로 쌓이므로 **10개씩이면 화면을 넘긴다.** 스크롤로 메우는 대신
- * 수를 줄이고 페이지로 넘긴다 — 상자 스크롤과 페이지 스크롤이 겹치는 것보다 낫다.
- */
+/** 한 구역에 보여줄 개수. 두 구역이 스크롤 없이 화면에 들어오도록 줄였다 */
 const PAGE_SIZE = 5;
 
 /**
- * 알림 목록 한 구역 — `미확인` 또는 `확인`.
- *
- * 두 구역이 **한 화면에 함께** 있으므로 페이지는 각자 따로 넘긴다.
- * 읽음 · 삭제는 반대편 구역과 헤더 배지까지 바꾸므로, 처리 후 창 이벤트로 알린다.
+ * 시스템 칩일 때 한 번에 받아오는 개수(서버 상한).
+ * 서버 category 로 거를 수 없어 통째로 받아 화면에서 고르고 나눈다.
+ */
+const SYSTEM_FETCH_SIZE = 100;
+
+/**
+ * 알림 목록 한 구역(미확인 또는 확인). 페이지는 구역마다 따로 넘긴다.
+ * 읽음 · 삭제는 반대편 구역과 헤더 배지에도 영향을 줘 창 이벤트로 알린다.
  */
 export default function NotificationSection({
   title,
@@ -45,12 +45,11 @@ export default function NotificationSection({
   refreshKey,
 }: {
   title: string;
-  /** 이 구역이 받을 목록 — 두 구역은 이 값 하나만 다르다 */
+  /** 이 구역이 받을 목록. 두 구역은 이 값 하나만 다르다 */
   isRead: boolean;
-  /** 유형 필터. `전체` 면 `undefined` 라 파라미터 자체가 빠진다 */
+  /** 유형 필터. 전체면 undefined 라 파라미터가 빠진다 */
   category?: string;
   emptyText: string;
-  /** 어디선가 알림이 바뀌면 올라온다 — 이 구역도 다시 받는다 */
   refreshKey: number;
 }) {
   const router = useRouter();
@@ -61,11 +60,20 @@ export default function NotificationSection({
   const [error, setError] = useState('');
   const [isBusy, setIsBusy] = useState(false);
 
+  /** 시스템은 서버 필터가 없어 전체를 받아 화면에서 나눈다 */
+  const isSystem = category === SYSTEM_CATEGORY;
+  const query = isSystem
+    ? { category: undefined, page: 0, size: SYSTEM_FETCH_SIZE }
+    : { category, page, size: PAGE_SIZE };
+
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
 
-    getNotifications({ isRead, category, page, size: PAGE_SIZE }, signal)
+    getNotifications(
+      { isRead, category: query.category, page: query.page, size: query.size },
+      signal,
+    )
       .then((received) => {
         setData(received);
         setHasFailed(false);
@@ -76,12 +84,12 @@ export default function NotificationSection({
       });
 
     return () => controller.abort();
-  }, [isRead, category, page, refreshKey]);
+    // 시스템은 페이지를 화면에서 나누므로 page 가 바뀌어도 다시 받지 않는다
+  }, [isRead, query.category, query.page, query.size, refreshKey]);
 
-  /**
-   * 알림을 연다. 이동 대상 조회가 **읽음 처리를 겸한다** —
-   * 갈 곳이 없거나 아직 화면이 없는 종류면 읽음만 되고 목록에 남는다.
-   */
+  const view = toView(data, isSystem, page);
+
+  /** 알림을 연다. 이동 대상 조회가 읽음 처리를 겸한다 */
   async function open(notification: NotificationItem) {
     if (isBusy) return;
 
@@ -92,10 +100,7 @@ export default function NotificationSection({
       const target = await getNotificationTarget(notification.notificationId);
       const route = routeOf(target);
 
-      /**
-       * 이동하든 말든 **읽음은 이미 됐다.** 알리지 않고 떠나면 헤더 배지가
-       * 다음 주기 조회(`NotificationBell` 의 `POLL_MS`)까지 낡은 숫자를 물고 있는다.
-       */
+      // 이동 여부와 무관하게 읽음은 처리됐으므로 헤더 배지에 바로 알린다
       notifyNotificationChanged();
       if (route) router.push(route);
     } catch (caught) {
@@ -130,11 +135,8 @@ export default function NotificationSection({
     try {
       await deleteNotification(notificationId);
 
-      /**
-       * 마지막 한 건을 지우면 지금 페이지가 비어버린다.
-       * 그때는 한 장 앞으로 물러선다 — 빈 화면이 뜨면 다 지운 줄 안다.
-       */
-      if (data?.content.length === 1 && page > 0) {
+      // 마지막 한 건을 지우면 페이지가 비므로 한 장 앞으로 물러선다
+      if (view.rows.length === 1 && page > 0) {
         setPage((current) => current - 1);
       }
       notifyNotificationChanged();
@@ -149,9 +151,9 @@ export default function NotificationSection({
     <section>
       <h2 className="text-label font-bold text-text-primary">
         {title}
-        {/* 건수는 목록 길이가 아니라 전체 건수다 — 목록은 페이지 크기에 잘린다 */}
+        {/* 목록 길이가 아니라 전체 건수를 보여준다 */}
         <span className="ml-1.5 text-caption font-normal text-text-secondary">
-          {data?.totalElements ?? 0}
+          {view.totalElements}
         </span>
       </h2>
 
@@ -164,11 +166,7 @@ export default function NotificationSection({
         </p>
       )}
 
-      {/**
-       * 높이를 고정하지 않는다 — 상자 안 스크롤과 페이지 스크롤이 겹치면
-       * 어느 쪽을 굴려야 할지 알 수 없다. 한 쪽에 담는 수를 줄여(`PAGE_SIZE`)
-       * **스크롤 없이** 두 구역이 화면에 들어오게 한다.
-       */}
+      {/* 스크롤이 겹치지 않도록 높이를 고정하지 않는다 */}
       <div className="mt-2 overflow-hidden rounded-base border border-border-default">
         {hasFailed && (
           <p className="flex-1 px-4 py-10 text-center text-caption text-text-secondary">
@@ -177,24 +175,19 @@ export default function NotificationSection({
         )}
 
         {!hasFailed && data === null && (
-          <p className="flex-1 px-4 py-10 text-center text-caption text-text-secondary">
-            불러오는 중…
-          </p>
+          <LoadingSpinner label="알림을 불러오는 중" className="px-4 py-10" />
         )}
 
-        {data?.content.length === 0 && (
+        {data !== null && view.rows.length === 0 && (
           <p className="flex-1 px-4 py-10 text-center text-caption text-text-secondary">
             {emptyText}
           </p>
         )}
 
-        {data && data.content.length > 0 && (
+        {view.rows.length > 0 && (
           <>
-            {/**
-             * 날짜별로 묶어 머리를 붙인다 — `오늘` · `어제` · 그 이전은 날짜.
-             * 응답이 이미 최신순이라 다시 정렬하지 않고 훑으며 자른다.
-             */}
-            {groupByDate(data.content).map((group) => (
+            {/* 날짜별로 묶어 머리를 붙인다. 응답이 최신순이라 다시 정렬하지 않는다 */}
+            {groupByDate(view.rows).map((group) => (
               <div key={group.dateKey}>
                 <p className="border-b border-border-default bg-bg-surface px-4 py-1.5 text-caption font-semibold text-text-secondary">
                   {group.dateLabel}
@@ -207,11 +200,11 @@ export default function NotificationSection({
                         notification={item}
                         disabled={isBusy}
                         onOpen={() => open(item)}
-                        // 날짜는 머리에 있다 — 줄에는 시각까지 적어 언제인지 정확히 알린다
+                        // 날짜는 머리에 있으므로 줄에는 시각까지 적는다
                         showFullTime
                         trailing={
                           <NotificationMenu
-                            // 이미 읽은 알림에는 `읽음` 을 그리지 않는다
+                            // 이미 읽은 알림에는 '읽음' 을 그리지 않는다
                             canRead={isUnread(item)}
                             disabled={isBusy}
                             onRead={() => read(item.notificationId)}
@@ -227,11 +220,7 @@ export default function NotificationSection({
 
             <Pagination
               page={page}
-              totalPages={data.totalPages}
-              totalElements={data.totalElements}
-              unit="건"
-              // 건수는 구역 제목 옆에 이미 있다 — 아래에 또 적으면 같은 수가 두 번 나온다
-              showTotal={false}
+              totalPages={view.totalPages}
               onChange={setPage}
             />
           </>
@@ -239,4 +228,34 @@ export default function NotificationSection({
       </div>
     </section>
   );
+}
+
+/**
+ * 화면에 그릴 목록 · 건수 · 쪽수.
+ * 시스템 칩은 서버가 걸러 주지 못해 받아 온 목록에서 고르고 쪽도 직접 나눈다.
+ */
+function toView(
+  received: NotificationPage | null,
+  isSystem: boolean,
+  page: number,
+) {
+  if (received === null) return { rows: [], totalElements: 0, totalPages: 0 };
+
+  if (!isSystem) {
+    return {
+      rows: received.content,
+      totalElements: received.totalElements,
+      totalPages: received.totalPages,
+    };
+  }
+
+  const picked = received.content.filter((item) =>
+    isSystemNotification(item.notificationType),
+  );
+
+  return {
+    rows: picked.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
+    totalElements: picked.length,
+    totalPages: Math.ceil(picked.length / PAGE_SIZE),
+  };
 }

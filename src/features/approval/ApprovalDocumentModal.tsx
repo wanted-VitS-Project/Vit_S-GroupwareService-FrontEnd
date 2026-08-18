@@ -15,12 +15,7 @@ import { ApiError, messageOf } from '@/lib/api';
 
 import type { ApprovalDocument } from './types';
 
-/**
- * pdfjs 는 초기 번들에서 분리한다 — 아래 effect 가 미리보기 fetch 와 나란히 받아 온다.
- *
- * 둘 중 **미리보기 응답이 먼저 끝날 수 있다.** `loading` 이 없으면 그 사이 본문이
- * 빈 영역으로 남으므로 자리를 지키는 표시를 넘긴다.
- */
+/** pdfjs 는 초기 번들에서 분리한다. 받는 동안 자리를 지킬 표시를 넘긴다 */
 const PdfPages = dynamic(() => import('@/features/file/PdfPages'), {
   ssr: false,
   loading: () => (
@@ -31,7 +26,7 @@ const PdfPages = dynamic(() => import('@/features/file/PdfPages'), {
   ),
 });
 
-/** 미리보기 상태 — 로딩 · 지원 안 함 · 실패를 화면에서 구분해야 한다 */
+/** 미리보기 상태. 로딩 · 미지원 · 실패를 화면에서 구분한다 */
 type Preview =
   | { kind: 'loading' }
   | { kind: 'ready'; blob: Blob; shown: number | null; total: number | null }
@@ -40,11 +35,8 @@ type Preview =
   | { kind: 'failed'; message: string };
 
 /**
- * 결재 문서 뷰어. 문서 블록의 `FileViewerModal` 과 같은 방식으로 그리되
- * **버전 전환 패널이 없다** — 결재 대상은 상신 시점에 확정된 **한 버전**이라
- * 다른 버전을 열 수 있으면 무엇을 결재하는지 흐려진다 (AP-013·014).
- *
- * 미리보기는 PDF 만 되고(서버가 앞 5페이지를 잘라 준다) 그 외는 다운로드로 안내한다.
+ * 결재 문서 뷰어. 결재 대상은 확정된 한 버전이라 버전 전환 패널이 없다.
+ * 미리보기는 PDF 만 되고 그 외는 다운로드로 안내한다.
  */
 export default function ApprovalDocumentModal({
   document,
@@ -56,30 +48,30 @@ export default function ApprovalDocumentModal({
   const [preview, setPreview] = useState<Preview>({ kind: 'loading' });
   const [version, setVersion] = useState<FileVersionDetail | null>(null);
   const [downloadError, setDownloadError] = useState('');
-  /** 목록과 같은 값을 먼저 쓴다 — 헤더만 다른 이름이면 다른 문서로 오해한다 */
+  /** 목록과 같은 값을 먼저 쓴다 */
   const fileName =
     document.fileName ??
     version?.originalFileName ??
     `파일 버전 #${document.fileVersionId}`;
 
-  // 결재가 고정한 버전의 정보. 휴지통에 있어도 오므로 미리보기와 따로 받는다
+  // 결재가 고정한 버전 정보. 휴지통에 있어도 와서 미리보기와 따로 받는다
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
 
     getFileVersion(document.fileVersionId, signal)
       .then(setVersion)
-      // 버전 정보는 보조 표기라 실패해도 미리보기까지 막지 않는다
+      // 버전 정보는 보조 표기라 실패해도 미리보기를 막지 않는다
       .catch(() => undefined);
 
     return () => controller.abort();
   }, [document.fileVersionId]);
 
   useEffect(() => {
-    // 요청을 중단하지 않고 결과만 무시한다 — 캐시를 살려 두기 위해서다
+    // 캐시를 살리려고 요청은 두고 결과만 무시한다
     let isStale = false;
 
-    // 미리보기 바이너리를 기다리는 동안 뷰어 청크·워커를 같이 받아 둔다
+    // 미리보기를 기다리는 동안 뷰어 청크 · 워커를 같이 받아 둔다
     preloadPdfViewer();
 
     loadPreview(document.fileVersionId)
@@ -101,11 +93,7 @@ export default function ApprovalDocumentModal({
           setPreview({ kind: 'unsupported' });
           return;
         }
-        /**
-         * ❗ 파일 API 는 **스텝 권한**을 본다. 결재자가 그 프로젝트 참여자가 아니면
-         * 자기가 결재할 문서를 못 연다 — MASTER 는 참여자가 아니어도 최종 결재자가
-         * 될 수 있어(AP-019) 정상 흐름에서도 걸린다. 백엔드 확인 대기 항목이다.
-         */
+        // 파일 API 는 스텝 권한을 보므로 참여자가 아닌 결재자는 여기서 막힌다
         if (code === FILE_CODES.accessPermissionRequired) {
           setPreview({ kind: 'denied' });
           return;
@@ -135,7 +123,7 @@ export default function ApprovalDocumentModal({
       title={`${fileName} 문서 보기`}
       onClose={onClose}
       className="m-auto flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
-      // 기본 제목 줄을 대신한다 — 넘기지 않으면 파일명이 두 번 나온다
+      // 기본 제목 줄을 대신한다. 넘기지 않으면 파일명이 두 번 나온다
       header={
         <div className="flex shrink-0 items-center gap-3 border-b border-border-default px-5 py-3">
           <div className="min-w-0 flex-1">
@@ -159,7 +147,7 @@ export default function ApprovalDocumentModal({
             </p>
           </div>
 
-          {/* 문서 뷰어(`FileViewerModal`)와 같은 모양 — 아이콘 + `다운로드` */}
+          {/* 문서 뷰어와 같은 모양으로 맞춘다 */}
           <button
             type="button"
             onClick={download}
@@ -179,7 +167,7 @@ export default function ApprovalDocumentModal({
         </div>
       }
     >
-      {/* 고정된 버전을 그대로 보여주되, 최신이 아니라는 사실은 알려야 한다 (AP-013) */}
+      {/* 고정된 버전을 보여주되 최신이 아니라는 사실은 알린다 */}
       {version && !version.latest && (
         <p className="shrink-0 bg-yellow-bg-soft px-5 py-2 text-detail break-keep text-yellow-text">
           결재 이후 새 버전(v{version.latestVersionNo})이 올라왔습니다. 결재
@@ -193,12 +181,10 @@ export default function ApprovalDocumentModal({
         </p>
       )}
 
-      {/* 스크롤은 이 영역이 갖는다 — PdfPages 는 페이지를 쌓기만 한다 */}
+      {/* 스크롤은 이 영역이 갖는다 */}
       <div className="min-h-0 flex-1 overflow-y-auto bg-bg-surface p-5">
         {preview.kind === 'loading' && (
-          <p className="text-center text-label text-text-secondary">
-            미리보기를 불러오는 중…
-          </p>
+          <LoadingSpinner label="미리보기를 불러오는 중" className="py-20" />
         )}
 
         {preview.kind === 'ready' && (
@@ -254,7 +240,7 @@ export default function ApprovalDocumentModal({
   );
 }
 
-/** 문서 뷰어(`FileViewerModal`)와 같은 벡터 · 크기다 */
+/** 문서 뷰어와 같은 벡터 · 크기를 쓴다 */
 function DownloadIcon() {
   return (
     <svg

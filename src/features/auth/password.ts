@@ -1,6 +1,6 @@
 /**
- * 비밀번호 정책. 백엔드도 같은 기준으로 검사한다. (.ai/API.md)
- * 화면에 체크 목록으로 그대로 노출하므로 label 과 test 를 붙여 둔다.
+ * 비밀번호 정책. 백엔드도 같은 기준으로 검사한다 (.ai/API.md).
+ * 화면에 체크 목록으로 노출하므로 label 과 test 를 함께 둔다.
  */
 export const PASSWORD_RULES = [
   { label: '8자 이상', test: (value: string) => value.length >= 8 },

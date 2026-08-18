@@ -7,6 +7,7 @@ import { ApiError, messageOf } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 
 import {
+  abandonSummary,
   confirmSummary,
   getNoticeSummaries,
   getSummary,
@@ -18,19 +19,17 @@ import { AlertBanner } from './FormFields';
 import type { BidSummary, SummarySections } from './types';
 
 /**
- * 폴링 주기. 요약은 Gemini 왕복이라 수집(2초)보다 오래 걸린다.
- * 너무 잦으면 결과도 없이 요청만 쌓여 3초로 둔다.
+ * 폴링 주기. 요약은 Gemini 왕복이라 수집(2초)보다 오래 걸려 3초로 둔다.
  */
 const POLL_MS = 3000;
 
 /**
- * 폴링 상한. 넘기면 **손을 놓되 실패로 보지 않는다** —
- * 요약은 서버에 남아 있어 화면을 다시 열면 이력에서 이어 볼 수 있다
- * (수집 실행과 다른 점이다. 그쪽은 이력 API 가 없어 `runId` 를 잃으면 끝이다).
+ * 폴링 상한. 넘기면 손을 놓되 실패로 보지 않는다.
+ * 요약은 서버에 남아 있어 화면을 다시 열면 이력에서 이어 볼 수 있다.
  */
 const MAX_POLLS = 60;
 
-/** 처리 중인지 — 끝난 상태(`COMPLETED` · `FAILED`)와 가른다 */
+/** 처리 중인지. 끝난 상태(COMPLETED · FAILED)와 가른다 */
 function isRunning(status: string) {
   return status === 'PENDING' || status === 'PROCESSING';
 }
@@ -49,15 +48,8 @@ const PROMPT_PLACEHOLDER =
   '예) 공고의 금액, 일정, 참가 자격과 수행 위험을 실무 검토용으로 정리해줘';
 
 /**
- * 공고 AI 요약. (BID-V1 · `.ai/API.md` 입찰 AI 요약)
- *
- * **프롬프트를 사람이 직접 쓴다** — 무엇을 물었는지가 결과를 좌우해서 결과와 함께 남긴다.
- *
- * 흐름은 비동기다. 요청하면 `202` 로 `summaryId` 만 오고, `COMPLETED` · `FAILED` 가
- * 될 때까지 폴링한다. 완료되면 여섯 칸을 고칠 수 있고, 확정하면 잠긴다.
- *
- * ⚠️ **Python Worker 가 꺼져 있으면 `PENDING` 에서 멈춘다** — 장애가 아니라 미기동이다.
- *    상한을 넘기면 "아직 처리 중" 으로 안내하고 폴링만 접는다.
+ * 공고 AI 요약. 프롬프트를 사람이 직접 쓰고 결과와 함께 남긴다.
+ * 요청하면 202 로 summaryId 만 와 끝날 때까지 폴링하고, 확정하면 잠긴다.
  */
 export default function NoticeSummaryCard({
   noticeId,
@@ -65,15 +57,13 @@ export default function NoticeSummaryCard({
 }: {
   noticeId: number;
   /**
-   * 테두리 · 배경 · 여백을 빼고 **알맹이만** 그린다.
-   *
-   * 모달처럼 **이미 카드인 자리**에 넣을 때 쓴다 — 그대로 넣으면 테두리가 두 겹으로
-   * 겹치고 여백이 두 번 잡혀 안쪽이 좁아진다.
+   * 테두리 · 배경 · 여백을 빼고 알맹이만 그린다.
+   * 모달처럼 이미 카드인 자리에 넣을 때 쓴다.
    */
   isBare?: boolean;
 }) {
   const [summary, setSummary] = useState<BidSummary | null>(null);
-  /** 이력을 아직 못 받았으면 `null` — 요청 칸을 성급히 열지 않는다 */
+  /** 이력을 아직 못 받았으면 null. 요청 칸을 성급히 열지 않는다 */
   const [isLoaded, setIsLoaded] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [isBusy, setIsBusy] = useState(false);
@@ -82,18 +72,15 @@ export default function NoticeSummaryCard({
   const [notice, setNotice] = useState('');
   /**
    * 폴링을 접었는지.
-   *
-   * ⚠️ 이게 없으면 **막다른 길이 된다** — Worker 가 꺼져 있어 `PENDING` 이 영영 안 바뀌면
-   *    상태만 보고 입력칸을 감추던 화면이 다시 물어볼 방법을 주지 않는다.
-   *    포기한 뒤에는 상태와 무관하게 다시 요청할 수 있어야 한다.
+   * 이 값이 없으면 PENDING 이 영영 안 바뀔 때 다시 물어볼 길이 사라진다.
    */
   const [hasGivenUp, setHasGivenUp] = useState(false);
-  /** 편집 중인 여섯 칸. `null` 이면 보기 모드 */
+  /** 편집 중인 여섯 칸. null 이면 보기 모드 */
   const [draft, setDraft] = useState<SummarySections | null>(null);
 
   /**
-   * 폴링 뒷정리 — 타이머와 **이미 나간 요청**을 함께 끊는다.
-   * 타이머만 끊으면 응답이 돌아와 사라진 컴포넌트에 `setState` 한다.
+   * 폴링 뒷정리. 타이머와 이미 나간 요청을 함께 끊는다.
+   * 타이머만 끊으면 응답이 돌아와 사라진 컴포넌트에 setState 한다.
    */
   const timer = useRef<number | null>(null);
   const pollAbort = useRef<AbortController | null>(null);
@@ -126,7 +113,7 @@ export default function NoticeSummaryCard({
         if (isRunning(found.summaryStatus)) poll(found.summaryId, 0);
       })
       .catch(() => {
-        // 이력이 없거나 못 받아도 요청은 할 수 있다 — 화면을 막지 않는다
+        // 이력이 없거나 못 받아도 요청은 할 수 있다. 화면을 막지 않는다
       })
       .finally(() => {
         if (!signal.aborted) setIsLoaded(true);
@@ -137,11 +124,40 @@ export default function NoticeSummaryCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [noticeId]);
 
-  /** `COMPLETED` · `FAILED` 가 될 때까지 물어본다 */
+  /**
+   * 진행 중인 요약을 서버에서도 끝낸다. 예약된 폴링을 먼저 끊는다.
+   * isBusy 도 함께 풀어야 중단한 뒤에 다시 요청할 수 있다.
+   */
+  async function stopWaiting() {
+    if (timer.current !== null) {
+      window.clearTimeout(timer.current);
+      timer.current = null;
+    }
+
+    setHasGivenUp(true);
+    setIsBusy(false);
+
+    const runningId = summary?.summaryId;
+
+    if (runningId === undefined) {
+      setNotice('요약 대기를 멈췄습니다.');
+      return;
+    }
+
+    try {
+      await abandonSummary(runningId);
+      setNotice('요약을 중단했습니다. 필요하면 다시 요청할 수 있습니다.');
+    } catch (caught) {
+      setNotice('');
+      setError(messageOf(caught, '요약을 중단하지 못했습니다.'));
+    }
+  }
+
+  /** COMPLETED · FAILED 가 될 때까지 물어본다 */
   function poll(summaryId: number, attempt: number) {
     /**
-     * ⚠️ 새 체인을 걸기 전에 **앞 체인을 끊는다.** 타이머 슬롯이 하나뿐이라
-     *    덮어쓰면 이전 타이머의 참조를 잃고, 정리 함수가 마지막 것만 해제한다.
+     * 새 체인을 걸기 전에 앞 체인을 끊는다.
+     * 타이머 슬롯이 하나뿐이라 덮어쓰면 이전 타이머를 해제하지 못한다.
      */
     if (timer.current !== null) window.clearTimeout(timer.current);
 
@@ -166,7 +182,7 @@ export default function NoticeSummaryCard({
 
         poll(summaryId, attempt + 1);
       } catch (caught) {
-        // 언마운트로 인한 취소는 실패가 아니다 (알릴 화면도 이미 없다)
+        // 언마운트로 인한 취소는 실패가 아니다
         if (pollAbort.current?.signal.aborted) return;
 
         setIsBusy(false);
@@ -176,7 +192,7 @@ export default function NoticeSummaryCard({
     }, POLL_MS);
   }
 
-  /** `baseSummaryId` 를 주면 지금 요약을 딛고 다시 묻는다 (차수가 오른다) */
+  /** baseSummaryId 를 주면 지금 요약을 딛고 다시 묻는다 (차수가 오른다) */
   async function ask(baseSummaryId?: number) {
     if (isBusy || prompt.trim() === '') return;
 
@@ -191,7 +207,7 @@ export default function NoticeSummaryCard({
         baseSummaryId,
       });
 
-      // 아직 본문이 없다 — 상태만 있는 껍데기로 바꿔 두고 폴링이 채운다
+      // 아직 본문이 없다. 상태만 있는 껍데기로 두고 폴링이 채운다
       setSummary({
         ...EMPTY_SECTIONS,
         summaryId: accepted.summaryId,
@@ -212,8 +228,8 @@ export default function NoticeSummaryCard({
       setPrompt('');
 
       /**
-       * 기다리기 잠금은 **받아들여진 뒤에** 다시 건다.
-       * 요청 직전에 풀면 `409` 로 막혔을 때도 잠긴 채 남아 손이 다시 묶인다.
+       * 기다리기 잠금은 받아들여진 뒤에 다시 건다.
+       * 요청 직전에 풀면 409 로 막혔을 때도 잠긴 채 남는다.
        */
       setHasGivenUp(false);
       poll(accepted.summaryId, 0);
@@ -245,7 +261,7 @@ export default function NoticeSummaryCard({
     } catch (caught) {
       const code = caught instanceof ApiError ? caught.code : undefined;
 
-      // 그 사이 확정됐거나 상태가 바뀐 경우 — 무엇이 막았는지 알려준다
+      // 그 사이 확정됐거나 상태가 바뀐 경우. 무엇이 막았는지 알려준다
       setError(
         code === BIDDING_CODES.summaryNotEditable
           ? '확정됐거나 완료되지 않아 수정할 수 없습니다.'
@@ -285,7 +301,7 @@ export default function NoticeSummaryCard({
   }
 
   const status = summary?.summaryStatus;
-  /** 폴링을 접었으면 상태가 `PENDING` 이어도 기다리는 화면으로 두지 않는다 */
+  /** 폴링을 접었으면 PENDING 이어도 기다리는 화면으로 두지 않는다 */
   const isWaiting = status !== undefined && isRunning(status) && !hasGivenUp;
   const isDone = status === 'COMPLETED';
   const isFailed = status === 'FAILED';
@@ -293,19 +309,14 @@ export default function NoticeSummaryCard({
   const canEdit = isDone && summary !== null && !summary.confirmed;
 
   /**
-   * 딛고 갈 요약. **완료된 것만** 딛는다 (`isDone`).
-   *
-   * ⚠️ 실패한 요약을 `baseSummaryId` 로 보내면 서버가
-   *    `수정할 수 없는 입찰 공고 AI 요약입니다` 로 거절한다 — 실패했으니 이어붙일
-   *    내용 자체가 없다. 그때는 **새로 시작**해야 한다.
+   * 딛고 갈 요약. 완료된 것만 딛는다.
+   * 실패한 요약을 baseSummaryId 로 보내면 서버가 거절한다. 그때는 새로 시작한다.
    */
   const baseSummaryId = isDone && summary ? summary.summaryId : undefined;
 
   /**
-   * 이력을 받기 전에는 **자리만 잡아 둔다.**
-   *
-   * 빈 화면을 그렸다가 응답이 오는 순간 제목·요청칸·결과가 한꺼번에 튀어나오면
-   * 창이 딸깍거린다 — 틀은 이미 떠 있으니 안쪽 높이를 미리 잡아 두면 조용하다.
+   * 이력을 받기 전에는 자리만 잡아 둔다.
+   * 응답이 오는 순간 제목 · 요청칸 · 결과가 한꺼번에 튀어나오면 창이 딸깍거린다.
    */
   if (!isLoaded) {
     return (
@@ -328,7 +339,7 @@ export default function NoticeSummaryCard({
       }
     >
       <div className="flex flex-wrap items-center gap-2">
-        {/* 모달로 열면 창 제목이 이미 `AI 요약` 이라 여기 제목은 겹친다 */}
+        {/* 모달로 열면 창 제목이 이미 AI 요약 이라 여기 제목은 겹친다 */}
         {!isBare && (
           <h3 className="text-label font-bold text-text-primary">AI 요약</h3>
         )}
@@ -344,7 +355,7 @@ export default function NoticeSummaryCard({
         )}
       </div>
 
-      {/* 무엇을 물었는지 결과와 함께 남긴다 — 프롬프트가 결과를 좌우한다 */}
+      {/* 무엇을 물었는지 결과와 함께 남긴다. 프롬프트가 결과를 좌우한다 */}
       {summary?.prompt && (
         <p className="mt-3 rounded-lg bg-bg-hover px-4 py-3 text-caption leading-relaxed break-keep text-text-secondary">
           <span className="font-semibold text-text-primary">요청</span>{' '}
@@ -394,7 +405,7 @@ export default function NoticeSummaryCard({
         </p>
       )}
 
-      {/* 동작 버튼은 오른쪽 끝에 — 읽고 내려온 시선이 마지막에 닿는 자리다 */}
+      {/* 동작 버튼은 오른쪽 끝에. 읽고 내려온 시선이 마지막에 닿는 자리다 */}
       {canEdit && (
         <div className="mt-6 flex flex-wrap justify-end gap-2">
           {draft ? (
@@ -425,7 +436,7 @@ export default function NoticeSummaryCard({
               >
                 수정
               </button>
-              {/* 확정하면 되돌릴 수 없다 — 수정 다음에 두어 순서를 자연스럽게 만든다 */}
+              {/* 확정하면 되돌릴 수 없어 수정 다음에 둔다 */}
               <button
                 type="button"
                 onClick={confirm}
@@ -451,11 +462,8 @@ export default function NoticeSummaryCard({
       )}
 
       {/**
-       * 확정된 요약은 더 못 고친다 — 다시 물으려면 새 차수를 만든다.
-       *
-       * ⭐ **요약 중에도 접지 않는다.** 입력칸이 통째로 사라지면 카드가 쪼그라들고,
-       *    무엇을 물어놓고 기다리는지도 알 수 없다. 잠그기만 하고 자리는 지킨다.
-       * ℹ️ 버튼은 배너보다 **아래**다 — 알림이 뜰 때마다 눌러야 할 것이 밀리면 안 된다.
+       * 확정된 요약은 더 못 고친다. 다시 물으려면 새 차수를 만든다.
+       * 요약 중에도 접지 않는다. 입력칸이 사라지면 무엇을 기다리는지 알 수 없다.
        */}
       {!draft && (
         <div className="mt-6 border-t border-border-default pt-5">
@@ -481,7 +489,7 @@ export default function NoticeSummaryCard({
             </p>
           )}
 
-          {/* 상태 문장은 버튼과 **다른 줄**에 둔다 — 같은 줄에 두면 밀려서 잘린다 */}
+          {/* 상태 문장은 버튼과 다른 줄에 둔다. 같은 줄에 두면 밀려서 잘린다 */}
           {isWaiting && (
             <p
               aria-live="polite"
@@ -497,32 +505,16 @@ export default function NoticeSummaryCard({
 
           <div className="mt-3 flex flex-wrap justify-end gap-2">
             {/**
-             * ⚠️ 요약에는 **검토의 `abandon` 같은 취소 API 가 없다.**
-             *    서버 작업은 계속 도니 "취소" 라고 쓰지 않는다 — 화면 잠금만 푼다.
-             *    그 사이 새로 요청하면 `409` 로 막힐 수 있고, 그건 아래 `ask()` 가 받는다.
+             * 요약 중단. 예전에는 화면 잠금만 풀고 서버 작업은 계속 돌았다.
+             * 그러면 다시 요청할 때 409 로 막혀 이제 서버에서도 끝낸다.
              */}
             {isWaiting && (
               <button
                 type="button"
-                onClick={() => {
-                  /**
-                   * ⚠️ `isBusy` 까지 함께 푼다 — `hasGivenUp` 만 세우면 요청 버튼이
-                   *    `disabled={isBusy || …}` 에 걸려 멈춘 뒤에도 아무것도 못 한다.
-                   * ⚠️ 예약된 폴링도 끊는다 — 안 그러면 멈춘 뒤에도 요청이 계속 나간다.
-                   */
-                  if (timer.current !== null) {
-                    window.clearTimeout(timer.current);
-                    timer.current = null;
-                  }
-                  setHasGivenUp(true);
-                  setIsBusy(false);
-                  setNotice(
-                    '대기를 멈췄습니다. 진행 중인 요약이 끝나면 결과가 표시됩니다.',
-                  );
-                }}
+                onClick={() => void stopWaiting()}
                 className="btn btn-sm btn-gray-outlined"
               >
-                멈추기
+                중단
               </button>
             )}
             <button
@@ -546,7 +538,7 @@ export default function NoticeSummaryCard({
   );
 }
 
-/** 편집 시작값 — 응답에서 여섯 칸만 떼어낸다 */
+/** 편집 시작값. 응답에서 여섯 칸만 떼어낸다 */
 function toSections(summary: BidSummary): SummarySections {
   return {
     overviewSummary: summary.overviewSummary,
@@ -558,7 +550,7 @@ function toSections(summary: BidSummary): SummarySections {
   };
 }
 
-/** 요청 직후의 빈 껍데기 — 폴링이 채운다 */
+/** 요청 직후의 빈 껍데기. 폴링이 채운다 */
 const EMPTY_SECTIONS: SummarySections = {
   overviewSummary: null,
   amountSummary: null,

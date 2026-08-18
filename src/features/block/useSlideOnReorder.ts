@@ -23,13 +23,10 @@ interface Spot {
   top: number;
 }
 
-/**
- * 블록 순서가 실제로 바뀌는 순간에만 동작하는 FLIP 애니메이션.
- *
- * `capture()` 가 현재 화면 위치를 기록하고, 다음 렌더 직후 새 위치와의 차이를
- * `transform` 으로 이어 붙인다. 매 렌더 전체 블록을 측정하지 않으며 화면 밖 블록과
- * 끌고 있는 블록은 제외하고, 한 번에 처리할 카드 수도 제한한다.
- */
+// 블록 순서가 실제로 바뀌는 순간에만 동작하는 FLIP 애니메이션.
+// capture() 가 현재 화면 위치를 기록하고, 다음 렌더 직후 새 위치와의 차이를
+// transform 으로 이어 붙인다. 매 렌더 전체 블록을 측정하지 않으며 화면 밖 블록과
+// 끌고 있는 블록은 제외하고, 한 번에 처리할 카드 수도 제한한다.
 export function useSlideOnReorder(skipKey?: number | null) {
   const nodes = useRef(new Map<number, HTMLElement>());
   const callbacks = useRef(

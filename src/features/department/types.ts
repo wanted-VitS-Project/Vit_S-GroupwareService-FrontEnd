@@ -1,6 +1,6 @@
 export const DEPARTMENT_NAME_MAX_LENGTH = 50;
 
-/** 부서 — 최대 2단 트리 (.ai/API.md 22~25) */
+/** 부서. 최대 2단 트리다 */
 export interface Department {
   departmentId: number;
   name: string;
@@ -8,7 +8,7 @@ export interface Department {
   directEmployeeCount: number;
   /** 하위 포함 인원 — 화면 표시값 */
   totalEmployeeCount: number;
-  /** 하위 부서. 없으면 `[]` — 2단이 끝이라 여기 안에는 `children` 이 없다 */
+  /** 하위 부서. 2단이 끝이라 이 안에는 children 이 없다 */
   children: Department[];
 }
 
@@ -18,7 +18,7 @@ export interface CreateDepartmentRequest {
   parentId?: number;
 }
 
-/** 부서명만 바꿀 수 있다 — 상위 부서 이동은 지원하지 않는다 */
+/** 부서명만 바꿀 수 있다. 상위 부서 이동은 지원하지 않는다 */
 export interface UpdateDepartmentRequest {
   name: string;
 }

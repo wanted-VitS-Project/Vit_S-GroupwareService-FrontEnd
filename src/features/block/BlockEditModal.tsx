@@ -1,5 +1,6 @@
 'use client';
 
+// CSR - 블록 수정 모달: 블록 제목과 담당자만 고친다 (본문은 유형별 블록이 각자 맡는다).
 import { useParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
@@ -32,10 +33,8 @@ export default function BlockEditModal({
   const { id: projectId } = useParams<{ id: string }>();
   const [title, setTitle] = useState(block.title ?? '');
   const [owner, setOwner] = useState(block.owner?.userId ?? '');
-  /**
-   * 참여자 목록은 **보드가 이미 받아 둔 것**을 쓴다 (`BlockMembersContext`).
-   * 보드 밖에서 열렸을 때만(컨텍스트 없음) 직접 조회한다 — 같은 목록을 두 번 받지 않는다.
-   */
+  // 참여자 목록은 보드가 이미 받아 둔 것을 쓴다 (BlockMembersContext).
+  // 보드 밖에서 열렸을 때만(컨텍스트 없음) 직접 조회한다 — 같은 목록을 두 번 받지 않는다.
   const sharedMembers = useBlockMembers();
   const ownMembers = useBlockMembersSource(sharedMembers ? null : projectId);
   const {
@@ -53,7 +52,7 @@ export default function BlockEditModal({
     title.trim() !== (block.title ?? '') ||
     owner !== (block.owner?.userId ?? '');
 
-  /** 수정에 필요한 `version` 이 조회 응답에 없는 경우 (`types.ts` 참고) */
+  /** 수정에 필요한 version 이 조회 응답에 없는 경우 (types.ts 참고) */
   const hasNoVersion = block.version === undefined;
 
   function requestClose() {
@@ -76,7 +75,7 @@ export default function BlockEditModal({
     const nextTitle = title.trim();
     const titleChanged = nextTitle !== (block.title ?? '');
     const ownerChanged = owner !== (block.owner?.userId ?? '');
-    // 둘 다 안 바뀌면 보내지 않는다 — 서버도 400(`BLOCK_UPDATE_FIELD_REQUIRED`)이다
+    // 둘 다 안 바뀌면 보내지 않는다 — 서버도 400(BLOCK_UPDATE_FIELD_REQUIRED)이다
     if (!titleChanged && !ownerChanged) return;
 
     if (block.version === undefined) {
@@ -90,7 +89,7 @@ export default function BlockEditModal({
     setErrorMessage('');
     try {
       const updated = await updateBlock(block.blockId, {
-        // 키를 생략하면 유지, `null` 이면 해제 — 이 API 는 진짜 부분 수정이다
+        // 키를 생략하면 유지, null 이면 해제 — 이 API 는 진짜 부분 수정이다
         ...(titleChanged ? { title: nextTitle || null } : {}),
         ...(ownerChanged ? { owner: owner || null } : {}),
         version: block.version,
@@ -111,42 +110,32 @@ export default function BlockEditModal({
     }
   }
 
-  /**
-   * 담당자는 한 명이라 고른 사람은 칩으로, 나머지는 후보 버튼으로 나눈다.
-   *
-   * ⚠️ 지금 담당자가 **참여자 목록에 없을 수 있다** — 사원이 삭제됐거나(D-6) 권한이 회수된 경우다.
-   *    그대로 두면 칩이 사라져 `담당자 없음` 으로 오해하니, 블록 응답의 이름으로 대신 그린다.
-   *    (담당자를 **바꿀 때만** 후보에서 빠질 뿐, 지금 값은 지우지 않는다)
-   */
+  // 담당자는 한 명이라 고른 사람은 칩으로, 나머지는 후보 버튼으로 나눈다.
+  // 지금 담당자가 참여자 목록에 없을 수 있다 — 사원이 삭제됐거나(D-6) 권한이 회수된 경우다.
+  // 그대로 두면 칩이 사라져 담당자 없음 으로 오해하니, 블록 응답의 이름으로 대신 그린다.
+  // (담당자를 바꿀 때만 후보에서 빠질 뿐, 지금 값은 지우지 않는다)
   const selectedMember = members.find((member) => member.userId === owner);
   const selected =
     selectedMember ??
     (owner && block.owner?.userId === owner
       ? { userId: owner, name: block.owner.name }
       : null);
-  /**
-   * 담당자 후보.
-   *
-   * **퇴사자는 새로 지정할 수 없다** — 이미 지정된 사람은 위 칩으로 그대로 남기고
-   * 여기서만 뺀다 (이슈 담당자 지정과 같은 규칙 · `IssueFormModal`).
-   * 삭제된 사원은 참여자 목록 자체에 없어 따로 거를 것이 없다.
-   */
+  // 담당자 후보.
+  // 퇴사자는 새로 지정할 수 없다 — 이미 지정된 사람은 위 칩으로 그대로 남기고
+  // 여기서만 뺀다 (이슈 담당자 지정과 같은 규칙·IssueFormModal).
+  // 삭제된 사원은 참여자 목록 자체에 없어 따로 거를 것이 없다.
   const candidates = members.filter(
     (member) => member.userId !== owner && !member.resigned,
   );
-  /**
-   * 칩에 `(퇴사자)` 를 붙일지.
-   * 근거가 둘이다 — 블록 응답의 `owner.deleted`(사원 데이터 삭제) · 참여자 목록의 `resigned`(퇴사).
-   * 사용자에게는 "재직 중이 아니다" 하나로 읽히면 되므로 둘을 합쳐 같은 문구를 쓴다.
-   */
+  // 칩에 (퇴사자) 를 붙일지.
+  // 근거가 둘이다 — 블록 응답의 owner.deleted(사원 데이터 삭제)·참여자 목록의 resigned(퇴사).
+  // 사용자에게는 "재직 중이 아니다" 하나로 읽히면 되므로 둘을 합쳐 같은 문구를 쓴다.
   const isSelectedResigned =
     (block.owner?.userId === owner && block.owner.deleted) ||
     selectedMember?.resigned === true;
 
-  /**
-   * 담당자를 고르거나 해제하면 방금 누른 버튼이 사라진다.
-   * 그대로 두면 초점이 문서로 떨어져 키보드 사용자가 모달을 처음부터 훑어야 한다.
-   */
+  // 담당자를 고르거나 해제하면 방금 누른 버튼이 사라진다.
+  // 그대로 두면 초점이 문서로 떨어져 키보드 사용자가 모달을 처음부터 훑어야 한다.
   const focusAfterRender = useRef<'chip' | 'candidate' | null>(null);
   const releaseButtonRef = useRef<HTMLButtonElement>(null);
   const candidateButtons = useRef(new Map<string, HTMLButtonElement>());
@@ -344,7 +333,7 @@ export default function BlockEditModal({
         />
       )}
       {confirmation === 'conflict' && (
-        // 취소(= Esc · 배경 클릭)를 다시 불러오기에 둔다 — 잘못 눌러도 남의 값이 지워지지 않는다
+        // 취소(= Esc·배경 클릭)를 다시 불러오기에 둔다 — 잘못 눌러도 남의 값이 지워지지 않는다
         <AlertDialogTwoButton
           icon={DialogIcons.warning}
           title="다른 사람이 먼저 저장했습니다"

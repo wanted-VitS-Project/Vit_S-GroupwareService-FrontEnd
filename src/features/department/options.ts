@@ -2,7 +2,7 @@ import type { Department } from './types';
 
 export interface DepartmentOption {
   id: number;
-  /** 하위 부서는 `—` 를 붙여 계층을 표시한다 — `optgroup` 은 상위를 고를 수 없다 */
+  /** 하위 부서는 — 를 붙여 계층을 표시한다. optgroup 은 상위를 고를 수 없다 */
   label: string;
 }
 

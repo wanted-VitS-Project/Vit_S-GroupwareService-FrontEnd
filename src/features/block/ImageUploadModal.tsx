@@ -21,34 +21,24 @@ import {
 } from './types';
 import { useDragAutoScroll } from './useDragAutoScroll';
 
-/** 모달 안 목록은 짧다 — 가장자리 띠와 속도를 보드보다 좁게 잡는다 */
+// 모달 안 목록은 짧다 — 가장자리 띠와 속도를 보드보다 좁게 잡는다.
 const MODAL_AUTO_SCROLL = { edgePx: 56, maxStepPx: 12 };
 
-/** 안내 문구용 — 상수에서 뽑아 쓴다 (제한값이 바뀌면 문구도 함께 따라온다) */
+// 안내 문구용 — 상수에서 뽑아 쓴다 (제한값이 바뀌면 문구도 함께 따라온다).
 const MAX_SIZE_LABEL = `${IMAGE_MAX_SIZE_BYTES / 1024 / 1024}MB`;
 const MAX_TOTAL_LABEL = `${IMAGE_UPLOAD_MAX_TOTAL_BYTES / 1024 / 1024}MB`;
 
-/** 업로드 대기 중인 한 장 — 미리보기는 로컬 object URL 로 만든다 */
+// 업로드 대기 중인 한 장 — 미리보기는 로컬 object URL 로 만든다.
 interface QueuedImage {
-  /**
-   * 목록 key. **한 번 쓰면 다시 쓰지 않는 일련번호**다.
-   *
-   * 파일명이나 목록 길이로 만들면 "빼고 같은 파일을 다시 담기" 에서 값이 겹친다 —
-   * 겹치면 삭제가 두 줄을 함께 지우고, 순서 변경이 엉뚱한 줄을 잡는다.
-   */
+  /** 한 번 쓰면 다시 쓰지 않는 일련번호. 파일명·길이로 만들면 뺐다 다시 담을 때 값이 겹친다 */
   key: string;
   file: File;
   previewUrl: string;
   caption: string;
 }
 
-/**
- * 이미지 등록 모달.
- *
- * **목록의 순서가 곧 정렬 번호다** — `files` 배열 순서 그대로 보내고 서버가 1번부터 매긴다.
- * 그래서 올리기 전에 드래그로 자리를 바꿀 수 있게 한다 (수정 모달과 같은 방식).
- * 캡션은 같은 순서의 `captions` 배열로 함께 보낸다 (비우면 빈 문자열).
- */
+// 이미지 등록 모달. 목록의 순서가 곧 정렬 번호다 — files 배열 순서 그대로 보내고 서버가 1번부터 매긴다.
+// 그래서 올리기 전에 드래그로 자리를 바꿀 수 있게 하고, 캡션은 같은 순서의 captions 배열로 함께 보낸다.
 export default function ImageUploadModal({
   imgBlockId,
   onClose,
@@ -65,15 +55,15 @@ export default function ImageUploadModal({
   const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState(false);
   const pickerRef = useRef<HTMLInputElement>(null);
   const [isDropping, setIsDropping] = useState(false);
-  /** 순서 변경용 — 끌고 있는 항목과 지금 올라가 있는 항목 */
+  // 순서 변경용 — 끌고 있는 항목과 지금 올라가 있는 항목.
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
   const [hoverKey, setHoverKey] = useState<string | null>(null);
-  /** 자리가 바뀌는 순간에만 도는 미끄러짐 효과 */
+  // 자리가 바뀌는 순간에만 도는 미끄러짐 효과.
   const slide = useFlipReorder<string>();
-  /** 위·아래 끝으로 끌면 목록이 따라 굴러가게 한다 */
+  // 위·아래 끝으로 끌면 목록이 따라 굴러가게 한다.
   const listRef = useRef<HTMLDivElement>(null);
   useDragAutoScroll(draggingKey !== null, listRef, MODAL_AUTO_SCROLL);
-  /** 다음 항목에 붙일 일련번호. 뺐다 다시 담아도 값이 겹치지 않는다 */
+  // 다음 항목에 붙일 일련번호. 뺐다 다시 담아도 값이 겹치지 않는다.
   const nextKeyRef = useRef(0);
 
   function requestClose() {
@@ -82,7 +72,7 @@ export default function ImageUploadModal({
     else onClose();
   }
 
-  // 미리보기 object URL 은 모달이 닫힐 때 한 번에 정리한다
+  // 미리보기 object URL 은 모달이 닫힐 때 한 번에 정리한다.
   const queuedRef = useRef<QueuedImage[]>([]);
   useEffect(() => {
     queuedRef.current = queued;
@@ -97,19 +87,15 @@ export default function ImageUploadModal({
     const picked = [...(files ?? [])];
     if (picked.length === 0) return;
 
-    // 안내 문구(JPG · PNG · GIF · WEBP)와 **같은 목록**으로만 거른다
+    // 안내 문구(JPG·PNG·GIF·WEBP)와 같은 목록으로만 거른다.
     const accepted = picked.filter((file) => isAllowedImageType(file.type));
     const withinSize = accepted.filter(
       (file) => file.size <= IMAGE_MAX_SIZE_BYTES,
     );
 
-    /*
-     * 요청 한 번의 상한(15장 · 300MB)까지만 담는다.
-     *
-     * ⚠️ **블록이 담을 수 있는 총 장수에는 제한이 없다** — 넘친 건 잘못된 파일이 아니라
-     *    이번 요청에 안 들어갈 뿐이다. 그래서 조용히 버리지 않고 몇 장이 남았는지 알려
-     *    나눠 올리도록 안내한다.
-     */
+    // 요청 한 번의 상한까지만 담는다. 블록이 담을 수 있는 총 장수에는 제한이 없어,
+    // 넘친 건 잘못된 파일이 아니라 이번 요청에 안 들어갈 뿐이다 — 조용히 버리지 않고
+    // 몇 장이 남았는지 알려 나눠 올리도록 안내한다.
     let count = queued.length;
     let totalBytes = queued.reduce((sum, item) => sum + item.file.size, 0);
     const fitted: File[] = [];
@@ -157,16 +143,14 @@ export default function ImageUploadModal({
     ]);
   }
 
-  /**
-   * 목록 안에서 자리를 옮긴다. 이 순서가 그대로 서버의 정렬 번호(1..N)가 된다.
-   * `key` 로 찾는다 — 화면이 바뀌는 사이 인덱스가 어긋날 수 있다.
-   */
+  // 목록 안에서 자리를 옮긴다. 이 순서가 그대로 서버의 정렬 번호(1..N)가 된다.
+  // key 로 찾는다 — 화면이 바뀌는 사이 인덱스가 어긋날 수 있다.
   function moveQueued(fromKey: string | null, toKey: string) {
     setDraggingKey(null);
     setHoverKey(null);
     if (!fromKey || fromKey === toKey) return;
 
-    // 바뀌기 **직전**의 자리를 기록해 둬야 새 자리까지 미끄러진다
+    // 바뀌기 직전의 자리를 기록해 둬야 새 자리까지 미끄러진다.
     slide.capture();
     setQueued((previous) => {
       const from = previous.findIndex((item) => item.key === fromKey);
@@ -181,7 +165,7 @@ export default function ImageUploadModal({
   }
 
   function removeQueued(key: string) {
-    // 빠진 자리만큼 아래 항목들이 올라온다 — 같은 효과로 잇는다
+    // 빠진 자리만큼 아래 항목들이 올라온다 — 같은 효과로 잇는다.
     slide.capture();
     setQueued((previous) => {
       previous
@@ -207,7 +191,7 @@ export default function ImageUploadModal({
           (left, right) => left.orderIndex - right.orderIndex,
         ),
       );
-      // 성공하면 모달이 닫히므로 결과를 알릴 곳이 토스트뿐이다
+      // 성공하면 모달이 닫히므로 결과를 알릴 곳이 토스트뿐이다.
       notifyToast(`이미지 ${created.images.length}장을 올렸습니다.`);
     } catch (caught) {
       const message = messageOf(caught, '이미지를 올리지 못했습니다.');
@@ -284,7 +268,7 @@ export default function ImageUploadModal({
             className="hidden"
             onChange={(event) => {
               addFiles(event.target.files);
-              // 같은 파일을 다시 고를 수 있게 값을 비운다
+              // 같은 파일을 다시 고를 수 있게 값을 비운다.
               event.target.value = '';
             }}
           />
@@ -311,7 +295,7 @@ export default function ImageUploadModal({
                   ref={slide.register(item.key)}
                   draggable={!isUploading}
                   onDragStart={(event) => {
-                    // 파일 드롭 존과 같은 모달이라 파일 드래그로 오해되지 않게 표시해 둔다
+                    // 파일 드롭 존과 같은 모달이라 파일 드래그로 오해되지 않게 표시해 둔다.
                     event.dataTransfer.effectAllowed = 'move';
                     setDraggingKey(item.key);
                   }}

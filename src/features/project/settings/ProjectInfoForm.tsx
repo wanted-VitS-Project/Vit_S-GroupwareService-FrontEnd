@@ -15,10 +15,10 @@ import SettingsSection from './SettingsSection';
 
 interface ProjectInfoFormProps {
   projectId: string;
-  /** 아직 도착하지 않았으면 `null` — 입력칸을 비활성으로 그린다 */
+  /** 아직 도착하지 않았으면 null — 입력칸을 비활성으로 그린다 */
   project: ProjectDetail | null;
   canEdit: boolean;
-  /** 저장 응답의 **새 `version`** 을 위로 올린다 */
+  /** 저장 응답의 새 version 을 위로 올린다 */
   onSaved: (version: number) => void;
   /** 충돌 후 다시 불러오기 */
   onReload: () => void;
@@ -57,13 +57,10 @@ const EMPTY: FormValues = {
   contractAmount: '',
 };
 
-/**
- * 과업 기본 정보 편집. (.ai/API.md 129)
- *
- * ⚠️ **전체 덮어쓰기 API 라 폼 전체를 매번 보낸다.** 바뀐 필드만 보내면 나머지가 해제된다 —
- *    그래서 "수정된 칸만 추려 보내기" 같은 최적화를 하지 않는다.
- * ⚠️ 낙관적 락 — 409 면 **재조회 / 덮어쓰기**를 사용자에게 묻는다 (스테이지 · 스텝과 같은 규칙).
- */
+// 과업 기본 정보 편집. (.ai/API.md 129)
+// 전체 덮어쓰기 API 라 폼 전체를 매번 보낸다. 바뀐 필드만 보내면 나머지가 해제된다 —
+// 그래서 "수정된 칸만 추려 보내기" 같은 최적화를 하지 않는다.
+// 낙관적 락 — 409 면 재조회 / 덮어쓰기를 사용자에게 묻는다 (스테이지·스텝과 같은 규칙).
 export default function ProjectInfoForm({
   projectId,
   project,
@@ -83,7 +80,7 @@ export default function ProjectInfoForm({
    * 상세가 도착하거나 다시 읽혔으면 폼을 갈아끼운다.
    * (effect 가 아니라 렌더 중 상태 조정 — https://react.dev/reference/react/useState)
    *
-   * `version` 까지 열쇠에 넣는다 — 값이 같아도 버전이 올랐으면 근거가 달라진 것이라
+   * version 까지 열쇠에 넣는다 — 값이 같아도 버전이 올랐으면 근거가 달라진 것이라
    * 그대로 두면 다음 저장이 옛 버전을 실어 또 409 다.
    */
   const syncKey = project
@@ -145,8 +142,8 @@ export default function ProjectInfoForm({
       return;
     }
     /*
-     * ⚠️ 숫자가 아닌 값을 먼저 거른다 — `Number('abc')` 는 `NaN` 이라 아래 음수 검사를
-     *    그냥 통과하고, JSON 직렬화에서 `null` 이 되어 서버가 400 을 내거나 값을 해제한다.
+     * 숫자가 아닌 값을 먼저 거른다 — Number('abc') 는 NaN 이라 아래 음수 검사를
+     *    그냥 통과하고, JSON 직렬화에서 null 이 되어 서버가 400 을 내거나 값을 해제한다.
      *    입력칸이 숫자만 남기지만, 초기값이 서버에서 그대로 오므로 여기서 한 번 더 본다.
      */
     const contractAmount = values.contractAmount.trim()
@@ -176,11 +173,11 @@ export default function ProjectInfoForm({
         toRequest(project.version, overwrite),
       );
       /*
-       * ⚠️ **`version` 만 꽂고 끝내면 안 된다.**
-       * 폼 초기화 열쇠(`syncKey`)가 `version` 을 보고 있어, 버전만 올리면 폼이
-       * **방금 저장한 값이 아니라 옛 상세 값으로 되돌아간다.**
+       * version 만 꽂고 끝내면 안 된다.
+       * 폼 초기화 열쇠(syncKey)가 version 을 보고 있어, 버전만 올리면 폼이
+       * 방금 저장한 값이 아니라 옛 상세 값으로 되돌아간다.
        * 그래서 새 버전을 올린 뒤 상세를 다시 읽어 서버 값으로 맞춘다
-       * (수정 응답에는 `description` 이 없어 응답만으로는 폼을 채울 수 없다).
+       * (수정 응답에는 description 이 없어 응답만으로는 폼을 채울 수 없다).
        */
       onSaved(saved.version);
       onReload();
@@ -281,7 +278,7 @@ export default function ProjectInfoForm({
             inputMode="numeric"
             value={groupDigits(values.contractAmount)}
             disabled={isDisabled}
-            // 숫자만 남긴다 — 자릿수를 막지 않으면 `Number()` 가 `Infinity` 가 된다
+            // 숫자만 남긴다 — 자릿수를 막지 않으면 Number() 가 Infinity 가 된다
             onChange={(event) =>
               change(
                 'contractAmount',
@@ -313,7 +310,7 @@ export default function ProjectInfoForm({
               type="submit"
               disabled={isDisabled}
               /*
-               * 최소 폭을 잡아 둔다 — `과업 정보 저장 → 저장 중…` 으로 라벨이 짧아지면
+               * 최소 폭을 잡아 둔다 — 과업 정보 저장 → 저장 중… 으로 라벨이 짧아지면
                * 오른쪽 정렬이라 버튼이 줄어들며 자리가 흔들린다.
                */
               className="min-w-[132px] cursor-pointer rounded-lg bg-btn-primary px-4 py-2 text-label font-semibold text-text-white hover:bg-btn-primary-hover disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
@@ -344,7 +341,7 @@ export default function ProjectInfoForm({
   );
 }
 
-/** 입력칸 공통 모양 — 설정 화면 안에서 폭 · 테두리를 통일한다 */
+/** 입력칸 공통 모양 — 설정 화면 안에서 폭·테두리를 통일한다 */
 const INPUT_CLASS =
   'w-full rounded-lg border border-border-default px-3 py-2 text-label text-text-primary placeholder:text-text-secondary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary disabled:bg-bg-surface disabled:text-text-secondary';
 

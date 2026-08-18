@@ -6,6 +6,448 @@
 
 ---
 
+## [2026-08-18] 정산 세금계산서 기한 · 정산 현황 태그 · 재무 목록 페이징 ✅
+
+브랜치: `feat/settlement-tax-due` · 백엔드 스웨거(`/v3/api-docs`) 대조
+
+정산 블록에 세금계산서 기한 · 연결 여부가 추가되고, 정산 현황의 `summary` 문자열이
+지표 4개로 갈렸다. 그 과정에서 입출금 목록이 페이징인데 화면이 한 쪽만 받아
+총 건수가 어긋나던 것도 함께 고쳤다.
+
+### 변경 파일
+
+| 파일                                            | 변경                                                      |
+| ----------------------------------------------- | --------------------------------------------------------- |
+| `src/features/settlement/types.ts`              | 수정 — `taxInvoiceDueDate` · `taxInvoiceLinked` 읽기      |
+| `src/features/settlement/SettlementForm.tsx`    | 수정 — 세금계산서 기한 입력 (비우면 `null`)               |
+| `src/features/settlement/SettlementBlock.tsx`   | 수정 — 기한 행 · 정산 상태 옆 연결 배지                   |
+| `src/features/finance/{display,types}.ts`       | 수정 — `settlementProjectState` → `settlementProjectTags` |
+| `src/features/finance/SettlementStatusList.tsx` | 수정 — 상태 열을 태그 여러 개로, 열 폭 재분배             |
+| `src/features/finance/SettlementRoundPanel.tsx` | 수정 — 회차명 옆 입금 · 출금 배지, 머리글 `입출금 기한`   |
+| `src/features/finance/{api,types}.ts`           | 수정 — 입출금 목록 페이징 · `findCashFlow()`              |
+| `src/features/finance/CashFlowList.tsx`         | 수정 — 페이지네이션 · 총 건수 · 화면 필터 안내            |
+| `src/features/finance/CashFlowDetail.tsx`       | 수정 — 페이지를 넘겨 단건을 찾도록                        |
+| `src/features/finance/TaxInvoiceList.tsx`       | 수정 — 자체 `Pager` → 공용 `Pagination`, 총 건수          |
+| `src/features/approval/ApprovalBlock.tsx`       | 수정 — `결재 승인 확인` 제거, 제목 · 내용 분리            |
+
+### 주요 작업 내용
+
+- **세금계산서 기한** — 폼 입력 · 요약 카드 표시 · 저장까지 연결. 면세처럼 받지 않는 회차는 비워 두면 `null` 로 나간다
+- **세금계산서 연결 배지** — 블록 목록 `detail.taxInvoiceLinked` 를 정산 상태 옆에 배지로 붙인다. 작성 전 블록에는 그리지 않는다
+- **정산 현황 태그** — 미연결 2종 · 지연 2종을 태그 여러 개로 그린다. 손댈 것이 없으면 `정산 완료` · `기한 미입력` · `진행 중` 하나만 남는다
+- **재무 목록 페이징** — 입출금은 페이지네이션과 총 건수를 새로 붙이고, 세금계산서는 이전 · 다음뿐이던 자체 페이저를 공용 컴포넌트로 바꿨다
+- **결재 블록** — 완료 배너와 겹치던 `결재 승인 확인` 버튼을 없애고, 제목 · 내용을 나눠 내용이 잘리지 않게 했다
+
+### 트러블슈팅
+
+- **입출금 총 건수가 어긋났다** — 서버는 페이징인데 화면이 `cashFlows` 만 읽고 `page` · `size` 를 보내지 않았다. 기본 20건만 받아 놓고 목록 길이를 총 건수로 세고 있었다
+- **21번째 건부터 상세가 열리지 않았다** — 상세가 목록 전체를 받아 찾는 구조였는데 실제로는 한 쪽만 왔다. 세금계산서와 같은 방식(`findCashFlow`)으로 쪽을 넘겨 찾게 고쳤다
+
+### 부수 결정
+
+- **연결 배지는 작성 전 블록에 그리지 않는다** — `taxInvoiceLinked` 는 작성 전에도 `false` 로 오지만, 다른 칸이 모두 비어 있는 카드에 배지만 홀로 뜨면 어색하다
+- **구분 · 출처 필터는 현재 쪽 기준임을 화면에 적는다** — 서버에 그 조건이 없어 받아온 쪽에서만 걸러진다. 페이징이 붙으면서 오해할 여지가 커졌다
+
+---
+
+## [2026-08-18] 직접 등록 공고 수정 · 알림 분류 정리 · 주석 정리 2차 ✅
+
+브랜치: `chore/comment-cleanup`
+
+앞선 세션에서 결재 · 재무 · 알림 · 마이페이지 · 로그인 주석을 정리했고, 이번에는
+입찰 · 전사 관리로 이어갔다. 그 사이 요청받은 화면 작업 두 건을 함께 처리했다.
+
+### 변경 파일
+
+| 파일                                                                                                                                                                     | 변경                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| `src/features/bidding/NoticeForm.tsx`                                                                                                                                    | 신규 — `NoticeCreateForm` 을 등록 · 수정 겸용으로 옮김 |
+| `src/features/bidding/NoticeCreateForm.tsx`                                                                                                                              | 삭제 — 위 파일로 대체                                  |
+| `src/app/notices/[id]/edit/page.tsx`                                                                                                                                     | 신규 — 공고 수정 라우트                                |
+| `src/app/notices/new/page.tsx`                                                                                                                                           | 수정 — `NoticeForm` 사용                               |
+| `src/features/bidding/{routes.ts,NoticeDetail.tsx}`                                                                                                                      | 수정 — `edit` 경로 · 상세의 `공고 관리` 카드           |
+| `src/components/bidding/NoticeSkeletons.tsx`                                                                                                                             | 수정 — `NoticeFormSkeleton` 추가                       |
+| `src/features/notification/{display.ts,NotificationSection.tsx}`                                                                                                         | 수정 — 댓글 칩 제거 · 시스템 칩 화면 분류              |
+| `src/features/bidding/*` · `src/features/{department,jobPosition,businessCategory,masterItem,pagePermission,employee,companyDocument}/*` · `src/features/file/Admin*` 외 | 수정 — 주석 정리                                       |
+| `src/app/settings/*` · `src/components/settings/SettingsSkeletons.tsx`                                                                                                   | 수정 — 주석 정리                                       |
+| `src/features/employee/BulkUploadModal.tsx`                                                                                                                              | 수정 — 학력 · 자격증 구분자 안내 문구                  |
+
+### 주요 작업 내용
+
+- **직접 등록 공고 수정** — `PATCH /bidding/notices/{noticeId}` 연동. 등록 폼을 `NoticeForm` 으로 합치고 `noticeId` 를 주면 수정 모드가 된다. 상세에는 `sourceCode === 'MANUAL'` 일 때만 `공고 수정` 버튼이 뜬다
+- **알림 유형 칩 정리** — `댓글` 칩을 없애고, 결재 · 이슈가 아닌 알림(프로젝트 관련 포함)은 모두 `시스템` 으로 모았다
+- **엑셀 일괄 등록 안내 문구** — 학력 · 자격증 구분자가 쌍반점 하나인 것처럼 적혀 있었다. 쉼표 · 셀 안 줄바꿈도 되고, 대신 항목 이름에 쉼표가 있으면 쪼개진다는 주의를 함께 적었다
+- **주석 정리** — 입찰 · 전사 관리 전 파일. 이모지 · 강조 표기를 걷고 한 줄, 길어도 두 줄로 줄였다. 없어도 되는 주석은 지웠다
+
+### 트러블슈팅
+
+- **수정 폼에 못 채우는 칸** — 공고 상세 응답에 `internationalBidType` · `bidMethod` 가 없다. 빈 칸으로 두면 저장할 때 기존 값을 덮어쓰므로 **수정 화면에서는 두 칸을 감추고 요청에서도 뺐다**
+- **첨부는 교체가 아니라 추가만** — `attachments` 를 보내면 통째로 교체돼 기존 첨부가 사라진다. 수정 본문에서 아예 빼고, 이미 올라간 첨부는 목록으로만 보여준다 (첨부 삭제 API 가 없다)
+
+### 부수 결정
+
+- **시스템 칩은 화면에서 나눈다** — 서버 `category` 는 `notificationType` 접두어라 "결재 · 이슈가 아닌 나머지" 를 한 값으로 부를 수 없다. 시스템 칩만 조건 없이 받아 화면에서 고르고 쪽을 나눈다 (한 번에 100건)
+
+---
+
+## [2026-08-18] 헤더 세션 만료 표시 · 연장 (+ 헤더 반응형) ✅
+
+브랜치: `feat/session` · API: `.ai/API.md` **159 신설** (`GET /auth/session`, 백엔드 PR #424) · 이슈: #210
+
+헤더 오른쪽에 **세션 만료 시각**을 띄우고, 눌러서 연장할 수 있게 했다.
+자리가 하나 더 늘었으므로 오른쪽 묶음의 좁은 화면 대응도 같이 손봤다.
+
+### ⭐ 이 작업의 핵심 — 물어보면 안 된다
+
+`GET /auth/session` 은 **조회 겸 연장**이다. 세션이 4시간 유휴 슬라이딩이라 서버가 세션을
+만지는 요청마다 만료가 밀리는데, 이 API 도 예외가 아니다. 그래서 "남은 시간이 궁금하니
+주기적으로 물어본다" 를 하면 **그 물음이 세션을 영원히 살려** 유휴 만료 정책이 무력화된다.
+
+→ 서버에는 **두 번만** 묻는다 (진입 시드 · 연장 버튼). 그 사이는 로컬에서 세고,
+내가 쏜 다른 요청들은 `SESSION_TOUCH_EVENT` 로 타이머만 되감는다.
+
+### 변경 파일
+
+| 파일                                 | 변경                                                                                                                       |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `src/features/auth/SessionTimer.tsx` | **신규** — 헤더 위젯 (만료 시각 · 30분 카운트다운 + 연장 버튼 · 5분 붉은 강조)                                             |
+| `src/features/auth/sessionExpiry.ts` | **신규** — 눈금 2개(`30분` · `5분`) · 포맷(`15:43` · `29:59`/`04:59` · `3시간 52분`) · 탭 간 연장 공유(`BroadcastChannel`) |
+| `src/features/auth/api.ts`           | 수정 — `getSession()` 추가                                                                                                 |
+| `src/features/auth/types.ts`         | 수정 — `SessionInfo` 추가                                                                                                  |
+| `src/constants/endpoints.ts`         | 수정 — `auth.session` 추가                                                                                                 |
+| `src/lib/api.ts`                     | 수정 — `SESSION_TOUCH_EVENT` · `touchSession()` (401 제외)                                                                 |
+| `src/components/Header.tsx`          | 수정 — 위젯 배치 + 오른쪽 묶음 간격 `gap-1.5 md:gap-3`                                                                     |
+| `src/components/ProfileMenu.tsx`     | 수정 — 부서 경로 줄 `hidden sm:block`                                                                                      |
+| `.ai/API.md`                         | 수정 — **159번 신설** (목차 · 본문)                                                                                        |
+
+### 주요 작업 내용
+
+- **눈금 두 개 — 알리는 시점과 재촉하는 시점은 다르다.** 30분 초과는 만료 **시각만** 조용히(`🕐 15:43 만료`), **30분 이하**부터 카운트다운 + **`연장` 버튼이 함께**(노란 띠), **5분 이하**는 같은 모습을 붉게만 올린다. 마지막 순간에 새로 나타나는 것이 없어야 화면이 흔들리지 않는다
+- **30분 전까지는 버튼이 아니라 표시다.** 누를 것이 늘 떠 있으면 정작 눌러야 할 때 눈에 안 들어오고, 4시간 남은 시점의 연장은 어차피 아무것도 바꾸지 않는다 (요청 한 번이면 세션은 알아서 밀린다)
+- **표시는 로컬 만료 시각으로 그린다.** 서버가 준 `expiresAt` 은 시드 순간에만 맞고 이후 연장을 반영하지 못해 금방 낡는다. 카운트다운도 `remainingSeconds` 기준이라 클라이언트 시계 오차와 무관하다
+- **탭 간 연장 공유** (`BroadcastChannel`) — 옆 탭에서 일하는 동안 이 탭만 0 으로 떨어져 겁주는 일을 막는다. 알림 배지의 탭 공유(`notification/events.ts`)와 같은 방식
+- **0 이 돼도 로그아웃시키지 않는다.** 못 본 연장이 있을 수 있어, 세션 종료는 **다음 요청의 401**(`UNAUTHORIZED_EVENT` → `CurrentUserProvider`)로만 확정한다
+- **표기는 두 가지뿐이다** — 평소 `15:43 만료`, 30분 아래 `29:59`. 꼬리말 `만료` 는 평소에만 붙는다 (`15:43` 만 있으면 지금 시각인지 만료 시각인지 알 수 없다). 카운트다운은 그 자체로 남은 시간으로 읽히고 옆의 `연장` 버튼이 상황을 말해 준다
+- **카운트다운 분도 두 자리로 채운다** (`04:59`). 만료 시각(`15:43`)과 글자 수가 같아야 두 표기가 오갈 때 칸 폭이 그대로다 — `4:59` 면 10분을 지나는 순간 옆의 버튼이 한 칸 밀린다
+- **어두운 헤더(프로젝트 상세)는 색 방향을 뒤집었다.** 밝은 헤더는 옅은 배경 + 진한 글자(`tag-yellow` 공용 조합), 어두운 헤더는 **테두리 색을 글자로 쓰고 배경은 그 색을 15%로** 깐다. 같은 조합을 그대로 쓰면 거의 흰 알약(`#fffbeb`)이 검은 바탕에 떠 경고보다 밝기가 먼저 보인다. `연장` 버튼도 **표시와 한 쌍으로** 따라간다 — 한쪽만 따라가면 두 조각이 따로 논다
+- **`연장` 버튼은 띠 색을 따라간다** (밝은 헤더 포함). 파랑(`btn-primary-outlined`)으로 두면 노란 · 붉은 띠 옆에서 제3의 색이 끼어든다. 30분은 채운 노랑(`bg-yellow-border` + `text-text-primary`, 대비 9.6), 5분은 `btn-danger`. 표시와는 **채도만** 다르다 — 옅게 깔면 읽는 것, 채우면 누르는 것
+- **헤더 반응형** — 오른쪽에 덩어리가 셋이 되면서 375px 이 빠듯해졌다. 간격을 `md` 아래에서 한 단계 줄이고, 프로필의 부서 경로 줄은 `sm` 아래에서 접는다
+
+### 트러블슈팅
+
+| 문제                                                           | 원인                                                                                                                                | 해결                                                                                |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `Module … has no default export` — 빌드만 깨지고 에디터는 멀쩡 | 헬퍼를 `sessionTimer.ts` 로 두어 같은 폴더의 `SessionTimer.tsx` 와 **대소문자만 다른 이름**이 됐다. Windows 는 둘을 구분하지 않는다 | `sessionExpiry.ts` 로 이름을 바꿨다. 같은 폴더에 대소문자만 다른 파일을 두지 않는다 |
+| `react-hooks/refs` — 렌더 중 ref 접근                          | 마우스 올림 문구(`title`)를 만들려고 렌더에서 `expiresAt.current` 를 읽었다. ref 는 바뀌어도 다시 그리지 않아 화면과 어긋난다       | 만료 시각 문자열을 `clockText` 상태로 따로 들었다 (`refresh()` 안에서 함께 갱신)    |
+
+### 부수 결정
+
+- **1초마다 다시 그리지 않는다.** 화면 글자를 문자열 상태(`label`)로 두어, 같은 문자열이면 React 가 렌더를 건너뛴다 — 경고 구간 밖에서는 `15:43` 이 그대로라 4시간 동안 리렌더가 사실상 0 이다
+- **`touchSession()` 은 성공 · 실패를 가리지 않는다.** 400 · 409 처럼 **서버까지 닿은** 요청은 결과와 무관하게 세션을 이미 늘려 놨다. 401 만 예외
+- **탭 간 방송은 5초에 한 번으로 묶었다.** 화면 하나 여는 데 요청이 열 개씩 나가는데 그때마다 방송하면 탭 수만큼 곱해진다. 4시간짜리 타이머에서 5초 오차는 없는 것과 같다
+- **연장 결과는 토스트로 알린다.** 눌렀는데 숫자만 조용히 바뀌면 눌린 건지 알 수 없다
+
+---
+
+## [2026-08-18] 프로젝트 이미지 모아보기 · 휴지통 페이지네이션 ✅
+
+이슈: #206 · API: `.ai/API.md` 107 · 109번에 `page` · `size` 추가 (2026-08-16)
+
+이미지 목록 두 곳이 전체를 한 번에 받아 그리고 있었다. 서버가 페이징을 지원하게 돼
+문서함 · 전사 파일 목록과 같은 방식(`components/Pagination`)으로 맞췄다.
+휴지통 응답의 `blockDeleted` 도 함께 화면에 드러냈다.
+
+### 변경 파일
+
+| 파일                                              | 변경                                                                                |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `src/features/block/types.ts`                     | 수정 — `ImagePage<T>` · `ImagePageQuery` 신설, `TrashImage.blockDeleted` 추가       |
+| `src/features/block/api.ts`                       | 수정 — `withPaging()` · `getProjectImages` · `getProjectTrashImages` 가 봉투째 반환 |
+| `src/features/project/overview/ProjectImages.tsx` | 수정 — 페이지 상태 · 하단 `Pagination` · 총 장수를 `totalElements` 로               |
+| `src/features/project/overview/TrashImages.tsx`   | 수정 — 페이지 상태 · 선택/복구/영구삭제 정합 · `블록 삭제됨` 뱃지                   |
+| `.ai/API.md`                                      | 수정 — 107 · 109번 쿼리 파라미터 · 봉투 응답 · `IMG-012`                            |
+
+### 주요 작업 내용
+
+- **한 판 20장** (`PAGE_SIZE`) — xl 그리드(5열) 기준 딱 4줄이고 서버 기본값과도 같다
+- **모아보기** — 총 장수를 `totalElements` 로 바꾸고, 블록 묶음이 현재 판 범위임을 라벨(`이 페이지 블록 N개`)에 적었다
+- **휴지통** — 장을 넘기면 선택을 비우고, `전체 선택` 은 여러 장일 때 `이 페이지 전체 선택` 으로 읽힌다
+- **복구 · 영구 삭제 후 재조회** — 낙관적으로 뺀 자리를 뒷장 이미지가 메워야 한 판이 20장으로 유지된다
+- **`블록 삭제됨` 뱃지** — 썸네일 오른쪽 위. 문서 휴지통(`TrashFiles`)과 같은 문구 · 같은 뜻
+
+### 트러블슈팅
+
+- **문제**: 마지막 장의 이미지를 전부 영구 삭제하면 빈 화면에 갇힌다
+- **원인**: 서버는 범위를 벗어난 `page` 에 빈 목록을 주는데, 화면이 그 자리를 그대로 붙잡고 있었다
+- **해결**: 응답을 받을 때 `page >= totalPages` 면 마지막 장으로 물러선다
+- **문제**: 장을 넘길 때마다 그리드가 접혔다 펴져 화면이 튐
+- **원인**: 새 조건이 되는 순간 목록이 `null` 이 되어 스켈레톤으로 갈아끼워졌다
+- **해결**: 같은 프로젝트면 **이전 장을 그대로 두고** 페이지 줄만 잠근다(`disabled={isPending}`). 첫 판에는 `PaginationPlaceholder` 로 높이를 잡아 둔다
+
+### 부수 결정
+
+- **선택은 페이지 단위로 가둔다** — 안 보이는 이미지가 골라진 채 남으면 복구 · 영구 삭제가 무엇에 닿는지 알 수 없다
+- **낙관적 처리에서 `totalElements` 도 함께 ±** — 머리의 총 장수가 목록보다 늦게 따라오면 어긋나 보인다
+- **`ImagePage<T>` 를 `FilePage<T>` 와 따로 둔다** — 모양은 같지만 목록 필드가 `content` 가 아니라 `images` 라 재사용하면 어긋난다
+- **`ImagePageQuery` 는 `types.ts` 에** — 다른 도메인의 `*Query` 타입과 같은 자리다
+
+---
+
+## [2026-08-18] 입찰 관심 · 제외 · 요약 중단 연동 + 화면 점검 ✅
+
+브랜치: `feat/education-certificate` · API: `.ai/API.md` 입찰 도메인에 관심 · 제외 · 복구 · 요약 중단 추가
+
+전사 관리 · 재무 · 입찰 · 결재 · 알림 화면을 스웨거와 대조하고, 그 과정에서 드러난
+미연동 API(관심 · 제외 · 복구 · 요약 중단)를 붙였다. 스웨거를 직접 받아(`/v3/api-docs`)
+필드 이름까지 맞췄다.
+
+### 변경 파일
+
+| 파일                                                                                                                                       | 변경                                                              |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| `src/constants/endpoints.ts`                                                                                                               | 수정 — 관심 · 해제 · 제외 · 복구 · 요약 중단 5경로                |
+| `src/features/bidding/{types,api,errorCodes}.ts`                                                                                           | 수정 — `isFavorite` · `favorite` 쿼리 · 상태 응답 · 첨부 409 코드 |
+| `src/features/bidding/NoticeList.tsx`                                                                                                      | 수정 — 관심 별 열 · 관심 필터 · 상태 셀렉트 복원                  |
+| `src/features/bidding/NoticeDetail.tsx`                                                                                                    | 수정 — `검토 상태` 카드 · 제외 사유 모달 · 복구 확인              |
+| `src/features/bidding/NoticeSummaryCard.tsx`                                                                                               | 수정 — `멈추기` → `중단` (서버 abandon 호출)                      |
+| `src/features/bidding/NoticeCreateForm.tsx`                                                                                                | 수정 — 첨부 10개 상한 · 폼 폭을 프로젝트 생성과 통일              |
+| `src/components/PageTitle.tsx`                                                                                                             | 수정 — `variant="top"` (최상위 화면 제목 크기)                    |
+| `src/features/{approval/ApprovalList,finance/FinanceHub,bidding/NoticeList}.tsx` · `src/app/settings/page.tsx` · `src/app/mypage/page.tsx` | 수정 — 최상위 제목 토큰 통일                                      |
+| `src/components/MemberAvatar` 관련 (`CurrentUserProvider` · `Sidebar` · `ProfileMenu`)                                                     | 수정 — 하이드레이션 불일치 해소                                   |
+| `src/features/file/format.ts`                                                                                                              | 수정 — 확장자 색 하드코딩 → 토큰(`var(--color-*)`)                |
+| 스피너 교체 9곳 · `#12B76A` 6곳 · 그림자 3곳                                                                                               | 수정 — 아래 `점검 결과` 참고                                      |
+
+### 주요 작업 내용
+
+- **관심(favorite)** — 목록 첫 열의 별 토글 + `관심` 필터. 회사 공용이라 개인 즐겨찾기로 읽히지 않게 문구를 `관심` 으로 뒀다
+- **제외 · 복구** — 상세에 `검토 상태` 카드. 제외는 사유(필수 · 500자) 입력 모달, 복구는 확인 창
+- **AI 요약 중단** — 검토의 `abandon` 과 짝인 API 가 배포돼, 화면 잠금만 풀던 `멈추기` 를 서버 중단으로 바꿨다
+- **첨부 10개 상한** — 첨부는 공고를 만든 뒤 올라가 서버에서 막히면 공고만 남는다. 고르는 자리에서 먼저 막는다
+- **점검 결과** — `불러오는 중…` 9곳을 스피너로, `#12B76A` 6곳을 `green-text` 토큰으로, 확장자 색 19개를 토큰으로, 카드 그림자 하드코딩 3곳을 `shadow-sm` 으로 바꿨다
+
+### 트러블슈팅
+
+- **하이드레이션 불일치** — 셸(사이드바 · 헤더)이 `document.cookie` 에서 아바타 썸네일을 렌더 중에 읽었다. 서버에는 `document` 가 없어 첫 렌더 결과가 갈렸다. 서버가 이미 쿠키를 읽어 내려주고 있어(`initialShell`) 그 값을 컨텍스트로 나눠 쓰게 고쳤다
+- **백엔드 미기동 오해** — 첫 `curl` 이 막힌 것은 서버가 아니라 도구 샌드박스 때문이었다. 스웨거를 직접 받아 `isFavorite` 이 **목록에만** 있고 상세엔 없다는 것을 확인했다 (그래서 상세엔 관심 토글을 두지 않았다)
+
+### 부수 결정
+
+- **관심은 상세에 두지 않는다** — 상세 응답에 `isFavorite` 이 없어 초기 상태를 알 수 없다. 켜졌는지 모르는 토글은 누르기 전엔 아무 말도 못 한다
+- **상태 셀렉트를 되살렸다** — 제외 기능이 없던 동안 뺐던 필터다. 제외한 공고를 되돌리려면 골라 볼 길이 있어야 한다
+- **최상위 화면 제목은 `variant="top"`** — 사이드바가 곧장 여는 화면(내 프로젝트 · 결재 · 공고 · 재무 · 전사 관리 · 내 정보)만 크게 잡는다. 하위 화면까지 키우면 깊이가 눈에서 사라진다
+- **재무 허브의 경로 한 줄 제거** — 최상위라 위에 얹을 화면이 없어 제목과 같은 말이 두 줄로 반복됐다
+- **확장자 색은 가까운 토큰으로 모았다** — 팔레트에 없는 하늘색(hwp) · 주황(ppt)이 파랑 · 노랑으로 합쳐져 문서 계열과 이미지가 같은 파랑을 쓴다. 배지에 확장자 글자가 함께 있어 색만으로 가르지 않는다
+- **사원 그룹(API 91~97)은 구현하지 않는다** (2026-08-18 사용자 결정)
+
+---
+
+## [2026-08-18] 모달 로딩 덜컥임 해소 (권한 2종 · 스텝 이동) ✅
+
+이슈: #204
+
+모달이 먼저 열리고 안쪽 API 응답이 뒤늦게 도착하면서 창 크기가 한 번 바뀌었다.
+공통 폴백(`ModalLoadingFallback`)의 300ms 는 **청크 로딩용** 기준이라 API 응답에는 거의 매번 걸려,
+`스피너 창 → 실물 창` 이 연달아 열리는 문제까지 겹쳐 있었다.
+
+### 변경 파일
+
+| 파일                                                  | 변경 |
+| ----------------------------------------------------- | ---- |
+| `src/components/ModalLoadingFallback.tsx`             | 수정 |
+| `src/features/project/step/StepPermissionModal.tsx`   | 수정 |
+| `src/features/project/stage/StagePermissionModal.tsx` | 수정 |
+| `src/features/block/BlockMoveStepModal.tsx`           | 수정 |
+
+### 주요 작업 내용
+
+- 데이터 대기용 `useSlowLoading(isPending)` 훅 신설 (`SLOW_LOADING_MS` 1.2초) — 그 전에는 아무것도 그리지 않아 창이 한 번만 열린다
+- 세 모달에 같은 게이트 적용: 스텝 권한(`!entries && !hasFailed`) · 스테이지 권한(`!members && !hasFailed`) · 스텝 이동(`steps === null`)
+- 스텝 이동 모달의 죽은 `isLoading` 분기와 `LoadingSpinner` 임포트 제거, `canSubmit` 단순화
+- 스텝 권한 모달의 상속·차단 안내 문구 재작성 + 문장 단위 줄바꿈
+
+### 트러블슈팅
+
+- **문제**: 1차 조치로 스켈레톤(뼈대 3줄 + `min-h`)을 깔았는데도 덜컥임이 남음
+- **원인**: 뼈대에서 실제 목록으로 바뀌는 순간이 그대로 남아 있었고, 이어서 공통 폴백으로 바꾸자 300ms 기준이 이 API 응답보다 짧아 스피너 창이 매번 떴다
+- **해결**: 스켈레톤을 걷어내고 **값이 다 온 뒤 렌더**로 전환. 스피너 임계값을 1.2초로 따로 잡아 사실상 뜨지 않게 함
+
+### 부수 결정
+
+- 임계값과 훅은 `ModalLoadingFallback` 에 둔다 — 청크 지연용 `FALLBACK_DELAY_MS` 와 같은 성격의 타이밍 정책이라 한자리에서 보이는 편이 낫다
+- 스테이지 권한 모달은 흔들림이 후보 칩 한 곳뿐이었지만 같은 규칙을 적용했다 — 같은 메뉴에서 열리는 형제 모달이라 하나만 즉시 열리면 더 어색하다
+- `MemberPicker` 의 `isLoading` prop 은 유지 — 다른 화면도 쓰는 공용 컴포넌트다
+
+---
+
+## [2026-08-18] 비타메이트 재진입 시 이전 분석 결과 미표시 수정 ✅
+
+이슈: #203
+
+완료된 분석이 DB 에 남아 있고 단건 조회도 정상인데(백엔드 확인: `analysisId=10` · `blockId=9436`),
+새로고침하면 AI 블록이 `분석 없음` 으로 떨어졌다. 그 상태에서는 `이력` 버튼도 그려지지 않아
+이력 목록으로 들어갈 길까지 막힌다.
+
+### 변경 파일
+
+| 파일                                | 변경 |
+| ----------------------------------- | ---- |
+| `src/features/vitamate/api.ts`      | 수정 |
+| `src/features/vitamate/AiBlock.tsx` | 수정 |
+
+### 주요 작업 내용
+
+- `getBlockAnalyses` 를 `readAnalysisList` 로 분리 — 감싸는 키 **이름이 아니라 내용**으로 배열을 찾는다 (`{analyses}` · `{content}` · 배열 그대로 모두 처리)
+- 모양을 못 알아보면 빈 목록 대신 **오류로 올린다** — 조용한 `[]` 가 "분석 없음" 으로 위장되던 입구였다
+- `AiBlock` 의 최신 분석 찾기에서 조기 반환 제거 — `detail.latestAnalysisId` 가 있어도 목록으로 한 번 더 맞춘다
+- 사용자가 재실행·수정으로 다른 분석을 보고 있으면 덮어쓰지 않도록 `current === fromDetail` 가드
+
+### 부수 결정
+
+- 목록 응답의 감싸는 키는 백엔드 확정 전이다 (`.ai/API.md` 78번) — 확정되면 방어 로직을 한 분기로 줄인다
+- 응답 자체에 데이터가 없으면 조회 API 문제라 프론트에서 할 수 있는 것은 없다 — 백엔드에 확인 요청 상태
+
+---
+
+## [2026-08-18] 텍스트 블록 본문 잘림·하단 공백 해소 ✅
+
+이슈: #202
+
+같은 행에 정산 블록처럼 높이가 큰 블록이 있으면 텍스트 블록만 본문이 **글자 중간에서 잘리고**,
+그 아래로 200px 가량 빈 공간이 남았다. 보드가 `grid items-stretch` 라 행 높이는 가장 큰 카드를 따라가는데
+텍스트 블록 본문에만 `max-h-40` 상한이 걸려 늘어난 공간을 쓰지 못했다.
+
+### 변경 파일
+
+| 파일                               | 변경 |
+| ---------------------------------- | ---- |
+| `src/features/block/TextBlock.tsx` | 수정 |
+
+### 주요 작업 내용
+
+- 본문 영역 `max-h-40 overflow-hidden` → `overflow-y-auto` (행 높이만큼 채우고 넘치면 스크롤)
+- 자수·편집 바에 `mt-auto` 를 줘 카드 하단에 고정
+- 파일 최상단 `// CSR -` 헤더 추가 및 주석 컨벤션(#196) 정리
+
+### 부수 결정
+
+- `FileBlock`(`min-h-0 flex-1 overflow-y-auto`) · `ImageBlock`(`mt-auto`) 과 같은 규칙으로 맞췄다 — 텍스트 블록만 예외였다
+
+---
+
+## [2026-08-17] 주석 스타일 통일 (project · issue · block · log · main) ✅
+
+기준: `codebomba-ts` 의 admin / problem 도메인 주석 컨벤션
+
+주석이 다단락 JSDoc + 볼드/이모지 강조로 길어져, 정작 코드보다 주석이 먼저 읽히는 상태였다.
+참조 프로젝트와 같은 **평문 한두 줄** 규칙으로 통일했다.
+
+### 변경 파일
+
+| 범위                                                            | 변경 |
+| --------------------------------------------------------------- | ---- |
+| `src/app/page.tsx` · `src/features/dashboard/*`                 | 수정 |
+| `src/app/projects/**` · `src/features/project/**`               | 수정 |
+| `src/features/issue/*`                                          | 수정 |
+| `src/features/activityLog/*`                                    | 수정 |
+| `src/features/vitamate/*` (AI 블록)                             | 수정 |
+| `src/features/block/**` (블록 도메인 전체)                      | 수정 |
+| `src/components/project/*` · 사이드바·탭·프로필·스켈레톤·스피너 | 수정 |
+
+총 165개 파일 · 주석 라인 약 5,500줄 → 약 3,100줄.
+
+### 주요 작업 내용
+
+- 파일 최상단에 `// CSR - 화면명: 한 줄 요약` (서버 컴포넌트는 `// SSR -`) 헤더 도입
+- 주요 함수·컴포넌트는 역할 설명 1~2줄 유지, 나머지 자명한 주석은 삭제
+- `**볼드**` · `⚠️⭐❗⛔✅` 이모지 마커 · 백틱 · 다단락 JSDoc 제거
+- 여러 줄 `/** */` 블록은 `//` 연속줄로 전환 (한 줄 JSDoc·`@param` 은 유지)
+
+### 트러블슈팅
+
+- **문제**: 일괄 치환 스크립트가 `/**` 를 `/` 로 망가뜨려 65개 파일의 JSDoc 여는 줄이 깨짐
+- **원인**: 주석 줄에서 `**` 를 무조건 지우면서 블록 주석 여는 기호까지 함께 삭제
+- **해결**: 여는 줄만 복구하는 스크립트를 따로 돌리고, `tsc --noEmit` · `next build` 로 검증
+
+### 부수 결정
+
+- 주석 정리는 **주석만** 건드린다 — 코드·JSX 구조는 손대지 않는다
+- `@param` 등 태그가 있는 JSDoc 은 도구가 읽는 값이라 블록 주석 그대로 둔다
+
+---
+
+## [2026-08-17] 프로젝트 삭제 명세 개정 반영 (409 되물음) ✅
+
+근거: `.ai/API.md` 139 전면 개정 (2026-08-13 백엔드 변경분)
+이슈: #194
+
+삭제 조건(`진행 전` + 스텝 0개)이 폐기되고 **하위 계층 전파 삭제 + 409 되물음**으로 바뀌었다.
+기존 화면은 조건 미달 프로젝트의 삭제 버튼을 아예 잠가 두어, 새 명세에서는 **삭제할 방법이 없는 상태**였다.
+
+### 변경 파일
+
+| 파일                                                     | 변경                                                                  |
+| -------------------------------------------------------- | --------------------------------------------------------------------- |
+| `.ai/API.md`                                             | 수정 — 139 전면 재작성 (`confirm` 쿼리 · 2단계 표 · 함께 지워지는 것) |
+| `src/features/project/errorCodes.ts`                     | 수정 — `deleteNotAllowed` **삭제** → `deleteConfirmRequired`          |
+| `src/features/project/api.ts`                            | 수정 — `deleteProject(id, { confirm, signal })`                       |
+| `src/features/project/settings/DeleteProjectModal.tsx`   | 수정 — 409 되물음 2단계 처리                                          |
+| `src/features/project/settings/DeleteProjectSection.tsx` | 수정 — 상태·스텝 수 잠금 제거                                         |
+
+### 주요 작업 내용
+
+- **2단계 삭제** — 첫 호출이 409 `PROJECT_DELETE_CONFIRM_REQUIRED` 면 `confirm=true` 로 재요청 (블록 삭제 47 과 같은 패턴)
+- **되물음 문구는 서버 `message` 를 그대로** 띄운다 — 삭제될 스텝 수가 담겨 온다. 되물음 상태에서 버튼 라벨이 `그래도 삭제` 로 바뀐다
+- **섹션의 사전 잠금 제거** — 종결·진행 중이어도 언제든 누를 수 있다. 권한(`EDITOR`)과 로딩만 본다
+- 안내 문구를 하위 계층 전파(스테이지 · 스텝 · 블록 · 이슈) + 복구 없음으로 교체
+
+### 부수 결정
+
+| 결정                                                     | 이유                                                                                                      |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `PROJECT_DELETE_NOT_ALLOWED` 상수를 남기지 않고 **삭제** | 폐기된 코드라 서버가 절대 보내지 않는다. 남기면 죽은 분기가 계속 읽힌다                                   |
+| "종결로 처리해주세요" 유도 문구 제거                     | 명세상 폐기 — 삭제를 막는 안내라 사용자가 삭제할 길을 못 찾는다. 종결은 섹션 하단에 **선택지**로만 남긴다 |
+
+---
+
+## [2026-08-17] 학력 · 자격증 연동 — 마스터 항목 관리 · 사원 등록/상세/수정 ✅
+
+브랜치: `feat/education-certificate` · API: `.ai/API.md` 155~~158 신설 · 31 · 32 · 33 · 87~~89 갱신
+
+사원에 학력 · 자격증을 붙였다. 값은 **관리자가 만든 목록에서 고른다** — 자유입력을 두면
+`컴퓨터공학` · `컴퓨터 공학` 처럼 같은 뜻이 여러 표기로 쌓여 나중에 묶을 수 없다.
+전공과 자격증은 규칙이 같아 도메인 하나로 다뤘다.
+
+### 변경 파일
+
+| 파일                                                                             | 변경                                            |
+| -------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `src/features/masterItem/{types,api,errorCodes}.ts`                              | **생성** — 전공 · 자격증 공용 계층              |
+| `src/features/masterItem/MasterItemPanel.tsx`                                    | **생성** — 목록 한 벌 (추가 · 이름 수정 · 삭제) |
+| `src/features/masterItem/QualificationScreen.tsx`                                | **생성** — 두 목록을 한 화면에                  |
+| `src/features/masterItem/QualificationFields.tsx`                                | **생성** — 사원 폼이 함께 쓰는 입력 섹션        |
+| `src/app/settings/qualifications/page.tsx`                                       | **생성** — 라우트                               |
+| `src/app/settings/page.tsx` · `src/constants/endpoints.ts`                       | 수정 — 허브 카드 · 경로                         |
+| `src/features/employee/types.ts`                                                 | 수정 — 등록 · 수정 요청 · 상세 응답 필드        |
+| `src/features/employee/{EmployeeCreateForm,EmployeeDetail,EmployeeEditForm}.tsx` | 수정 — 입력 · 표시 · 수정                       |
+| `src/features/employee/BulkUploadModal.tsx`                                      | 수정 — 템플릿 8열 → 10열 안내                   |
+
+### 주요 작업 내용
+
+- **항목 관리 화면** — 전공 · 자격증을 한 화면에서 추가 · 이름 수정 · 삭제한다. 쓰는 사원 수를 함께 보여 지울지 판단할 근거를 준다
+- **사원 등록 · 수정** — 목록에서 골라 여러 줄을 담는다. 목록이 비어 있으면 항목 관리 화면으로 가는 길을 문구에 둔다
+- **사원 상세** — 학력 · 자격증이 있을 때만 카드를 세운다
+- **엑셀 일괄 등록** — 학력 `전공:학위;…` · 자격증 `자격증;…` 두 열을 안내에 추가
+
+### 부수 결정
+
+- **전공과 자격증을 한 도메인으로 다룬다** — 응답 필드명만 다르고(`majorId`/`certificateId`) 규칙이 같다. API 계층에서 공용 모양(`MasterItem`)으로 바꿔 화면은 종류만 주입받는다. 함수를 두 벌 두면 한쪽만 고치는 사고가 난다
+- **삭제는 잠금과 409 를 둘 다 둔다** — `deletable` 로 버튼을 잠가도 목록을 띄워 둔 사이 누가 그 항목으로 등록하면 잠금은 지난 판단이 된다
+- **수정은 손대지 않으면 키를 뺀다** — 학력 · 자격증은 전체 교체라 `[]` 가 곧 삭제다. 편집 여부를 **보낼 모양끼리 비교**해 판단한다(화면 상태로 비교하면 빈 줄을 추가했다 지워도 바뀐 것으로 읽힌다)
+- **고르지 않은 줄은 보내기 전에 걸러낸다** — `majorId: 0` 을 보내면 404 가 오고 사용자는 어느 줄이 문제인지 알 수 없다
+- **행 오류 문구는 서버 것을 그대로 쓴다** — 엑셀 검증의 `EDU_NOT_FOUND` · `CERT_NOT_FOUND` 는 표가 이미 `message` 를 띄우고 있어 분기를 늘리지 않았다
+
+---
+
 ## [2026-08-17] 정산 현황 화면 ✅
 
 브랜치: `feat/education-certificate` 에서 이어짐 (정산 현황 작업분) · API: `.ai/API.md` 재무 도메인에 3종 추가
@@ -16,16 +458,16 @@
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/components/DataTable.tsx` | 수정 — `renderExpanded` 추가 (행 아래 펼침 줄) |
-| `src/features/finance/SettlementStatusList.tsx` | **생성** — 목록 · 필터 · 페이징 |
+| 파일                                            | 변경                                           |
+| ----------------------------------------------- | ---------------------------------------------- |
+| `src/components/DataTable.tsx`                  | 수정 — `renderExpanded` 추가 (행 아래 펼침 줄) |
+| `src/features/finance/SettlementStatusList.tsx` | **생성** — 목록 · 필터 · 페이징                |
 | `src/features/finance/SettlementRoundPanel.tsx` | **생성** — 회차 표 (매칭 처리자 · 계좌 펼치기) |
-| `src/features/finance/{types,api,display}.ts` | 수정 — 타입 · 조회 3종 · 상태 판정 |
-| `src/constants/endpoints.ts` | 수정 — `finance.settlements` 3경로 |
-| `src/app/finance/settlements/page.tsx` | 수정 — stub → 화면 연결 |
-| `src/features/finance/FinanceHub.tsx` | 수정 — `준비 중` 해제 |
-| `src/features/project/useProjectPermission.ts` | 수정 — `queryFn: skipToken` |
+| `src/features/finance/{types,api,display}.ts`   | 수정 — 타입 · 조회 3종 · 상태 판정             |
+| `src/constants/endpoints.ts`                    | 수정 — `finance.settlements` 3경로             |
+| `src/app/finance/settlements/page.tsx`          | 수정 — stub → 화면 연결                        |
+| `src/features/finance/FinanceHub.tsx`           | 수정 — `준비 중` 해제                          |
+| `src/features/project/useProjectPermission.ts`  | 수정 — `queryFn: skipToken`                    |
 
 ### 주요 작업 내용
 
@@ -49,17 +491,18 @@
 
 ### 트러블슈팅
 
-| 항목 | 내용 |
-| ---- | ---- |
-| 증상 | 프로젝트 화면에서 콘솔에 `No queryFn was passed` 오류 |
+| 항목 | 내용                                                                                                                      |
+| ---- | ------------------------------------------------------------------------------------------------------------------------- |
+| 증상 | 프로젝트 화면에서 콘솔에 `No queryFn was passed` 오류                                                                     |
 | 원인 | `useProjectPermission` 이 캐시만 읽으려고 `enabled: false` 만 두었다. react-query v5 는 `queryFn` 이 없으면 오류를 남긴다 |
-| 해결 | `queryFn: skipToken` — "이 쿼리는 실행하지 않는다" 를 값으로 밝힌다 |
+| 해결 | `queryFn: skipToken` — "이 쿼리는 실행하지 않는다" 를 값으로 밝힌다                                                       |
 
 ### 확인
 
 - `npx tsc --noEmit` · `npx eslint src` · `prettier` 통과
 - `/finance/settlements` 실동작 — 목록 10건 · 회차 3건 · 필터 · 열 폭 100% 확인
 - ⏳ 페이지 넘김은 데이터가 1페이지뿐이라 미확인
+
 ## [2026-08-17] AI 블록 결과에 마크다운 적용 ✅
 
 브랜치: `user/project` · API: 변경 없음 · 이슈: #188
@@ -68,11 +511,11 @@ AI 결과는 두 경로로 그려진다 — `parseResult` 가 구조를 못 찾�
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/components/InlineMarkdown.tsx` | **생성** — 인라인 전용 렌더 (`**굵게**` · `*기울임*` · `***둘다***` · `` `코드` `` · `~~취소~~`) |
-| `src/features/vitamate/types.ts` | 수정 (`ResultBlock` 신설 · `headingOf` 가 `level` 까지 반환 · `parseResult` 가 소제목/문단/목록 보존) |
-| `src/features/vitamate/AnalysisResultView.tsx` | 수정 (`BlockList` · `HEADING_SIZE` 추가 · 지적 사항 제목·상세와 경고 배너에 `InlineMarkdown` 적용) |
+| 파일                                           | 변경                                                                                                  |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `src/components/InlineMarkdown.tsx`            | **생성** — 인라인 전용 렌더 (`**굵게**` · `*기울임*` · `***둘다***` · `` `코드` `` · `~~취소~~`)      |
+| `src/features/vitamate/types.ts`               | 수정 (`ResultBlock` 신설 · `headingOf` 가 `level` 까지 반환 · `parseResult` 가 소제목/문단/목록 보존) |
+| `src/features/vitamate/AnalysisResultView.tsx` | 수정 (`BlockList` · `HEADING_SIZE` 추가 · 지적 사항 제목·상세와 경고 배너에 `InlineMarkdown` 적용)    |
 
 ### 주요 작업 내용
 
@@ -107,14 +550,14 @@ AI 결과는 두 경로로 그려진다 — `parseResult` 가 구조를 못 찾�
 
 ### 검증
 
-| 항목 | 결과 |
-| ---- | ---- |
-| `parseResult` 표본 파싱 (소제목 · 문단 · 목록 · 지적 2건 · 경고) | ✅ 구획·`level`·항목 분리 확인 · 폴백(`null`) 유지 |
-| 리뷰 회귀 — `## 지적 사항` 뒤 목록 아닌 줄 | ✅ 요약으로 새지 않고 첫 항목으로 남음 |
-| 삼중 강조 중첩 (`***…`` `코드` ``***` · `***~~취소~~***`) | ✅ 안쪽 문법 렌더 |
-| 인라인 패턴 17개 케이스 (`3 * 4 * 5` · `2 ** 3` · `snake_case` · 짝 없는 `**` 포함) | ✅ 오탐 0 |
-| `npx tsc --noEmit` · `eslint` · `prettier --check` | ✅ 에러 0 |
-| 실화면 동작 확인 | ⏳ 남음 |
+| 항목                                                                                | 결과                                               |
+| ----------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `parseResult` 표본 파싱 (소제목 · 문단 · 목록 · 지적 2건 · 경고)                    | ✅ 구획·`level`·항목 분리 확인 · 폴백(`null`) 유지 |
+| 리뷰 회귀 — `## 지적 사항` 뒤 목록 아닌 줄                                          | ✅ 요약으로 새지 않고 첫 항목으로 남음             |
+| 삼중 강조 중첩 (`***…`` `코드` ``***` · `***~~취소~~***`)                           | ✅ 안쪽 문법 렌더                                  |
+| 인라인 패턴 17개 케이스 (`3 * 4 * 5` · `2 ** 3` · `snake_case` · 짝 없는 `**` 포함) | ✅ 오탐 0                                          |
+| `npx tsc --noEmit` · `eslint` · `prettier --check`                                  | ✅ 에러 0                                          |
+| 실화면 동작 확인                                                                    | ⏳ 남음                                            |
 
 ---
 
@@ -126,10 +569,10 @@ AI 결과는 두 경로로 그려진다 — `parseResult` 가 구조를 못 찾�
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/features/block/textDraft.ts` | 수정 (`putAutoDraft` 삭제 · `addManualDraft` → `saveTextDraft` · `kind`/`TextDraftKind` 제거 · 넘침 처리 단순화) |
-| `src/features/block/TextBlockModal.tsx` | 수정 (디바운스 자동저장 `useEffect` 삭제 · `keptDraft` 파생값 도입 · 이탈 확인 조건 · 푸터 · 버튼 · 목록 배지) |
+| 파일                                    | 변경                                                                                                             |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `src/features/block/textDraft.ts`       | 수정 (`putAutoDraft` 삭제 · `addManualDraft` → `saveTextDraft` · `kind`/`TextDraftKind` 제거 · 넘침 처리 단순화) |
+| `src/features/block/TextBlockModal.tsx` | 수정 (디바운스 자동저장 `useEffect` 삭제 · `keptDraft` 파생값 도입 · 이탈 확인 조건 · 푸터 · 버튼 · 목록 배지)   |
 
 ### 주요 작업 내용
 
@@ -152,11 +595,11 @@ AI 결과는 두 경로로 그려진다 — `parseResult` 가 구조를 못 찾�
 
 ### 검증
 
-| 명령 | 결과 |
-| ---- | ---- |
-| `npx tsc --noEmit` | ✅ 에러 0 |
+| 명령                      | 결과               |
+| ------------------------- | ------------------ |
+| `npx tsc --noEmit`        | ✅ 에러 0          |
 | `npx eslint` (변경 2파일) | ✅ 에러 0 · 경고 0 |
-| 실화면 동작 확인 | ⏳ 남음 |
+| 실화면 동작 확인          | ⏳ 남음            |
 
 ---
 
@@ -169,16 +612,16 @@ AI 결과는 두 경로로 그려진다 — `parseResult` 가 구조를 못 찾�
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/features/file/FileViewerModal.tsx` | 수정 (버전 이력 · 미리보기) |
-| `src/features/file/LazyFileViewer.tsx` · `block/FileBlock.tsx` | 수정 (문서 뷰어 청크 폴백) |
-| `src/features/companyDocument/CompanyDocumentViewerModal.tsx` | 수정 (버전 목록 · 미리보기 2곳) |
-| `src/features/approval/ApprovalDocumentModal.tsx` | 수정 (PDF 뷰어 폴백) |
-| `src/features/block/ImageEditModal.tsx` | 수정 (이미지 목록) |
-| `src/features/vitamate/AnalysisRunModal.tsx` · `FileVersionPickerModal.tsx` | 수정 (검토 유형 · 문서 목록) |
-| `src/features/vitamate/AnalysisHistoryPanel.tsx` | 수정 (분석 이력 · 결과) |
-| `src/features/bidding/NoticeSummaryCard.tsx` | 수정 (`SummarySkeleton` 함수 삭제 — `AI 요약` 모달 전용 컴포넌트) |
+| 파일                                                                        | 변경                                                              |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `src/features/file/FileViewerModal.tsx`                                     | 수정 (버전 이력 · 미리보기)                                       |
+| `src/features/file/LazyFileViewer.tsx` · `block/FileBlock.tsx`              | 수정 (문서 뷰어 청크 폴백)                                        |
+| `src/features/companyDocument/CompanyDocumentViewerModal.tsx`               | 수정 (버전 목록 · 미리보기 2곳)                                   |
+| `src/features/approval/ApprovalDocumentModal.tsx`                           | 수정 (PDF 뷰어 폴백)                                              |
+| `src/features/block/ImageEditModal.tsx`                                     | 수정 (이미지 목록)                                                |
+| `src/features/vitamate/AnalysisRunModal.tsx` · `FileVersionPickerModal.tsx` | 수정 (검토 유형 · 문서 목록)                                      |
+| `src/features/vitamate/AnalysisHistoryPanel.tsx`                            | 수정 (분석 이력 · 결과)                                           |
+| `src/features/bidding/NoticeSummaryCard.tsx`                                | 수정 (`SummarySkeleton` 함수 삭제 — `AI 요약` 모달 전용 컴포넌트) |
 
 ### 주요 작업 내용
 
@@ -204,16 +647,16 @@ AI 결과는 두 경로로 그려진다 — `parseResult` 가 구조를 못 찾�
 
 ### 변경 파일
 
-| 파일 | 변경 |
-| ---- | ---- |
-| `src/constants/endpoints.ts` | 수정 — `files.adminTree` 4종 추가 |
-| `src/features/file/types.ts` | 수정 — `AdminTreeProject` · `AdminTreeStage` · `AdminTreeStep` 추가, 소유 구조 주석 D안 반영 |
-| `src/features/file/api.ts` | 수정 — `getAdminTreeProjects` · `getAdminTreeStages` · `getAdminTreeSteps` · `getAdminStepFiles` 추가 |
-| `src/features/file/errorCodes.ts` | 수정 — `stepNotFound`(`FILE_STEP_NOT_FOUND`) 추가 |
-| `src/features/file/AdminFileExplorer.tsx` | 수정 — 트리 API 로 전면 교체 (단계별 lazy 조회) |
-| `src/features/file/AdminFileList.tsx` | 수정 — 스텝 자리에서 §14.4 로 전환 · 필터 줄 숨김 · 404 안내 |
-| `src/features/block/BlockDeleteModal.tsx` | 수정 — 409 두 종류 분기 · 문서 휴지통행 안내 |
-| `src/features/project/step/StepDeleteModal.tsx` | 수정 — cascade 안내 · 409 `FILE_APPROVAL_IN_PROGRESS` 분기 |
+| 파일                                            | 변경                                                                                                  |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `src/constants/endpoints.ts`                    | 수정 — `files.adminTree` 4종 추가                                                                     |
+| `src/features/file/types.ts`                    | 수정 — `AdminTreeProject` · `AdminTreeStage` · `AdminTreeStep` 추가, 소유 구조 주석 D안 반영          |
+| `src/features/file/api.ts`                      | 수정 — `getAdminTreeProjects` · `getAdminTreeStages` · `getAdminTreeSteps` · `getAdminStepFiles` 추가 |
+| `src/features/file/errorCodes.ts`               | 수정 — `stepNotFound`(`FILE_STEP_NOT_FOUND`) 추가                                                     |
+| `src/features/file/AdminFileExplorer.tsx`       | 수정 — 트리 API 로 전면 교체 (단계별 lazy 조회)                                                       |
+| `src/features/file/AdminFileList.tsx`           | 수정 — 스텝 자리에서 §14.4 로 전환 · 필터 줄 숨김 · 404 안내                                          |
+| `src/features/block/BlockDeleteModal.tsx`       | 수정 — 409 두 종류 분기 · 문서 휴지통행 안내                                                          |
+| `src/features/project/step/StepDeleteModal.tsx` | 수정 — cascade 안내 · 409 `FILE_APPROVAL_IN_PROGRESS` 분기                                            |
 
 ### 주요 작업 내용
 
@@ -235,6 +678,7 @@ AI 결과는 두 경로로 그려진다 — `parseResult` 가 구조를 못 찾�
 - API 4종 응답 필드 · 에러코드가 구현과 일치하는지 대조 완료
 - `/settings/files` 실동작 확인 — 프로젝트 14건 → 스테이지(미분류 포함) → 스텝 → 스텝 파일 조회, 블록 삭제 후 휴지통 이동 · 복구까지 확인
 - 확인 중 발견: 삭제된 스텝의 문서와 복구된 문서는 탐색기에 나오지 않는다 (`STATE.md` 백로그 등록)
+
 ## [2026-08-16] 권한 없는 사용자에게 노출되던 수정 버튼 정리 · 내 권한 표시 ✅ (#180)
 
 브랜치: `ref-ys` · API: 변경 없음 · 이슈: #180

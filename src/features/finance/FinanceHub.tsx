@@ -12,12 +12,7 @@ import type { FinanceSummary } from './types';
 
 type FinanceIcon = 'cashFlow' | 'taxInvoice' | 'settlement';
 
-/**
- * 화면이 그리는 두 수치.
- *
- * ⚠️ 정산 현황만 응답 필드가 `totalCount` 가 아니라 `inProgressCount` 라
- *    항목마다 `pick` 에서 이 모양으로 맞춰 준다.
- */
+/** 화면이 그리는 두 수치. 항목마다 pick 에서 이 모양으로 맞춘다 */
 interface SummaryNumbers {
   unlinkedCount: number;
   totalCount: number;
@@ -28,15 +23,15 @@ interface FinanceItem {
   label: string;
   description: string;
   href: string;
-  /** 화면이 아직 없는 항목 — 눌러도 갈 곳이 없어 링크를 걸지 않는다 */
+  /** 화면이 아직 없는 항목. 링크를 걸지 않는다 */
   isComingSoon?: boolean;
   /** 요약 응답에서 이 항목의 수치를 꺼낸다 */
   pick: (summary: FinanceSummary) => SummaryNumbers;
-  /** 우측 두 번째 수치의 이름 — 정산 현황만 '전체' 가 아니라 '진행 중' 이다 */
+  /** 두 번째 수치의 이름. 항목마다 다르다 */
   totalLabel: string;
 }
 
-/** 재무 허브 구성. 재무 화면을 추가하면 여기에만 항목을 넣는다 */
+/** 재무 허브 구성. 화면을 추가하면 여기에만 항목을 넣는다 */
 const ITEMS: FinanceItem[] = [
   {
     icon: 'cashFlow',
@@ -59,7 +54,7 @@ const ITEMS: FinanceItem[] = [
     label: '정산 현황',
     description: '정산이 끝나지 않은 프로젝트를 한눈에 확인합니다.',
     href: FINANCE_ROUTES.settlements,
-    // 정산 현황만 두 번째 수치가 '진행 중 프로젝트' 다
+    // 정산 현황만 두 번째 수치가 진행 중 프로젝트 수다
     pick: (summary) => ({
       unlinkedCount: summary.settlement.unlinkedCount,
       totalCount: summary.settlement.inProgressCount,
@@ -69,13 +64,8 @@ const ITEMS: FinanceItem[] = [
 ];
 
 /**
- * 재무 관리 허브. 사이드바 `재무 관리` 의 진입 화면이다.
- *
- * 전사 관리 허브(`/settings`)와 같은 구조지만, 항목마다 **미연결 건수**를 함께 보여준다 —
- * 재무에서 급한 일은 언제나 "아직 연결 안 된 것" 이라 목록에 들어가기 전에 알아야 한다.
- *
- * 수치 조회가 실패해도 화면은 그대로 쓴다 — 이동만 하면 되는 허브를 통째로
- * 오류 화면으로 덮을 이유가 없다. 수치 자리만 비운다.
+ * 재무 관리 허브. 항목마다 미연결 건수를 함께 보여준다.
+ * 수치 조회가 실패해도 수치 자리만 비우고 화면은 그대로 쓴다.
  */
 export default function FinanceHub() {
   const [summary, setSummary] = useState<FinanceSummary | null>(null);
@@ -97,8 +87,10 @@ export default function FinanceHub() {
 
   return (
     <>
-      <p className="text-caption text-text-secondary">재무 관리</p>
+      {/* 다른 화면과 자리 · 간격을 맞추려고 같은 컴포넌트를 쓴다 */}
+      {/* 최상위 화면이라 경로를 두지 않는다 (제목과 같은 말이 반복된다) */}
       <PageTitle
+        variant="top"
         title="재무 관리"
         description="입출금 내역 · 세금계산서 · 정산 현황을 한 곳에서 관리합니다."
       />
@@ -150,10 +142,7 @@ function FinanceRow({
     </>
   );
 
-  /**
-   * ⚠️ 화면이 없는 항목은 **링크를 걸지 않는다** — 눌러서 빈 화면을 만나는 것보다
-   *    `준비 중` 을 보고 안 누르는 편이 낫다. 수치는 그대로 보여준다.
-   */
+  /* 화면이 없는 항목은 링크를 걸지 않고 준비 중으로 알린다 */
   if (item.isComingSoon) {
     return (
       <div className="flex items-center gap-4 px-5 py-4 opacity-60">{body}</div>
@@ -171,7 +160,7 @@ function FinanceRow({
   );
 }
 
-/** 미연결 건수 · 전체 건수. 조회 실패 시에는 아무것도 그리지 않는다 */
+/** 미연결 건수 · 전체 건수. 조회에 실패하면 아무것도 그리지 않는다 */
 function SummaryCount({
   item,
   count,
@@ -212,7 +201,7 @@ function SummaryCount({
   );
 }
 
-/** 아이콘 라이브러리 도입 전까지 인라인 SVG 로 둔다 (전사 관리 허브와 같은 방식) */
+/** 아이콘 라이브러리 도입 전까지 인라인 SVG 로 둔다 */
 const ICON_PATHS: Record<FinanceIcon, React.ReactNode> = {
   cashFlow: (
     <>

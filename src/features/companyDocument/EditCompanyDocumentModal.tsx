@@ -15,13 +15,11 @@ import {
 } from './types';
 
 /**
- * 사내 문서 표시명 · 분류 수정. (`.ai/API.md` 149)
- *
- * **바뀐 필드만** 보낸다 — 둘 다 없으면 백엔드가 400(`CDOC_INVALID_REQUEST`)을 준다.
- * 원본 파일명은 바뀌지 않는다 (버전마다 저장된 값이다).
+ * 사내 문서 표시명 · 분류 수정. 바뀐 필드만 보낸다 (둘 다 없으면 400).
+ * 원본 파일명은 버전마다 저장된 값이라 바뀌지 않는다.
  */
 export default function EditCompanyDocumentModal({
-  // ⚠️ prop 이름을 `document` 로 두지 않는다 — 브라우저 전역 `document` 를 가린다
+  // prop 이름을 document 로 두지 않는다. 브라우저 전역 document 를 가린다
   item,
   onClose,
   onSaved,
@@ -72,7 +70,7 @@ export default function EditCompanyDocumentModal({
     <PanelModal
       title="사내 문서 수정"
       onClose={() => {
-        // 저장 중에는 닫지 않는다 — 요청은 계속 날아가 목록에 반영된다
+        // 저장 중에는 닫지 않는다. 요청은 계속 날아가 목록에 반영된다
         if (!isSubmitting) onClose();
       }}
     >

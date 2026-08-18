@@ -1,9 +1,6 @@
-/**
- * 설정 화면의 카드 한 칸 — 다섯 섹션이 같은 테두리 · 여백을 쓴다.
- *
- * ⚠️ 컨테이너(`ProjectSettings`)가 아니라 **여기에 둔다** — 컨테이너가 각 섹션을
- *    가져다 쓰는데 섹션이 다시 컨테이너에서 이걸 가져오면 순환 참조다 (`labels.ts` 주석 참고).
- */
+// 설정 화면의 카드 한 칸 — 다섯 섹션이 같은 테두리·여백을 쓴다.
+// 컨테이너(ProjectSettings)가 아니라 여기에 둔다 — 컨테이너가 각 섹션을
+// 가져다 쓰는데 섹션이 다시 컨테이너에서 이걸 가져오면 순환 참조다 (labels.ts 주석 참고).
 export default function SettingsSection({
   title,
   description,
@@ -12,7 +9,7 @@ export default function SettingsSection({
 }: {
   title: string;
   description?: string;
-  /** 제목 줄 오른쪽에 붙는 버튼 (예: `참여자 추가`) */
+  /** 제목 줄 오른쪽에 붙는 버튼 (예: 참여자 추가) */
   action?: React.ReactNode;
   children: React.ReactNode;
 }) {

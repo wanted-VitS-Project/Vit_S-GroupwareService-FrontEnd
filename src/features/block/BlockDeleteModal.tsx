@@ -18,12 +18,9 @@ export default function BlockDeleteModal({
 }: {
   blockId: number;
   blockTitle: string;
-  /**
-   * 세금계산서 · 입출금이 연결된 정산 블록인지.
-   *
-   * 삭제 자체는 막히지 않는다 (백엔드 설계) — 대신 지운 뒤 재무 쪽 입출금이
-   * `블록 삭제됨` 으로 남는다는 것을 **확인 전에** 알려준다.
-   */
+  // 세금계산서·입출금이 연결된 정산 블록인지.
+  // 삭제 자체는 막히지 않는다 (백엔드 설계) — 대신 지운 뒤 재무 쪽 입출금이
+  // 블록 삭제됨 으로 남는다는 것을 확인 전에 알려준다.
   isLinkedSettlement?: boolean;
   onClose: () => void;
   /** 지운 블록을 알려준다 — 받는 쪽이 재조회 없이 목록에서 빼낼 수 있게 */
@@ -31,13 +28,10 @@ export default function BlockDeleteModal({
 }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  /**
-   * 결재 블록이라 서버가 되물은 문구. 비어 있지 않으면 **2단계**다.
-   *
-   * ⚠️ 이 문구를 프론트에서 만들지 않는다 — 결재 상태(진행 중 · 반려 · 완료)마다
-   *    무엇을 잃는지가 다르고, 그 판단은 서버만 할 수 있다.
-   *    **분기는 `code` 로, 표시는 `message` 로** 한다.
-   */
+  // 결재 블록이라 서버가 되물은 문구. 비어 있지 않으면 2단계다.
+  // 이 문구를 프론트에서 만들지 않는다 — 결재 상태(진행 중·반려·완료)마다
+  // 무엇을 잃는지가 다르고, 그 판단은 서버만 할 수 있다.
+  // 분기는 code 로, 표시는 message 로 한다.
   const [approvalWarning, setApprovalWarning] = useState('');
 
   async function remove() {

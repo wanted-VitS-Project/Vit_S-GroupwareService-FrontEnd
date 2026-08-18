@@ -3,11 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * 알림 한 줄의 케밥 메뉴. `삭제` · `읽음` · `취소`.
- *
- * `취소` 는 **메뉴를 닫기만 한다** — 읽음을 되돌리는 API 는 없다.
- * 이미 읽은 알림에는 `읽음` 을 아예 그리지 않는다. 누를 수 없는 항목이 떠 있으면
- * 왜 안 되는지 알 수 없다.
+ * 알림 한 줄의 케밥 메뉴 (삭제 · 읽음 · 취소).
+ * 이미 읽은 알림에는 '읽음' 을 그리지 않는다.
  */
 export default function NotificationMenu({
   canRead,
@@ -41,7 +38,7 @@ export default function NotificationMenu({
     };
   }, [isOpen]);
 
-  /** 고르면 메뉴를 먼저 닫는다 — 열린 채로 목록이 바뀌면 엉뚱한 줄 위에 떠 있게 된다 */
+  /** 항목을 고르면 메뉴부터 닫는다 */
   function choose(run: () => void) {
     setIsOpen(false);
     run();

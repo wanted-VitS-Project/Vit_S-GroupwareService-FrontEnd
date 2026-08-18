@@ -22,15 +22,10 @@ import {
   ROLE_LABEL,
 } from './types';
 
-/**
- * 비타메이트 분석 실행 · 수정 화면.
- *
- * 사용자는 프롬프트를 백지에서 쓰지 않는다 — 카테고리를 고르면 서버가 준
- * `exampleText` 가 입력창에 채워지고, 그걸 확인·보완하는 흐름이다.
- * 이미 손댄 프롬프트는 카테고리를 더 골라도 덮어쓰지 않는다.
- *
- * `previous` 를 주면 그 분석의 설정을 그대로 되살린다 (수정 · 재실행).
- */
+// 비타메이트 분석 실행·수정 화면.
+// 프롬프트를 백지에서 쓰지 않는다 — 카테고리를 고르면 서버가 준 exampleText 가 채워지고
+// 그걸 확인·보완하는 흐름이다. 이미 손댄 프롬프트는 카테고리를 더 골라도 덮어쓰지 않는다.
+// previous 를 주면 그 분석의 설정을 그대로 되살린다 (수정·재실행).
 export default function AnalysisRunModal({
   blockId,
   projectId,
@@ -46,7 +41,7 @@ export default function AnalysisRunModal({
   onClose: () => void;
 }) {
   const [reviewTypes, setReviewTypes] = useState<ReviewType[] | null>(null);
-  /** 인덱싱이 끝나면 목록이 알아서 갱신된다 (읽는 중인 문서가 없으면 폴링 안 함) */
+  // 인덱싱이 끝나면 목록이 알아서 갱신된다 (읽는 중인 문서가 없으면 폴링 안 함).
   const {
     versions,
     loadError: versionsError,
@@ -58,7 +53,7 @@ export default function AnalysisRunModal({
     previous?.reviewCategoryCodes ?? [],
   );
   const [prompt, setPrompt] = useState(previous?.prompt ?? '');
-  /** 사용자가 프롬프트를 직접 건드렸는지 — 건드린 뒤에는 자동으로 안 바꾼다 */
+  // 사용자가 프롬프트를 직접 건드렸는지 — 건드린 뒤에는 자동으로 안 바꾼다.
   const isPromptTouched = useRef(Boolean(previous?.prompt));
 
   const [referenceIds, setReferenceIds] = useState<number[]>(() =>
@@ -67,24 +62,21 @@ export default function AnalysisRunModal({
   const [targetIds, setTargetIds] = useState<number[]>(() =>
     idsOf(previous, 'TARGET'),
   );
-  /** 열려 있는 문서 선택 모달의 역할 */
+  // 열려 있는 문서 선택 모달의 역할.
   const [pickerRole, setPickerRole] = useState<DocumentRole | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  /**
-   * 중복 방지 키. **보낸 내용이 그대로면 키도 그대로** 유지해야
-   * 네트워크가 끊겨 다시 눌렀을 때 분석이 두 건 생기지 않는다.
-   * 내용이 바뀌면 새 분석이므로 키를 새로 만든다 (같은 키 + 다른 내용은 409).
-   */
+  // 중복 방지 키. 보낸 내용이 그대로면 키도 그대로 유지해야 네트워크가 끊겨
+  // 다시 눌렀을 때 분석이 두 건 생기지 않는다. 내용이 바뀌면 새 키를 만든다.
   const lastSent = useRef<{ key: string; body: string } | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
 
-    // 공유 캐시라 취소되지 않는다 — 받은 뒤 이 화면이 아직 살아 있는지 본다
+    // 공유 캐시라 취소되지 않는다 — 받은 뒤 이 화면이 아직 살아 있는지 본다.
     getReviewTemplates()
       .then((data) => {
         if (!signal.aborted) setReviewTypes(data);
@@ -96,22 +88,16 @@ export default function AnalysisRunModal({
     return () => controller.abort();
   }, []);
 
-  /**
-   * 전송 중에는 닫지 않는다.
-   *
-   * 닫아 버리면 `202` 응답이 **사라진 화면으로** 돌아온다 — 서버에는 분석이
-   * 만들어졌는데 프론트는 그 `analysisId` 를 몰라, 블록이 옛 결과를 계속 보여준다.
-   * ESC · 배경 클릭도 이 함수를 거친다.
-   */
+  // 전송 중에는 닫지 않는다 (ESC·배경 클릭도 이 함수를 거친다).
+  // 닫아 버리면 202 응답이 사라진 화면으로 돌아와, 서버에는 분석이 만들어졌는데
+  // 프론트는 그 analysisId 를 몰라 블록이 옛 결과를 계속 보여준다.
   function requestClose() {
     if (isSubmitting) return;
     onClose();
   }
 
-  /**
-   * 유형이 하나뿐이면 고를 것이 없다 — 탭을 눌러야 진행되는 화면을 만들지 않는다.
-   * state 로 밀어 넣지 않고 계산으로 둔다 (목록이 늦게 와도 한 번에 맞는다).
-   */
+  // 유형이 하나뿐이면 고를 것이 없다 — 탭을 눌러야 진행되는 화면을 만들지 않는다.
+  // state 로 밀어 넣지 않고 계산으로 둔다 (목록이 늦게 와도 한 번에 맞는다).
   const effectiveType =
     selectedType ||
     (reviewTypes?.length === 1 ? reviewTypes[0].reviewType : '');
@@ -127,7 +113,7 @@ export default function AnalysisRunModal({
 
     setSelectedCategories(next);
 
-    // 사용자가 쓴 글을 지우지 않는다. 아직 안 건드렸을 때만 기본값을 채운다
+    // 사용자가 쓴 글을 지우지 않는다. 아직 안 건드렸을 때만 기본값을 채운다.
     if (isPromptTouched.current) return;
     setPrompt(
       buildDefaultPrompt(
@@ -138,7 +124,7 @@ export default function AnalysisRunModal({
 
   function changeType(reviewType: string) {
     setSelectedType(reviewType);
-    // 카테고리는 유형 안에서만 뜻이 있다 — 유형이 바뀌면 같이 비운다
+    // 카테고리는 유형 안에서만 뜻이 있다 — 유형이 바뀌면 같이 비운다.
     setSelectedCategories([]);
     if (!isPromptTouched.current) setPrompt('');
   }
@@ -177,7 +163,7 @@ export default function AnalysisRunModal({
       const created = await createAnalysis(blockId, body, key);
       onRequested(created.analysisId);
     } catch (caught) {
-      // 같은 키로 내용이 다른 요청이 이미 처리 중이다
+      // 같은 키로 내용이 다른 요청이 이미 처리 중이다.
       if (caught instanceof ApiError && caught.status === 409) {
         setError(
           '이미 다른 분석 요청이 처리 중입니다. 잠시 후 다시 시도해주세요.',
@@ -193,11 +179,7 @@ export default function AnalysisRunModal({
     <Modal
       title="비타메이트 검토 실행"
       onClose={requestClose}
-      /*
-       * 높이를 **고정**한다. 목록이 늦게 오거나 카테고리 · 문서 칩이 늘고 줄 때마다
-       * 패널이 커졌다 작아지면 버튼 위치가 흔들려 잘못 누르게 된다.
-       * 남거나 모자란 만큼은 본문이 안에서 스크롤한다.
-       */
+      /* 높이를 고정한다 — 칩이 늘고 줄 때마다 패널이 커졌다 작아지면 버튼 위치가 흔들려 잘못 누른다 */
       className="flex h-[560px] max-h-[85vh] w-full max-w-[620px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
       header={
         <div className="flex items-center justify-between gap-2 border-b border-border-default px-5 py-3.5">
@@ -231,8 +213,8 @@ export default function AnalysisRunModal({
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {/*
-                탭이 아니라 **값 하나를 고르는** 컨트롤이다. `role="tab"` 을 쓰면
-                스크린리더가 연결된 tabpanel · 방향키 이동 · roving tabindex 를
+                탭이 아니라 값 하나를 고르는 컨트롤이다. role="tab" 을 쓰면
+                스크린리더가 연결된 tabpanel·방향키 이동·roving tabindex 를
                 기대하는데 그 동작이 없어 오히려 혼란스럽다. 눌린 상태만 알린다.
               */}
               {reviewTypes.map((type) => (
@@ -309,8 +291,8 @@ export default function AnalysisRunModal({
           <p className="text-caption text-text-danger">{versionsError}</p>
         )}
 
-        {/* 카운터는 `maxLength` 와 같은 기준(원문 길이)이어야 한다 — 공백을 뺀 수를
-            보여주면 2000 미만인데도 입력이 막혀 고장으로 보인다 */}
+        {/* 카운터는 maxLength 와 같은 기준(원문 길이)이어야 한다 — 공백을 뺀 수를 보여주면
+            상한 미만인데도 입력이 막혀 고장으로 보인다 */}
         <Field
           label="프롬프트"
           hint={`${prompt.length} / ${PROMPT_MAX_LENGTH}`}
@@ -398,17 +380,15 @@ export default function AnalysisRunModal({
   );
 }
 
-/** 직전 분석에서 그 역할의 파일 버전 ID 만 꺼낸다 */
+// 직전 분석에서 그 역할의 파일 버전 ID 만 꺼낸다.
 function idsOf(analysis: Analysis | null, role: DocumentRole) {
   return (analysis?.documents ?? [])
     .filter((document) => document.documentRole === role)
     .map((document) => document.fileVersionId);
 }
 
-/**
- * 실행을 막는 첫 번째 이유. 없으면 빈 문자열.
- * 버튼을 흐리게만 두면 왜 안 눌리는지 알 수 없어 문구까지 함께 준다.
- */
+// 실행을 막는 첫 번째 이유. 없으면 빈 문자열.
+// 버튼을 흐리게만 두면 왜 안 눌리는지 알 수 없어 문구까지 함께 준다.
 function findBlocker({
   selectedType,
   selectedCategories,
@@ -426,7 +406,7 @@ function findBlocker({
   if (selectedCategories.length === 0) return '세부 카테고리를 고르세요.';
   if (referenceIds.length === 0) return '기준 문서를 고르세요.';
   if (targetIds.length === 0) return '검토 대상 문서를 고르세요.';
-  // 서버도 400 으로 막지만, 실행을 눌러 보고 알게 되면 늦다
+  // 서버도 400 으로 막지만, 실행을 눌러 보고 알게 되면 늦다.
   if (referenceIds.some((id) => targetIds.includes(id))) {
     return '같은 문서를 기준과 대상에 함께 둘 수 없습니다.';
   }
@@ -454,7 +434,7 @@ function Field({
   );
 }
 
-/** 역할별 문서 선택 칸 — 선택된 버전을 칩으로 늘어놓는다 */
+// 역할별 문서 선택 칸 — 선택된 버전을 칩으로 늘어놓는다.
 function DocumentField({
   role,
   ids,

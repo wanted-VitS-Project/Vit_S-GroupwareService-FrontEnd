@@ -18,6 +18,13 @@ export const ENDPOINTS = {
     profileImage: `${V1}/auth/me/profile-image`,
     password: `${V1}/auth/password`,
     termsAgreements: `${V1}/auth/terms-agreements`,
+    /**
+     * 세션 남은 시간 조회. **조회 겸 연장**이다 — 부르는 순간 만료가 다시 뒤로 밀린다.
+     *
+     * ⚠️ 주기 조회(폴링) 금지. 호출이 곧 연장이라 세션이 영영 안 끊겨
+     *    "4시간 유휴면 끊는다" 는 정책이 무력화된다. 시드 · 연장 버튼에서만 부른다.
+     */
+    session: `${V1}/auth/session`,
   },
   projects: {
     /** 내 프로젝트 목록 — 권한 밖 건은 403 이 아니라 목록에서 빠진다 */
@@ -97,6 +104,21 @@ export const ENDPOINTS = {
     /** 프로젝트 전체 이슈 — 스텝별로 묶여 오고 페이징이 없다 */
     issues: (projectId: number | string) =>
       `${V1}/projects/${projectId}/issues`,
+  },
+  /**
+   * 전공(학력) · 자격증 **마스터 항목** (ADMIN 전용).
+   *
+   * 두 도메인은 구조가 같다 — 목록(`name` · `employeeCount` · `deletable`) · 생성 · 수정 · 삭제.
+   * 사원의 학력 · 자격증은 이 목록에서 **골라서** 등록한다 (자유입력이 아니다).
+   */
+  majors: {
+    root: `${V1}/majors`,
+    detail: (majorId: number | string) => `${V1}/majors/${majorId}`,
+  },
+  certificates: {
+    root: `${V1}/certificates`,
+    detail: (certificateId: number | string) =>
+      `${V1}/certificates/${certificateId}`,
   },
   businessCategories: {
     /** 목록 조회 · 생성 */
@@ -485,6 +507,13 @@ export const ENDPOINTS = {
     summaryConfirm: (summaryId: number | string) =>
       `${V1}/bidding/summaries/${summaryId}/confirm`,
     /**
+     * AI 요약 중단 (2026-08-18 연동).
+     *
+     * 검토의 `abandon` 과 짝이다 — 예전에는 요약에만 없어서 화면이 잠금 해제까지만 했다.
+     */
+    summaryAbandon: (summaryId: number | string) =>
+      `${V1}/bidding/summaries/${summaryId}/abandon`,
+    /**
      * AI 문서 검토 요청(POST) · 공고별 이력 조회(GET).
      *
      * ⚠️ 요약과 **다른 기능**이다 — 공고 첨부와 사내 문서를 비교한다 (워커도 따로다).
@@ -505,8 +534,40 @@ export const ENDPOINTS = {
      * ⚠️ **완료된 AI 문서 검토가 근거로 필수**다 — 검토에서 내려받기에 성공한 공고 첨부가
      *    정식 파일로 프로젝트에 귀속된다. 전환하지 않으면 임시 파일은 만료 시 삭제된다.
      */
+    /**
+     * 직접 등록 공고의 **첨부 파일 업로드** (2026-08-17 신설).
+     *
+     * 프로젝트 문서 · 사내 문서함과 같은 2단계다 — 발급(presigned) → 저장소에 PUT → 완료 통보.
+     * ⚠️ 공고를 먼저 만들어 `noticeId` 를 받아야 부를 수 있다.
+     */
+    noticeAttachmentUploads: (noticeId: number | string) =>
+      `${V1}/bidding/notices/${noticeId}/attachments/uploads`,
+    noticeAttachmentUploadComplete: (
+      noticeId: number | string,
+      attachmentId: number | string,
+    ) =>
+      `${V1}/bidding/notices/${noticeId}/attachments/uploads/${attachmentId}/complete`,
     noticeProjects: (noticeId: number | string) =>
       `${V1}/bidding/notices/${noticeId}/projects`,
+    /**
+     * 공고 **관심 등록 · 해제** (2026-08-18 연동).
+     *
+     * ⚠️ 개인 즐겨찾기가 아니라 **회사 공용**이다 — 누가 눌러도 회사 전원에게 같게 보인다.
+     * ℹ️ 관심 여부(`isFavorite`)는 **목록 응답에만** 있다. 상세 응답에는 없어
+     *    상세 화면에서는 토글을 두지 않는다.
+     */
+    noticeFavorite: (noticeId: number | string) =>
+      `${V1}/bidding/notices/${noticeId}/favorite`,
+    noticeUnfavorite: (noticeId: number | string) =>
+      `${V1}/bidding/notices/${noticeId}/unfavorite`,
+    /**
+     * 공고 **제외 · 복구** (2026-08-18 연동). `noticeStatus` 를 오간다.
+     * ⚠️ 제외는 `reason`(최대 500자)이 **필수**다 — 복구는 본문이 없다.
+     */
+    noticeDismiss: (noticeId: number | string) =>
+      `${V1}/bidding/notices/${noticeId}/dismiss`,
+    noticeRestore: (noticeId: number | string) =>
+      `${V1}/bidding/notices/${noticeId}/restore`,
   },
   finance: {
     /** 재무 관리 허브의 3개 항목 수치 (입출금 · 세금계산서 · 정산 현황) */

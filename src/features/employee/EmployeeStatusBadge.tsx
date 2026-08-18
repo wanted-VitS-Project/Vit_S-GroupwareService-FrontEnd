@@ -7,7 +7,7 @@ import type { EmployeeSummary } from './types';
 
 /**
  * 두 원본 값을 배지 하나로 합친다.
- * 퇴사 > 정지 > 재설정 필요 순으로 본다 — 퇴사자는 계정도 함께 비활성되기 때문이다.
+ * 퇴사 > 정지 > 재설정 필요 순이다. 퇴사자는 계정도 함께 비활성된다.
  */
 export function employeeStatusOf({
   accountStatus,
@@ -20,7 +20,7 @@ export function employeeStatusOf({
   return 'ACTIVE';
 }
 
-/** 색은 `globals.css` 의 팔레트 토큰만 쓴다 — hex 를 직접 적으면 테마가 갈린다 */
+/** 색은 globals.css 의 팔레트 토큰만 쓴다. hex 를 적으면 테마가 갈린다 */
 const BADGE_STYLES: Record<EmployeeStatus, string> = {
   ACTIVE: 'bg-green-bg text-green-text',
   RESET_REQUIRED: 'bg-yellow-bg-soft text-yellow-text',

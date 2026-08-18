@@ -1,5 +1,6 @@
 'use client';
 
+// CSR - 스텝 블록 보드: 3열 grid 에 블록 카드를 늘어놓고 드래그로 배치를 바꾼다.
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import {
@@ -72,35 +73,26 @@ function BlockBodyFallback() {
   );
 }
 
-/**
- * 대상 위에 이만큼 **머문 뒤에야** 자리를 옮긴다.
- * 빠르게 훑고 지나가는 블록마다 교환하면 이동이 연쇄돼 배치가 통째로 흐트러진다.
- */
+// 대상 위에 이만큼 머문 뒤에야 자리를 옮긴다.
+// 빠르게 훑고 지나가는 블록마다 교환하면 이동이 연쇄돼 배치가 통째로 흐트러진다.
 const HOVER_DWELL_MS = 110;
 
-/**
- * 한 번 옮긴 뒤 자리가 잡힐 때까지 새 판정을 받지 않는다.
- * 미끄러지는 도중에 판정하면 아직 움직이는 중인 블록을 기준으로 또 옮기게 된다.
- */
+// 한 번 옮긴 뒤 자리가 잡힐 때까지 새 판정을 받지 않는다.
+// 미끄러지는 도중에 판정하면 아직 움직이는 중인 블록을 기준으로 또 옮기게 된다.
 const SETTLE_MS = SLIDE_DURATION_MS;
 
-/**
- * Tailwind 가 조합된 클래스명을 못 읽으므로 완성된 문자열로 매핑한다.
- *
- * ⚠️ **폭 분기(`md`)를 보드 격자와 반드시 함께 맞춘다.** 좁은 화면에서 보드가 1열이 되는데
- *    여기만 `col-span-2` 로 남으면, 그리드가 없는 두 번째 열을 **암시적으로 만들어**
- *    그 블록만 화면 밖으로 삐져나간다 (가로 스크롤바가 생긴다).
- */
+// Tailwind 가 조합된 클래스명을 못 읽으므로 완성된 문자열로 매핑한다.
+// 폭 분기(md)를 보드 격자와 반드시 함께 맞춘다. 좁은 화면에서 보드가 1열이 되는데
+// 여기만 col-span-2 로 남으면, 그리드가 없는 두 번째 열을 암시적으로 만들어
+// 그 블록만 화면 밖으로 삐져나간다 (가로 스크롤바가 생긴다).
 const COL_SPAN_CLASS: Record<number, string> = {
   1: 'col-span-1',
   2: 'col-span-1 md:col-span-2',
   3: 'col-span-1 md:col-span-3',
 };
 
-/**
- * 배치 편집 모드에서 헤더 쪽 버튼이 잡는 손잡이.
- * 보드 밖(스텝 헤더)에 버튼이 있어 컨텍스트 대신 ref 로 넘긴다 — `flushLayoutRef` 와 같은 방식이다.
- */
+// 배치 편집 모드에서 헤더 쪽 버튼이 잡는 손잡이.
+// 보드 밖(스텝 헤더)에 버튼이 있어 컨텍스트 대신 ref 로 넘긴다 — flushLayoutRef 와 같은 방식이다.
 export interface ArrangeHandle {
   /** 편집을 시작한 시점과 순서가 달라졌는지 — 같으면 저장 요청을 아예 만들지 않는다 */
   hasChanges: () => boolean;
@@ -113,7 +105,7 @@ export interface ArrangeHandle {
 /** 지금 겨누고 있는 자리 */
 interface DropTarget {
   blockId: number;
-  /** `swap` — 대상과 자리 교환 · `after` — 대상 바로 뒤 (빈 칸 안내) */
+  /** swap — 대상과 자리 교환·after — 대상 바로 뒤 (빈 칸 안내) */
   mode: 'swap' | 'after';
 }
 
@@ -121,12 +113,9 @@ function usedColumns(row: StepBlock[]) {
   return row.reduce((total, block) => total + toSpan(block.colSpan), 0);
 }
 
-/**
- * 커서 아래 요소에서 어느 자리를 겨누고 있는지 읽는다.
- *
- * 칸(grid item)에 남긴 `data-*` 를 거슬러 올라가 찾는다 — 카드 내부 구조와 무관해서
- * 파일 목록 · 에디터처럼 자체 드래그 처리를 하는 자식 위에서도 판정이 된다.
- */
+// 커서 아래 요소에서 어느 자리를 겨누고 있는지 읽는다.
+// 칸(grid item)에 남긴 data-* 를 거슬러 올라가 찾는다 — 카드 내부 구조와 무관해서
+// 파일 목록·에디터처럼 자체 드래그 처리를 하는 자식 위에서도 판정이 된다.
 function readDropTarget(target: EventTarget | null): DropTarget | null {
   if (!(target instanceof Element)) return null;
 
@@ -139,22 +128,17 @@ function readDropTarget(target: EventTarget | null): DropTarget | null {
   return { blockId: Number(cell.dataset.dropBlock), mode: 'swap' };
 }
 
-/**
- * 스텝 화면의 블록 보드.
- *
- * 가로는 3칸 고정, 세로는 제한 없이 늘어난다.
- * 순서는 **평면 배열 하나**로 들고, 행 나누기는 3열 grid 의 자동 배치에 맡긴다 —
- * "남은 칸에 안 들어가면 다음 줄, 되돌아가 채우지 않는다" 가 `computeRows()` 와 같은 규칙이고,
- * 같은 행 높이 공유도 grid 가 해준다.
- *
- * 드래그 중에는 **순서 자체를 그때그때 바꾼다** (미리보기를 따로 계산하지 않는다).
- * 시작 시점 순서에서 매번 다시 계산하면, 한 번 옮긴 뒤에는 같은 블록을 다시 겨눠도
- * 결과가 늘 같아서 **되돌리거나 가운데로 다시 넣을 수가 없다.**
- *
- * ⚠️ 행마다 래퍼(또는 keyed Fragment)를 두면 순서가 바뀔 때 래퍼 key 가 달라져
- *    **행 전체가 재마운트**된다 (블록이 사라졌다 다시 그려지며 깜빡인다).
- *    래퍼 없이 하나의 평평한 목록으로 내보내고 블록만 `blockId` 로 keying 한다.
- */
+// 스텝 화면의 블록 보드.
+// 가로는 3칸 고정, 세로는 제한 없이 늘어난다.
+// 순서는 평면 배열 하나로 들고, 행 나누기는 3열 grid 의 자동 배치에 맡긴다 —
+// "남은 칸에 안 들어가면 다음 줄, 되돌아가 채우지 않는다" 가 computeRows() 와 같은 규칙이고,
+// 같은 행 높이 공유도 grid 가 해준다.
+// 드래그 중에는 순서 자체를 그때그때 바꾼다 (미리보기를 따로 계산하지 않는다).
+// 시작 시점 순서에서 매번 다시 계산하면, 한 번 옮긴 뒤에는 같은 블록을 다시 겨눠도
+// 결과가 늘 같아서 되돌리거나 가운데로 다시 넣을 수가 없다.
+// 행마다 래퍼(또는 keyed Fragment)를 두면 순서가 바뀔 때 래퍼 key 가 달라져
+// 행 전체가 재마운트된다 (블록이 사라졌다 다시 그려지며 깜빡인다).
+// 래퍼 없이 하나의 평평한 목록으로 내보내고 블록만 blockId 로 keying 한다.
 export default function BlockBoard({
   stepId,
   canEdit = true,
@@ -167,37 +151,29 @@ export default function BlockBoard({
   flushLayoutRef,
 }: {
   stepId: string;
-  /**
-   * 이 스텝의 블록을 고칠 수 있는지 (스텝 `myPermission`).
-   * 카드 `⋯` 의 쓰기 항목을 여닫는다 — 값은 컨텍스트로 흘러 본문 유형을 거치지 않는다.
-   * 기본 `true` — 보드 밖 · 옛 호출부가 조용히 잠기지 않게 한다.
-   */
+  // 이 스텝의 블록을 고칠 수 있는지 (스텝 myPermission).
+  // 카드 ⋯ 의 쓰기 항목을 여닫는다 — 값은 컨텍스트로 흘러 본문 유형을 거치지 않는다.
+  // 기본 true — 보드 밖·옛 호출부가 조용히 잠기지 않게 한다.
   canEdit?: boolean;
   blocks: StepBlock[];
   /** 방금 만든 블록 — 편집 입력창을 곧바로 띄운다 */
   autoEditBlockId?: number | null;
-  /**
-   * 값이 바뀌면 블록 **본문만** 다시 마운트한다 (카드 자리 · 드래그 배선은 그대로).
-   * 새로고침 버튼이 올린다 — 자기 상태를 따로 든 본문까지 서버 값으로 되돌리려고.
-   */
+  // 값이 바뀌면 블록 본문만 다시 마운트한다 (카드 자리·드래그 배선은 그대로).
+  // 새로고침 버튼이 올린다 — 자기 상태를 따로 든 본문까지 서버 값으로 되돌리려고.
   bodyGeneration?: number;
   /** 배치 편집 모드 — 이때만 블록을 끌어 옮길 수 있다 */
   isArranging?: boolean;
   /** 배치 편집 손잡이를 헤더 버튼에 넘겨준다 */
   arrangeRef?: RefObject<ArrangeHandle | null>;
-  /**
-   * 바뀐 순서를 목록 주인에게 돌려준다 — 놓는 즉시 한 번, 저장 응답이 오면 또 한 번.
-   * 새 블록 자리 계산(`nextPosition`)이 옛 좌표를 보지 않게 하려면 즉시 알려야 한다.
-   */
+  // 바뀐 순서를 목록 주인에게 돌려준다 — 놓는 즉시 한 번, 저장 응답이 오면 또 한 번.
+  // 새 블록 자리 계산(nextPosition)이 옛 좌표를 보지 않게 하려면 즉시 알려야 한다.
   onOrderChanged?: (blocks: StepBlock[]) => void;
   /** 대기 중인 배치를 지금 보내는 손잡이를 넘겨준다 (블록 생성 직전에 쓴다) */
   flushLayoutRef?: RefObject<(() => void) | null>;
 }) {
   const { id: projectId } = useParams<{ id: string }>();
-  /**
-   * 참여자 목록 — 담당자 퇴사 표기(카드)와 담당자 후보(수정 모달)가 함께 쓴다.
-   * 여기서 **한 번만** 받아 컨텍스트로 내려준다 (`BlockMembersContext`).
-   */
+  // 참여자 목록 — 담당자 퇴사 표기(카드)와 담당자 후보(수정 모달)가 함께 쓴다.
+  // 여기서 한 번만 받아 컨텍스트로 내려준다 (BlockMembersContext).
   const members = useBlockMembersSource(projectId);
   const [order, setOrder] = useState(() => toFlatOrder(blocks));
   const [draggingId, setDraggingId] = useState<number | null>(null);
@@ -206,12 +182,9 @@ export default function BlockBoard({
   /** 머무름을 기다리는 중인 대상 — "지금 여기를 겨누고 있다" 를 보여준다 */
   const [aimingId, setAimingId] = useState<number | null>(null);
   const [saveError, setSaveError] = useState('');
-  /**
-   * **배치 편집을 시작한 시점**의 순서 — 저장할지 물을 기준이자 되돌릴 자리다.
-   * 편집 중 여러 번 옮겼다가 제자리로 돌아왔으면 여기와 같아져 요청이 나가지 않는다.
-   *
-   * ref 가 아니라 state 다 — 안내줄의 `되돌리기` 노출이 이 값에 따라 달라진다.
-   */
+  // 배치 편집을 시작한 시점의 순서 — 저장할지 물을 기준이자 되돌릴 자리다.
+  // 편집 중 여러 번 옮겼다가 제자리로 돌아왔으면 여기와 같아져 요청이 나가지 않는다.
+  // ref 가 아니라 state 다 — 안내줄의 되돌리기 노출이 이 값에 따라 달라진다.
   const [arrangeBase, setArrangeBase] = useState<StepBlock[] | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
 
@@ -219,21 +192,19 @@ export default function BlockBoard({
   const orderBeforeDrag = useRef<StepBlock[] | null>(null);
   /** 직전에 처리한 대상. 같은 블록 위에서 이벤트가 계속 와도 반복 교환하지 않는다 */
   const lastTarget = useRef<string | null>(null);
-  /**
-   * `order` 의 최신값. `dragover` 로 인한 갱신은 렌더가 밀릴 수 있어,
-   * `drop` 시점에 state 만 믿으면 한 번 늦은 순서를 저장할 수 있다.
-   */
+  // order 의 최신값. dragover 로 인한 갱신은 렌더가 밀릴 수 있어,
+  // drop 시점에 state 만 믿으면 한 번 늦은 순서를 저장할 수 있다.
   const liveOrder = useRef(order);
   useEffect(() => {
     // 드래그 중에는 hover 가 직접 채운다 — 여기서 덮으면 한 박자 늦은 값이 들어간다
     if (draggingId === null) liveOrder.current = order;
   });
 
-  /** 머무름을 기다리는 대상 · 타이머 · 정착이 끝나는 시각 */
+  /** 머무름을 기다리는 대상·타이머·정착이 끝나는 시각 */
   const pendingTarget = useRef<string | null>(null);
   const dwellTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const settledAt = useRef(0);
-  /** 타이머 안에서는 렌더 시점의 `draggingId` 를 믿을 수 없다 */
+  /** 타이머 안에서는 렌더 시점의 draggingId 를 믿을 수 없다 */
   const draggingRef = useRef<number | null>(null);
 
   const cancelDwell = useCallback(() => {
@@ -242,13 +213,10 @@ export default function BlockBoard({
     pendingTarget.current = null;
   }, []);
 
-  /**
-   * 강조 상태(`activeSlot` · `aimingId`)는 **값이 바뀔 때만** 갱신한다.
-   *
-   * `dragover` 는 커서를 멈춰도 계속 들어온다. 같은 값으로 setState 를 부르면
-   * 보드가 초당 수십 번 다시 그려지고, 그때마다 `useSlideOnReorder` 가
-   * 모든 블록의 위치를 재서(강제 리플로우) 프레임이 밀린다.
-   */
+  // 강조 상태(activeSlot·aimingId)는 값이 바뀔 때만 갱신한다.
+  // dragover 는 커서를 멈춰도 계속 들어온다. 같은 값으로 setState 를 부르면
+  // 보드가 초당 수십 번 다시 그려지고, 그때마다 useSlideOnReorder 가
+  // 모든 블록의 위치를 재서(강제 리플로우) 프레임이 밀린다.
   const activeSlotRef = useRef<number | null>(null);
   const aimingIdRef = useRef<number | null>(null);
 
@@ -273,7 +241,7 @@ export default function BlockBoard({
     onOrderChangedRef.current = onOrderChanged;
   });
 
-  /** 우리가 위로 올려보낸 목록 — 그게 `blocks` 로 되돌아온 것은 재조회가 아니다 */
+  /** 우리가 위로 올려보낸 목록 — 그게 blocks 로 되돌아온 것은 재조회가 아니다 */
   const [echoed, setEchoed] = useState<StepBlock[] | null>(null);
 
   const publish = useCallback((next: StepBlock[]) => {
@@ -311,26 +279,20 @@ export default function BlockBoard({
     };
   }, [flushLayoutRef, saver]);
 
-  /**
-   * 우리가 올려보낸 목록이 그대로 돌아온 것인지.
-   *
-   * 이건 **재조회가 아니다.** 구분하지 않으면 저장 응답이 부모를 갱신 → prop 이 바뀜 →
-   * 아래 동기화가 돌아 **응답을 기다리는 동안 한 이동이 화면에서 되돌아가고
-   * 전송도 취소된다.** `toFlatOrder()` 는 아직 저장 전인 옛 좌표로 다시 정렬하므로,
-   * 그대로 두면 방금 옮긴 결과가 통째로 뒤집힌다.
-   *
-   * ⚠️ 블록 ID 나열만 비교하면 안 된다. **다른 사람이 이름 · 담당자만 바꾼 목록**은
-   *    ID 순서가 같아서 "내가 올린 것" 으로 오인되고, 그 변경을 통째로 무시하게 된다.
-   */
+  // 우리가 올려보낸 목록이 그대로 돌아온 것인지.
+  // 이건 재조회가 아니다. 구분하지 않으면 저장 응답이 부모를 갱신 → prop 이 바뀜 →
+  // 아래 동기화가 돌아 응답을 기다리는 동안 한 이동이 화면에서 되돌아가고
+  // 전송도 취소된다. toFlatOrder() 는 아직 저장 전인 옛 좌표로 다시 정렬하므로,
+  // 그대로 두면 방금 옮긴 결과가 통째로 뒤집힌다.
+  // 블록 ID 나열만 비교하면 안 된다. 다른 사람이 이름·담당자만 바꾼 목록은
+  // ID 순서가 같아서 "내가 올린 것" 으로 오인되고, 그 변경을 통째로 무시하게 된다.
   const isEcho = blocks === echoed;
 
   /** 밖에서 목록이 새로 오면 로컬 순서를 버리고 서버 순서를 따른다 */
   const [synced, setSynced] = useState(blocks);
-  /**
-   * 기준점을 갈아끼울 목록 — `reset()` 은 타이머를 건드리는 부수 효과라 렌더 중에 부르지 않는다.
-   * 처리 후 비우지 않는다. 재조회마다 참조가 달라져 effect 가 한 번씩만 돌고,
-   * 비우려고 setState 를 부르면 렌더가 한 번 더 도는 쪽이 오히려 손해다.
-   */
+  // 기준점을 갈아끼울 목록 — reset() 은 타이머를 건드리는 부수 효과라 렌더 중에 부르지 않는다.
+  // 처리 후 비우지 않는다. 재조회마다 참조가 달라져 effect 가 한 번씩만 돌고,
+  // 비우려고 setState 를 부르면 렌더가 한 번 더 도는 쪽이 오히려 손해다.
   const [resetTarget, setResetTarget] = useState<StepBlock[] | null>(null);
   if (synced !== blocks) {
     setSynced(blocks);
@@ -384,7 +346,7 @@ export default function BlockBoard({
 
   const start = useCallback(
     (blockId: number) => {
-      // 드래그 전이면 `liveOrder` 가 최신 순서다 (아래 effect 가 매 렌더 맞춰 둔다)
+      // 드래그 전이면 liveOrder 가 최신 순서다 (아래 effect 가 매 렌더 맞춰 둔다)
       orderBeforeDrag.current = liveOrder.current;
       lastTarget.current = null;
       draggingRef.current = blockId;
@@ -406,13 +368,10 @@ export default function BlockBoard({
 
       updateActiveSlot(mode === 'after' ? blockId : null);
 
-      /**
-       * 끌고 있는 블록 자신 위의 이벤트.
-       *
-       * 방금 옮겨져 커서 아래로 들어온 상태다. 여기서 순서를 또 건드리면
-       * "이동 → 되돌림" 이 반복돼 블록이 떨린다. 대신 **판정만 풀어준다** —
-       * 다시 옆 블록으로 넘어가면 그때 한 번 더 교환할 수 있게.
-       */
+      // 끌고 있는 블록 자신 위의 이벤트.
+      // 방금 옮겨져 커서 아래로 들어온 상태다. 여기서 순서를 또 건드리면
+      // "이동 → 되돌림" 이 반복돼 블록이 떨린다. 대신 판정만 풀어준다 —
+      // 다시 옆 블록으로 넘어가면 그때 한 번 더 교환할 수 있게.
       if (blockId === draggingId) {
         cancelDwell();
         updateAiming(null);
@@ -442,7 +401,7 @@ export default function BlockBoard({
   );
 
   const finish = useCallback(() => {
-    // 놓기 · 취소 · 컨테이너 드롭에서 모두 불린다 — 처음 한 번만 처리한다
+    // 놓기·취소·컨테이너 드롭에서 모두 불린다 — 처음 한 번만 처리한다
     if (draggingRef.current === null) return;
 
     cancelDwell();
@@ -466,25 +425,22 @@ export default function BlockBoard({
     publish(final);
   }, [cancelDwell, publish, updateActiveSlot, updateAiming]);
 
-  /**
-   * 편집 모드에 들어간 순간의 순서를 기준으로 잡고, 나오면 놓아준다.
-   *
-   * effect 가 아니라 **렌더 중 상태 조정**이다 (`TextBlock` 의 `autoEdit` 처리와 같은 방식) —
-   * effect 로 하면 기준이 한 박자 늦게 잡혀 그 사이 이동이 "변경 없음" 으로 새어나간다.
-   */
+  // 편집 모드에 들어간 순간의 순서를 기준으로 잡고, 나오면 놓아준다.
+  // effect 가 아니라 렌더 중 상태 조정이다 (TextBlock 의 autoEdit 처리와 같은 방식) —
+  // effect 로 하면 기준이 한 박자 늦게 잡혀 그 사이 이동이 "변경 없음" 으로 새어나간다.
   const [lastArranging, setLastArranging] = useState(isArranging);
   if (lastArranging !== isArranging) {
     setLastArranging(isArranging);
     setArrangeBase(isArranging ? order : null);
   }
 
-  /** 편집을 시작한 뒤 실제로 자리가 바뀌었는지 — `되돌리기` 를 보여줄지 정한다 */
+  /** 편집을 시작한 뒤 실제로 자리가 바뀌었는지 — 되돌리기 를 보여줄지 정한다 */
   const hasArrangeChanges =
     arrangeBase !== null && !hasSameOrder(order, arrangeBase);
 
   const arrangeApi: ArrangeHandle = useMemo(
     () => ({
-      // 물어볼지 정하는 값이라 state(`order`) 가 아니라 최신값을 본다
+      // 물어볼지 정하는 값이라 state(order) 가 아니라 최신값을 본다
       hasChanges: () =>
         arrangeBase !== null && !hasSameOrder(liveOrder.current, arrangeBase),
       save: () => {
@@ -517,18 +473,12 @@ export default function BlockBoard({
     };
   }, [arrangeRef, arrangeApi]);
 
-  /**
-   * 컨텍스트 값은 `draggingId` 가 바뀔 때만 새로 만든다.
-   *
-   * 매 렌더 새 객체를 내려주면 강조 표시가 바뀔 때마다 **모든 `BlockCard` 가**
-   * 다시 그려진다 (본문에 에디터 · 파일 목록이 달린 카드까지).
-   */
-  /**
-   * 키보드로 한 칸 옮긴다.
-   *
-   * `liveOrder` 는 ref 라 이 함수의 참조가 고정된다 — 컨텍스트를 매 렌더 새로 만들지 않아
-   * 카드가 통째로 다시 그려지지 않는다 (드래그 배선과 같은 이유).
-   */
+  // 컨텍스트 값은 draggingId 가 바뀔 때만 새로 만든다.
+  // 매 렌더 새 객체를 내려주면 강조 표시가 바뀔 때마다 모든 BlockCard 가
+  // 다시 그려진다 (본문에 에디터·파일 목록이 달린 카드까지).
+  // 키보드로 한 칸 옮긴다.
+  // liveOrder 는 ref 라 이 함수의 참조가 고정된다 — 컨텍스트를 매 렌더 새로 만들지 않아
+  // 카드가 통째로 다시 그려지지 않는다 (드래그 배선과 같은 이유).
   const moveBy = useCallback(
     (blockId: number, delta: -1 | 1) => {
       const current = liveOrder.current;
@@ -546,7 +496,7 @@ export default function BlockBoard({
       slide.capture();
       liveOrder.current = next;
       setOrder(next);
-      // 드래그의 `finish` 와 같은 자리 — 저장은 `배치 완료` 때 한 번만 한다
+      // 드래그의 finish 와 같은 자리 — 저장은 배치 완료 때 한 번만 한다
       publish(next);
     },
     [publish, slide],
@@ -567,17 +517,17 @@ export default function BlockBoard({
       if (index === -1) return;
 
       const next = [...current];
-      // 자리(`rowIndex` · `sortOrder` · `colSpan`)와 본문(`detail`)은 그대로 둔다 —
+      // 자리(rowIndex·sortOrder·colSpan)와 본문(detail)은 그대로 둔다 —
       // 바뀐 두 값만 갈아끼워야 배치도 안 흔들리고 본문도 다시 불러오지 않는다
       next[index] = {
         ...current[index],
         title: updated.title,
-        // 응답에 `deleted` 가 없을 수 있다 — 그대로 꽂으면 `(퇴사자)` 표기가 사라진다
+        // 응답에 deleted 가 없을 수 있다 — 그대로 꽂으면 (퇴사자) 표기가 사라진다
         owner: normalizeUpdatedOwner(updated.owner, current[index].owner),
         /*
-         * ⚠️ `version` 을 빠뜨리면 안 된다 — 서버는 이미 올려 놓았다.
-         * 옛 값을 든 채로 두면 **다음 수정도, 배치 저장도 전부 409** 다
-         * (배치는 이 블록의 `version` 을 그대로 실어 보낸다).
+         * version 을 빠뜨리면 안 된다 — 서버는 이미 올려 놓았다.
+         * 옛 값을 든 채로 두면 다음 수정도, 배치 저장도 전부 409 다
+         * (배치는 이 블록의 version 을 그대로 실어 보낸다).
          */
         version: updated.version,
       };
@@ -615,12 +565,9 @@ export default function BlockBoard({
   const rows = useMemo(() => computeRows(order), [order]);
   const isDragging = draggingId !== null;
   const lastRow = rows.at(-1);
-  /**
-   * "맨 뒤" 로 보낼 빈 행. 드래그 중에는 **항상** 깔아 둔다.
-   *
-   * 마지막 행이 꽉 찼을 때만 넣으면, 블록을 옮길 때마다 행 수가 오르내려
-   * 보드 전체 높이가 출렁인다 — 옮기려는 자리를 눈으로 좇을 수 없다.
-   */
+  // "맨 뒤" 로 보낼 빈 행. 드래그 중에는 항상 깔아 둔다.
+  // 마지막 행이 꽉 찼을 때만 넣으면, 블록을 옮길 때마다 행 수가 오르내려
+  // 보드 전체 높이가 출렁인다 — 옮기려는 자리를 눈으로 좇을 수 없다.
   const needsTailSlot = isDragging && lastRow !== undefined;
 
   if (order.length === 0) {
@@ -678,7 +625,7 @@ export default function BlockBoard({
                   isDragging ? 'select-none' : ''
                 }`}
                 /*
-            **캡처 단계**에서 받는다. 버블 단계로 받으면 카드 안쪽 자식이 이벤트를 멈췄을 때
+            **캡처 단계에서 받는다. 버블 단계로 받으면 카드 안쪽 자식이 이벤트를 멈췄을 때
             판정이 통째로 빠지고, 그 블록은 "드래그해도 반응이 없는 블록" 이 된다.
             여백에 놓아도 취소되지 않도록 preventDefault 는 항상 건다.
           */
@@ -720,14 +667,14 @@ export default function BlockBoard({
                     >
                       <BlockBody
                         /*
-                         * 새로고침 때마다 바뀌는 key — 본문을 **다시 마운트**한다.
+                         * 새로고침 때마다 바뀌는 key — 본문을 다시 마운트한다.
                          *
-                         * 블록 본문은 저마다 서버 상태를 따로 들고 있다. `detail` 을 첫 렌더에
-                         * 베껴 두는 유형(체크리스트 · 이미지 · 결재 · AI)도 있고, 자기 API 를
-                         * 직접 부르는 유형(문서 · 결재 · AI)도 있어 **목록만 새로 받아서는
-                         * 어느 쪽도 갱신되지 않는다.**
+                         * 블록 본문은 저마다 서버 상태를 따로 들고 있다. detail 을 첫 렌더에
+                         * 베껴 두는 유형(체크리스트·이미지·결재·AI)도 있고, 자기 API 를
+                         * 직접 부르는 유형(문서·결재·AI)도 있어 목록만 새로 받아서는
+                         * 어느 쪽도 갱신되지 않는다.
                          *
-                         * 사용자가 새로고침을 눌렀을 때만 바뀐다 — 화면 복귀 · 블록 생성 같은
+                         * 사용자가 새로고침을 눌렀을 때만 바뀐다 — 화면 복귀·블록 생성 같은
                          * 자동 재조회에서 본문이 통째로 리셋되면 설명되지 않는 움직임이 된다.
                          */
                         key={`${block.blockId}:${bodyGeneration}`}
@@ -775,10 +722,8 @@ export default function BlockBoard({
   );
 }
 
-/**
- * 블록이 없는 칸에 놓을 수 있게 열어두는 자리.
- * 드래그 중에만 나타나고, 남은 칸 수만큼 폭을 차지한다.
- */
+// 블록이 없는 칸에 놓을 수 있게 열어두는 자리.
+// 드래그 중에만 나타나고, 남은 칸 수만큼 폭을 차지한다.
 function DropSlot({
   span,
   afterBlockId,
@@ -786,7 +731,7 @@ function DropSlot({
   label = '여기에 놓기',
 }: {
   span: number;
-  /** 이 블록 **바로 뒤** 자리를 뜻한다 — 판정은 보드가 캡처 단계에서 한다 */
+  /** 이 블록 바로 뒤 자리를 뜻한다 — 판정은 보드가 캡처 단계에서 한다 */
   afterBlockId: number;
   isActive: boolean;
   label?: string;
@@ -808,13 +753,10 @@ function DropSlot({
   );
 }
 
-/**
- * 유형별 본문 분기. 아직 구현되지 않은 유형은 껍데기만 그린다.
- *
- * ⚠️ `memo` 로 감싼다. 강조 표시나 순서가 바뀌어 보드가 다시 그려질 때
- *    블록 본문(에디터 · 체크리스트 · 파일 목록)까지 다시 그리면 이동이 버벅인다.
- *    `moveTo`/`moveAfter` 는 블록 **객체를 그대로 옮기므로** 순서만 바뀌면 여기서 멈춘다.
- */
+// 유형별 본문 분기. 아직 구현되지 않은 유형은 껍데기만 그린다.
+// memo 로 감싼다. 강조 표시나 순서가 바뀌어 보드가 다시 그려질 때
+// 블록 본문(에디터·체크리스트·파일 목록)까지 다시 그리면 이동이 버벅인다.
+// moveTo/moveAfter 는 블록 객체를 그대로 옮기므로 순서만 바뀌면 여기서 멈춘다.
 const BlockBody = memo(function BlockBody({
   block,
   autoEdit,
@@ -832,7 +774,7 @@ const BlockBody = memo(function BlockBody({
   if (block.type === 'AI') return <AiBlock block={block} />;
   if (block.type === 'SETTLEMENT') return <SettlementBlock block={block} />;
 
-  // TODO: 유형별 블록 구현 (BID_NOTICE · …)
+  // TODO: 유형별 블록 구현 (BID_NOTICE·…)
   return (
     <BlockCard block={block}>
       <p className="text-caption text-text-secondary">준비 중인 블록입니다.</p>

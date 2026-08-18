@@ -1,5 +1,7 @@
 'use client';
 
+// CSR - 대시보드 일정·이슈: 한 카드에 캘린더와 고른 날짜의 이슈를 나란히 둔다.
+// GET /issues/calendar 에 기간 파라미터가 없어 처음 한 번만 받아 두고 달 이동은 클라이언트에서 거른다.
 import Link from 'next/link';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
@@ -8,10 +10,7 @@ import type { CalendarIssue } from '@/features/issue/types';
 import { PROJECT_ROUTES } from '@/features/project/routes';
 import { useModal } from '@/lib/useModal';
 
-/**
- * 프로젝트 색. **`projectId` 기준으로 화면이 매긴다** — 응답에 색이 없다.
- * 색이 모자라면 앞에서부터 다시 쓴다 (같은 색이 두 프로젝트에 붙을 수 있다).
- */
+// 응답에 색이 없어 화면이 projectId 기준으로 매긴다. 모자라면 앞에서부터 다시 쓴다.
 const PROJECT_COLORS = [
   '#3F89F0',
   '#CA0005',
@@ -23,30 +22,23 @@ const PROJECT_COLORS = [
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'] as const;
 
-/** 한 날짜에 세우는 점의 수. 넘치면 마지막을 `+` 로 접는다 */
+// 한 날짜에 세우는 점의 수. 넘치면 마지막을 + 로 접는다.
 const DOT_LIMIT = 3;
 
-/**
- * 달력 판은 **언제나 6주**다 (7 × 6 = 42칸).
- *
- * 달마다 주 수가 5~6으로 갈리는데, 실제 주 수만큼만 그리면 달을 넘길 때 판 높이가
- * 한 줄(52px)씩 오르내려 카드와 아래 범례가 통째로 흔들린다. 남는 줄은 빈 칸으로 채운다.
- *
- * 42는 넉넉하다 — 1일이 토요일(6칸 밀림)이고 31일까지 있어도 37칸이면 끝난다.
- */
+// 판을 언제나 6주(7 × 6)로 고정한다 — 실제 주 수만큼만 그리면 달을 넘길 때 판 높이가
+// 한 줄씩 오르내려 카드와 아래 범례가 통째로 흔들린다. 남는 줄은 빈 칸으로 채운다.
 const CALENDAR_CELLS = 42;
 
-/** 월 선택 패널에 세우는 12달 */
 const MONTH_LABELS = Array.from({ length: 12 }, (_, index) => `${index + 1}월`);
 
-/** 로컬 날짜를 `yyyy-MM-dd` 로. `toISOString()` 은 UTC 라 날짜가 하루 밀린다 */
+// 로컬 날짜를 yyyy-MM-dd 로. toISOString() 은 UTC 라 날짜가 하루 밀린다.
 function toDateKey(date: Date) {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
-/** '2026-08-01' → '2026년 8월 1일 토요일' (형식이 어긋나면 빈 문자열) */
+// '2026-08-01' → '2026년 8월 1일 토요일' (형식이 어긋나면 빈 문자열)
 function formatFullDate(dateKey: string) {
   const matched = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey);
   if (!matched) return '';
@@ -58,58 +50,39 @@ function formatFullDate(dateKey: string) {
   return `${year}년 ${Number(month)}월 ${Number(day)}일 ${weekday}요일`;
 }
 
-/**
- * 대시보드 `일정` + `이슈`.
- *
- * 한 카드 안에 **캘린더(왼쪽)** 와 **선택한 날짜의 이슈(오른쪽)** 를 나란히 둔다 —
- * 날짜를 고르는 곳과 결과가 떨어져 있으면 무엇을 눌러 바뀐 것인지 알기 어렵다.
- *
- * ⭐ 조회는 **처음 한 번뿐이다** (`GET /issues/calendar` 는 기간 파라미터가 없다) —
- *    달을 넘길 때는 받아 둔 목록에서 그 달만 걸러 그린다.
- */
 export default function DashboardSchedule() {
   const [issues, setIssues] = useState<CalendarIssue[] | null>(null);
   const [reloadCount, setReloadCount] = useState(0);
   const [failedAt, setFailedAt] = useState<number | null>(null);
   const hasFailed = failedAt === reloadCount;
 
-  /**
-   * ⚠️ 달력은 **하이드레이션 이후에만** 그린다.
-   *
-   * 서버(대개 UTC)와 브라우저의 '오늘' 이 다르면 서버가 만든 HTML 과 어긋나
-   * 하이드레이션이 깨진다. 서버 스냅샷을 `false` 로 두어 서버 · 첫 렌더는 자리만 잡고,
-   * 하이드레이션이 끝난 뒤 브라우저 날짜로 한 번 더 그린다.
-   */
+  // 서버(대개 UTC)와 브라우저의 '오늘' 이 다르면 서버 HTML 과 어긋나 하이드레이션이 깨진다.
+  // 서버 스냅샷을 false 로 두어 첫 렌더는 자리만 잡고, 하이드레이션 후 브라우저 날짜로 다시 그린다.
   const isHydrated = useSyncExternalStore(
     subscribeNothing,
     () => true,
     () => false,
   );
 
-  /** 기준 시각은 한 번만 잡는다 — 렌더마다 새로 만들면 자정을 넘길 때 값이 흔들린다 */
+  // 기준 시각은 한 번만 잡는다 — 렌더마다 새로 만들면 자정을 넘길 때 값이 흔들린다.
   const [now] = useState(() => new Date());
   const today = toDateKey(now);
 
-  /** 보고 있는 달 · 고른 날짜 */
   const [month, setMonth] = useState(() => ({
     year: now.getFullYear(),
     month: now.getMonth(),
   }));
   const [selected, setSelected] = useState(() => toDateKey(now));
 
-  /**
-   * 이미 오늘을 보고 있는지 — **달과 고른 날짜가 둘 다** 오늘이어야 한다.
-   * 8월을 보다가 9월로 넘겼다 돌아와도 고른 날짜가 그대로면 아직 갈 곳이 남아 있다.
-   */
+  // 달과 고른 날짜가 둘 다 오늘이어야 한다 — 달만 돌아왔고 고른 날짜가 다르면 아직 갈 곳이 남아 있다.
   const isOnToday =
     month.year === now.getFullYear() &&
     month.month === now.getMonth() &&
     selected === today;
 
-  /** 년 · 월 선택 패널 */
   const picker = useModal();
 
-  /** 달과 고른 날짜를 한 번에 오늘로 되돌린다 */
+  // 달과 고른 날짜를 한 번에 오늘로 되돌린다.
   function goToToday() {
     setMonth({ year: now.getFullYear(), month: now.getMonth() });
     setSelected(today);
@@ -129,7 +102,7 @@ export default function DashboardSchedule() {
     return () => controller.abort();
   }, [reloadCount]);
 
-  /** `projectId` → 색. 목록 등장 순서로 고정해 달을 넘겨도 색이 바뀌지 않게 한다 */
+  // 목록 등장 순서로 색을 고정해 달을 넘겨도 같은 프로젝트가 같은 색을 유지하게 한다.
   const colorOf = useMemo(() => {
     const ids = [...new Set((issues ?? []).map((issue) => issue.projectId))];
     return (projectId: number) => {
@@ -140,7 +113,7 @@ export default function DashboardSchedule() {
     };
   }, [issues]);
 
-  /** 날짜별로 미리 묶어 둔다 — 칸마다 전체 목록을 훑으면 42번 훑는다 */
+  // 날짜별로 미리 묶어 둔다 — 칸마다 전체 목록을 훑으면 42번 훑는다.
   const byDate = useMemo(() => {
     const map = new Map<string, CalendarIssue[]>();
 
@@ -153,7 +126,7 @@ export default function DashboardSchedule() {
     return map;
   }, [issues]);
 
-  /** 이 달에 이슈가 걸린 프로젝트만 범례로 세운다 */
+  // 이 달에 이슈가 걸린 프로젝트만 범례로 세운다.
   const legend = useMemo(() => {
     const prefix = `${month.year}-${String(month.month + 1).padStart(2, '0')}`;
     const seen = new Map<number, string>();
@@ -169,7 +142,7 @@ export default function DashboardSchedule() {
 
   const selectedIssues = byDate.get(selected) ?? [];
 
-  /** 하이드레이션 전에는 자리만 잡는다 — 날짜에 기대는 것은 하나도 그리지 않는다 */
+  // 하이드레이션 전에는 자리만 잡는다 — 날짜에 기대는 것은 하나도 그리지 않는다.
   if (!isHydrated) {
     return (
       <section
@@ -184,16 +157,10 @@ export default function DashboardSchedule() {
   }
 
   return (
-    /*
-      캘린더와 이슈는 **한 상자 안에서 둘로 나뉜다** — 날짜를 고르는 곳과 그 결과라
-      테두리로 갈라 두면 서로 상관없는 상자로 읽힌다. 좁은 화면에서는 위아래로 쌓인다.
-    */
+    /* 날짜를 고르는 곳과 그 결과라 한 상자 안에서 나눈다 — 테두리로 갈라 두면 상관없는 상자로 읽힌다 */
     <section
       aria-label="일정 · 이슈"
-      /*
-        캘린더 칸을 조금 더 넓게 잡는다 — 7칸을 가로로 나눠야 해서
-        똑같이 반씩 주면 날짜 동그라미가 서로 붙는다.
-      */
+      /* 캘린더 칸을 조금 더 넓게 — 7칸을 가로로 나눠야 해서 반씩 주면 날짜 동그라미가 붙는다 */
       className="grid h-full min-h-0 grid-cols-1 overflow-hidden rounded-base border border-border-default bg-bg-card xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] xl:divide-x xl:divide-border-default"
     >
       {/* ───────── 왼쪽: 캘린더 ───────── */}
@@ -202,14 +169,7 @@ export default function DashboardSchedule() {
           일정
         </h2>
 
-        {/*
-          달 이동은 제목 아래 **가운데**에 둔다 — 달력 판의 머리글 역할이다.
-
-          `오늘` 은 오른쪽 끝으로 뺀다. 화살표 옆에 붙이면 묶음이 한쪽으로 길어져
-          `2026년 8월` 이 판 가운데에서 밀리고, 성격도 다르다 —
-          화살표 · 제목은 **둘러보는** 조작이고 `오늘` 은 **제자리로 돌아오는** 조작이다.
-          3칸 그리드라 왼쪽 빈 칸이 오른쪽 버튼과 폭을 나눠 가운데가 실제 가운데에 선다.
-        */}
+        {/* 3칸 그리드 — 왼쪽 빈 칸이 오른쪽 오늘 버튼과 폭을 나눠 달 이동 묶음이 실제 가운데에 선다 */}
         <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center">
           <span aria-hidden />
 
@@ -220,10 +180,7 @@ export default function DashboardSchedule() {
             >
               <ChevronIcon className="rotate-180" />
             </MonthButton>
-            {/*
-              제목을 눌러 **년 · 월을 한 번에** 고른다 — 반년 뒤로 가려고 화살표를 여섯 번
-              누르지 않게 한다. 패널은 이 자리를 기준으로 뜨므로 감싸는 상자가 기준점이다.
-            */}
+            {/* 제목을 눌러 년·월을 한 번에 고른다. 패널이 이 자리를 기준으로 떠서 relative 가 필요하다 */}
             <span
               className="relative"
               // 패널 밖으로 초점이 나가면 닫는다 (다른 곳을 누르면 초점이 body 로 빠진다)
@@ -236,7 +193,7 @@ export default function DashboardSchedule() {
                 if (event.key === 'Escape') picker.close();
               }}
             >
-              {/* 폭을 고정한다 — `2026년 8월` 과 `2026년 12월` 의 폭이 달라 화살표가 흔들린다 */}
+              {/* 폭을 고정한다 — 2026년 8월과 2026년 12월의 폭이 달라 화살표가 흔들린다 */}
               <button
                 type="button"
                 aria-haspopup="dialog"
@@ -270,10 +227,7 @@ export default function DashboardSchedule() {
             </MonthButton>
           </div>
 
-          {/*
-            달을 넘기다 보면 오늘이 몇 번째 달이었는지 헷갈린다 — 화살표를 세어 돌아가지
-            않게 한 번에 되돌린다. 이미 오늘이면 누를 것이 없어 잠근다.
-          */}
+          {/* 화살표를 세어 돌아가지 않게 한 번에 되돌린다. 이미 오늘이면 누를 것이 없어 잠근다 */}
           <button
             type="button"
             onClick={goToToday}
@@ -366,10 +320,7 @@ export default function DashboardSchedule() {
         </p>
 
         {hasFailed ? (
-          /*
-            실패를 **빈 목록으로 보이지 않는다** — 요청이 깨졌을 때도 `issues` 는 `null` 이라
-            그냥 두면 "이 날짜엔 이슈가 없다" 로 읽혀 없는 사실을 알리게 된다.
-          */
+          /* 실패를 빈 목록으로 보이지 않는다 — 그냥 두면 "이 날짜엔 이슈가 없다" 로 읽힌다 */
           <p
             role="alert"
             className="flex flex-1 items-center justify-center py-16 text-detail text-text-secondary"
@@ -444,12 +395,13 @@ export default function DashboardSchedule() {
   );
 }
 
-/** 구독할 외부 상태가 없다 — 서버/클라이언트 스냅샷 차이만 쓰는 자리라 빈 해지 함수만 준다 */
+// 구독할 외부 상태가 없다 — 서버/클라이언트 스냅샷 차이만 쓰는 자리라 빈 해지 함수만 준다.
 function subscribeNothing() {
   return () => {};
 }
 
-/** 프로젝트별로 묶는다 — 응답 순서를 유지해 색 순서와 어긋나지 않게 한다 */
+// 고른 날짜의 이슈를 프로젝트별로 묶는다.
+// 응답 순서를 유지해 colorOf 가 매긴 색 순서와 어긋나지 않게 한다.
 function groupByProject(issues: CalendarIssue[]) {
   const groups = new Map<
     number,
@@ -471,7 +423,7 @@ function groupByProject(issues: CalendarIssue[]) {
   return [...groups.values()];
 }
 
-/** 달 이동. 12월 다음은 다음 해 1월이다 — `Date` 가 알아서 넘겨 준다 */
+// 보고 있는 달을 step 만큼 옮긴다. 12월 다음은 다음 해 1월 — Date 가 알아서 넘겨 준다.
 function shiftMonth(current: { year: number; month: number }, step: number) {
   const moved = new Date(current.year, current.month + step, 1);
   return { year: moved.getFullYear(), month: moved.getMonth() };
@@ -479,12 +431,12 @@ function shiftMonth(current: { year: number; month: number }, step: number) {
 
 interface Cell {
   key: string;
-  /** 이 달 밖의 칸은 비운다 — 앞뒤 달 날짜를 흐리게 채우면 잘못 누른다 */
+  /** 이 달 밖의 칸은 null — 앞뒤 달 날짜를 흐리게 채우면 잘못 누른다 */
   dateKey: string | null;
   day: number | null;
 }
 
-/** 달력 한 판 — 1일이 있는 주부터 마지막 날이 있는 주까지 */
+// 달력 한 판(42칸)을 만든다 — 1일 앞의 빈 칸 + 이 달 날짜 + 남는 빈 칸.
 function monthCells({ year, month }: { year: number; month: number }): Cell[] {
   const firstWeekday = new Date(year, month, 1).getDay();
   const lastDay = new Date(year, month + 1, 0).getDate();
@@ -501,7 +453,7 @@ function monthCells({ year, month }: { year: number; month: number }): Cell[] {
     return { key: dateKey, dateKey, day };
   });
 
-  // 남는 줄까지 빈 칸으로 채워 **판 높이를 고정**한다 (달마다 5주 · 6주로 갈리지 않게)
+  // 남는 줄까지 빈 칸으로 채워 판 높이를 고정한다 (달마다 5주·6주로 갈리지 않게).
   const filled = [...blanks, ...days];
   const trailing: Cell[] = Array.from(
     { length: CALENDAR_CELLS - filled.length },
@@ -532,7 +484,7 @@ function DayCell({
     return <span aria-hidden className="h-13" />;
   }
 
-  /** 같은 프로젝트가 여러 건이어도 점은 하나다 — 점은 '어느 프로젝트인지' 를 알린다 */
+  // 점은 '어느 프로젝트인지' 를 알리므로 같은 프로젝트가 여러 건이어도 하나만 찍는다.
   const projectIds = [...new Set(issues.map((issue) => issue.projectId))];
   const dots = projectIds.slice(0, DOT_LIMIT);
 
@@ -546,7 +498,7 @@ function DayCell({
       }`}
       className="flex h-13 cursor-pointer flex-col items-center justify-center"
     >
-      {/* 날짜는 **동그라미** 안에 넣는다 — 네모 배경은 옆 칸과 붙어 한 덩어리로 보인다 */}
+      {/* 날짜는 동그라미 안에 넣는다 — 네모 배경은 옆 칸과 붙어 한 덩어리로 보인다 */}
       <span
         className={`flex size-9 items-center justify-center rounded-pill border text-[15px] ${
           isSelected
@@ -577,14 +529,9 @@ function DayCell({
   );
 }
 
-/**
- * 년 · 월 선택 패널.
- *
- * 년도는 **패널 안에서만** 움직인다 — 년도를 넘길 때마다 뒤 달력이 따라 바뀌면
- * 무엇을 고르는 중인지 알 수 없다. 달을 눌러야 비로소 확정된다.
- *
- * 열릴 때마다 새로 마운트되므로 초안 년도는 항상 보고 있던 달의 년도에서 시작한다.
- */
+// 제목을 눌렀을 때 뜨는 년·월 선택 패널.
+// 년도는 패널 안에서만(draftYear) 움직이고 달을 눌러야 확정된다 — 년도를 넘길 때마다
+// 뒤 달력이 따라 바뀌면 무엇을 고르는 중인지 알 수 없다.
 function MonthPicker({
   year,
   month,
@@ -601,10 +548,7 @@ function MonthPicker({
     <div
       role="dialog"
       aria-label="년 · 월 선택"
-      /*
-        제목 아래 가운데에 띄운다. `z-20` 은 아래 달력 칸(버튼)보다 위에 서기 위한 것이다.
-        `left-1/2 -translate-x-1/2` — 제목 폭(w-32)보다 패널이 넓어 그대로 두면 오른쪽으로 쏠린다.
-      */
+      /* z-20 은 아래 달력 칸(버튼) 위에 서기 위한 것. 제목 폭(w-32)보다 넓어 -translate-x-1/2 로 중앙에 맞춘다 */
       className="absolute top-full left-1/2 z-20 mt-2 w-60 -translate-x-1/2 rounded-base border border-border-default bg-bg-card p-3 shadow-lg"
     >
       <div className="flex items-center justify-between gap-2">

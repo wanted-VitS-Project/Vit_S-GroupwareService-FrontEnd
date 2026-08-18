@@ -14,18 +14,14 @@ interface StageDeleteModalProps {
   /** 이전 대상 후보를 뽑을 전체 목록 — 자기 자신은 여기서 걸러낸다 */
   stages: ProjectStage[];
   onClose: () => void;
-  /** 삭제 성공 · 이미 삭제된 경우 모두 재조회한다 */
+  /** 삭제 성공·이미 삭제된 경우 모두 재조회한다 */
   onDeleted: () => void;
 }
 
-/**
- * 스테이지 삭제 모달. (.ai/API.md 114)
- *
- * ⛔ **하위 스텝은 함께 삭제되지 않는다** (STG-003) — 어디로 옮길지 고르지 않으면 400 이다.
- *    그래서 이 모달의 본체는 경고문이 아니라 **이전 대상 선택**이다.
- *
- * ⚠️ 이전된 스텝의 권한은 그대로 유지된다 — 도착 스테이지의 기본값이 소급되지 않는다.
- */
+// 스테이지 삭제 모달. (.ai/API.md 114)
+// 하위 스텝은 함께 삭제되지 않는다 (STG-003) — 어디로 옮길지 고르지 않으면 400 이다.
+// 그래서 이 모달의 본체는 경고문이 아니라 이전 대상 선택이다.
+// 이전된 스텝의 권한은 그대로 유지된다 — 도착 스테이지의 기본값이 소급되지 않는다.
 export default function StageDeleteModal({
   stage,
   stages,
@@ -38,7 +34,7 @@ export default function StageDeleteModal({
     (candidate) => candidate.stageId !== stage.stageId,
   );
 
-  /** `''` = 아직 안 고름. 값이 있어야 삭제 버튼이 열린다 */
+  /** '' = 아직 안 고름. 값이 있어야 삭제 버튼이 열린다 */
   const [moveTo, setMoveTo] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);

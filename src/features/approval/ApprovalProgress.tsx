@@ -2,10 +2,8 @@ import { LINE_STATUS_LABELS } from './lineStatus';
 import type { ApprovalDetailLine, ApprovalLineStatus } from './types';
 
 /**
- * 결재 진행 현황 스텝퍼. (AP-046)
- *
- * 결재자별로 승인 ✓ · 반려 ✕ · 현재 차례 · 대기를 칠하고 완료 수를 센다.
- * 상신 전(DRAFT)에는 전부 대기라 순서와 이름만 보인다.
+ * 결재 진행 현황 스텝퍼. 결재자별 처리 상태를 칠하고 완료 수를 센다.
+ * 상신 전에는 전부 대기라 순서와 이름만 보인다.
  */
 export default function ApprovalProgress({
   lines,
@@ -41,7 +39,7 @@ export default function ApprovalProgress({
             className="flex min-w-0 flex-1 flex-col items-center"
           >
             <div className="flex w-full items-center">
-              {/* 앞뒤 연결선. 양 끝은 자리만 차지해 동그라미 간격이 균일해진다 */}
+              {/* 앞뒤 연결선. 양 끝은 자리만 차지해 간격을 맞춘다 */}
               <span
                 className={`h-px flex-1 ${index === 0 ? 'bg-transparent' : connectorClass(ordered[index - 1])}`}
               />
@@ -64,14 +62,14 @@ export default function ApprovalProgress({
   );
 }
 
-/** 앞 단계가 끝났으면 선을 채워 어디까지 왔는지 보이게 한다 */
+/** 앞 단계가 끝났으면 선을 채워 진행 위치를 보여준다 */
 function connectorClass(line: ApprovalDetailLine) {
-  return line.status === 'APPROVED' ? 'bg-[#12B76A]' : 'bg-bg-sidebar/10';
+  return line.status === 'APPROVED' ? 'bg-green-text' : 'bg-bg-sidebar/10';
 }
 
 /** 동그라미 색. 승인만 채우고 나머지는 테두리로 구분한다 */
 const MARKER_CLASS: Record<ApprovalLineStatus, string> = {
-  APPROVED: 'border-[#12B76A] bg-[#12B76A] text-text-white',
+  APPROVED: 'border-green-text bg-green-text text-text-white',
   REJECTED: 'border-border-danger bg-bg-card text-text-danger',
   ACTIVE: 'border-border-primary bg-bg-card text-text-primary-blue',
   WAITING: 'border-border-default bg-bg-card text-text-secondary',
@@ -83,7 +81,7 @@ function Marker({ line, step }: { line: ApprovalDetailLine; step: number }) {
     line.status === 'APPROVED' ? '✓' : line.status === 'REJECTED' ? '✕' : step;
 
   return (
-    // 기호와 색만으로는 상태를 알 수 없다 — 보조기술에는 이름과 상태를 문장으로 준다
+    // 기호 · 색만으로는 알 수 없어 보조기술에는 문장으로 전한다
     <span
       role="img"
       aria-label={`${line.approverName} ${LINE_STATUS_LABELS[line.status]}`}

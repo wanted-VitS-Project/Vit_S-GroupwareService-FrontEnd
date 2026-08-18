@@ -19,27 +19,80 @@ export function formatFileSize(sizeBytes: number) {
   return `${rounded} ${units[unitIndex]}`;
 }
 
-/** 확장자 배지 · 아이콘 색. 등록되지 않은 확장자는 회색으로 떨어뜨린다 */
+/**
+ * 확장자 배지 · 아이콘 색. 등록되지 않은 확장자는 회색으로 떨어뜨린다.
+ *
+ * ⚠️ 색값을 직접 쓰지 않고 **globals.css 의 토큰**(`--color-*-text` · `--color-*-bg-soft`)을
+ *    가리킨다 — 배지 · 태그가 쓰는 팔레트와 어긋나지 않게 하기 위함이다.
+ * ℹ️ 팔레트에 없는 하늘색(hwp) · 주황(ppt)은 **가장 가까운 토큰**으로 모았다.
+ *    그래서 문서 계열(doc · hwp)과 이미지가 같은 파랑을 쓴다 — 색만으로 갈라 읽지 않는다
+ *    (배지에 확장자 글자가 함께 있다).
+ */
 const EXTENSION_STYLES: Record<string, { text: string; background: string }> = {
-  pdf: { text: '#E7000B', background: '#FEF2F2' },
-  doc: { text: '#155DFC', background: '#EFF6FF' },
-  docx: { text: '#155DFC', background: '#EFF6FF' },
-  xls: { text: '#009966', background: '#ECFDF5' },
-  xlsx: { text: '#009966', background: '#ECFDF5' },
-  csv: { text: '#009966', background: '#ECFDF5' },
-  ppt: { text: '#F54900', background: '#FFF7ED' },
-  pptx: { text: '#F54900', background: '#FFF7ED' },
-  hwp: { text: '#0092B8', background: '#ECFEFF' },
-  hwpx: { text: '#0092B8', background: '#ECFEFF' },
-  txt: { text: '#45556C', background: '#F8FAFC' },
-  md: { text: '#45556C', background: '#F8FAFC' },
-  zip: { text: '#7F22FE', background: '#F5F3FF' },
-  png: { text: '#0084D1', background: '#F0F9FF' },
-  jpg: { text: '#0084D1', background: '#F0F9FF' },
-  jpeg: { text: '#0084D1', background: '#F0F9FF' },
+  pdf: {
+    text: 'var(--color-red-text)',
+    background: 'var(--color-red-bg-soft)',
+  },
+  doc: {
+    text: 'var(--color-blue-text)',
+    background: 'var(--color-blue-bg-soft)',
+  },
+  docx: {
+    text: 'var(--color-blue-text)',
+    background: 'var(--color-blue-bg-soft)',
+  },
+  xls: { text: 'var(--color-green-text)', background: 'var(--color-green-bg)' },
+  xlsx: {
+    text: 'var(--color-green-text)',
+    background: 'var(--color-green-bg)',
+  },
+  csv: { text: 'var(--color-green-text)', background: 'var(--color-green-bg)' },
+  ppt: {
+    text: 'var(--color-yellow-text)',
+    background: 'var(--color-yellow-bg-soft)',
+  },
+  pptx: {
+    text: 'var(--color-yellow-text)',
+    background: 'var(--color-yellow-bg-soft)',
+  },
+  hwp: {
+    text: 'var(--color-blue-text)',
+    background: 'var(--color-blue-bg-soft)',
+  },
+  hwpx: {
+    text: 'var(--color-blue-text)',
+    background: 'var(--color-blue-bg-soft)',
+  },
+  txt: {
+    text: 'var(--color-gray-text-soft)',
+    background: 'var(--color-gray-bg-soft)',
+  },
+  md: {
+    text: 'var(--color-gray-text-soft)',
+    background: 'var(--color-gray-bg-soft)',
+  },
+  zip: {
+    text: 'var(--color-purple-text)',
+    background: 'var(--color-purple-bg-soft)',
+  },
+  png: {
+    text: 'var(--color-blue-text)',
+    background: 'var(--color-blue-bg-soft)',
+  },
+  jpg: {
+    text: 'var(--color-blue-text)',
+    background: 'var(--color-blue-bg-soft)',
+  },
+  jpeg: {
+    text: 'var(--color-blue-text)',
+    background: 'var(--color-blue-bg-soft)',
+  },
 };
 
-const FALLBACK_STYLE = { text: '#6C7389', background: '#ECEEF4' };
+const FALLBACK_STYLE = {
+  text: 'var(--color-text-secondary)',
+  background: 'var(--color-gray-bg)',
+};
 
 export function extensionStyle(extension: string) {
   return EXTENSION_STYLES[extension.toLowerCase()] ?? FALLBACK_STYLE;

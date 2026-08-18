@@ -23,11 +23,8 @@ import RevokePermissionModal from './RevokePermissionModal';
 import type { PageAccessor, PageAccessorList, PageSummary } from './types';
 
 /**
- * 페이지 권한 관리 화면. (ADMIN 전용, .ai/API.md 99~102)
- *
- * 부여 대상은 `BIDDING` · `FINANCE` 둘뿐이라 목록을 따로 두지 않고 탭으로 고른다.
- * 표에는 **명시 부여자 + 전역 권한 열람자**가 함께 나온다 —
- * "3명 줬는데 왜 5명이 보나" 를 화면에서 미리 답하기 위해서다.
+ * 페이지 권한 관리 화면 (ADMIN 전용). 부여 대상이 둘뿐이라 탭으로 고른다.
+ * 표에는 명시 부여자와 전역 권한 열람자가 함께 나온다.
  */
 export default function PagePermissionList() {
   const [pages, setPages] = useState<PageSummary[] | null>(null);
@@ -37,9 +34,8 @@ export default function PagePermissionList() {
 
   const [accessorReload, setAccessorReload] = useState(0);
   /**
-   * 어떤 요청의 결과인지 `key` 로 들고 있는다 —
-   * 페이지를 바꾸거나 재조회하면 키가 어긋나 **자동으로 로딩 상태**가 된다.
-   * (이펙트 안에서 `setState(null)` 로 비우면 렌더가 한 번 더 돈다)
+   * 어떤 요청의 결과인지 key 로 들고 있는다.
+   * 페이지를 바꾸거나 재조회하면 키가 어긋나 자동으로 로딩 상태가 된다.
    */
   const [accessorResult, setAccessorResult] = useState<{
     key: string;
@@ -48,18 +44,14 @@ export default function PagePermissionList() {
   } | null>(null);
 
   /**
-   * 전 사원 목록.
-   *
-   * ⭐ 권한을 **가진 사람만** 보여주던 때에는, 누구에게 줄지 고르려면 사원 관리 화면을
-   *    한 번 들렀다 와야 했다. 권한 없는 사원도 `권한 없음` 으로 함께 세워 두면
-   *    이 화면 안에서 이름을 찾아 바로 줄 수 있다.
-   * ⚠️ 목록이 실패해도 화면은 그대로 쓴다 — 권한 가진 사람 목록은 이미 받아 왔다.
+   * 전 사원 목록. 권한 없는 사원도 함께 세워 이 화면에서 바로 줄 수 있게 한다.
+   * 목록이 실패해도 화면은 그대로 쓴다. 권한 가진 사람 목록은 이미 받아 왔다.
    */
   const [employees, setEmployees] = useState<EmployeeSummary[] | null>(null);
-  /** 권한 없는 사원까지 볼지 — 부여할 때만 필요해서 끌 수 있게 둔다 */
+  /** 권한 없는 사원까지 볼지. 부여할 때만 필요해서 끌 수 있게 둔다 */
   const [showsAll, setShowsAll] = useState(true);
 
-  /** 부여 결과 요약 — 표만 갱신되면 뭐가 바뀌었는지 알 수 없다 */
+  /** 부여 결과 요약. 표만 갱신되면 뭐가 바뀌었는지 알 수 없다 */
   const [notice, setNotice] = useState('');
   const [isGranting, setIsGranting] = useState(false);
   const [editTarget, setEditTarget] = useState<PageAccessor | null>(null);
@@ -68,7 +60,7 @@ export default function PagePermissionList() {
   useEffect(() => {
     const controller = new AbortController();
 
-    // 재직자만 · 한 번에 (`size` 상한 200). 권한 부여 대상이라 퇴사자는 뺀다
+    // 재직자만 한 번에 받는다. 권한 부여 대상이라 퇴사자는 뺀다
     getEmployees({ page: 0, size: 200 }, controller.signal)
       .then((data) => setEmployees(data.content))
       .catch(() => {});
@@ -84,7 +76,7 @@ export default function PagePermissionList() {
       .then((list) => {
         setPages(list);
         setHasPagesFailed(false);
-        // 첫 페이지를 자동으로 연다 — 탭이 둘뿐이라 한 번 더 고르게 할 이유가 없다
+        // 첫 페이지를 자동으로 연다. 탭이 둘뿐이라 한 번 더 고를 이유가 없다
         setSelectedCode((current) => current ?? list[0]?.pageCode ?? null);
       })
       .catch(() => {
@@ -98,9 +90,8 @@ export default function PagePermissionList() {
   const currentAccessors =
     accessorResult?.key === requestKey ? accessorResult : null;
   /**
-   * 부여 · 회수 뒤 재조회에서는 **직전 목록을 그대로 둔다** —
-   * 스켈레톤으로 되돌리면 표 높이가 확 줄었다 늘면서 화면이 출렁인다.
-   * 다른 페이지 탭으로 옮길 때는 남의 목록이라 비운다 (앞부분 키가 다르다).
+   * 부여 · 회수 뒤 재조회에서는 직전 목록을 그대로 둔다. 스켈레톤이면 화면이 출렁인다.
+   * 다른 페이지 탭으로 옮길 때는 남의 목록이라 비운다.
    */
   const staleAccessors = accessorResult?.key.startsWith(`${selectedCode}:`)
     ? accessorResult.data
@@ -109,9 +100,8 @@ export default function PagePermissionList() {
   const hasAccessorsFailed = currentAccessors?.hasFailed ?? false;
 
   /**
-   * 표에 세울 줄. 권한을 가진 사람이 먼저 오고, 권한 없는 사원이 뒤에 붙는다.
-   * ⚠️ 없는 사람은 **`permission: 'NONE'` · `source: 'NONE'`** 으로 표시만 만든다 —
-   *    서버가 준 값이 아니라 화면이 만든 줄이라 회수(`revocable`)는 당연히 없다.
+   * 표에 세울 줄. 권한을 가진 사람이 먼저 오고 권한 없는 사원이 뒤에 붙는다.
+   * 없는 사람은 화면이 만든 줄이라 회수 대상이 아니다.
    */
   const rows = accessorRows(accessors, employees, showsAll);
 
@@ -135,7 +125,7 @@ export default function PagePermissionList() {
 
   const selectedPage = pages?.find((page) => page.pageCode === selectedCode);
 
-  /** 부여 · 회수 뒤에는 집계(`accessCount`)도 바뀐다 — 탭 숫자까지 함께 갱신한다 */
+  /** 부여 · 회수 뒤에는 집계도 바뀌어 탭 숫자까지 함께 갱신한다 */
   function reload() {
     setPagesReload((count) => count + 1);
     setAccessorReload((count) => count + 1);
@@ -186,7 +176,7 @@ export default function PagePermissionList() {
         </Centered>
       ) : (
         <>
-          {/* 탭 — 부여 대상이 둘뿐이라 목록 화면을 따로 두지 않는다 */}
+          {/* 탭. 부여 대상이 둘뿐이라 목록 화면을 따로 두지 않는다 */}
           <div
             role="tablist"
             aria-label="페이지 선택"
@@ -220,8 +210,8 @@ export default function PagePermissionList() {
           </div>
 
           {/*
-            페이지 이름 · 설명 · 인원 태그는 두지 않는다 — 바로 위 탭이 이미 어느 페이지를
-            보고 있는지 말하고, 인원은 탭과 아래 표에 다시 나온다. 남길 것은 동작 하나다.
+            페이지 이름 · 설명 · 인원 태그는 두지 않는다.
+            바로 위 탭과 아래 표가 이미 말해 남길 것은 동작 하나다.
           */}
           {selectedPage && (
             <div className="mb-4 flex justify-end">
@@ -243,8 +233,8 @@ export default function PagePermissionList() {
           </p>
 
           {/*
-            권한 없는 사원까지 세울지. 기본은 켜 둔다 — 누구에게 줄지 고르려면
-            이름이 보여야 하고, 그러자고 사원 관리 화면을 다녀오는 것이 이 화면의 불편이었다.
+            권한 없는 사원까지 세울지. 기본은 켜 둔다.
+            누구에게 줄지 고르려면 이름이 먼저 보여야 한다.
           */}
           <label className="mb-2 flex w-fit cursor-pointer items-center gap-1.5 text-detail text-text-secondary">
             <input
@@ -257,12 +247,12 @@ export default function PagePermissionList() {
           </label>
 
           {/*
-            `overflow-hidden` 이 없으면 안쪽 표의 **각진 흰 배경**(sticky thead 포함)이
-            둥근 모서리 위로 그대로 튀어나온다 — 모서리를 여기서 잘라낸다.
+            overflow-hidden 이 없으면 안쪽 표의 각진 배경이 둥근 모서리 위로 튀어나온다.
           */}
           <div className="overflow-hidden rounded-base border border-border-default bg-bg-card">
             <DataTable
               caption="접근 가능자 목록"
+              loadingLabel="접근 가능자를 불러오는 중"
               columns={[
                 {
                   key: 'name',
@@ -297,7 +287,7 @@ export default function PagePermissionList() {
                   header: '역할',
                   width: '7rem',
                   skeletonWidth: 'w-16',
-                  // 원값(`MASTER`)이 아니라 화면 이름으로 보여준다
+                  // 원값이 아니라 화면 이름으로 보여준다
                   cell: (accessor) => (
                     <span className="text-text-secondary">
                       {ROLE_LABELS[accessor.role]}
@@ -323,8 +313,8 @@ export default function PagePermissionList() {
                   width: '8rem',
                   skeletonWidth: 'w-20',
                   /*
-                    한 줄로 둔다 — 배지 · 태그를 또 얹으면 옆 `등급` 배지와 싸운다.
-                    회수할 수 없는 권한만 자물쇠를 달아 케밥에 회수가 없는 이유를 알린다.
+                    한 줄로 둔다. 배지를 또 얹으면 옆 등급 배지와 싸운다.
+                    회수할 수 없는 권한만 자물쇠를 달아 이유를 알린다.
                   */
                   cell: (accessor) => (
                     <span
@@ -347,8 +337,8 @@ export default function PagePermissionList() {
                   align: 'right',
                   skeletonWidth: 'w-6',
                   /*
-                    전역 권한 사용자도 **등급은 줄 수 있다** (부여 API 는 ADMIN 만 막는다).
-                    회수만 빠지므로 케밥 자체를 없애지 않는다 — 없애면 누를 것이 사라진다.
+                    전역 권한 사용자도 등급은 줄 수 있어 케밥 자체를 없애지 않는다.
+                    회수만 빠진다.
                   */
                   cell: (accessor) =>
                     accessor.source === 'ADMIN_ONLY' ? null : (
@@ -356,7 +346,7 @@ export default function PagePermissionList() {
                         label={accessor.name}
                         items={[
                           {
-                            // 아직 권한이 없는 사람에게는 `변경` 이 아니라 `부여` 다
+                            // 아직 권한이 없는 사람에게는 변경 이 아니라 부여 다
                             label:
                               accessor.source === 'NONE'
                                 ? '권한 부여'
@@ -446,7 +436,7 @@ function TabsSkeleton() {
   );
 }
 
-/** 회수할 수 없는 권한 표시 — 글자 옆에 붙는 작은 자물쇠 */
+/** 회수할 수 없는 권한 표시. 글자 옆에 붙는 작은 자물쇠 */
 function LockMarkIcon() {
   return (
     <svg
@@ -492,10 +482,8 @@ function LockIcon() {
 }
 
 /**
- * 권한 가진 사람 + 권한 없는 사원을 한 목록으로 만든다.
- *
- * ⚠️ 서버 응답(`accessors`)을 **앞에** 둔다 — 지금 권한을 가진 사람이 먼저 보여야
- *    "누가 볼 수 있나" 라는 이 화면의 첫 질문에 바로 답이 된다.
+ * 권한 가진 사람과 권한 없는 사원을 한 목록으로 만든다.
+ * 서버 응답을 앞에 둬야 누가 볼 수 있나 라는 첫 질문에 바로 답이 된다.
  */
 function accessorRows(
   accessors: PageAccessorList | undefined | null,

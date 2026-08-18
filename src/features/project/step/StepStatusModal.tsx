@@ -12,14 +12,11 @@ import { isVersionConflict } from '../errorCodes';
 import { STEP_STATUS_CHANGE_LABELS } from '../labels';
 import type { ProjectStep, StepStatus, StepStatusChange } from '../types';
 
-/**
- * 모달 안에서 고를 수 있는 값. **완료까지 한 줄에 놓는다** —
- * 사용자에게는 다 같은 "상태 바꾸기" 인데 메뉴 항목이 셋으로 나뉘어 있으면
- * 어느 것을 눌러야 할지 매번 읽어야 한다.
- *
- * ⚠️ 완료만 **다른 API** 다 (미완료 이슈 처리 선택이 필요해 `completeStep` 소관) —
- *    그래서 고르면 이 모달을 닫고 완료 처리 모달로 넘긴다.
- */
+// 모달 안에서 고를 수 있는 값. 완료까지 한 줄에 놓는다 —
+// 사용자에게는 다 같은 "상태 바꾸기" 인데 메뉴 항목이 셋으로 나뉘어 있으면
+// 어느 것을 눌러야 할지 매번 읽어야 한다.
+// 완료만 다른 API 다 (미완료 이슈 처리 선택이 필요해 completeStep 소관) —
+// 그래서 고르면 이 모달을 닫고 완료 처리 모달로 넘긴다.
 const CHOICES: { value: StepStatus; label: string }[] = [
   { value: 'NOT_STARTED', label: STEP_STATUS_CHANGE_LABELS.NOT_STARTED },
   { value: 'IN_PROGRESS', label: STEP_STATUS_CHANGE_LABELS.IN_PROGRESS },
@@ -30,19 +27,16 @@ interface StepStatusModalProps {
   step: ProjectStep;
   onClose: () => void;
   onChanged: () => void;
-  /** `완료` 를 골랐을 때 — 완료 처리 모달로 넘긴다 (미완료 이슈 처리를 물어야 한다) */
+  /** 완료 를 골랐을 때 — 완료 처리 모달로 넘긴다 (미완료 이슈 처리를 물어야 한다) */
   onRequestComplete: () => void;
 }
 
-/**
- * 스텝 상태 변경. (.ai/API.md 137 · 118)
- *
- * ⛔ **`DONE` 은 137번으로 보낼 수 없다** — 400 `STEP_STATUS_INVALID` 다.
- *    화면에서는 한 줄에 함께 놓되, 고르면 완료 처리(118)로 넘긴다.
- * ⚠️ **완료된 스텝을 되돌리면 완료 기록(`completedAt` · `completedBy`)까지 비워진다** —
- *    상태만 바뀌는 줄 알고 눌렀다가 기록을 잃지 않도록 경고를 띄운다.
- * ⚠️ 낙관적 락 — 409 면 **재조회 / 덮어쓰기**를 묻는다.
- */
+// 스텝 상태 변경. (.ai/API.md 137·118)
+// DONE 은 137번으로 보낼 수 없다 — 400 STEP_STATUS_INVALID 다.
+// 화면에서는 한 줄에 함께 놓되, 고르면 완료 처리(118)로 넘긴다.
+// 완료된 스텝을 되돌리면 완료 기록(completedAt·completedBy)까지 비워진다 —
+// 상태만 바뀌는 줄 알고 눌렀다가 기록을 잃지 않도록 경고를 띄운다.
+// 낙관적 락 — 409 면 재조회 / 덮어쓰기를 묻는다.
 export default function StepStatusModal({
   step,
   onClose,
@@ -61,7 +55,7 @@ export default function StepStatusModal({
   async function save(status: StepStatusChange, overwrite: boolean) {
     if (isSaving) return;
 
-    // 목록 응답에 `version` 이 없으면 보낼 수가 없다 — 400 을 맞기 전에 막는다
+    // 목록 응답에 version 이 없으면 보낼 수가 없다 — 400 을 맞기 전에 막는다
     if (step.version === undefined) {
       setError('버전 정보가 없어 상태를 바꿀 수 없습니다. 새로고침해주세요.');
       setPending(null);
@@ -116,7 +110,7 @@ export default function StepStatusModal({
     }
 
     /*
-     * **고른 즉시 저장하지 않는다.** 목록의 `⋯` 에서 두 번 눌러 들어온 자리라
+     * 고른 즉시 저장하지 않는다. 목록의 ⋯ 에서 두 번 눌러 들어온 자리라
      * 잘못 누르기 쉽고, 상태는 활동 기록에 남는 값이다 — 한 번 더 확인을 받는다.
      * (완료를 되돌리는 경우에는 잃는 것까지 함께 알린다)
      */
@@ -144,7 +138,7 @@ export default function StepStatusModal({
   }
 
   /*
-   * 바꾸기 전 확인. 완료를 되돌리는 경우에만 **잃는 것**을 함께 알리고 빨간 버튼을 쓴다 —
+   * 바꾸기 전 확인. 완료를 되돌리는 경우에만 잃는 것을 함께 알리고 빨간 버튼을 쓴다 —
    * 나머지는 되돌릴 수 있는 변경이라 같은 다이얼로그를 안내 톤으로 띄운다.
    */
   if (pending) {

@@ -3,7 +3,10 @@
 import { useEffect, useState } from 'react';
 
 import LoadingSpinner from '@/components/Spinner';
-import { SETTLEMENT_STATUS_LABELS } from '@/features/settlement/types';
+import {
+  SETTLEMENT_STATUS_LABELS,
+  SETTLEMENT_TYPE_LABELS,
+} from '@/features/settlement/types';
 import type { SettlementStatus } from '@/features/settlement/types';
 import { messageOf } from '@/lib/api';
 import { formatDate, formatDateTime } from '@/lib/format';
@@ -24,6 +27,9 @@ import type { SettlementRound } from './types';
  * ⚠️ 값 대부분이 비어 있을 수 있다 — 정산 블록을 만들어 두고 아직 안 쓴 회차가 있다.
  * ⚠️ 계좌 정보(은행 · 번호 · 예금주)는 **열로 두지 않는다.** 출금 회차에만 있는 값이라
  *    열로 세우면 대부분의 줄이 비어 표만 넓어진다 — 눌러서 펼치게 한다.
+ * 🔒 **계좌번호는 마스킹 없이 원본으로 온다** (2026-08-17 백엔드 PR #422). 이 API 는
+ *    `FINANCE` 권한자(재무팀)만 부를 수 있어 원본이 허용된 자리다. 다만 화면 공유 ·
+ *    어깨너머로 새기 쉬운 값이라 **기본은 접어 두고 눌렀을 때만** 편다.
  */
 export default function SettlementRoundPanel({
   projectId,
@@ -107,7 +113,7 @@ export default function SettlementRoundPanel({
               <tr>
                 <Th className="w-12">회차</Th>
                 <Th>회차명</Th>
-                <Th>예정일</Th>
+                <Th>입출금 기한</Th>
                 {/* 왼쪽 정렬 열을 금액 앞으로 모은다 — 금액 3열이 붙어야 자릿수가 줄을 맞춘다 */}
                 <Th>매칭 처리자</Th>
                 <Th align="right">예정 금액</Th>
@@ -157,6 +163,8 @@ function RoundRows({
       <tr className="border-t border-border-default">
         <Td className="text-text-secondary">{round.roundNo ?? '—'}</Td>
         <Td className="font-medium text-text-primary">
+          {/* 입금 회차와 출금 회차가 한 표에 섞여 있어 구분을 이름 옆에 붙인다 */}
+          <PaidTypeBadge paidType={round.paidType} />
           {round.roundName ?? '이름 없음'}
         </Td>
         <Td className="whitespace-nowrap text-text-secondary">
@@ -198,7 +206,7 @@ function RoundRows({
               {formatDate(round.paidDate)}
             </span>
           )}
-          {/* 계좌는 출금 회차에만 있다 — 값이 있을 때만 여는 단추를 둔다 */}
+          {/* 계좌는 출금 회차에만 있다 — 값이 있을 때만 여는 단추를 둔다 (원본 번호라 기본은 접음) */}
           {hasAccount && (
             <button
               type="button"
@@ -228,6 +236,19 @@ function RoundRows({
         </tr>
       )}
     </>
+  );
+}
+
+/** 회차의 입출금 구분. 작성 전이면 타입이 정해지지 않아 그리지 않는다 */
+function PaidTypeBadge({ paidType }: { paidType: string | null }) {
+  if (paidType !== 'INCOME' && paidType !== 'OUTCOME') return null;
+
+  return (
+    <span
+      className={`badge mr-1.5 ${paidType === 'INCOME' ? 'badge-blue' : 'badge-red'}`}
+    >
+      {SETTLEMENT_TYPE_LABELS[paidType]}
+    </span>
   );
 }
 

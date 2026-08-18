@@ -19,7 +19,7 @@ const COPY = {
     submit: '승인',
     busy: '승인 중…',
     placeholder: '의견을 남길 수 있어요 (선택)',
-    className: 'bg-[#4F39F6] hover:bg-[#4430d6]',
+    className: 'btn-primary',
     failure: '승인하지 못했습니다.',
   },
   reject: {
@@ -29,16 +29,14 @@ const COPY = {
     submit: '반려',
     busy: '반려 중…',
     placeholder: '반려 사유를 입력해주세요',
-    className: 'bg-red-text hover:bg-btn-danger-hover',
+    className: 'btn-danger',
     failure: '반려하지 못했습니다.',
   },
 } as const;
 
 /**
- * 승인 · 반려 처리 모달. (AP-041·042·053·054)
- *
- * 승인 의견은 선택이고 **반려 사유는 필수**다.
- * 대상은 결재가 아니라 결재선(`lineId`)이고, 처리 결과를 상위가 그대로 화면에 반영한다.
+ * 승인 · 반려 처리 모달. 승인 의견은 선택, 반려 사유는 필수다.
+ * 대상은 결재가 아니라 결재선이며 결과는 상위가 화면에 반영한다.
  */
 export default function ApprovalProcessModal({
   kind,
@@ -60,10 +58,7 @@ export default function ApprovalProcessModal({
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState('');
 
-  /**
-   * ⚠️ 서버는 반려 의견도 선택으로 받지만(AP-054) **화면에서는 필수로 막는다** —
-   * 기안자가 왜 반려됐는지 모르면 무엇을 고쳐 재상신할지 알 수 없다 (AP-059·060).
-   */
+  /** 서버는 선택으로 받지만 기안자가 사유를 알아야 해서 화면에서는 필수로 막는다 */
   const isOpinionRequired = kind === 'reject';
   const isEmpty = opinion.trim() === '';
 
@@ -76,7 +71,7 @@ export default function ApprovalProcessModal({
     const trimmed = opinion.trim();
 
     try {
-      // 빈 의견은 키 자체를 빼서 보낸다 — 빈 문자열이 의견으로 저장되면 말풍선이 빈 채로 뜬다
+      // 빈 문자열이 의견으로 저장되지 않도록 키 자체를 빼서 보낸다
       const body = trimmed ? { opinion: trimmed } : {};
       const result =
         kind === 'approve'
@@ -86,7 +81,7 @@ export default function ApprovalProcessModal({
       onProcessed(kind, result, trimmed);
     } catch (caught) {
       const code = caught instanceof ApiError ? caught.code : undefined;
-      // 이미 처리됨(409) · 권한 없음(403)은 문구를 우리가 정한다 — 나머지는 백엔드 문구가 정확하다
+      // 아는 코드만 문구를 정하고 나머지는 백엔드 문구를 쓴다
       setError(
         (code && LINE_PROCESS_LABELS[code]) ?? messageOf(caught, copy.failure),
       );
@@ -103,7 +98,7 @@ export default function ApprovalProcessModal({
       <label className="mt-4 block">
         <span className="mb-1 block text-label font-semibold text-text-primary">
           결재 의견
-          {/* 별표는 눈으로만 보인다 — 보조기술에는 아래 `aria-required` 로 전한다 */}
+          {/* 별표는 시각 표시일 뿐이라 보조기술에는 aria-required 로 전한다 */}
           {isOpinionRequired && (
             <span aria-hidden className="ml-0.5 text-text-danger">
               *
@@ -135,7 +130,8 @@ export default function ApprovalProcessModal({
           type="button"
           onClick={submit}
           disabled={isBusy || (isOpinionRequired && isEmpty)}
-          className={`flex-1 cursor-pointer rounded-lg py-2 text-label font-semibold text-text-white disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary ${copy.className}`}
+          /* 색 · 비활성 처리는 공용 버튼 스타일이 갖고 있다 */
+          className={`btn btn-md flex-1 ${copy.className}`}
         >
           {isBusy ? copy.busy : copy.submit}
         </button>

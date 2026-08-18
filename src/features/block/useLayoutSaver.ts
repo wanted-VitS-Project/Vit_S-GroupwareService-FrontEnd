@@ -1,5 +1,6 @@
 'use client';
 
+// 블록 배치 저장 — 드래그가 멎은 뒤에 모아서 한 번만 보낸다.
 import { useEffect, useRef, useState } from 'react';
 
 import { ApiError, messageOf } from '@/lib/api';
@@ -15,10 +16,8 @@ import { LAYOUT_CONFLICT_MESSAGE, layoutErrorMessage } from './errorCodes';
 import { notifyBlockChanged } from './events';
 import type { BlockLayout, StepBlock } from './types';
 
-/**
- * 마지막 이동 후 이만큼 조용하면 그때 보낸다.
- * 블록을 몇 번 연달아 옮기는 동안 요청이 매번 나가면 서버도 화면도 시끄럽다.
- */
+// 마지막 이동 후 이만큼 조용하면 그때 보낸다.
+// 블록을 몇 번 연달아 옮기는 동안 요청이 매번 나가면 서버도 화면도 시끄럽다.
 const QUIET_MS = 800;
 
 /** 배치가 실제로 달라졌는지 비교하는 지문 */
@@ -44,17 +43,13 @@ export interface LayoutSaver {
   reset: (next: StepBlock[]) => void;
 }
 
-/**
- * 블록 배치 저장을 맡는다.
- *
- * - **조용해지면 보낸다** — 이동할 때마다가 아니라 `QUIET_MS` 동안 더 안 움직일 때
- * - **같으면 안 보낸다** — 마지막으로 저장된 배치와 지문이 같으면 요청 자체를 건너뛴다
- * - **한 번에 하나만 보낸다** — 앞 요청이 끝나야 다음이 나간다. 둘을 동시에 띄우면
- *   서버 처리 순서가 뒤바뀌어 **옛 배치가 최종 상태로 남을 수 있다**
- * - **떠나도 보낸다** — 언마운트 시 대기 중인 배치를 흘려보내지 않고 마지막으로 한 번 보낸다
- *
- * 반환하는 객체는 **참조가 고정**돼 effect 의존성에 그대로 넣을 수 있다.
- */
+// 블록 배치 저장을 맡는다.
+// - 조용해지면 보낸다 — 이동할 때마다가 아니라 QUIET_MS 동안 더 안 움직일 때
+// - 같으면 안 보낸다 — 마지막으로 저장된 배치와 지문이 같으면 요청 자체를 건너뛴다
+// - 한 번에 하나만 보낸다 — 앞 요청이 끝나야 다음이 나간다. 둘을 동시에 띄우면
+// 서버 처리 순서가 뒤바뀌어 옛 배치가 최종 상태로 남을 수 있다
+// - 떠나도 보낸다 — 언마운트 시 대기 중인 배치를 흘려보내지 않고 마지막으로 한 번 보낸다
+// 반환하는 객체는 참조가 고정돼 effect 의존성에 그대로 넣을 수 있다.
 export function useLayoutSaver({
   stepId,
   initial,
@@ -65,7 +60,7 @@ export function useLayoutSaver({
   /** 처음 받은 서버 배치 — 첫 저장이 실패했을 때 돌아갈 자리다 */
   initial: StepBlock[];
   onSaved: (blocks: StepBlock[]) => void;
-  /** 실패 시 되돌릴 **마지막으로 저장된** 배치를 함께 준다 */
+  /** 실패 시 되돌릴 마지막으로 저장된 배치를 함께 준다 */
   onFailed: (message: string, confirmed: StepBlock[]) => void;
 }): LayoutSaver {
   // 첫 기준점은 한 번만 계산한다 (렌더 중 ref 를 쓰지 않으려고 state 로 씨앗을 만든다)
@@ -80,11 +75,9 @@ export function useLayoutSaver({
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** 지금 서버에 나가 있는 요청이 있는지 — 있으면 다음 요청은 끝난 뒤에 보낸다 */
   const isSending = useRef(false);
-  /**
-   * 목록 세대. `reset()` 마다 올라간다.
-   * 진행 중이던 응답이 **더 새로운 목록을 덮어쓰지 않게** 막는 장치다 —
-   * 블록을 만들어 재조회가 끝난 뒤 옛 저장 응답이 도착하면 새 블록이 사라진다.
-   */
+  // 목록 세대. reset() 마다 올라간다.
+  // 진행 중이던 응답이 더 새로운 목록을 덮어쓰지 않게 막는 장치다 —
+  // 블록을 만들어 재조회가 끝난 뒤 옛 저장 응답이 도착하면 새 블록이 사라진다.
   const generation = useRef(0);
   const isMounted = useRef(true);
 
@@ -100,7 +93,7 @@ export function useLayoutSaver({
     if (mark === confirmedMark.current) return;
 
     /*
-     * `version` 이 하나라도 없으면 보내지 않는다 — 항목별 락이라 전부 실패한다.
+     * version 이 하나라도 없으면 보내지 않는다 — 항목별 락이라 전부 실패한다.
      * 저장이 불가능하므로 화면도 마지막으로 저장된 배치로 되돌린다.
      */
     const orders = toLayoutOrders(rows);
@@ -131,8 +124,8 @@ export function useLayoutSaver({
 
         /*
          * 409 — 항목 하나라도 버전이 어긋나면 요청 전체가 롤백된다.
-         * `overwrite` 가 없어 재전송으로는 절대 통과하지 못하므로,
-         * 되돌리는 것으로 끝내지 않고 **목록을 다시 읽게 한다** (그래야 새 `version` 이 온다).
+         * overwrite 가 없어 재전송으로는 절대 통과하지 못하므로,
+         * 되돌리는 것으로 끝내지 않고 목록을 다시 읽게 한다 (그래야 새 version 이 온다).
          */
         if (caught instanceof ApiError && caught.status === 409) {
           handlers.current.onFailed(LAYOUT_CONFLICT_MESSAGE, confirmed.current);
@@ -158,7 +151,7 @@ export function useLayoutSaver({
     if (timer.current) clearTimeout(timer.current);
     timer.current = null;
 
-    // 나가 있는 요청이 끝날 때까지 붙들고 있는다 (`finally` 에서 이어 보낸다)
+    // 나가 있는 요청이 끝날 때까지 붙들고 있는다 (finally 에서 이어 보낸다)
     if (isSending.current) return;
 
     const next = pending.current;
@@ -172,7 +165,7 @@ export function useLayoutSaver({
   });
 
   useEffect(() => {
-    // StrictMode 는 같은 ref 를 둔 채 setup · cleanup 을 다시 돈다 — 여기서 되살린다
+    // StrictMode 는 같은 ref 를 둔 채 setup·cleanup 을 다시 돈다 — 여기서 되살린다
     isMounted.current = true;
 
     return () => {

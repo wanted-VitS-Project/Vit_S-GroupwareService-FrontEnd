@@ -15,6 +15,13 @@ import { getJobPositions } from '@/features/jobPosition/api';
 
 import { writeCachedDepartments, writeCachedJobPositions } from './optionCache';
 import type { JobPosition } from '@/features/jobPosition/types';
+import QualificationFields, {
+  toQualificationPayload,
+} from '@/features/masterItem/QualificationFields';
+import type {
+  CertificateInput,
+  EducationInput,
+} from '@/features/masterItem/types';
 import { ApiError, messageOf } from '@/lib/api';
 import { formatPhone } from '@/lib/format';
 
@@ -27,12 +34,11 @@ import type { CreateEmployeeResult, ManagedRole } from './types';
 
 /**
  * 사번 최대 길이.
- * ⚠️ 최종 명세(.ai/API.md 32)에도 길이 제한이 없어 ERD 의 `block.owner VARCHAR(20)` 을 근거로 둔다.
- * **명세에 없는 값이라 더 묻지 않기로 했다** (2026-08-10) — 바꿔야 하면 여기만 고친다.
+ * 명세에 길이 제한이 없어 ERD 의 VARCHAR(20) 을 근거로 둔다.
  */
 const USER_ID_MAX_LENGTH = 20;
 
-/** ADMIN 은 부여할 수 없다 — 선택지에 아예 넣지 않는다 (.ai/API.md 32) */
+/** ADMIN 은 부여할 수 없어 선택지에 아예 넣지 않는다 */
 const ROLE_OPTIONS: ManagedRole[] = ['MASTER', 'MEMBER'];
 
 /** 셀렉트 값이 문자열이라 폼은 전부 문자열로 다룬다 */
@@ -53,16 +59,16 @@ const EMPTY_VALUES: FormValues = {
   userId: '',
   name: '',
   departmentId: '',
-  // 대부분 오늘 등록한다 — 비워 두면 매번 달력을 열어 오늘을 찾아야 한다
+  // 대부분 오늘 등록한다. 비워 두면 매번 달력을 열어 오늘을 찾아야 한다
   hiredAt: today(),
-  // 대부분이 일반 사원이라 기본값을 준다. 올리려면 의식적으로 바꾸게 된다
+  // 대부분이 일반 사원이라 기본값을 준다
   role: 'MEMBER',
   jobPositionId: '',
   email: '',
   phone: '',
 };
 
-/** 필수 항목 — 값이 비면 제출 전에 막는다 (400 `EMP_INVALID_REQUEST` 사전 차단) */
+/** 필수 항목. 값이 비면 제출 전에 막아 400 을 미리 차단한다 */
 const REQUIRED_MESSAGES: Partial<Record<FieldName, string>> = {
   userId: '사번을 입력해주세요.',
   name: '이름을 입력해주세요.',
@@ -72,10 +78,8 @@ const REQUIRED_MESSAGES: Partial<Record<FieldName, string>> = {
 };
 
 /**
- * 사원 등록 화면. (ADMIN 전용, .ai/API.md 32)
- *
- * 계정이 항상 함께 발급된다 — 사원만 등록하는 경로는 없다.
- * 초기 비밀번호는 입력한 이메일로 가고, **메일 발송이 실패해도 201** 이라 응답을 반드시 확인한다.
+ * 사원 등록 화면 (ADMIN 전용). 계정이 항상 함께 발급된다.
+ * 사번 · 초기 비밀번호가 메일로 가는데 발송이 실패해도 201 이라 응답을 확인한다.
  */
 export default function EmployeeCreateForm() {
   const router = useRouter();
@@ -86,6 +90,14 @@ export default function EmployeeCreateForm() {
   >({});
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  /**
+   * 학력 · 자격증. 줄 단위 배열이라 문자열 폼과 따로 담는다.
+   * 같은 체계에 넣으면 검증 · 초기화가 뒤엉킨다.
+   */
+  const [qualifications, setQualifications] = useState<{
+    educations: EducationInput[];
+    certificates: CertificateInput[];
+  }>({ educations: [], certificates: [] });
   /** 등록에 성공하면 폼 대신 결과를 보여준다 */
   const [result, setResult] = useState<CreateEmployeeResult | null>(null);
 
@@ -157,7 +169,7 @@ export default function EmployeeCreateForm() {
     router.push(EMPLOYEE_ROUTES.list);
   }
 
-  /** 비어 있는 필수 항목을 한 번에 모아 표시한다 — 하나씩 알려주면 왕복이 길다 */
+  /** 비어 있는 필수 항목을 한 번에 모아 표시한다. 하나씩 알려주면 왕복이 길다 */
   function missingRequired() {
     const missing: Partial<Record<FieldName, string>> = {};
 
@@ -177,10 +189,16 @@ export default function EmployeeCreateForm() {
 
     if (Object.keys(missing).length > 0) {
       setFieldErrors(missing);
+
+      /*
+        빠뜨린 첫 칸으로 포커스를 옮긴다. 문구만 띄우면 그 칸이 화면 밖일 때
+        아무 일도 안 일어난 것처럼 보인다. 스크롤과 낭독이 함께 따라온다.
+      */
+      document.getElementById(Object.keys(missing)[0])?.focus();
       return;
     }
 
-    // 셀렉트 값은 문자열이라 여기서 좁힌다 — 캐스팅하면 ADMIN 이 실려도 통과한다
+    // 셀렉트 값은 문자열이라 여기서 좁힌다. 캐스팅하면 ADMIN 이 실려도 통과한다
     const role = ROLE_OPTIONS.find((option) => option === values.role);
 
     if (!role) {
@@ -199,12 +217,14 @@ export default function EmployeeCreateForm() {
         departmentId: Number(values.departmentId),
         hiredAt: values.hiredAt,
         role,
-        // 선택 항목은 값이 있을 때만 싣는다 — 빈 문자열을 보내면 그 값으로 등록된다
+        // 선택 항목은 값이 있을 때만 싣는다. 빈 문자열을 보내면 그 값으로 등록된다
         ...(values.jobPositionId && {
           jobPositionId: Number(values.jobPositionId),
         }),
         ...(values.email.trim() && { email: values.email.trim() }),
         ...(values.phone.trim() && { phone: values.phone.trim() }),
+        // 고르지 않은 줄은 여기서 걸러진다 (id 0 을 보내면 404 다)
+        ...toQualificationPayload(qualifications),
       });
 
       setResult(created);
@@ -227,8 +247,7 @@ export default function EmployeeCreateForm() {
         setError(message);
       }
     } finally {
-      // 성공 경로에서도 반드시 풀어야 한다 —
-      // `계속 등록` 으로 폼이 다시 나오면 제출 버튼이 잠긴 채로 남는다
+      // 성공 경로에서도 반드시 푼다. 계속 등록 으로 폼이 다시 나오면 버튼이 잠긴 채 남는다
       setIsSubmitting(false);
     }
   }
@@ -254,7 +273,7 @@ export default function EmployeeCreateForm() {
 
       <PageTitle
         title="사원 등록"
-        description="로그인 계정이 함께 발급됩니다. 초기 비밀번호는 입력한 이메일로 발송됩니다."
+        description="로그인 계정이 함께 발급됩니다. 사번과 초기 비밀번호를 입력한 이메일로 보냅니다."
       />
 
       {result ? (
@@ -361,8 +380,8 @@ export default function EmployeeCreateForm() {
                 type="date"
                 required
                 /**
-                 * ⚠️ 상한이 없으면 브라우저가 **연도를 6자리까지** 받는다 (`200000-01-01`).
-                 *    서버는 4자리만 받아 400 이 되므로 입력 단계에서 막는다.
+                 * 상한이 없으면 브라우저가 연도를 6자리까지 받는다.
+                 * 서버는 4자리만 받아 400 이 되므로 입력 단계에서 막는다.
                  */
                 min="1900-01-01"
                 max="2999-12-31"
@@ -380,7 +399,7 @@ export default function EmployeeCreateForm() {
                 hint={
                   values.email.trim() === ''
                     ? '⚠ 비워두면 초기 비밀번호를 보낼 수 없어 로그인 불가 계정으로 등록됩니다.'
-                    : '이 주소로 초기 비밀번호를 보냅니다.'
+                    : '이 주소로 사번과 초기 비밀번호를 보냅니다.'
                 }
                 onChange={(value) => change('email', value)}
               />
@@ -395,6 +414,13 @@ export default function EmployeeCreateForm() {
               />
             </div>
           </section>
+
+          {/* 입찰 참여 검토에 쓰는 자료라 등록 단계에서 함께 받는다 (선택 입력) */}
+          <QualificationFields
+            educations={qualifications.educations}
+            certificates={qualifications.certificates}
+            onChange={setQualifications}
+          />
 
           <div className="flex items-center justify-end gap-2">
             {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}
@@ -427,8 +453,8 @@ export default function EmployeeCreateForm() {
 }
 
 /**
- * 등록 결과. 다음 할 일이 세 갈래로 갈려 자동 이동하지 않고 고르게 한다.
- * 특히 메일이 실패한 경우엔 여기서 바로 재발송할 수 있어야 한다.
+ * 등록 결과. 다음 할 일이 세 갈래라 자동 이동하지 않고 고르게 한다.
+ * 메일이 실패한 경우엔 여기서 바로 재발송할 수 있어야 한다.
  */
 function CreatedResult({
   result,
@@ -436,19 +462,19 @@ function CreatedResult({
   onCreateAnother,
 }: {
   result: CreateEmployeeResult;
-  /** 재발송에 성공하면 경고를 거둔다 — 그대로 두면 아직 실패 상태로 읽힌다 */
+  /** 재발송에 성공하면 경고를 거둔다. 그대로 두면 아직 실패 상태로 읽힌다 */
   onResent: () => void;
   onCreateAnother: () => void;
 }) {
   const [isResendOpen, setIsResendOpen] = useState(false);
 
-  /** 주소는 등록됐는데 메일만 실패한 경우 — 재발송하지 않으면 로그인할 수 없다 */
+  /** 주소는 등록됐는데 메일만 실패한 경우. 재발송하지 않으면 로그인할 수 없다 */
   const hasMailFailed = result.emailRegistered && !result.emailSent;
 
   return (
     <>
       <section className="rounded-base border border-border-default bg-bg-card p-6">
-        {/* 이모지는 쓰지 않는다 — 화면 문구는 글자만으로 뜻이 서야 한다 */}
+        {/* 이모지는 쓰지 않는다. 화면 문구는 글자만으로 뜻이 서야 한다 */}
         <p className="text-body-m font-bold text-green-text">등록되었습니다</p>
         <p className="mt-2 text-label text-text-primary">
           <b>{result.name}</b>{' '}
@@ -467,8 +493,8 @@ function CreatedResult({
           </p>
         ) : (
           <p className="mt-4 rounded-lg bg-bg-surface px-3 py-2.5 text-detail leading-relaxed break-keep text-text-secondary">
-            초기 비밀번호를 등록한 이메일로 보냈습니다. 첫 로그인 때 비밀번호를
-            변경하게 됩니다.
+            사번과 초기 비밀번호를 등록한 이메일로 보냈습니다. 첫 로그인 때
+            비밀번호를 변경하게 됩니다.
           </p>
         )}
 
@@ -515,7 +541,7 @@ function CreatedResult({
   );
 }
 
-/** 오늘(`yyyy-MM-dd`). 타임존이 밀리지 않게 로컬 값을 그대로 조립한다 */
+/** 오늘 날짜. 타임존이 밀리지 않게 로컬 값을 그대로 조립한다 */
 function today() {
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, '0');

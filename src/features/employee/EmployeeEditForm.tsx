@@ -16,6 +16,14 @@ import { getJobPositions } from '@/features/jobPosition/api';
 
 import { writeCachedDepartments, writeCachedJobPositions } from './optionCache';
 import type { JobPosition } from '@/features/jobPosition/types';
+import QualificationFields, {
+  toQualificationPayload,
+} from '@/features/masterItem/QualificationFields';
+import type {
+  CertificateInput,
+  EducationInput,
+} from '@/features/masterItem/types';
+import { newRowKey } from '@/features/masterItem/types';
 import { ApiError, messageOf } from '@/lib/api';
 import { formatPhone } from '@/lib/format';
 
@@ -25,7 +33,7 @@ import { SelectField, TextField } from './FormFields';
 import { EMPLOYEE_ROUTES } from './routes';
 import type { EmployeeDetail, UpdateEmployeeRequest } from './types';
 
-/** 셀렉트 값이 문자열이라 폼은 전부 문자열로 다룬다 — `''` 는 미지정 */
+/** 셀렉트 값이 문자열이라 폼은 전부 문자열로 다룬다. 빈 문자열은 미지정이다 */
 interface FormValues {
   name: string;
   phone: string;
@@ -49,10 +57,29 @@ function toFormValues(employee: EmployeeDetail): FormValues {
 }
 
 /**
- * 바뀐 필드만 담는다. 이게 이 화면의 핵심이다 (.ai/API.md 33)
- *
- * ⚠️ 키를 빼면 "변경 안 함", `null` 을 보내면 "미지정으로 지움" —
- * 손대지 않은 부서 · 직급에 `null` 이 실려 나가면 배정이 통째로 날아간다.
+ * 상세 응답(표시명 포함)을 폼이 다루는 입력값(id 만)으로 옮긴다.
+ * 예전 응답에는 없던 필드라 빈 목록으로 받쳐 둔다.
+ */
+function toQualifications(employee: EmployeeDetail) {
+  return {
+    // 줄을 지웠을 때 입력 상태가 옆줄로 새지 않도록 화면 전용 키를 붙인다
+    educations: (employee.educations ?? []).map((education) => ({
+      rowKey: newRowKey(),
+      majorId: education.majorId,
+      degree: education.degree,
+      school: education.school,
+    })),
+    certificates: (employee.certificates ?? []).map((certificate) => ({
+      rowKey: newRowKey(),
+      certificateId: certificate.certificateId,
+      acquiredDate: certificate.acquiredDate,
+    })),
+  };
+}
+
+/**
+ * 바뀐 필드만 담는다. 이게 이 화면의 핵심이다.
+ * 손대지 않은 부서 · 직급에 null 이 실려 나가면 배정이 통째로 날아간다.
  */
 function buildPatch(
   initial: FormValues,
@@ -80,9 +107,8 @@ function buildPatch(
 }
 
 /**
- * 사원 정보 수정 화면. (ADMIN 전용, .ai/API.md 33)
- *
- * 사번 · 전역 권한은 이 API 로 못 바꾼다 — 읽기 전용으로 보여주고 권한은 상세로 안내한다.
+ * 사원 정보 수정 화면 (ADMIN 전용).
+ * 사번 · 전역 권한은 이 API 로 못 바꿔 읽기 전용으로 보여준다.
  */
 export default function EmployeeEditForm({ userId }: { userId: string }) {
   const router = useRouter();
@@ -105,6 +131,14 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
   >({});
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  /**
+   * 학력 · 자격증. 부분 수정이 아니라 전체 교체라 빈 배열은 전부 삭제다.
+   * 손대지 않았으면 요청에서 아예 뺀다.
+   */
+  const [qualifications, setQualifications] = useState<{
+    educations: EducationInput[];
+    certificates: CertificateInput[];
+  } | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -114,6 +148,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
       .then((data) => {
         setEmployee(data);
         setValues(toFormValues(data));
+        setQualifications(toQualifications(data));
       })
       .catch((caught: unknown) => {
         // 취소는 실패가 아니다
@@ -128,7 +163,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
     return () => controller.abort();
   }, [userId]);
 
-  /** 셀렉트 옵션은 사원과 따로 받는다 — 다시 받아도 입력 중인 값이 날아가지 않는다 */
+  /** 셀렉트 옵션은 사원과 따로 받는다. 다시 받아도 입력 중인 값이 날아가지 않는다 */
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
@@ -149,7 +184,27 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
   }, [optionsReloadCount]);
 
   const initial = employee ? toFormValues(employee) : null;
-  const patch = initial && values ? buildPatch(initial, values) : {};
+  const fieldPatch = initial && values ? buildPatch(initial, values) : {};
+
+  /**
+   * 학력 · 자격증을 건드렸는지 보낼 모양끼리 비교한다.
+   * 화면 상태를 그대로 비교하면 줄만 추가했다 지워도 바뀐 것으로 읽힌다.
+   */
+  const savedQualifications = employee
+    ? toQualificationPayload(toQualifications(employee))
+    : null;
+  const nextQualifications = qualifications
+    ? toQualificationPayload(qualifications)
+    : null;
+  const isQualificationDirty =
+    savedQualifications !== null &&
+    nextQualifications !== null &&
+    JSON.stringify(savedQualifications) !== JSON.stringify(nextQualifications);
+
+  const patch = {
+    ...fieldPatch,
+    ...(isQualificationDirty ? nextQualifications : {}),
+  };
   const isDirty = Object.keys(patch).length > 0;
 
   /** 새로고침 · 탭 닫기로 빠져나갈 때만 브라우저가 막아준다 */
@@ -187,7 +242,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
       setFieldErrors({ name: '이름을 입력해주세요.' });
       return;
     }
-    // 바뀐 값이 빈 문자열 = 지우려는 것. 입사일은 명세에 지우는 방법이 없다
+    // 바뀐 값이 빈 문자열이면 지우려는 것이다. 입사일은 지우는 방법이 없다
     if (patch.hiredAt === '') {
       setFieldErrors({ hiredAt: '입사일은 비울 수 없습니다.' });
       return;
@@ -205,7 +260,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
       const code = caught instanceof ApiError ? caught.code : undefined;
       const message = messageOf(caught, '저장하지 못했습니다.');
 
-      // 사원이 사라졌다 — 상세로 보내면 '찾을 수 없습니다' 안내가 나온다
+      // 사원이 사라졌다. 상세로 보내면 찾을 수 없습니다 안내가 나온다
       if (code === EMPLOYEE_CODES.notFound) {
         router.replace(detailHref);
         return;
@@ -337,7 +392,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
                   onChange={(value) => change('email', value)}
                 />
 
-                {/* 빈 값을 고르면 `null` 이 실려 배정이 지워진다 */}
+                {/* 빈 값을 고르면 null 이 실려 배정이 지워진다 */}
                 <SelectField
                   id="departmentId"
                   label="부서"
@@ -388,6 +443,15 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
                 />
               </div>
             </section>
+
+            {/* 손대지 않으면 요청에 실리지 않는다 (전체 교체 필드라 빈 배열이 곧 삭제다) */}
+            {qualifications && (
+              <QualificationFields
+                educations={qualifications.educations}
+                certificates={qualifications.certificates}
+                onChange={setQualifications}
+              />
+            )}
 
             <div className="flex items-center justify-end gap-2">
               {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}

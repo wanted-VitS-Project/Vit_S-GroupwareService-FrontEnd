@@ -13,7 +13,7 @@ import { messageOf } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import { useModal } from '@/lib/useModal';
 
-import { deleteCashFlows, getCashFlows, unmatchCashFlow } from './api';
+import { deleteCashFlows, findCashFlow, unmatchCashFlow } from './api';
 import CashFlowFormModal from './CashFlowFormModal';
 import CashFlowMatchModal from './CashFlowMatchModal';
 import {
@@ -31,21 +31,13 @@ import {
 } from './types';
 
 /**
- * 입출금 내역 상세. (#12)
- *
- * ⚠️ **단건 조회 API 가 없다** — 목록을 받아 그 안에서 찾는다. 목록에 페이징이 없어
- *    가능한 방법이고, 생기면 이 함수만 바꾸면 된다.
- *
- * 목록 표에 두기 어려운 값(거래고유번호 · 매칭 처리자)을 여기서 보여주고,
- * 수정 · 연결 · 삭제도 이 화면에서 한다 — 표의 행 메뉴에 다 담으면 좁고 위험하다.
+ * 입출금 내역 상세. 단건 조회 API 가 없어 목록에서 찾는다.
+ * 표에 두기 어려운 값을 보여주고 수정 · 연결 · 삭제도 여기서 한다.
  */
 export default function CashFlowDetail({ cashFlowId }: { cashFlowId: number }) {
   const router = useRouter();
 
-  /**
-   * 어떤 요청의 결과인지 `key` 로 들고 있는다 — 목록 화면과 같은 방식이다.
-   * 다시 읽는 동안 화면을 비우지 않고 직전 값을 그대로 둔다.
-   */
+  /** 어떤 요청의 결과인지 key 로 들고 있어 다시 읽는 동안 직전 값을 남긴다 */
   const [result, setResult] = useState<{
     key: string;
     row?: CashFlowItem;
@@ -69,12 +61,8 @@ export default function CashFlowDetail({ cashFlowId }: { cashFlowId: number }) {
     const controller = new AbortController();
     const { signal } = controller;
 
-    getCashFlows({}, signal)
-      .then((data) => {
-        const found = data.cashFlows.find(
-          (item) => item.cashFlowId === cashFlowId,
-        );
-
+    findCashFlow(cashFlowId, signal)
+      .then((found) => {
         setResult(
           found
             ? { key: requestKey, row: found }
@@ -114,7 +102,7 @@ export default function CashFlowDetail({ cashFlowId }: { cashFlowId: number }) {
     try {
       const result = await deleteCashFlows([cashFlowId]);
 
-      // 매칭된 건은 지워지지 않는다 — 사유를 그대로 알리고 화면에 남는다
+      // 매칭된 건은 지워지지 않으므로 사유를 그대로 알린다
       if (result.count === 0) {
         notifyToast(
           result.skippedItems[0]?.reason ?? '삭제하지 못했습니다.',
@@ -244,7 +232,7 @@ export default function CashFlowDetail({ cashFlowId }: { cashFlowId: number }) {
             label="수집 출처"
             value={CASH_FLOW_SOURCE_LABELS[row.sourceType]}
           />
-          {/* 표에 두기엔 길고, 대사할 때는 꼭 봐야 하는 값이다 */}
+          {/* 표에 두기엔 길지만 대사할 때 꼭 봐야 하는 값이다 */}
           <Row label="거래고유번호" value={row.bankTxnId || '-'} />
           <Row
             label="연결 대상 제외"
@@ -341,7 +329,7 @@ function Card({
   );
 }
 
-/** 라벨 · 값 한 줄. 값이 길면 줄바꿈으로 흐른다 (잘라 감추지 않는다) */
+/** 라벨 · 값 한 줄. 값이 길면 잘라내지 않고 줄바꿈한다 */
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex gap-4">

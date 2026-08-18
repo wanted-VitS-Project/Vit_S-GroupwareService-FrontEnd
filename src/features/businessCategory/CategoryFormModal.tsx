@@ -22,13 +22,8 @@ interface CategoryFormModalProps {
 }
 
 /**
- * 사업 카테고리 추가 · 수정 모달. (.ai/API.md 16 · 17)
- *
- * 수정은 **바뀐 필드만** 보낸다 — 셋 다 없으면 백엔드가 400 을 준다.
- * 중복(409)은 공통 문구가 아니라 해당 입력 아래에 붙여야 어디를 고칠지 알 수 있다.
- *
- * 🗑️ 중복은 **활성 카테고리끼리만** 난다 — 삭제했던 이름 · 업무코드는 그대로 다시 만들어진다.
- * 삭제분을 알리던 백엔드 문구가 없어졌으므로 409 는 `message` 가 아니라 `code` 로 가른다.
+ * 사업 카테고리 추가 · 수정 모달. 수정은 바뀐 필드만 보낸다 (셋 다 없으면 400).
+ * 중복(409)은 활성 카테고리끼리만 나고 code 로 갈라 해당 입력 아래에 붙인다.
  */
 export default function CategoryFormModal({
   category,
@@ -56,7 +51,7 @@ export default function CategoryFormModal({
     setCodeError('');
   }
 
-  /** 저장 중에는 닫지 않는다 — 요청은 계속 날아가 목록에 반영된다 */
+  /** 저장 중에는 닫지 않는다. 요청은 계속 날아가 목록에 반영된다 */
   function requestClose() {
     if (!isSubmitting) onClose();
   }

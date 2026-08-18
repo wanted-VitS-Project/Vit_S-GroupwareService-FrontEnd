@@ -9,17 +9,8 @@ import { isPermanentDeleteConfirmed } from './api';
 import { FILE_PERMANENT_DELETE_CONFIRM_TEXT } from './types';
 
 /**
- * 문서 영구 삭제 확인. (명세 104번)
- *
- * `AlertDialogTwoButton` 을 쓰지 않는다 — **확인 문자 입력**이 필요하고,
- * 그 입력이 맞을 때까지 확인 버튼을 잠가야 하는데 공용 다이얼로그에는 그 자리가 없다.
- * 대신 아이콘 · 제목 · 버튼 배치는 공용 다이얼로그와 같게 맞춘다.
- *
- * ⚠️ **여기서는 요청을 보내지 않는다.** 뜻을 확인하고 입력값을 넘겨줄 뿐이고,
- *    실제 삭제는 부르는 쪽이 뒤에서 돌린다 (휴지통은 낙관적으로 목록에서 먼저 뺀다).
- *    그래서 실패 안내도 이 모달이 아니라 **토스트**로 간다.
- * ⚠️ 확인 문자는 **서버도 검증**한다. 여기 검사는 오조작을 미리 막는 편의일 뿐이라,
- *    입력값을 그대로 넘기고 상수로 덮어쓰지 않는다.
+ * 문서 영구 삭제 확인. 확인 문자를 입력해야 버튼이 열려 공용 다이얼로그를 쓰지 않는다.
+ * 여기서는 요청을 보내지 않고 입력값만 넘긴다. 실패 안내는 토스트로 간다.
  */
 export default function PermanentDeleteFileModal({
   fileName,
@@ -28,7 +19,7 @@ export default function PermanentDeleteFileModal({
 }: {
   fileName: string;
   onClose: () => void;
-  /** 확인 문자를 그대로 넘긴다 — 요청은 부르는 쪽이 보낸다 */
+  /** 확인 문자를 그대로 넘긴다. 요청은 부르는 쪽이 보낸다 */
   onConfirm: (confirmText: string) => void;
 }) {
   const [confirmText, setConfirmText] = useState('');

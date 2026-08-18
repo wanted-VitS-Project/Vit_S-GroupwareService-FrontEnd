@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { ROLE_LABELS } from '@/constants/status';
+import { DEGREE_LABELS } from '@/features/masterItem/types';
 import { EmployeeDetailSkeleton } from '@/components/settings/SettingsSkeletons';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { ApiError } from '@/lib/api';
@@ -41,16 +42,14 @@ function failureKindOf(caught: unknown): FailureKind {
 }
 
 /**
- * 사원 상세 화면. (ADMIN 전용, .ai/API.md 31)
- *
- * 인사 정보는 읽기 전용이고, 계정 관련 동작(권한 · 상태 · 비밀번호 · 퇴사)만 여기서 한다.
- * 인사 정보 수정은 별도 화면이다. (`EmployeeEditForm`)
+ * 사원 상세 화면 (ADMIN 전용). 인사 정보는 읽기 전용이다.
+ * 권한 · 상태 · 비밀번호 · 퇴사만 여기서 하고 정보 수정은 별도 화면이다.
  */
 export default function EmployeeDetail({ userId }: { userId: string }) {
   const currentUser = useCurrentUser();
 
   const [reloadCount, setReloadCount] = useState(0);
-  /** 어떤 요청의 결과인지 `key` 로 들고 있는다 — 대상이 바뀌면 자동으로 로딩 상태가 된다 */
+  /** 어떤 요청의 결과인지 key 로 들고 있는다. 대상이 바뀌면 자동으로 로딩 상태가 된다 */
   const [result, setResult] = useState<{
     key: string;
     data?: Employee;
@@ -59,7 +58,7 @@ export default function EmployeeDetail({ userId }: { userId: string }) {
 
   const requestKey = `${reloadCount} ${userId}`;
   const current = result?.key === requestKey ? result : null;
-  /** 재조회 중에는 직전 결과를 유지한다 — 카드가 통째로 사라지면 화면이 튄다 */
+  /** 재조회 중에는 직전 결과를 유지한다. 카드가 사라지면 화면이 튄다 */
   const employee = current?.data ?? result?.data ?? null;
   const failure = current?.failure ?? null;
 
@@ -79,7 +78,7 @@ export default function EmployeeDetail({ userId }: { userId: string }) {
     return () => controller.abort();
   }, [requestKey, userId]);
 
-  /** 동작이 성공한 뒤에도 이걸 부른다 — 응답 일부만 반영하면 배지가 어긋난다 */
+  /** 동작이 성공한 뒤에도 이걸 부른다. 응답 일부만 반영하면 배지가 어긋난다 */
   function reload() {
     setReloadCount((count) => count + 1);
   }
@@ -141,7 +140,7 @@ export default function EmployeeDetail({ userId }: { userId: string }) {
 
 interface LoadedProps {
   employee: Employee;
-  /** 자기 자신은 권한 · 계정 상태를 바꿀 수 없다 (.ai/API.md 19) */
+  /** 자기 자신은 권한 · 계정 상태를 바꿀 수 없다 */
   isSelf: boolean;
   onSaved: () => void;
 }
@@ -150,6 +149,9 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
   const modal = useModalRouter<OpenModal>();
 
   const isResigned = employee.resignedAt !== null;
+  /** 예전 응답에는 없던 필드라 빈 목록으로 받쳐 둔다 */
+  const educations = employee.educations ?? [];
+  const certificates = employee.certificates ?? [];
   const isSuspended = employee.accountStatus === 'INACTIVE';
 
   return (
@@ -174,7 +176,7 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
         </Link>
       </div>
 
-      {/* 이메일이 없으면 로그인도 비밀번호 재설정도 못 한다 — 조치가 필요해 위로 올린다 */}
+      {/* 이메일이 없으면 로그인도 재설정도 못 해 조치가 필요하다 */}
       {!employee.emailRegistered && (
         <p className="mb-4 rounded-lg border border-yellow-border/30 bg-yellow-bg-soft px-4 py-3 text-detail leading-relaxed break-keep text-yellow-text">
           ⚠ 이메일이 등록되지 않아 이 사원은 <b>로그인할 수 없습니다.</b>{' '}
@@ -200,7 +202,7 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
               warning={
                 employee.emailRegistered
                   ? undefined
-                  : '미등록 — 로그인 · 비밀번호 재설정 불가'
+                  : '미등록 (로그인 · 비밀번호 재설정 불가)'
               }
             />
             <Field label="연락처" value={employee.phone} />
@@ -212,6 +214,67 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
             )}
           </FieldList>
         </Card>
+
+        {/*
+          학력 · 자격증은 있을 때만 칸을 만든다.
+          대부분 비어 있어 빈 카드를 세우면 화면만 길어진다.
+        */}
+        {(educations.length > 0 || certificates.length > 0) && (
+          <Card title="학력 · 자격증">
+            {educations.length > 0 && (
+              <div>
+                <p className="text-caption font-semibold text-text-secondary">
+                  학력
+                </p>
+                <ul className="mt-1.5 flex flex-col gap-1.5">
+                  {educations.map((education, index) => (
+                    <li
+                      key={`${education.majorId}-${index}`}
+                      className="flex flex-wrap items-center gap-2 rounded-lg border border-border-default px-3 py-2"
+                    >
+                      <span className="text-detail font-medium text-text-primary">
+                        {education.majorName}
+                      </span>
+                      <span className="rounded-button-sm bg-blue-bg-soft px-1.5 py-0.5 text-caption text-text-primary-blue">
+                        {DEGREE_LABELS[education.degree]}
+                      </span>
+                      {education.school && (
+                        <span className="ml-auto text-caption text-text-secondary">
+                          {education.school}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {certificates.length > 0 && (
+              <div className={educations.length > 0 ? 'mt-4' : ''}>
+                <p className="text-caption font-semibold text-text-secondary">
+                  자격증
+                </p>
+                <ul className="mt-1.5 flex flex-col gap-1.5">
+                  {certificates.map((certificate, index) => (
+                    <li
+                      key={`${certificate.certificateId}-${index}`}
+                      className="flex flex-wrap items-center gap-2 rounded-lg border border-border-default px-3 py-2"
+                    >
+                      <span className="text-detail font-medium text-text-primary">
+                        {certificate.certificateName}
+                      </span>
+                      {certificate.acquiredDate && (
+                        <span className="ml-auto text-caption text-text-secondary">
+                          {formatDate(certificate.acquiredDate)} 취득
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </Card>
+        )}
 
         <Card title="계정 정보">
           <FieldList>
@@ -358,8 +421,8 @@ function Card({
 }
 
 /**
- * `Field` 는 `dt`/`dd` 라 반드시 `dl` 안에 있어야 한다.
- * 값만 있는 인사 정보는 2열, 우측에 버튼이 붙는 계정 정보는 1열로 둔다.
+ * Field 는 dt/dd 라 반드시 dl 안에 있어야 한다.
+ * 값만 있는 인사 정보는 2열, 버튼이 붙는 계정 정보는 1열로 둔다.
  */
 function FieldList({
   columns = 1,
@@ -382,7 +445,7 @@ function FieldList({
 interface FieldProps {
   label: string;
   value?: string | null;
-  /** 값 아래 붙는 주의 문구 — 이메일 미등록처럼 조치가 필요한 경우 */
+  /** 값 아래 붙는 주의 문구. 이메일 미등록처럼 조치가 필요한 경우다 */
   warning?: string;
   /** 우측 동작 버튼 */
   action?: React.ReactNode;
@@ -391,7 +454,7 @@ interface FieldProps {
 function Field({ label, value, warning, action }: FieldProps) {
   return (
     <div className="flex items-center gap-4 text-label">
-      {/* 라벨 폭을 고정해 값의 시작선을 맞춘다 — '마지막 로그인' 이 들어가는 너비 */}
+      {/* 라벨 폭을 고정해 값의 시작선을 맞춘다 */}
       <dt className="w-24 shrink-0 text-text-secondary">{label}</dt>
       <dd className="m-0 min-w-0 flex-1">
         <span className="block truncate font-medium text-text-primary">

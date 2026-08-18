@@ -21,19 +21,14 @@ interface AddMemberModalProps {
   onAdded: () => void;
 }
 
-/**
- * 참여자 추가 모달. (.ai/API.md 125)
- *
- * ⛔ **한 명씩 부른다** — 팀 · 부서 일괄 추가 파라미터가 없다 (PRJ-009 · INV-07).
- *    여러 명을 고를 수 있게 두되 **호출은 한 명씩** 하고, 중간에 실패하면 어디까지 됐는지 알린다.
- *
- * 검색은 인사 쪽에서 쓰는 **`EmployeeSearchInput`**(명세 35번) 을 그대로 쓴다 —
- * 디바운스 · 취소 · 키보드 조작 · `이미 추가됨` 표시가 이미 들어 있고,
- * 인사관리 목록(`GET /employees`)과 달리 **ADMIN 이 아니어도** 호출할 수 있다.
- * 🗑️ 퇴사자 · 시스템 계정 · 삭제된 사원은 그 API 가 이미 후보에서 뺀다.
- *
- * 고른 사람은 블록 · 이슈와 **같은 칩**(`MemberPicker`)으로 보여준다.
- */
+// 참여자 추가 모달. (.ai/API.md 125)
+// 한 명씩 부른다 — 팀·부서 일괄 추가 파라미터가 없다 (PRJ-009·INV-07).
+// 여러 명을 고를 수 있게 두되 호출은 한 명씩 하고, 중간에 실패하면 어디까지 됐는지 알린다.
+// 검색은 인사 쪽에서 쓰는 EmployeeSearchInput(명세 35번) 을 그대로 쓴다 —
+// 디바운스·취소·키보드 조작·이미 추가됨 표시가 이미 들어 있고,
+// 인사관리 목록(GET /employees)과 달리 ADMIN 이 아니어도 호출할 수 있다.
+// 🗑️ 퇴사자·시스템 계정·삭제된 사원은 그 API 가 이미 후보에서 뺀다.
+// 고른 사람은 블록·이슈와 같은 칩(MemberPicker)으로 보여준다.
 export default function AddMemberModal({
   projectId,
   members,
@@ -45,10 +40,8 @@ export default function AddMemberModal({
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  /**
-   * 검색 목록에서 고를 수 없게 막을 사번 —
-   * **이미 참여 중** + **이번에 고른 사람**. 목록에서 숨기지 않고 `이미 추가됨` 으로 남는다.
-   */
+  // 검색 목록에서 고를 수 없게 막을 사번 —
+  // 이미 참여 중 + 이번에 고른 사람. 목록에서 숨기지 않고 이미 추가됨 으로 남는다.
   const excludedIds = [
     ...members.map((member) => member.userId),
     ...selected.map((person) => person.userId),
@@ -97,9 +90,9 @@ export default function AddMemberModal({
 
       if (addedCount > 0) {
         /*
-         * ⚠️ **성공한 만큼을 골라둔 목록에서 뺀다.**
-         * 그대로 두면 `다시 추가` 가 이미 들어간 사람부터 호출해 곧바로
-         * `MEMBER_ALREADY_EXISTS` 로 멈춘다 — 뒤에 남은 사람은 영영 추가되지 않는다.
+         * 성공한 만큼을 골라둔 목록에서 뺀다.
+         * 그대로 두면 다시 추가 가 이미 들어간 사람부터 호출해 곧바로
+         * MEMBER_ALREADY_EXISTS 로 멈춘다 — 뒤에 남은 사람은 영영 추가되지 않는다.
          */
         setSelected((current) => current.slice(addedCount));
         // 앞부분이 들어갔으니 목록도 갱신해 둔다

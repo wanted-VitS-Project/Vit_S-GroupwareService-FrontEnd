@@ -18,14 +18,8 @@ import {
   ROLE_LABEL,
 } from './types';
 
-/**
- * 분석 이력 패널. (최신순 · 최대 20건 · 페이징 없음)
- *
- * ⚠️ 목록 API 에는 `documents`·`result`·`citations` 가 없다 — 한 건을 누르면
- *    단건 조회를 한 번 더 해서 본문·근거를 채운다.
- *
- * 활동 기록 패널과 같은 자리 · 같은 크기로 뜬다.
- */
+// 분석 이력 패널 (최신순·최대 20건·페이징 없음). 활동 기록 패널과 같은 자리에 뜬다.
+// 목록 API 에 documents·result·citations 가 없어, 한 건을 누르면 단건 조회로 본문·근거를 채운다.
 export default function AnalysisHistoryPanel({
   blockId,
   blockTitle,
@@ -37,18 +31,11 @@ export default function AnalysisHistoryPanel({
 }) {
   const [analyses, setAnalyses] = useState<AnalysisSummary[] | null>(null);
   const [listError, setListError] = useState('');
-  /** 펼쳐 본 분석 — 목록에서 한 건을 고르면 상세로 바뀐다 */
+  // 펼쳐 본 분석 — 목록에서 한 건을 고르면 상세로 바뀐다.
   const [openId, setOpenId] = useState<number | null>(null);
-  /**
-   * 한 번 본 상세는 들고 있는다.
-   *
-   * 끝난 분석은 내용이 더 바뀌지 않는데, 목록 ↔ 상세를 오갈 때마다 다시 받고
-   * 있었다. 진행 중인 건만 매번 새로 받는다.
-   *
-   * `useRef` 가 아니라 `useState` 로 두는 것은 이 값을 **렌더 중에 자식에게
-   * 넘기기** 때문이다 — ref 는 렌더 중 접근이 금지돼 있다. 갱신자는 안 쓰므로
-   * 참조는 마운트 내내 그대로다.
-   */
+  // 한 번 본 상세는 들고 있는다 — 끝난 분석은 내용이 더 바뀌지 않아 진행 중인 건만 매번 새로 받는다.
+  // ref 가 아니라 state 로 두는 것은 이 값을 렌더 중에 자식에게 넘기기 때문이다 (ref 는 렌더 중 접근 금지).
+  // 갱신자는 안 쓰므로 참조는 마운트 내내 그대로다.
   const [seen] = useState(() => new Map<number, Analysis>());
 
   useEffect(() => {
@@ -111,7 +98,7 @@ export default function AnalysisHistoryPanel({
             className="py-16"
           />
         ) : listError ? (
-          // 빈 목록과 같은 모양이면 실패를 "아직 없음" 으로 오해한다
+          // 빈 목록과 같은 모양이면 실패를 "아직 없음" 으로 오해한다.
           <p
             role="alert"
             className="rounded-button-sm border border-red-border bg-red-bg-soft px-2.5 py-3 text-center text-detail break-keep text-text-danger"
@@ -160,7 +147,7 @@ export default function AnalysisHistoryPanel({
   );
 }
 
-/** 이력 한 건의 상세 — 목록 응답에 본문이 없어 단건 조회로 받아 온다 */
+// 이력 한 건의 상세 — 목록 응답에 본문이 없어 단건 조회로 받아 온다.
 function AnalysisDetail({
   analysisId,
   cache,
@@ -176,7 +163,7 @@ function AnalysisDetail({
   );
   const [error, setError] = useState('');
 
-  /** 상세를 갈아탈 때 캐시가 있으면 깜빡임 없이 곧바로 보여준다 */
+  // 상세를 갈아탈 때 캐시가 있으면 깜빡임 없이 곧바로 보여준다.
   const [trackedId, setTrackedId] = useState(analysisId);
   if (trackedId !== analysisId) {
     setTrackedId(analysisId);
@@ -185,7 +172,7 @@ function AnalysisDetail({
   }
 
   useEffect(() => {
-    // 끝난 분석은 내용이 더 바뀌지 않는다
+    // 끝난 분석은 내용이 더 바뀌지 않는다.
     if (cache.has(analysisId)) return;
 
     const controller = new AbortController();
@@ -193,7 +180,7 @@ function AnalysisDetail({
 
     getAnalysis(analysisId, signal)
       .then((data) => {
-        // 진행 중인 건은 아직 확정이 아니라 캐시하지 않는다
+        // 진행 중인 건은 아직 확정이 아니라 캐시하지 않는다.
         if (!isRunning(data.analysisStatus)) cache.set(analysisId, data);
         setAnalysis(data);
         setError('');
@@ -253,7 +240,7 @@ function AnalysisDetail({
               citations={analysis.citations}
             />
           ) : isRunning(analysis.analysisStatus) ? (
-            // 진행 중인데 "결과 없음" 이라고 하면 끝났는데 빈 것으로 읽힌다
+            // 진행 중인데 "결과 없음" 이라고 하면 끝났는데 빈 것으로 읽힌다.
             <p className="text-caption text-text-secondary">
               아직 검토하고 있습니다. 잠시 후 다시 확인해주세요.
             </p>
@@ -268,7 +255,7 @@ function AnalysisDetail({
   );
 }
 
-/** 분석 **당시** 문서 목록 — 최신 파일이 아니다 */
+// 분석 당시 문서 목록 — 최신 파일이 아니다.
 export function DocumentRoleList({
   documents,
 }: {

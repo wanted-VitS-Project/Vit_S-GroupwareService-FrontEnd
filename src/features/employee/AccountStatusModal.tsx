@@ -17,8 +17,8 @@ interface AccountStatusModalProps {
 }
 
 /**
- * 계정 활성 · 정지 토글 모달. (.ai/API.md 20)
- * 퇴사 처리와 다른 API 다 — 여기서는 퇴사일을 건드리지 않는다.
+ * 계정 활성 · 정지 토글 모달.
+ * 퇴사 처리와 다른 API 라 여기서는 퇴사일을 건드리지 않는다.
  */
 export default function AccountStatusModal({
   employee,
@@ -49,7 +49,7 @@ export default function AccountStatusModal({
     } catch (caught) {
       const code = caught instanceof ApiError ? caught.code : undefined;
 
-      // 이미 그 상태거나 계정이 사라졌다 — 화면이 뒤처졌다는 뜻이라 다시 받는다
+      // 이미 그 상태거나 계정이 사라졌다. 화면이 뒤처졌다는 뜻이라 다시 받는다
       if (
         code === ACCOUNT_CODES.statusUnchanged ||
         code === ACCOUNT_CODES.notFound

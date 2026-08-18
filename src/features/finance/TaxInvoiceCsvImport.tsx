@@ -27,20 +27,11 @@ import type {
 const STEPS = ['파일 선택', '컬럼 맞추기', '결과 확인'] as const;
 
 /**
- * 세금계산서 CSV · 엑셀 일괄 수집. (#16)
- *
- * 입출금(#13)과 **같은 세 단계**를 걷는다 — 껍데기는 `CsvImportParts` 에서 가져다 쓰고
- * 여기에는 세금계산서에만 있는 것(구분 · 승인번호 중복)만 둔다.
- *
- * ⚠️ 1단계에서 올린 파일은 저장되지 않는다 (추천을 받기 위한 미리보기다).
+ * 세금계산서 CSV · 엑셀 일괄 수집. 입출금과 같은 세 단계를 걷는다.
+ * 껍데기는 공용 부품을 쓰고 여기에는 세금계산서 전용 항목만 둔다.
  */
 export default function TaxInvoiceCsvImport() {
-  /**
-   * 진행 중인 미리보기 요청.
-   *
-   * ⚠️ 로딩 중이라고 새 선택을 무시하면, 파일명만 바뀌고 **아무 반응도 없는 화면**이 된다
-   *    (드래그 앤 드롭은 `disabled` 로 막히지도 않는다). 앞 요청을 끊고 새로 부른다.
-   */
+  /** 진행 중인 미리보기 요청. 새 파일을 고르면 앞 요청을 끊고 새로 부른다 */
   const pendingRef = useRef<AbortController | null>(null);
 
   const [file, setFile] = useState<File | null>(null);
@@ -50,7 +41,7 @@ export default function TaxInvoiceCsvImport() {
   const [needsPassword, setNeedsPassword] = useState(false);
   const [password, setPassword] = useState('');
 
-  /** 저장까지 끝난 결과 — 있으면 3단계다 */
+  /** 저장까지 끝난 결과. 있으면 3단계다 */
   const [result, setResult] = useState<TaxInvoiceCsvUploadResult | null>(null);
 
   const [error, setError] = useState('');
@@ -58,7 +49,7 @@ export default function TaxInvoiceCsvImport() {
 
   const step = result !== null ? 2 : preview === null ? 0 : 1;
 
-  /** 파일을 고르면 곧바로 추천을 받는다 — 버튼을 한 번 더 누르게 하지 않는다 */
+  /** 파일을 고르면 곧바로 추천을 받는다 */
   function pick(next: File | null) {
     if (!next) return;
 
@@ -71,7 +62,7 @@ export default function TaxInvoiceCsvImport() {
   }
 
   async function load(target: File, secret: string | undefined) {
-    // 앞 요청이 남아 있으면 끊는다 — 늦게 온 응답이 새 파일의 추천을 덮으면 안 된다
+    // 늦게 온 응답이 새 파일의 추천을 덮지 않도록 앞 요청을 끊는다
     pendingRef.current?.abort();
 
     const controller = new AbortController();
@@ -84,13 +75,10 @@ export default function TaxInvoiceCsvImport() {
       setPreview(await previewTaxInvoiceCsv(target, secret, controller.signal));
       setNeedsPassword(false);
     } catch (caught) {
-      // 취소는 실패가 아니다 — 새 요청이 이미 떠 있다는 뜻이다
+      // 취소는 실패가 아니다
       if (controller.signal.aborted) return;
 
-      /**
-       * ⚠️ 비밀번호 요구는 **실패가 아니라 다음 단계**다 — 칸을 열고 기다린다.
-       *    틀린 경우도 같은 자리에서 다시 받는다 (문구만 다르다).
-       */
+      // 비밀번호 요구는 실패가 아니라 다음 단계다. 칸을 열고 기다린다
       if (isCsvPasswordIssue(caught)) {
         setNeedsPassword(true);
         setError(
@@ -101,7 +89,7 @@ export default function TaxInvoiceCsvImport() {
         return;
       }
 
-      // ⚠️ 형식 오류는 404 로 온다 — '없는 화면' 으로 오해되지 않게 문구를 따로 준다
+      // 형식 오류는 404 로 오므로 문구를 따로 준다
       if (isCsvInvalidFile(caught)) {
         setError('CSV 또는 엑셀 파일만 올릴 수 있습니다.');
         return;
@@ -139,7 +127,7 @@ export default function TaxInvoiceCsvImport() {
           preview={preview}
           password={password || undefined}
           onUploaded={setResult}
-          // 파일부터 다시 고른다 — 매핑만 남겨 두면 어느 파일의 것인지 흐려진다
+          // 매핑만 남기면 어느 파일의 것인지 흐려져 파일부터 다시 고른다
           onBack={() => setPreview(null)}
         />
       ) : (
@@ -187,13 +175,7 @@ export default function TaxInvoiceCsvImport() {
   );
 }
 
-/**
- * 홈택스 직접 조회 안내.
- *
- * ⚠️ **누를 수 없는 버튼을 두고 사유를 밝힌다** — 없는 것처럼 감추면 "그 기능은 언제
- *    나오냐" 는 질문이 반복되고, 눌리게 두면 아무 일도 안 일어나 고장으로 읽힌다.
- *    지금은 CSV 가 유일한 길이라는 것도 함께 알린다.
- */
+/** 홈택스 직접 조회 안내. 감추지 않고 비활성 버튼과 사유를 함께 둔다 */
 function HometaxNotice() {
   return (
     <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border-default pt-5">
@@ -213,12 +195,7 @@ function HometaxNotice() {
   );
 }
 
-/**
- * 결과 (3단계).
- *
- * ⚠️ **중복은 실패가 아니다** — 이미 등록된 승인번호라 건너뛴 것이다. 실패처럼 붉게
- *    칠하지 않고, 어떤 건이 왜 빠졌는지 사유와 함께 보여준다.
- */
+/** 결과 화면. 중복은 실패가 아니라 이미 등록된 승인번호를 건너뛴 것이다 */
 function UploadResult({ result }: { result: TaxInvoiceCsvUploadResult }) {
   return (
     <div className="mt-4">
@@ -229,10 +206,7 @@ function UploadResult({ result }: { result: TaxInvoiceCsvUploadResult }) {
           <Figure label="중복 제외" value={result.duplicateCount} />
         </dl>
 
-        {/**
-         * ⚠️ 수집된 건은 **아직 어디에도 연결되지 않았다** — 여기서 끝난 줄 알고 나가면
-         *    미연결 건이 쌓인다. 다음 할 일(연결)을 결과 화면에서 알려 준다.
-         */}
+        {/* 수집된 건은 아직 연결 전이라 다음 할 일을 함께 알린다 */}
         <p className="mt-4 rounded-lg bg-bg-surface px-4 py-3 text-caption break-keep text-text-secondary">
           수집된 세금계산서는 <b>미연결 상태</b>입니다. 목록에서 정산 블록에
           연결해주세요.
@@ -253,7 +227,7 @@ function UploadResult({ result }: { result: TaxInvoiceCsvUploadResult }) {
         )}
       </div>
 
-      {/* 끝난 뒤의 다음 행동 — 완료 화면에서는 목록으로 가는 길을 눈에 띄게 둔다 */}
+      {/* 완료 화면에서는 목록으로 가는 길을 눈에 띄게 둔다 */}
       <div className="mt-4 flex justify-end">
         <Link
           href={FINANCE_ROUTES.taxInvoices}
@@ -281,7 +255,7 @@ const DUPLICATE_COLUMNS: DataTableColumn<TaxInvoiceCsvDuplicateRow>[] = [
     key: 'reason',
     header: '사유',
     width: '60%',
-    // 사유는 서버 문구가 가장 정확하다 — 화면이 다시 풀어 쓰지 않는다
+    // 사유는 서버 문구를 그대로 쓴다
     cell: (row) => (
       <span className="block break-keep text-text-secondary">{row.reason}</span>
     ),

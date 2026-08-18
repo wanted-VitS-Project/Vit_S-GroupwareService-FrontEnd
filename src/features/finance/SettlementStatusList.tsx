@@ -13,12 +13,7 @@ import { messageOf } from '@/lib/api';
 import { formatDate } from '@/lib/format';
 
 import { getSettlementClients, getSettlementProjects } from './api';
-import {
-  formatAmount,
-  SETTLEMENT_PROJECT_STATE_BADGE,
-  settlementProjectState,
-  settlementProjectStateLabel,
-} from './display';
+import { formatAmount, settlementProjectTags } from './display';
 import { FINANCE_ROUTES } from './routes';
 import SettlementRoundPanel from './SettlementRoundPanel';
 import type { SettlementProjectPage, SettlementSort } from './types';
@@ -300,7 +295,7 @@ export default function SettlementStatusList() {
           {
             key: 'project',
             header: '과업명',
-            width: '16%',
+            width: '14%',
             cell: (row) => (
               <div className="min-w-0">
                 {/* 행 클릭은 회차 펼치기라, 프로젝트로 가는 길은 이름에 둔다 */}
@@ -364,7 +359,7 @@ export default function SettlementStatusList() {
           {
             key: 'planned',
             header: '예정 금액',
-            width: '12%',
+            width: '11%',
             align: 'right',
             cell: (row) => (
               <span className="text-label break-all text-text-primary tabular-nums">
@@ -412,18 +407,18 @@ export default function SettlementStatusList() {
           {
             key: 'state',
             header: '상태',
-            width: '13%',
-            cell: (row) => {
-              const state = settlementProjectState(row);
-
-              return (
-                <span
-                  className={`inline-block rounded-button-sm px-1.5 py-0.5 text-caption break-keep ${SETTLEMENT_PROJECT_STATE_BADGE[state]}`}
-                >
-                  {settlementProjectStateLabel(state, row)}
-                </span>
-              );
-            },
+            // 태그가 최대 네 개까지 붙어 다른 열보다 넉넉히 잡는다
+            width: '16%',
+            cell: (row) => (
+              // 태그가 여러 개라 줄이 넘치면 아래로 접는다
+              <span className="flex flex-wrap gap-1">
+                {settlementProjectTags(row).map((tag) => (
+                  <span key={tag.key} className={`badge ${tag.className}`}>
+                    {tag.label}
+                  </span>
+                ))}
+              </span>
+            ),
           },
         ]}
       />
@@ -433,9 +428,6 @@ export default function SettlementStatusList() {
           <Pagination
             page={projectPage.page}
             totalPages={projectPage.totalPages}
-            totalElements={projectPage.totalElements}
-            unit="건"
-            showTotal={false}
             onChange={movePage}
           />
         </div>

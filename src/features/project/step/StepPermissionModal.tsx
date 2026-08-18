@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 
+import ModalLoadingFallback, {
+  useSlowLoading,
+} from '@/components/ModalLoadingFallback';
 import PanelModal, { ModalFooter } from '@/components/PanelModal';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { ApiError, messageOf } from '@/lib/api';
@@ -21,17 +24,13 @@ interface StepPermissionModalProps {
   onClose: () => void;
 }
 
-/**
- * 스텝 권한 관리 모달. (.ai/API.md 134~136)
- *
- * ⚠️ **`overridden: false` 는 차단이 아니라 프로젝트 권한 상속이다** (STP-011) —
- *    화면에서 `상속` · `직접 지정` 을 구분해 보여주지 않으면, 상속 상태를 "권한 없음" 으로
- *    오해해 굳이 `NONE` 을 걸어 잠가버린다.
- * ⚠️ 특정 스텝만 가리려면 **`NONE` 을 명시적으로** 골라야 한다.
- * ⛔ 자기 자신의 행은 바꿀 수 없다 (INV-10) — 백엔드도 403 이지만 화면에서도 잠근다.
- *
- * 이 API 는 **프로젝트 `EDITOR`** 전용이다 (스텝 `EDITOR` 로는 부를 수 없다).
- */
+// 스텝 권한 관리 모달. (.ai/API.md 134~136)
+// overridden: false 는 차단이 아니라 프로젝트 권한 상속이다 (STP-011) —
+// 화면에서 상속·직접 지정 을 구분해 보여주지 않으면, 상속 상태를 "권한 없음" 으로
+// 오해해 굳이 NONE 을 걸어 잠가버린다.
+// 특정 스텝만 가리려면 NONE 을 명시적으로 골라야 한다.
+// 자기 자신의 행은 바꿀 수 없다 (INV-10) — 백엔드도 403 이지만 화면에서도 잠근다.
+// 이 API 는 프로젝트 EDITOR 전용이다 (스텝 EDITOR 로는 부를 수 없다).
 export default function StepPermissionModal({
   stepId,
   stepName,
@@ -46,6 +45,9 @@ export default function StepPermissionModal({
   const [savingUserId, setSavingUserId] = useState<string | null>(null);
   /** 목록을 다시 읽는 신호 */
   const [reloadCount, setReloadCount] = useState(0);
+  /** 아직 목록을 기다리는 중인지 — 이 동안에는 창을 열지 않는다 */
+  const isPending = !entries && !hasFailed;
+  const isSlow = useSlowLoading(isPending);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -110,14 +112,14 @@ export default function StepPermissionModal({
 
     try {
       const saved = await revokeStepPermission(stepId, entry.userId);
-      // 응답의 `permission` 은 **회수 후 상속된 등급**이다
+      // 응답의 permission 은 회수 후 상속된 등급이다
       patchEntry(saved.userId, saved.permission, saved.overridden);
     } catch (caught) {
       const code = caught instanceof ApiError ? caught.code : undefined;
 
       /*
        * 행이 원래 없었다 — 이미 상속 상태라 실패로 보일 이유는 없지만,
-       * ⚠️ **화면 값을 그대로 두면 안 된다.** 지금 보이는 등급은 직접 지정 값이라
+       * 화면 값을 그대로 두면 안 된다. 지금 보이는 등급은 직접 지정 값이라
        *    실제 상속 등급과 다를 수 있고, 그대로 두면 관리자가 잘못된 값으로 판단한다.
        *    서버에서 다시 읽어 맞춘다.
        */
@@ -131,6 +133,18 @@ export default function StepPermissionModal({
     }
   }
 
+  // 값이 다 온 뒤에 한 번에 펼친다 — 정말 느릴 때만 같은 크기의 스피너 창을 대신 띄운다.
+  if (isPending) {
+    if (!isSlow) return null;
+
+    return (
+      <ModalLoadingFallback
+        title="스텝 권한 관리"
+        className="w-full max-w-[420px] rounded-base p-6 shadow-2xl"
+      />
+    );
+  }
+
   return (
     <PanelModal title="스텝 권한 관리" onClose={onClose}>
       <div className="max-h-[55vh] overflow-y-auto p-5">
@@ -138,10 +152,13 @@ export default function StepPermissionModal({
           {stepName}
         </p>
 
+        {/* 문장 단위로 줄을 나눈다 — 뜻풀이와 해야 할 일이 한 덩어리로 붙으면 안 읽힌다 */}
         <p className="mt-3 text-caption leading-relaxed break-keep text-text-secondary">
-          <strong>상속</strong>은 프로젝트 참여자 권한을 그대로 따른다는
-          뜻입니다. 이 스텝만 가리려면 <strong>차단</strong>을 골라주세요 —
-          아무것도 지정하지 않은 상태는 차단이 아닙니다.
+          <strong>상속</strong>은 프로젝트에서 가진 권한을 이 스텝에서도 그대로
+          쓰는 상태입니다.
+          <br />
+          따로 지정하지 않으면 상속이 되므로, 이 스텝만 못 보게 하려면{' '}
+          <strong>차단</strong>을 직접 골라야 합니다.
         </p>
 
         {hasFailed ? (
@@ -149,9 +166,7 @@ export default function StepPermissionModal({
             권한 목록을 불러오지 못했습니다. 프로젝트 편집 권한이 있어야 조회할
             수 있습니다.
           </p>
-        ) : !entries ? (
-          <p className="mt-3 text-detail text-text-secondary">불러오는 중…</p>
-        ) : entries.length === 0 ? (
+        ) : !entries?.length ? (
           <p className="mt-3 rounded-lg bg-bg-surface px-3 py-2.5 text-detail break-keep text-text-secondary">
             참여자가 없습니다.
           </p>

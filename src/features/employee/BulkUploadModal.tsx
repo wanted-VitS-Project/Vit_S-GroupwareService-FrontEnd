@@ -20,14 +20,12 @@ import type {
   BulkValidateResult,
 } from './types';
 
-/** 5MB — 서버 상한과 같은 값. 넘기면 400 이라 보내기 전에 막는다 */
+/** 5MB. 서버 상한과 같은 값이라 넘기면 보내기 전에 막는다 */
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 /**
- * 템플릿 8개 열의 입력 규칙 (.ai/API.md 32 · 87).
- *
- * ⚠️ 템플릿 파일은 백엔드가 만들고 **헤더 줄만** 들어 있다 — 형식 안내가 파일에 없어
- *    여기서 대신 보여준다. 규칙은 단건 등록(32번)과 같다.
+ * 템플릿 8개 열의 입력 규칙.
+ * 템플릿 파일에는 헤더 줄만 있어 형식 안내를 여기서 대신 보여준다.
  */
 const TEMPLATE_COLUMNS: {
   name: string;
@@ -45,19 +43,34 @@ const TEMPLATE_COLUMNS: {
   {
     name: '입사일',
     required: true,
-    // 엑셀이 날짜 서식으로 바꾸면 `2026.04.05` 가 되어 그대로 검증에 걸린다
+    // 엑셀이 날짜 서식으로 바꾸면 2026.04.05 가 되어 그대로 검증에 걸린다
     format: "yyyy-MM-dd · 셀 서식 '텍스트'",
   },
   {
     name: '이메일',
     required: false,
-    format: '없으면 초기 비밀번호 미발송',
+    format: '없으면 계정 메일 미발송',
   },
   { name: '연락처', required: false, format: '' },
   {
     name: '권한',
     required: true,
     format: 'MASTER · MEMBER',
+  },
+  /*
+    학력 · 자격증은 한 칸에 여러 개를 담는다. 행을 늘리면 사번이 중복된다.
+    구분자는 세미콜론 · 쉼표 · 셀 안 줄바꿈이라 이름에 쉼표가 있으면 쪼개진다.
+  */
+  {
+    name: '학력',
+    // 규칙을 적어 두면 읽고 다시 해석해야 한다. 그대로 따라 쓸 예시를 준다
+    required: false,
+    format: '컴퓨터공학:학사',
+  },
+  {
+    name: '자격증',
+    required: false,
+    format: '정보처리기사',
   },
 ];
 
@@ -73,13 +86,8 @@ const STEP_HEADER: Record<Step, { label: string; title: string }> = {
 };
 
 /**
- * 사원 엑셀 일괄 등록 (.ai/API.md 87~89).
- *
- * 템플릿 받기 → 검증 → 등록 3단계다. **검증과 등록을 나눈 이유**는 등록이
- * 행마다 독립 트랜잭션이라 되돌릴 수 없어서다 — 무엇이 들어갈지 먼저 보여준다.
- *
- * ⚠️ 검증은 오류 행이 있어도 200 이다. 400 은 파일 자체 문제 3종뿐이고,
- *    그건 표로 보여줄 게 아니라 파일을 다시 고르게 해야 한다.
+ * 사원 엑셀 일괄 등록. 템플릿 받기 → 검증 → 등록 3단계다.
+ * 등록은 행마다 독립 트랜잭션이라 되돌릴 수 없어 무엇이 들어갈지 먼저 보여준다.
  */
 export default function BulkUploadModal({
   onClose,
@@ -98,7 +106,7 @@ export default function BulkUploadModal({
   const [result, setResult] = useState<BulkRegisterResult | null>(null);
   const [skipErrors, setSkipErrors] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  /** 등록은 되돌릴 수 없고 초기 비밀번호 메일까지 나간다 — 한 번 더 묻는다 */
+  /** 등록은 되돌릴 수 없고 초기 비밀번호 메일까지 나가 한 번 더 묻는다 */
   const confirmModal = useModal();
   const [busy, setBusy] = useState<Busy>(null);
 
@@ -170,7 +178,7 @@ export default function BulkUploadModal({
 
       setErrorMessage(message);
       notifyToast(message, 'error');
-      // 확인 창을 닫고 검증 화면으로 되돌린다 — 고칠 곳(건너뛰기 · 파일)이 거기 있다
+      // 확인 창을 닫고 검증 화면으로 되돌린다. 고칠 곳이 거기 있다
       confirmModal.close();
     } finally {
       setBusy(null);
@@ -183,7 +191,7 @@ export default function BulkUploadModal({
       stepLabel={STEP_HEADER[step].label}
       // 처리 중에 닫으면 등록이 어디까지 됐는지 알 수 없다
       onClose={isBusy ? undefined : onClose}
-      // 검증 표를 훑다 바깥을 잘못 눌러 파일 선택부터 다시 하게 되면 곤란하다
+      // 검증 표를 훑다 바깥을 잘못 눌러도 처음부터 하게 되면 곤란하다
       dismissOnBackdrop={false}
       className="w-full max-w-[640px] rounded-base p-8 shadow-2xl"
     >
@@ -280,8 +288,8 @@ export default function BulkUploadModal({
       </div>
 
       {/*
-        되돌릴 수 없는 데다 **초기 비밀번호 메일이 즉시 나간다** —
-        발송을 끄는 옵션이 명세에 없어(.ai/API.md 89) 더더욱 한 번 더 물어야 한다.
+        되돌릴 수 없는 데다 초기 비밀번호 메일이 즉시 나간다.
+        발송을 끄는 옵션이 없어 한 번 더 묻는다.
       */}
       {confirmModal.isOpen && validation && (
         <AlertDialogTwoButton
@@ -289,7 +297,8 @@ export default function BulkUploadModal({
           title={`${validation.validCount}명을 등록할까요?`}
           description={
             <>
-              계정이 함께 발급되고 <b>초기 비밀번호 메일이 바로 발송</b>됩니다.
+              계정이 함께 발급되고 <b>사번 · 초기 비밀번호 메일이 바로 발송</b>
+              됩니다.
               <br />
               {validation.errorCount > 0 && (
                 <>
@@ -310,7 +319,7 @@ export default function BulkUploadModal({
   );
 }
 
-/** ① 템플릿을 받고 채운 파일을 고른다 */
+/** 1단계. 템플릿을 받고 채운 파일을 고른다 */
 function PickStep({
   fileInputId,
   fileInputRef,
@@ -383,6 +392,15 @@ function PickStep({
         <p className="mt-2 text-label text-text-secondary">
           <span className="text-text-danger">*</span> 는 필수 항목입니다.
         </p>
+        {/* 문장마다 줄을 준다. 한 문단으로 흘리면 줄바꿈이 문장 가운데 걸린다 */}
+        <ul className="mt-1 flex flex-col gap-0.5 text-label break-keep text-text-secondary">
+          <li>
+            학력은 <b className="font-semibold">전공:학위</b> 순으로 적습니다.
+          </li>
+          <li>학력 · 자격증 모두 등록된 항목 이름과 같아야 합니다.</li>
+          <li>여러 개는 쌍반점(;) · 쉼표(,) · 셀 안 줄바꿈으로 구분합니다.</li>
+          <li>항목 이름에 쉼표가 들어 있으면 쌍반점을 쓰세요.</li>
+        </ul>
       </section>
 
       <section>
@@ -391,9 +409,8 @@ function PickStep({
         </h3>
 
         {/*
-          네이티브 파일 표시를 숨긴다 — 단계를 오가면 이 input 이 새 요소로 다시 그려지는데
-          `input[type=file]` 의 값은 보안상 되돌릴 수 없어 살아남은 `file` state 와 갈린다.
-          파일명은 아래 한 줄로만 보여주고 input 은 클릭 통로로만 쓴다.
+          네이티브 파일 표시를 숨긴다. 단계를 오가면 input 이 새로 그려지는데
+          값은 되돌릴 수 없어 살아남은 file state 와 갈린다.
         */}
         <input
           id={fileInputId}
@@ -425,14 +442,14 @@ function PickStep({
         </label>
 
         <p className="mt-2 text-label text-text-secondary">
-          {file ? `선택됨 — ${file.name}` : '선택된 파일이 없습니다.'}
+          {file ? `선택된 파일: ${file.name}` : '선택된 파일이 없습니다.'}
         </p>
       </section>
     </div>
   );
 }
 
-/** ② 무엇이 들어갈지 먼저 보여준다 — 등록은 되돌릴 수 없다 */
+/** 2단계. 등록은 되돌릴 수 없어 무엇이 들어갈지 먼저 보여준다 */
 function ValidatedStep({
   validation,
   skipErrors,
@@ -464,12 +481,12 @@ function ValidatedStep({
       {validation.errorCount > 0 && (
         <>
           <RowErrorTable errors={validation.errors} />
-          {/* 한 행에 오류가 여러 개여도 응답은 하나만 준다 (2026-08-10 실측) */}
+          {/* 한 행에 오류가 여러 개여도 응답은 하나만 준다 */}
           <p className="text-label break-keep text-text-secondary">
             한 행에 문제가 여러 개여도 사유는 하나씩만 표시됩니다. 고친 뒤 다시
             검증하면 남은 문제가 나타납니다.
           </p>
-          {/* 정상 행이 없으면 켜든 끄든 등록될 게 없다 — 고를 이유가 없어 감춘다 */}
+          {/* 정상 행이 없으면 켜든 끄든 등록될 게 없어 감춘다 */}
           {validation.validCount > 0 && (
             <label className="flex cursor-pointer items-start gap-2 text-label text-text-primary">
               <input
@@ -491,8 +508,8 @@ function ValidatedStep({
       )}
 
       {/*
-        `validCount === 0` 을 먼저 본다 — 빈 파일은 오류도 0 이라 아래 문구로 떨어지면
-        "등록할 수 있다" 고 해놓고 버튼은 비활성인 화면이 된다.
+        정상 행 0건을 먼저 본다. 빈 파일은 오류도 0 이라 아래 문구로 떨어지면
+        등록할 수 있다고 해놓고 버튼은 비활성인 화면이 된다.
       */}
       {validation.validCount === 0 ? (
         <p className="text-label break-keep text-text-secondary">
@@ -510,7 +527,7 @@ function ValidatedStep({
   );
 }
 
-/** ③ 행마다 독립 트랜잭션이라 부분 성공이 정상이다 */
+/** 3단계. 행마다 독립 트랜잭션이라 부분 성공이 정상이다 */
 function DoneStep({ result }: { result: BulkRegisterResult }) {
   return (
     <div className="flex flex-col gap-4">
@@ -575,8 +592,8 @@ function CountRow({
 }
 
 /**
- * 행 오류 표. 검증 · 등록이 같은 구조를 줘서 한 컴포넌트로 쓴다.
- * 행 번호는 사용자가 **엑셀에서 찾아갈 좌표**라 가장 앞에 둔다.
+ * 행 오류 표. 검증 · 등록이 같은 구조라 한 컴포넌트로 쓴다.
+ * 행 번호는 엑셀에서 찾아갈 좌표라 가장 앞에 둔다.
  */
 function RowErrorTable({ errors }: { errors: BulkRowError[] }) {
   return (
@@ -611,7 +628,7 @@ function RowErrorTable({ errors }: { errors: BulkRowError[] }) {
               <td className="px-4 py-2.5 whitespace-nowrap">
                 {error.name || '—'}
               </td>
-              {/* 백엔드 문구가 가장 정확하다 — 프론트가 다시 쓰지 않는다 */}
+              {/* 백엔드 문구가 가장 정확해 프론트가 다시 쓰지 않는다 */}
               <td className="px-4 py-2.5 break-keep">{error.message}</td>
             </tr>
           ))}

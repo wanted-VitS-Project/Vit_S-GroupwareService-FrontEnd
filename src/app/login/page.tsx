@@ -4,14 +4,15 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import Logo from '@/components/Logo';
+import { Spinner } from '@/components/Spinner';
 import PasswordVisibilityToggle from '@/components/PasswordVisibilityToggle';
 import { login } from '@/features/auth/api';
 import { isGateCode, LOGIN_ERROR_MESSAGES } from '@/features/auth/errorCodes';
 import { ApiError, messageOf } from '@/lib/api';
 
 /**
- * status 는 같은 값에 여러 의미가 실려서(403 = 비활성 · 잠금 아님) code 로 분기한다.
- * 목록에 없는 코드는 해제 시각이 담긴 423 처럼 백엔드 문구가 더 정확하다.
+ * 같은 status 에 여러 의미가 실려 있어 code 로 분기한다.
+ * 목록에 없는 코드는 백엔드 문구를 그대로 쓴다.
  */
 function loginErrorOf(error: unknown) {
   const known =
@@ -71,7 +72,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isPending, setIsPending] = useState(false);
-  /** 로고가 자리를 잡았는지 — 아래 폼은 그 뒤에 편다 */
+  /** 로고가 뜬 뒤에 폼을 보여주기 위한 플래그 */
   const [isLogoReady, setIsLogoReady] = useState(false);
 
   const canSubmit = userId.trim() !== '' && password !== '' && !isPending;
@@ -85,11 +86,10 @@ export default function LoginPage() {
 
     try {
       await login({ userId: userId.trim(), password });
-      // 최초 로그인(RESET_REQUIRED)은 CurrentUserProvider 가 약관·비밀번호 변경으로 가둔다
+      // 최초 로그인 처리는 CurrentUserProvider 가 맡는다
       router.push('/');
     } catch (caught) {
-      // 게이트 코드로 로그인이 거부되면(예: '초기 비밀번호를 먼저 변경해 주세요')
-      // 에러로 막아버리면 변경할 방법이 없어진다 — 게이트 화면으로 보낸다
+      // 게이트 코드는 에러로 막지 않고 처리 화면으로 보낸다
       if (caught instanceof ApiError && isGateCode(caught.code)) {
         router.push('/');
         return;
@@ -103,24 +103,16 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
       <div className="w-full max-w-md rounded-base border border-border-default px-10 py-12">
-        {/**
-         * ⚠️ 로고는 **어두운 바탕 전용**이다 (글자가 흰색). 로그인 화면은 밝아서
-         *    사이드바와 같은 어두운 판 위에 올린다 — 자산을 한 벌로 유지한다.
-         */}
+        {/* 배경이 밝아 어두운 톤 로고를 쓴다 */}
         <h1 className="flex justify-center">
           <span className="sr-only">VitaS</span>
-          <span className="flex h-13 items-center rounded-base bg-bg-sidebar px-6">
-            <Logo onReady={() => setIsLogoReady(true)} />
-          </span>
+          <Logo tone="onLight" onReady={() => setIsLogoReady(true)} />
         </h1>
 
-        {/**
-         * ⭐ **로고가 자리를 잡은 뒤 폼을 편다.**
-         *
-         * 셋이 동시에 뜨면 로고 · 입력칸 · 버튼이 제각기 다른 시점에 나타나 화면이 어수선하다.
-         * 로고를 먼저 세우고 나머지를 한 번에 올리면 들어오는 순서가 하나로 읽힌다.
-         * ⚠️ 자리는 처음부터 차지한다(`opacity`) — `display` 로 감추면 폼이 뜰 때 창이 늘어난다.
-         */}
+        {/*
+          로고가 뜬 뒤 폼을 함께 보여준다.
+          display 대신 opacity 로 감춰 레이아웃이 흔들리지 않게 한다.
+        */}
         <form
           onSubmit={handleSubmit}
           className={`mt-10 space-y-6 transition-opacity duration-300 ${
@@ -141,7 +133,7 @@ export default function LoginPage() {
             secret
           />
 
-          {/* min-h-10 — 에러가 떠도 버튼 위치가 흔들리지 않게 자리를 잡아둔다 */}
+          {/* 에러 문구가 떠도 버튼이 밀리지 않도록 높이를 잡아둔다 */}
           <p role="alert" className="min-h-10 text-body-m text-text-danger">
             {error}
           </p>
@@ -149,9 +141,17 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={!canSubmit}
-            className="w-full cursor-pointer rounded-lg bg-text-primary py-3.5 text-body-m font-bold text-text-white transition-colors hover:bg-bg-sidebar-hover disabled:cursor-not-allowed disabled:bg-bg-hover-secondary"
+            /* 비활성일 때 배경색은 두고 투명도만 낮춘다 (흰 글씨 대비 확보) */
+            className="w-full cursor-pointer rounded-lg bg-text-primary py-3.5 text-body-m font-bold text-text-white transition-colors hover:bg-bg-sidebar-hover disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-text-primary"
           >
-            {isPending ? '로그인 중…' : '로그인'}
+            {isPending ? (
+              <span className="flex items-center justify-center gap-2">
+                <Spinner className="size-4 border-white/40 border-t-white" />
+                로그인 중
+              </span>
+            ) : (
+              '로그인'
+            )}
           </button>
         </form>
 

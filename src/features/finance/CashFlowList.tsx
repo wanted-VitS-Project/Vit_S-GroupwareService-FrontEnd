@@ -8,6 +8,8 @@ import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import Breadcrumb from '@/components/Breadcrumb';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
 import PageTitle from '@/components/PageTitle';
+import Pagination from '@/components/Pagination';
+import LoadingSpinner from '@/components/Spinner';
 import { notifyToast } from '@/components/Toast';
 import { messageOf } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
@@ -41,6 +43,9 @@ import {
   type ProjectOption,
 } from './types';
 
+/** 한 페이지 20건. 세금계산서 목록과 같은 값이다 */
+const PAGE_SIZE = 20;
+
 const TYPE_OPTIONS: CashFlowType[] = ['INCOME', 'OUTCOME'];
 const SOURCE_OPTIONS: CashFlowSource[] = ['MANUAL', 'CSV', 'API'];
 
@@ -63,10 +68,8 @@ function pickDate(value: string | null) {
 /**
  * 입출금 내역 목록 화면. (#12)
  *
- * ⚠️ **페이징이 없다** — 목록 API 가 배열 하나를 통째로 준다 (2026-08-12 스웨거 실측).
- *    건수가 늘면 백엔드부터 바뀌어야 하므로 `Pagination` 을 붙이지 않는다.
- * ⚠️ **구분 · 출처는 서버 필터가 없다** — 전체를 받아오므로 화면에서 거른다.
- *    기간 · 프로젝트 · 미연결 · 검색만 쿼리로 나간다.
+ * 구분 · 출처는 서버 필터가 없어 화면에서 거른다. 지금 페이지 안에서만 걸러지므로
+ * 그 두 조건을 켜면 표 위에 그 사실을 적는다.
  */
 export default function CashFlowList() {
   const router = useRouter();
@@ -82,11 +85,21 @@ export default function CashFlowList() {
   const unlinked = searchParams.get('unlinked') === 'true' || undefined;
   const projectId = pickInt(searchParams.get('projectId'), 1);
   const keyword = searchParams.get('keyword') ?? undefined;
+  /** 0 페이지가 기본이다. 이상한 값이 오면 첫 페이지로 본다 */
+  const page = pickInt(searchParams.get('page'), 0) ?? 0;
 
   /** 값이 그대로면 같은 객체를 유지한다 — 조회 효과가 헛돌지 않게 */
   const query = useMemo<CashFlowListQuery>(
-    () => ({ startDate, endDate, unlinked, projectId, keyword }),
-    [startDate, endDate, unlinked, projectId, keyword],
+    () => ({
+      startDate,
+      endDate,
+      unlinked,
+      projectId,
+      keyword,
+      page,
+      size: PAGE_SIZE,
+    }),
+    [startDate, endDate, unlinked, projectId, keyword, page],
   );
 
   /** 화면에서만 거르는 조건 — 서버에 없다 */
@@ -108,6 +121,9 @@ export default function CashFlowList() {
   const [result, setResult] = useState<{
     key: string;
     data?: CashFlowItem[];
+    /** 서버가 센 전체 건수 · 쪽수. 목록 길이로 대신하면 한 쪽 분량만 세게 된다 */
+    totalElements?: number;
+    totalPages?: number;
     hasFailed?: boolean;
   } | null>(null);
 
@@ -138,6 +154,7 @@ export default function CashFlowList() {
     unlinked,
     projectId,
     keyword,
+    page,
   ].join(' ');
 
   const current = result?.key === requestKey ? result : null;
@@ -145,13 +162,23 @@ export default function CashFlowList() {
   const received = current?.data ?? result?.data ?? null;
   const hasFailed = current?.hasFailed ?? false;
   const isLoading = current === null && !hasFailed;
+  /** 재조회 중에도 직전 쪽수를 유지한다. 페이지 줄이 사라졌다 나타나면 화면이 튄다 */
+  const totalElements = current?.totalElements ?? result?.totalElements;
+  const totalPages = current?.totalPages ?? result?.totalPages ?? 0;
 
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
 
     getCashFlows(query, signal)
-      .then((data) => setResult({ key: requestKey, data: data.cashFlows }))
+      .then((data) =>
+        setResult({
+          key: requestKey,
+          data: data.cashFlows,
+          totalElements: data.totalElements,
+          totalPages: data.totalPages,
+        }),
+      )
       .catch(() => {
         // 취소는 실패가 아니다
         if (!signal.aborted) setResult({ key: requestKey, hasFailed: true });
@@ -220,8 +247,8 @@ export default function CashFlowList() {
     // 한 건도 처리되지 않았으면 성공 문구를 붙이지 않는다 (`0건을 …했습니다` 는 어색하다)
     notifyToast(
       result.count === 0
-        ? `${skipped}건을 처리하지 못했습니다 — ${reason}`
-        : `${result.count}건을 ${done}했습니다. ${skipped}건은 처리하지 못했습니다 — ${reason}`,
+        ? `${skipped}건을 처리하지 못했습니다. ${reason}`
+        : `${result.count}건을 ${done}했습니다. ${skipped}건은 처리하지 못했습니다. ${reason}`,
       'error',
     );
   }
@@ -269,7 +296,7 @@ export default function CashFlowList() {
     [selectedIds, isAllSelected, rows],
   );
 
-  /** 필터를 바꾸면 URL 만 갈아끼운다 (페이징이 없어 되돌릴 페이지도 없다) */
+  /** 필터를 바꾸면 URL 만 갈아끼운다. 3페이지에서 조건을 바꾸면 빈 화면이라 첫 장으로 돌린다 */
   function applyFilter(patch: Record<string, string | undefined>) {
     const next = new URLSearchParams(searchParams.toString());
 
@@ -277,8 +304,19 @@ export default function CashFlowList() {
       if (value) next.set(key, value);
       else next.delete(key);
     }
+    next.delete('page');
 
     router.replace(next.toString() ? `?${next}` : '?');
+  }
+
+  /** 페이지만 갈아끼운다. 나머지 조건은 그대로 둔다 */
+  function movePage(next: number) {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (next > 0) params.set('page', String(next));
+    else params.delete('page');
+
+    router.replace(params.toString() ? `?${params}` : '?');
   }
 
   const hasFilter = [...searchParams.keys()].length > 0;
@@ -368,6 +406,19 @@ export default function CashFlowList() {
         </div>
       )}
 
+      {/* 서버가 센 전체 건수를 적는다. 목록 길이는 지금 쪽 분량이라 총 건수가 아니다 */}
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-1">
+        <p className="text-caption text-text-secondary">
+          총 {(totalElements ?? 0).toLocaleString('ko-KR')}건
+        </p>
+        {/* 서버 조건이 아니라 지금 쪽에서만 걸러진다. 오해하지 않게 적는다 */}
+        {(clientType !== undefined || clientSource !== undefined) && (
+          <p className="text-caption break-keep text-text-secondary">
+            구분 · 출처는 이 페이지 안에서만 거릅니다.
+          </p>
+        )}
+      </div>
+
       {/**
        * ⚠️ **첫 조회 중에는 표를 아예 그리지 않는다.**
        *
@@ -376,12 +427,15 @@ export default function CashFlowList() {
        * (재조회는 직전 결과를 그대로 두므로 이 경우가 아니다)
        */}
       {isLoading && !rows && !hasFailed ? (
-        <p className="py-20 text-center text-caption text-text-secondary">
-          입출금 내역을 불러오는 중입니다.
-        </p>
+        <LoadingSpinner label="입출금 내역을 불러오는 중" className="py-20" />
       ) : (
         <DataTable
           caption="입출금 내역 목록"
+          /*
+            ⚠️ `loadingLabel` 을 주지 않는다 — 첫 조회는 위 스피너가 맡고,
+               재조회 중에는 **직전 목록을 그대로 둔다**(`rows` 가 비지 않는다).
+               표가 스스로 로딩을 그릴 일이 없어 라벨만 남으면 계약이 어긋난다.
+          */
           columns={columns}
           rows={hasFailed ? [] : (rows ?? [])}
           rowKey={(row) => row.cashFlowId}
@@ -415,6 +469,12 @@ export default function CashFlowList() {
         />
       )}
 
+      {totalPages > 1 && (
+        <div className="mt-3 overflow-hidden rounded-base border border-border-default bg-bg-card">
+          <Pagination page={page} totalPages={totalPages} onChange={movePage} />
+        </div>
+      )}
+
       {deleteConfirm.target && (
         <AlertDialogTwoButton
           icon={DialogIcons.danger}
@@ -441,13 +501,6 @@ export default function CashFlowList() {
             setReloadCount((count) => count + 1);
           }}
         />
-      )}
-
-      {/* 페이징이 없어 총 건수를 알려 줄 곳이 표 아래뿐이다 */}
-      {!hasFailed && rows !== null && rows.length > 0 && (
-        <p className="mt-3 text-caption text-text-secondary">
-          전체 {rows.length.toLocaleString('ko-KR')}건
-        </p>
       )}
     </>
   );
@@ -555,7 +608,7 @@ function buildColumns({
       cell: (row) => (
         <Link
           href={FINANCE_ROUTES.cashFlowDetail(row.cashFlowId)}
-          className="block pl-3 font-semibold [overflow-wrap:anywhere] break-keep text-text-primary hover:underline"
+          className="wrap:anywhere block pl-3 font-semibold break-keep text-text-primary hover:underline"
         >
           {row.depositorName || '-'}
         </Link>
@@ -567,7 +620,7 @@ function buildColumns({
       width: '11%',
       skeletonWidth: 'w-32',
       cell: (row) => (
-        <span className="block [overflow-wrap:anywhere] break-keep text-text-secondary">
+        <span className="wrap:anywhere block break-keep text-text-secondary">
           {row.bankMemo || '-'}
         </span>
       ),
@@ -628,7 +681,7 @@ function LinkDetailCell({ row }: { row: CashFlowItem }) {
      * 위는 무엇에 붙었는지, 아래는 누가 언제 붙였는지.
      */
     <span className="block">
-      <span className="block [overflow-wrap:anywhere] break-keep text-text-secondary">
+      <span className="wrap:anywhere block break-keep text-text-secondary">
         {[row.projectName, row.roundName].filter(Boolean).join(' · ') || '-'}
       </span>
       <span className="mt-0.5 block text-detail break-keep text-text-muted">

@@ -1,20 +1,17 @@
 'use client';
 
+// CSR - 프로젝트 전체 화면 탭: 현재 경로를 읽어 이슈·문서·이미지·휴지통을 오간다.
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 
 import PermissionBadge from '@/features/project/PermissionBadge';
 import { useProjectPermission } from '@/features/project/useProjectPermission';
 
-/**
- * 프로젝트 전체 화면의 탭. `href` 는 프로젝트 경로 뒤에 붙는다.
- *
- * 첫 탭이 빈 문자열이라 `/projects/{id}` 자체가 이슈 화면이다 —
- * 프로젝트로 들어오면 가장 먼저 볼 것이 "무슨 일이 남았나" 라는 판단이다.
- *
- * ⚠️ 라벨을 `전체 이슈` 로 둔다 — 스텝 화면의 같은 것이 `이슈` 탭이다.
- *    범위만 프로젝트로 넓어졌을 뿐 같은 데이터라 이름을 갈라 부르지 않는다.
- */
+// 프로젝트 전체 화면의 탭. href 는 프로젝트 경로 뒤에 붙는다.
+// 첫 탭이 빈 문자열이라 /projects/{id} 자체가 이슈 화면이다 —
+// 프로젝트로 들어오면 가장 먼저 볼 것이 "무슨 일이 남았나" 라는 판단이다.
+// 라벨을 전체 이슈 로 둔다 — 스텝 화면의 같은 것이 이슈 탭이다.
+// 범위만 프로젝트로 넓어졌을 뿐 같은 데이터라 이름을 갈라 부르지 않는다.
 const TABS = [
   { segment: '', label: '전체 이슈', icon: 'schedule' },
   { segment: '/files', label: '문서함', icon: 'document' },
@@ -24,13 +21,10 @@ const TABS = [
 
 type TabIcon = (typeof TABS)[number]['icon'];
 
-/**
- * 프로젝트 전체 화면 상단 탭 내비게이션.
- * `/projects/{id}` 와 그 하위 `files` · `images` · `trash` 를 오간다.
- *
- * ⚠️ `StepTabs` 와 **같은 높이 · 같은 밑줄 규칙**을 쓴다 — 스텝 화면에서 프로젝트 화면으로
- *    넘어올 때 탭바가 흔들리면 두 화면이 다른 앱처럼 보인다. 한쪽을 고치면 다른 쪽도 함께 본다.
- */
+// 프로젝트 전체 화면 상단 탭 내비게이션.
+// /projects/{id} 와 그 하위 files·images·trash 를 오간다.
+// StepTabs 와 같은 높이·같은 밑줄 규칙을 쓴다 — 스텝 화면에서 프로젝트 화면으로
+// 넘어올 때 탭바가 흔들리면 두 화면이 다른 앱처럼 보인다. 한쪽을 고치면 다른 쪽도 함께 본다.
 export default function ProjectTabs() {
   const params = useParams<{ id: string }>();
   const pathname = usePathname();
@@ -86,16 +80,16 @@ export default function ProjectTabs() {
         </ul>
       </nav>
 
-      {/* 아직 못 받았으면 아무것도 그리지 않는다 (`PermissionBadge`) */}
+      {/* 아직 못 받았으면 아무것도 그리지 않는다 (PermissionBadge) */}
       <PermissionBadge permission={permission} className="ml-2" />
     </div>
   );
 }
 
-/** 탭 아이콘. 아이콘 라이브러리 도입 전까지 인라인 SVG 로 둔다 (`StepTabs` 와 같은 방침) */
+/** 탭 아이콘. 아이콘 라이브러리 도입 전까지 인라인 SVG 로 둔다 (StepTabs 와 같은 방침) */
 const PATHS: Record<TabIcon, React.ReactNode> = {
   /*
-   * 전체 이슈 — 타임라인 격자(#). 스텝 화면의 `이슈` 탭과 같은 아이콘이다:
+   * 전체 이슈 — 타임라인 격자(#). 스텝 화면의 이슈 탭과 같은 아이콘이다:
    * 범위만 프로젝트로 넓어졌을 뿐 같은 것을 본다.
    */
   schedule: (

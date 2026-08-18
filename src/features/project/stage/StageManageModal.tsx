@@ -1,5 +1,6 @@
 'use client';
 
+// CSR - 스테이지·스텝 관리 모달: 묶음 구성과 순서를 드래그로 바꾸고 한 번에 저장한다.
 import { useMemo, useState } from 'react';
 
 import PanelModal, { ModalFooter } from '@/components/PanelModal';
@@ -17,18 +18,18 @@ import type {
 import StageDeleteModal from './StageDeleteModal';
 import StageFormModal from './StageFormModal';
 
-/** 열려 있는 하위 모달 — 대상 없이 열리는 `추가` 도 한 종류로 묶는다 */
+/** 열려 있는 하위 모달 — 대상 없이 열리는 추가 도 한 종류로 묶는다 */
 type StageAction =
   | { kind: 'create' }
   | { kind: 'rename'; stage: ProjectStage }
   | { kind: 'delete'; stage: ProjectStage };
 
-/** 끌고 있는 것. 스테이지끼리 · 스텝끼리만 자리를 바꾼다 */
+/** 끌고 있는 것. 스테이지끼리·스텝끼리만 자리를 바꾼다 */
 type Dragging =
   | { type: 'stage'; index: number }
   | { type: 'step'; bucketIndex: number; index: number };
 
-/** 스테이지 하나와 그 아래 스텝. `stage: null` 은 맨 끝의 `미분류` 가상 묶음이다 */
+/** 스테이지 하나와 그 아래 스텝. stage: null 은 맨 끝의 미분류 가상 묶음이다 */
 interface Bucket {
   stage: ProjectStage | null;
   steps: ProjectStep[];
@@ -36,24 +37,20 @@ interface Bucket {
 
 interface StageManageModalProps {
   projectId: string;
-  /** 가상 스테이지(`미분류`)는 제외한 실제 목록만 넘긴다 */
+  /** 가상 스테이지(미분류)는 제외한 실제 목록만 넘긴다 */
   stages: ProjectStage[];
   steps: ProjectStep[];
   onClose: () => void;
-  /** 목록이 바뀌었으니 다시 읽으라는 신호. **모달은 닫지 않는다** */
+  /** 목록이 바뀌었으니 다시 읽으라는 신호. 모달은 닫지 않는다 */
   onChanged: () => void;
 }
 
-/**
- * 미분류 묶음을 담을 **화면 안쪽 열쇠**. 서버로 나가지 않는다 —
- * 순서 API 의 미소속은 `null`, 스테이지 삭제의 미소속은 `0` 이라 상수를 돌려쓰면 헷갈린다.
- */
+// 미분류 묶음을 담을 화면 안쪽 열쇠. 서버로 나가지 않는다 —
+// 순서 API 의 미소속은 null, 스테이지 삭제의 미소속은 0 이라 상수를 돌려쓰면 헷갈린다.
 const UNASSIGNED_KEY = -1;
 
-/**
- * 스테이지 · 스텝을 묶음으로 만든다.
- * `미분류` 는 스텝이 없어도 **항상 마지막에 둔다** — 스테이지 밖으로 빼낼 자리가 필요하다.
- */
+// 스테이지·스텝을 묶음으로 만든다.
+// 미분류 는 스텝이 없어도 항상 마지막에 둔다 — 스테이지 밖으로 빼낼 자리가 필요하다.
 function toBuckets(stages: ProjectStage[], steps: ProjectStep[]): Bucket[] {
   const ordered = [...steps].sort((a, b) => a.sortOrder - b.sortOrder);
   const byStage = new Map<number, ProjectStep[]>();
@@ -74,7 +71,7 @@ function toBuckets(stages: ProjectStage[], steps: ProjectStep[]): Bucket[] {
   ];
 }
 
-/** 순서 변경 요청 한 줄 + 아직 못 채운 `version` */
+/** 순서 변경 요청 한 줄 + 아직 못 채운 version */
 interface StepPlanRow {
   stepId: number;
   stageId: number | null;
@@ -82,13 +79,10 @@ interface StepPlanRow {
   version?: number;
 }
 
-/**
- * 보드를 **위에서 아래로 한 번 훑어** 스텝 번호를 매긴다.
- *
- * ⚠️ `sortOrder` 는 **프로젝트 단위 통번호다** (2026-08-11 BE 확인) — 스테이지마다
- *    1부터 다시 세지 않는다. 그래서 **스테이지 순서만 바꿔도 아래 스텝 번호가 전부 밀린다.**
- *    "스테이지만 끌었으니 스텝 요청은 생략" 이 성립하지 않는 이유다.
- */
+// 보드를 위에서 아래로 한 번 훑어 스텝 번호를 매긴다.
+// sortOrder 는 프로젝트 단위 통번호다 (2026-08-11 BE 확인) — 스테이지마다
+// 1부터 다시 세지 않는다. 그래서 스테이지 순서만 바꿔도 아래 스텝 번호가 전부 밀린다.
+// "스테이지만 끌었으니 스텝 요청은 생략" 이 성립하지 않는 이유다.
 function toStepPlan(buckets: Bucket[]): StepPlanRow[] {
   const plan: StepPlanRow[] = [];
   let sortOrder = 0;
@@ -98,7 +92,7 @@ function toStepPlan(buckets: Bucket[]): StepPlanRow[] {
       sortOrder += 1;
       plan.push({
         stepId: step.stepId,
-        // 미소속은 `null` 이다 — `0` 은 스테이지 삭제 쪽 규약이라 여기선 쓰지 않는다
+        // 미소속은 null 이다 — 0 은 스테이지 삭제 쪽 규약이라 여기선 쓰지 않는다
         stageId: bucket.stage?.stageId ?? null,
         sortOrder,
         version: step.version,
@@ -109,7 +103,7 @@ function toStepPlan(buckets: Bucket[]): StepPlanRow[] {
   return plan;
 }
 
-/** 보낼 값이 실제로 달라졌는지 — `version` 은 빼고 **위치만** 본다 */
+/** 보낼 값이 실제로 달라졌는지 — version 은 빼고 위치만 본다 */
 function planPrint(plan: StepPlanRow[]) {
   return plan
     .map((row) => `${row.stepId}>${row.stageId ?? 'null'}#${row.sortOrder}`)
@@ -122,18 +116,15 @@ function bucketPrint(bucket: Bucket) {
   return `${bucket.stage?.stageId ?? 0}:${stepIds}`;
 }
 
-/** 저장 여부 판단용 지문 — 이름이 아니라 **순서와 소속**만 본다 */
+/** 저장 여부 판단용 지문 — 이름이 아니라 순서와 소속만 본다 */
 function fingerprint(buckets: Bucket[]) {
   return buckets.map(bucketPrint).join('|');
 }
 
-/**
- * 초안을 갈아끼울지 판단하는 지문 — 순서 · 소속에 더해 **`version` 까지** 본다.
- *
- * 순서만 보면, 남이 이름만 고쳐 `version` 이 올라간 경우(순서는 그대로)를 놓친다.
- * 그 상태로 초안을 두면 다음 저장이 **옛 `version` 을 실어 무조건 409** 다 —
- * 순서 API 는 `overwrite` 가 없어 거기서 빠져나올 길도 없다.
- */
+// 초안을 갈아끼울지 판단하는 지문 — 순서·소속에 더해 version 까지 본다.
+// 순서만 보면, 남이 이름만 고쳐 version 이 올라간 경우(순서는 그대로)를 놓친다.
+// 그 상태로 초안을 두면 다음 저장이 옛 version 을 실어 무조건 409 다 —
+// 순서 API 는 overwrite 가 없어 거기서 빠져나올 길도 없다.
 function syncPrint(buckets: Bucket[]) {
   return buckets
     .map((bucket) => {
@@ -146,10 +137,8 @@ function syncPrint(buckets: Bucket[]) {
     .join('|');
 }
 
-/**
- * `version` 이 하나라도 없으면 **아예 보내지 않는다** — 순서 API 는 항목별로 락을 검사하고
- * 하나만 어긋나도 요청 전체가 409 로 롤백된다. 보내 봐야 전부 실패한다.
- */
+// version 이 하나라도 없으면 아예 보내지 않는다 — 순서 API 는 항목별로 락을 검사하고
+// 하나만 어긋나도 요청 전체가 409 로 롤백된다. 보내 봐야 전부 실패한다.
 function toStageOrders(stages: ProjectStage[]): StageOrderItem[] | null {
   const orders: StageOrderItem[] = [];
 
@@ -181,16 +170,12 @@ function toStepOrders(plan: StepPlanRow[]): StepOrderItem[] | null {
   return orders;
 }
 
-/**
- * 스테이지 관리 모달 — `스테이지` 헤더의 `수정` 진입점. (.ai/API.md 112~114 · 119 · 120)
- *
- * 사이드바의 `⋯` 메뉴는 행에 **호버해야** 나타나 처음 쓰는 사람이 찾지 못한다.
- * 여기서는 전체 구조를 펼쳐 놓고 이름 수정 · 삭제 · 추가와 **순서 변경**을 함께 다룬다.
- *
- * 순서는 끌어 놓은 즉시 보내지 않고 `순서 저장` 을 눌러야 나간다 —
- * 두 API 모두 **전체 최종 순서**를 요구해서, 중간 상태를 매번 보내면
- * 아직 옮기는 중인 배치가 남의 화면에 그대로 보인다. (블록 배치 편집과 같은 규칙)
- */
+// 스테이지 관리 모달 — 스테이지 헤더의 수정 진입점. (.ai/API.md 112~114·119·120)
+// 사이드바의 ⋯ 메뉴는 행에 호버해야 나타나 처음 쓰는 사람이 찾지 못한다.
+// 여기서는 전체 구조를 펼쳐 놓고 이름 수정·삭제·추가와 순서 변경을 함께 다룬다.
+// 순서는 끌어 놓은 즉시 보내지 않고 순서 저장 을 눌러야 나간다 —
+// 두 API 모두 전체 최종 순서를 요구해서, 중간 상태를 매번 보내면
+// 아직 옮기는 중인 배치가 남의 화면에 그대로 보인다. (블록 배치 편집과 같은 규칙)
 export default function StageManageModal({
   projectId,
   stages,
@@ -200,13 +185,10 @@ export default function StageManageModal({
 }: StageManageModalProps) {
   const action = useModalTarget<StageAction>();
 
-  /**
-   * 순서가 바뀌는 순간에만 도는 FLIP 이동 애니메이션.
-   *
-   * 끌어 놓은 뒤 행이 **툭 튀지 않고 미끄러져** 어디로 갔는지 눈으로 따라갈 수 있다.
-   * 스테이지 `<li>` 와 그 안의 스텝 `<li>` 를 함께 등록하지만, 훅이 중첩을 보정해
-   * 스텝은 스테이지가 옮겨 준 만큼을 빼고 자기 몫만 움직인다.
-   */
+  // 순서가 바뀌는 순간에만 도는 FLIP 이동 애니메이션.
+  // 끌어 놓은 뒤 행이 툭 튀지 않고 미끄러져 어디로 갔는지 눈으로 따라갈 수 있다.
+  // 스테이지 <li> 와 그 안의 스텝 <li> 를 함께 등록하지만, 훅이 중첩을 보정해
+  // 스텝은 스테이지가 옮겨 준 만큼을 빼고 자기 몫만 움직인다.
   const slide = useFlipReorder<string>();
 
   const baseline = useMemo(() => toBuckets(stages, steps), [stages, steps]);
@@ -217,18 +199,16 @@ export default function StageManageModal({
   const [dragging, setDragging] = useState<Dragging | null>(null);
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  /**
-   * 저장이 실패해 화면이 든 `version` 을 더는 믿을 수 없는 상태.
-   * 재조회로 새 `version` 을 받기 전에는 다시 보내 봐야 또 409 라 저장을 막는다.
-   */
+  // 저장이 실패해 화면이 든 version 을 더는 믿을 수 없는 상태.
+  // 재조회로 새 version 을 받기 전에는 다시 보내 봐야 또 409 라 저장을 막는다.
   const [isStale, setIsStale] = useState(false);
 
   /*
    * 목록을 다시 읽어 왔으면 초안을 갈아끼운다.
    * (effect 가 아니라 렌더 중 상태 조정 — https://react.dev/reference/react/useState)
    *
-   * **`version` 이 바뀌기만 해도 갈아끼운다** — 근거가 달라졌으니 끌던 것을 유지하면 안 된다.
-   * 끌던 것이 사라지므로, 아래에서 **순서를 고치는 중에는 이름 수정 · 삭제를 막는다.**
+   * version 이 바뀌기만 해도 갈아끼운다 — 근거가 달라졌으니 끌던 것을 유지하면 안 된다.
+   * 끌던 것이 사라지므로, 아래에서 순서를 고치는 중에는 이름 수정·삭제를 막는다.
    */
   const [syncedPrint, setSyncedPrint] = useState(baselineSyncPrint);
   if (syncedPrint !== baselineSyncPrint) {
@@ -249,15 +229,15 @@ export default function StageManageModal({
   const hasStageOrderChanged = stageIds !== baseStageIds;
 
   /*
-   * 스텝은 보낼 값을 **직접 만들어서** 비교한다.
-   * `sortOrder` 가 프로젝트 통번호라 스테이지만 끌어도 스텝 번호가 밀리므로,
+   * 스텝은 보낼 값을 직접 만들어서 비교한다.
+   * sortOrder 가 프로젝트 통번호라 스테이지만 끌어도 스텝 번호가 밀리므로,
    * "스텝을 안 건드렸으니 생략" 같은 어림짐작이 통하지 않는다.
    */
   const stepPlan = toStepPlan(buckets);
   const hasStepOrderChanged =
     planPrint(stepPlan) !== planPrint(toStepPlan(baseline));
 
-  /** 실제 스테이지만 (맨 끝 `미분류` 제외) */
+  /** 실제 스테이지만 (맨 끝 미분류 제외) */
   const realStages = buckets
     .map((bucket) => bucket.stage)
     .filter((stage): stage is ProjectStage => stage !== null);
@@ -265,7 +245,7 @@ export default function StageManageModal({
   function moveStage(from: number, to: number) {
     if (from === to || to < 0 || to >= realStages.length) return;
 
-    // 순서를 바꾸기 **직전** 위치를 찍는다 — 매 렌더 재는 것이 아니라 이때만 잰다
+    // 순서를 바꾸기 직전 위치를 찍는다 — 매 렌더 재는 것이 아니라 이때만 잰다
     slide.capture();
     setError('');
     setBuckets((previous) => {
@@ -338,10 +318,8 @@ export default function StageManageModal({
     setError('');
     setIsSaving(true);
 
-    /**
-     * 두 API 는 각각 전체 롤백이지만 **서로는 원자적이지 않다.**
-     * 스테이지가 통과한 뒤 스텝이 409 면 앞의 것만 반영된 상태가 남는다 — 사용자에게 알려야 한다.
-     */
+    // 두 API 는 각각 전체 롤백이지만 서로는 원자적이지 않다.
+    // 스테이지가 통과한 뒤 스텝이 409 면 앞의 것만 반영된 상태가 남는다 — 사용자에게 알려야 한다.
     let hasSavedStageOrder = false;
 
     try {
@@ -352,13 +330,13 @@ export default function StageManageModal({
       if (stepOrders.length > 0) {
         await updateStepOrder(projectId, stepOrders);
       }
-      // 응답의 새 `version` 을 쓰려면 목록을 다시 읽어야 한다 — 초안도 그때 갈린다
+      // 응답의 새 version 을 쓰려면 목록을 다시 읽어야 한다 — 초안도 그때 갈린다
       onChanged();
     } catch (caught) {
       /*
-       * 실패하면 화면이 든 `version` 은 더 이상 맞지 않는다 —
+       * 실패하면 화면이 든 version 은 더 이상 맞지 않는다 —
        * 앞 요청이 통과했다면 그쪽이 이미 올라갔고, 409 라면 남이 올려놓았다.
-       * 이 API 에는 `overwrite` 가 없어 **재조회 말고는 빠져나올 길이 없다.**
+       * 이 API 에는 overwrite 가 없어 재조회 말고는 빠져나올 길이 없다.
        */
       setIsStale(true);
 
@@ -545,7 +523,7 @@ export default function StageManageModal({
                               </span>
                               {/*
                                 묶음 끝에서 한 번 더 누르면 이웃 묶음으로 넘어가므로,
-                                **보드 전체의 처음 · 마지막**에서만 막는다
+                                보드 전체의 처음·마지막에서만 막는다
                               */}
                               <MoveButtons
                                 label={step.name}
@@ -662,13 +640,10 @@ export default function StageManageModal({
   );
 }
 
-/** 끌지 못하는 환경(키보드 · 터치)에서도 순서를 바꿀 수 있게 둔다 */
-/**
- * 끌지 못하는 환경(키보드 · 터치)에서도 순서를 바꿀 수 있게 둔다.
- *
- * ⚠️ 위/아래 **각각** 막을 수 있어야 한다 — 첫 줄에서 `위로` 를 눌러 아무 일도 없으면
- *    키보드 · 스크린리더 사용자는 조작이 실패한 것으로 읽는다.
- */
+/** 끌지 못하는 환경(키보드·터치)에서도 순서를 바꿀 수 있게 둔다 */
+// 끌지 못하는 환경(키보드·터치)에서도 순서를 바꿀 수 있게 둔다.
+// 위/아래 각각 막을 수 있어야 한다 — 첫 줄에서 위로 를 눌러 아무 일도 없으면
+// 키보드·스크린리더 사용자는 조작이 실패한 것으로 읽는다.
 function MoveButtons({
   label,
   disabled,

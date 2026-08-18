@@ -4,7 +4,6 @@ import { useState } from 'react';
 
 import ChangePasswordModal from './ChangePasswordModal';
 
-/** 마이페이지에서 일반 모드 비밀번호 변경 모달을 여는 버튼. */
 export default function ChangePasswordButton() {
   const [isOpen, setIsOpen] = useState(false);
 

@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
+import ModalLoadingFallback, {
+  useSlowLoading,
+} from '@/components/ModalLoadingFallback';
 import PanelModal, { ModalFooter } from '@/components/PanelModal';
-import LoadingSpinner from '@/components/Spinner';
 import { getProjectSteps } from '@/features/project/api';
 import type { ProjectStep } from '@/features/project/types';
 import { ApiError, messageOf } from '@/lib/api';
@@ -24,16 +26,12 @@ interface BlockMoveStepModalProps {
   onMoved: (result: MoveBlockResponse) => void;
 }
 
-/**
- * 블록을 다른 스텝으로 옮기는 모달. (.ai/API.md 121)
- *
- * 배치 편집(드래그)은 **같은 스텝 안에서만** 자리를 바꾼다 — 스텝을 넘는 이동은
- * 드롭 대상이 화면에 없어서 끌어서 할 수 없다. 그래서 `⋯` 메뉴에서 목적지를 고른다.
- *
- * ⚠️ **옮기면 이슈 연결이 끊긴다** (BLK-014 · INV-06) — 블록과 이슈는 같은 스텝이어야 한다.
- * ⚠️ 출발 · 도착 **양쪽 스텝의 EDITOR** 여야 한다 — 편집 권한이 없는 스텝은 고를 수 없게 막는다.
- * ⚠️ 낙관적 락 — 409 면 덮어쓸지 다시 불러올지 묻는다.
- */
+// 블록을 다른 스텝으로 옮기는 모달. (.ai/API.md 121)
+// 배치 편집(드래그)은 같은 스텝 안에서만 자리를 바꾼다 — 스텝을 넘는 이동은
+// 드롭 대상이 화면에 없어서 끌어서 할 수 없다. 그래서 ⋯ 메뉴에서 목적지를 고른다.
+// 옮기면 이슈 연결이 끊긴다 (BLK-014·INV-06) — 블록과 이슈는 같은 스텝이어야 한다.
+// 출발·도착 양쪽 스텝의 EDITOR 여야 한다 — 편집 권한이 없는 스텝은 고를 수 없게 막는다.
+// 낙관적 락 — 409 면 덮어쓸지 다시 불러올지 묻는다.
 export default function BlockMoveStepModal({
   projectId,
   currentStepId,
@@ -42,7 +40,7 @@ export default function BlockMoveStepModal({
   onClose,
   onMoved,
 }: BlockMoveStepModalProps) {
-  /** `null` = 아직 조회 중 */
+  /** null = 아직 조회 중 */
   const [steps, setSteps] = useState<ProjectStep[] | null>(null);
   const [haveStepsFailed, setHaveStepsFailed] = useState(false);
   const [targetStepId, setTargetStepId] = useState('');
@@ -50,7 +48,7 @@ export default function BlockMoveStepModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConflicting, setIsConflicting] = useState(false);
 
-  /** 이동에 필요한 `version` 이 조회 응답에 없는 경우 (`types.ts` 참고) */
+  /** 이동에 필요한 version 이 조회 응답에 없는 경우 (types.ts 참고) */
   const hasNoVersion = block.version === undefined;
 
   useEffect(() => {
@@ -68,24 +66,19 @@ export default function BlockMoveStepModal({
     return () => controller.abort();
   }, [projectId]);
 
-  // 자기 자신은 목적지가 될 수 없다. 나머지는 권한이 없어도 **보여주되 못 고르게** 한다 —
+  // 자기 자신은 목적지가 될 수 없다. 나머지는 권한이 없어도 보여주되 못 고르게 한다 —
   // 목록에서 아예 지우면 "왜 저 스텝이 안 보이지" 로 읽힌다
   const candidates =
     steps?.filter((step) => String(step.stepId) !== currentStepId) ?? [];
 
-  /**
-   * 실제로 고를 수 있는 후보가 하나라도 있는지.
-   *
-   * 후보는 있는데 전부 권한이 없으면 `<option>` 이 모두 `disabled` 라
-   * **아무것도 못 고르는데 이유도 안 보인다.** 그 경우를 따로 알린다.
-   */
+  // 실제로 고를 수 있는 후보가 하나라도 있는지.
+  // 후보는 있는데 전부 권한이 없으면 <option> 이 모두 disabled 라
+  // 아무것도 못 고르는데 이유도 안 보인다. 그 경우를 따로 알린다.
   const hasSelectableCandidate = candidates.some(
     (step) => step.myPermission === 'EDITOR',
   );
 
-  const isLoading = steps === null;
-  const canSubmit =
-    !isLoading && !isSubmitting && !hasNoVersion && targetStepId !== '';
+  const canSubmit = !isSubmitting && !hasNoVersion && targetStepId !== '';
 
   async function move(overwrite: boolean) {
     if (block.version === undefined) {
@@ -131,6 +124,23 @@ export default function BlockMoveStepModal({
     if (!isSubmitting) onClose();
   }
 
+  /** 아직 스텝 목록을 기다리는 중인지 — 조회에 실패하면 steps 가 빈 배열로 채워진다 */
+  const isPending = steps === null;
+  const isSlow = useSlowLoading(isPending);
+
+  // 값이 다 온 뒤에 한 번에 펼친다 — 스피너 자리(py-8)가 선택 상자로 바뀌면서
+  // 창이 그만큼 줄어든다. 권한 모달들과 같은 규칙이다.
+  if (isPending) {
+    if (!isSlow) return null;
+
+    return (
+      <ModalLoadingFallback
+        title="다른 스텝으로 이동"
+        className="w-full max-w-[420px] rounded-base p-6 shadow-2xl"
+      />
+    );
+  }
+
   return (
     <>
       <PanelModal title="다른 스텝으로 이동" onClose={requestClose}>
@@ -144,9 +154,7 @@ export default function BlockMoveStepModal({
             </span>
           </div>
 
-          {isLoading ? (
-            <LoadingSpinner label="스텝 목록 불러오는 중" className="py-8" />
-          ) : haveStepsFailed ? (
+          {haveStepsFailed ? (
             <p className="rounded-lg bg-red-bg-soft px-3 py-2.5 text-detail break-keep text-text-danger">
               스텝 목록을 불러오지 못했습니다. 닫고 다시 시도해주세요.
             </p>
@@ -253,7 +261,7 @@ export default function BlockMoveStepModal({
       </PanelModal>
 
       {isConflicting && (
-        // 취소(= Esc · 배경 클릭)를 다시 불러오기에 둔다 — 잘못 눌러도 남의 값이 지워지지 않는다
+        // 취소(= Esc·배경 클릭)를 다시 불러오기에 둔다 — 잘못 눌러도 남의 값이 지워지지 않는다
         <AlertDialogTwoButton
           icon={DialogIcons.warning}
           title="다른 사람이 먼저 저장했습니다"

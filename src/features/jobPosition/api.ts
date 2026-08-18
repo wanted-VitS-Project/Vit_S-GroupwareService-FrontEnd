@@ -8,7 +8,7 @@ import type {
   UpdateJobPositionRequest,
 } from './types';
 
-/** 페이징 없음. `{ content: [...] }` 래퍼를 벗겨 배열만 반환한다 */
+/** 페이징 없음. { content: [...] } 래퍼를 벗겨 배열만 반환한다 */
 export function getJobPositions(signal?: AbortSignal) {
   return api
     .get<{ content: JobPosition[] }>(ENDPOINTS.jobPositions.root, signal)
@@ -31,8 +31,8 @@ export function updateJobPosition(
 }
 
 /**
- * 그 직급인 사원 목록 (ADMIN, .ai/API.md 90).
- * **0명이어도 404 가 아니라 빈 배열**이라 목록 유무로 분기하면 된다.
+ * 그 직급인 사원 목록 (ADMIN).
+ * 0명이어도 404 가 아니라 빈 배열이라 목록 유무로 분기하면 된다.
  */
 export function getJobPositionEmployees(
   jobPositionId: number,
@@ -44,7 +44,7 @@ export function getJobPositionEmployees(
   );
 }
 
-/** 하드 삭제. 사용 인원이 있으면 409 `POS_IN_USE` */
+/** 하드 삭제. 사용 인원이 있으면 409 POS_IN_USE */
 export function deleteJobPosition(jobPositionId: number) {
   return api.delete<void>(ENDPOINTS.jobPositions.detail(jobPositionId));
 }

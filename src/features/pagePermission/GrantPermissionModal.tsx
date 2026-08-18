@@ -12,7 +12,7 @@ import { grantSummary, PERMISSION_LABEL } from './display';
 import { PAGE_CODES } from './errorCodes';
 import type { GrantablePermission, PageAccessor, PageSummary } from './types';
 
-/** 고른 사람 한 줄 — 검색 결과에는 부서 · 직급이 한 문자열로 온다 */
+/** 고른 사람 한 줄. 검색 결과에는 부서 · 직급이 한 문자열로 온다 */
 interface PickedEmployee {
   userId: string;
   name: string;
@@ -22,9 +22,9 @@ interface PickedEmployee {
 
 interface GrantPermissionModalProps {
   page: PageSummary;
-  /** 있으면 **등급 변경** 모드 — 사람은 고정이고 등급만 고른다 */
+  /** 있으면 등급 변경 모드. 사람은 고정이고 등급만 고른다 */
   target?: PageAccessor;
-  /** 이미 접근 가능한 사람 — 검색 목록에서 `이미 추가됨` 으로 막는다 */
+  /** 이미 접근 가능한 사람. 검색 목록에서 이미 추가됨 으로 막는다 */
   accessorIds?: string[];
   onClose: () => void;
   onGranted: (summary: string) => void;
@@ -33,10 +33,8 @@ interface GrantPermissionModalProps {
 const OPTIONS: GrantablePermission[] = ['VIEWER', 'EDITOR'];
 
 /**
- * 페이지 권한 부여 · 등급 변경 모달. (.ai/API.md 101)
- *
- * 부여와 변경이 같은 API 라 화면도 하나로 둔다 — `target` 유무로만 갈린다.
- * 요청에 없는 사람은 건드리지 않으므로(전체 교체가 아니다) 고른 사람만 보내면 된다.
+ * 페이지 권한 부여 · 등급 변경 모달. 두 동작이 같은 API 라 target 유무로만 갈린다.
+ * 전체 교체가 아니라 고른 사람만 보내면 된다.
  */
 export default function GrantPermissionModal({
   page,
@@ -66,7 +64,7 @@ export default function GrantPermissionModal({
   const [isConfirming, setIsConfirming] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  /** 저장 중에는 닫지 않는다 — 결과를 못 보고 닫히면 뭐가 반영됐는지 알 수 없다 */
+  /** 저장 중에는 닫지 않는다. 결과를 못 보고 닫히면 뭐가 반영됐는지 알 수 없다 */
   function requestClose() {
     if (!isSubmitting) onClose();
   }
@@ -81,7 +79,7 @@ export default function GrantPermissionModal({
 
   const canSubmit = picked.length > 0 && !isSubmitting;
 
-  /** 저장 전에 한 번 더 묻는다 — 권한은 눌러서 바로 바뀌면 안 되는 값이다 */
+  /** 저장 전에 한 번 더 묻는다. 권한은 눌러서 바로 바뀌면 안 되는 값이다 */
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (!canSubmit) return;
@@ -105,25 +103,25 @@ export default function GrantPermissionModal({
     } catch (caught) {
       const code = caught instanceof ApiError ? caught.code : undefined;
 
-      // 없는 사번이 섞이면 전체가 거부된다 — 누가 문제인지는 message 에만 있다
+      // 없는 사번이 섞이면 전체가 거부된다. 누가 문제인지는 message 에만 있다
       setError(
         code === PAGE_CODES.notFound
           ? '페이지를 찾을 수 없습니다. 목록을 새로고침해주세요.'
           : messageOf(caught, '권한을 저장하지 못했습니다.'),
       );
-      // 확인 창을 닫아 폼으로 돌려보낸다 — 고칠 곳이 폼에 있다
+      // 확인 창을 닫아 폼으로 돌려보낸다. 고칠 곳이 폼에 있다
       setIsConfirming(false);
       setIsSubmitting(false);
     }
   }
 
-  /** 확인 문구 — 몇 명에게 어떤 등급인지 한 줄로 보여준다 */
+  /** 확인 문구. 몇 명에게 어떤 등급인지 한 줄로 보여준다 */
   const confirmTarget =
     picked.length === 1
       ? `${picked[0].name} 님에게 ${PERMISSION_LABEL[picked[0].permission]}`
       : `${picked.length}명에게`;
 
-  // 확인 창은 폼 위에 덮어 띄운다 — 뒤 화면이 그대로 보여야 뭘 저장하는지 확인된다
+  // 확인 창은 폼 위에 덮어 띄운다. 뒤 화면이 보여야 뭘 저장하는지 확인된다
   if (isConfirming) {
     return (
       <AlertDialogTwoButton
@@ -202,13 +200,16 @@ export default function GrantPermissionModal({
                       </span>
                     </span>
                     {item.belongs && (
-                      <span className="mt-0.5 block truncate text-caption text-text-secondary">
+                      <span
+                        title={item.belongs}
+                        className="mt-0.5 block truncate text-caption text-text-secondary"
+                      >
                         {item.belongs}
                       </span>
                     )}
                   </span>
 
-                  {/* 3지선다 중 X(NONE)는 부여가 아니라 회수라 여기 없다 */}
+                  {/* 3지선다 중 NONE 은 부여가 아니라 회수라 여기 없다 */}
                   <span className="flex shrink-0 items-center gap-1">
                     {OPTIONS.map((option) => (
                       <button

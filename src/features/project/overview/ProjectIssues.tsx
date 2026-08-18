@@ -1,5 +1,6 @@
 'use client';
 
+// CSR - 프로젝트 전체 이슈: 스테이지 > 스텝 아코디언으로 훑어보는 조회 전용 화면.
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -39,16 +40,12 @@ const IssueDetailModal = dynamic(loadIssueDetailModal, {
   ),
 });
 
-/**
- * 프로젝트 전체 이슈 — 스테이지 > 스텝 아코디언. (명세 108번)
- *
- * 스텝 이슈 보드(`IssueBoard`)와 **역할이 다르다.**
- * 보드는 일을 옮기는 곳이고 여기는 **훑어보는 곳**이다 — 그래서 이 화면은 전부 조회 전용이다.
- * 상태를 바꾸려면 스텝 이슈 화면으로 넘어간다 (스텝 머리의 `이슈 열기`).
- *
- * ⚠️ 서버가 페이징 · 필터를 하지 않는다. 프로젝트의 모든 이슈가 한 번에 오므로
- *    기본 펼침은 **이슈가 있는 스텝**으로만 제한한다 (빈 스텝까지 펼치면 화면이 길어지기만 한다).
- */
+// 프로젝트 전체 이슈 — 스테이지 > 스텝 아코디언. (명세 108번)
+// 스텝 이슈 보드(IssueBoard)와 역할이 다르다.
+// 보드는 일을 옮기는 곳이고 여기는 훑어보는 곳이다 — 그래서 이 화면은 전부 조회 전용이다.
+// 상태를 바꾸려면 스텝 이슈 화면으로 넘어간다 (스텝 머리의 이슈 열기).
+// 서버가 페이징·필터를 하지 않는다. 프로젝트의 모든 이슈가 한 번에 오므로
+// 기본 펼침은 이슈가 있는 스텝으로만 제한한다 (빈 스텝까지 펼치면 화면이 길어지기만 한다).
 export default function ProjectIssues() {
   const params = useParams<{ id: string }>();
   const projectId = params.id;
@@ -66,8 +63,8 @@ export default function ProjectIssues() {
   const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);
 
   /*
-   * 108번 응답에 `stageId` 가 없어 따로 읽는다. 실패해도 목록은 그대로 보인다.
-   * 다만 **판정이 끝나기 전에는 그리지 않는다** (`isSettled`) — 색인 없이 먼저 그리면
+   * 108번 응답에 stageId 가 없어 따로 읽는다. 실패해도 목록은 그대로 보인다.
+   * 다만 판정이 끝나기 전에는 그리지 않는다 (isSettled) — 색인 없이 먼저 그리면
    * 스텝이 한 덩어리로 늘어섰다가 색인이 도착하는 순간 스테이지별로 다시 묶여
    * 제목이 끼어들고 높이가 바뀐다.
    */
@@ -98,14 +95,14 @@ export default function ProjectIssues() {
   /*
    * 데이터가 도착하면 이슈가 있는 스텝을 펼친다.
    * (effect 가 아니라 렌더 중 상태 조정 — https://react.dev/reference/react/useState)
-   * 프로젝트가 바뀌면 다시 잡아야 하므로 동기화 기준을 `projectId` 로 둔다.
+   * 프로젝트가 바뀌면 다시 잡아야 하므로 동기화 기준을 projectId 로 둔다.
    */
   const [syncedProjectId, setSyncedProjectId] = useState<string | null>(null);
   if (data && syncedProjectId !== projectId) {
     setSyncedProjectId(projectId);
     /*
-     * 열려 있던 상세를 닫는다. `IssueDetailModal` 은 `issueId` 만 받으므로,
-     * 그대로 두면 **이전 프로젝트의 이슈**가 새 프로젝트 화면 위에 다시 뜬다.
+     * 열려 있던 상세를 닫는다. IssueDetailModal 은 issueId 만 받으므로,
+     * 그대로 두면 이전 프로젝트의 이슈가 새 프로젝트 화면 위에 다시 뜬다.
      */
     setSelectedIssueId(null);
     setOpenStepIds(
@@ -118,9 +115,9 @@ export default function ProjectIssues() {
   }
 
   /*
-   * `StepAccordion` 은 `memo` 다 — 스텝 하나를 접었다고 나머지 스텝의 이슈 카드가
+   * StepAccordion 은 memo 다 — 스텝 하나를 접었다고 나머지 스텝의 이슈 카드가
    * 전부 다시 그려지면 이슈가 많은 프로젝트에서 눈에 띄게 멎는다.
-   * 그래서 콜백은 **대상 ID 를 인자로 받는 고정 함수**로 넘긴다 (`IssueCard` 와 같은 규칙).
+   * 그래서 콜백은 대상 ID 를 인자로 받는 고정 함수로 넘긴다 (IssueCard 와 같은 규칙).
    */
   const toggleStep = useCallback((stepId: number) => {
     setOpenStepIds((prev) => {
@@ -161,7 +158,7 @@ export default function ProjectIssues() {
     );
   }
 
-  // 스테이지 색인까지 기다렸다가 **묶인 모습으로 한 번에** 그린다
+  // 스테이지 색인까지 기다렸다가 묶인 모습으로 한 번에 그린다
   if (!data || !steps || !isStageSettled) return <ProjectIssuesSkeleton />;
 
   const { progress } = data;
@@ -188,7 +185,7 @@ export default function ProjectIssues() {
         <div className="flex items-center gap-2.5">
           <IssueProgressBar progress={progress} className="h-2 flex-1" />
           <span className="w-10 shrink-0 text-right text-label font-medium whitespace-nowrap text-text-primary-blue">
-            {/* 이슈가 없으면 `null` 이 온다 — 0% 로 그리면 '다 못 끝냈다' 로 읽힌다 */}
+            {/* 이슈가 없으면 null 이 온다 — 0% 로 그리면 '다 못 끝냈다' 로 읽힌다 */}
             {progress.progressRate === null ? '—' : `${progress.progressRate}%`}
           </span>
         </div>
@@ -248,8 +245,8 @@ export default function ProjectIssues() {
 
       {selectedIssueId !== null && (
         /*
-         * 조회 전용으로 연다 — 이 화면에는 수정 · 삭제 진입점이 없다.
-         * (`BlockIssuesPanel` 이 쓰는 방식과 같다)
+         * 조회 전용으로 연다 — 이 화면에는 수정·삭제 진입점이 없다.
+         * (BlockIssuesPanel 이 쓰는 방식과 같다)
          */
         <IssueDetailModal
           issueId={selectedIssueId}
@@ -263,13 +260,10 @@ export default function ProjectIssues() {
   );
 }
 
-/**
- * 스텝 하나 — 머리에 진척도, 펼치면 이슈 3열.
- *
- * `memo` 로 감싼다 — 다른 스텝을 접었다 펼 때마다 이 스텝의 카드까지 다시 그리면
- * 이슈가 많은 프로젝트에서 클릭이 무거워진다. 그래서 `onToggle` 은 **대상 ID 를 받는**
- * 고정 함수다 (스텝마다 새 화살표 함수를 넘기면 `memo` 가 무력해진다).
- */
+// 스텝 하나 — 머리에 진척도, 펼치면 이슈 3열.
+// memo 로 감싼다 — 다른 스텝을 접었다 펼 때마다 이 스텝의 카드까지 다시 그리면
+// 이슈가 많은 프로젝트에서 클릭이 무거워진다. 그래서 onToggle 은 대상 ID 를 받는
+// 고정 함수다 (스텝마다 새 화살표 함수를 넘기면 memo 가 무력해진다).
 const StepAccordion = memo(function StepAccordion({
   projectId,
   step,
@@ -284,8 +278,8 @@ const StepAccordion = memo(function StepAccordion({
   onOpenIssue: (issueId: number) => void;
 }) {
   /*
-   * 정렬은 서버가 하지 않는다 — 보드 첫 조회와 같은 규칙(마감일 순 · 미지정 마지막).
-   * 접혀 있을 때도 계산하지 않도록 `isOpen` 을 조건에 넣는다.
+   * 정렬은 서버가 하지 않는다 — 보드 첫 조회와 같은 규칙(마감일 순·미지정 마지막).
+   * 접혀 있을 때도 계산하지 않도록 isOpen 을 조건에 넣는다.
    */
   const issues = useMemo(
     () => (isOpen ? [...step.issues].sort(byDueDate) : []),
@@ -318,7 +312,7 @@ const StepAccordion = memo(function StepAccordion({
         <div className="hidden w-40 shrink-0 items-center gap-2 sm:flex">
           <IssueProgressBar progress={step} className="h-1.5 flex-1" />
           <span
-            /* `100%` 가 들어갈 만큼은 넓혀 둔다 — 좁으면 숫자와 `%` 가 두 줄로 갈린다 */
+            /* 100% 가 들어갈 만큼은 넓혀 둔다 — 좁으면 숫자와 % 가 두 줄로 갈린다 */
             className={`w-9 shrink-0 text-right text-detail font-medium whitespace-nowrap ${
               step.progressRate === null
                 ? 'text-text-muted'
@@ -345,10 +339,10 @@ const StepAccordion = memo(function StepAccordion({
           </p>
         ) : (
           /*
-           * 스텝 이슈 보드와 **같은 3열 칸반**으로 펼친다 — 두 화면에서 같은 이슈를
+           * 스텝 이슈 보드와 같은 3열 칸반으로 펼친다 — 두 화면에서 같은 이슈를
            * 다른 배열로 보면 어느 쪽이 정본인지 흐려진다.
-           * 다만 여기는 조회 전용이라 드래그 · 드롭 대상 강조는 없다.
-           * 좁은 화면에서 세로로 쌓이는 것까지 **같은 기준(`md`)** 으로 맞춘다.
+           * 다만 여기는 조회 전용이라 드래그·드롭 대상 강조는 없다.
+           * 좁은 화면에서 세로로 쌓이는 것까지 같은 기준(md) 으로 맞춘다.
            */
           <div className="grid grid-cols-1 items-start gap-3 border-t border-border-default bg-bg-surface/60 p-3 md:grid-cols-3">
             {ISSUE_STATUS_ORDER.map((status) => {
@@ -393,12 +387,9 @@ const StepAccordion = memo(function StepAccordion({
   );
 });
 
-/**
- * 이슈 한 건 — 조회 전용 카드. 누르면 상세 모달이 열린다.
- *
- * 상태 배지는 없다 — **어느 열에 있는지가 곧 상태**다 (보드의 `IssueCard` 와 같은 규칙).
- * `memo` 인 이유도 같다 — 스텝을 여닫을 때 다른 스텝의 카드까지 다시 그리지 않는다.
- */
+// 이슈 한 건 — 조회 전용 카드. 누르면 상세 모달이 열린다.
+// 상태 배지는 없다 — 어느 열에 있는지가 곧 상태다 (보드의 IssueCard 와 같은 규칙).
+// memo 인 이유도 같다 — 스텝을 여닫을 때 다른 스텝의 카드까지 다시 그리지 않는다.
 const IssueRow = memo(function IssueRow({
   issue,
   onOpen,
@@ -435,8 +426,8 @@ const IssueRow = memo(function IssueRow({
               key={assignee.userId}
               /*
                * 겹친 아바타라 문구 자리가 없다 — 흐리게 + tooltip 으로 알린다.
-               * 뒤쪽 아바타는 `decorative` 라 아바타 자체가 `aria-hidden` 이다.
-               * `title` 만으로는 접근성 이름이 되지 않으므로 감싼 쪽이 대신 읽힌다.
+               * 뒤쪽 아바타는 decorative 라 아바타 자체가 aria-hidden 이다.
+               * title 만으로는 접근성 이름이 되지 않으므로 감싼 쪽이 대신 읽힌다.
                */
               {...(index > 0
                 ? {

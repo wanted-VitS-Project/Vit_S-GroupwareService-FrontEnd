@@ -16,22 +16,18 @@ import { LazyFileViewerModal, preloadViewer } from './LazyFileViewer';
 import { cancelPreviewPrefetch, schedulePreviewPrefetch } from './previewCache';
 import type { AdminFile, FilePage, ViewerFile } from './types';
 
-/** 한 페이지 20행 — 명세 기본값이다 (최대 100) */
+/** 한 페이지 20행. 명세 기본값이다 */
 const PAGE_SIZE = 20;
 
 /**
- * 필터에 세울 프로젝트 선택지 상한.
- * 목록 API 가 페이징이라 한 번에 받을 수 있는 최대치(100)를 쓴다 —
- * ⚠️ 프로젝트가 100개를 넘으면 **뒤쪽 프로젝트는 선택지에 없다.** 그때는 검색어로 찾는다.
+ * 필터에 세울 프로젝트 선택지 상한. 목록 API 가 한 번에 주는 최대치다.
+ * 100개를 넘으면 뒤쪽 프로젝트는 선택지에 없어 검색어로 찾는다.
  */
 const PROJECT_OPTION_LIMIT = 100;
 
 /**
- * 확장자 필터 선택지.
- *
- * 목록이 페이지 단위라 **응답에서 뽑을 수 없다** (지금 페이지에 있는 확장자만 나온다).
- * 그래서 배지 색을 정해 둔 확장자와 같은 목록을 고정으로 세운다 —
- * 여기 없는 확장자는 파일명 검색으로 찾는다.
+ * 확장자 필터 선택지. 목록이 페이지 단위라 응답에서 뽑을 수 없다.
+ * 배지 색을 정해 둔 확장자와 같은 목록을 고정으로 세운다.
  */
 const EXTENSION_OPTIONS = [
   'pdf',
@@ -51,34 +47,26 @@ const EXTENSION_OPTIONS = [
 ];
 
 /**
- * 전사 파일 목록 — `전사 파일 관리 › 프로젝트 파일` 탭. (`.ai/API.md` FILE-Q-01 · ADMIN 전용)
- *
- * 문서 단위 **최신 완료 버전 1행**이라 버전 이력은 행을 열어야 보인다.
- * 내 파일(140번)과 달리 페이징이 있어 프로젝트별로 묶지 않고 **평면 표**로 둔다 —
- * 페이지 경계에서 묶음이 잘리면 같은 프로젝트가 두 번 나온 것처럼 보인다.
- *
- * ⛔ **조회 전용이다.** 이름 수정 · 삭제는 문서가 붙은 스텝 화면에서 한다.
+ * 전사 파일 목록 (ADMIN 전용). 문서 단위 최신 완료 버전 1행이다.
+ * 조회 전용이라 이름 수정 · 삭제는 문서가 붙은 스텝 화면에서 한다.
  */
 export default function AdminFileList({
   lockedProjectId,
   lockedStepId,
 }: {
   /**
-   * 탐색기가 골라 준 자리. 주면 **그 안만** 보여주고 요약 · 프로젝트 필터는 숨긴다 —
-   * 이미 경로 막대가 어디를 보고 있는지 말하고 있어, 같은 말을 두 번 할 이유가 없다.
+   * 탐색기가 골라 준 자리. 주면 그 안만 보여주고 요약 · 프로젝트 필터는 숨긴다.
+   * 경로 막대가 이미 어디를 보고 있는지 말한다.
    */
   lockedProjectId?: number;
   /**
-   * 스텝까지 들어간 자리. 주면 **스텝 전용 API**(§14.4)로 갈아탄다 —
-   * 예전엔 프로젝트 파일 500건을 받아 화면에서 걸러 그 뒤가 보이지 않았다.
-   *
-   * ⚠️ 그 API 에는 검색 · 확장자 필터가 없어 **필터 줄을 숨긴다.**
-   *    조건으로 찾을 때는 한 단계 위(프로젝트)에서 전사 목록(142번)으로 찾는다.
+   * 스텝까지 들어간 자리. 주면 스텝 전용 API 로 갈아탄다.
+   * 그 API 에는 검색 · 확장자 필터가 없어 필터 줄을 숨긴다.
    */
   lockedStepId?: number;
 } = {}) {
   const [keyword, setKeyword] = useState('');
-  /** 실제 요청에 쓰는 검색어 — 돋보기 버튼 · 엔터로만 반영한다 */
+  /** 실제 요청에 쓰는 검색어. 돋보기 버튼 · 엔터로만 반영한다 */
   const [search, setSearch] = useState('');
   /** 빈 문자열이면 전체 */
   const [projectId, setProjectId] = useState('');
@@ -87,16 +75,15 @@ export default function AdminFileList({
   const [reloadCount, setReloadCount] = useState(0);
 
   /**
-   * 어떤 요청의 결과인지 `key` 로 들고 있는다.
-   * 조건이 바뀌면 key 가 어긋나 자동으로 로딩 상태가 되므로,
-   * 효과 본문에서 상태를 되돌릴 필요가 없다 (`react-hooks/set-state-in-effect`).
+   * 어떤 요청의 결과인지 key 로 들고 있는다.
+   * 조건이 바뀌면 key 가 어긋나 자동으로 로딩 상태가 된다.
    */
   const [result, setResult] = useState<{
     key: string;
     page?: FilePage<AdminFile>;
     errorMessage?: string;
   } | null>(null);
-  /** 프로젝트 필터 선택지 + 전사 프로젝트 수 — 목록 조건과 무관하게 한 번만 받는다 */
+  /** 프로젝트 필터 선택지와 전사 프로젝트 수. 목록 조건과 무관하게 한 번만 받는다 */
   const [projects, setProjects] = useState<{
     options: { value: string; label: string }[];
     totalCount: number;
@@ -110,12 +97,12 @@ export default function AdminFileList({
     lockedProjectId ?? (projectId ? Number(projectId) : undefined);
   const isLocked = lockedProjectId !== undefined;
 
-  /** 스텝 안을 보는 중인지 — 데이터 출처와 필터 노출이 함께 갈린다 */
+  /** 스텝 안을 보는 중인지. 데이터 출처와 필터 노출이 함께 갈린다 */
   const isStepLocked = lockedStepId !== undefined;
   const hasFilter =
     !isStepLocked && (search !== '' || projectId !== '' || extension !== '');
   const requestKey = `${reloadCount} ${lockedStepId ?? ''} ${search} ${effectiveProjectId ?? ''} ${extension} ${page}`;
-  /** 지금 조건의 결과만 화면에 쓴다 — 이전 요청 결과는 로딩으로 본다 */
+  /** 지금 조건의 결과만 화면에 쓴다. 이전 요청 결과는 로딩으로 본다 */
   const current = result?.key === requestKey ? result : null;
   const filePage = current?.page ?? null;
   const files = filePage?.content ?? null;
@@ -125,8 +112,8 @@ export default function AdminFileList({
     const { signal } = controller;
 
     /*
-      스텝까지 들어갔으면 스텝 전용 API 를 쓴다 (§14.4) — 그 안의 파일 전부가 페이징으로 온다.
-      위 단계(프로젝트 · 스테이지)에서는 검색 · 필터가 되는 전사 목록(142번)을 그대로 쓴다.
+      스텝까지 들어갔으면 스텝 전용 API 를 쓴다.
+      위 단계에서는 검색 · 필터가 되는 전사 목록을 그대로 쓴다.
     */
     const request = isStepLocked
       ? getAdminStepFiles(lockedStepId, { page, size: PAGE_SIZE }, signal)
@@ -147,12 +134,12 @@ export default function AdminFileList({
         // 취소는 실패가 아니다
         if (signal.aborted) return;
         /**
-         * ⚠️ 403 은 **실패가 아니다.** 볼 권한이 없다는 뜻이라 `불러오지 못했습니다` 로
-         *    알리면 고장으로 읽혀 새로고침만 반복하게 된다. 할 일이 다르면 문구도 달라야 한다.
+         * 403 은 실패가 아니라 볼 권한이 없다는 뜻이다.
+         * 불러오지 못했습니다 로 알리면 고장으로 읽혀 새로고침만 반복하게 된다.
          */
         const status = caught instanceof ApiError ? caught.status : 0;
         const code = caught instanceof ApiError ? caught.code : undefined;
-        // 트리를 띄워 둔 사이 남이 스텝을 지운 경우다 — 스텝을 부른 요청에만 해당한다
+        // 트리를 띄워 둔 사이 남이 스텝을 지운 경우다
         const isStepGone =
           isStepLocked && (code === FILE_CODES.stepNotFound || status === 404);
 
@@ -179,7 +166,7 @@ export default function AdminFileList({
   ]);
 
   useEffect(() => {
-    // 선택지 · 요약 카드 둘 다 잠긴 자리에서는 그리지 않는다 — 부를 이유가 없다
+    // 선택지 · 요약 카드 둘 다 잠긴 자리에서는 부를 이유가 없다
     if (isLocked) return;
 
     const controller = new AbortController();
@@ -194,13 +181,13 @@ export default function AdminFileList({
           totalCount: data.totalElements,
         }),
       )
-      // 선택지를 못 받아도 목록은 그대로 쓴다 — 필터 하나 때문에 화면을 막지 않는다
+      // 선택지를 못 받아도 목록은 그대로 쓴다. 필터 하나 때문에 화면을 막지 않는다
       .catch(() => {});
 
     return () => controller.abort();
   }, [isLocked]);
 
-  /** 조건이 바뀌면 첫 페이지로 돌아간다 — 3페이지에서 거르면 빈 화면이 나온다 */
+  /** 조건이 바뀌면 첫 페이지로 돌아간다. 3페이지에서 거르면 빈 화면이 나온다 */
   function applyFilter(change: () => void) {
     change();
     setPage(0);
@@ -217,7 +204,7 @@ export default function AdminFileList({
 
   function download(file: AdminFile) {
     downloadVersion(file.latestVersionId)
-      // 성공하면 지난 실패 문구를 지운다 — 남겨 두면 방금 성공한 동작을 실패로 오해한다
+      // 성공하면 지난 실패 문구를 지운다. 남겨 두면 방금 성공한 동작을 실패로 오해한다
       .then(() => setErrorMessage(''))
       .catch((caught) =>
         setErrorMessage(messageOf(caught, '다운로드에 실패했습니다.')),
@@ -227,8 +214,8 @@ export default function AdminFileList({
   return (
     <div onPointerEnter={preloadViewer}>
       {/*
-        요약은 **응답으로 확인되는 두 가지만** 둔다.
-        총 용량 · 기간별 업로드 수는 집계 API 가 없어 지금 페이지 20행으로는 셀 수 없다.
+        요약은 응답으로 확인되는 두 가지만 둔다.
+        총 용량 · 기간별 업로드 수는 집계 API 가 없어 셀 수 없다.
       */}
       {!isLocked && (
         <section
@@ -252,7 +239,7 @@ export default function AdminFileList({
       )}
 
       {/*
-        ⚠️ 스텝 안에서는 필터 줄을 숨긴다 — 스텝 파일 API(§14.4)에 검색 · 확장자 조건이 없다.
+        스텝 안에서는 필터 줄을 숨긴다. 스텝 파일 API 에 검색 · 확장자 조건이 없다.
         입력만 남겨 두면 쳐도 아무 일이 없어 고장으로 읽힌다.
       */}
       {!isStepLocked && (
@@ -325,14 +312,13 @@ export default function AdminFileList({
 
       <DataTable
         caption="전사 파일 목록"
-        // 탐색기에서 자리를 옮길 때마다 막대가 번쩍이지 않게 한다
-        showSkeleton={!isLocked}
+        loadingLabel="파일을 불러오는 중"
         dense
         rows={files}
         rowKey={(file) => file.fileId}
         errorMessage={current?.errorMessage}
         onRetry={() => setReloadCount((count) => count + 1)}
-        // 행을 누르면 뷰어가 열린다 (액션 칸만 예외) — 사내 문서함 탭과 같은 규칙이다
+        // 행을 누르면 뷰어가 열린다 (액션 칸만 예외)
         onRowClick={(file) => viewerModal.open(toViewerFile(file))}
         emptyState={
           <>
@@ -341,7 +327,7 @@ export default function AdminFileList({
             </p>
             <p className="text-label break-keep text-text-secondary">
               {hasFilter
-                ? '검색어나 필터를 바꾸세요'
+                ? '검색어나 필터를 바꿔주세요'
                 : isStepLocked
                   ? '이 스텝의 문서 블록에 파일을 올리면 여기에 모입니다'
                   : '프로젝트 스텝에 문서를 올리면 여기에 모입니다'}
@@ -463,23 +449,19 @@ export default function AdminFileList({
         ]}
       />
 
-      {/* 받아오는 동안에도 같은 높이를 잡아 둔다 — 결과가 올 때 아래가 밀리지 않게 */}
+      {/* 받아오는 동안에도 같은 높이를 잡아 둔다. 결과가 올 때 아래가 밀리지 않게 */}
       {!filePage && (
         <div className="mt-3 overflow-hidden rounded-base border border-border-default bg-bg-card">
           <PaginationPlaceholder />
         </div>
       )}
 
-      {/* 표 바깥에 둔다 — 실패 · 빈 상태에서는 넘길 페이지가 없다 */}
+      {/* 표 바깥에 둔다. 실패 · 빈 상태에서는 넘길 페이지가 없다 */}
       {filePage && filePage.totalElements > 0 && (
         <div className="mt-3 overflow-hidden rounded-base border border-border-default bg-bg-card">
           <Pagination
             page={filePage.page}
             totalPages={filePage.totalPages}
-            totalElements={filePage.totalElements}
-            unit="개"
-            // 위 요약 카드에 같은 수가 이미 있다
-            showTotal={false}
             onChange={setPage}
           />
         </div>
@@ -497,8 +479,7 @@ export default function AdminFileList({
 
 /**
  * 뷰어가 받는 모양으로 맞춘다.
- * 업로더 이름이 없을 수 있어(시스템 계정) 빈 문자열로 채운다 —
- * 뷰어는 버전 이력(41번)을 받으면 그 값으로 덮어쓴다.
+ * 업로더 이름이 없을 수 있어 빈 문자열로 채우고 뷰어가 이력으로 덮어쓴다.
  */
 function toViewerFile(file: AdminFile): ViewerFile {
   return { ...file, uploaderName: file.uploaderName ?? '' };
@@ -510,8 +491,8 @@ function FileNameCell({ file }: { file: AdminFile }) {
   return (
     <div
       /*
-        미리보기 fetch 는 서버가 원본을 잘라 주느라 느리다. 행에 머무는 동안
-        미리 시작해 두면 클릭이 그 요청을 이어받는다.
+        미리보기 fetch 는 서버가 원본을 잘라 주느라 느리다.
+        행에 머무는 동안 미리 시작해 두면 클릭이 그 요청을 이어받는다.
       */
       onPointerEnter={
         file.previewable
@@ -545,8 +526,8 @@ function FileNameCell({ file }: { file: AdminFile }) {
 }
 
 /**
- * 수치 한 칸. **`ProjectSummaryCards` 와 같은 모양**이다 (높이 · 아이콘 자리 · 글자 크기).
- * 화면이 달라도 같은 성격의 카드가 다르게 보이면 다른 지표로 읽힌다.
+ * 수치 한 칸. 프로젝트 요약 카드와 같은 모양이다.
+ * 같은 성격의 카드가 다르게 보이면 다른 지표로 읽힌다.
  */
 function SummaryCard({
   label,
@@ -560,7 +541,7 @@ function SummaryCard({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="flex h-24 items-center gap-4 rounded-base border border-border-default bg-bg-card px-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+    <div className="flex h-24 items-center gap-4 rounded-base border border-border-default bg-bg-card px-5 shadow-sm">
       <span
         aria-hidden
         className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${iconStyle}`}
@@ -570,7 +551,7 @@ function SummaryCard({
       <div className="min-w-0">
         <p className="truncate text-detail text-text-secondary">{label}</p>
         <p className="mt-0.5 truncate text-logo leading-8 font-semibold text-text-primary">
-          {/* 아직 세는 중이면 자리만 잡는다 — 0 을 먼저 보이면 잘못된 값을 읽힌다 */}
+          {/* 아직 세는 중이면 자리만 잡는다. 0 을 먼저 보이면 잘못된 값을 읽힌다 */}
           {value === null ? '–' : value.toLocaleString('ko-KR')}
           <span className="ml-1 text-detail font-medium text-text-secondary">
             개
@@ -581,7 +562,7 @@ function SummaryCard({
   );
 }
 
-/** 요약 카드용 폴더 그림 (`ProjectSummaryCards` 와 같은 벡터) */
+/** 요약 카드용 폴더 그림 */
 function FolderIcon() {
   return (
     <svg
@@ -614,6 +595,7 @@ function FilterSelect({
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
 }) {
+  /* 폭을 고정한다. 선택지가 늦게 오면 칸이 넓어졌다 좁아져 필터바가 흔들린다 */
   return (
     <div className="shrink-0">
       <label htmlFor={id} className="sr-only">
@@ -623,7 +605,7 @@ function FilterSelect({
         id={id}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="cursor-pointer rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-label text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+        className="w-36 shrink-0 cursor-pointer rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-label text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary sm:w-40"
       >
         <option value="">{allLabel}</option>
         {options.map((option) => (
@@ -659,10 +641,10 @@ function IconButton({
   );
 }
 
-/** 아이콘 라이브러리 도입 전까지 인라인 SVG 로 둔다 (`MyFileList` 와 같은 방침) */
+/** 아이콘 라이브러리 도입 전까지 인라인 SVG 로 둔다 */
 function IconBase({
   children,
-  /** 요약 카드 아이콘만 한 단계 크다 (`ProjectSummaryCards` 와 같은 20px) */
+  /** 요약 카드 아이콘만 한 단계 크다 */
   className = 'size-4',
 }: {
   children: React.ReactNode;

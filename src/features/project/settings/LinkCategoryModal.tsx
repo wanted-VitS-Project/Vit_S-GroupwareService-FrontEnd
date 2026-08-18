@@ -20,13 +20,10 @@ interface LinkCategoryModalProps {
   onLinked: () => void;
 }
 
-/**
- * 사업 카테고리 연결 모달. (.ai/API.md 132)
- *
- * ⚠️ **이미 연결된 것이 하나라도 섞이면 요청 전체가 409** 다 — 그래서 후보에서 미리 뺀다.
- *    그래도 그 사이 남이 붙일 수 있어 409 를 받으면 목록을 다시 읽도록 안내한다.
- * 🗑️ 마스터가 삭제된 카테고리는 연결할 수 없다 (404) — 후보에 넣지 않는다.
- */
+// 사업 카테고리 연결 모달. (.ai/API.md 132)
+// 이미 연결된 것이 하나라도 섞이면 요청 전체가 409 다 — 그래서 후보에서 미리 뺀다.
+// 그래도 그 사이 남이 붙일 수 있어 409 를 받으면 목록을 다시 읽도록 안내한다.
+// 🗑️ 마스터가 삭제된 카테고리는 연결할 수 없다 (404) — 후보에 넣지 않는다.
 export default function LinkCategoryModal({
   projectId,
   linked,
@@ -45,7 +42,7 @@ export default function LinkCategoryModal({
     const controller = new AbortController();
     const { signal } = controller;
 
-    // 삭제분(`includeDeleted`)은 애초에 요청하지 않는다 — 연결하면 404 다
+    // 삭제분(includeDeleted)은 애초에 요청하지 않는다 — 연결하면 404 다
     getCategories({}, signal)
       .then(setCandidates)
       .catch(() => {

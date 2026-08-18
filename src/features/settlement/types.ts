@@ -1,11 +1,9 @@
 /**
- * 정산 도메인 타입. (.ai/API.md 85 · 86 · 정산 도메인 공통)
- *
- * 정산 블록 하나(`settleId`)에 정산 항목 **한 벌**이 붙는다.
- * 타입(`INCOME` · `OUTCOME`)은 요청마다 쿼리로 보내야 한다.
+ * 정산 도메인 타입 (.ai/API.md 85 · 86).
+ * 정산 블록 하나에 정산 항목 한 벌이 붙고 타입은 요청마다 쿼리로 보낸다.
  */
 
-/** 우리 회사 기준 — 받는 돈인지 주는 돈인지 */
+/** 우리 회사 기준으로 받는 돈인지 주는 돈인지 */
 export type SettlementType = 'INCOME' | 'OUTCOME';
 
 export const SETTLEMENT_TYPE_LABELS: Record<SettlementType, string> = {
@@ -13,12 +11,7 @@ export const SETTLEMENT_TYPE_LABELS: Record<SettlementType, string> = {
   OUTCOME: '출금',
 };
 
-/**
- * 정산 상태.
- *
- * ❗ 명세 본문은 `PENDGING` 으로 적혀 있지만 응답 예시는 `PENDING` 이다 — **예시를 따랐다.**
- * 실제 값이 다르면 라벨이 비므로 화면에서 바로 드러난다.
- */
+/** 정산 상태 */
 export type SettlementStatus = 'PENDING' | 'WAITING' | 'PARTIAL' | 'COMPLETED';
 
 export const SETTLEMENT_STATUS_LABELS: Record<SettlementStatus, string> = {
@@ -30,31 +23,21 @@ export const SETTLEMENT_STATUS_LABELS: Record<SettlementStatus, string> = {
 
 /**
  * 수정 화면을 열 때 받는 값 (.ai/API.md 85).
- *
- * ⚠️ **저장된 현재 값이 아니다.** 추천값과 원본 계좌번호뿐이라,
- * 이미 작성된 항목의 회차 · 금액은 블록 목록의 `detail` 에서 읽어야 한다.
+ * 저장된 현재 값이 아니라 추천값과 원본 계좌번호뿐이다.
  */
 export interface SettlementDraft {
   settleId: number;
-  /** 프로젝트 내 정산 블록 **개수** 기준 추천 회차 — 입력값이 아니라 안내다 */
+  /** 정산 블록 개수 기준 추천 회차. 입력값이 아니라 안내다 */
   recommendRoundNo: number | null;
-  /**
-   * 프로젝트 내 다른 정산 블록의 총 예정 금액.
-   *
-   * ⚠️ **첫 블록이면 `null` 이다** (기준 삼을 블록이 없다). 실제 응답에서 확인했다.
-   * ⚠️ 이름은 '추천'이지만 **맞춰야 하는 값**에 가깝다 — 다른 블록과 어긋나면 저장이 409
-   * (`SETL-008`)로 막힌다.
-   */
+  /** 다른 정산 블록의 총 예정 금액. 어긋나면 저장이 막히므로 맞춰야 한다 */
   recommendTotalAmount: number | null;
-  /** 마스킹 없는 계좌번호. `OUTCOME` 이 아니면 null */
+  /** 마스킹 없는 계좌번호. 출금이 아니면 null */
   originalAccountNumber: string | null;
 }
 
 /**
  * 정산 항목의 값 자체. 요청 · 응답이 함께 쓰는 부분이다.
- *
- * 요청에만 있는 것(`version` · `overwrite`)과 응답에만 있는 것(실제 입출금 · 상태)을
- * 이 위에 각각 얹는다 — 한 덩어리로 묶으면 응답 타입에 `overwrite` 가 새어 들어간다.
+ * 요청 전용 · 응답 전용 필드는 각각 이 위에 얹는다.
  */
 export interface SettlementFields {
   roundNo: number;
@@ -64,103 +47,68 @@ export interface SettlementFields {
   plannedAmount: number;
   /** 회차별 정산 예정 세금 금액 */
   plannedTaxAmount: number;
-  /** yyyy-MM-dd */
+  /** 입출금 기한. yyyy-MM-dd */
   plannedDate: string;
-  /**
-   * 거래처명 — 돈을 **보내는 쪽**의 이름이다.
-   * `INCOME` 은 상대 클라이언트(받는 건 우리), `OUTCOME` 은 **우리 회사**(보내는 게 우리).
-   *
-   * ⚠️ 계좌 3종(`bankName` · `accountNumber` · `accountHolder`)은 반대로 **받는 쪽**,
-   * 즉 외주 업체 것이다 — 둘을 헷갈리면 출금 정보가 뒤집힌다.
-   */
+  /** 세금계산서 기한. 면세처럼 계산서를 받지 않는 회차면 null 로 보낸다 */
+  taxInvoiceDueDate: string | null;
+  /** 돈을 보내는 쪽의 이름. 계좌 정보는 반대로 받는 쪽 것이다 */
   traderName: string;
   bankName?: string;
-  /** ⚠️ 하이픈 · 공백 없이 보낸다 */
+  /** 하이픈 · 공백 없이 보낸다 */
   accountNumber?: string;
   accountHolder?: string;
 }
 
 /**
  * 정산 항목 작성 · 수정 요청 (.ai/API.md 86).
- * 계좌 3종은 `OUTCOME` 일 때만 보내며, 그때는 **셋 다 필수**다.
- *
- * ⚠️ **낙관적 락** (2026-08-12 신설) — `version` 필수. 없으면 400
- *    `SETTLEMENT_VERSION_REQUIRED`, 늦으면 409 `SETTLEMENT_VERSION_CONFLICT` 다.
+ * 계좌 정보는 출금일 때만 보내며 그때는 전부 필수이고 version 도 필수다.
  */
 export interface SaveSettlementRequest extends SettlementFields {
-  /** 블록 목록의 `detail.version` 그대로 */
+  /** 블록 목록의 detail.version 을 그대로 넣는다 */
   version: number;
-  /** `true` 면 충돌을 무시하고 덮어쓴다 */
+  /** true 면 충돌을 무시하고 덮어쓴다 */
   overwrite?: boolean;
 }
 
 /**
  * 정산 항목 (.ai/API.md 86 응답).
- *
- * ⚠️ `accountNumber` 는 **마스킹된 값**(`100******444`)이다.
- * 폼에 채울 원본은 85번의 `originalAccountNumber` 에서 온다.
+ * 계좌번호는 마스킹된 값이라 폼에 채울 원본은 따로 받는다.
  */
 export interface SettlementItem extends SettlementFields {
   settleId: number;
-  /**
-   * 저장 후의 새 버전 (2026-08-12 신설).
-   *
-   * ⚠️ 화면에 꽂지 않으면 **연달아 두 번 저장할 때 두 번째가 409** 다 —
-   *    블록 목록을 다시 읽지 않으므로 `detail.version` 은 옛 값에 머문다.
-   * ⚠️ 선택으로 둔다 — 블록 `detail` 에서 읽어낸 항목에는 없을 수 있다.
-   */
+  /** 저장 후의 새 버전. 화면에 꽂지 않으면 다음 저장이 충돌한다 */
   version?: number;
-  /** 재무팀이 나중에 채운다. 작성 직후에는 null — 화면은 `-` 로 그린다 */
+  /** 재무팀이 나중에 채운다. 작성 직후에는 null 이다 */
   actualAmount: number | null;
   actualDate: string | null;
   status: SettlementStatus;
-  /**
-   * 금액 기준 진행률. 작성 직후 `0.0`.
-   *
-   * ⚠️ **비율(0~1)이다** — 전액 정산이 `1.0` 이다. 화면에 쓸 때 100 을 곱한다.
-   */
+  /** 금액 기준 진행률. 0~1 비율이라 화면에 쓸 때 100 을 곱한다 */
   paidAmountRatio: number;
   createdAt: string;
 }
 
 /**
- * 블록 목록(10번)의 `detail` 에서 읽어낸 정산 블록 정보.
- *
- * 저장된 값을 주는 조회 API 가 따로 없어 요약 카드는 **이 `detail` 로만** 그린다.
- * 작성 전에도 `detail` 자체는 온다 — 항목 필드가 전부 `null` 이고 `status` · `createdAt` 만 찬다.
+ * 블록 목록의 detail 에서 읽어낸 정산 블록 정보.
+ * 저장된 값을 주는 조회 API 가 없어 요약 카드는 이 값으로만 그린다.
  */
 export interface SettlementBlockDetail {
   settleId: number;
-  /** 작성 전에는 `null` — 수정 폼에서 입금 · 출금을 고르면 정해진다 */
+  /** 작성 전에는 null 이며 수정 폼에서 고르면 정해진다 */
   type: SettlementType | null;
-  /** 작성 전에도 온다 (`PENDING`) */
+  /** 작성 전에도 온다 */
   status: SettlementStatus | null;
-  /** 아직 작성하지 않았으면 `null` */
+  /** 아직 작성하지 않았으면 null */
   item: SettlementItem | null;
-  /**
-   * 낙관적 락 버전 (2026-08-12 신설) — 저장(86번)에 이 값을 실어 보낸다.
-   *
-   * ⚠️ **`block.version` 과 다른 값이다** — `settlement_block` 테이블의 자기 버전이다.
-   *    블록 목록의 `SETTLEMENT` 상세에 함께 실려 온다.
-   * ⚠️ 선택으로 둔다 — 없으면 화면이 저장을 막고 새로고침을 안내한다.
-   */
+  /** 세금계산서가 연결됐는지. 옛 응답이라 값이 없으면 null 이다 */
+  isTaxInvoiceLinked: boolean | null;
+  /** 낙관적 락 버전. 블록 자체의 version 과는 다른 값이다 */
   version?: number;
 }
 
+/** detail 을 런타임 검증해서 읽는다. 형태가 다르면 null 이다 */
 /**
- * `detail` 을 런타임 검증해서 읽는다. 형태가 다르면 `null` —
- * 추측해서 API 를 부르면 **남의 정산 블록**을 고치게 된다.
- */
-/**
- * 세금계산서 · 입출금이 연결돼 **수정할 수 없는** 정산 블록인지.
- *
- * ⚠️ 블록 응답에 연결 여부 플래그가 없어 **두 가지로 가늠한다** —
- *    ① 실제 정산 금액 · 일자가 채워졌는지 (**입출금이 매칭되면 채워진다**)
- *    ② 정산 상태가 `부분 정산` · `정산 완료` 인지
- *    ①이 먼저 드러나므로 매칭만 돼도 걸린다.
- *
- * ⛔ **세금계산서만 연결된 경우는 여전히 알 수 없다** — 블록 응답에 그 흔적이 없다.
- * 🔧 백엔드가 `detail` 에 연결 여부를 내려주면 이 추정은 통째로 지운다.
+ * 수정할 수 없는 정산 블록인지.
+ * 연결 여부 플래그가 없어 실제 금액 · 일자와 정산 상태로 가늠한다.
  */
 export function isLockedSettlement(
   status: SettlementStatus | null | undefined,
@@ -200,9 +148,20 @@ export function readSettlementBlockDetail(
     status: readStatus(source.status),
     // 아직 아무것도 작성하지 않았으면 값이 없다 — 그 자체가 정상이다
     item: readItem(source),
+    isTaxInvoiceLinked: readTaxInvoiceLinked(source),
     // 작성 전에도 온다 — 첫 저장도 낙관적 락을 탄다
     version: readNumber(source.version) ?? undefined,
   };
+}
+
+/**
+ * 세금계산서 연결 여부. 작성 전에도 false 로 온다.
+ * 값이 없는 옛 응답은 null 로 둬 화면이 배지를 그리지 않게 한다.
+ */
+function readTaxInvoiceLinked(source: Record<string, unknown>): boolean | null {
+  return typeof source.taxInvoiceLinked === 'boolean'
+    ? source.taxInvoiceLinked
+    : null;
 }
 
 function readType(value: unknown): SettlementType | null {
@@ -223,6 +182,25 @@ function readNumber(value: unknown): number | null {
 /** 문자열 칸 — 빈 문자열은 값이 없는 것으로 본다 */
 function readText(value: unknown): string | null {
   return typeof value === 'string' && value.trim() !== '' ? value : null;
+}
+
+/**
+ * 날짜 칸 — `yyyy-MM-dd` 이면서 실제로 있는 날만 통과시킨다.
+ * 2026-02-31 같은 값을 그대로 두면 폼에 채워져 저장 때 다시 나간다.
+ */
+function readDate(value: unknown): string | null {
+  const text = readText(value);
+  if (text === null || !/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
+
+  const [year, month, day] = text.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+
+  // 없는 날짜는 다음 달로 넘어가므로 되읽어 비교한다
+  return date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+    ? text
+    : null;
 }
 
 /**
@@ -247,7 +225,9 @@ function readItem(source: Record<string, unknown>): SettlementItem | null {
     plannedAmount,
     totalAmount: readNumber(source.totalAmount) ?? 0,
     plannedTaxAmount: readNumber(source.plannedTaxAmount) ?? 0,
-    plannedDate: readText(source.plannedDate) ?? '',
+    plannedDate: readDate(source.plannedDate) ?? '',
+    // 면세 회차는 기한이 없다. 값이 없는 것과 형식이 틀린 것을 똑같이 null 로 둔다
+    taxInvoiceDueDate: readDate(source.taxInvoiceDueDate),
     traderName: readText(source.traderName) ?? '',
     // 계좌 3종은 입금이면 아예 없다 — 없는 것과 잘못된 것을 똑같이 `undefined` 로 둔다
     bankName: readText(source.bankName) ?? undefined,
@@ -273,6 +253,8 @@ export interface SettlementFormValues {
   plannedAmount: string;
   plannedTaxAmount: string;
   plannedDate: string;
+  /** 비워 두면 세금계산서를 받지 않는 회차로 보고 null 을 보낸다 */
+  taxInvoiceDueDate: string;
   traderName: string;
   bankName: string;
   accountNumber: string;

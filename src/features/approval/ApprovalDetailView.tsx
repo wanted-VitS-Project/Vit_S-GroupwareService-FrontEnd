@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { ApprovalDetailSkeleton } from '@/components/approval/ApprovalSkeletons';
+import LoadingSpinner, { Spinner } from '@/components/Spinner';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { formatFileSize } from '@/features/file/format';
 import { ApiError, messageOf } from '@/lib/api';
@@ -24,20 +25,10 @@ import type {
   RejectLineResponse,
 } from './types';
 
-/**
- * 화면이 그리는 회차 하나.
- *
- * 현재 회차는 결재 상세(62번), 지난 회차는 회차 상세(48번)에서 오는데
- * `blockOrigin` 하나만 빼면 필드가 같아 한 가지로 다룬다.
- */
+/** 화면이 그리는 회차 하나. 현재 회차와 지난 회차를 같은 모양으로 다룬다 */
 type ViewedRevision = Omit<ApprovalDetail, 'blockOrigin'>;
 
-/**
- * 조회 실패. 없는 결재와 그 외를 나눈다.
- *
- * ℹ️ 차례가 오지 않은 결재자(403)는 전용 화면을 두지 않는다 — 목록에 뜨지 않아
- * 눌러서 올 길이 없고, URL 직접 접근은 백엔드 문구가 더 정확하다.
- */
+/** 조회 실패. 없는 결재와 그 외를 나눈다 */
 type Failure = 'notFound' | 'other';
 
 function failureOf(error: unknown): Failure {
@@ -47,13 +38,8 @@ function failureOf(error: unknown): Failure {
 }
 
 /**
- * 결재 상세 화면. (AP-035~040·077)
- *
- * 처리 버튼은 **내 차례일 때만** 나오고, 그 밖의 경우(기안자 · 완료 · 반려)는 조회만 된다.
- *
- * ⚠️ 결재 상세 API 는 **항상 현재 회차**를 준다. 지난 회차는 이력(73번)으로 목록을 받고
- * 고른 회차만 회차 상세(48번)로 따로 받는다 — 이력 응답에는 제목 · 내용 · 결재선이 없다.
- * ℹ️ `원본 블록 보기`(AP-079)는 쓰지 않기로 해 `blockOrigin` 을 받기만 하고 그리지 않는다.
+ * 결재 상세 화면. 처리 버튼은 내 차례일 때만 나온다.
+ * 상세 API 는 항상 현재 회차를 주므로 지난 회차는 회차 상세로 따로 받는다.
  */
 export default function ApprovalDetailView({
   approvalId,
@@ -77,10 +63,7 @@ export default function ApprovalDetailView({
   const [pastRevision, setPastRevision] = useState<ViewedRevision | null>(null);
   const [pastError, setPastError] = useState('');
 
-  /**
-   * 처리 결과를 화면에 반영한다. 응답이 다음 상태를 알려주므로 **재조회하지 않는다** —
-   * `nextActiveLineId` 로 다음 차례를, `approvalCompleted` 로 완료를 알 수 있다.
-   */
+  /** 처리 결과를 화면에 반영한다. 응답이 다음 상태를 알려줘 재조회하지 않는다 */
   function applyProcessed(
     kind: ProcessKind,
     result: ApproveLineResponse | RejectLineResponse,
@@ -105,7 +88,7 @@ export default function ApprovalDetailView({
         ) {
           return { ...line, status: 'ACTIVE' as const };
         }
-        // 반려하면 아직 처리되지 않은 이후 단계가 모두 취소된다 (AP-056)
+        // 반려하면 아직 처리되지 않은 이후 단계가 모두 취소된다
         if (kind === 'reject' && line.status === 'WAITING') {
           return { ...line, status: 'CANCELED' as const };
         }
@@ -149,10 +132,7 @@ export default function ApprovalDetailView({
     return () => controller.abort();
   }, [approvalId]);
 
-  /**
-   * 회차 목록. 실패해도 화면을 접지 않는다 —
-   * 이력은 곁다리라 못 받으면 전환 UI 만 빠지고 현재 회차는 그대로 보인다.
-   */
+  /** 회차 목록. 실패하면 전환 UI 만 빠지고 현재 회차는 그대로 보인다 */
   useEffect(() => {
     const controller = new AbortController();
 
@@ -163,15 +143,9 @@ export default function ApprovalDetailView({
     return () => controller.abort();
   }, [approvalId]);
 
-  /**
-   * 회차를 고른다. 직전 회차의 내용 · 실패 문구를 **여기서** 비운다 —
-   * 이펙트에서 비우면 새 회차를 받기 전에 렌더가 한 번 더 돈다.
-   */
+  /** 회차를 고른다. 직전 회차의 내용 · 실패 문구도 여기서 비운다 */
   function selectRevision(revisionId: number | null) {
-    /**
-     * 보고 있는 회차를 다시 누른 경우. 여기서 비우면 `pastRevisionId` 는 그대로라
-     * 이펙트가 돌지 않아 **`불러오는 중…` 에서 멈춘다.**
-     */
+    // 보고 있는 회차를 다시 누르면 비우지 않고 그대로 둔다
     if (revisionId === pastRevisionId) return;
 
     setPastRevisionId(revisionId);
@@ -179,7 +153,7 @@ export default function ApprovalDetailView({
     setPastError('');
   }
 
-  /** 고른 지난 회차의 내용. 이력 응답에는 제목 · 결재선이 없어 따로 받는다 */
+  /** 고른 지난 회차의 내용. 이력 응답에 없는 값이라 따로 받는다 */
   useEffect(() => {
     if (pastRevisionId === null) return;
 
@@ -206,17 +180,11 @@ export default function ApprovalDetailView({
   const viewing: ViewedRevision | null = isPast ? pastRevision : approval;
 
   const myLine = approval.lines.find((line) => line.approverId === user.userId);
-  /**
-   * 처리 버튼은 **내 차례일 때만** 나온다 — 이미 처리했으면 다시 못 한다 (AP-040).
-   * 지난 회차는 이미 끝난 이력이라 어떤 경우에도 처리하지 않는다.
-   */
+  /** 처리 버튼은 내 차례일 때만 나온다. 지난 회차는 처리할 수 없다 */
   const isMyTurn = !isPast && myLine?.status === 'ACTIVE';
   const isDrafter = approval.drafterId === user.userId;
 
-  /**
-   * 지난 회차를 받는 동안 채울 값. 현재 회차의 상태 · 번호를 그대로 두면
-   * **고른 회차와 어긋난 머리말**이 잠깐 보인다 — 이력 요약에 둘 다 있으니 그것으로 채운다.
-   */
+  /** 지난 회차를 받는 동안 머리말을 채울 값. 이력 요약에서 가져온다 */
   const selected = revisions.find(
     (revision) => revision.revisionId === pastRevisionId,
   );
@@ -250,8 +218,16 @@ export default function ApprovalDetailView({
             )}
           </div>
           <h2 className="mt-1.5 text-heading-m font-bold break-keep">
-            {/* 제목만은 이력 요약에 없다 — 회차가 도착해야 알 수 있다 */}
-            {viewing ? viewing.title || '제목 없음' : '불러오는 중…'}
+            {/* 제목은 이력 요약에 없어 회차가 도착해야 알 수 있다 */}
+            {viewing ? (
+              viewing.title || '제목 없음'
+            ) : (
+              <>
+                <Spinner className="inline-block size-4 align-middle" />
+                {/* 스피너는 보조기술에 읽히지 않아 대체 문구를 둔다 */}
+                <span className="sr-only">제목을 불러오는 중</span>
+              </>
+            )}
           </h2>
           <p className="mt-1.5 text-label text-text-secondary">
             {approval.drafterName}
@@ -277,10 +253,10 @@ export default function ApprovalDetailView({
         </p>
       )}
 
-      {/* 지난 회차는 따로 받아온다 — 도착 전까지 본문을 그릴 수 없다 (현재 회차는 늘 있다) */}
+      {/* 지난 회차는 따로 받아오므로 도착 전까지 본문을 그릴 수 없다 */}
       {!viewing ? (
         pastError === '' ? (
-          <p className="mt-6 text-label text-text-secondary">불러오는 중…</p>
+          <LoadingSpinner label="회차를 불러오는 중" className="mt-6 py-16" />
         ) : (
           <p className="mt-6 text-label break-keep text-text-danger">
             {pastError}
@@ -316,7 +292,7 @@ export default function ApprovalDetailView({
   );
 }
 
-/** 회차 전환 탭. 오름차순으로 오므로 그대로 1회차부터 늘어놓는다 */
+/** 회차 전환 탭. 응답이 오름차순이라 그대로 늘어놓는다 */
 function RevisionTabs({
   revisions,
   pastRevisionId,
@@ -329,11 +305,7 @@ function RevisionTabs({
   return (
     <div className="mt-4 flex flex-wrap gap-1.5">
       {revisions.map((revision) => {
-        /**
-         * 현재 회차는 `pastRevisionId === null` 로 표현한다 —
-         * 이미 받아 둔 결재 상세를 그대로 쓰려는 것이다(다시 부르지 않는다).
-         * 어느 회차가 현재인지는 번호 최댓값이 아니라 `isCurrent` 로 판정한다.
-         */
+        /* 현재 회차는 pastRevisionId 가 null 인 상태로 표현한다 */
         const isSelected = revision.isCurrent
           ? pastRevisionId === null
           : pastRevisionId === revision.revisionId;
@@ -348,7 +320,7 @@ function RevisionTabs({
             }
             className={`cursor-pointer rounded-lg border px-2.5 py-1.5 text-detail font-semibold ${
               isSelected
-                ? 'border-[#4F39F6] bg-[#4F39F6]/5 text-[#4F39F6]'
+                ? 'border-border-primary bg-blue-bg-soft text-text-primary-blue'
                 : 'border-border-default text-text-secondary hover:bg-bg-hover'
             }`}
           >
@@ -408,7 +380,7 @@ function RevisionBody({
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-label text-text-primary">
-                        {/* 파일명은 회차마다 확정된 버전의 것이다 (AP-013) */}
+                        {/* 파일명은 회차마다 확정된 버전의 것이다 */}
                         {document.fileName ??
                           `파일 버전 #${document.fileVersionId}`}
                       </p>
@@ -447,7 +419,7 @@ function RevisionBody({
               <button
                 type="button"
                 onClick={() => onProcess('approve')}
-                className="flex-1 cursor-pointer rounded-lg bg-[#4F39F6] py-2 text-label font-semibold text-text-white hover:bg-[#4430d6]"
+                className="btn btn-md btn-primary flex-1"
               >
                 승인
               </button>
@@ -476,7 +448,7 @@ function Card({
   );
 }
 
-/** 실패 화면. 문구는 백엔드 것을 그대로 쓰고 목록으로 돌려보낸다 */
+/** 실패 화면. 백엔드 문구를 그대로 쓰고 목록으로 돌려보낸다 */
 function FailureView({ kind, message }: { kind: Failure; message: string }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-base border border-border-default py-20 text-center">

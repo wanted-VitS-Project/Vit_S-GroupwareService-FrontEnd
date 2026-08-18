@@ -21,7 +21,7 @@ import {
   type CreateCashFlowRequest,
 } from './types';
 
-/** 폼 대상 — `'create'` 는 직접 등록, 객체는 그 건 수정 */
+/** 폼 대상. 'create' 는 직접 등록, 객체는 그 건 수정이다 */
 export type CashFlowFormTarget = 'create' | CashFlowItem;
 
 const TYPE_OPTIONS = (['INCOME', 'OUTCOME'] as CashFlowType[]).map((value) => ({
@@ -31,10 +31,10 @@ const TYPE_OPTIONS = (['INCOME', 'OUTCOME'] as CashFlowType[]).map((value) => ({
 
 interface FormState {
   bankName: string;
-  /** `yyyy-MM-ddTHH:mm` (datetime-local 값) */
+  /** datetime-local 입력값 */
   tradedAt: string;
   type: CashFlowType;
-  /** 문자열로 다룬다 — 빈 칸이 `0` 이 되면 0원짜리 거래가 저장된다 */
+  /** 빈 칸이 0 으로 저장되지 않도록 문자열로 다룬다 */
   amount: string;
   depositorName: string;
   memo: string;
@@ -50,22 +50,16 @@ const EMPTY_STATE: FormState = {
 };
 
 /**
- * 적요 말고 **다른 항목까지 고칠 수 있는지**.
- *
- * 서버 규칙과 같다 — 직접 등록(`MANUAL`)이면서 아직 정산 블록에 연결되지 않은 건만
- * 전체 수정이 된다. CSV · 외부 API 건은 원본이 은행 자료라 고치면 대사가 어긋나고,
- * 연결된 건은 금액을 바꾸면 이미 맞춰 둔 정산이 틀어진다.
+ * 적요 말고 다른 항목까지 고칠 수 있는지. 서버 규칙과 같다.
+ * 직접 등록이면서 아직 연결되지 않은 건만 전체 수정이 된다.
  */
 export function canEditAll(row: CashFlowItem) {
   return row.sourceType === 'MANUAL' && row.linkStatus === 'UNLINKED';
 }
 
 /**
- * 왜 적요만 고칠 수 있는지.
- *
- * ⚠️ 두 사유를 뭉뚱그리지 않는다 — 직접 등록한 건이 연결돼서 잠긴 것과,
- *    CSV · 외부 API 로 들어와서 잠긴 것은 사용자가 할 수 있는 일이 다르다
- *    (앞은 연결을 해제하면 풀리고, 뒤는 원본이 은행 자료라 풀 수 없다).
+ * 왜 적요만 고칠 수 있는지에 대한 사유.
+ * 연결돼서 잠긴 것과 외부 자료라 잠긴 것은 할 수 있는 일이 달라 나눠 둔다.
  */
 function lockReason(row: CashFlowItem) {
   if (row.linkStatus !== 'UNLINKED') {
@@ -75,22 +69,19 @@ function lockReason(row: CashFlowItem) {
   return `${CASH_FLOW_SOURCE_LABELS[row.sourceType]} 로 수집된 내역이라`;
 }
 
-/** 응답의 `2026-07-15T10:30:00` 을 datetime-local 이 읽는 `yyyy-MM-ddTHH:mm` 으로 자른다 */
+/** 응답 값을 datetime-local 이 읽는 형태로 자른다 */
 function toInputDateTime(value: string) {
   return value.slice(0, 16);
 }
 
-/** datetime-local 값(`yyyy-MM-ddTHH:mm`)에 초를 붙인다 — 백엔드는 초까지 받는다 */
+/** datetime-local 값에 초를 붙인다. 백엔드는 초까지 받는다 */
 function toApiDateTime(value: string) {
   return value.length === 16 ? `${value}:00` : value;
 }
 
 function toFormState(row: CashFlowItem): FormState {
   return {
-    /**
-     * ⚠️ 목록 응답에 `bankName` 이 없어 **거래고유번호에서 되읽는다**.
-     * 형식이 다르면 빈 값이 오고, 그때는 사용자가 직접 채운다.
-     */
+    // 목록 응답에 은행명이 없어 거래고유번호에서 되읽는다
     bankName: bankNameFromTxnId(row.bankTxnId),
     tradedAt: toInputDateTime(row.tradedAt),
     type: row.type,
@@ -101,10 +92,8 @@ function toFormState(row: CashFlowItem): FormState {
 }
 
 /**
- * 입출금 내역 직접 등록 · 수정 모달. (#12)
- *
- * ⚠️ 수정은 **부분 수정**이다. 잠긴 건은 적요만 보내고 나머지는 아예 싣지 않는다 —
- *    서버가 무시하긴 하지만, 보내지 않는 편이 의도가 분명하고 로그도 깨끗하다.
+ * 입출금 내역 직접 등록 · 수정 모달.
+ * 수정은 부분 수정이라 잠긴 건은 적요만 보낸다.
  */
 export default function CashFlowFormModal({
   target,
@@ -116,7 +105,7 @@ export default function CashFlowFormModal({
   onSaved: () => void;
 }) {
   const isCreate = target === 'create';
-  /** 등록은 언제나 전체 입력이고, 수정은 출처 · 연결 상태가 정한다 */
+  /** 등록은 늘 전체 입력이고 수정은 출처 · 연결 상태가 정한다 */
   const isFullEdit = isCreate || canEditAll(target);
 
   const [form, setForm] = useState<FormState>(
@@ -131,7 +120,7 @@ export default function CashFlowFormModal({
   }
 
   function validate() {
-    // 잠긴 건은 적요만 보내므로 나머지를 검사할 이유가 없다
+    // 잠긴 건은 적요만 보내므로 나머지를 검사하지 않는다
     if (!isFullEdit) return null;
 
     if (form.bankName.trim() === '') return '은행명을 입력해주세요.';
@@ -142,7 +131,7 @@ export default function CashFlowFormModal({
     if (form.amount === '' || amount <= 0) {
       return '거래금액을 1원 이상 입력해주세요.';
     }
-    // 자릿수가 지나치면 `Number()` 가 `Infinity` 가 되고 JSON 에서 `null` 로 바뀐다
+    // 자릿수가 지나치면 숫자로 바꿀 때 무한대가 되어 값이 사라진다
     if (!Number.isFinite(amount)) return '거래금액이 너무 큽니다.';
 
     return null;
@@ -177,7 +166,7 @@ export default function CashFlowFormModal({
       } else if (isFullEdit) {
         await updateCashFlow(target.cashFlowId, toPayload());
       } else {
-        // 잠긴 건 — 적요만 간다
+        // 잠긴 건은 적요만 보낸다
         await updateCashFlow(target.cashFlowId, {
           memo: form.memo.trim() || null,
         });
@@ -195,12 +184,9 @@ export default function CashFlowFormModal({
     <Modal
       title={isCreate ? '입출금 내역 등록' : '입출금 내역 수정'}
       onClose={onClose}
-      // 입력이 쌓이는 폼이라 바깥을 잘못 눌러 날아가지 않게 한다 (닫기 · Esc 는 그대로)
+      // 입력이 쌓이는 폼이라 바깥 클릭으로 닫히지 않게 한다
       dismissOnBackdrop={false}
-      /**
-       * ⚠️ `max-w-md`(448px) 로는 거래고유번호 안내가 잘렸다.
-       *    좌우 여백도 `p-8` → `p-6` 으로 줄여 글자 자리를 넓힌다.
-       */
+      /* 거래고유번호 안내가 잘리지 않도록 폭을 넓히고 여백을 줄인다 */
       className="w-full max-w-lg rounded-base p-6 shadow-2xl"
     >
       <form onSubmit={submit} className="mt-6">
@@ -218,11 +204,7 @@ export default function CashFlowFormModal({
             disabled={!isFullEdit}
             value={form.bankName}
             placeholder="신한은행"
-            /**
-             * 거래고유번호를 그대로 보여준다 — 목록 응답에 은행명이 없어 이 값에서
-             * 되읽는데, 형식이 예상과 다르면 칸이 비어 이유를 알 수 없다.
-             * 원본을 함께 보여주면 사용자가 보고 바로 채울 수 있다.
-             */
+            /* 은행명을 되읽는 원본이라 함께 보여줘야 비었을 때 채울 수 있다 */
             hint={isCreate ? undefined : `거래고유번호: ${target.bankTxnId}`}
             onChange={(value) => patch({ bankName: value })}
           />
@@ -266,7 +248,7 @@ export default function CashFlowFormModal({
             onChange={(value) => patch({ depositorName: value })}
           />
 
-          {/* 적요만은 어떤 건이든 고칠 수 있다 — 담당자가 메모를 남기는 자리다 */}
+          {/* 적요는 어떤 건이든 고칠 수 있다 */}
           <TextField
             id="cashFlowMemo"
             label="적요"

@@ -23,7 +23,7 @@ import type { BidReview, ReviewAttachment, ReviewDocument } from './types';
 /** 검토는 문서를 내려받아 읽어서 요약보다 오래 걸린다 */
 const POLL_MS = 4000;
 
-/** 상한을 넘기면 폴링만 접는다 — 검토는 서버에 남아 이력에서 이어 볼 수 있다 */
+/** 상한을 넘기면 폴링만 접는다. 검토는 서버에 남아 이력에서 이어 볼 수 있다 */
 const MAX_POLLS = 75;
 
 function isRunning(status: string) {
@@ -34,13 +34,8 @@ const PROMPT_PLACEHOLDER =
   '예) 우리 회사의 재정 상태와 보유 인력으로 수행 가능한지, 부족한 자격과 실적을 근거와 함께 검토';
 
 /**
- * AI 문서 검토. (BID-V1 · `.ai/API.md` 입찰 문서 검토)
- *
- * 요약과 **다른 기능**이다 — 공고 첨부와 사내 문서를 골라 비교하고, 결과에 **분석 자료(인용)** 가 붙는다.
- * 서버 쪽 워커도 갈린다 (`bid_review_worker`).
- *
- * ⚠️ 고른 파일은 검토를 위해 **임시 저장소에 올라간다.** 프로젝트로 전환하지 않으면
- *    `expiresAt` 에 자동 삭제되므로 그 사실을 요청 전에 알린다.
+ * AI 문서 검토. 공고 첨부와 사내 문서를 비교하고 결과에 근거 인용이 붙는다.
+ * 고른 파일은 임시 저장소에 올라가고 전환하지 않으면 만료 시 지워진다.
  */
 export default function NoticeReviewModal({
   noticeId,
@@ -52,7 +47,7 @@ export default function NoticeReviewModal({
   /** 이미 프로젝트로 전환된 공고면 전환 버튼을 두지 않는다 */
   isConverted: boolean;
   onClose: () => void;
-  /** 이 검토를 근거로 프로젝트를 만든다 — 전환 모달은 상위가 연다 */
+  /** 이 검토를 근거로 프로젝트를 만든다. 전환 모달은 상위가 연다 */
   onConvert: (reviewId: number) => void;
 }) {
   const [attachments, setAttachments] = useState<ReviewAttachment[] | null>(
@@ -60,11 +55,11 @@ export default function NoticeReviewModal({
   );
   const [documents, setDocuments] = useState<SelectableDocument[] | null>(null);
 
-  /** 고른 공고 첨부 (`attachmentId`) */
+  /** 고른 공고 첨부 (attachmentId) */
   const [pickedAttachments, setPickedAttachments] = useState<Set<number>>(
     new Set(),
   );
-  /** 고른 사내 문서 — **버전 ID** 로 고정한다 */
+  /** 고른 사내 문서. 버전 ID 로 고정한다 */
   const [pickedDocuments, setPickedDocuments] = useState<Set<number>>(
     new Set(),
   );
@@ -72,28 +67,22 @@ export default function NoticeReviewModal({
   const [prompt, setPrompt] = useState('');
   const [review, setReview] = useState<BidReview | null>(null);
   /**
-   * 처음 세 요청이 **모두** 끝났는지.
-   *
-   * ⚠️ 이게 없으면 창이 딸깍거린다 — 고르는 칸을 먼저 그렸다가 뒤늦게 도착한
-   *    이력이 완료 상태면 그 자리를 결과가 통째로 갈아치운다.
+   * 처음 세 요청이 모두 끝났는지.
+   * 하나씩 그리면 뒤늦게 온 이력이 고르는 칸을 통째로 갈아치워 창이 딸깍거린다.
    */
   const [isLoaded, setIsLoaded] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   /**
    * 종료 요청이 나가 있는지.
-   *
-   * `isBusy` 만으로는 **무엇 때문에 바쁜지** 구분되지 않아, 요청 버튼과 종료 버튼이
-   * 동시에 진행 문구를 띄운다 (`검토 중…` 옆에 `종료 중…`).
+   * isBusy 만으로는 요청과 종료가 동시에 진행 문구를 띄운다.
    */
   const [isAbandoning, setIsAbandoning] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [hasGivenUp, setHasGivenUp] = useState(false);
   /**
-   * 결과를 덮고 **다시 고르는 중**인지.
-   *
-   * ⚠️ 이게 없으면 검토를 한 번 마친 공고는 **다시 검토할 수 없다** — 완료 상태에서는
-   *    고르는 자리와 요청 버튼이 함께 사라지고, 창을 닫았다 열어도 같은 이력이 다시 온다.
+   * 결과를 덮고 다시 고르는 중인지.
+   * 이게 없으면 완료된 공고는 고르는 자리가 사라져 다시 검토할 수 없다.
    */
   const [wantsNew, setWantsNew] = useState(false);
 
@@ -105,7 +94,7 @@ export default function NoticeReviewModal({
 
     return () => {
       if (timer.current !== null) window.clearTimeout(timer.current);
-      // 처음 것이 아니라 **지금 것**을 끊는다 (`abandon()` 이 갈아끼울 수 있다)
+      // 처음 것이 아니라 지금 것을 끊는다 (abandon() 이 갈아끼울 수 있다)
       pollAbort.current?.abort();
     };
   }, []);
@@ -115,7 +104,7 @@ export default function NoticeReviewModal({
     const controller = new AbortController();
     const { signal } = controller;
 
-    // 도착하는 대로 하나씩 그리지 않고 **함께** 기다린다 (위 `isLoaded` 참고)
+    // 도착하는 대로 하나씩 그리지 않고 함께 기다린다
     Promise.all([
       getReviewSources(noticeId, signal)
         .then((sources) => setAttachments(sources.attachments))
@@ -123,7 +112,7 @@ export default function NoticeReviewModal({
           if (!signal.aborted) setAttachments([]);
         }),
 
-      // 사내 문서는 없어도 검토는 된다 — 실패해도 화면을 막지 않는다
+      // 사내 문서는 없어도 검토는 된다. 실패해도 화면을 막지 않는다
       getSelectableDocuments({}, signal)
         .then(setDocuments)
         .catch(() => {
@@ -139,10 +128,8 @@ export default function NoticeReviewModal({
           setReview(found);
 
           /**
-           * 무엇을 걸고 돌리는 중인지 **체크 상태로 되살린다.**
-           *
-           * ⚠️ 이게 없으면 창을 다시 열었을 때 고른 게 하나도 없는 것처럼 보이고,
-           *    잠금을 풀어도 `pickedCount === 0` 이라 요청 버튼이 켜지지 않는다.
+           * 무엇을 걸고 돌리는 중인지 체크 상태로 되살린다.
+           * 안 그러면 잠금을 풀어도 고른 게 없어 요청 버튼이 켜지지 않는다.
            */
           setPickedAttachments(pickedIds(found.documents, 'bidAttachmentId'));
           setPickedDocuments(
@@ -165,8 +152,8 @@ export default function NoticeReviewModal({
 
   function poll(reviewId: number, attempt: number) {
     /**
-     * ⚠️ 새 체인을 걸기 전에 **앞 체인을 끊는다.** 타이머 슬롯이 하나뿐이라
-     *    덮어쓰면 이전 타이머의 참조를 잃고, 정리 함수가 마지막 것만 해제한다.
+     * 새 체인을 걸기 전에 앞 체인을 끊는다.
+     * 타이머 슬롯이 하나뿐이라 덮어쓰면 이전 타이머를 해제하지 못한다.
      */
     if (timer.current !== null) window.clearTimeout(timer.current);
 
@@ -239,10 +226,8 @@ export default function NoticeReviewModal({
       });
 
       /**
-       * 기다리기 잠금은 **받아들여진 뒤에** 다시 건다.
-       *
-       * ⚠️ 요청 직전에 풀어 버리면 서버가 `409` 로 막았을 때도 잠긴 채로 남는다 —
-       *    "다시 고르기" 로 풀어 놓은 걸 거절이 되돌려, 손이 다시 묶인다.
+       * 기다리기 잠금은 받아들여진 뒤에 다시 건다.
+       * 요청 직전에 풀면 409 로 막혔을 때도 잠긴 채 남는다.
        */
       setHasGivenUp(false);
       // 새 검토가 접수됐으니 결과 화면으로 되돌린다
@@ -265,13 +250,8 @@ export default function NoticeReviewModal({
   }
 
   /**
-   * 진행 중인 검토를 **실제로 끝낸다.** (`PATCH .../abandon` → `ABANDONED`)
-   *
-   * 잠금만 푸는 것과 다르다 — 서버 작업이 정말 닫히고 임시 파일도 정리되어,
-   * 곧바로 새 검토를 요청할 수 있다 (`409` 로 막히지 않는다).
-   *
-   * ⚠️ 서버가 끝낼 수 없는 상태라고 하면(`BIDDING_REVIEW_NOT_ABANDONABLE`)
-   *    **화면 잠금만이라도 푼다** — 손이 묶인 채로 두는 것보단 낫다.
+   * 진행 중인 검토를 실제로 끝낸다. 서버 작업이 닫히고 임시 파일도 정리된다.
+   * 서버가 끝낼 수 없다고 하면 화면 잠금만이라도 푼다.
    */
   async function abandon() {
     if (!review || isBusy) return;
@@ -315,20 +295,14 @@ export default function NoticeReviewModal({
   const isDone = status === 'COMPLETED';
   const isFailed = status === 'FAILED';
   /**
-   * 결과가 나오면 고르는 자리를 접는다 — 한 창에 둘 다 펼치면 길기만 하다.
-   *
-   * ⚠️ **검토 중에는 접지 않는다.** 고른 목록이 통째로 사라지고 안내 한 줄만 남으면
-   *    창이 확 쪼그라들어, 무엇을 걸어 두고 기다리는지도 알 수 없다.
-   *    대신 아래에서 입력만 잠그고 진행 상태를 버튼 자리에 띄운다.
+   * 결과가 나오면 고르는 자리를 접는다. 한 창에 둘 다 펼치면 길기만 하다.
+   * 검토 중에는 접지 않는다. 무엇을 걸어 두고 기다리는지 보여야 한다.
    */
   const showsPicker = isLoaded && (!isDone || wantsNew);
 
   /**
-   * 전환을 막는 이유. `null` 이면 지금 만들 수 있다.
-   *
-   * ⚠️ 막힌 경우에도 **버튼을 감추지 않고 비활성화**한다 — 버튼이 통째로 사라지면
-   *    "왜 없지" 를 사용자가 혼자 추측해야 한다. 이유를 옆에 적어 두는 편이 낫다.
-   * ℹ️ 툴팁(`title`)은 쓸 수 없다 — `.btn:disabled` 가 `pointer-events: none` 이라 뜨지 않는다.
+   * 전환을 막는 이유. null 이면 지금 만들 수 있다.
+   * 막힌 경우에도 버튼을 감추지 않고 비활성화한 뒤 이유를 옆에 적는다.
    */
   const convertBlockedReason = isConverted
     ? '이미 프로젝트로 전환된 공고입니다.'
@@ -343,8 +317,8 @@ export default function NoticeReviewModal({
       title="AI 검토"
       onClose={onClose}
       /**
-       * 바깥을 눌러도 닫히지 않는다 — 파일을 고르고 프롬프트까지 쓴 상태에서
-       * 한 번 잘못 누르면 처음부터 다시다. 닫기 버튼 · Esc 는 그대로 살아 있다.
+       * 바깥을 눌러도 닫히지 않는다. 고르고 프롬프트까지 쓴 것을 한 번에 잃는다.
+       * 닫기 버튼 · Esc 는 그대로 살아 있다.
        */
       dismissOnBackdrop={false}
       className="flex max-h-[85vh] w-full max-w-[640px] flex-col overflow-hidden rounded-base border border-border-default shadow-2xl"
@@ -362,7 +336,7 @@ export default function NoticeReviewModal({
         </div>
       }
     >
-      {/* 아래 여백을 더 준다 — 마지막 버튼 줄이 창 끝에 붙어 잘려 보인다 */}
+      {/* 아래 여백을 더 준다. 마지막 버튼 줄이 창 끝에 붙어 잘려 보인다 */}
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-5 pb-8">
         {!isLoaded && (
           <LoadingSpinner label="검토 정보 불러오는 중" className="py-20" />
@@ -434,10 +408,8 @@ export default function NoticeReviewModal({
             </div>
 
             {/**
-             * 요청 전에 알린다 — 누른 뒤에 알면 늦다.
-             *
-             * 색은 **파란 계열**이다. 아래 `AlertBanner` 가 노란색이라 같은 톤을 쓰면
-             * 늘 떠 있는 설명과 그때그때 뜨는 알림이 한 덩어리로 보인다.
+             * 요청 전에 알린다. 누른 뒤에 알면 늦다.
+             * 색은 파란 계열이다. 아래 배너와 같은 톤이면 한 덩어리로 보인다.
              */}
             <p className="mt-4 rounded-lg border border-blue-border-soft bg-blue-bg-soft px-4 py-3 text-caption leading-relaxed break-keep text-blue-text">
               선택한 파일은 검토를 위해 임시 저장소에 업로드됩니다. 프로젝트로
@@ -456,12 +428,8 @@ export default function NoticeReviewModal({
         {isDone && review && !wantsNew && <ReviewResult review={review} />}
 
         {/**
-         * 검토를 마친 뒤의 두 갈래 — 프롬프트를 바꿔 다시 묻거나, 이 검토를 근거로
-         * 프로젝트를 만들거나.
-         *
-         * ℹ️ **실패했을 때는 여기가 아니라 맨 아래 버튼 줄에** 잠긴 전환 버튼을 둔다 —
-         *    실패하면 고르는 자리가 다시 펼쳐져(`showsPicker`) `AI 검토하기` 가 살아나는데,
-         *    전환 버튼만 따로 위에 두면 눌러야 할 것이 두 군데로 흩어진다.
+         * 검토를 마친 뒤의 두 갈래. 다시 묻거나 이 검토로 프로젝트를 만들거나.
+         * 실패했을 때는 맨 아래 버튼 줄에 둔다. 눌러야 할 것이 흩어지지 않게 한다.
          */}
         {review && !wantsNew && isDone && (
           <div className="mt-6 border-t border-border-default pt-5">
@@ -503,12 +471,8 @@ export default function NoticeReviewModal({
         )}
 
         {/**
-         * 동작 버튼은 **언제나 맨 아래**다.
-         *
-         * 안내·에러 배너는 상황에 따라 늘었다 줄었다 하는데, 버튼을 그 위에 두면
-         * 배너가 뜰 때마다 눌러야 할 것이 위로 밀려 자리를 다시 찾게 된다.
-         *
-         * ℹ️ 진행 상태 문장은 **버튼과 같은 줄에 두지 않는다** — 길어서 버튼에 밀려 잘린다.
+         * 동작 버튼은 언제나 맨 아래다. 배너가 뜰 때마다 버튼이 밀리면 자리를 다시 찾게 된다.
+         * 진행 상태 문장은 길어서 버튼과 같은 줄에 두지 않는다.
          */}
         {showsPicker && (
           <div className="mt-5">
@@ -527,7 +491,7 @@ export default function NoticeReviewModal({
               </p>
             )}
 
-            {/* 막힌 이유는 버튼 줄 위에 적는다 — 같은 줄에 두면 문장이 버튼에 밀려 잘린다 */}
+            {/* 막힌 이유는 버튼 줄 위에 적는다. 같은 줄이면 문장이 잘린다 */}
             {isFailed && review && convertBlockedReason !== null && (
               <p className="mt-3 text-caption leading-relaxed break-keep text-text-secondary">
                 {convertBlockedReason}
@@ -553,14 +517,8 @@ export default function NoticeReviewModal({
               )}
 
               {/**
-               * 기다리기를 **사용자가 끊을 수 있게** 한다.
-               *
-               * 워커는 Gemini 연결이 끊기면 재시도하는데 그 사이 상태는 계속 `PENDING`
-               * 이라, 화면만 보면 **멈춘 것과 구분되지 않는다.** 상한(5분)까지 손이 묶이면
-               * 잘못 고른 걸 알아채도 고칠 수가 없다.
-               *
-               * ⭐ 잠금만 푸는 게 아니라 **서버 작업까지 닫는다** — 그러지 않으면 새로
-               *    요청해도 `409` 로 막혀 결국 기다리는 것 말곤 할 게 없다.
+               * 기다리기를 사용자가 끊을 수 있게 한다. PENDING 은 멈춘 것과 구분되지 않는다.
+               * 잠금만 푸는 게 아니라 서버 작업까지 닫아야 다시 요청할 수 있다.
                */}
               {isWaiting && (
                 <button
@@ -589,7 +547,7 @@ export default function NoticeReviewModal({
   );
 }
 
-/** 검토에 들어간 문서에서 한 종류의 ID 만 추린다 (`null` 은 다른 종류라 버린다) */
+/** 검토에 들어간 문서에서 한 종류의 ID 만 추린다 */
 function pickedIds(
   documents: ReviewDocument[],
   key: 'bidAttachmentId' | 'companyDocumentVersionId',
@@ -601,7 +559,7 @@ function pickedIds(
   );
 }
 
-/** 완료된 검토 — 본문과 **분석 자료**(근거 인용)를 함께 보여준다 */
+/** 완료된 검토. 본문과 근거 인용을 함께 보여준다 */
 function ReviewResult({ review }: { review: BidReview }) {
   return (
     <>
@@ -617,8 +575,8 @@ function ReviewResult({ review }: { review: BidReview }) {
       </p>
 
       {/**
-       * 분석 자료는 **접지 않고 그대로 편다.** AI 판단만 있고 출처가 없으면 검증할 수 없어,
-       * 한 번 더 눌러야 보이면 아무도 확인하지 않는다.
+       * 분석 자료는 접지 않고 그대로 편다.
+       * 한 번 더 눌러야 보이면 아무도 출처를 확인하지 않는다.
        */}
       {review.citations.length > 0 && (
         <div className="mt-6 border-t border-border-default pt-5">
@@ -687,14 +645,17 @@ function PickSection({
     <div className={className}>
       <p className="text-caption font-semibold text-text-primary">{title}</p>
       {isLoading ? (
-        <p className="mt-2 text-caption text-text-secondary">불러오는 중…</p>
+        <LoadingSpinner
+          label={`${title} 불러오는 중`}
+          className="mt-2 py-6"
+          spinnerClassName="size-5"
+        />
       ) : isEmpty ? (
         <p className="mt-2 text-caption text-text-secondary">{emptyText}</p>
       ) : (
         /**
-         * 첨부가 많은 공고는 목록만으로 창을 다 먹는다 — **자기 안에서 스크롤**시켜
-         * 프롬프트와 버튼이 화면 밖으로 밀려나지 않게 한다.
-         * `pr-1` 은 스크롤바가 체크박스 줄을 덮지 않게 두는 자리다.
+         * 첨부가 많으면 목록만으로 창을 다 먹어 자기 안에서 스크롤시킨다.
+         * pr-1 은 스크롤바가 체크박스 줄을 덮지 않게 두는 자리다.
          */
         <ul className="mt-2 flex max-h-56 flex-col gap-1.5 overflow-y-auto pr-1">
           {children}
@@ -704,7 +665,7 @@ function PickSection({
   );
 }
 
-/** 고르는 줄 하나. 라벨 전체가 눌리도록 `<label>` 로 감싼다 */
+/** 고르는 줄 하나. 라벨 전체가 눌리도록 label 로 감싼다 */
 function PickRow({
   label,
   disabled = false,
@@ -721,8 +682,8 @@ function PickRow({
   return (
     <li>
       {/**
-       * 고른 표시(`isPicked`)가 **잠김보다 앞선다** — 검토 중에도 무엇을 걸어 두고
-       * 기다리는지 보여야 한다. 잠김은 커서와 흐림으로만 알린다.
+       * 고른 표시가 잠김보다 앞선다. 검토 중에도 무엇을 걸어 뒀는지 보여야 한다.
+       * 잠김은 커서와 흐림으로만 알린다.
        */}
       <label
         className={`flex items-center gap-2.5 rounded-lg border px-3 py-2.5 ${
@@ -745,7 +706,7 @@ function PickRow({
         <span className="min-w-0 flex-1 truncate text-caption text-text-primary">
           {label}
         </span>
-        {/* 출처 태그(`OPEN_API` · `CERTIFICATE`)는 두지 않는다 — 고르는 데 쓰이지 않고 파일명만 밀어낸다 */}
+        {/* 출처 태그는 고르는 데 쓰이지 않고 파일명만 밀어내 두지 않는다 */}
         {disabled && disabledReason && (
           <span className="shrink-0 text-caption text-text-secondary">
             {disabledReason}

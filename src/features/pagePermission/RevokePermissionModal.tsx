@@ -27,11 +27,8 @@ interface RevokePermissionModalProps {
 }
 
 /**
- * 페이지 권한 회수 모달. (.ai/API.md 102)
- *
- * 회수되는 것은 **명시 부여 기록뿐**이다 — 전역 권한이 있는 사용자는 회수해도
- * 페이지가 계속 보인다. 그 사실을 결과 화면에서 반드시 알린다
- * (모르면 "회수했는데 왜 보이지" 로 남는다).
+ * 페이지 권한 회수 모달. 회수되는 것은 명시 부여 기록뿐이다.
+ * 전역 권한이 있으면 회수해도 계속 보이므로 그 사실을 결과 화면에서 알린다.
  */
 export default function RevokePermissionModal({
   page,
@@ -52,7 +49,7 @@ export default function RevokePermissionModal({
     try {
       const next = await revokePagePermission(page.pageCode, accessor.userId);
 
-      // 계속 보이는 경우만 한 번 더 알린다 — 아니면 바로 닫는다
+      // 계속 보이는 경우만 한 번 더 알린다. 아니면 바로 닫는다
       if (next.stillAccessible) {
         setResult(next);
         setIsPending(false);
@@ -65,7 +62,7 @@ export default function RevokePermissionModal({
     } catch (caught) {
       const code = caught instanceof ApiError ? caught.code : undefined;
 
-      // 남이 먼저 회수했거나 애초에 부여 기록이 없던 경우 — 목록만 갱신하고 닫는다
+      // 남이 먼저 회수했거나 부여 기록이 없던 경우. 목록만 갱신하고 닫는다
       if (code === PAGE_CODES.permissionNotFound) {
         onRevoked();
         onClose();
