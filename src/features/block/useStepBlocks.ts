@@ -15,9 +15,10 @@ export function stepBlocksKey(stepId: number | string) {
 // 캐시에는 응답 원본({ blocks })이 들어가고 select 가 배열만 꺼내 준다.
 // select 는 캐시 데이터를 가공할 뿐 네트워크를 나누지 않는다 —
 // 서버에 "바뀐 블록만" 주는 파라미터가 없어 요청은 언제나 스텝 전체다.
-// select 에서 정렬하지 않는다. 드래그로 바뀐 순서를 캐시에 꽂는 경로가 있는데
-// (useSetStepBlocks), 그 시점의 rowIndex·sortOrder 는 아직 저장 전 옛 값이다.
-// 여기서 좌표순으로 다시 세우면 방금 옮긴 배치가 그대로 튕겨 돌아간다.
+// select 에서 정렬하지 않는다. 드래그로 바뀐 순서를 캐시에 꽂는 경로가 있어
+// (useSetStepBlocks) 여기서 다시 세우면 배치가 한 박자 흔들린다.
+// 꽂는 쪽은 좌표까지 화면 기준으로 새겨 넣는다 (blockLayout.renumber) —
+// 저장 전이라도 목록의 순서와 좌표가 서로 어긋나지 않는다.
 // 정렬은 화면을 그리는 BlockBoard 가 toFlatOrder() 로 맡는다.
 export function useStepBlocks(stepId: string) {
   return useQuery({
@@ -37,7 +38,15 @@ export function useSetStepBlocks(stepId: string) {
 
   return useCallback(
     (blocks: StepBlock[]) => {
-      queryClient.setQueryData(stepBlocksKey(stepId), { blocks });
+      const key = stepBlocksKey(stepId);
+      queryClient.setQueryData(key, { blocks });
+      // 캐시에 실제로 들어간 배열을 돌려준다.
+      // react-query 는 setQueryData 에도 구조 공유(replaceEqualDeep)를 적용해,
+      // 원소가 같아도 순서만 바뀌면 새 참조를 물려준다. 올려보낸 배열로 비교하면
+      // 보드가 자기 메아리를 남의 재조회로 오인해 방금 옮긴 순서를 되돌린다.
+      return (
+        queryClient.getQueryData<{ blocks: StepBlock[] }>(key)?.blocks ?? blocks
+      );
     },
     [queryClient, stepId],
   );
