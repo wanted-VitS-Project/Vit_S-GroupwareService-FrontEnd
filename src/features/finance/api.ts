@@ -69,6 +69,7 @@ export function getCashFlows(query: CashFlowListQuery, signal?: AbortSignal) {
 /**
  * 입출금 한 건을 찾는다.
  * 단건 조회 API 가 없어 목록 페이지를 넘기며 찾는다 (세금계산서와 같은 방식).
+ * 건수가 늘면 요청도 함께 늘어 백엔드에 단건 조회를 요청해 둔 상태다.
  */
 export async function findCashFlow(cashFlowId: number, signal?: AbortSignal) {
   const size = 100;

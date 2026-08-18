@@ -426,9 +426,22 @@ export interface SettlementProjectQuery {
   sort?: SettlementSort;
 }
 
+/**
+ * 태그 종류. 만드는 쪽과 그리는 쪽이 어긋나면 컴파일에서 잡히도록 값을 묶어 둔다.
+ */
+export type SettlementProjectTagKey =
+  | 'none'
+  | 'paymentOverdue'
+  | 'taxOverdue'
+  | 'paymentUnlinked'
+  | 'taxUnlinked'
+  | 'done'
+  | 'noDate'
+  | 'progress';
+
 /** 프로젝트 줄에 세우는 태그 하나. 서버 값이 아니라 화면이 4개 지표로 만든다 */
 export interface SettlementProjectTag {
-  key: string;
+  key: SettlementProjectTagKey;
   label: string;
   /** globals.css 의 공용 .badge-* 색 */
   className: string;

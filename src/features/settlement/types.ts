@@ -185,6 +185,25 @@ function readText(value: unknown): string | null {
 }
 
 /**
+ * 날짜 칸 — `yyyy-MM-dd` 이면서 실제로 있는 날만 통과시킨다.
+ * 2026-02-31 같은 값을 그대로 두면 폼에 채워져 저장 때 다시 나간다.
+ */
+function readDate(value: unknown): string | null {
+  const text = readText(value);
+  if (text === null || !/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
+
+  const [year, month, day] = text.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+
+  // 없는 날짜는 다음 달로 넘어가므로 되읽어 비교한다
+  return date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+    ? text
+    : null;
+}
+
+/**
  * 작성된 항목. `detail` 은 항목 필드를 **평면으로** 담는다 (중첩 객체가 아니다).
  *
  * **회차와 예정 금액이 둘 다 있어야** 작성된 것으로 본다 — 작성 전에는 둘 다 `null` 이고,
@@ -206,9 +225,9 @@ function readItem(source: Record<string, unknown>): SettlementItem | null {
     plannedAmount,
     totalAmount: readNumber(source.totalAmount) ?? 0,
     plannedTaxAmount: readNumber(source.plannedTaxAmount) ?? 0,
-    plannedDate: readText(source.plannedDate) ?? '',
-    // 면세 회차는 기한이 없다 — 값이 없는 것과 잘못된 것을 똑같이 null 로 둔다
-    taxInvoiceDueDate: readText(source.taxInvoiceDueDate),
+    plannedDate: readDate(source.plannedDate) ?? '',
+    // 면세 회차는 기한이 없다. 값이 없는 것과 형식이 틀린 것을 똑같이 null 로 둔다
+    taxInvoiceDueDate: readDate(source.taxInvoiceDueDate),
     traderName: readText(source.traderName) ?? '',
     // 계좌 3종은 입금이면 아예 없다 — 없는 것과 잘못된 것을 똑같이 `undefined` 로 둔다
     bankName: readText(source.bankName) ?? undefined,
