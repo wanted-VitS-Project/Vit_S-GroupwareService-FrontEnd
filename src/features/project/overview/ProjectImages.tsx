@@ -76,6 +76,16 @@ export default function ProjectImages() {
 
     getProjectImages(projectId, { page, size: PAGE_SIZE }, signal)
       .then((imagePage) => {
+        /*
+         * 이미지가 줄어 지금 장이 사라졌다 — 서버는 빈 목록을 준다.
+         * 그대로 그리면 남은 이미지가 있는데도 `등록된 이미지가 없습니다` 가 뜨고,
+         * 페이지 줄은 스스로 마지막 장을 짚어 목록과 번호가 어긋난다.
+         */
+        if (page > 0 && page >= imagePage.totalPages) {
+          setPageOf({ projectId, page: Math.max(imagePage.totalPages - 1, 0) });
+          return;
+        }
+
         setLoaded({ key: requestKey, projectId, imagePage });
         setFailedProjectId((failed) => (failed === projectId ? null : failed));
       })
