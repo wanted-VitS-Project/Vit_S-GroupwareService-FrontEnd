@@ -2,8 +2,8 @@
 
 // CSR - 비타메이트 AI 블록: 검토 유형·기준/대상 문서·프롬프트로 분석을 돌리고 결과를 보여준다.
 // 화면은 분석 없음 / 진행 중(폴링) / 실패 / 완료 넷으로 갈린다.
-// "블록의 최신 분석" 전용 API 가 없어 detail.latestAnalysisId 가 있으면 그걸 쓰고,
-// 없으면 이력 목록(최신순)의 첫 건으로 대체한다.
+// "블록의 최신 분석" 전용 API 가 없어 detail.latestAnalysisId 로 먼저 그리고
+// 이력 목록(최신순)의 첫 건으로 한 번 더 맞춘다.
 
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
@@ -65,7 +65,7 @@ export default function AiBlock({ block }: { block: StepBlock }) {
   const [analysisId, setAnalysisId] = useState<number | null>(
     detail.latestAnalysisId,
   );
-  // 최신 분석 ID 를 이력에서 찾는 중인지 — detail 에 없을 때만 돈다.
+  // 최신 분석 ID 를 이력에서 찾는 중인지 — detail 이 비었을 때만 스켈레톤을 보인다.
   const [isResolving, setIsResolving] = useState(
     detail.latestAnalysisId === null,
   );
@@ -85,22 +85,31 @@ export default function AiBlock({ block }: { block: StepBlock }) {
     justRequested,
   });
 
+  // detail 에 값이 있어도 목록을 한 번 확인한다 — 그 값이 없거나 옛 분석을 가리키면
+  // 방금 끝낸 분석이 새로고침 후 안 보이고, 이력 버튼까지 사라져 들어갈 길이 막힌다.
   useEffect(() => {
-    if (detail.latestAnalysisId !== null) return;
-
     const controller = new AbortController();
     const { signal } = controller;
+    const fromDetail = detail.latestAnalysisId;
 
     getBlockAnalyses(block.blockId, signal)
       .then((list) => {
         // 최신순이라 첫 건이 최신이다.
-        if (list.length > 0) setAnalysisId(list[0].analysisId);
+        if (list.length > 0) {
+          const latest = list[0].analysisId;
+          // 아직 detail 이 준 값 그대로일 때만 갈아탄다 —
+          // 재실행·수정으로 다른 분석을 보고 있으면 그쪽이 사용자의 의도다.
+          setAnalysisId((current) =>
+            current === fromDetail ? latest : current,
+          );
+        }
         setResolveError('');
       })
       .catch((caught) => {
         if (signal.aborted) return;
         // 삼키면 안 된다 — 실패를 "분석 없음" 으로 보여주면 이미 결과가 있는데도
         // 사용자가 새로 실행해서 같은 분석을 중복 생성한다.
+        // detail 로 이미 뭔가 그리고 있으면 이 문구는 화면에 나오지 않는다.
         setResolveError(messageOf(caught, '분석 이력을 불러오지 못했습니다.'));
       })
       .finally(() => {

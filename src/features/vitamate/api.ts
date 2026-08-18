@@ -1,5 +1,5 @@
 import { ENDPOINTS } from '@/constants/endpoints';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 
 import type {
   Analysis,
@@ -78,13 +78,39 @@ export function getBlockAnalyses(
   signal?: AbortSignal,
 ) {
   return api
-    .get<{ analyses: AnalysisSummary[] } | AnalysisSummary[]>(
-      ENDPOINTS.blocks.vitamateAnalyses(blockId),
-      signal,
-    )
-    .then((data) => {
-      // 감싸는 키가 확정 전이라 배열·객체 두 모양을 모두 받는다.
-      if (Array.isArray(data)) return data;
-      return data?.analyses ?? [];
-    });
+    .get<unknown>(ENDPOINTS.blocks.vitamateAnalyses(blockId), signal)
+    .then(readAnalysisList);
+}
+
+// 목록 한 줄인지 — 감싸는 키를 이름이 아니라 내용으로 알아본다.
+function isAnalysisSummary(value: unknown) {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { analysisId?: unknown }).analysisId === 'number'
+  );
+}
+
+// 감싸는 키가 확정 전이라 키 이름을 믿지 않고 응답에서 배열을 찾아낸다 (API.md 78번).
+// 모양을 못 알아보면 빈 목록이 아니라 오류로 올린다 — 이력이 있는데 분석 없음 으로 보이면
+// 사용자가 같은 분석을 또 실행한다.
+function readAnalysisList(data: unknown): AnalysisSummary[] {
+  // 이력이 없을 때 data 를 비워 보내는 경우 — 이건 진짜 "없음" 이다.
+  if (data === null || data === undefined) return [];
+  if (Array.isArray(data)) return data as AnalysisSummary[];
+
+  if (typeof data === 'object') {
+    const values = Object.values(data as Record<string, unknown>);
+    // 빈 객체도 "없음" 으로 본다 — 담을 배열조차 없는 응답이다.
+    if (values.length === 0) return [];
+
+    const found = values.find(
+      (value): value is AnalysisSummary[] =>
+        Array.isArray(value) &&
+        (value.length === 0 || isAnalysisSummary(value[0])),
+    );
+    if (found) return found;
+  }
+
+  throw new ApiError(200, '분석 이력 응답 형식을 알 수 없습니다.');
 }
