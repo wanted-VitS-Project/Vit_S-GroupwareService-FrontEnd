@@ -260,7 +260,14 @@ function Loaded({
               <p className="mt-0.5 text-caption break-keep text-text-secondary">
                 {revision.title || detail.title || '제목 없음'}
               </p>
-              <p className="mt-1 line-clamp-3 text-caption break-keep text-text-secondary">
+            </div>
+
+            {/* 내용은 줄이지 않는다. 잘라 두면 무엇을 결재하는지 블록에서 알 수 없다 */}
+            <div>
+              <p className="text-caption font-semibold text-text-primary">
+                결재 내용
+              </p>
+              <p className="mt-0.5 text-caption break-keep whitespace-pre-line text-text-secondary">
                 {revision.content || detail.content || '내용 없음'}
               </p>
             </div>
@@ -304,13 +311,6 @@ function Loaded({
               >
                 {isBusy ? '준비 중…' : '수정'}
               </button>
-            )}
-
-            {/* 완료는 표시일 뿐이라 초점이 잡히는 버튼으로 두지 않는다 */}
-            {isCompleted && (
-              <p className="btn btn-md btn-primary w-full cursor-default">
-                결재 승인 확인
-              </p>
             )}
           </>
         )}

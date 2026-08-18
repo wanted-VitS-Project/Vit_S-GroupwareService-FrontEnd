@@ -47,8 +47,10 @@ export interface SettlementFields {
   plannedAmount: number;
   /** 회차별 정산 예정 세금 금액 */
   plannedTaxAmount: number;
-  /** yyyy-MM-dd */
+  /** 입출금 기한. yyyy-MM-dd */
   plannedDate: string;
+  /** 세금계산서 기한. 면세처럼 계산서를 받지 않는 회차면 null 로 보낸다 */
+  taxInvoiceDueDate: string | null;
   /** 돈을 보내는 쪽의 이름. 계좌 정보는 반대로 받는 쪽 것이다 */
   traderName: string;
   bankName?: string;
@@ -97,6 +99,8 @@ export interface SettlementBlockDetail {
   status: SettlementStatus | null;
   /** 아직 작성하지 않았으면 null */
   item: SettlementItem | null;
+  /** 세금계산서가 연결됐는지. 옛 응답이라 값이 없으면 null 이다 */
+  isTaxInvoiceLinked: boolean | null;
   /** 낙관적 락 버전. 블록 자체의 version 과는 다른 값이다 */
   version?: number;
 }
@@ -144,9 +148,20 @@ export function readSettlementBlockDetail(
     status: readStatus(source.status),
     // 아직 아무것도 작성하지 않았으면 값이 없다 — 그 자체가 정상이다
     item: readItem(source),
+    isTaxInvoiceLinked: readTaxInvoiceLinked(source),
     // 작성 전에도 온다 — 첫 저장도 낙관적 락을 탄다
     version: readNumber(source.version) ?? undefined,
   };
+}
+
+/**
+ * 세금계산서 연결 여부. 작성 전에도 false 로 온다.
+ * 값이 없는 옛 응답은 null 로 둬 화면이 배지를 그리지 않게 한다.
+ */
+function readTaxInvoiceLinked(source: Record<string, unknown>): boolean | null {
+  return typeof source.taxInvoiceLinked === 'boolean'
+    ? source.taxInvoiceLinked
+    : null;
 }
 
 function readType(value: unknown): SettlementType | null {
@@ -192,6 +207,8 @@ function readItem(source: Record<string, unknown>): SettlementItem | null {
     totalAmount: readNumber(source.totalAmount) ?? 0,
     plannedTaxAmount: readNumber(source.plannedTaxAmount) ?? 0,
     plannedDate: readText(source.plannedDate) ?? '',
+    // 면세 회차는 기한이 없다 — 값이 없는 것과 잘못된 것을 똑같이 null 로 둔다
+    taxInvoiceDueDate: readText(source.taxInvoiceDueDate),
     traderName: readText(source.traderName) ?? '',
     // 계좌 3종은 입금이면 아예 없다 — 없는 것과 잘못된 것을 똑같이 `undefined` 로 둔다
     bankName: readText(source.bankName) ?? undefined,
@@ -217,6 +234,8 @@ export interface SettlementFormValues {
   plannedAmount: string;
   plannedTaxAmount: string;
   plannedDate: string;
+  /** 비워 두면 세금계산서를 받지 않는 회차로 보고 null 을 보낸다 */
+  taxInvoiceDueDate: string;
   traderName: string;
   bankName: string;
   accountNumber: string;

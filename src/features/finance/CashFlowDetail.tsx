@@ -13,7 +13,7 @@ import { messageOf } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import { useModal } from '@/lib/useModal';
 
-import { deleteCashFlows, getCashFlows, unmatchCashFlow } from './api';
+import { deleteCashFlows, findCashFlow, unmatchCashFlow } from './api';
 import CashFlowFormModal from './CashFlowFormModal';
 import CashFlowMatchModal from './CashFlowMatchModal';
 import {
@@ -61,12 +61,8 @@ export default function CashFlowDetail({ cashFlowId }: { cashFlowId: number }) {
     const controller = new AbortController();
     const { signal } = controller;
 
-    getCashFlows({}, signal)
-      .then((data) => {
-        const found = data.cashFlows.find(
-          (item) => item.cashFlowId === cashFlowId,
-        );
-
+    findCashFlow(cashFlowId, signal)
+      .then((found) => {
         setResult(
           found
             ? { key: requestKey, row: found }

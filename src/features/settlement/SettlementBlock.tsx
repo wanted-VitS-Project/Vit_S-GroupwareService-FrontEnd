@@ -115,6 +115,11 @@ function Loaded({
         <Row label="이번 회차 예정 금액" value={money(item?.plannedAmount)} />
         <Row label="예정 세금" value={money(item?.plannedTaxAmount)} />
         <Row label="입출금 기한" value={formatDate(item?.plannedDate) || '—'} />
+        {/* 면세 회차는 기한이 없다. 값이 없으면 받지 않는 회차라는 뜻이다 */}
+        <Row
+          label="세금계산서 기한"
+          value={formatDate(item?.taxInvoiceDueDate) || '없음'}
+        />
         {/* 돈을 보내는 쪽. 입금이면 상대 클라이언트, 출금이면 우리 회사다 */}
         <Row label={TRADER_LABEL} value={item?.traderName ?? '—'} />
 
@@ -137,7 +142,16 @@ function Loaded({
           value={formatDateTime(item?.actualDate) || '—'}
         />
         {/* 상태는 작성 전에도 온다. 저장한 값이 있으면 그쪽이 최신이다 */}
-        <Row label="정산 상태" value={statusLabel(item?.status ?? status)} />
+        <Row
+          label="정산 상태"
+          value={statusLabel(item?.status ?? status)}
+          trailing={
+            // 작성 전에는 다른 칸이 모두 비어 있어 배지만 홀로 뜨지 않게 한다
+            item ? (
+              <TaxInvoiceBadge isLinked={detail.isTaxInvoiceLinked} />
+            ) : null
+          }
+        />
       </dl>
 
       <Progress ratio={item?.paidAmountRatio ?? 0} />
@@ -185,14 +199,42 @@ function Loaded({
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({
+  label,
+  value,
+  trailing,
+}: {
+  label: string;
+  value: string;
+  /** 값 오른쪽에 붙는 배지. 없으면 값만 그린다 */
+  trailing?: React.ReactNode;
+}) {
   return (
     <div className="flex items-baseline justify-between gap-2">
       <dt className="shrink-0 text-caption text-text-secondary">{label}</dt>
-      <dd className="min-w-0 truncate text-caption font-medium text-text-primary">
-        {value}
+      <dd className="flex min-w-0 items-center gap-1.5">
+        <span className="min-w-0 truncate text-caption font-medium text-text-primary">
+          {value}
+        </span>
+        {trailing}
       </dd>
     </div>
+  );
+}
+
+/**
+ * 세금계산서 연결 여부. 연결과 미연결은 다음에 할 일이 달라 색으로 가른다.
+ * 값을 받지 못한 옛 응답에서는 그리지 않는다. 미연결로 단정할 수 없다.
+ */
+function TaxInvoiceBadge({ isLinked }: { isLinked: boolean | null }) {
+  if (isLinked === null) return null;
+
+  return (
+    <span
+      className={`badge shrink-0 ${isLinked ? 'badge-green' : 'badge-gray'}`}
+    >
+      {isLinked ? '계산서 연결' : '계산서 미연결'}
+    </span>
   );
 }
 

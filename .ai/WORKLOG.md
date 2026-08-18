@@ -6,6 +6,50 @@
 
 ---
 
+## [2026-08-18] 정산 세금계산서 기한 · 정산 현황 태그 · 재무 목록 페이징 ✅
+
+브랜치: `feat/settlement-tax-due` · 백엔드 스웨거(`/v3/api-docs`) 대조
+
+정산 블록에 세금계산서 기한 · 연결 여부가 추가되고, 정산 현황의 `summary` 문자열이
+지표 4개로 갈렸다. 그 과정에서 입출금 목록이 페이징인데 화면이 한 쪽만 받아
+총 건수가 어긋나던 것도 함께 고쳤다.
+
+### 변경 파일
+
+| 파일                                            | 변경                                                      |
+| ----------------------------------------------- | --------------------------------------------------------- |
+| `src/features/settlement/types.ts`              | 수정 — `taxInvoiceDueDate` · `taxInvoiceLinked` 읽기      |
+| `src/features/settlement/SettlementForm.tsx`    | 수정 — 세금계산서 기한 입력 (비우면 `null`)               |
+| `src/features/settlement/SettlementBlock.tsx`   | 수정 — 기한 행 · 정산 상태 옆 연결 배지                   |
+| `src/features/finance/{display,types}.ts`       | 수정 — `settlementProjectState` → `settlementProjectTags` |
+| `src/features/finance/SettlementStatusList.tsx` | 수정 — 상태 열을 태그 여러 개로, 열 폭 재분배             |
+| `src/features/finance/SettlementRoundPanel.tsx` | 수정 — 회차명 옆 입금 · 출금 배지, 머리글 `입출금 기한`   |
+| `src/features/finance/{api,types}.ts`           | 수정 — 입출금 목록 페이징 · `findCashFlow()`              |
+| `src/features/finance/CashFlowList.tsx`         | 수정 — 페이지네이션 · 총 건수 · 화면 필터 안내            |
+| `src/features/finance/CashFlowDetail.tsx`       | 수정 — 페이지를 넘겨 단건을 찾도록                        |
+| `src/features/finance/TaxInvoiceList.tsx`       | 수정 — 자체 `Pager` → 공용 `Pagination`, 총 건수          |
+| `src/features/approval/ApprovalBlock.tsx`       | 수정 — `결재 승인 확인` 제거, 제목 · 내용 분리            |
+
+### 주요 작업 내용
+
+- **세금계산서 기한** — 폼 입력 · 요약 카드 표시 · 저장까지 연결. 면세처럼 받지 않는 회차는 비워 두면 `null` 로 나간다
+- **세금계산서 연결 배지** — 블록 목록 `detail.taxInvoiceLinked` 를 정산 상태 옆에 배지로 붙인다. 작성 전 블록에는 그리지 않는다
+- **정산 현황 태그** — 미연결 2종 · 지연 2종을 태그 여러 개로 그린다. 손댈 것이 없으면 `정산 완료` · `기한 미입력` · `진행 중` 하나만 남는다
+- **재무 목록 페이징** — 입출금은 페이지네이션과 총 건수를 새로 붙이고, 세금계산서는 이전 · 다음뿐이던 자체 페이저를 공용 컴포넌트로 바꿨다
+- **결재 블록** — 완료 배너와 겹치던 `결재 승인 확인` 버튼을 없애고, 제목 · 내용을 나눠 내용이 잘리지 않게 했다
+
+### 트러블슈팅
+
+- **입출금 총 건수가 어긋났다** — 서버는 페이징인데 화면이 `cashFlows` 만 읽고 `page` · `size` 를 보내지 않았다. 기본 20건만 받아 놓고 목록 길이를 총 건수로 세고 있었다
+- **21번째 건부터 상세가 열리지 않았다** — 상세가 목록 전체를 받아 찾는 구조였는데 실제로는 한 쪽만 왔다. 세금계산서와 같은 방식(`findCashFlow`)으로 쪽을 넘겨 찾게 고쳤다
+
+### 부수 결정
+
+- **연결 배지는 작성 전 블록에 그리지 않는다** — `taxInvoiceLinked` 는 작성 전에도 `false` 로 오지만, 다른 칸이 모두 비어 있는 카드에 배지만 홀로 뜨면 어색하다
+- **구분 · 출처 필터는 현재 쪽 기준임을 화면에 적는다** — 서버에 그 조건이 없어 받아온 쪽에서만 걸러진다. 페이징이 붙으면서 오해할 여지가 커졌다
+
+---
+
 ## [2026-08-18] 직접 등록 공고 수정 · 알림 분류 정리 · 주석 정리 2차 ✅
 
 브랜치: `chore/comment-cleanup`
@@ -43,6 +87,7 @@
 ### 부수 결정
 
 - **시스템 칩은 화면에서 나눈다** — 서버 `category` 는 `notificationType` 접두어라 "결재 · 이슈가 아닌 나머지" 를 한 값으로 부를 수 없다. 시스템 칩만 조건 없이 받아 화면에서 고르고 쪽을 나눈다 (한 번에 100건)
+
 ## [2026-08-18] 프로젝트 이미지 모아보기 · 휴지통 페이지네이션 ✅
 
 이슈: #206 · API: `.ai/API.md` 107 · 109번에 `page` · `size` 추가 (2026-08-16)

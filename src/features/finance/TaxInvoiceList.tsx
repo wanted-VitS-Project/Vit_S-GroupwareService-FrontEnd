@@ -8,6 +8,7 @@ import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import Breadcrumb from '@/components/Breadcrumb';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
 import PageTitle from '@/components/PageTitle';
+import Pagination from '@/components/Pagination';
 import LoadingSpinner from '@/components/Spinner';
 import { notifyToast } from '@/components/Toast';
 import { messageOf } from '@/lib/api';
@@ -51,6 +52,8 @@ export default function TaxInvoiceList() {
   });
   const [rows, setRows] = useState<TaxInvoiceItem[] | null>(null);
   const [totalPages, setTotalPages] = useState(0);
+  /** 서버가 센 전체 건수. 목록 길이는 지금 쪽 분량이라 총 건수가 아니다 */
+  const [totalElements, setTotalElements] = useState(0);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
 
   /** 고른 줄 — 삭제 · 제외는 다건이다 */
@@ -71,6 +74,7 @@ export default function TaxInvoiceList() {
       .then((data) => {
         setRows(data.taxInvoices);
         setTotalPages(data.totalPages);
+        setTotalElements(data.totalElements);
         // 페이지가 바뀌면 지난 선택은 화면에 없다 — 남겨 두면 안 보이는 것이 지워진다
         setPicked(new Set());
         setError('');
@@ -209,6 +213,11 @@ export default function TaxInvoiceList() {
         onChange={patchQuery}
       />
 
+      {/* 서버가 센 전체 건수를 적는다. 목록 길이는 지금 쪽 분량이다 */}
+      <p className="mb-2 text-caption text-text-secondary">
+        총 {totalElements.toLocaleString('ko-KR')}건
+      </p>
+
       {picked.size > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-base border border-border-primary bg-blue-bg-soft px-5 py-3">
           <span className="text-caption font-semibold text-text-primary">
@@ -271,11 +280,13 @@ export default function TaxInvoiceList() {
       )}
 
       {totalPages > 1 && (
-        <Pager
-          page={page}
-          totalPages={totalPages}
-          onChange={(next) => setQuery((prev) => ({ ...prev, page: next }))}
-        />
+        <div className="mt-3 overflow-hidden rounded-base border border-border-default bg-bg-card">
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onChange={(next) => setQuery((prev) => ({ ...prev, page: next }))}
+          />
+        </div>
       )}
     </>
   );
@@ -492,41 +503,6 @@ function DeleteButton({
         />
       )}
     </>
-  );
-}
-
-/** 서버 페이징 — `page` 는 0부터다 */
-function Pager({
-  page,
-  totalPages,
-  onChange,
-}: {
-  page: number;
-  totalPages: number;
-  onChange: (page: number) => void;
-}) {
-  return (
-    <div className="mt-4 flex items-center justify-center gap-3">
-      <button
-        type="button"
-        disabled={page <= 0}
-        onClick={() => onChange(page - 1)}
-        className="btn btn-sm btn-gray-outlined"
-      >
-        이전
-      </button>
-      <span className="text-caption text-text-secondary">
-        {page + 1} / {totalPages}
-      </span>
-      <button
-        type="button"
-        disabled={page >= totalPages - 1}
-        onClick={() => onChange(page + 1)}
-        className="btn btn-sm btn-gray-outlined"
-      >
-        다음
-      </button>
-    </div>
   );
 }
 

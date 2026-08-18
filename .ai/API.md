@@ -3315,17 +3315,19 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 `type: "SETTLEMENT"` 인 블록의 `detail` 이다. **항목 필드를 평면으로** 담는다 (중첩 객체가 아니다).
 
-| 필드                                                                                            | 작성 전 | 설명                                          |
-| ----------------------------------------------------------------------------------------------- | ------- | --------------------------------------------- |
-| `settleId`                                                                                      | 값 있음 | 정산 블록 ID — 85 · 86번 경로에 쓴다          |
-| `status`                                                                                        | 값 있음 | 작성 전에도 `PENDING` 으로 온다               |
-| `createdAt`                                                                                     | 값 있음 | 블록이 만들어진 시각                          |
-| `paidAmountRatio`                                                                               | `0.0`   | 금액 기준 진행률                              |
-| `version`                                                                                       | 값 있음 | **낙관적 락 버전** — 저장(86번)에 실어 보낸다 |
-| `type`                                                                                          | `null`  | 작성해야 `INCOME` · `OUTCOME` 이 정해진다     |
-| `roundNo` · `totalAmount` · `plannedAmount` · `plannedTaxAmount` · `plannedDate` · `traderName` | `null`  | 작성한 값                                     |
-| `bankName` · `accountNumber` · `accountHolder`                                                  | `null`  | 출금일 때만 채워진다 (계좌번호는 마스킹)      |
-| `actualAmount` · `actualDate`                                                                   | `null`  | 재무팀이 나중에 채운다                        |
+| 필드                                                                                            | 작성 전 | 설명                                                                 |
+| ----------------------------------------------------------------------------------------------- | ------- | -------------------------------------------------------------------- |
+| `settleId`                                                                                      | 값 있음 | 정산 블록 ID — 85 · 86번 경로에 쓴다                                 |
+| `status`                                                                                        | 값 있음 | 작성 전에도 `PENDING` 으로 온다                                      |
+| `createdAt`                                                                                     | 값 있음 | 블록이 만들어진 시각                                                 |
+| `paidAmountRatio`                                                                               | `0.0`   | 금액 기준 진행률                                                     |
+| `version`                                                                                       | 값 있음 | **낙관적 락 버전** — 저장(86번)에 실어 보낸다                        |
+| `type`                                                                                          | `null`  | 작성해야 `INCOME` · `OUTCOME` 이 정해진다                            |
+| `roundNo` · `totalAmount` · `plannedAmount` · `plannedTaxAmount` · `plannedDate` · `traderName` | `null`  | 작성한 값                                                            |
+| `taxInvoiceDueDate`                                                                             | `null`  | 세금계산서 기한 (2026-08-18 신설)                                    |
+| `taxInvoiceLinked`                                                                              | `false` | 세금계산서 연결 여부 (2026-08-18 신설) — 작성 전에도 `false` 로 온다 |
+| `bankName` · `accountNumber` · `accountHolder`                                                  | `null`  | 출금일 때만 채워진다 (계좌번호는 마스킹)                             |
+| `actualAmount` · `actualDate`                                                                   | `null`  | 재무팀이 나중에 채운다                                               |
 
 > ⚠️ **작성 전에도 `detail` 은 온다.** 항목 필드만 `null` 이라 `roundNo` · `plannedAmount` 가
 > 둘 다 숫자일 때만 '작성됨'으로 본다 (`readSettlementBlockDetail`).
@@ -3380,32 +3382,34 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 **요청 body**
 
-| 필드               | 타입      | 필수                | 설명                                                                         |
-| ------------------ | --------- | ------------------- | ---------------------------------------------------------------------------- |
-| `roundNo`          | `number`  | ✅                  | 정산 회차                                                                    |
-| `totalAmount`      | `number`  | ✅                  | 프로젝트 정산 예정 총 금액                                                   |
-| `plannedAmount`    | `number`  | ✅                  | 회차별 정산 예정 금액                                                        |
-| `plannedTaxAmount` | `number`  | ✅                  | 회차별 정산 예정 세금 금액                                                   |
-| `plannedDate`      | `string`  | ✅                  | `yyyy-MM-dd`                                                                 |
-| `traderName`       | `string`  | ✅                  | **돈을 보내는 쪽** — `INCOME` 은 상대 클라이언트, `OUTCOME` 은 **우리 회사** |
-| `bankName`         | `string`  | **`OUTCOME` 만** ✅ | 외주 업체 은행명                                                             |
-| `accountNumber`    | `string`  | **`OUTCOME` 만** ✅ | **하이픈 · 공백 없이**                                                       |
-| `accountHolder`    | `string`  | **`OUTCOME` 만** ✅ | 외주 업체 예금주                                                             |
-| `version`          | `number`  | ✅                  | 블록 목록(10번) `detail.version` 그대로 (2026-08-12 낙관적 락)               |
-| `overwrite`        | `boolean` | —                   | `true` 면 충돌을 무시하고 덮어쓴다                                           |
+| 필드                | 타입             | 필수                | 설명                                                                         |
+| ------------------- | ---------------- | ------------------- | ---------------------------------------------------------------------------- |
+| `roundNo`           | `number`         | ✅                  | 정산 회차                                                                    |
+| `totalAmount`       | `number`         | ✅                  | 프로젝트 정산 예정 총 금액                                                   |
+| `plannedAmount`     | `number`         | ✅                  | 회차별 정산 예정 금액                                                        |
+| `plannedTaxAmount`  | `number`         | ✅                  | 회차별 정산 예정 세금 금액                                                   |
+| `plannedDate`       | `string`         | ✅                  | **입출금 기한** (`yyyy-MM-dd`) — 화면 라벨이 `입출금 기한` 이다              |
+| `taxInvoiceDueDate` | `string \| null` | —                   | **세금계산서 기한** (2026-08-18 신설). 면세처럼 받지 않는 회차면 `null`      |
+| `traderName`        | `string`         | ✅                  | **돈을 보내는 쪽** — `INCOME` 은 상대 클라이언트, `OUTCOME` 은 **우리 회사** |
+| `bankName`          | `string`         | **`OUTCOME` 만** ✅ | 외주 업체 은행명                                                             |
+| `accountNumber`     | `string`         | **`OUTCOME` 만** ✅ | **하이픈 · 공백 없이**                                                       |
+| `accountHolder`     | `string`         | **`OUTCOME` 만** ✅ | 외주 업체 예금주                                                             |
+| `version`           | `number`         | ✅                  | 블록 목록(10번) `detail.version` 그대로 (2026-08-12 낙관적 락)               |
+| `overwrite`         | `boolean`        | —                   | `true` 면 충돌을 무시하고 덮어쓴다                                           |
 
 **응답 data** — 요청 필드에 아래가 더 붙는다.
 
-| 필드              | 타입             | 설명                                                               |
-| ----------------- | ---------------- | ------------------------------------------------------------------ |
-| `settleId`        | `number`         | 정산 블록 ID                                                       |
-| `accountNumber`   | `string`         | ⚠️ **마스킹**된다 (`100******444`) — 원본은 85번에서만             |
-| `actualAmount`    | `number \| null` | 재무팀이 채우는 실제 금액. 작성 직후 `null`                        |
-| `actualDate`      | `string \| null` | 실제 입출금 일시. 작성 직후 `null`                                 |
-| `status`          | `string`         | `PENDING`(미연결) · `WAITING`(정산 대기) · `PARTIAL` · `COMPLETED` |
-| `paidAmountRatio` | `number`         | 금액 기준 진행률. 작성 직후 `0`. ❗ **단위 확인 필요**             |
-| `createdAt`       | `string`         | 내용이 생성된 일시                                                 |
-| `version`         | `number`         | **저장 후의 새 값** — 화면에 꽂아야 다음 저장이 통과한다           |
+| 필드                | 타입             | 설명                                                               |
+| ------------------- | ---------------- | ------------------------------------------------------------------ |
+| `settleId`          | `number`         | 정산 블록 ID                                                       |
+| `taxInvoiceDueDate` | `string \| null` | 세금계산서 기한. 받지 않는 회차면 `null`                           |
+| `accountNumber`     | `string`         | ⚠️ **마스킹**된다 (`100******444`) — 원본은 85번에서만             |
+| `actualAmount`      | `number \| null` | 재무팀이 채우는 실제 금액. 작성 직후 `null`                        |
+| `actualDate`        | `string \| null` | 실제 입출금 일시. 작성 직후 `null`                                 |
+| `status`            | `string`         | `PENDING`(미연결) · `WAITING`(정산 대기) · `PARTIAL` · `COMPLETED` |
+| `paidAmountRatio`   | `number`         | 금액 기준 진행률. 작성 직후 `0`. ❗ **단위 확인 필요**             |
+| `createdAt`         | `string`         | 내용이 생성된 일시                                                 |
+| `version`           | `number`         | **저장 후의 새 값** — 화면에 꽂아야 다음 저장이 통과한다           |
 
 | status | code                          | 화면 처리                                                               |
 | ------ | ----------------------------- | ----------------------------------------------------------------------- |
@@ -4322,8 +4326,8 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 **에러**
 
-| 코드  | code      | 설명                                                                |
-| ----- | --------- | ------------------------------------------------------------------- |
+| 코드  | code      | 설명                                                               |
+| ----- | --------- | ------------------------------------------------------------------ |
 | `400` | `IMG-012` | 페이지 조회 조건이 올바르지 않습니다 (`page<0` · `size≤0 \| >100`) |
 
 > ⚠️ 66 · 71번과 달리 `orderIndex` 가 **없다** — 순서 표기는 화면이 하지 않는다.
@@ -4416,14 +4420,14 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 **`images[]`**
 
-| 필드           | 타입      | 설명                                     |
-| -------------- | --------- | ---------------------------------------- |
-| `imgId`        | `number`  | 이미지 ID                                |
-| `originalName` | `string`  | 원본 파일명                              |
-| `imageUrl`     | `string`  | 저장소 이미지 URL                        |
-| `caption`      | `string`  | 캡션 (없으면 빈 문자열)                  |
-| `deletedAt`    | `string`  | 삭제 일시                                |
-| `blockDeleted` | `boolean` | 상위 블록의 삭제 여부                    |
+| 필드           | 타입      | 설명                    |
+| -------------- | --------- | ----------------------- |
+| `imgId`        | `number`  | 이미지 ID               |
+| `originalName` | `string`  | 원본 파일명             |
+| `imageUrl`     | `string`  | 저장소 이미지 URL       |
+| `caption`      | `string`  | 캡션 (없으면 빈 문자열) |
+| `deletedAt`    | `string`  | 삭제 일시               |
+| `blockDeleted` | `boolean` | 상위 블록의 삭제 여부   |
 
 **에러** — 107번과 같다 (`400 IMG-012`).
 
@@ -5880,7 +5884,7 @@ data: {
 | Method   | Path                                                | 용도                            |
 | -------- | --------------------------------------------------- | ------------------------------- |
 | `GET`    | `/finance/summary`                                  | 허브 3개 항목 수치              |
-| `GET`    | `/finance/cash-flows`                               | 목록 (**페이징 없음**)          |
+| `GET`    | `/finance/cash-flows`                               | 목록 (페이징 있음)              |
 | `GET`    | `/finance/cash-flows/filters`                       | 프로젝트 필터 옵션              |
 | `POST`   | `/finance/cash-flows`                               | 직접 등록                       |
 | `PATCH`  | `/finance/cash-flows/{cashFlowId}`                  | 수정                            |
@@ -5919,10 +5923,11 @@ data: {
 | `isExcluded`                                           | `boolean`                                | 연결 대상 제외                                   |
 | `linkStatus`                                           | `UNLINKED`·`LINKED`·`LINK_BLOCK_DELETED` | 2026-08-10 추가                                  |
 
-**요청 Query** — `startDate` · `endDate` · `unlinked` · `projectId` · `keyword`
+**요청 Query** — `startDate` · `endDate` · `unlinked` · `projectId` · `keyword` · `page`(0-base) · `size`(기본 20 · 최대 100) · `sort`
 
-> ❗ **페이징이 없다.** `{ "cashFlows": [...] }` 배열 하나가 통째로 온다 — 화면에 페이지네이션을 붙이지 않는다.
-> ❗ **구분 · 출처 필터는 서버에 없다.** 화면에서 거른다.
+> ✅ **페이징이 있다** (2026-08-18 확인). 응답이 `{ page, size, totalElements, totalPages, cashFlows[] }` 다 —
+> 예전 기록(`배열 하나가 통째로 온다`)은 틀렸다. 총 건수는 목록 길이가 아니라 `totalElements` 를 쓴다.
+> ❗ **구분 · 출처 필터는 서버에 없다.** 화면에서 거르므로 **지금 페이지 안에서만** 걸러진다 — 화면이 그 사실을 적는다.
 > ❗ **`bankName` 이 목록에 없다** (단건 조회 API 도 없다). 수정 폼은 `bankTxnId` 앞부분으로 되읽는다 — 필드가 추가되면 `display.ts` 의 `bankNameFromTxnId` 를 지운다.
 
 ### 정산 현황 (2026-08-17 연동)
@@ -5961,9 +5966,10 @@ data: {
 
 회차 상태는 정산 블록과 같은 4값이다 — `PENDING`(미연결) · `WAITING`(정산 대기) · `PARTIAL`(부분 정산) · `COMPLETED`(정산 완료).
 
-> ⚠️ **프로젝트 단위 상태 값은 없다** (2026-08-17 팀 확인). 화면이 지연 일수 · 미연결 건수 · 회차 수로
-> `입금 대기 N일` · `계산서 미발행 N일` · `예정일 미입력` · `정산 완료` · `진행 중` 을 판정한다
-> (`features/finance/display.ts` → `settlementProjectState`). 서버 정의가 생기면 그 함수를 지운다.
+> ⚠️ **프로젝트 단위 상태 값은 없다** (2026-08-17 팀 확인, 2026-08-18 `summary` 문자열 제거).
+> 화면이 미연결 2종 · 지연 2종 네 값을 **태그 여러 개**로 그린다 —
+> `입출금 지연 N일` · `계산서 지연 N일` · `입출금 미연결 N` · `계산서 미연결 N`, 손댈 것이 없으면
+> `정산 완료` · `기한 미입력` · `진행 중` 하나만 남는다 (`features/finance/display.ts` → `settlementProjectTags`).
 > ⚠️ **계약 금액 · 미계획 금액 필드가 없다** — 와이어프레임의 `미계획 N원` 배지는 계산 근거가 없어 뺐다.
 > ⚠️ 회차의 **계좌 정보는 출금에만** 있다 — 표의 열로 두지 않고 `계좌 보기` 로 펼친다.
 > 🔒 **계좌번호는 마스킹 없이 원본으로 온다** (2026-08-17 백엔드 PR #422). 이 API 는 `FINANCE`

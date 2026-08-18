@@ -3,7 +3,10 @@
 import { useEffect, useState } from 'react';
 
 import LoadingSpinner from '@/components/Spinner';
-import { SETTLEMENT_STATUS_LABELS } from '@/features/settlement/types';
+import {
+  SETTLEMENT_STATUS_LABELS,
+  SETTLEMENT_TYPE_LABELS,
+} from '@/features/settlement/types';
 import type { SettlementStatus } from '@/features/settlement/types';
 import { messageOf } from '@/lib/api';
 import { formatDate, formatDateTime } from '@/lib/format';
@@ -110,7 +113,7 @@ export default function SettlementRoundPanel({
               <tr>
                 <Th className="w-12">회차</Th>
                 <Th>회차명</Th>
-                <Th>예정일</Th>
+                <Th>입출금 기한</Th>
                 {/* 왼쪽 정렬 열을 금액 앞으로 모은다 — 금액 3열이 붙어야 자릿수가 줄을 맞춘다 */}
                 <Th>매칭 처리자</Th>
                 <Th align="right">예정 금액</Th>
@@ -160,6 +163,8 @@ function RoundRows({
       <tr className="border-t border-border-default">
         <Td className="text-text-secondary">{round.roundNo ?? '—'}</Td>
         <Td className="font-medium text-text-primary">
+          {/* 입금 회차와 출금 회차가 한 표에 섞여 있어 구분을 이름 옆에 붙인다 */}
+          <PaidTypeBadge paidType={round.paidType} />
           {round.roundName ?? '이름 없음'}
         </Td>
         <Td className="whitespace-nowrap text-text-secondary">
@@ -231,6 +236,19 @@ function RoundRows({
         </tr>
       )}
     </>
+  );
+}
+
+/** 회차의 입출금 구분. 작성 전이면 타입이 정해지지 않아 그리지 않는다 */
+function PaidTypeBadge({ paidType }: { paidType: string | null }) {
+  if (paidType !== 'INCOME' && paidType !== 'OUTCOME') return null;
+
+  return (
+    <span
+      className={`badge mr-1.5 ${paidType === 'INCOME' ? 'badge-blue' : 'badge-red'}`}
+    >
+      {SETTLEMENT_TYPE_LABELS[paidType]}
+    </span>
   );
 }
 

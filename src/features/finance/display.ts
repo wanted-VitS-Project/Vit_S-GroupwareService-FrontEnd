@@ -3,7 +3,7 @@
 import type {
   CashFlowLinkStatus,
   CashFlowType,
-  SettlementProjectState,
+  SettlementProjectTag,
 } from './types';
 
 /** 금액 표기. 통장 금액이라 원 단위 그대로 쓴다 */
@@ -47,54 +47,64 @@ export const CASH_FLOW_LINK_BADGE: Record<CashFlowLinkStatus, string> = {
 /* ─────────────── 정산 현황 ─────────────── */
 
 /**
- * 프로젝트 줄의 상태를 정한다. 서버 값이 아니라 화면이 계산한다.
- * 급한 것부터 보므로 검사 순서 자체가 우선순위다.
+ * 프로젝트 줄에 세우는 태그. 서버 값이 아니라 미연결 · 지연 4개 지표로 화면이 만든다.
+ * 급한 것부터 왼쪽에 오고, 손댈 것이 없으면 진행 상태 한 줄만 남는다.
  */
-export function settlementProjectState(row: {
+export function settlementProjectTags(row: {
   totalRoundCount: number;
   completedRoundCount: number;
+  paymentUnlinkedCount: number;
+  taxInvoiceUnlinkedCount: number;
   paymentOverdueDays: number;
   taxInvoiceOverdueDays: number;
   nextPlannedDate: string | null;
-}): SettlementProjectState {
-  if (row.totalRoundCount === 0) return 'NONE';
-  if (row.paymentOverdueDays > 0) return 'PAYMENT_OVERDUE';
-  if (row.taxInvoiceOverdueDays > 0) return 'TAX_OVERDUE';
-  if (row.completedRoundCount >= row.totalRoundCount) return 'DONE';
-  if (row.nextPlannedDate === null) return 'NO_PLANNED_DATE';
-  return 'IN_PROGRESS';
-}
-
-export const SETTLEMENT_PROJECT_STATE_BADGE: Record<
-  SettlementProjectState,
-  string
-> = {
-  PAYMENT_OVERDUE: 'bg-red-bg-soft text-text-danger',
-  TAX_OVERDUE: 'bg-yellow-bg-soft text-yellow-text',
-  NO_PLANNED_DATE: 'bg-bg-hover text-text-secondary',
-  DONE: 'bg-green-bg text-green-text',
-  IN_PROGRESS: 'bg-blue-bg-soft text-text-primary-blue',
-  NONE: 'bg-bg-hover text-text-secondary',
-};
-
-/** 상태 라벨. 지연 일수는 상태에 따라 문구에 들어간다 */
-export function settlementProjectStateLabel(
-  state: SettlementProjectState,
-  row: { paymentOverdueDays: number; taxInvoiceOverdueDays: number },
-) {
-  switch (state) {
-    case 'PAYMENT_OVERDUE':
-      return `입금 대기 ${row.paymentOverdueDays}일`;
-    case 'TAX_OVERDUE':
-      return `계산서 미발행 ${row.taxInvoiceOverdueDays}일`;
-    case 'NO_PLANNED_DATE':
-      return '예정일 미입력';
-    case 'DONE':
-      return '정산 완료';
-    case 'IN_PROGRESS':
-      return '진행 중';
-    /* default 를 두지 않아야 상태가 늘 때 타입 검사가 잡는다 */
-    case 'NONE':
-      return '정산 없음';
+}): SettlementProjectTag[] {
+  if (row.totalRoundCount === 0) {
+    return [{ key: 'none', label: '정산 없음', className: 'badge-gray' }];
   }
+
+  const tags: SettlementProjectTag[] = [];
+
+  // 기한이 지난 것부터 본다. 미연결 건수보다 먼저 손대야 하는 값이다
+  if (row.paymentOverdueDays > 0) {
+    tags.push({
+      key: 'paymentOverdue',
+      label: `입출금 지연 ${row.paymentOverdueDays}일`,
+      className: 'badge-red',
+    });
+  }
+  if (row.taxInvoiceOverdueDays > 0) {
+    tags.push({
+      key: 'taxOverdue',
+      label: `계산서 지연 ${row.taxInvoiceOverdueDays}일`,
+      className: 'badge-yellow',
+    });
+  }
+
+  // 지연은 아니지만 아직 붙이지 않은 건수. 지연 태그와 함께 보여야 규모를 안다
+  if (row.paymentUnlinkedCount > 0) {
+    tags.push({
+      key: 'paymentUnlinked',
+      label: `입출금 미연결 ${row.paymentUnlinkedCount}`,
+      className: 'badge-gray',
+    });
+  }
+  if (row.taxInvoiceUnlinkedCount > 0) {
+    tags.push({
+      key: 'taxUnlinked',
+      label: `계산서 미연결 ${row.taxInvoiceUnlinkedCount}`,
+      className: 'badge-gray',
+    });
+  }
+
+  if (tags.length > 0) return tags;
+
+  if (row.completedRoundCount >= row.totalRoundCount) {
+    return [{ key: 'done', label: '정산 완료', className: 'badge-green' }];
+  }
+  if (row.nextPlannedDate === null) {
+    return [{ key: 'noDate', label: '기한 미입력', className: 'badge-gray' }];
+  }
+
+  return [{ key: 'progress', label: '진행 중', className: 'badge-blue' }];
 }

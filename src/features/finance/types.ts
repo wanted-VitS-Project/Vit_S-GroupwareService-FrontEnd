@@ -95,6 +95,10 @@ export interface CashFlowItem {
 
 /** 목록 응답. 페이징 없이 배열 하나가 온다 */
 export interface CashFlowListResponse {
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
   cashFlows: CashFlowItem[];
 }
 
@@ -112,6 +116,10 @@ export interface CashFlowListQuery {
   projectId?: number;
   /** 적요 또는 입금자명 검색 */
   keyword?: string;
+  /** 0부터 센다 */
+  page?: number;
+  /** 기본 20 · 최대 100 */
+  size?: number;
 }
 
 /** 직접 등록 요청. 저장되면 출처가 MANUAL 이 된다 */
@@ -418,14 +426,13 @@ export interface SettlementProjectQuery {
   sort?: SettlementSort;
 }
 
-/** 프로젝트 줄에 세우는 상태. 서버 값이 아니라 화면이 계산한다 */
-export type SettlementProjectState =
-  | 'PAYMENT_OVERDUE'
-  | 'TAX_OVERDUE'
-  | 'NO_PLANNED_DATE'
-  | 'DONE'
-  | 'IN_PROGRESS'
-  | 'NONE';
+/** 프로젝트 줄에 세우는 태그 하나. 서버 값이 아니라 화면이 4개 지표로 만든다 */
+export interface SettlementProjectTag {
+  key: string;
+  label: string;
+  /** globals.css 의 공용 .badge-* 색 */
+  className: string;
+}
 
 /** 정산 현황 한 줄. 프로젝트 하나의 집계다 */
 export interface SettlementProjectItem {

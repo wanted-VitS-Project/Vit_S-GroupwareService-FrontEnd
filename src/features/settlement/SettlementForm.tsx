@@ -35,6 +35,7 @@ const EMPTY_FORM: SettlementFormValues = {
   plannedAmount: '',
   plannedTaxAmount: '',
   plannedDate: '',
+  taxInvoiceDueDate: '',
   traderName: '',
   bankName: '',
   accountNumber: '',
@@ -259,6 +260,14 @@ export default function SettlementForm({
         value={form.plannedDate}
         onChange={(value) => change('plannedDate', value)}
       />
+      {/* 면세처럼 계산서를 받지 않는 회차가 있어 비워 둘 수 있다 */}
+      <Field
+        label="세금계산서 기한"
+        type="date"
+        hint="받지 않는 회차면 비워둡니다"
+        value={form.taxInvoiceDueDate}
+        onChange={(value) => change('taxInvoiceDueDate', value)}
+      />
       <Field
         label={TRADER_LABEL}
         type="text"
@@ -348,17 +357,19 @@ export default function SettlementForm({
   );
 }
 
-/** 컬럼 옆 안내 문구. 값이 없으면 줄 자체를 접는다 */
+/** 라벨 + 입력 한 줄. hint 는 값을 비워도 되는 칸에만 붙인다 */
 function Field({
   label,
   type = 'number',
   placeholder,
+  hint,
   value,
   onChange,
 }: {
   label: string;
   type?: 'number' | 'text' | 'date';
   placeholder?: string;
+  hint?: string;
   value: string;
   onChange: (value: string) => void;
 }) {
@@ -376,6 +387,11 @@ function Field({
           onChange={(event) => onChange(event.target.value)}
           className={FIELD_CLASS}
         />
+        {hint && (
+          <span className="mt-0.5 block text-micro break-keep text-text-secondary">
+            {hint}
+          </span>
+        )}
       </span>
     </label>
   );
@@ -395,6 +411,7 @@ function toForm(item: SettlementItem | null): SettlementFormValues {
     plannedAmount: String(item.plannedAmount),
     plannedTaxAmount: String(item.plannedTaxAmount),
     plannedDate: item.plannedDate,
+    taxInvoiceDueDate: item.taxInvoiceDueDate ?? '',
     traderName: item.traderName,
     bankName: item.bankName ?? '',
     // 마스킹된 값은 채우지 않는다. 원본은 수정 화면 조회로 받아 덮어쓴다
@@ -413,6 +430,8 @@ function toFields(
     plannedAmount: Number(form.plannedAmount),
     plannedTaxAmount: Number(form.plannedTaxAmount),
     plannedDate: form.plannedDate,
+    // 빈 칸은 받지 않는 회차라는 뜻이라 null 로 보낸다
+    taxInvoiceDueDate: form.taxInvoiceDueDate.trim() || null,
     traderName: form.traderName.trim(),
   };
 
