@@ -9,7 +9,7 @@ interface SettingItem {
   icon: SettingIcon;
   label: string;
   description: string;
-  /** 없으면 화면이 아직 없는 항목 — '준비 중' 으로 비활성 표시한다 */
+  /** 없으면 화면이 아직 없는 항목. 준비 중 으로 비활성 표시한다 */
   href?: string;
 }
 
@@ -89,13 +89,8 @@ export default function Page() {
   return (
     <>
       {/*
-        보조 문구를 두지 않는다 — 여기가 **최상위 화면**이라 위에 얹을 상위 경로가 없다.
-        제목과 같은 말을 두 줄로 반복하면 브레드크럼처럼 보여 한 단계 위가 있는 줄 알게 된다.
-        (하위 화면은 `전사 관리 > 부서 관리` 처럼 상위를 가리키므로 그대로 둔다)
-      */}
-      {/*
-        구역 이름(`조직 · 인사`)이 설명 자리에 오므로 아래 여백을 그만큼만 준다 —
-        아래 `SECTIONS` 의 `h3` 이 설명과 같은 글자 크기 · 같은 간격을 이어받는다.
+        보조 문구를 두지 않는다. 여기가 최상위 화면이라 위에 얹을 상위 경로가 없다.
+        아래 여백은 구역 이름(조직 · 인사)이 설명 자리에 오는 만큼만 준다.
       */}
       <PageTitle variant="top" title="전사 관리" tightBottom />
 
@@ -136,7 +131,7 @@ function SettingRow({ item }: { item: SettingItem }) {
     </>
   );
 
-  // 아직 화면이 없는 항목은 링크로 만들지 않는다 — 404 로 보내는 것보다 정직하다
+  // 아직 화면이 없는 항목은 링크로 만들지 않는다. 404 로 보내는 것보다 정직하다
   if (!item.href) {
     return (
       <div className="flex items-center gap-4 px-5 py-4 opacity-60">
@@ -182,7 +177,7 @@ const ICON_PATHS: Record<SettingIcon, React.ReactNode> = {
   category: (
     <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
   ),
-  // 모서리 접힌 문서 — 프로젝트 화면 `문서함` 탭과 같은 그림이다
+  // 모서리 접힌 문서. 프로젝트 화면 문서함 탭과 같은 그림이다
   file: (
     <>
       <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />

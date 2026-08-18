@@ -17,11 +17,11 @@ interface RoleChangeModalProps {
   onSaved: () => void;
 }
 
-/** ADMIN 은 부여할 수 없다 — 선택지에 아예 넣지 않는다 (.ai/API.md 19) */
+/** ADMIN 은 부여할 수 없어 선택지에 아예 넣지 않는다 */
 const ROLE_OPTIONS: ManagedRole[] = ['MASTER', 'MEMBER'];
 
 /**
- * 전역 권한 변경 모달. (.ai/API.md 19)
+ * 전역 권한 변경 모달.
  * 자기 자신 · 시스템 계정은 대상이 아니라 상세 화면에서 미리 막는다.
  */
 export default function RoleChangeModal({
@@ -54,7 +54,7 @@ export default function RoleChangeModal({
     } catch (caught) {
       const code = caught instanceof ApiError ? caught.code : undefined;
 
-      // 계정이 사라졌다 — 상세를 다시 받아 현재 상태를 보여준다
+      // 계정이 사라졌다. 상세를 다시 받아 현재 상태를 보여준다
       if (code === ACCOUNT_CODES.notFound) {
         onSaved();
         onClose();

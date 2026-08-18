@@ -29,7 +29,10 @@ export function formatFileSize(sizeBytes: number) {
  *    (배지에 확장자 글자가 함께 있다).
  */
 const EXTENSION_STYLES: Record<string, { text: string; background: string }> = {
-  pdf: { text: 'var(--color-red-text)', background: 'var(--color-red-bg-soft)' },
+  pdf: {
+    text: 'var(--color-red-text)',
+    background: 'var(--color-red-bg-soft)',
+  },
   doc: {
     text: 'var(--color-blue-text)',
     background: 'var(--color-blue-bg-soft)',
@@ -39,7 +42,10 @@ const EXTENSION_STYLES: Record<string, { text: string; background: string }> = {
     background: 'var(--color-blue-bg-soft)',
   },
   xls: { text: 'var(--color-green-text)', background: 'var(--color-green-bg)' },
-  xlsx: { text: 'var(--color-green-text)', background: 'var(--color-green-bg)' },
+  xlsx: {
+    text: 'var(--color-green-text)',
+    background: 'var(--color-green-bg)',
+  },
   csv: { text: 'var(--color-green-text)', background: 'var(--color-green-bg)' },
   ppt: {
     text: 'var(--color-yellow-text)',

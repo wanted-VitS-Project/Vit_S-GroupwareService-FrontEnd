@@ -39,32 +39,27 @@ const STATUS_OPTIONS: ApprovalStatus[] = [
   'COMPLETED',
 ];
 
-/** 기간 필터. 값은 `오늘로부터 며칠 전` 이고 빈 값이면 전체 기간이다 */
+/** 기간 필터. 값은 '오늘로부터 며칠 전' 이고 빈 값이면 전체 기간이다 */
 const PERIOD_OPTIONS = [
   { value: '7', label: '최근 1주일' },
   { value: '30', label: '최근 1개월' },
   { value: '90', label: '최근 3개월' },
 ];
 
-/** URL 은 사용자가 손댈 수 있다 — 허용된 값이 아니면 필터가 없는 것으로 본다 */
+/** URL 값이 허용 목록에 없으면 필터가 없는 것으로 본다 */
 function pickOption<T extends string>(value: string | null, options: T[]) {
   return options.find((option) => option === value);
 }
 
-/** 음수 · 소수 · 문자열이 그대로 서버로 가면 400 이 되어 목록이 실패 화면이 된다 */
+/** 잘못된 숫자가 서버로 가면 400 이 되므로 여기서 거른다 */
 function pickInt(value: string | null, min: number) {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed >= min ? parsed : undefined;
 }
 
 /**
- * 쓸 수 있는 탭.
- *
- * ⭐ **시스템 관리자(`ADMIN`)는 `전체` 하나만 쓴다.** 관리자는 결재선에 들어가지 않아
- *    `요청받음` · `내가 올린 결재` 가 **언제나 비어 있다** — 빈 탭 두 개를 먼저 보여주면
- *    결재가 없는 것으로 읽혀 "관리자는 결재를 못 본다" 는 오해가 생긴다.
- * ℹ️ `MASTER` 는 자기 결재도 있고 전사도 봐야 해서 셋을 다 쓴다.
- * ℹ️ 나머지는 전사 조회가 403 이라 `전체` 를 감춘다.
+ * 역할별로 쓸 수 있는 탭.
+ * ADMIN 은 결재선에 들어가지 않아 전체 탭만 쓰고, 그 밖은 전사 조회가 막힌다.
  */
 function scopesFor(role: Role) {
   if (role === 'ADMIN') return SCOPE_OPTIONS.filter((scope) => scope === 'all');
@@ -73,7 +68,7 @@ function scopesFor(role: Role) {
   return SCOPE_OPTIONS.filter((scope) => scope !== 'all');
 }
 
-/** 현재 탭. URL 값이 없거나 권한 밖이면 **그 역할의 첫 탭**으로 본다 */
+/** 현재 탭. URL 값이 없거나 권한 밖이면 그 역할의 첫 탭으로 본다 */
 function readScope(searchParams: URLSearchParams, role: Role) {
   const scopes = scopesFor(role);
 
@@ -81,13 +76,8 @@ function readScope(searchParams: URLSearchParams, role: Role) {
 }
 
 /**
- * `최근 N일` 을 서버가 받는 `yyyy-MM-dd` 로 바꾼다.
- *
- * ⚠️ URL 값이라 아무 숫자나 들어올 수 있다 — **셀렉트에 있는 값만** 받는다.
- * 큰 수를 그대로 빼면 Invalid Date 가 되고 `toISOString()` 이 예외를 던져 목록이 통째로 죽는다.
- *
- * ⚠️ `toISOString()` 은 UTC 라 한국 시간 오전에는 **하루 이른 날짜**가 나온다.
- * 로컬 연·월·일을 직접 붙인다.
+ * '최근 N일' 을 서버가 받는 yyyy-MM-dd 로 바꾼다.
+ * URL 값이라 셀렉트에 있는 값만 받고, 시차 문제를 피해 로컬 날짜로 조립한다.
  */
 function toFromDate(days: string | null) {
   const allowed = PERIOD_OPTIONS.find((option) => option.value === days);
@@ -102,10 +92,8 @@ function toFromDate(days: string | null) {
 }
 
 /**
- * 결재 관리 목록 화면. (AP-072~076·080, .ai/API.md 결재 목록)
- *
- * 결재 블록은 프로젝트 곳곳에 흩어져 있어, 자기 차례를 확인하려면 이 화면이 필요하다.
- * 탭이 곧 서버의 `scope` 다 — 프론트가 걸러내지 않고 서버가 대상을 정한다.
+ * 결재 관리 목록 화면.
+ * 탭이 곧 서버의 scope 라 프론트가 걸러내지 않고 서버가 대상을 정한다.
  */
 export default function ApprovalList() {
   const router = useRouter();
@@ -115,32 +103,32 @@ export default function ApprovalList() {
   const scopes = scopesFor(user.role);
   const scope = readScope(searchParams, user.role);
 
-  /** URL 이 필터의 원본이다. 같은 쿼리면 같은 객체를 유지해 효과가 헛돌지 않게 한다 */
+  /** URL 이 필터의 원본이다. 같은 쿼리면 같은 객체를 유지한다 */
   const query = useMemo<ApprovalListQuery>(
     () => ({
       scope: readScope(searchParams, user.role),
       status: pickOption(searchParams.get('status'), STATUS_OPTIONS),
       fromDate: toFromDate(searchParams.get('period')),
       keyword: searchParams.get('keyword') ?? undefined,
-      // 백엔드와 같은 0-based. 값이 이상하면 첫 페이지로 본다
+      // 백엔드와 같은 0부터 시작. 값이 이상하면 첫 페이지로 본다
       page: pickInt(searchParams.get('page'), 0) ?? 0,
       size: PAGE_SIZE,
     }),
     [searchParams, user.role],
   );
 
-  /** 입력 중인 검색어 — 제출해야 URL 에 반영된다 */
+  /** 입력 중인 검색어. 제출해야 URL 에 반영된다 */
   const [keywordInput, setKeywordInput] = useState(query.keyword ?? '');
   const [syncedKeyword, setSyncedKeyword] = useState(query.keyword ?? '');
 
-  // 뒤로가기나 검색어가 담긴 링크로 들어오면 URL 만 바뀌고 입력값은 옛것이 남는다
+  // 뒤로가기 · 링크 진입에서는 URL 만 바뀌므로 입력값을 맞춰 준다
   if (syncedKeyword !== (query.keyword ?? '')) {
     setSyncedKeyword(query.keyword ?? '');
     setKeywordInput(query.keyword ?? '');
   }
 
   const [reloadCount, setReloadCount] = useState(0);
-  /** 어떤 요청의 결과인지 `key` 로 들고 있는다 — 조건이 바뀌면 자동으로 로딩 상태가 된다 */
+  /** 어떤 요청의 결과인지 key 로 들고 있어 조건이 바뀌면 로딩 상태가 된다 */
   const [result, setResult] = useState<{
     key: string;
     data?: ApprovalPage<ApprovalListItem>;
@@ -149,7 +137,7 @@ export default function ApprovalList() {
 
   const requestKey = `${reloadCount} ${scope} ${searchParams.toString()}`;
   const current = result?.key === requestKey ? result : null;
-  /** 재조회 중에는 직전 결과를 유지한다 — 목록이 통째로 사라지면 스크롤이 튄다 */
+  /** 재조회 중에는 직전 결과를 유지해 스크롤이 튀지 않게 한다 */
   const page = current?.data ?? result?.data ?? null;
   const hasFailed = current?.hasFailed ?? false;
   const isLoading = current === null && !hasFailed;
@@ -168,7 +156,7 @@ export default function ApprovalList() {
     return () => controller.abort();
   }, [requestKey, query]);
 
-  /** 필터를 바꾸면 첫 페이지로 돌아간다 — 3페이지에서 조건을 바꾸면 빈 화면이 된다 */
+  /** 필터를 바꾸면 첫 페이지로 돌아간다 */
   function applyFilter(patch: Record<string, string | undefined>) {
     const next = new URLSearchParams(searchParams.toString());
 
@@ -185,7 +173,7 @@ export default function ApprovalList() {
 
   return (
     <>
-      {/* 관리자는 결재선에 들어가지 않아 `내가 올린 결재` 가 없다 — 설명도 그에 맞춘다 */}
+      {/* 관리자는 결재선에 들어가지 않아 설명 문구가 다르다 */}
       <PageTitle
         variant="top"
         title="결재 관리"
@@ -218,12 +206,7 @@ export default function ApprovalList() {
               }`}
             >
               {SCOPE_LABELS[option]}
-              {/**
-               * 건수 자리는 **비어 있어도 남겨 둔다.**
-               *
-               * 숫자가 나중에 붙으면서 글자가 늘면 탭 폭이 커지며 옆 탭이 밀린다.
-               * 자리를 미리 잡아 두면 숫자가 붙어도 아무것도 움직이지 않는다.
-               */}
+              {/* 숫자가 붙어도 탭 폭이 변하지 않도록 건수 자리를 미리 잡아 둔다 */}
             </button>
           );
         })}
@@ -288,10 +271,7 @@ export default function ApprovalList() {
           </button>
         </Centered>
       ) : isLoading && !rows ? (
-        /*
-          ⚠️ 자리표시 막대를 쓰지 않는다 — 결재가 한두 건일 때도 스무 줄이 그려졌다
-             사라져 화면이 크게 흔들렸다. 목록 표와 같은 이유로 스피너를 둔다.
-        */
+        /* 건수가 적을 때 화면이 크게 흔들려 자리표시 막대 대신 스피너를 쓴다 */
         <div className="rounded-base border border-border-default bg-bg-card">
           <LoadingSpinner label="결재를 불러오는 중" className="py-16" />
         </div>
@@ -311,7 +291,7 @@ export default function ApprovalList() {
                 key={row.approvalId}
                 row={row}
                 isMyTurn={row.currentApproverId === user.userId}
-                // 내가 올린 결재는 내가 처리할 일이 없다 — 행 전체가 이미 상세 링크다
+                // 내가 올린 결재는 내가 처리할 일이 없다
                 showAction={scope !== 'drafted'}
               />
             ))}
@@ -361,12 +341,9 @@ function ApprovalRow({
           </p>
         </div>
 
-        {/**
-         * 아래 네 칸은 **너비를 고정한다** — 회차 배지가 있는 행과 없는 행,
-         * 결재자가 1명인 행과 3명인 행에서 열이 어긋나면 목록이 훑기 어려워진다.
-         */}
+        {/* 행마다 열이 어긋나지 않도록 아래 네 칸은 너비를 고정한다 */}
         <span className="w-12 shrink-0 text-center">
-          {/* 재상신된 결재만 회차를 붙인다 — 1회차는 붙여봐야 정보가 없다 */}
+          {/* 재상신된 결재만 회차를 붙인다 */}
           {row.currentRevisionNo > 1 && (
             <span className="rounded-button-sm bg-bg-hover px-1.5 py-0.5 text-detail text-text-secondary">
               {row.currentRevisionNo}회차
@@ -412,7 +389,7 @@ function ApprovalRow({
   );
 }
 
-/** `2026-08-06T18:06:26` → `2026.08.06` — 목록에선 시각까지 필요하지 않다 */
+/** 목록용 날짜 표기. 시각까지는 쓰지 않는다 */
 function formatDate(value: string) {
   return value.slice(0, 10).replaceAll('-', '.');
 }
@@ -428,7 +405,7 @@ function FilterSelect({
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
 }) {
-  /* 폭을 고정한다 — 선택지가 늦게 오면 칸이 넓어졌다 좁아져 필터바가 흔들린다 */
+  /* 선택지가 늦게 와도 필터바가 흔들리지 않도록 폭을 고정한다 */
   return (
     <label className="flex items-center">
       <span className="sr-only">{label}</span>
@@ -448,7 +425,7 @@ function FilterSelect({
   );
 }
 
-/** 사원 목록(`EmployeeList`)과 같은 아이콘 — 검색바 모양을 화면마다 다르게 두지 않는다 */
+/** 사원 목록과 같은 검색 아이콘 */
 function SearchIcon() {
   return (
     <svg

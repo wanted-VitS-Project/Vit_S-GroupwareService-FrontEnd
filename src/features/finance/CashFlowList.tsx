@@ -552,7 +552,7 @@ function buildColumns({
       cell: (row) => (
         <Link
           href={FINANCE_ROUTES.cashFlowDetail(row.cashFlowId)}
-          className="block pl-3 font-semibold [overflow-wrap:anywhere] break-keep text-text-primary hover:underline"
+          className="wrap:anywhere block pl-3 font-semibold break-keep text-text-primary hover:underline"
         >
           {row.depositorName || '-'}
         </Link>
@@ -564,7 +564,7 @@ function buildColumns({
       width: '11%',
       skeletonWidth: 'w-32',
       cell: (row) => (
-        <span className="block [overflow-wrap:anywhere] break-keep text-text-secondary">
+        <span className="wrap:anywhere block break-keep text-text-secondary">
           {row.bankMemo || '-'}
         </span>
       ),
@@ -625,7 +625,7 @@ function LinkDetailCell({ row }: { row: CashFlowItem }) {
      * 위는 무엇에 붙었는지, 아래는 누가 언제 붙였는지.
      */
     <span className="block">
-      <span className="block [overflow-wrap:anywhere] break-keep text-text-secondary">
+      <span className="wrap:anywhere block break-keep text-text-secondary">
         {[row.projectName, row.roundName].filter(Boolean).join(' · ') || '-'}
       </span>
       <span className="mt-0.5 block text-detail break-keep text-text-muted">

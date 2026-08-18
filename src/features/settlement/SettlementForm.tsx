@@ -28,7 +28,7 @@ const FIELD_CLASS =
 
 const TYPES: SettlementType[] = ['INCOME', 'OUTCOME'];
 
-/** 숫자 칸도 문자열로 둔다 — 지웠을 때 0 이 되면 안 된다 (모양·검증은 `types.ts`) */
+/** 숫자 칸도 문자열로 둔다. 지웠을 때 0 이 되면 안 된다 */
 const EMPTY_FORM: SettlementFormValues = {
   roundNo: '',
   totalAmount: '',
@@ -42,14 +42,8 @@ const EMPTY_FORM: SettlementFormValues = {
 };
 
 /**
- * 정산 항목 작성 · 수정 폼. (.ai/API.md 85 · 86)
- *
- * 타입을 고르면 그때 추천 회차 · 총액을 받아온다 — **타입마다 다른 값**이라 미리 받을 수 없다.
- * `OUTCOME` 이면 계좌 3종이 함께 필수고, 수정 화면에서만 **원본 계좌번호**를 받는다.
- *
- * ⚠️ **낙관적 락** (2026-08-12) — 받은 `version` 을 실어 보내고, 버전 충돌 409 면
- *    **새로고침 / 덮어쓰기**를 묻는다. 그 사이 블록이 삭제(`SETL-002`)되거나 세금계산서 ·
- *    입출금이 연결(`SETL-007`)됐다면 덮어쓰기로도 못 뚫으므로 **폼을 닫고 목록을 다시 읽는다.**
+ * 정산 항목 작성 · 수정 폼. 타입을 고르면 그때 추천값을 받아온다.
+ * 낙관적 락을 쓰며 충돌하면 새로고침 · 덮어쓰기를 묻는다.
  */
 export default function SettlementForm({
   settleId,
@@ -65,52 +59,32 @@ export default function SettlementForm({
   initialType: SettlementType | null;
   /** 이미 작성된 값. 없으면 빈 폼이다 */
   item: SettlementItem | null;
-  /** 낙관적 락 버전 — 없으면 저장을 막고 새로고침을 안내한다 */
+  /** 낙관적 락 버전. 없으면 저장을 막고 새로고침을 안내한다 */
   version?: number;
   onClose: () => void;
-  /**
-   * 저장된 항목과 **그때 고른 타입**을 함께 넘긴다 —
-   * 86번 응답에 `type` 이 없어 항목만으로는 입금인지 출금인지 알 수 없다.
-   */
+  /** 저장 응답에 type 이 없어 그때 고른 타입도 함께 넘긴다 */
   onSaved: (next: SettlementItem, type: SettlementType) => void;
   /**
-   * 화면이 든 값이 더 이상 맞지 않아 **목록을 다시 읽어야** 할 때.
-   * (남이 먼저 저장 → 새로고침 선택 · 블록 삭제됨 · 연결돼 잠김)
-   *
-   * `isLocked` 는 **연결돼 잠긴 경우**(`SETL-007`)다 — 블록이 그대로 남으므로
-   * 요약 화면이 `수정하기` 를 막아야 한다. 삭제는 목록에서 사라져 그럴 필요가 없다.
+   * 화면 값이 낡아 목록을 다시 읽어야 할 때 부른다.
+   * isLocked 면 블록이 남아 있으므로 요약 화면이 수정 버튼을 막는다.
    */
   onStale: (reason: string, isLocked: boolean) => void;
 }) {
-  /** 이미 작성된 블록인지 — 추천값을 채울지 가르는 기준이다 */
+  /** 이미 작성된 블록인지. 추천값을 채울지 가르는 기준이다 */
   const isWritten = item !== null;
 
   const [type, setType] = useState<SettlementType | null>(initialType);
   const [form, setForm] = useState<SettlementFormValues>(() => toForm(item));
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState('');
-  /**
-   * 409 로 탭이 저절로 되돌아갔다는 안내.
-   *
-   * `error` 와 나눠 둔다 — 되돌린 직후 **원래 타입 조회가 성공**하면서 성공 분기의
-   * `setError('')` 가 안내를 지워버린다. 그러면 탭이 왜 튕겼는지 알 수 없다.
-   */
+  /** 탭이 저절로 되돌아갔다는 안내. 조회 성공에 지워지지 않도록 따로 둔다 */
   const [revertNotice, setRevertNotice] = useState('');
-  /** 버전 충돌 — 새로고침할지 덮어쓸지 묻는다 */
+  /** 버전 충돌. 새로고침할지 덮어쓸지 묻는다 */
   const [isConflicting, setIsConflicting] = useState(false);
 
   /**
-   * 타입을 고르면 추천값과 원본 계좌번호를 받는다.
-   *
-   * 받은 값은 **안내가 아니라 폼에 그대로 채운다** (명세: 추천값은 블록 생성 직후에 입력된다).
-   * 칸마다 보라색 안내를 띄우면 정작 봐야 할 것이 묻히고, 사용자는 어차피 그 값을 옮겨 적는다.
-   *
-   * ⚠️ **이미 작성된 블록에는 채우지 않는다** (`item !== null`) — 저장된 값 위에 추천을 덮으면
-   *    수정하러 들어온 사람의 값이 사라진다.
-   * ⚠️ **사용자가 이미 친 칸도 건드리지 않는다** — 타입 탭을 다시 눌러 응답이 늦게 와도
-   *    입력 중이던 값이 튀지 않아야 한다.
-   * ⚠️ 응답의 계좌번호는 마스킹된 값(`100******444`)이라 폼에 쓸 수 없다.
-   *    여기서 받는 `originalAccountNumber` 만 폼에 채운다.
+   * 타입을 고르면 추천값과 원본 계좌번호를 받아 폼에 채운다.
+   * 이미 작성된 블록과 사용자가 이미 친 칸은 덮지 않는다.
    */
   useEffect(() => {
     if (type === null) return;
@@ -136,21 +110,14 @@ export default function SettlementForm({
         }));
       })
       .catch((caught: unknown) => {
-        // 취소는 실패가 아니다 — 새 요청이 이미 떠 있다는 뜻이다
+        // 취소는 실패가 아니다
         if (signal.aborted) return;
 
-        /**
-         * 409 는 **출금 → 입금으로 바꿀 수 없다**는 뜻이다 (`SETL-006`).
-         * 고른 탭을 되돌리지 않으면 화면은 `입금`, 서버는 `출금` 인 채로 어긋난다 —
-         * 그 상태로 저장하면 같은 이유로 또 막힌다.
-         *
-         * ⚠️ 안내를 `error` 가 아니라 `revertNotice` 에 넣는다. 되돌린 타입으로 조회가
-         * 곧 **성공**하면서 성공 분기의 `setError('')` 가 안내를 지워버리기 때문이다.
-         */
+        /* 출금에서 입금으로 바꿀 수 없다는 뜻이라 고른 탭을 되돌린다 */
         if (
           caught instanceof ApiError &&
           (caught.code === SETTLEMENT_CODES.typeDowngrade ||
-            // 코드를 못 읽어도 이 조회의 409 는 이것뿐이다 (저장은 넷이라 다르다)
+            // 이 조회에서 나올 수 있는 409 는 이것뿐이다
             (caught.code === undefined && caught.status === 409))
         ) {
           setType(initialType);
@@ -160,16 +127,12 @@ export default function SettlementForm({
           return;
         }
 
-        /**
-         * 조용히 넘기지 않는다. 이 조회도 **편집 권한이 필요해서**(명세 85),
-         * 실패는 대개 권한이 없다는 뜻이다 — 그대로 두면 다 채우고 저장을 눌러야 알게 된다.
-         * 출금 수정이라면 **원본 계좌번호도 못 받은 상태**라 더더욱 알려야 한다.
-         */
+        // 이 조회도 편집 권한이 필요해 실패를 숨기지 않고 바로 알린다
         setError(messageOf(caught, '정산 정보를 불러오지 못했습니다.'));
       });
 
     return () => controller.abort();
-    // `initialType` · `isWritten` 은 폼이 열릴 때 정해지고 그대로다 — 재조회가 늘지 않는다
+    // initialType · isWritten 은 폼이 열릴 때 정해져 재조회가 늘지 않는다
   }, [settleId, type, initialType, isWritten]);
 
   function change(field: keyof SettlementFormValues, value: string) {
@@ -184,17 +147,14 @@ export default function SettlementForm({
       return;
     }
 
-    /**
-     * 빈 칸을 그대로 보내면 `Number('')` 가 **0** 이라 0원짜리 정산이 저장된다 —
-     * 서버 400 으로 걸리지도 않는다. 필수값 · 계좌 3종을 여기서 먼저 막는다.
-     */
+    // 빈 칸이 0 으로 저장되지 않도록 필수값을 여기서 먼저 막는다
     const blocker = findBlocker(type, form);
     if (blocker) {
       setError(blocker);
       return;
     }
 
-    // 버전 없이 보내면 400 이다 — 요청하지 않고 새로고침을 안내한다
+    // 버전 없이 보내면 400 이라 요청하지 않고 새로고침을 안내한다
     if (version === undefined) {
       setError(SETTLEMENT_NO_VERSION_MESSAGE);
       return;
@@ -212,17 +172,13 @@ export default function SettlementForm({
       });
       onSaved(saved, type);
     } catch (caught) {
-      // 남이 먼저 저장했다 — 새로고침할지 덮어쓸지 묻는다
+      // 남이 먼저 저장한 경우. 새로고침할지 덮어쓸지 묻는다
       if (isSettlementVersionConflict(caught)) {
         setIsConflicting(true);
         return;
       }
 
-      /*
-       * 덮어쓰기로도 못 뚫는 두 가지 — 그 사이 블록이 삭제됐거나(`SETL-002`),
-       * 세금계산서 · 입출금이 연결돼 잠겼다(`SETL-007`).
-       * 폼을 열어 둔 채 두면 사용자가 같은 저장을 계속 시도한다.
-       */
+      /* 덮어쓰기로도 못 뚫는 경우. 폼을 닫아 같은 저장을 반복하지 않게 한다 */
       if (isSettlementGone(caught)) {
         onStale(
           messageOf(caught, '이 정산 블록은 더 이상 수정할 수 없습니다.'),
@@ -244,13 +200,10 @@ export default function SettlementForm({
           <button
             key={value}
             type="button"
-            /**
-             * `aria-current` 가 아니라 `aria-pressed` 다 — 목록 속 '현재 항목'이 아니라
-             * 입금 · 출금을 켜고 끄는 **토글**이라 '선택됨 / 선택 안 됨'으로 읽혀야 한다.
-             */
+            /* 목록 항목이 아니라 토글이라 aria-pressed 를 쓴다 */
             aria-pressed={value === type}
             onClick={() => {
-              // 직접 다시 고르는 순간 되돌림 안내는 역할을 다했다
+              // 직접 다시 고르면 되돌림 안내를 지운다
               setRevertNotice('');
               setType(value);
             }}
@@ -271,26 +224,20 @@ export default function SettlementForm({
         </p>
       )}
 
-      {/* 탭이 저절로 되돌아간 이유 — 조회가 성공해도 지우지 않는다 */}
+      {/* 탭이 저절로 되돌아간 이유. 조회가 성공해도 지우지 않는다 */}
       {revertNotice !== '' && (
         <p role="status" className="text-caption break-keep text-yellow-text">
           {revertNotice}
         </p>
       )}
 
-      {/**
-       * 회차에는 추천 안내를 붙이지 않는다 — 다음 회차 번호는 사람이 이미 알고,
-       * 안내가 칸마다 붙으면 정작 봐야 할 `맞출 금액` 이 묻힌다.
-       */}
+      {/* 회차에는 추천 안내를 붙이지 않는다 */}
       <Field
         label="정산 회차"
         value={form.roundNo}
         onChange={(value) => change('roundNo', value)}
       />
-      {/**
-       * ⚠️ 이 값은 **같은 프로젝트의 다른 정산 블록과 일치해야 한다** — 어긋나면 저장이
-       * 409(`SETL-008`)로 막힌다. 그래서 추천값을 안내로 띄우는 대신 **미리 채워** 둔다.
-       */}
+      {/* 다른 정산 블록과 일치해야 하는 값이라 추천값을 미리 채워 둔다 */}
       <Field
         label="예정 총 금액"
         value={form.totalAmount}
@@ -319,7 +266,7 @@ export default function SettlementForm({
         onChange={(value) => change('traderName', value)}
       />
 
-      {/* 계좌 정보는 출금일 때만 쓴다 — 입금에 보내면 서버가 무시하거나 400 이다 */}
+      {/* 계좌 정보는 출금일 때만 쓴다 */}
       {type === 'OUTCOME' && (
         <>
           <Field
@@ -358,10 +305,7 @@ export default function SettlementForm({
       )}
 
       {isConflicting && (
-        /*
-         * 409 를 조용히 삼키면 사용자는 저장된 줄 안다.
-         * 취소(= Esc · 배경 클릭)를 **새로고침**에 두어, 잘못 눌러도 남의 값이 지워지지 않게 한다.
-         */
+        /* 잘못 닫아도 남의 값이 지워지지 않도록 취소를 새로고침 쪽에 둔다 */
         <AlertDialogTwoButton
           icon={DialogIcons.warning}
           title="다른 사람이 먼저 저장했어요"
@@ -373,7 +317,7 @@ export default function SettlementForm({
           onConfirm={() => void submit(true)}
           onCancel={() => {
             setIsConflicting(false);
-            // 버전 충돌은 잠긴 것이 아니다 — 최신 값으로 다시 열면 저장할 수 있다
+            // 버전 충돌은 잠김이 아니라 최신 값으로 다시 열면 저장할 수 있다
             onStale(
               '다른 사람이 먼저 저장해 최신 값을 다시 불러왔습니다.',
               false,
@@ -404,12 +348,7 @@ export default function SettlementForm({
   );
 }
 
-/**
- * 컬럼 옆 안내 문구. **값이 없으면 줄 자체를 접는다.**
- *
- * ⚠️ 첫 정산 블록이면 기준 삼을 다른 블록이 없어 `null` 로 온다 —
- * 그대로 `toLocaleString()` 을 부르면 화면이 통째로 죽는다.
- */
+/** 컬럼 옆 안내 문구. 값이 없으면 줄 자체를 접는다 */
 function Field({
   label,
   type = 'number',
@@ -425,10 +364,7 @@ function Field({
 }) {
   return (
     <label className="flex items-center gap-2">
-      {/**
-       * ⚠️ 라벨 자리를 넉넉하게 잡는다 — `w-20`(80px) 이던 때는 `예정 총 금액` 이
-       * 두 줄로 접혀 입력 칸과 어긋났다. 블록은 1칸이라 입력 칸을 줄이는 편이 낫다.
-       */}
+      {/* 라벨이 두 줄로 접히지 않도록 자리를 넉넉히 잡는다 */}
       <span className="w-24 shrink-0 text-caption break-keep text-text-secondary">
         {label}
       </span>
@@ -445,7 +381,7 @@ function Field({
   );
 }
 
-/** 추천값을 입력 칸 문자열로. 값이 없으면 빈 칸을 유지한다 */
+/** 추천값을 입력 칸 문자열로 바꾼다. 값이 없으면 빈 칸을 유지한다 */
 function numberText(value: number | null | undefined) {
   return typeof value === 'number' ? String(value) : '';
 }
@@ -461,10 +397,7 @@ function toForm(item: SettlementItem | null): SettlementFormValues {
     plannedDate: item.plannedDate,
     traderName: item.traderName,
     bankName: item.bankName ?? '',
-    /**
-     * ⚠️ 마스킹된 값(`100******444`)은 채우지 않는다. 그대로 저장하면 `*` 가 계좌번호가 된다.
-     * 원본은 수정 화면 조회(85번)로 받아 덮어쓴다.
-     */
+    // 마스킹된 값은 채우지 않는다. 원본은 수정 화면 조회로 받아 덮어쓴다
     accountNumber: '',
     accountHolder: item.accountHolder ?? '',
   };

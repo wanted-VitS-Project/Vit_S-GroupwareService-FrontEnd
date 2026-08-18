@@ -3,10 +3,8 @@ import { LINE_STATUS_CLASS, LINE_STATUS_LABELS } from './lineStatus';
 import type { ApprovalDetailLine } from './types';
 
 /**
- * 결재선 타임라인. (AP-037·038·069·070)
- *
- * 세로로 이어진 단계마다 처리 결과 · 의견 · 처리 일시를 붙인다.
- * 상태를 색으로만 알리지 않고 **라벨을 함께 적는다** — 색만으로는 구분되지 않는 사용자가 있다.
+ * 결재선 타임라인. 단계마다 처리 결과 · 의견 · 일시를 붙인다.
+ * 색만으로 구분되지 않도록 상태 라벨을 함께 적는다.
  */
 export default function ApprovalTimeline({
   lines,

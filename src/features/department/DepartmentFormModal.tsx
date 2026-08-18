@@ -19,8 +19,8 @@ interface DepartmentFormModalProps {
 }
 
 /**
- * 부서 추가 · 수정 모달. (.ai/API.md 23 · 24)
- * 상위 부서는 만들 때만 정할 수 있다 — 이동 API 가 없어 수정에서는 못 바꾼다.
+ * 부서 추가 · 수정 모달.
+ * 상위 부서는 만들 때만 정한다. 이동 API 가 없어 수정에서는 못 바꾼다.
  */
 export default function DepartmentFormModal({
   department,

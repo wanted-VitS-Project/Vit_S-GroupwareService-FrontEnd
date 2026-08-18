@@ -42,12 +42,12 @@ import {
 /** 폴링 주기. 실측 실행이 6초쯤 걸려 2초면 3~4번에 끝난다 */
 const POLL_MS = 2000;
 /**
- * 폴링 상한(횟수). 넘기면 손을 놓는다 — 이력 목록 API 가 없어 되살릴 수 없다.
- * 시계(`Date.now()`) 대신 횟수로 센다 (렌더 순수성 규칙 · 결과가 재현 가능하다).
+ * 폴링 상한(횟수). 넘기면 손을 놓는다. 이력 목록 API 가 없어 되살릴 수 없다.
+ * 시계 대신 횟수로 세어 결과가 재현 가능하게 둔다.
  */
 const MAX_POLLS = 45;
 
-/** 실행 중 · 결과를 조건별로 들고 있는다 — 여러 조건을 연달아 돌릴 수 있다 */
+/** 실행 중 · 결과를 조건별로 들고 있는다. 여러 조건을 연달아 돌릴 수 있다 */
 interface RunState {
   runId: number | null;
   run: CollectionRun | null;
@@ -73,13 +73,8 @@ const EMPTY_RUN: RunState = {
 };
 
 /**
- * 입찰 수집 조건 관리 화면. (입찰 `EDITOR`, .ai/API.md 입찰 도메인 공통 `수집 조건`)
- *
- * 무엇을 가져올지 정하고, 수동으로 돌려 결과를 확인하는 운영 화면이다.
- *
- * ⚠️ **실행 이력 목록 API 가 없다.** 그래서 이력을 따로 화면으로 만들지 않고
- *    조건 행에 붙인다 — 방금 돌린 결과만 보이고, 화면을 떠나면 `runId` 를 잃는다.
- *    다시 들어오면 조건의 `마지막 성공` · `수집 건수` 만 남는다.
+ * 입찰 수집 조건 관리 화면. 무엇을 가져올지 정하고 수동으로 돌려 결과를 본다.
+ * 실행 이력 목록 API 가 없어 방금 돌린 결과만 조건 행에 붙여 보여준다.
  */
 export default function CollectionConditionList() {
   const [conditions, setConditions] = useState<CollectionCondition[] | null>(
@@ -90,29 +85,27 @@ export default function CollectionConditionList() {
   /** 조건 ID → 실행 상태 */
   const [runs, setRuns] = useState<Record<number, RunState>>({});
   /**
-   * 폴링 뒷정리 — 대기 중인 타이머와 **이미 나간 요청**을 함께 끊는다.
-   * 타이머만 끊으면 응답이 돌아와 언마운트된 컴포넌트에 `setState` 를 한다.
+   * 폴링 뒷정리. 대기 중인 타이머와 이미 나간 요청을 함께 끊는다.
+   * 타이머만 끊으면 응답이 돌아와 사라진 컴포넌트에 setState 한다.
    */
   const timers = useRef<Set<number>>(new Set());
   const pollAbort = useRef<AbortController | null>(null);
   const formModal = useModalTarget<ConditionFormTarget>();
   /**
    * 활성 여부 변경 확인.
-   * 켜고 끄는 것 모두 **수집 동작이 바뀌는 일**이라 양쪽 다 한 번 묻는다.
+   * 켜고 끄는 것 모두 수집 동작이 바뀌는 일이라 양쪽 다 한 번 묻는다.
    */
   const toggleDialog = useModalTarget<CollectionCondition>();
-  /** 활성 여부 보기 — 조건 목록 API 에 필터가 없어 받아온 뒤 화면에서 거른다 */
+  /** 활성 여부 보기. 목록 API 에 필터가 없어 받아온 뒤 화면에서 거른다 */
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>('ALL');
   /**
-   * 토글 진행 중인 조건들 — 연타로 요청이 겹치지 않게 막는다.
-   *
-   * ⚠️ **하나만 들면 안 된다.** 여러 조건을 동시에 토글할 수 있어서,
-   *    먼저 끝난 요청이 값을 비우면 아직 처리 중인 조건의 버튼이 다시 열린다.
+   * 토글 진행 중인 조건들. 연타로 요청이 겹치지 않게 막는다.
+   * 하나만 들면 먼저 끝난 요청이 아직 처리 중인 조건의 버튼까지 연다.
    */
   const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
   /**
-   * 토글 실패 메시지 — **조건별**로 들고 있는다.
-   * 화면 위쪽에 하나만 띄우면 어느 조건에서 난 오류인지 알 수 없고, 다음 동작에도 남는다.
+   * 토글 실패 메시지를 조건별로 들고 있는다.
+   * 위쪽에 하나만 띄우면 어느 조건의 오류인지 알 수 없고 다음 동작에도 남는다.
    */
   const [toggleErrors, setToggleErrors] = useState<Record<number, string>>({});
 
@@ -149,10 +142,10 @@ export default function CollectionConditionList() {
     }));
   }
 
-  /** `COMPLETED` · `FAILED` 가 될 때까지 물어본다. 상한을 넘기면 안내만 남기고 멈춘다 */
+  /** COMPLETED · FAILED 가 될 때까지 물어본다. 상한을 넘기면 안내만 남기고 멈춘다 */
   function poll(conditionId: number, runId: number, attempt: number) {
     const timer = window.setTimeout(async () => {
-      // 끝난 타이머는 목록에서 뺀다 — 안 그러면 실행할수록 배열만 길어진다
+      // 끝난 타이머는 목록에서 뺀다. 안 그러면 실행할수록 배열만 길어진다
       timers.current.delete(timer);
 
       try {
@@ -177,7 +170,7 @@ export default function CollectionConditionList() {
 
         poll(conditionId, runId, attempt + 1);
       } catch (error) {
-        // 언마운트로 인한 취소는 실패가 아니다 (알릴 화면도 이미 없다)
+        // 언마운트로 인한 취소는 실패가 아니다
         if (pollAbort.current?.signal.aborted) return;
 
         patchRun(conditionId, {
@@ -206,7 +199,7 @@ export default function CollectionConditionList() {
     } catch (error) {
       const code = error instanceof ApiError ? error.code : undefined;
 
-      // 409 는 오류가 아니라 "이미 돌고 있다" 는 뜻이다
+      // 409 는 오류가 아니라 이미 돌고 있다는 뜻이다
       const notice =
         code === BIDDING_CODES.collectionRunAlreadyProcessing
           ? '이미 수집이 진행 중입니다. 끝난 뒤 다시 시도해주세요.'
@@ -219,7 +212,7 @@ export default function CollectionConditionList() {
   }
 
   /**
-   * 활성 여부만 바꾼다. 수정이 전체 교체라 조회값을 그대로 실어 보내고 `isActive` 만 갈아끼운다.
+   * 활성 여부만 바꾼다. 수정이 전체 교체라 조회값을 그대로 싣고 isActive 만 갈아끼운다.
    * 성공하면 목록을 다시 받아 서버 값과 어긋나지 않게 한다.
    */
   async function toggleActive(condition: CollectionCondition) {
@@ -236,10 +229,8 @@ export default function CollectionConditionList() {
         ...toUpdateRequest(condition),
         isActive: nextActive,
         /**
-         * ⚠️ 비활성으로 내릴 때는 **자동 수집도 함께 끈다.**
-         * 비활성 조건에 스케줄이 살아 있는 건 모순이라 서버가 400
-         * (`자동 수집 일정이 올바르지 않습니다`) 으로 막는다.
-         * 다시 활성화해도 자동 수집은 꺼진 채로 남으므로, 필요하면 수정 모달에서 켠다.
+         * 비활성으로 내릴 때는 자동 수집도 함께 끈다. 스케줄이 살아 있으면 서버가 400 이다.
+         * 다시 활성화해도 자동 수집은 꺼진 채라 필요하면 수정 모달에서 켠다.
          */
         ...(nextActive
           ? null
@@ -301,14 +292,14 @@ export default function CollectionConditionList() {
         {' › 수집 조건'}
       </p>
 
-      {/* 액션 버튼은 공고 조회와 같은 자리(필터 줄 오른쪽 끝)에 둔다 — 화면을 옮겨도 안 튄다 */}
+      {/* 액션 버튼은 공고 조회와 같은 자리에 둔다. 화면을 옮겨도 안 튄다 */}
       <PageTitle
         title="수집 조건"
         description="어떤 공고를 가져올지 정하고, 필요할 때 직접 수집을 돌립니다."
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-1.5">
-        {/* 조건 수가 적어 셀렉트 대신 칩으로 둔다 (API 에 필터 파라미터가 없어 화면에서 거른다) */}
+        {/* 조건 수가 적어 셀렉트 대신 칩으로 둔다 (API 에 필터가 없어 화면에서 거른다) */}
         {conditions !== null &&
           conditions.length > 0 &&
           ACTIVE_FILTERS.map((option) => (
@@ -409,8 +400,7 @@ export default function CollectionConditionList() {
 
 /**
  * 활성 여부 확인 다이얼로그.
- *
- * 끄는 쪽은 잃는 것(자동 수집)이 있어 위험 색으로, 켜는 쪽은 되돌리기 쉬워 안내 색으로 묻는다.
+ * 끄는 쪽은 잃는 것이 있어 위험 색으로, 켜는 쪽은 안내 색으로 묻는다.
  */
 function ToggleConfirmDialog({
   condition,
@@ -451,7 +441,7 @@ function ToggleConfirmDialog({
   );
 }
 
-/** 조건이 없으면 수동 수집을 **시작할 수 없다** — 등록으로 유도한다 */
+/** 조건이 없으면 수동 수집을 시작할 수 없어 등록으로 유도한다 */
 function EmptyState() {
   return (
     <div className="rounded-base border border-dashed border-border-default bg-bg-card px-6 py-12 text-center">
@@ -535,8 +525,8 @@ function ConditionCard({
             수정
           </button>
           {/**
-           * 활성 여부는 배지가 아니라 **버튼**으로 바꾼다 — 배지처럼 생기면 누를 수 있는지 모른다.
-           * ⚠️ 수정이 전체 교체라 이 값만 보낼 수 없다 (`toUpdateRequest()` 가 나머지를 함께 싣는다).
+           * 활성 여부는 배지가 아니라 버튼으로 바꾼다. 배지처럼 생기면 누를 수 있는지 모른다.
+           * 수정이 전체 교체라 이 값만 보낼 수 없다.
            */}
           <button
             type="button"
@@ -561,7 +551,7 @@ function ConditionCard({
 
       <dl className="mt-4 grid gap-x-6 gap-y-2 text-detail sm:grid-cols-2">
         <Row label="키워드" value={joinOrDash(filters.keywords)} />
-        {/* 코드(`11`)가 아니라 이름(`서울`)으로 보여준다 */}
+        {/* 코드(11)가 아니라 이름(서울)으로 보여준다 */}
         <Row
           label="지역"
           value={joinOrDash(filters.regionCodes.map(regionName))}
@@ -578,7 +568,7 @@ function ConditionCard({
           label="마감 건 제외"
           value={filters.excludeClosed ? '제외' : '포함'}
         />
-        {/* 실행할 때마다 얼마나 되돌아보는지 — 0건일 때 가장 먼저 확인하는 값이다 */}
+        {/* 실행할 때마다 얼마나 되돌아보는지. 0건일 때 가장 먼저 확인하는 값이다 */}
         <Row
           label="조회 기간"
           value={lookbackLabel(condition.lookbackPeriod)}
@@ -612,7 +602,7 @@ function ConditionCard({
   );
 }
 
-/** 방금 돌린 결과. 화면을 떠나면 사라진다 (이력 목록 API 부재) */
+/** 방금 돌린 결과. 이력 목록 API 가 없어 화면을 떠나면 사라진다 */
 function RunResult({ state }: { state: RunState }) {
   if (state.notice) {
     return (
@@ -660,9 +650,8 @@ function RunResult({ state }: { state: RunState }) {
           </dl>
 
           {/**
-           * ⭐ **어느 기간을 훑었는지** 를 결과 옆에 붙인다 — 0건이 나왔을 때
-           *    "조건이 틀렸나" 를 의심하기 전에 기간부터 확인할 수 있다.
-           * ⚠️ 옛 실행 기록에는 없는 값이라 있을 때만 그린다.
+           * 어느 기간을 훑었는지 결과 옆에 붙인다. 0건일 때 기간부터 확인할 수 있다.
+           * 옛 실행 기록에는 없는 값이라 있을 때만 그린다.
            */}
           <CollectionRange run={run} />
         </>
@@ -673,9 +662,7 @@ function RunResult({ state }: { state: RunState }) {
 
 /**
  * 실제로 훑은 구간.
- *
- * ⚠️ `formatDateTime` 은 **파싱에 실패하면 빈 문자열**을 준다 — 값이 있어도 형식이
- *    어긋나면 `조회 구간  ~ ` 만 남는다. 양쪽이 다 그려질 때만 문단을 낸다.
+ * formatDateTime 은 파싱에 실패하면 빈 문자열이라 양쪽이 다 그려질 때만 낸다.
  */
 function CollectionRange({ run }: { run: CollectionRun }) {
   const from = formatDateTime(run.collectionStartedAt);
@@ -708,12 +695,12 @@ function Count({ label, value }: { label: string; value: number }) {
   );
 }
 
-/** 공용 `.badge` + 색 클래스(`badge-blue` 등)만 조합한다 */
+/** 공용 .badge 에 색 클래스만 조합한다 */
 function Badge({ label, className }: { label: string; className: string }) {
   return <span className={`badge shrink-0 ${className}`}>{label}</span>;
 }
 
-/** 빈 배열은 `제한 없음` 이다 — `-` 로 두면 값을 못 불러온 것처럼 읽힌다 */
+/** 빈 배열은 제한 없음 이다. - 로 두면 값을 못 불러온 것처럼 읽힌다 */
 function joinOrDash(values: string[]) {
   return values.length > 0 ? values.join(', ') : '제한 없음';
 }

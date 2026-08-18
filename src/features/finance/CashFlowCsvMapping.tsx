@@ -38,13 +38,8 @@ const AMOUNT_MODES: { value: CsvAmountMode; label: string }[] = [
 ];
 
 /**
- * 컬럼 맞추기 (2단계).
- *
- * 추천값을 받아 채워 두고 사람이 고친다 — **은행마다 컬럼 이름이 달라** 추천이 빗나갈 수 있다.
- * 파일에 없는 이름을 써야 하는 경우가 있어 모든 칸에 `직접 입력` 을, 필수가 아닌 칸에는
- * `선택 안 함` 을 둔다.
- *
- * ⚠️ **거래 고유번호는 매핑하지 않는다** — 은행명 + 거래일시로 서버가 만든다.
+ * 컬럼 맞추기(2단계). 추천값을 채워 두고 사람이 고친다.
+ * 거래 고유번호는 서버가 만들어 매핑하지 않는다.
  */
 export default function CashFlowCsvMapping({
   file,
@@ -73,7 +68,7 @@ export default function CashFlowCsvMapping({
   const [mapping, setMapping] = useState<CsvColumnMapping>(
     preview.recommendedMapping,
   );
-  /** 어느 칸이 `직접 입력` 인지 — 셀렉트 대신 글자 칸을 그린다 */
+  /** 직접 입력으로 바꾼 칸. 셀렉트 대신 글자 칸을 그린다 */
   const [customFields, setCustomFields] = useState<MappingField[]>([]);
 
   const [error, setError] = useState('');
@@ -88,11 +83,11 @@ export default function CashFlowCsvMapping({
     setCustomFields((prev) =>
       isCustom ? [...prev, field] : prev.filter((item) => item !== field),
     );
-    // 방식을 바꾸면 값도 비운다 — 남은 값이 다음 칸에 딸려 가면 엉뚱한 컬럼이 저장된다
+    // 남은 값이 딸려 가지 않도록 방식을 바꾸면 값도 비운다
     setColumn(field, isCustom ? '' : null);
   }
 
-  /** 방식에 따라 **꼭 채워야 하는 칸**. 여기 없는 칸은 비워도 된다 */
+  /** 방식에 따라 꼭 채워야 하는 칸 */
   function requiredFields(): MappingField[] {
     return [
       ...(dateTimeMode === 'SINGLE'
@@ -128,10 +123,7 @@ export default function CashFlowCsvMapping({
     setIsSubmitting(true);
 
     try {
-      /**
-       * 쓰지 않는 칸은 **`null` 로 정리해서** 보낸다 — 방식을 바꾸며 남은 값이 그대로
-       * 실려 가면 서버가 다른 컬럼을 읽는다.
-       */
+      // 쓰지 않는 칸은 null 로 정리해 보낸다
       const required = requiredFields();
       const keep = (field: MappingField) =>
         required.includes(field) || isOptional(field)
@@ -165,7 +157,7 @@ export default function CashFlowCsvMapping({
       const message = messageOf(caught, '업로드하지 못했습니다.');
 
       setError(message);
-      // 파싱 · 저장이 오래 걸려 그 사이 화면을 옮겼을 수 있다
+      // 처리가 오래 걸려 그 사이 화면을 옮겼을 수 있다
       notifyToast(message, 'error');
     } finally {
       setIsSubmitting(false);
@@ -182,10 +174,7 @@ export default function CashFlowCsvMapping({
 
   return (
     <form onSubmit={submit}>
-      {/**
-       * 미리보기를 **위**에, 매핑을 아래에 둔다 — 파일을 먼저 보고 컬럼을 고르는 순서다.
-       * 좌우로 나누면 표가 화면 절반으로 좁아져 값이 잘려 읽힌다.
-       */}
+      {/* 파일을 먼저 보고 컬럼을 고르는 순서라 미리보기를 위에 둔다 */}
       <div className="mt-4 flex flex-col gap-4">
         <SamplePreview columns={preview.columns} rows={preview.sampleRows} />
 
@@ -195,7 +184,7 @@ export default function CashFlowCsvMapping({
           </p>
 
           <div className="flex flex-col gap-5">
-            {/* 은행명은 파일에 없는 정보다 — 사람이 고르거나 적는다 */}
+            {/* 은행명은 파일에 없어 사람이 고르거나 적는다 */}
             {isBankCustom ? (
               <div>
                 <TextField
@@ -357,7 +346,7 @@ export default function CashFlowCsvMapping({
         >
           이전
         </button>
-        {/* 필수 칸이 비면 **누를 수 없게** 한다 — 눌러서 오류를 보는 것보다 낫다 */}
+        {/* 필수 칸이 비면 누를 수 없게 한다 */}
         <button
           type="submit"
           disabled={isSubmitting || validate() !== null}

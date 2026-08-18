@@ -4,13 +4,8 @@ import { api } from '@/lib/api';
 import type { MasterItem, MasterItemKind } from './types';
 
 /**
- * 전공 · 자격증 마스터 API.
- *
- * 두 도메인이 경로만 다르고 요청 · 응답이 같아 **종류를 받아 갈라 쓴다** —
- * 함수를 두 벌 두면 한쪽만 고치는 사고가 난다.
- *
- * ⚠️ 응답 필드 이름은 도메인마다 다르다 (`majorId`/`majors`, `certificateId`/`certificates`).
- *    여기서 공용 모양(`MasterItem`)으로 바꿔 화면에는 한 가지만 넘긴다.
+ * 전공 · 자격증 마스터 API. 경로만 다르고 요청 · 응답이 같아 종류를 받아 갈라 쓴다.
+ * 응답 필드 이름은 도메인마다 달라 여기서 공용 모양(MasterItem)으로 바꾼다.
  */
 
 interface MajorResponse {
@@ -43,7 +38,7 @@ function toItem(source: MajorResponse | CertificateResponse): MasterItem {
   };
 }
 
-/** 목록 — 페이징이 없다. 응답이 `{ majors: [] }` · `{ certificates: [] }` 로 감싸져 온다 */
+/** 목록. 페이징이 없고 응답이 한 겹 감싸져 온다 */
 export function getMasterItems(kind: MasterItemKind, signal?: AbortSignal) {
   return api
     .get<{ majors?: MajorResponse[]; certificates?: CertificateResponse[] }>(
@@ -53,7 +48,7 @@ export function getMasterItems(kind: MasterItemKind, signal?: AbortSignal) {
     .then((data) => (data.majors ?? data.certificates ?? []).map(toItem));
 }
 
-/** 생성 — 이름이 겹치면 409 (`*_NAME_DUPLICATED`) */
+/** 생성. 이름이 겹치면 409 다 */
 export function createMasterItem(
   kind: MasterItemKind,
   name: string,
@@ -85,10 +80,8 @@ export function updateMasterItem(
 }
 
 /**
- * 삭제.
- *
- * ⚠️ **쓰는 사원이 있으면 409**(`*_IN_USE`) 다. 목록의 `deletable` 로 미리 잠그지만
- *    그 사이 누가 그 항목으로 등록하면 여기서 막힌다 — 부르는 쪽이 409 를 안내해야 한다.
+ * 삭제. 쓰는 사원이 있으면 409 다.
+ * deletable 로 미리 잠그지만 그 사이 등록되면 막히므로 부르는 쪽이 안내한다.
  */
 export function deleteMasterItem(
   kind: MasterItemKind,

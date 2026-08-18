@@ -1,8 +1,6 @@
 /**
- * 재무 도메인 API. (2026-08-12 스웨거 실측 — `.ai/API.md` 재무 절)
- *
- * ⚠️ 목록은 **페이징이 없고**, 다건 처리(삭제 · 제외)는 **부분 성공이 정상**이다.
- *    두 가지가 이 도메인의 다른 화면들과 가장 다른 점이다.
+ * 재무 도메인 API (.ai/API.md 재무 절).
+ * 입출금 목록은 페이징이 없고 다건 처리는 부분 성공이 정상이다.
  */
 import { ENDPOINTS } from '@/constants/endpoints';
 import { api, postForm } from '@/lib/api';
@@ -32,16 +30,14 @@ import type {
   UpdateCashFlowRequest,
 } from './types';
 
-/** 재무 관리 허브 진입 시 3개 항목 수치를 한 번에 받아온다 */
+/** 재무 관리 허브의 3개 항목 수치를 한 번에 받아온다 */
 export function getFinanceSummary(signal?: AbortSignal) {
   return api.get<FinanceSummary>(ENDPOINTS.finance.summary, signal);
 }
 
 /**
- * 쿼리 문자열을 만든다.
- *
- * 빈 값을 실어 보내면 백엔드가 **그 빈 값으로 검색**해 0건이 된다 — 값이 있는 조건만 싣는다.
- * `unlinked` 는 켰을 때만 보낸다 (없으면 전체이고, `false` 가 '연결된 것만' 은 아니다).
+ * 쿼리 문자열을 만든다. 값이 있는 조건만 싣는다.
+ * unlinked 는 켰을 때만 보낸다 (false 는 '연결된 것만' 이 아니다).
  */
 function toSearch(query: CashFlowListQuery) {
   const params = new URLSearchParams();
@@ -58,7 +54,7 @@ function toSearch(query: CashFlowListQuery) {
   return search ? `?${search}` : '';
 }
 
-/** 입출금 내역 목록 — ⚠️ 페이징이 없다 (배열 하나가 통째로 온다) */
+/** 입출금 내역 목록. 페이징 없이 배열 하나가 통째로 온다 */
 export function getCashFlows(query: CashFlowListQuery, signal?: AbortSignal) {
   return api.get<CashFlowListResponse>(
     `${ENDPOINTS.finance.cashFlows.root}${toSearch(query)}`,
@@ -66,7 +62,7 @@ export function getCashFlows(query: CashFlowListQuery, signal?: AbortSignal) {
   );
 }
 
-/** 필터 옵션 — 프로젝트 목록만 내려온다 */
+/** 입출금 필터 옵션. 프로젝트 목록만 내려온다 */
 export function getCashFlowFilterOptions(signal?: AbortSignal) {
   return api.get<CashFlowFilterOptions>(
     ENDPOINTS.finance.cashFlows.filters,
@@ -74,16 +70,14 @@ export function getCashFlowFilterOptions(signal?: AbortSignal) {
   );
 }
 
-/** 직접 등록 — 저장된 건은 `sourceType: 'MANUAL'` 이 된다 */
+/** 직접 등록. 저장된 건은 출처가 MANUAL 이 된다 */
 export function createCashFlow(body: CreateCashFlowRequest) {
   return api.post<CashFlowItem>(ENDPOINTS.finance.cashFlows.root, body);
 }
 
 /**
- * 수정.
- *
- * ⚠️ 적요 외의 필드는 **직접 등록 + 미연결** 건에만 반영된다 —
- *    나머지는 서버가 조용히 무시하므로 화면에서 먼저 막는다 (`canEditAll()`).
+ * 수정. 적요 외의 필드는 직접 등록 + 미연결 건에만 반영된다.
+ * 나머지는 서버가 조용히 무시하므로 화면에서 먼저 막는다.
  */
 export function updateCashFlow(
   cashFlowId: number,
@@ -96,10 +90,8 @@ export function updateCashFlow(
 }
 
 /**
- * 다건 삭제 — 본문에 ID 배열을 싣는다.
- *
- * ⚠️ 매칭된 건은 삭제되지 않고 `skippedItems` 로 빠진다 (**부분 성공이 정상**).
- *    먼저 연결을 해제해야 지울 수 있다.
+ * 다건 삭제. 본문에 ID 배열을 싣는다.
+ * 매칭된 건은 처리되지 않고 빠지므로 부분 성공이 정상이다.
  */
 export async function deleteCashFlows(cashFlowIds: number[]) {
   const data = await api.deleteWithBody<{
@@ -111,10 +103,8 @@ export async function deleteCashFlows(cashFlowIds: number[]) {
 }
 
 /**
- * 연결 대상 제외 · 제외 취소.
- *
- * ⚠️ 토글이 아니라 **값 지정**이다 — `isExcluded` 를 그대로 보낸다.
- * ⚠️ 이미 매칭된 건은 제외할 수 없어 `skippedItems` 로 빠진다.
+ * 연결 대상 제외 · 제외 취소. 토글이 아니라 값을 그대로 보낸다.
+ * 이미 매칭된 건은 제외할 수 없어 빠진다.
  */
 export async function updateCashFlowExclusion(
   cashFlowIds: number[],
@@ -128,11 +118,7 @@ export async function updateCashFlowExclusion(
   return { count: data.updatedCount, skippedItems: data.skippedItems };
 }
 
-/**
- * 매칭 추천 후보 — 최대 5건이 추천 순으로 온다.
- *
- * ⚠️ 프로젝트가 아니라 **정산 블록** 후보다. `matchTags` 에 추천 이유가 담겨 온다.
- */
+/** 매칭 추천 후보. 프로젝트가 아니라 정산 블록 후보가 최대 5건 온다 */
 export function getCashFlowMatchCandidates(
   cashFlowId: number,
   signal?: AbortSignal,
@@ -143,34 +129,21 @@ export function getCashFlowMatchCandidates(
   );
 }
 
-/**
- * 정산 블록에 연결.
- *
- * ⚠️ 400 이 세 갈래다 — 이미 매칭된 입출금 · **구분과 블록 타입 불일치** ·
- *    이미 매칭된 정산 블록. 셋 다 서버 문구가 가장 정확해 그대로 띄운다.
- */
+/** 정산 블록에 연결. 실패 사유가 여러 갈래라 서버 문구를 그대로 띄운다 */
 export function matchCashFlow(cashFlowId: number, settleId: number) {
   return api.patch<unknown>(ENDPOINTS.finance.cashFlows.match(cashFlowId), {
     settleId,
   });
 }
 
-/**
- * 정산 블록 연결 해제.
- *
- * ⚠️ 매칭되지 않은 건에 부르면 400 (`FINANCE_CASH_FLOW_NOT_MATCHED`) 이라
- *    화면에서 `linkStatus` 로 먼저 막는다.
- */
+/** 정산 블록 연결 해제. 매칭되지 않은 건은 화면에서 먼저 막는다 */
 export function unmatchCashFlow(cashFlowId: number) {
   return api.patch<unknown>(ENDPOINTS.finance.cashFlows.unmatch(cashFlowId));
 }
 
 /**
- * CSV · 엑셀 컬럼 추천 조회 — **파일은 저장되지 않는다.**
- *
- * ⚠️ 비밀번호가 걸린 엑셀이면 400(`FINANCE_CSV_PASSWORD_REQUIRED`) 이 온다.
- *    비밀번호를 받아 같은 파일로 다시 부른다 (`FINANCE_CSV_PASSWORD_INVALID` 는 틀린 경우).
- * ⚠️ 형식이 아니면 **404**(`FINANCE_INVALID_CSV_FILE`) 다 — 400 이 아니다.
+ * CSV · 엑셀 컬럼 추천 조회. 파일은 저장되지 않는다.
+ * 비밀번호가 걸린 엑셀은 비밀번호를 받아 같은 파일로 다시 부른다.
  */
 export function previewCashFlowCsv(
   file: File,
@@ -189,10 +162,8 @@ export function previewCashFlowCsv(
 }
 
 /**
- * 매핑을 확정해 저장한다.
- *
- * ⚠️ 매핑은 **JSON 문자열**로 `request` 파트에 담는다 (파일과 같은 multipart).
- * ⚠️ 이미 등록된 거래는 저장되지 않고 `duplicateRows` 로 돌아온다 — 실패가 아니다.
+ * 매핑을 확정해 저장한다. 매핑은 JSON 문자열로 request 파트에 담는다.
+ * 이미 등록된 거래는 중복으로 돌아오며 실패가 아니다.
  */
 export function uploadCashFlowCsv(
   file: File,
@@ -210,9 +181,7 @@ export function uploadCashFlowCsv(
   );
 }
 
-/**
- * 세금계산서 목록 — ⚠️ 입출금과 달리 **페이징이 있다** (`page` 는 0부터).
- */
+/** 세금계산서 목록. 입출금과 달리 페이징이 있다 (page 는 0부터) */
 export function getTaxInvoices(
   query: TaxInvoiceListQuery,
   signal?: AbortSignal,
@@ -240,20 +209,12 @@ export function getTaxInvoices(
 
 /**
  * 세금계산서 한 건을 찾는다.
- *
- * ⚠️ **단건 조회 API 가 없다** (2026-08-14 스웨거 실측). 목록에서 찾는 수밖에 없는데
- *    목록은 페이징이라 한 번에 다 오지 않아, 찾을 때까지 페이지를 넘긴다.
- * ⚠️ 페이지 수에 **상한을 둔다** — 없는 ID 를 열면 끝없이 요청하게 된다.
- *    상한을 넘기면 못 찾은 것으로 보고 화면이 안내한다.
+ * 단건 조회 API 가 없어 목록 페이지를 넘기며 찾는다.
  */
 export async function findTaxInvoice(taxId: number, signal?: AbortSignal) {
   const size = 100;
 
-  /**
-   * ⚠️ 페이지 수에 **임의 상한을 두지 않는다.** 예전에는 10페이지에서 끊었는데,
-   *    그 뒤에 있는 건은 멀쩡히 존재하는데도 `없음` 으로 보여 상세가 열리지 않았다.
-   *    끝은 서버가 준 `totalPages` 로만 정한다.
-   */
+  /* 임의 상한을 두지 않고 서버가 준 totalPages 까지만 넘긴다 */
   let totalPages = 1;
 
   for (let page = 0; page < totalPages; page++) {
@@ -267,7 +228,7 @@ export async function findTaxInvoice(taxId: number, signal?: AbortSignal) {
   return null;
 }
 
-/** 필터 옵션 — 프로젝트 목록만 내려온다 */
+/** 세금계산서 필터 옵션. 프로젝트 목록만 내려온다 */
 export function getTaxInvoiceFilterOptions(signal?: AbortSignal) {
   return api.get<TaxInvoiceFilterOptions>(
     ENDPOINTS.finance.taxInvoices.filters,
@@ -275,11 +236,7 @@ export function getTaxInvoiceFilterOptions(signal?: AbortSignal) {
   );
 }
 
-/**
- * 다건 삭제 — 본문에 ID 배열을 싣는다.
- *
- * ⚠️ 매칭된 건은 삭제되지 않고 `skippedItems` 로 빠진다 (**부분 성공이 정상**).
- */
+/** 다건 삭제. 매칭된 건은 처리되지 않고 빠진다 */
 export async function deleteTaxInvoices(taxIds: number[]) {
   const data = await api.deleteWithBody<{
     deletedCount: number;
@@ -289,11 +246,7 @@ export async function deleteTaxInvoices(taxIds: number[]) {
   return { count: data.deletedCount, skippedItems: data.skippedItems };
 }
 
-/**
- * 연결 대상 제외 · 제외 취소.
- *
- * ⚠️ 토글이 아니라 **값 지정**이다 — `isExcluded` 를 그대로 보낸다.
- */
+/** 연결 대상 제외 · 제외 취소. 토글이 아니라 값을 그대로 보낸다 */
 export async function updateTaxInvoiceExclusion(
   taxIds: number[],
   isExcluded: boolean,
@@ -306,7 +259,7 @@ export async function updateTaxInvoiceExclusion(
   return { count: data.updatedCount, skippedItems: data.skippedItems };
 }
 
-/** ⚠️ 세금계산서는 **메모만** 고칠 수 있다 — 직접 등록이 없어 나머지는 파일이 원본이다 */
+/** 세금계산서는 메모만 고칠 수 있다. 나머지는 파일이 원본이다 */
 export function updateTaxInvoiceMemo(taxId: number, memo: string) {
   return api.patch<{ taxId: number; memo: string | null; updatedAt: string }>(
     ENDPOINTS.finance.taxInvoices.detail(taxId),
@@ -314,7 +267,7 @@ export function updateTaxInvoiceMemo(taxId: number, memo: string) {
   );
 }
 
-/** 매칭 추천 후보 — 최대 5건이 추천 순으로 온다 (정산 블록 후보다) */
+/** 매칭 추천 후보. 정산 블록 후보가 최대 5건 온다 */
 export function getTaxInvoiceMatchCandidates(
   taxId: number,
   signal?: AbortSignal,
@@ -337,11 +290,7 @@ export function unmatchTaxInvoice(taxId: number) {
   return api.patch<unknown>(ENDPOINTS.finance.taxInvoices.unmatch(taxId));
 }
 
-/**
- * 세금계산서 CSV · 엑셀 컬럼 추천 조회 — **파일은 저장되지 않는다.**
- *
- * 오류 코드는 입출금과 같은 계열을 쓴다 (`errorCodes.ts` 의 `isCsv*`).
- */
+/** 세금계산서 CSV 컬럼 추천 조회. 파일은 저장되지 않는다 */
 export function previewTaxInvoiceCsv(
   file: File,
   password?: string,
@@ -358,11 +307,7 @@ export function previewTaxInvoiceCsv(
   );
 }
 
-/**
- * 매핑을 확정해 저장한다.
- *
- * ⚠️ 이미 등록된 **승인번호**는 저장되지 않고 `duplicateRows` 로 돌아온다 — 실패가 아니다.
- */
+/** 매핑을 확정해 저장한다. 이미 등록된 승인번호는 중복으로 돌아온다 */
 export function uploadTaxInvoiceCsv(
   file: File,
   request: TaxInvoiceCsvUploadRequest,
@@ -382,9 +327,8 @@ export function uploadTaxInvoiceCsv(
 /* ─────────────── 정산 현황 ─────────────── */
 
 /**
- * 프로젝트 단위 정산 현황. **페이징이 있다** (입출금 · 세금계산서 목록과 다르다).
- *
- * ⚠️ 정렬은 서버가 두 값만 받는다 — 표 머리글로 아무 열이나 정렬할 수 없다.
+ * 프로젝트 단위 정산 현황. 페이징이 있다.
+ * 정렬은 서버가 두 값만 받아 아무 열이나 정렬할 수 없다.
  */
 export function getSettlementProjects(
   query: SettlementProjectQuery = {},
@@ -395,7 +339,7 @@ export function getSettlementProjects(
   if (query.startDate) params.set('startDate', query.startDate);
   if (query.endDate) params.set('endDate', query.endDate);
   if (query.client) params.set('client', query.client);
-  // 기본값(false)과 구분해야 해서 값이 있을 때만 싣는다
+  // 기본값과 구분해야 해서 값이 있을 때만 싣는다
   if (query.includeCompleted) params.set('includeCompleted', 'true');
   if (query.page !== undefined) params.set('page', String(query.page));
   if (query.size !== undefined) params.set('size', String(query.size));
@@ -410,11 +354,11 @@ export function getSettlementProjects(
   );
 }
 
-/** 발주처 필터 선택지. 응답이 `{ clients: [...] }` 라 벗겨 반환한다 */
+/** 발주처 필터 선택지. 응답 껍데기를 벗겨 배열로 돌려준다 */
 export function getSettlementClients(signal?: AbortSignal) {
   return api
     .get<{ clients: string[] }>(ENDPOINTS.finance.settlements.filters, signal)
-    // 필드가 비어 와도 화면이 `map` 에서 죽지 않게 한다
+    // 필드가 비어 와도 화면이 죽지 않게 한다
     .then((data) => data.clients ?? []);
 }
 
@@ -428,6 +372,6 @@ export function getProjectSettlements(
       ENDPOINTS.finance.settlements.ofProject(projectId),
       signal,
     )
-    // 비어 오면 '회차 없음' 으로 그린다 — 없으면 로딩이 끝나지 않는다
+    // 비어 오면 '회차 없음' 으로 그린다
     .then((data) => data.blocks ?? []);
 }

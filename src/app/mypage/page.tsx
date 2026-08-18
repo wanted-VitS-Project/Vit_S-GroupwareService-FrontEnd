@@ -12,10 +12,7 @@ export default function MyPage() {
 
   return (
     <>
-      {/*
-        `마이페이지` 윗줄은 두지 않는다 — 위에 얹을 상위 화면이 없어 경로처럼 읽히고,
-        제목(`내 정보`)과 같은 자리를 두 줄로 나눠 쓴다.
-      */}
+      {/* 상위 화면이 없어 윗줄(경로) 없이 제목만 쓴다 */}
       <PageTitle variant="top" title="내 정보" />
 
       <div className="space-y-6">
@@ -52,7 +49,7 @@ export default function MyPage() {
 interface CardProps {
   title: string;
   action?: React.ReactNode;
-  /** `Field` 가 아닌 내용을 담는 카드 — `<dl>` 대신 평범한 `<div>` 로 감싼다 */
+  /** Field 가 아닌 내용을 담는 카드. dl 대신 div 로 감싼다 */
   isPlain?: boolean;
   children: React.ReactNode;
 }
@@ -81,7 +78,6 @@ function Card({ title, action, isPlain = false, children }: CardProps) {
 function Field({ label, value }: { label: string; value?: string | null }) {
   return (
     <div className="flex gap-6 text-body-m">
-      {/* 라벨 폭을 고정해 값의 시작선을 맞춘다 — '마지막 로그인' 이 들어가는 너비 */}
       <dt className="w-24 shrink-0 whitespace-nowrap text-text-secondary">
         {label}
       </dt>

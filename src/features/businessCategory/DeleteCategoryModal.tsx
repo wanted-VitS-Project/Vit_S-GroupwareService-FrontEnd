@@ -17,11 +17,8 @@ interface DeleteCategoryModalProps {
 }
 
 /**
- * 사업 카테고리 삭제 모달. (.ai/API.md 18)
- *
- * `deletable === false` 면 처음부터 차단 안내를 띄운다.
- * 목록을 받은 뒤 다른 사람이 프로젝트를 연결할 수 있어 409 도 같은 화면으로 받는다 —
- * 이때는 건수가 담긴 백엔드 문구를 그대로 쓴다.
+ * 사업 카테고리 삭제 모달. deletable 이 false 면 처음부터 차단 안내를 띄운다.
+ * 그 사이 프로젝트가 연결되면 409 도 같은 화면에서 백엔드 문구로 받는다.
  */
 export default function DeleteCategoryModal({
   category,
@@ -70,7 +67,7 @@ export default function DeleteCategoryModal({
   const isBlocked = blockedMessage !== '';
   const title = isBlocked ? '삭제할 수 없습니다' : '사업 카테고리 삭제';
 
-  /** 삭제 중에는 닫지 않는다 — 요청은 계속 날아간다 */
+  /** 삭제 중에는 닫지 않는다. 요청은 계속 날아간다 */
   function requestClose() {
     if (!isSubmitting) onClose();
   }
@@ -114,7 +111,7 @@ export default function DeleteCategoryModal({
             <button
               type="button"
               onClick={onClose}
-              className="btn btn-md btn-primary min-w-[104px]"
+              className="btn btn-md btn-primary min-w-26"
             >
               확인
             </button>

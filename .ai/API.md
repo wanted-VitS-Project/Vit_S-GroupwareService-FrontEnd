@@ -13,169 +13,169 @@
 
 ## 목차
 
-| #                                         | API                | Method · Path                                                | 연동                                  |
-| ----------------------------------------- | ------------------ | ------------------------------------------------------------ | ------------------------------------- |
-| [1](#1-로그인)                            | 로그인             | `POST /auth/login`                                           | ✅ `features/auth/api.ts`             |
-| [2](#2-로그아웃)                          | 로그아웃           | `POST /auth/logout`                                          | ✅ `features/auth/api.ts`             |
-| [3](#3-내-정보-조회)                      | 내 정보 조회       | `GET /auth/me`                                               | ✅ `features/auth/api.ts`             |
-| [4](#4-약관-동의)                         | 약관 동의          | `POST /auth/terms-agreements`                                | ✅ `features/auth/api.ts`             |
-| [5](#5-비밀번호-변경)                     | 비밀번호 변경      | `PATCH /auth/password`                                       | ✅ `features/auth/api.ts`             |
-| [6](#6-프로젝트-상세-조회)                | 프로젝트 상세      | `GET /projects/{projectId}`                                  | ✅ `features/project/api.ts`          |
-| [7](#7-프로젝트-스테이지-목록)            | 스테이지 목록      | `GET /projects/{projectId}/stages`                           | ✅ `features/project/api.ts`          |
-| [8](#8-프로젝트-스텝-목록)                | 스텝 목록          | `GET /projects/{projectId}/steps`                            | ✅ `features/project/api.ts`          |
-| [9](#9-블록-생성)                         | 블록 생성          | `POST /steps/{stepId}/blocks`                                | ✅ `features/block/api.ts`            |
-| [10](#10-스텝-블록-일괄-조회)             | 블록 일괄 조회     | `GET /steps/{stepId}/blocks`                                 | ✅ `features/block/api.ts`            |
-| [11](#11-텍스트-본문-수정)                | 텍스트 본문 수정   | `PATCH /blocks/texts/{txtId}`                                | ✅ `features/block/api.ts`            |
-| [12](#12-체크리스트-항목-생성)            | 체크리스트 생성    | `POST /blocks/checklists/{chkBlockId}/items`                 | ✅ `features/block/api.ts`            |
-| [13](#13-체크리스트-항목-수정)            | 체크리스트 수정    | `PATCH /blocks/checklists/items/{chkId}`                     | ✅ `features/block/api.ts`            |
-| [14](#14-체크리스트-항목-삭제)            | 체크리스트 삭제    | `DELETE /blocks/checklists/items/{chkId}`                    | ✅ `features/block/api.ts`            |
-| [15](#15-사업-카테고리-목록-조회)         | 카테고리 목록      | `GET /business-categories`                                   | ✅ `features/businessCategory/api.ts` |
-| [16](#16-사업-카테고리-생성)              | 카테고리 생성      | `POST /business-categories`                                  | ✅ `features/businessCategory/api.ts` |
-| [17](#17-사업-카테고리-수정)              | 카테고리 수정      | `PATCH /business-categories/{categoryId}`                    | ✅ `features/businessCategory/api.ts` |
-| [18](#18-사업-카테고리-삭제)              | 카테고리 삭제      | `DELETE /business-categories/{categoryId}`                   | ✅ `features/businessCategory/api.ts` |
-| [19](#19-전역-권한-변경)                  | 권한 변경          | `PATCH /accounts/{userId}/role`                              | ✅ `features/employee/api.ts`         |
-| [20](#20-계정-상태-변경)                  | 계정 상태 변경     | `PATCH /accounts/{userId}/status`                            | ✅ `features/employee/api.ts`         |
-| [21](#21-비밀번호-재설정-개인--다중-공용) | 비밀번호 재설정    | `POST /accounts/password-resets`                             | ✅ `features/employee/api.ts`         |
-| [22](#22-부서-목록-조회)                  | 부서 목록          | `GET /departments`                                           | ✅ `features/department/api.ts`       |
-| [23](#23-부서-생성-최상위--하위-공용)     | 부서 생성          | `POST /departments`                                          | ✅ `features/department/api.ts`       |
-| [24](#24-부서명-수정)                     | 부서명 수정        | `PATCH /departments/{departmentId}`                          | ✅ `features/department/api.ts`       |
-| [25](#25-부서-삭제)                       | 부서 삭제          | `DELETE /departments/{departmentId}`                         | ✅ `features/department/api.ts`       |
-| [26](#26-직급-목록-조회)                  | 직급 목록          | `GET /job-positions`                                         | ✅ `features/jobPosition/api.ts`      |
-| [27](#27-직급-생성)                       | 직급 생성          | `POST /job-positions`                                        | ✅ `features/jobPosition/api.ts`      |
-| [28](#28-직급-수정-직급명--순서)          | 직급 수정          | `PATCH /job-positions/{jobPositionId}`                       | ✅ `features/jobPosition/api.ts`      |
-| [29](#29-직급-삭제)                       | 직급 삭제          | `DELETE /job-positions/{jobPositionId}`                      | ✅ `features/jobPosition/api.ts`      |
-| [30](#30-사원-목록-조회-인사관리)         | 사원 목록          | `GET /employees`                                             | ✅ `features/employee/api.ts`         |
-| [31](#31-사원-상세-조회)                  | 사원 상세          | `GET /employees/{userId}`                                    | ✅ `features/employee/api.ts`         |
-| [32](#32-사원-등록-계정-동시-발급)        | 사원 등록          | `POST /employees`                                            | ✅ `features/employee/api.ts`         |
-| [33](#33-사원-정보-수정)                  | 사원 수정          | `PATCH /employees/{userId}`                                  | ✅ `features/employee/api.ts`         |
-| [34](#34-퇴사-처리)                       | 퇴사 처리          | `PATCH /employees/{userId}/resignation`                      | ✅ `features/employee/api.ts`         |
-| [35](#35-사원-이름-검색-결재선-지정용)    | 사원 이름 검색     | `GET /employees/search`                                      | ✅ `EmployeeSearchInput` (#41)        |
-| [36](#36-블록-파일-목록-조회)             | 블록 파일 목록     | `GET /blocks/{blockId}/files`                                | ✅ `features/file/api.ts`             |
-| [37](#37-파일-업로드-시작)                | 업로드 시작        | `POST /files/uploads`                                        | ✅ `features/file/api.ts`             |
-| [38](#38-업로드-완료-통보)                | 업로드 완료 통보   | `POST /files/uploads/{fileVersionId}/complete`               | ✅ `features/file/api.ts`             |
-| [39](#39-문서명-수정)                     | 문서명 수정        | `PATCH /files/{fileId}`                                      | ✅ `features/file/api.ts`             |
-| [40](#40-휴지통으로-이동)                 | 휴지통으로 이동    | `DELETE /files/{fileId}`                                     | ✅ `features/file/api.ts`             |
-| [41](#41-버전-이력-조회)                  | 버전 이력          | `GET /files/{fileId}/versions`                               | ✅ `features/file/api.ts`             |
-| [42](#42-다운로드-url-발급)               | 다운로드 URL       | `GET /file-versions/{id}/download`                           | ✅ `features/file/api.ts`             |
-| [43](#43-미리보기-조회-pdf-바이너리)      | 미리보기 (PDF)     | `GET /file-versions/{id}/preview`                            | ✅ `features/file/api.ts`             |
-| [44](#44-블록-배치-변경)                  | 블록 배치 변경     | `PATCH /steps/{stepId}/blocks/layout`                        | ✅ `features/block/api.ts`            |
-| [45](#45-프로젝트-참여자-목록-조회)       | 참여자 목록        | `GET /projects/{projectId}/members`                          | ✅ `features/project/api.ts`          |
-| [46](#46-블록-수정)                       | 블록 수정          | `PATCH /blocks/{blockId}`                                    | ✅ `features/block/api.ts`            |
-| [47](#47-블록-삭제)                       | 블록 삭제          | `DELETE /blocks/{blockId}`                                   | ✅ `features/block/api.ts`            |
-| [48](#48-결재-회차-상세조회)              | 결재 회차 상세     | `GET /approvals/{id}/revisions/{revId}`                      | ✅ `features/approval/api.ts`         |
-| [49](#49-결재-제목--내용-수정)            | 제목 · 내용 수정   | `PATCH /approvals/{id}/revisions/{revId}`                    | ✅ `features/approval/api.ts`         |
-| [50](#50-재상신-회차-생성)                | 재상신 회차 생성   | `POST /approvals/{id}/revisions`                             | ✅ `features/approval/api.ts`         |
-| [51](#51-결재-상신)                       | 결재 상신          | `POST /approvals/{id}/revisions/{revId}/submit`              | ✅ `features/approval/api.ts`         |
-| [52](#52-결재-문서-추가)                  | 결재 문서 추가     | `POST /approvals/{id}/revisions/{revId}/documents`           | ✅ `features/approval/api.ts`         |
-| [53](#53-결재-문서-제거)                  | 결재 문서 제거     | `DELETE /approvals/{id}/revisions/{revId}/documents/{docId}` | ✅ `features/approval/api.ts`         |
-| [54](#54-결재선-등록--수정)               | 결재선 등록·수정   | `PUT /approvals/{id}/revisions/{revId}/lines`                | ✅ `features/approval/api.ts`         |
-| [55](#55-스텝별-이슈-목록-조회)           | 이슈 목록          | `GET /steps/{stepId}/issues`                                 | ✅ `features/issue/api.ts`            |
-| [56](#56-이슈-생성)                       | 이슈 생성          | `POST /steps/{stepId}/issues`                                | ✅ `features/issue/api.ts`            |
-| [57](#57-이슈-상세-조회)                  | 이슈 상세          | `GET /issues/{issueId}`                                      | ✅ `features/issue/api.ts`            |
-| [58](#58-이슈-부분-수정)                  | 이슈 부분 수정     | `PATCH /issues/{issueId}`                                    | ✅ `features/issue/api.ts`            |
-| [59](#59-이슈-상태-변경)                  | 이슈 상태 변경     | `PATCH /issues/{issueId}/status`                             | ✅ `features/issue/api.ts`            |
-| [60](#60-이슈-삭제)                       | 이슈 삭제          | `DELETE /issues/{issueId}`                                   | ✅ `features/issue/api.ts`            |
-| [61](#61-결재관리-목록조회)               | 결재 목록          | `GET /approvals`                                             | ✅ `features/approval/api.ts`         |
-| [62](#62-결재-상세조회)                   | 결재 상세          | `GET /approvals/{id}`                                        | ✅ `features/approval/api.ts`         |
-| [63](#63-결재-승인)                       | 결재 승인          | `POST /approval-lines/{lineId}/approve`                      | ✅ `features/approval/api.ts`         |
-| [64](#64-결재-반려)                       | 결재 반려          | `POST /approval-lines/{lineId}/reject`                       | ✅ `features/approval/api.ts`         |
-| [65](#65-버전-단건-조회-결재용)           | 버전 단건 조회     | `GET /file-versions/{fileVersionId}`                         | ✅ `features/file/api.ts`             |
-| [66](#66-이미지-항목-조회-한-장)          | 이미지 한 장 조회  | `GET /blocks/images/{id}/items/{orderIndex}`                 | ✅ `features/block/api.ts`            |
-| [67](#67-이미지-항목-생성)                | 이미지 생성        | `POST /blocks/images/{id}/items`                             | ✅ `features/block/api.ts`            |
-| [68](#68-이미지-순서--캡션-수정)          | 이미지 순서·캡션   | `PATCH /blocks/images/items/{imgBlockId}`                    | ✅ `features/block/api.ts`            |
-| [69](#69-이미지-항목-삭제)                | 이미지 삭제        | `DELETE /blocks/images/items/{imgId}`                        | ✅ `features/block/api.ts`            |
-| [70](#70-이미지-다운로드)                 | 이미지 다운로드    | `GET /blocks/images/{id}/download`                           | ✅ `features/block/api.ts`            |
-| [71](#71-이미지-항목-전체-조회)           | 이미지 전체 조회   | `GET /blocks/images/{id}/items`                              | ✅ `features/block/api.ts`            |
-| [73](#73-결재-이력조회)                   | 결재 이력          | `GET /approvals/{id}/revisions`                              | ✅ `features/approval/api.ts`         |
-| [74](#74-프로젝트-파일-버전-목록)         | 프로젝트 버전 목록 | `GET /projects/{projectId}/file-versions`                    | ✅ `features/file/api.ts`             |
-| [75](#75-검토-템플릿-목록)                | 검토 템플릿        | `GET /vitamate/review-templates`                             | ✅ `features/vitamate/api.ts`         |
-| [76](#76-비타메이트-분석-요청)            | 분석 요청          | `POST /blocks/{blockId}/vitamate/analyses`                   | ✅ `features/vitamate/api.ts`         |
-| [77](#77-비타메이트-분석-단건-조회)       | 분석 단건 조회     | `GET /vitamate/analyses/{analysisId}`                        | ✅ `features/vitamate/api.ts`         |
-| [78](#78-블록별-분석-이력)                | 분석 이력          | `GET /blocks/{blockId}/vitamate/analyses`                    | ✅ `features/vitamate/api.ts`         |
-| [79](#79-알림-목록-조회)                  | 알림 목록          | `GET /notifications`                                         | ✅ `features/notification/api.ts`     |
-| [80](#80-알림-이동-대상-조회)             | 알림 이동 대상     | `GET /notifications/{id}/target`                             | ✅ `features/notification/api.ts`     |
-| [81](#81-알림-읽음-처리)                  | 알림 읽음          | `PATCH /notifications/{id}/read`                             | ✅ `features/notification/api.ts`     |
-| [82](#82-알림-전체-읽음-처리)             | 알림 전체 읽음     | `PATCH /notifications/read-all`                              | ✅ `features/notification/api.ts`     |
-| [83](#83-알림-삭제)                       | 알림 삭제          | `DELETE /notifications/{id}`                                 | ✅ `features/notification/api.ts`     |
-| [84](#84-프로젝트-목록-조회)              | 프로젝트 목록      | `GET /projects`                                              | ✅ `features/project/api.ts`          |
-| [85](#85-정산-항목-수정-시-조회)          | 정산 수정 조회     | `GET /blocks/settlements/{id}/items`                         | ✅ `features/settlement/api.ts`       |
-| [86](#86-정산-항목-작성--수정)            | 정산 작성·수정     | `PATCH /blocks/settlements/{id}/items`                       | ✅ `features/settlement/api.ts`       |
-| [87](#87-사원-엑셀-템플릿-다운로드)       | 엑셀 템플릿        | `GET /employees/bulk-template`                               | ✅ `features/employee/api.ts`         |
-| [88](#88-사원-엑셀-일괄-등록-검증)        | 일괄 등록 검증     | `POST /employees/bulk/validate`                              | ✅ `features/employee/api.ts`         |
-| [89](#89-사원-엑셀-일괄-등록)             | 일괄 등록          | `POST /employees/bulk`                                       | ✅ `features/employee/api.ts`         |
-| [90](#90-직급별-사원-목록)                | 직급별 사원 목록   | `GET /job-positions/{id}/employees`                          | ✅ `features/jobPosition/api.ts`      |
-| [91](#91-사원-그룹-목록-조회)             | 그룹 목록          | `GET /employee-groups`                                       | ✅ `features/employeeGroup/api.ts`    |
-| [92](#92-사원-그룹-생성)                  | 그룹 생성          | `POST /employee-groups`                                      | ✅ `features/employeeGroup/api.ts`    |
-| [93](#93-사원-그룹-수정)                  | 그룹 수정          | `PATCH /employee-groups/{groupId}`                           | ✅ `features/employeeGroup/api.ts`    |
-| [94](#94-사원-그룹-삭제)                  | 그룹 삭제          | `DELETE /employee-groups/{groupId}`                          | ✅ `features/employeeGroup/api.ts`    |
-| [95](#95-그룹-구성원-목록-조회)           | 구성원 목록        | `GET /employee-groups/{groupId}/members`                     | ✅ `features/employeeGroup/api.ts`    |
-| [96](#96-그룹-구성원-추가)                | 구성원 추가        | `POST /employee-groups/{groupId}/members`                    | ✅ `features/employeeGroup/api.ts`    |
-| [97](#97-그룹-구성원-제거)                | 구성원 제거        | `DELETE /employee-groups/{id}/members/{userId}`              | ✅ `features/employeeGroup/api.ts`    |
-| [98](#98-내-페이지-목록-조회)             | 내 페이지 목록     | `GET /my/pages`                                              | ✅ `features/pagePermission/api.ts`   |
-| [99](#99-페이지-목록-조회-권한-부여용)    | 페이지 목록        | `GET /pages`                                                 | ✅ `features/pagePermission/api.ts`   |
-| [100](#100-페이지-접근-가능자-목록)       | 접근 가능자 목록   | `GET /pages/{pageCode}/permissions`                          | ✅ `features/pagePermission/api.ts`   |
-| [101](#101-페이지-권한-부여--등급-변경)   | 권한 부여·변경     | `POST /pages/{pageCode}/permissions`                         | ✅ `features/pagePermission/api.ts`   |
-| [102](#102-페이지-권한-회수)              | 권한 회수          | `DELETE /pages/{pageCode}/permissions/{userId}`              | ✅ `features/pagePermission/api.ts`   |
-| [103](#103-휴지통에서-복구)               | 파일 복구          | `POST /files/{fileId}/restore`                               | ✅ `features/file/api.ts`             |
-| [104](#104-파일-영구-삭제)                | 파일 영구 삭제     | `POST /files/{fileId}/permanent-deletion`                    | ✅ `features/file/api.ts`             |
-| [105](#105-프로젝트-문서함-전체-파일)     | 프로젝트 문서함    | `GET /projects/{projectId}/files`                            | ✅ `features/file/api.ts`             |
-| [106](#106-프로젝트-휴지통-모아보기)      | 프로젝트 휴지통    | `GET /projects/{projectId}/files/trash`                      | ✅ `features/file/api.ts`             |
-| [107](#107-프로젝트-이미지-모아보기)      | 이미지 모아보기    | `GET /projects/{projectId}/images`                           | ✅ `features/block/api.ts`            |
-| [108](#108-프로젝트-단위-이슈-목록-조회)  | 프로젝트 이슈      | `GET /projects/{projectId}/issues`                           | ✅ `features/issue/api.ts`            |
-| [109](#109-이미지-휴지통-조회)            | 이미지 휴지통      | `GET /projects/{projectId}/images/trash`                     | ✅ `features/block/api.ts`            |
-| [110](#110-이미지-복구-다건)              | 이미지 복구        | `PATCH /blocks/images/items/restore`                         | ✅ `features/block/api.ts`            |
-| [111](#111-이미지-영구-삭제-다건)         | 이미지 영구 삭제   | `DELETE /blocks/images/items/hard`                           | ✅ `features/block/api.ts`            |
-| [112](#112-스테이지-생성)                 | 스테이지 생성      | `POST /projects/{projectId}/stages`                          | ✅ `features/project/api.ts`          |
-| [113](#113-스테이지-수정)                 | 스테이지 수정      | `PATCH /stages/{stageId}`                                    | ✅ `features/project/api.ts`          |
-| [114](#114-스테이지-삭제)                 | 스테이지 삭제      | `DELETE /stages/{stageId}`                                   | ✅ `features/project/api.ts`          |
-| [115](#115-스텝-생성)                     | 스텝 생성          | `POST /projects/{projectId}/steps`                           | ✅ `features/project/api.ts`          |
-| [116](#116-스텝-수정)                     | 스텝 수정          | `PATCH /steps/{stepId}`                                      | ✅ `features/project/api.ts`          |
-| [117](#117-스텝-삭제)                     | 스텝 삭제          | `DELETE /steps/{stepId}`                                     | ✅ `features/project/api.ts`          |
-| [118](#118-스텝-완료-처리)                | 스텝 완료 처리     | `POST /steps/{stepId}/complete`                              | ✅ `features/project/api.ts`          |
-| [119](#119-스테이지-순서-변경)            | 스테이지 순서      | `PATCH /projects/{projectId}/stages/order`                   | ✅ `features/project/api.ts`          |
-| [120](#120-스텝-순서-변경)                | 스텝 순서 · 소속   | `PATCH /projects/{projectId}/steps/order`                    | ✅ `features/project/api.ts`          |
-| [121](#121-블록-스텝-이동)                | 블록 스텝 이동     | `PATCH /blocks/{blockId}/step`                               | ✅ `features/block/api.ts`            |
-| [122](#122-입찰-공고-목록-조회)           | 입찰 공고 목록     | `GET /bidding/notices`                                       | ✅ `features/bidding/api.ts`          |
-| [123](#123-입찰-공고-상세-조회)           | 입찰 공고 상세     | `GET /bidding/notices/{noticeId}`                            | ✅ `features/bidding/api.ts`          |
-| [124](#124-스텝-상세-조회)                | 스텝 상세          | `GET /steps/{stepId}`                                        | ❌ 미연동                             |
-| [125](#125-참여자-추가)                   | 참여자 추가        | `POST /projects/{projectId}/members`                         | ✅ `features/project/api.ts`          |
-| [126](#126-참여자-권한-변경)              | 참여자 권한 변경   | `PATCH /projects/{projectId}/members/{memberId}`             | ✅ `features/project/api.ts`          |
-| [127](#127-참여자-제거)                   | 참여자 제거        | `DELETE /projects/{projectId}/members/{memberId}`            | ✅ `features/project/api.ts`          |
-| [128](#128-하위-스텝-권한-일괄-적용)      | 스텝 권한 기본값   | `POST /stages/{stageId}/step-permissions`                    | ✅ `features/project/api.ts`          |
-| [129](#129-프로젝트-수정)                 | 프로젝트 수정      | `PATCH /projects/{projectId}`                                | ✅ `features/project/api.ts`          |
-| [130](#130-프로젝트-상태-변경)            | 프로젝트 상태 변경 | `PATCH /projects/{projectId}/status`                         | ✅ `features/project/api.ts`          |
-| [131](#131-프로젝트-종결)                 | 프로젝트 종결      | `POST /projects/{projectId}/close`                           | ✅ `features/project/api.ts`          |
-| [132](#132-사업-카테고리-연결)            | 카테고리 연결      | `POST /projects/{projectId}/business-categories`             | ✅ `features/project/api.ts`          |
-| [133](#133-사업-카테고리-해제)            | 카테고리 해제      | `DELETE /projects/{projectId}/business-categories/{id}`      | ✅ `features/project/api.ts`          |
-| [134](#134-스텝-권한-목록-조회)           | 스텝 권한 목록     | `GET /steps/{stepId}/permissions`                            | ✅ `features/project/api.ts`          |
-| [135](#135-스텝-권한-부여--변경)          | 스텝 권한 부여     | `PUT /steps/{stepId}/permissions/{userId}`                   | ✅ `features/project/api.ts`          |
-| [136](#136-스텝-권한-회수)                | 스텝 권한 회수     | `DELETE /steps/{stepId}/permissions/{userId}`                | ✅ `features/project/api.ts`          |
-| [137](#137-스텝-상태-변경)                | 스텝 상태 변경     | `PATCH /steps/{stepId}/status`                               | ✅ `features/project/api.ts`          |
-| [138](#138-프로젝트-직접-생성)            | 프로젝트 생성      | `POST /projects`                                             | ✅ `features/project/api.ts`          |
-| [139](#139-프로젝트-삭제)                 | 프로젝트 삭제      | `DELETE /projects/{projectId}`                               | ✅ `features/project/api.ts`          |
-| [140](#140-내-프로젝트-파일-모아보기)     | 내 파일            | `GET /files/my`                                              | ✅ `features/file/api.ts`             |
-| [141](#141-알림-실시간-수신-sse)          | 알림 실시간 수신   | `GET /notifications/stream`                                  | ✅ `features/notification/stream.ts`  |
-| [142](#142-전사-파일-목록-admin)          | 전사 파일 목록     | `GET /admin/files`                                           | ✅ `features/file/api.ts`             |
-| [143~150](#143150-사내-문서함-admin)      | 사내 문서함        | `/admin/company-documents …`                                 | ✅ `features/companyDocument/api.ts`  |
-| [151~154](#151154-전사-파일-탐색기-admin) | 전사 파일 탐색기   | `/admin/files/projects …`                                    | ✅ `features/file/api.ts`             |
-| [155~158](#155158-전공--자격증-마스터-admin) | 전공 · 자격증 마스터 | `/majors` · `/certificates`                                 | ✅ `features/masterItem/api.ts`       |
+| #                                            | API                  | Method · Path                                                | 연동                                  |
+| -------------------------------------------- | -------------------- | ------------------------------------------------------------ | ------------------------------------- |
+| [1](#1-로그인)                               | 로그인               | `POST /auth/login`                                           | ✅ `features/auth/api.ts`             |
+| [2](#2-로그아웃)                             | 로그아웃             | `POST /auth/logout`                                          | ✅ `features/auth/api.ts`             |
+| [3](#3-내-정보-조회)                         | 내 정보 조회         | `GET /auth/me`                                               | ✅ `features/auth/api.ts`             |
+| [4](#4-약관-동의)                            | 약관 동의            | `POST /auth/terms-agreements`                                | ✅ `features/auth/api.ts`             |
+| [5](#5-비밀번호-변경)                        | 비밀번호 변경        | `PATCH /auth/password`                                       | ✅ `features/auth/api.ts`             |
+| [6](#6-프로젝트-상세-조회)                   | 프로젝트 상세        | `GET /projects/{projectId}`                                  | ✅ `features/project/api.ts`          |
+| [7](#7-프로젝트-스테이지-목록)               | 스테이지 목록        | `GET /projects/{projectId}/stages`                           | ✅ `features/project/api.ts`          |
+| [8](#8-프로젝트-스텝-목록)                   | 스텝 목록            | `GET /projects/{projectId}/steps`                            | ✅ `features/project/api.ts`          |
+| [9](#9-블록-생성)                            | 블록 생성            | `POST /steps/{stepId}/blocks`                                | ✅ `features/block/api.ts`            |
+| [10](#10-스텝-블록-일괄-조회)                | 블록 일괄 조회       | `GET /steps/{stepId}/blocks`                                 | ✅ `features/block/api.ts`            |
+| [11](#11-텍스트-본문-수정)                   | 텍스트 본문 수정     | `PATCH /blocks/texts/{txtId}`                                | ✅ `features/block/api.ts`            |
+| [12](#12-체크리스트-항목-생성)               | 체크리스트 생성      | `POST /blocks/checklists/{chkBlockId}/items`                 | ✅ `features/block/api.ts`            |
+| [13](#13-체크리스트-항목-수정)               | 체크리스트 수정      | `PATCH /blocks/checklists/items/{chkId}`                     | ✅ `features/block/api.ts`            |
+| [14](#14-체크리스트-항목-삭제)               | 체크리스트 삭제      | `DELETE /blocks/checklists/items/{chkId}`                    | ✅ `features/block/api.ts`            |
+| [15](#15-사업-카테고리-목록-조회)            | 카테고리 목록        | `GET /business-categories`                                   | ✅ `features/businessCategory/api.ts` |
+| [16](#16-사업-카테고리-생성)                 | 카테고리 생성        | `POST /business-categories`                                  | ✅ `features/businessCategory/api.ts` |
+| [17](#17-사업-카테고리-수정)                 | 카테고리 수정        | `PATCH /business-categories/{categoryId}`                    | ✅ `features/businessCategory/api.ts` |
+| [18](#18-사업-카테고리-삭제)                 | 카테고리 삭제        | `DELETE /business-categories/{categoryId}`                   | ✅ `features/businessCategory/api.ts` |
+| [19](#19-전역-권한-변경)                     | 권한 변경            | `PATCH /accounts/{userId}/role`                              | ✅ `features/employee/api.ts`         |
+| [20](#20-계정-상태-변경)                     | 계정 상태 변경       | `PATCH /accounts/{userId}/status`                            | ✅ `features/employee/api.ts`         |
+| [21](#21-비밀번호-재설정-개인--다중-공용)    | 비밀번호 재설정      | `POST /accounts/password-resets`                             | ✅ `features/employee/api.ts`         |
+| [22](#22-부서-목록-조회)                     | 부서 목록            | `GET /departments`                                           | ✅ `features/department/api.ts`       |
+| [23](#23-부서-생성-최상위--하위-공용)        | 부서 생성            | `POST /departments`                                          | ✅ `features/department/api.ts`       |
+| [24](#24-부서명-수정)                        | 부서명 수정          | `PATCH /departments/{departmentId}`                          | ✅ `features/department/api.ts`       |
+| [25](#25-부서-삭제)                          | 부서 삭제            | `DELETE /departments/{departmentId}`                         | ✅ `features/department/api.ts`       |
+| [26](#26-직급-목록-조회)                     | 직급 목록            | `GET /job-positions`                                         | ✅ `features/jobPosition/api.ts`      |
+| [27](#27-직급-생성)                          | 직급 생성            | `POST /job-positions`                                        | ✅ `features/jobPosition/api.ts`      |
+| [28](#28-직급-수정-직급명--순서)             | 직급 수정            | `PATCH /job-positions/{jobPositionId}`                       | ✅ `features/jobPosition/api.ts`      |
+| [29](#29-직급-삭제)                          | 직급 삭제            | `DELETE /job-positions/{jobPositionId}`                      | ✅ `features/jobPosition/api.ts`      |
+| [30](#30-사원-목록-조회-인사관리)            | 사원 목록            | `GET /employees`                                             | ✅ `features/employee/api.ts`         |
+| [31](#31-사원-상세-조회)                     | 사원 상세            | `GET /employees/{userId}`                                    | ✅ `features/employee/api.ts`         |
+| [32](#32-사원-등록-계정-동시-발급)           | 사원 등록            | `POST /employees`                                            | ✅ `features/employee/api.ts`         |
+| [33](#33-사원-정보-수정)                     | 사원 수정            | `PATCH /employees/{userId}`                                  | ✅ `features/employee/api.ts`         |
+| [34](#34-퇴사-처리)                          | 퇴사 처리            | `PATCH /employees/{userId}/resignation`                      | ✅ `features/employee/api.ts`         |
+| [35](#35-사원-이름-검색-결재선-지정용)       | 사원 이름 검색       | `GET /employees/search`                                      | ✅ `EmployeeSearchInput` (#41)        |
+| [36](#36-블록-파일-목록-조회)                | 블록 파일 목록       | `GET /blocks/{blockId}/files`                                | ✅ `features/file/api.ts`             |
+| [37](#37-파일-업로드-시작)                   | 업로드 시작          | `POST /files/uploads`                                        | ✅ `features/file/api.ts`             |
+| [38](#38-업로드-완료-통보)                   | 업로드 완료 통보     | `POST /files/uploads/{fileVersionId}/complete`               | ✅ `features/file/api.ts`             |
+| [39](#39-문서명-수정)                        | 문서명 수정          | `PATCH /files/{fileId}`                                      | ✅ `features/file/api.ts`             |
+| [40](#40-휴지통으로-이동)                    | 휴지통으로 이동      | `DELETE /files/{fileId}`                                     | ✅ `features/file/api.ts`             |
+| [41](#41-버전-이력-조회)                     | 버전 이력            | `GET /files/{fileId}/versions`                               | ✅ `features/file/api.ts`             |
+| [42](#42-다운로드-url-발급)                  | 다운로드 URL         | `GET /file-versions/{id}/download`                           | ✅ `features/file/api.ts`             |
+| [43](#43-미리보기-조회-pdf-바이너리)         | 미리보기 (PDF)       | `GET /file-versions/{id}/preview`                            | ✅ `features/file/api.ts`             |
+| [44](#44-블록-배치-변경)                     | 블록 배치 변경       | `PATCH /steps/{stepId}/blocks/layout`                        | ✅ `features/block/api.ts`            |
+| [45](#45-프로젝트-참여자-목록-조회)          | 참여자 목록          | `GET /projects/{projectId}/members`                          | ✅ `features/project/api.ts`          |
+| [46](#46-블록-수정)                          | 블록 수정            | `PATCH /blocks/{blockId}`                                    | ✅ `features/block/api.ts`            |
+| [47](#47-블록-삭제)                          | 블록 삭제            | `DELETE /blocks/{blockId}`                                   | ✅ `features/block/api.ts`            |
+| [48](#48-결재-회차-상세조회)                 | 결재 회차 상세       | `GET /approvals/{id}/revisions/{revId}`                      | ✅ `features/approval/api.ts`         |
+| [49](#49-결재-제목--내용-수정)               | 제목 · 내용 수정     | `PATCH /approvals/{id}/revisions/{revId}`                    | ✅ `features/approval/api.ts`         |
+| [50](#50-재상신-회차-생성)                   | 재상신 회차 생성     | `POST /approvals/{id}/revisions`                             | ✅ `features/approval/api.ts`         |
+| [51](#51-결재-상신)                          | 결재 상신            | `POST /approvals/{id}/revisions/{revId}/submit`              | ✅ `features/approval/api.ts`         |
+| [52](#52-결재-문서-추가)                     | 결재 문서 추가       | `POST /approvals/{id}/revisions/{revId}/documents`           | ✅ `features/approval/api.ts`         |
+| [53](#53-결재-문서-제거)                     | 결재 문서 제거       | `DELETE /approvals/{id}/revisions/{revId}/documents/{docId}` | ✅ `features/approval/api.ts`         |
+| [54](#54-결재선-등록--수정)                  | 결재선 등록·수정     | `PUT /approvals/{id}/revisions/{revId}/lines`                | ✅ `features/approval/api.ts`         |
+| [55](#55-스텝별-이슈-목록-조회)              | 이슈 목록            | `GET /steps/{stepId}/issues`                                 | ✅ `features/issue/api.ts`            |
+| [56](#56-이슈-생성)                          | 이슈 생성            | `POST /steps/{stepId}/issues`                                | ✅ `features/issue/api.ts`            |
+| [57](#57-이슈-상세-조회)                     | 이슈 상세            | `GET /issues/{issueId}`                                      | ✅ `features/issue/api.ts`            |
+| [58](#58-이슈-부분-수정)                     | 이슈 부분 수정       | `PATCH /issues/{issueId}`                                    | ✅ `features/issue/api.ts`            |
+| [59](#59-이슈-상태-변경)                     | 이슈 상태 변경       | `PATCH /issues/{issueId}/status`                             | ✅ `features/issue/api.ts`            |
+| [60](#60-이슈-삭제)                          | 이슈 삭제            | `DELETE /issues/{issueId}`                                   | ✅ `features/issue/api.ts`            |
+| [61](#61-결재관리-목록조회)                  | 결재 목록            | `GET /approvals`                                             | ✅ `features/approval/api.ts`         |
+| [62](#62-결재-상세조회)                      | 결재 상세            | `GET /approvals/{id}`                                        | ✅ `features/approval/api.ts`         |
+| [63](#63-결재-승인)                          | 결재 승인            | `POST /approval-lines/{lineId}/approve`                      | ✅ `features/approval/api.ts`         |
+| [64](#64-결재-반려)                          | 결재 반려            | `POST /approval-lines/{lineId}/reject`                       | ✅ `features/approval/api.ts`         |
+| [65](#65-버전-단건-조회-결재용)              | 버전 단건 조회       | `GET /file-versions/{fileVersionId}`                         | ✅ `features/file/api.ts`             |
+| [66](#66-이미지-항목-조회-한-장)             | 이미지 한 장 조회    | `GET /blocks/images/{id}/items/{orderIndex}`                 | ✅ `features/block/api.ts`            |
+| [67](#67-이미지-항목-생성)                   | 이미지 생성          | `POST /blocks/images/{id}/items`                             | ✅ `features/block/api.ts`            |
+| [68](#68-이미지-순서--캡션-수정)             | 이미지 순서·캡션     | `PATCH /blocks/images/items/{imgBlockId}`                    | ✅ `features/block/api.ts`            |
+| [69](#69-이미지-항목-삭제)                   | 이미지 삭제          | `DELETE /blocks/images/items/{imgId}`                        | ✅ `features/block/api.ts`            |
+| [70](#70-이미지-다운로드)                    | 이미지 다운로드      | `GET /blocks/images/{id}/download`                           | ✅ `features/block/api.ts`            |
+| [71](#71-이미지-항목-전체-조회)              | 이미지 전체 조회     | `GET /blocks/images/{id}/items`                              | ✅ `features/block/api.ts`            |
+| [73](#73-결재-이력조회)                      | 결재 이력            | `GET /approvals/{id}/revisions`                              | ✅ `features/approval/api.ts`         |
+| [74](#74-프로젝트-파일-버전-목록)            | 프로젝트 버전 목록   | `GET /projects/{projectId}/file-versions`                    | ✅ `features/file/api.ts`             |
+| [75](#75-검토-템플릿-목록)                   | 검토 템플릿          | `GET /vitamate/review-templates`                             | ✅ `features/vitamate/api.ts`         |
+| [76](#76-비타메이트-분석-요청)               | 분석 요청            | `POST /blocks/{blockId}/vitamate/analyses`                   | ✅ `features/vitamate/api.ts`         |
+| [77](#77-비타메이트-분석-단건-조회)          | 분석 단건 조회       | `GET /vitamate/analyses/{analysisId}`                        | ✅ `features/vitamate/api.ts`         |
+| [78](#78-블록별-분석-이력)                   | 분석 이력            | `GET /blocks/{blockId}/vitamate/analyses`                    | ✅ `features/vitamate/api.ts`         |
+| [79](#79-알림-목록-조회)                     | 알림 목록            | `GET /notifications`                                         | ✅ `features/notification/api.ts`     |
+| [80](#80-알림-이동-대상-조회)                | 알림 이동 대상       | `GET /notifications/{id}/target`                             | ✅ `features/notification/api.ts`     |
+| [81](#81-알림-읽음-처리)                     | 알림 읽음            | `PATCH /notifications/{id}/read`                             | ✅ `features/notification/api.ts`     |
+| [82](#82-알림-전체-읽음-처리)                | 알림 전체 읽음       | `PATCH /notifications/read-all`                              | ✅ `features/notification/api.ts`     |
+| [83](#83-알림-삭제)                          | 알림 삭제            | `DELETE /notifications/{id}`                                 | ✅ `features/notification/api.ts`     |
+| [84](#84-프로젝트-목록-조회)                 | 프로젝트 목록        | `GET /projects`                                              | ✅ `features/project/api.ts`          |
+| [85](#85-정산-항목-수정-시-조회)             | 정산 수정 조회       | `GET /blocks/settlements/{id}/items`                         | ✅ `features/settlement/api.ts`       |
+| [86](#86-정산-항목-작성--수정)               | 정산 작성·수정       | `PATCH /blocks/settlements/{id}/items`                       | ✅ `features/settlement/api.ts`       |
+| [87](#87-사원-엑셀-템플릿-다운로드)          | 엑셀 템플릿          | `GET /employees/bulk-template`                               | ✅ `features/employee/api.ts`         |
+| [88](#88-사원-엑셀-일괄-등록-검증)           | 일괄 등록 검증       | `POST /employees/bulk/validate`                              | ✅ `features/employee/api.ts`         |
+| [89](#89-사원-엑셀-일괄-등록)                | 일괄 등록            | `POST /employees/bulk`                                       | ✅ `features/employee/api.ts`         |
+| [90](#90-직급별-사원-목록)                   | 직급별 사원 목록     | `GET /job-positions/{id}/employees`                          | ✅ `features/jobPosition/api.ts`      |
+| [91](#91-사원-그룹-목록-조회)                | 그룹 목록            | `GET /employee-groups`                                       | ✅ `features/employeeGroup/api.ts`    |
+| [92](#92-사원-그룹-생성)                     | 그룹 생성            | `POST /employee-groups`                                      | ✅ `features/employeeGroup/api.ts`    |
+| [93](#93-사원-그룹-수정)                     | 그룹 수정            | `PATCH /employee-groups/{groupId}`                           | ✅ `features/employeeGroup/api.ts`    |
+| [94](#94-사원-그룹-삭제)                     | 그룹 삭제            | `DELETE /employee-groups/{groupId}`                          | ✅ `features/employeeGroup/api.ts`    |
+| [95](#95-그룹-구성원-목록-조회)              | 구성원 목록          | `GET /employee-groups/{groupId}/members`                     | ✅ `features/employeeGroup/api.ts`    |
+| [96](#96-그룹-구성원-추가)                   | 구성원 추가          | `POST /employee-groups/{groupId}/members`                    | ✅ `features/employeeGroup/api.ts`    |
+| [97](#97-그룹-구성원-제거)                   | 구성원 제거          | `DELETE /employee-groups/{id}/members/{userId}`              | ✅ `features/employeeGroup/api.ts`    |
+| [98](#98-내-페이지-목록-조회)                | 내 페이지 목록       | `GET /my/pages`                                              | ✅ `features/pagePermission/api.ts`   |
+| [99](#99-페이지-목록-조회-권한-부여용)       | 페이지 목록          | `GET /pages`                                                 | ✅ `features/pagePermission/api.ts`   |
+| [100](#100-페이지-접근-가능자-목록)          | 접근 가능자 목록     | `GET /pages/{pageCode}/permissions`                          | ✅ `features/pagePermission/api.ts`   |
+| [101](#101-페이지-권한-부여--등급-변경)      | 권한 부여·변경       | `POST /pages/{pageCode}/permissions`                         | ✅ `features/pagePermission/api.ts`   |
+| [102](#102-페이지-권한-회수)                 | 권한 회수            | `DELETE /pages/{pageCode}/permissions/{userId}`              | ✅ `features/pagePermission/api.ts`   |
+| [103](#103-휴지통에서-복구)                  | 파일 복구            | `POST /files/{fileId}/restore`                               | ✅ `features/file/api.ts`             |
+| [104](#104-파일-영구-삭제)                   | 파일 영구 삭제       | `POST /files/{fileId}/permanent-deletion`                    | ✅ `features/file/api.ts`             |
+| [105](#105-프로젝트-문서함-전체-파일)        | 프로젝트 문서함      | `GET /projects/{projectId}/files`                            | ✅ `features/file/api.ts`             |
+| [106](#106-프로젝트-휴지통-모아보기)         | 프로젝트 휴지통      | `GET /projects/{projectId}/files/trash`                      | ✅ `features/file/api.ts`             |
+| [107](#107-프로젝트-이미지-모아보기)         | 이미지 모아보기      | `GET /projects/{projectId}/images`                           | ✅ `features/block/api.ts`            |
+| [108](#108-프로젝트-단위-이슈-목록-조회)     | 프로젝트 이슈        | `GET /projects/{projectId}/issues`                           | ✅ `features/issue/api.ts`            |
+| [109](#109-이미지-휴지통-조회)               | 이미지 휴지통        | `GET /projects/{projectId}/images/trash`                     | ✅ `features/block/api.ts`            |
+| [110](#110-이미지-복구-다건)                 | 이미지 복구          | `PATCH /blocks/images/items/restore`                         | ✅ `features/block/api.ts`            |
+| [111](#111-이미지-영구-삭제-다건)            | 이미지 영구 삭제     | `DELETE /blocks/images/items/hard`                           | ✅ `features/block/api.ts`            |
+| [112](#112-스테이지-생성)                    | 스테이지 생성        | `POST /projects/{projectId}/stages`                          | ✅ `features/project/api.ts`          |
+| [113](#113-스테이지-수정)                    | 스테이지 수정        | `PATCH /stages/{stageId}`                                    | ✅ `features/project/api.ts`          |
+| [114](#114-스테이지-삭제)                    | 스테이지 삭제        | `DELETE /stages/{stageId}`                                   | ✅ `features/project/api.ts`          |
+| [115](#115-스텝-생성)                        | 스텝 생성            | `POST /projects/{projectId}/steps`                           | ✅ `features/project/api.ts`          |
+| [116](#116-스텝-수정)                        | 스텝 수정            | `PATCH /steps/{stepId}`                                      | ✅ `features/project/api.ts`          |
+| [117](#117-스텝-삭제)                        | 스텝 삭제            | `DELETE /steps/{stepId}`                                     | ✅ `features/project/api.ts`          |
+| [118](#118-스텝-완료-처리)                   | 스텝 완료 처리       | `POST /steps/{stepId}/complete`                              | ✅ `features/project/api.ts`          |
+| [119](#119-스테이지-순서-변경)               | 스테이지 순서        | `PATCH /projects/{projectId}/stages/order`                   | ✅ `features/project/api.ts`          |
+| [120](#120-스텝-순서-변경)                   | 스텝 순서 · 소속     | `PATCH /projects/{projectId}/steps/order`                    | ✅ `features/project/api.ts`          |
+| [121](#121-블록-스텝-이동)                   | 블록 스텝 이동       | `PATCH /blocks/{blockId}/step`                               | ✅ `features/block/api.ts`            |
+| [122](#122-입찰-공고-목록-조회)              | 입찰 공고 목록       | `GET /bidding/notices`                                       | ✅ `features/bidding/api.ts`          |
+| [123](#123-입찰-공고-상세-조회)              | 입찰 공고 상세       | `GET /bidding/notices/{noticeId}`                            | ✅ `features/bidding/api.ts`          |
+| [124](#124-스텝-상세-조회)                   | 스텝 상세            | `GET /steps/{stepId}`                                        | ❌ 미연동                             |
+| [125](#125-참여자-추가)                      | 참여자 추가          | `POST /projects/{projectId}/members`                         | ✅ `features/project/api.ts`          |
+| [126](#126-참여자-권한-변경)                 | 참여자 권한 변경     | `PATCH /projects/{projectId}/members/{memberId}`             | ✅ `features/project/api.ts`          |
+| [127](#127-참여자-제거)                      | 참여자 제거          | `DELETE /projects/{projectId}/members/{memberId}`            | ✅ `features/project/api.ts`          |
+| [128](#128-하위-스텝-권한-일괄-적용)         | 스텝 권한 기본값     | `POST /stages/{stageId}/step-permissions`                    | ✅ `features/project/api.ts`          |
+| [129](#129-프로젝트-수정)                    | 프로젝트 수정        | `PATCH /projects/{projectId}`                                | ✅ `features/project/api.ts`          |
+| [130](#130-프로젝트-상태-변경)               | 프로젝트 상태 변경   | `PATCH /projects/{projectId}/status`                         | ✅ `features/project/api.ts`          |
+| [131](#131-프로젝트-종결)                    | 프로젝트 종결        | `POST /projects/{projectId}/close`                           | ✅ `features/project/api.ts`          |
+| [132](#132-사업-카테고리-연결)               | 카테고리 연결        | `POST /projects/{projectId}/business-categories`             | ✅ `features/project/api.ts`          |
+| [133](#133-사업-카테고리-해제)               | 카테고리 해제        | `DELETE /projects/{projectId}/business-categories/{id}`      | ✅ `features/project/api.ts`          |
+| [134](#134-스텝-권한-목록-조회)              | 스텝 권한 목록       | `GET /steps/{stepId}/permissions`                            | ✅ `features/project/api.ts`          |
+| [135](#135-스텝-권한-부여--변경)             | 스텝 권한 부여       | `PUT /steps/{stepId}/permissions/{userId}`                   | ✅ `features/project/api.ts`          |
+| [136](#136-스텝-권한-회수)                   | 스텝 권한 회수       | `DELETE /steps/{stepId}/permissions/{userId}`                | ✅ `features/project/api.ts`          |
+| [137](#137-스텝-상태-변경)                   | 스텝 상태 변경       | `PATCH /steps/{stepId}/status`                               | ✅ `features/project/api.ts`          |
+| [138](#138-프로젝트-직접-생성)               | 프로젝트 생성        | `POST /projects`                                             | ✅ `features/project/api.ts`          |
+| [139](#139-프로젝트-삭제)                    | 프로젝트 삭제        | `DELETE /projects/{projectId}`                               | ✅ `features/project/api.ts`          |
+| [140](#140-내-프로젝트-파일-모아보기)        | 내 파일              | `GET /files/my`                                              | ✅ `features/file/api.ts`             |
+| [141](#141-알림-실시간-수신-sse)             | 알림 실시간 수신     | `GET /notifications/stream`                                  | ✅ `features/notification/stream.ts`  |
+| [142](#142-전사-파일-목록-admin)             | 전사 파일 목록       | `GET /admin/files`                                           | ✅ `features/file/api.ts`             |
+| [143~150](#143150-사내-문서함-admin)         | 사내 문서함          | `/admin/company-documents …`                                 | ✅ `features/companyDocument/api.ts`  |
+| [151~154](#151154-전사-파일-탐색기-admin)    | 전사 파일 탐색기     | `/admin/files/projects …`                                    | ✅ `features/file/api.ts`             |
+| [155~158](#155158-전공--자격증-마스터-admin) | 전공 · 자격증 마스터 | `/majors` · `/certificates`                                  | ✅ `features/masterItem/api.ts`       |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
 > 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통) · [이미지 도메인 — 공통](#이미지-도메인--공통) · [사원 그룹 도메인 — 공통](#사원-그룹-도메인--공통) · [페이지 권한 도메인 — 공통](#페이지-권한-도메인--공통) · [스테이지 · 스텝 도메인 — 공통](#스테이지--스텝-도메인--공통) · [이슈 도메인 — 공통](#이슈-도메인--공통) · [입찰 도메인 — 공통](#입찰-도메인--공통) · [프로젝트 참여자 · 설정 도메인 — 공통](#프로젝트-참여자--설정-도메인--공통)
 
 ### ❗ 백엔드 확인 대기
 
-| 항목                                               | 막힌 기능                                                    | 섹션  |
-| -------------------------------------------------- | ------------------------------------------------------------ | ----- |
-| `block.type` enum 이 "10값" 인데 정리된 값은 9개   | 모르는 유형은 껍데기로 표시                                  | 9     |
-| 블록 생성 응답 `data` 스키마                       | 생성 직후 해당 블록 지정                                     | 9     |
-| `detail.chkBlockId` · `detail.items`               | 체크리스트 항목 추가 · 목록                                  | 10    |
-| `detail.txtId` · `detail.content`                  | 텍스트 본문 편집                                             | 10    |
-| `detail` 의 첫 이미지 키 이름                      | 이미지 블록 (자세히는 이미지 절)                             | 10·66 |
-| 배치 동시 편집 보호 (버전 · 변경 알림 채널)        | 마지막 저장이 남의 변경을 덮음                               | 44    |
-| 파일 API `PR #190` 머지 대기                       | 문서 블록 실동작 확인                                        | 36~43 |
-| 휴지통 화면 목업                                   | 복구 · 영구 삭제 API 연동                                    | —     |
-| 이슈 `version` 불일치 + 같은 상태 요청             | 200 인지 409 인지 명세가 갈라져 있다 (화면은 요청을 안 보냄) | 59    |
+| 항목                                             | 막힌 기능                                                    | 섹션  |
+| ------------------------------------------------ | ------------------------------------------------------------ | ----- |
+| `block.type` enum 이 "10값" 인데 정리된 값은 9개 | 모르는 유형은 껍데기로 표시                                  | 9     |
+| 블록 생성 응답 `data` 스키마                     | 생성 직후 해당 블록 지정                                     | 9     |
+| `detail.chkBlockId` · `detail.items`             | 체크리스트 항목 추가 · 목록                                  | 10    |
+| `detail.txtId` · `detail.content`                | 텍스트 본문 편집                                             | 10    |
+| `detail` 의 첫 이미지 키 이름                    | 이미지 블록 (자세히는 이미지 절)                             | 10·66 |
+| 배치 동시 편집 보호 (버전 · 변경 알림 채널)      | 마지막 저장이 남의 변경을 덮음                               | 44    |
+| 파일 API `PR #190` 머지 대기                     | 문서 블록 실동작 확인                                        | 36~43 |
+| 휴지통 화면 목업                                 | 복구 · 영구 삭제 API 연동                                    | —     |
+| 이슈 `version` 불일치 + 같은 상태 요청           | 200 인지 409 인지 명세가 갈라져 있다 (화면은 요청을 안 보냄) | 59    |
 
 #### ✅ 2026-08-13 해소 — `PATCH /steps/{stepId}/status` 명세 도착
 
@@ -1310,26 +1310,26 @@ data: {
 
 **응답 data** — 페이징
 
-| 필드                                             | 타입      | 설명                                   |
-| ------------------------------------------------ | --------- | -------------------------------------- |
-| `content[].userId` / `.name`                     | `string`  | 사번 · 이름                            |
-| `content[].email`                                | `string?` | 이메일 주소                            |
-| `content[].emailRegistered`                      | `boolean` | `false` 면 로그인 불가 → ⚠ 미등록 배지 |
-| `content[].departmentName` / `.departmentPath`   | `string?` | 부서명 · 2단 경로                      |
-| `content[].jobPositionName`                      | `string?` | 직급명                                 |
-| `content[].role`                                 | `string`  | `MASTER` · `MEMBER`                    |
-| `content[].accountStatus`                        | `string`  | `ACTIVE` · `INACTIVE`                  |
-| `content[].passwordStatus`                       | `string`  | `NORMAL` · `RESET_REQUIRED`            |
-| `content[].resignedAt`                           | `string?` | 퇴사일 (`null` = 재직중)               |
-| `content[].profileImageUrl`                      | `string?` | 사진 서빙 경로. 없으면 `null` (2026-08-17 추가) |
+| 필드                                           | 타입      | 설명                                            |
+| ---------------------------------------------- | --------- | ----------------------------------------------- |
+| `content[].userId` / `.name`                   | `string`  | 사번 · 이름                                     |
+| `content[].email`                              | `string?` | 이메일 주소                                     |
+| `content[].emailRegistered`                    | `boolean` | `false` 면 로그인 불가 → ⚠ 미등록 배지          |
+| `content[].departmentName` / `.departmentPath` | `string?` | 부서명 · 2단 경로                               |
+| `content[].jobPositionName`                    | `string?` | 직급명                                          |
+| `content[].role`                               | `string`  | `MASTER` · `MEMBER`                             |
+| `content[].accountStatus`                      | `string`  | `ACTIVE` · `INACTIVE`                           |
+| `content[].passwordStatus`                     | `string`  | `NORMAL` · `RESET_REQUIRED`                     |
+| `content[].resignedAt`                         | `string?` | 퇴사일 (`null` = 재직중)                        |
+| `content[].profileImageUrl`                    | `string?` | 사진 서빙 경로. 없으면 `null` (2026-08-17 추가) |
 
 > ⭐ **아바타는 이 값을 그대로 쓴다.** presigned 가 아니라 만료되지 않는 우리 경로다
->    (`/api/v1/employees/{userId}/profile-image`). 사번으로 경로를 조립하지 않는다.
+> (`/api/v1/employees/{userId}/profile-image`). 사번으로 경로를 조립하지 않는다.
 > ℹ️ 서빙 응답(302)의 캐시가 `no-store` → **`max-age=300, private`** 로 바뀌었다 (2026-08-17).
->    목록 아바타의 반복 왕복 · 깜빡임이 줄었다.
+> 목록 아바타의 반복 왕복 · 깜빡임이 줄었다.
 > ⚠️ 대신 **사진 교체 반영이 최대 5분 늦다** — 방금 바꾼 사진을 바로 보여야 하는 자리는
->    주소 뒤에 `?t={시각}` 을 붙여 캐시를 비킨다 (`ProfileImageField` 가 그렇게 한다).
-| `page` / `size` / `totalElements` / `totalPages` | `int`     | 페이징 메타                            |
+> 주소 뒤에 `?t={시각}` 을 붙여 캐시를 비킨다 (`ProfileImageField` 가 그렇게 한다).
+> | `page` / `size` / `totalElements` / `totalPages` | `int` | 페이징 메타 |
 
 | status | code                    | 화면 처리             |
 | ------ | ----------------------- | --------------------- |
@@ -1500,12 +1500,12 @@ data: {
 계약 원본은 백엔드 `.ai/api/file.md` 이고 이 문서와 다르면 **구현이 맞다.**
 엔드포인트 12개 중 9개가 구현·실기동 검증 완료(2026-08-06, `PR #190` 머지 대기)다.
 
-| 항목          | 내용                                                                                                           |
-| ------------- | -------------------------------------------------------------------------------------------------------------- |
-| **권한**      | ⚠️ **파일 단위 권한이 없다.** 스텝 권한을 그대로 따른다 — `VIEWER`=조회·다운로드, `EDITOR`=업로드·수정·삭제    |
+| 항목          | 내용                                                                                                                    |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **권한**      | ⚠️ **파일 단위 권한이 없다.** 스텝 권한을 그대로 따른다 — `VIEWER`=조회·다운로드, `EDITOR`=업로드·수정·삭제             |
 | **소유 구조** | ⚠️ 파일은 **프로젝트 소속**이고 블록은 참조만 한다. 다만 **블록을 지우면 파일도 함께 휴지통으로 간다** (2026-08-16 D안) |
-| **저장소**    | S3 presigned URL — 클라이언트가 직접 `PUT`/`GET`. 서버는 바이너리를 거치지 않는다 (업로드 10분 · 다운로드 5분) |
-| **제약**      | 50MB 이하 · 실행파일 확장자 차단 · 미리보기는 **PDF 만**, 서버가 앞 5페이지를 잘라 반환                        |
+| **저장소**    | S3 presigned URL — 클라이언트가 직접 `PUT`/`GET`. 서버는 바이너리를 거치지 않는다 (업로드 10분 · 다운로드 5분)          |
+| **제약**      | 50MB 이하 · 실행파일 확장자 차단 · 미리보기는 **PDF 만**, 서버가 앞 5페이지를 잘라 반환                                 |
 
 > ℹ️ 코드 상수는 `src/features/file/errorCodes.ts`. 분기는 status 가 아니라 **`code`** 로 한다.
 > ⏸ **미룬 것 3개** — 휴지통 복구(`POST /files/{fileId}/restore`) · 영구 삭제(`POST /files/{fileId}/permanent-deletion`) · AI 분석용 버전 목록(`GET /blocks/{blockId}/file-versions`). 휴지통 화면 · AI 경계 확정 후.
@@ -1798,13 +1798,14 @@ interface UpdateBlockLayoutRequest {
 data: {
   members: {
     memberId: number;
-    userId: string;             // 사원 사번
+    userId: string; // 사원 사번
     name: string;
-    department: string | null;  // 부서 미배정이면 null
+    department: string | null; // 부서 미배정이면 null
     permission: 'VIEWER' | 'EDITOR';
-    resigned: boolean;          // 퇴사자 배지
-    deleted: boolean;           // 사원 데이터 삭제 (D-6 · 2026-08-11 신설)
-  }[];
+    resigned: boolean; // 퇴사자 배지
+    deleted: boolean; // 사원 데이터 삭제 (D-6 · 2026-08-11 신설)
+  }
+  [];
 }
 ```
 
@@ -1847,11 +1848,11 @@ soft delete(`deleted_at` 플래그)만 지원하며 응답 `data` 는 `null` 이
 예전엔 파일이 활성으로 남아 **고아**(`blockDeleted: true`)가 됐다. 이제는 그 블록에 매달린 파일이
 **함께 휴지통으로 이동**한다. 스텝(117) · 스테이지(114) 삭제로 하위 블록이 지워질 때도 같다.
 
-| 어디에서              | 무엇이 달라졌나                                                                    |
-| --------------------- | ---------------------------------------------------------------------------------- |
-| 프로젝트 문서함(105)  | 삭제 블록의 파일이 **바로 사라진다** — `blockDeleted: true` 는 복구된 고아만 남는다 |
-| 프로젝트 휴지통(106)  | 자동으로 넘어온 파일이 **여기 나타난다** (`blockDeleted: true`)                     |
-| 복구(103)             | 원블록이 없으니 `blockId: null` 로 **문서함에 되살아난다** (블록 복구는 없다)       |
+| 어디에서             | 무엇이 달라졌나                                                                     |
+| -------------------- | ----------------------------------------------------------------------------------- |
+| 프로젝트 문서함(105) | 삭제 블록의 파일이 **바로 사라진다** — `blockDeleted: true` 는 복구된 고아만 남는다 |
+| 프로젝트 휴지통(106) | 자동으로 넘어온 파일이 **여기 나타난다** (`blockDeleted: true`)                     |
+| 복구(103)            | 원블록이 없으니 `blockId: null` 로 **문서함에 되살아난다** (블록 복구는 없다)       |
 
 > ⛔ **새 차단 케이스** — 블록에 **진행 중 결재가 참조하는 파일**이 하나라도 있으면 삭제가
 > **409 `FILE_APPROVAL_IN_PROGRESS`** 로 거부된다. 결재 취소 되물음(`APPROVAL_DELETE_CONFIRM_REQUIRED`)과
@@ -1870,10 +1871,10 @@ soft delete(`deleted_at` 플래그)만 지원하며 응답 `data` 는 `null` 이
 
 상신 이후의 결재가 붙어 있으면 첫 호출이 409 로 막힌다. **되물음이지 실패가 아니다.**
 
-| 단계 | 호출                                     | 결과                              |
-| ---- | ---------------------------------------- | --------------------------------- |
-| ①    | `DELETE /blocks/{blockId}`               | 409 `APPROVAL_DELETE_CONFIRM_REQUIRED` |
-| ②    | `DELETE /blocks/{blockId}?confirmApprovalCancel=true` | 200                   |
+| 단계 | 호출                                                  | 결과                                   |
+| ---- | ----------------------------------------------------- | -------------------------------------- |
+| ①    | `DELETE /blocks/{blockId}`                            | 409 `APPROVAL_DELETE_CONFIRM_REQUIRED` |
+| ②    | `DELETE /blocks/{blockId}?confirmApprovalCancel=true` | 200                                    |
 
 > ⛔ **409 를 실패로 끝내면 그 블록은 영영 지울 수 없다.** 확인 다이얼로그가 필수다 (`BlockDeleteModal`).
 > ⚠️ **안내 문구를 프론트에서 만들지 않는다** — 결재 상태마다 무엇을 잃는지가 달라 서버 `message` 를 그대로 띄운다 (진행 중 → 결재 취소 / 반려 → 재상신 불가 / 완료 → 승인 이력 소실). **분기는 `code`, 표시는 `message`.**
@@ -1900,10 +1901,10 @@ soft delete(`deleted_at` 플래그)만 지원하며 응답 `data` 는 `null` 이
 
 기안자 · 결재자가 퇴사 · 프로젝트 이탈로 더는 진행할 수 없을 때다. **처리 주체와 방법이 다르다.**
 
-| 상황        | 조건                                              | 처리                                              |
-| ----------- | ------------------------------------------------- | ------------------------------------------------- |
-| 기안자 불가 | `drafterUnavailable && actingDrafterId === null`   | 스텝 `EDITOR` 가 **재상신**(`POST .../revisions`)  |
-| 결재자 불가 | `detail.requiresApproverReplacement`               | 기안자가 **교체 · 제외**(`PUT .../lines`)          |
+| 상황        | 조건                                             | 처리                                              |
+| ----------- | ------------------------------------------------ | ------------------------------------------------- |
+| 기안자 불가 | `drafterUnavailable && actingDrafterId === null` | 스텝 `EDITOR` 가 **재상신**(`POST .../revisions`) |
+| 결재자 불가 | `detail.requiresApproverReplacement`             | 기안자가 **교체 · 제외**(`PUT .../lines`)         |
 
 > ⭐ **대행 기안자는 지정 절차가 없다** — 가장 먼저 재상신에 성공한 `EDITOR` 가 된다. 그래서 동시에 누르면 **진 쪽이 403 `APPROVAL_NOT_DRAFTER`** 를 받는다. 서버 문구("기안자 아님")로는 이유를 알 수 없으니 화면이 사정을 알리고 회차를 다시 받는다. 이미 대행자가 있으면 `actingDrafterName` 을 띄우고 버튼을 닫는다.
 > ⚠️ 교체 · 제외 대상은 `approverUnavailable === true` 이면서 **`ACTIVE` · `WAITING`** 인 결재선뿐이다 — 이미 승인 · 반려한 결재선은 지나간 이력이라 건드리면 결재가 왜곡된다.
@@ -2518,17 +2519,17 @@ soft delete 이며 응답 `data` 는 `null` 이다. 담당자 · 블록은 삭�
 
 ### ❗ 이미지 — 백엔드 확인 대기
 
-| 항목                                                            | 막힌 기능 · 임시 처리                                                                                                               |
-| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `detail` 의 **첫 이미지 · 장수 키 이름** (첫 장 동봉은 확정)    | 세 가지 모양을 모두 읽는다 (10번 참고). 확정되면 한 분기만 남긴다                                                                   |
-| `currentOrderIndex = 0` · `next` 가 **첫 장**을 주는지          | 업로드 직후 이동 · `detail` 이 비었을 때의 예비 경로가 이 가정이다                                                                  |
-| 마지막 장에서 `next` (첫 장에서 `prev`) 가 순환인지 400 인지    | 프론트가 양 끝에서 버튼을 숨겨 아예 부르지 않는다                                                                                   |
-| 편집 권한 플래그 (문서 블록의 `canEdit` 같은 값)                | 지금은 모두에게 추가 · 수정 · 삭제 버튼을 보여주고 서버 403 에 맡김                                                                 |
-| 캡션 최대 길이                                                  | 임시로 블록 제목과 같은 200자로 막는다                                                                                              |
-| 68번 수정에서 **빠뜨린 이미지**가 삭제되는지 유지되는지         | 항상 전체 목록을 보낸다 (삭제는 69번으로 따로)                                                                                      |
-| 이미지 **확장자** 제한 (용량 · 장수는 2026-08-16 확정, 67번 참고)  | 프론트가 `image/jpeg,png,gif,webp` 로 먼저 거른다 — **서버도 같은 목록으로 독립 검증 필요** (SVG 는 스크립트를 품을 수 있다) |
-| **`altText` 필드 추가 요청** — 이미지의 뜻을 담는 대체 텍스트   | 지금은 캡션 · 파일명으로 대신한다 (뜻을 보장하지 못한다). 아래 참고                                                                 |
-| **삭제 + 순서/캡션을 한 번에 처리하는 API** 요청                | 지금은 69번 여러 번 → 68번 순으로 나가 **중간에 끊기면 부분 반영**된다. 실패 시 71번으로 다시 읽어 화면을 맞춘다                    |
+| 항목                                                              | 막힌 기능 · 임시 처리                                                                                                        |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `detail` 의 **첫 이미지 · 장수 키 이름** (첫 장 동봉은 확정)      | 세 가지 모양을 모두 읽는다 (10번 참고). 확정되면 한 분기만 남긴다                                                            |
+| `currentOrderIndex = 0` · `next` 가 **첫 장**을 주는지            | 업로드 직후 이동 · `detail` 이 비었을 때의 예비 경로가 이 가정이다                                                           |
+| 마지막 장에서 `next` (첫 장에서 `prev`) 가 순환인지 400 인지      | 프론트가 양 끝에서 버튼을 숨겨 아예 부르지 않는다                                                                            |
+| 편집 권한 플래그 (문서 블록의 `canEdit` 같은 값)                  | 지금은 모두에게 추가 · 수정 · 삭제 버튼을 보여주고 서버 403 에 맡김                                                          |
+| 캡션 최대 길이                                                    | 임시로 블록 제목과 같은 200자로 막는다                                                                                       |
+| 68번 수정에서 **빠뜨린 이미지**가 삭제되는지 유지되는지           | 항상 전체 목록을 보낸다 (삭제는 69번으로 따로)                                                                               |
+| 이미지 **확장자** 제한 (용량 · 장수는 2026-08-16 확정, 67번 참고) | 프론트가 `image/jpeg,png,gif,webp` 로 먼저 거른다 — **서버도 같은 목록으로 독립 검증 필요** (SVG 는 스크립트를 품을 수 있다) |
+| **`altText` 필드 추가 요청** — 이미지의 뜻을 담는 대체 텍스트     | 지금은 캡션 · 파일명으로 대신한다 (뜻을 보장하지 못한다). 아래 참고                                                          |
+| **삭제 + 순서/캡션을 한 번에 처리하는 API** 요청                  | 지금은 69번 여러 번 → 68번 순으로 나가 **중간에 끊기면 부분 반영**된다. 실패 시 71번으로 다시 읽어 화면을 맞춘다             |
 
 ---
 
@@ -3065,6 +3066,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 > ❗ **`notificationType` 의 전체 목록을 받지 못했다.** 확인된 값은 `APPROVAL_REQUESTED` · `APPROVAL_REJECTED` · `APPROVAL_COMPLETED` 셋뿐이다. 시안에는 이슈 배정 · 새 댓글도 있어 `ISSUE_*` · `COMMENT_*` 가 더 있을 것으로 보인다 — **화면은 모르는 값이 와도 기본 아이콘으로 떨어지게** 짠다.
 > ❗ **`category` 로 넣을 수 있는 값 목록도 미확인.** 설명상 `notificationType` 의 **접두어**(`APPROVAL` 등)를 그대로 쓴다.
+> ℹ️ **화면 칩은 `결재`·`이슈`·`시스템` 셋이다** (2026-08-18). 앞 둘만 `category` 로 거르고, `시스템`(결재·이슈가 아닌 나머지)은 접두어 하나로 부를 수 없어 **조건 없이 `size=100` 을 받아 화면에서 고르고 쪽을 나눈다.**
 
 ---
 
@@ -3192,26 +3194,26 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 > 번호는 뒤지만 **알림 도메인**이라 여기에 둔다. (2026-08-13 신설)
 
-| 항목          | 내용                                                        |
-| ------------- | ----------------------------------------------------------- |
-| **Method**    | `GET` (`text/event-stream`)                                 |
-| **Path**      | `/api/v1/notifications/stream`                              |
-| **인증 필요** | ✅ **기존 세션 쿠키 그대로** (별도 토큰 없음)               |
+| 항목          | 내용                                                                |
+| ------------- | ------------------------------------------------------------------- |
+| **Method**    | `GET` (`text/event-stream`)                                         |
+| **Path**      | `/api/v1/notifications/stream`                                      |
+| **인증 필요** | ✅ **기존 세션 쿠키 그대로** (별도 토큰 없음)                       |
 | **사용 위치** | `features/notification/stream.ts` → `subscribeNotificationStream()` |
 
 **응답이 닫히지 않는다.** 요청은 1건이고 그 열린 연결로 서버가 계속 써 보낸다 — 그래서 `lib/api.ts` 래퍼가 아니라 `EventSource` 로 직접 연다 (`apiUrl()` 로 오리진을 씌운다).
 
 **서버가 보내는 이벤트**
 
-| 이벤트         | 시점            | 내용                                             |
-| -------------- | --------------- | ------------------------------------------------ |
-| `connected`    | 구독 직후 1회   | `{ "userId": "EMP001" }`                         |
-| `notification` | 알림 1건        | **목록 항목과 같은 구조** (`readAt` 은 항상 null) |
-| `:ping`        | 15초마다        | SSE 주석이라 이벤트로 안 올라온다 — 처리 불필요   |
+| 이벤트         | 시점          | 내용                                              |
+| -------------- | ------------- | ------------------------------------------------- |
+| `connected`    | 구독 직후 1회 | `{ "userId": "EMP001" }`                          |
+| `notification` | 알림 1건      | **목록 항목과 같은 구조** (`readAt` 은 항상 null) |
+| `:ping`        | 15초마다      | SSE 주석이라 이벤트로 안 올라온다 — 처리 불필요   |
 
-| status | code                   | 화면 처리                    |
-| ------ | ---------------------- | ---------------------------- |
-| 401    | `AUTH_UNAUTHENTICATED` | 연결 자체가 열리지 않는다    |
+| status | code                   | 화면 처리                 |
+| ------ | ---------------------- | ------------------------- |
+| 401    | `AUTH_UNAUTHENTICATED` | 연결 자체가 열리지 않는다 |
 
 > ⚠️ **`withCredentials: true` 가 없으면 쿠키가 안 실려 401 이다** — 연결이 아예 안 열린다.
 > ⚠️ **서버가 30분마다 연결을 정상 종료**하고 브라우저가 자동 재연결한다. 장애가 아니다 — 재연결도 `onerror` 를 거치므로 **오류 문구를 띄우면 안 된다.** `readyState` 가 `CLOSED` 일 때만 정리한다(브라우저가 포기한 경우). 401 에도 `EventSource` 는 무한 재시도하므로 우리가 끊어야 한다.
@@ -3576,51 +3578,51 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 사원의 **학력 · 자격증에서 고를 값**을 관리한다. 자유입력을 두지 않아 표기가 갈리지 않는다.
 두 도메인은 **경로와 에러 접두어만 다르고 구조가 같다** — 프론트는 한 벌로 다룬다.
 
-| 번호 | Method · Path                          | 내용             |
-| ---- | -------------------------------------- | ---------------- |
-| 155  | `GET /majors` · `GET /certificates`    | 목록 (페이징 없음) |
-| 156  | `POST /majors` · `POST /certificates`  | 생성             |
-| 157  | `PATCH /{id}`                          | 이름 수정        |
-| 158  | `DELETE /{id}`                         | 삭제             |
+| 번호 | Method · Path                         | 내용               |
+| ---- | ------------------------------------- | ------------------ |
+| 155  | `GET /majors` · `GET /certificates`   | 목록 (페이징 없음) |
+| 156  | `POST /majors` · `POST /certificates` | 생성               |
+| 157  | `PATCH /{id}`                         | 이름 수정          |
+| 158  | `DELETE /{id}`                        | 삭제               |
 
 **155 목록** — `data.majors[]` · `data.certificates[]`
 `majorId`/`certificateId` · `name` · `employeeCount`(쓰는 사원 수) · `deletable`
 
 **156 · 157 본문** — `name` (필수 · 100자 이하)
 
-| status | code                                        | 화면 처리                       |
-| ------ | ------------------------------------------- | ------------------------------- |
-| 409    | `MAJOR_NAME_DUPLICATED` · `CERT_NAME_DUPLICATED` | `이미 있는 이름입니다`          |
-| 409    | `MAJOR_IN_USE` · `CERT_IN_USE`              | 삭제 거부 — **사원 수는 `message` 에 담겨 온다** |
-| 404    | `MAJOR_NOT_FOUND` · `CERT_NOT_FOUND`        | 목록 재조회                     |
+| status | code                                             | 화면 처리                                        |
+| ------ | ------------------------------------------------ | ------------------------------------------------ |
+| 409    | `MAJOR_NAME_DUPLICATED` · `CERT_NAME_DUPLICATED` | `이미 있는 이름입니다`                           |
+| 409    | `MAJOR_IN_USE` · `CERT_IN_USE`                   | 삭제 거부 — **사원 수는 `message` 에 담겨 온다** |
+| 404    | `MAJOR_NOT_FOUND` · `CERT_NOT_FOUND`             | 목록 재조회                                      |
 
 > ⚠️ `deletable` 로 삭제 버튼을 잠그지만 **경합은 못 막는다** — 목록을 띄워 둔 사이 누가 그
->    항목으로 사원을 등록하면 409 가 온다. 잠금과 409 처리를 **둘 다** 둔다.
+> 항목으로 사원을 등록하면 409 가 온다. 잠금과 409 처리를 **둘 다** 둔다.
 > ℹ️ 응답 필드 이름이 도메인마다 달라(`majorId`/`certificateId`) API 계층에서 공용 모양(`MasterItem`)으로 바꾼다.
 
 ### 사원 API 에 붙는 학력 · 자격증 (32 · 31 · 33)
 
-| API                          | 무엇이 붙나                                                                 |
-| ---------------------------- | --------------------------------------------------------------------------- |
-| **32 등록** `POST /employees` | `educations[]`(`majorId` 필수 · `degree` 필수 · `school?`) · `certificates[]`(`certificateId` 필수 · `acquiredDate?`) |
-| **31 상세** `GET /employees/{userId}` | 위 필드에 **표시명이 조인돼** 온다 — `majorName` · `certificateName`   |
-| **33 수정** `PATCH /employees/{userId}` | 같은 필드. ⚠️ **전체 교체**                                          |
+| API                                     | 무엇이 붙나                                                                                                           |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **32 등록** `POST /employees`           | `educations[]`(`majorId` 필수 · `degree` 필수 · `school?`) · `certificates[]`(`certificateId` 필수 · `acquiredDate?`) |
+| **31 상세** `GET /employees/{userId}`   | 위 필드에 **표시명이 조인돼** 온다 — `majorName` · `certificateName`                                                  |
+| **33 수정** `PATCH /employees/{userId}` | 같은 필드. ⚠️ **전체 교체**                                                                                           |
 
 `degree` 는 `BACHELOR` · `MASTER` · `DOCTOR` 3값이다. 없는 항목 id 를 보내면 404 `MAJOR_NOT_FOUND` · `CERT_NOT_FOUND` 다.
 
 > 🚨 **수정은 부분 수정이 아니라 전체 교체다.** 보낸 배열이 최종 상태가 된다 —
->    **생략하면 기존 유지, `[]` 면 전부 삭제.** "안 건드림" 과 "다 지움" 이 다른 요청이라,
->    화면은 **편집 여부를 비교해 손대지 않았으면 키를 빼고** 보낸다 (`EmployeeEditForm`).
+> **생략하면 기존 유지, `[]` 면 전부 삭제.** "안 건드림" 과 "다 지움" 이 다른 요청이라,
+> 화면은 **편집 여부를 비교해 손대지 않았으면 키를 빼고** 보낸다 (`EmployeeEditForm`).
 > ⚠️ 화면에서 고르지 않은 줄(`majorId: 0`)은 **보내기 전에 걸러낸다** — 0 을 보내면 404 다.
 
 ### 엑셀 일괄 등록 (87~89)
 
 기존 8열 뒤에 **학력 · 자격증 2열**이 붙어 **10열**이다.
 
-| 열     | 형식                                                    |
-| ------ | ------------------------------------------------------- |
+| 열     | 형식                                                      |
+| ------ | --------------------------------------------------------- |
 | 학력   | `전공:학위;…` — 예) `컴퓨터공학:학사;소프트웨어공학:석사` |
-| 자격증 | `자격증;…` — 예) `정보처리기사;SQLD`                     |
+| 자격증 | `자격증;…` — 예) `정보처리기사;SQLD`                      |
 
 구분자는 `;` · `,` · **셀 안 줄바꿈**(Alt+Enter) 셋 다 되고 뒤 공백도 허용된다 (2026-08-17 확대).
 ⚠️ 그래서 **전공 · 자격증 이름에 쉼표를 넣으면** 두 항목으로 쪼개진다.
@@ -3959,10 +3961,10 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 > ⚠️ **결재가 잠근다.** 진행 중 결재의 대상이면 휴지통 이동이 409 로 막히고, **완료 포함** 결재 참조가 있으면 영구 삭제가 409 로 막힌다.
 
 > ⭐ **결재자는 스텝 권한이 없어도 첨부를 읽을 수 있다** (2026-08-17). 다운로드 · 미리보기 ·
->    버전 단건 · 버전 이력 4종에 결재선 참여 예외가 생겨, 프로젝트에 속하지 않은 결재자도
->    자기가 결재할 문서를 연다. 그동안 나던 403 `FILE_ACCESS_PERMISSION_REQUIRED` 가 사라진다.
+> 버전 단건 · 버전 이력 4종에 결재선 참여 예외가 생겨, 프로젝트에 속하지 않은 결재자도
+> 자기가 결재할 문서를 연다. 그동안 나던 403 `FILE_ACCESS_PERMISSION_REQUIRED` 가 사라진다.
 > ⚠️ **읽기 전용이고 그 결재에 걸린 첨부로만** 한정된다 — 업로드 · 수정 · 삭제 · 블록 파일 목록은
->    여전히 스텝 권한을 따른다.
+> 여전히 스텝 권한을 따른다.
 
 ---
 
@@ -4069,8 +4071,8 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 > ⚠️ **presigned 미임베드** — 다운로드는 클릭 시 42번(5분 URL)을 호출한다. 정렬은 `stepId` → `blockId` → 연결일.
 > 🔄 **2026-08-16(D안)** — 블록 삭제 파일이 휴지통으로 가므로 이 활성 목록엔 **바로 오지 않는다.**
->    그래도 `blockDeleted: true` 는 여전히 나타난다 — **휴지통에서 복구된 고아**가 이 값으로 온다.
->    `블록 삭제됨` 배지 처리를 **유지한다** (`groupFiles.ts` 의 고아 묶음).
+> 그래도 `blockDeleted: true` 는 여전히 나타난다 — **휴지통에서 복구된 고아**가 이 값으로 온다.
+> `블록 삭제됨` 배지 처리를 **유지한다** (`groupFiles.ts` 의 고아 묶음).
 
 ---
 
@@ -4089,18 +4091,18 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 **Query**
 
-| 이름        | 타입     | 내용                          |
-| ----------- | -------- | ----------------------------- |
+| 이름        | 타입     | 내용                           |
+| ----------- | -------- | ------------------------------ |
 | `keyword`   | `string` | 문서명 · 원본 파일명 부분 일치 |
-| `projectId` | `number` | 특정 프로젝트만               |
-| `extension` | `string` | 확장자 (`pdf` · `csv` …)      |
+| `projectId` | `number` | 특정 프로젝트만                |
+| `extension` | `string` | 확장자 (`pdf` · `csv` …)       |
 
 **응답 data — `files[]`** — 105번의 모든 필드에 아래가 더 붙는다
 
-| 필드                                     | 타입             | 설명                            |
-| ---------------------------------------- | ---------------- | ------------------------------- |
-| `projectId` / `projectName`              | `number`/`string` | 속한 프로젝트                   |
-| `uploaderDepartment` / `uploaderPosition` | `string \| null` | 시스템 계정이면 `null`          |
+| 필드                                      | 타입              | 설명                   |
+| ----------------------------------------- | ----------------- | ---------------------- |
+| `projectId` / `projectName`               | `number`/`string` | 속한 프로젝트          |
+| `uploaderDepartment` / `uploaderPosition` | `string \| null`  | 시스템 계정이면 `null` |
 
 | status | code                   | 화면 처리      |
 | ------ | ---------------------- | -------------- |
@@ -4131,36 +4133,36 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 **Query**
 
-| 이름        | 타입     | 내용                        |
-| ----------- | -------- | --------------------------- |
-| `keyword`   | `string` | 파일명 · 원본명 · 업로더    |
-| `projectId` | `number` | 프로젝트 필터               |
-| `extension` | `string` | 확장자                      |
-| `page`      | `number` | 0-base                      |
-| `size`      | `number` | 기본 20 · 최대 100          |
+| 이름        | 타입     | 내용                     |
+| ----------- | -------- | ------------------------ |
+| `keyword`   | `string` | 파일명 · 원본명 · 업로더 |
+| `projectId` | `number` | 프로젝트 필터            |
+| `extension` | `string` | 확장자                   |
+| `page`      | `number` | 0-base                   |
+| `size`      | `number` | 기본 20 · 최대 100       |
 
 **응답 data** — 페이지 봉투(`content` · `page` · `size` · `totalElements` · `totalPages`)
 
-| 필드                                            | 설명                                    |
-| ----------------------------------------------- | --------------------------------------- |
-| `projectId` / `projectName`                     | 속한 프로젝트 (그룹핑 기준)             |
-| `stepId` / `stepName` / `blockId` / `blockTitle` | 위치 — **id 도 함께 온다** (2026-08-16 스웨거 실측. 예전 표에 이름만 적혀 있었다) |
-| `fileId` / `name` / `versionCount`              | 문서 정보                               |
-| `latestVersionId` / `latestVersionNo`           | 최신 완료 버전 — 다운로드 · 미리보기 대상 |
-| `originalFileName` / `extension` / `sizeBytes`  | 원본 정보                               |
-| `previewable` / `updatedAt`                     | —                                        |
-| `uploaderName?` / `uploaderDepartment?` / `uploaderPosition?` | 시스템 계정이면 오지 않는다 |
+| 필드                                                          | 설명                                                                              |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `projectId` / `projectName`                                   | 속한 프로젝트 (그룹핑 기준)                                                       |
+| `stepId` / `stepName` / `blockId` / `blockTitle`              | 위치 — **id 도 함께 온다** (2026-08-16 스웨거 실측. 예전 표에 이름만 적혀 있었다) |
+| `fileId` / `name` / `versionCount`                            | 문서 정보                                                                         |
+| `latestVersionId` / `latestVersionNo`                         | 최신 완료 버전 — 다운로드 · 미리보기 대상                                         |
+| `originalFileName` / `extension` / `sizeBytes`                | 원본 정보                                                                         |
+| `previewable` / `updatedAt`                                   | —                                                                                 |
+| `uploaderName?` / `uploaderDepartment?` / `uploaderPosition?` | 시스템 계정이면 오지 않는다                                                       |
 
-| status | code                   | 화면 처리        |
-| ------ | ---------------------- | ---------------- |
-| 200    | —                      | 없으면 빈 배열   |
-| 403    | `ACC_ADMIN_REQUIRED`   | 표 자리에 안내   |
+| status | code                 | 화면 처리      |
+| ------ | -------------------- | -------------- |
+| 200    | —                    | 없으면 빈 배열 |
+| 403    | `ACC_ADMIN_REQUIRED` | 표 자리에 안내 |
 
 > ℹ️ 다운로드 · 미리보기는 행에서 **공용 파일 버전 API**(42번 `download` · `preview`)를 그대로 부른다.
 > ⚠️ **정렬 파라미터가 없다** — 목업의 `최근 수정순` 드롭다운은 화면에서 뺐다.
 > ✅ **스텝 단위 조회는 151~154번(탐색기)이 맡는다** (2026-08-16 해소) — 이 API 에 `stepId` 필터를 붙이는 대신
->    전용 트리 API 가 왔다. 탐색기가 프로젝트 500건을 미리 받아 화면에서 나누던 방식은 걷어냈다.
->    이 API 는 이제 **검색 · 필터 담당**이다 (프로젝트 · 스테이지 단계에서 쓴다).
+> 전용 트리 API 가 왔다. 탐색기가 프로젝트 500건을 미리 받아 화면에서 나누던 방식은 걷어냈다.
+> 이 API 는 이제 **검색 · 필터 담당**이다 (프로젝트 · 스테이지 단계에서 쓴다).
 > ⚠️ **집계가 없다** — 총 용량 · 기간별 업로드 수는 응답으로 알 수 없어 요약 카드에 넣지 않았다.
 
 ---
@@ -4171,16 +4173,16 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 > 회사 재정 · 소개 · 실적 자료로 **AI 공고 검토의 비교 기준**이 되는 자료다. 전 API 가 ADMIN 전용(403 `ACC_ADMIN_REQUIRED`).
 > **사용 위치**: `features/companyDocument/api.ts` · `upload.ts`
 
-| 번호 | Method · Path                                              | 내용                     |
-| ---- | ---------------------------------------------------------- | ------------------------ |
-| 143  | `GET /admin/company-documents`                             | 목록 (분류 · 검색 · 페이징) |
-| 144  | `POST /admin/company-documents/uploads`                    | ① 업로드 시작 · presigned |
-| 145  | `POST /admin/company-documents/uploads/{versionId}/complete` | ③ 완료 통보            |
-| 146  | `GET /admin/company-documents/{documentId}/versions`       | 버전 이력                |
-| 147  | `GET /admin/company-document-versions/{versionId}/download` | 다운로드 URL (5분)      |
-| 148  | `GET /admin/company-document-versions/{versionId}/preview`  | 미리보기 (PDF 앞 5p)    |
-| 149  | `PATCH /admin/company-documents/{documentId}`              | 표시명 · 분류 수정       |
-| 150  | `DELETE …/{documentId}` · `POST …/restore`                 | 삭제(soft) · 복구        |
+| 번호 | Method · Path                                                | 내용                        |
+| ---- | ------------------------------------------------------------ | --------------------------- |
+| 143  | `GET /admin/company-documents`                               | 목록 (분류 · 검색 · 페이징) |
+| 144  | `POST /admin/company-documents/uploads`                      | ① 업로드 시작 · presigned   |
+| 145  | `POST /admin/company-documents/uploads/{versionId}/complete` | ③ 완료 통보                 |
+| 146  | `GET /admin/company-documents/{documentId}/versions`         | 버전 이력                   |
+| 147  | `GET /admin/company-document-versions/{versionId}/download`  | 다운로드 URL (5분)          |
+| 148  | `GET /admin/company-document-versions/{versionId}/preview`   | 미리보기 (PDF 앞 5p)        |
+| 149  | `PATCH /admin/company-documents/{documentId}`                | 표시명 · 분류 수정          |
+| 150  | `DELETE …/{documentId}` · `POST …/restore`                   | 삭제(soft) · 복구           |
 
 **143 목록** — Query `category`(`FINANCE`·`COMPANY_INTRO`·`PERFORMANCE`·`CERTIFICATE`·`ETC`) · `keyword` · `page`/`size`(20·최대100)
 `data.content[]`: `companyDocumentId` · `category` · `name` · `latestVersionId` · `latestVersionNo` · `versionCount` · `originalFileName` · `extension` · `sizeBytes` · `previewable` · `uploaderName?` · `updatedAt`
@@ -4214,12 +4216,12 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 전사 파일을 **윈도우 탐색기식 계층**으로 훑는다. 노드를 열 때마다 **자식만** 부른다 (`프로젝트 → 스테이지 → 스텝 → 파일`).
 
-| 번호 | Method · Path                                       | 페이징 | 반환                    |
-| ---- | --------------------------------------------------- | ------ | ----------------------- |
-| 151  | `GET /admin/files/projects`                         | ✅     | 프로젝트 (이름 오름차순) |
-| 152  | `GET /admin/files/projects/{projectId}/stages`      | —      | 스테이지 + 미분류 버킷   |
-| 153  | `GET /admin/files/projects/{projectId}/steps`       | —      | 스텝 (`stageId` 필터)    |
-| 154  | `GET /admin/files/steps/{stepId}/files`             | ✅     | 스텝 안의 파일           |
+| 번호 | Method · Path                                  | 페이징 | 반환                     |
+| ---- | ---------------------------------------------- | ------ | ------------------------ |
+| 151  | `GET /admin/files/projects`                    | ✅     | 프로젝트 (이름 오름차순) |
+| 152  | `GET /admin/files/projects/{projectId}/stages` | —      | 스테이지 + 미분류 버킷   |
+| 153  | `GET /admin/files/projects/{projectId}/steps`  | —      | 스텝 (`stageId` 필터)    |
+| 154  | `GET /admin/files/steps/{stepId}/files`        | ✅     | 스텝 안의 파일           |
 
 **151 프로젝트** — Query `page`(0-base) · `size`(기본 10)
 `data.content[]`: `projectId` · `name` · `status`(`NOT_STARTED`·`IN_PROGRESS`·`SETTLEMENT`·`COMPLETED`·`CLOSED`) · `clientName?` · `updatedAt`(`yyyy-MM-dd HH:mm:ss`)
@@ -4237,11 +4239,11 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 에러: 404 `FILE_STEP_NOT_FOUND` (**신설** · `develop` 반영 — 코드 상수는 `features/file/errorCodes.ts`)
 
 > ⭐ **일반 프로젝트 API 로 훑지 않는다** — `GET /projects` · `/projects/{id}/stages` · `/steps` 는 참여자 권한이라
->    관리자가 **참여하지 않은 프로젝트**에서 403 이 났다. 이 4종은 회사 스코프라 그 문제가 없다.
+> 관리자가 **참여하지 않은 프로젝트**에서 403 이 났다. 이 4종은 회사 스코프라 그 문제가 없다.
 > ⚠️ **검색 · 확장자 필터가 없다** — 조건으로 찾을 때는 142번(`GET /admin/files`)을 쓴다.
->    그래서 화면은 스텝 안에 들어가면 **필터 줄을 숨긴다** (`AdminFileList` 의 `lockedStepId`).
+> 그래서 화면은 스텝 안에 들어가면 **필터 줄을 숨긴다** (`AdminFileList` 의 `lockedStepId`).
 > ⚠️ **개수가 없다** — 스테이지의 스텝 수 · 스텝의 파일 수가 응답에 없어 목록의 `스텝 N개` · `파일 N개` 힌트를 뺐다.
->    필요해지면 `stepCount` · `fileCount` 를 백엔드에 요청한다.
+> 필요해지면 `stepCount` · `fileCount` 를 백엔드에 요청한다.
 > ℹ️ 다운로드 · 미리보기는 목록에 URL 이 없다 — 행에서 42 · 43번(`/file-versions/{id}/download` · `/preview`)을 부른다.
 
 ---
@@ -4865,12 +4867,12 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 ### 관심 · 제외 · 복구 (2026-08-18 스웨거 실측 · 연동 완료)
 
-| 메서드  | 경로                                       | 설명                                        |
-| ------- | ------------------------------------------ | ------------------------------------------- |
-| `PATCH` | `/bidding/notices/{noticeId}/favorite`     | 관심 등록 — **회사 공용**이다 (개인 즐겨찾기가 아니다) |
-| `PATCH` | `/bidding/notices/{noticeId}/unfavorite`   | 관심 해제                                   |
-| `PATCH` | `/bidding/notices/{noticeId}/dismiss`      | 제외 — body `{ reason }` **필수**, 500자    |
-| `PATCH` | `/bidding/notices/{noticeId}/restore`      | 제외 해제 (본문 없음)                       |
+| 메서드  | 경로                                     | 설명                                                   |
+| ------- | ---------------------------------------- | ------------------------------------------------------ |
+| `PATCH` | `/bidding/notices/{noticeId}/favorite`   | 관심 등록 — **회사 공용**이다 (개인 즐겨찾기가 아니다) |
+| `PATCH` | `/bidding/notices/{noticeId}/unfavorite` | 관심 해제                                              |
+| `PATCH` | `/bidding/notices/{noticeId}/dismiss`    | 제외 — body `{ reason }` **필수**, 500자               |
+| `PATCH` | `/bidding/notices/{noticeId}/restore`    | 제외 해제 (본문 없음)                                  |
 
 **네 API 의 공통 응답** — `{ noticeId, noticeStatus, dismissReason, isFavorite, updatedAt }`
 
@@ -4893,11 +4895,11 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 > `POST /bidding/notices/{noticeId}/projects` 는 **배포됐고 연동을 마쳤다** (2026-08-16 · `NoticeProjectConvertModal`).
 > ✅ **실제 전환 1건 성공을 확인했다** (2026-08-16).
 >
-> | 항목 | 값 |
-> | ---- | -- |
-> | 요청 | `reviewId`(필수 · `COMPLETED` 검토) · `summaryId`(선택 · 확정 요약) · `name` · `description` · `businessCategoryId` · `startedOn` · `endedOn` · `memberIds` |
-> | 응답 | `201` `{ projectId }` |
-> | 409 | `PROJECT_BID_NOTICE_ALREADY_LINKED` · `BIDDING_REVIEW_NOT_COMPLETED` · `BIDDING_REVIEW_ALREADY_LINKED_TO_PROJECT` · `BIDDING_SUMMARY_NOT_CONFIRMED` · `BIDDING_SUMMARY_ALREADY_LINKED` |
+> | 항목 | 값                                                                                                                                                                                     |
+> | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+> | 요청 | `reviewId`(필수 · `COMPLETED` 검토) · `summaryId`(선택 · 확정 요약) · `name` · `description` · `businessCategoryId` · `startedOn` · `endedOn` · `memberIds`                            |
+> | 응답 | `201` `{ projectId }`                                                                                                                                                                  |
+> | 409  | `PROJECT_BID_NOTICE_ALREADY_LINKED` · `BIDDING_REVIEW_NOT_COMPLETED` · `BIDDING_REVIEW_ALREADY_LINKED_TO_PROJECT` · `BIDDING_SUMMARY_NOT_CONFIRMED` · `BIDDING_SUMMARY_ALREADY_LINKED` |
 >
 > ⭐ **검토가 전환의 근거다** — 검토에서 내려받기에 성공한 공고 첨부가 정식 파일로 프로젝트에 귀속된다.
 > 검토 모달의 "프로젝트로 생성하지 않으면 자동 삭제" 안내가 이것을 가리킨다.
@@ -4907,11 +4909,11 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 ### ⚠️ 변경사항 — 수집 조건 · 실행 (2026-08-15 백엔드)
 
-| 항목 | 내용 |
-| ---- | ---- |
-| `lookbackPeriod` | 수집 조건에 추가. `ONE_WEEK`(7) · `TWO_WEEKS`(14) · `ONE_MONTH`(30). **선택 필드**이고 생략하면 `ONE_WEEK` |
-| 수동 실행 `startedAt` · `endedAt` | 실행 요청에 넣으면 그 구간을 우선 조회 (최대 31일). **미연동** — 백필 · QA 용이라 화면에 두지 않았다 |
-| `collectionStartedAt` · `collectionEndedAt` | 실행 결과 응답에 추가. **실제로 훑은 구간**이라 0건일 때 원인 확인의 첫 단서다 |
+| 항목                                        | 내용                                                                                                       |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `lookbackPeriod`                            | 수집 조건에 추가. `ONE_WEEK`(7) · `TWO_WEEKS`(14) · `ONE_MONTH`(30). **선택 필드**이고 생략하면 `ONE_WEEK` |
+| 수동 실행 `startedAt` · `endedAt`           | 실행 요청에 넣으면 그 구간을 우선 조회 (최대 31일). **미연동** — 백필 · QA 용이라 화면에 두지 않았다       |
+| `collectionStartedAt` · `collectionEndedAt` | 실행 결과 응답에 추가. **실제로 훑은 구간**이라 0건일 때 원인 확인의 첫 단서다                             |
 
 > ⚠️ 조건 수정(`PATCH`)은 **통째로 교체**라 `lookbackPeriod` 도 함께 실어야 한다 —
 > 빠뜨리면 활성 토글 한 번에 서버 기본값으로 되돌아간다 (`toUpdateRequest`).
@@ -4927,32 +4929,32 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 ### 배포된 입찰 API 전체 (2026-08-11 스웨거 실측)
 
-| 메서드  | 경로                                                | 문서                                                                             |
-| ------- | --------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `GET`   | `/bidding/notices`                                  | [122](#122-입찰-공고-목록-조회)                                                  |
-| `GET`   | `/bidding/notices/{noticeId}`                       | [123](#123-입찰-공고-상세-조회)                                                  |
-| `POST`  | `/bidding/notices`                                  | 공고 직접 등록 (연동 완료)                                                       |
+| 메서드  | 경로                                                | 문서                                                                                |
+| ------- | --------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `GET`   | `/bidding/notices`                                  | [122](#122-입찰-공고-목록-조회)                                                     |
+| `GET`   | `/bidding/notices/{noticeId}`                       | [123](#123-입찰-공고-상세-조회)                                                     |
+| `POST`  | `/bidding/notices`                                  | 공고 직접 등록 (연동 완료)                                                          |
 | `PATCH` | `/bidding/notices/{noticeId}`                       | 직접 등록 공고 수정 — 수집 공고는 `409 BIDDING_NOTICE_EDIT_NOT_ALLOWED` (연동 완료) |
-| `GET`   | `/bidding/collection-conditions`                    | 아래 `수집 조건`                                                                 |
-| `POST`  | `/bidding/collection-conditions`                    | 아래 `수집 조건`                                                                 |
-| `PATCH` | `/bidding/collection-conditions/{conditionId}`      | 아래 `수집 조건`                                                                 |
-| `POST`  | `/bidding/collection-conditions/{conditionId}/runs` | 아래 `수집 실행`                                                                 |
-| `GET`   | `/bidding/collection-runs/{runId}`                  | 아래 `수집 실행`                                                                 |
+| `GET`   | `/bidding/collection-conditions`                    | 아래 `수집 조건`                                                                    |
+| `POST`  | `/bidding/collection-conditions`                    | 아래 `수집 조건`                                                                    |
+| `PATCH` | `/bidding/collection-conditions/{conditionId}`      | 아래 `수집 조건`                                                                    |
+| `POST`  | `/bidding/collection-conditions/{conditionId}/runs` | 아래 `수집 실행`                                                                    |
+| `GET`   | `/bidding/collection-runs/{runId}`                  | 아래 `수집 실행`                                                                    |
 
 **AI 요약 · AI 문서 검토** (2026-08-14 스웨거 실측 · 연동 완료)
 
-| 메서드  | 경로                                          | 설명                                                            |
-| ------- | --------------------------------------------- | --------------------------------------------------------------- |
-| `POST`  | `/bidding/notices/{noticeId}/summaries`        | AI 요약 요청 — **202**, `summaryId` 만 온다                     |
-| `GET`   | `/bidding/notices/{noticeId}/summaries`        | 공고별 요약 이력 (`latestMySummaryId` 포함)                     |
-| `GET`   | `/bidding/summaries/{summaryId}`               | 요약 단건 — **폴링 대상**                                       |
-| `PATCH` | `/bidding/summaries/{summaryId}`               | 여섯 칸 수정 — 확정 후엔 `BIDDING_SUMMARY_NOT_EDITABLE`         |
-| `PATCH` | `/bidding/summaries/{summaryId}/confirm`       | 요약 확정 (되돌릴 수 없다)                                      |
-| `GET`   | `/bidding/notices/{noticeId}/review-sources`   | 검토에 고를 **공고 첨부** 목록 (`supported` 로 가능 여부 표시)  |
-| `POST`  | `/bidding/notices/{noticeId}/reviews`          | AI 문서 검토 요청 — **202**                                     |
-| `GET`   | `/bidding/notices/{noticeId}/reviews`          | 공고별 검토 이력 (최대 20건)                                    |
-| `GET`   | `/bidding/reviews/{reviewId}`                  | 검토 단건 — **폴링 대상** (결과 · 근거 인용 포함)               |
-| `PATCH` | `/bidding/reviews/{reviewId}/abandon`          | 아래 `검토 종료`                                                |
+| 메서드  | 경로                                         | 설명                                                           |
+| ------- | -------------------------------------------- | -------------------------------------------------------------- |
+| `POST`  | `/bidding/notices/{noticeId}/summaries`      | AI 요약 요청 — **202**, `summaryId` 만 온다                    |
+| `GET`   | `/bidding/notices/{noticeId}/summaries`      | 공고별 요약 이력 (`latestMySummaryId` 포함)                    |
+| `GET`   | `/bidding/summaries/{summaryId}`             | 요약 단건 — **폴링 대상**                                      |
+| `PATCH` | `/bidding/summaries/{summaryId}`             | 여섯 칸 수정 — 확정 후엔 `BIDDING_SUMMARY_NOT_EDITABLE`        |
+| `PATCH` | `/bidding/summaries/{summaryId}/confirm`     | 요약 확정 (되돌릴 수 없다)                                     |
+| `GET`   | `/bidding/notices/{noticeId}/review-sources` | 검토에 고를 **공고 첨부** 목록 (`supported` 로 가능 여부 표시) |
+| `POST`  | `/bidding/notices/{noticeId}/reviews`        | AI 문서 검토 요청 — **202**                                    |
+| `GET`   | `/bidding/notices/{noticeId}/reviews`        | 공고별 검토 이력 (최대 20건)                                   |
+| `GET`   | `/bidding/reviews/{reviewId}`                | 검토 단건 — **폴링 대상** (결과 · 근거 인용 포함)              |
+| `PATCH` | `/bidding/reviews/{reviewId}/abandon`        | 아래 `검토 종료`                                               |
 
 > ⚠️ 요약과 검토는 **다른 기능**이다 — 검토는 공고 첨부와 사내 문서를 비교하고 결과에 근거가
 > 붙는다. 서버 워커도 갈린다 (`bid_notice_summary_worker` · `bid_review_worker`).
@@ -4967,14 +4969,18 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 ```jsonc
 // 200
-{ "reviewId": 71, "reviewStatus": "ABANDONED", "abandonedAt": "2026-08-14T06:21:26.552Z" }
+{
+  "reviewId": 71,
+  "reviewStatus": "ABANDONED",
+  "abandonedAt": "2026-08-14T06:21:26.552Z",
+}
 ```
 
-| 코드  | 에러                                                             |
-| ----- | ---------------------------------------------------------------- |
+| 코드  | 에러                                                                  |
+| ----- | --------------------------------------------------------------------- |
 | `403` | `BIDDING_ACCESS_PERMISSION_REQUIRED` · `BIDDING_REVIEW_ACCESS_DENIED` |
-| `404` | `BIDDING_REVIEW_NOT_FOUND`                                       |
-| `409` | `BIDDING_REVIEW_NOT_ABANDONABLE` — 종료할 수 없는 단계           |
+| `404` | `BIDDING_REVIEW_NOT_FOUND`                                            |
+| `409` | `BIDDING_REVIEW_NOT_ABANDONABLE` — 종료할 수 없는 단계                |
 
 > ⭐ 화면은 이걸 **진행 중 검토의 취소**로 쓴다. 워커가 재시도하는 동안 상태는 계속
 > `PENDING` 이라 멈춘 것과 구분되지 않는데, 종료하지 않으면 새 요청이
@@ -5333,13 +5339,13 @@ data: {
 
 ## 프로젝트 참여자 · 설정 도메인 — 공통
 
-| 항목            | 내용                                                                                                  |
-| --------------- | ----------------------------------------------------------------------------------------------------- |
-| **쓰기 권한**   | 전부 **프로젝트 `EDITOR`** — `VIEWER` 는 403 `PROJECT_EDIT_DENIED`                                     |
-| **권한 등급**   | `VIEWER` · `EDITOR` **2값**. ⛔ `NONE` · `MANAGER` 는 폐기 (2026-08-06)                                |
-| **자기 자신**   | ⛔ **권한 변경 · 제거 불가** — 403 `MEMBER_SELF_EDIT_DENIED` (PRJ-011 · INV-10). 프론트도 함께 막는다 |
-| **낙관적 락**   | 프로젝트 수정(129) · 상태 변경(130) **둘만**. 종결(131) · 참여자 · 카테고리는 대상이 아니다           |
-| **회사 격리**   | 다른 회사의 프로젝트 · 사원 · 카테고리는 403 이 아니라 **404** (2026-08-11)                            |
+| 항목          | 내용                                                                                                  |
+| ------------- | ----------------------------------------------------------------------------------------------------- |
+| **쓰기 권한** | 전부 **프로젝트 `EDITOR`** — `VIEWER` 는 403 `PROJECT_EDIT_DENIED`                                    |
+| **권한 등급** | `VIEWER` · `EDITOR` **2값**. ⛔ `NONE` · `MANAGER` 는 폐기 (2026-08-06)                               |
+| **자기 자신** | ⛔ **권한 변경 · 제거 불가** — 403 `MEMBER_SELF_EDIT_DENIED` (PRJ-011 · INV-10). 프론트도 함께 막는다 |
+| **낙관적 락** | 프로젝트 수정(129) · 상태 변경(130) **둘만**. 종결(131) · 참여자 · 카테고리는 대상이 아니다           |
+| **회사 격리** | 다른 회사의 프로젝트 · 사원 · 카테고리는 403 이 아니라 **404** (2026-08-11)                           |
 
 > ⛔ **`NONE` 폐기의 뜻** — 참여하면 보거나 편집한다. 차단하고 싶으면 **참여자 제거(127)** 를 쓴다. `NONE` 을 보내면 400 `MEMBER_PERMISSION_INVALID` 다.
 > ⚠️ **권한 판정 체인은 프로젝트 참여자 → 스텝 오버라이드 2단이다.** 스테이지 기본값(128)은 **판정에 쓰이지 않는다.**
@@ -5348,27 +5354,32 @@ data: {
 
 ## 125. 참여자 추가
 
-| 항목          | 값                                                     |
-| ------------- | ------------------------------------------------------ |
-| **Method**    | `POST`                                                 |
-| **Path**      | `/api/v1/projects/{projectId}/members`                 |
-| **권한**      | 프로젝트 `EDITOR`                                      |
-| **요구사항**  | PRJ-009 · PRJ-010 · INV-07                             |
-| **사용 위치** | `src/features/project/api.ts` → `addProjectMember()`   |
+| 항목          | 값                                                   |
+| ------------- | ---------------------------------------------------- |
+| **Method**    | `POST`                                               |
+| **Path**      | `/api/v1/projects/{projectId}/members`               |
+| **권한**      | 프로젝트 `EDITOR`                                    |
+| **요구사항**  | PRJ-009 · PRJ-010 · INV-07                           |
+| **사용 위치** | `src/features/project/api.ts` → `addProjectMember()` |
 
 **Request Body**
 
 ```ts
 {
-  userId: string;                    // 추가할 사원 사번 — **한 명씩**
-  permission: 'VIEWER' | 'EDITOR';   // NONE 폐기
+  userId: string; // 추가할 사원 사번 — **한 명씩**
+  permission: 'VIEWER' | 'EDITOR'; // NONE 폐기
 }
 ```
 
 **Response (201 Created)**
 
 ```ts
-data: { memberId: number; userId: string; name: string; permission: 'VIEWER' | 'EDITOR' }
+data: {
+  memberId: number;
+  userId: string;
+  name: string;
+  permission: 'VIEWER' | 'EDITOR';
+}
 ```
 
 > ⛔ **팀 · 부서 일괄 추가 파라미터를 만들지 않는다** (PRJ-009 · INV-07). 여러 명을 넣을 때도 한 명씩 호출한다.
@@ -5378,12 +5389,12 @@ data: { memberId: number; userId: string; name: string; permission: 'VIEWER' | '
 
 ## 126. 참여자 권한 변경
 
-| 항목          | 값                                                            |
-| ------------- | ------------------------------------------------------------- |
-| **Method**    | `PATCH`                                                       |
-| **Path**      | `/api/v1/projects/{projectId}/members/{memberId}`              |
-| **권한**      | 프로젝트 `EDITOR`                                             |
-| **요구사항**  | PRJ-010 · PRJ-011 · PRJ-012 · INV-10                          |
+| 항목          | 값                                                                |
+| ------------- | ----------------------------------------------------------------- |
+| **Method**    | `PATCH`                                                           |
+| **Path**      | `/api/v1/projects/{projectId}/members/{memberId}`                 |
+| **권한**      | 프로젝트 `EDITOR`                                                 |
+| **요구사항**  | PRJ-010 · PRJ-011 · PRJ-012 · INV-10                              |
 | **사용 위치** | `src/features/project/api.ts` → `updateProjectMemberPermission()` |
 
 **Request Body** — `{ permission: 'VIEWER' | 'EDITOR' }`
@@ -5397,13 +5408,13 @@ data: { memberId: number; userId: string; name: string; permission: 'VIEWER' | '
 
 ## 127. 참여자 제거
 
-| 항목          | 값                                                       |
-| ------------- | -------------------------------------------------------- |
-| **Method**    | `DELETE`                                                 |
-| **Path**      | `/api/v1/projects/{projectId}/members/{memberId}`         |
-| **권한**      | 프로젝트 `EDITOR`                                        |
-| **요구사항**  | USC-MEM-007                                              |
-| **사용 위치** | `src/features/project/api.ts` → `removeProjectMember()`  |
+| 항목          | 값                                                      |
+| ------------- | ------------------------------------------------------- |
+| **Method**    | `DELETE`                                                |
+| **Path**      | `/api/v1/projects/{projectId}/members/{memberId}`       |
+| **권한**      | 프로젝트 `EDITOR`                                       |
+| **요구사항**  | USC-MEM-007                                             |
+| **사용 위치** | `src/features/project/api.ts` → `removeProjectMember()` |
 
 응답 `data` 는 `null` 이다.
 
@@ -5415,13 +5426,13 @@ data: { memberId: number; userId: string; name: string; permission: 'VIEWER' | '
 
 ## 128. 하위 스텝 권한 일괄 적용
 
-| 항목          | 값                                                        |
-| ------------- | --------------------------------------------------------- |
-| **Method**    | `POST`                                                    |
-| **Path**      | `/api/v1/stages/{stageId}/step-permissions`                |
-| **권한**      | 프로젝트 `EDITOR`                                         |
-| **요구사항**  | STG-004 · USC-STG-008                                     |
-| **사용 위치** | `src/features/project/api.ts` → `applyStepPermissions()`  |
+| 항목          | 값                                                       |
+| ------------- | -------------------------------------------------------- |
+| **Method**    | `POST`                                                   |
+| **Path**      | `/api/v1/stages/{stageId}/step-permissions`              |
+| **권한**      | 프로젝트 `EDITOR`                                        |
+| **요구사항**  | STG-004 · USC-STG-008                                    |
+| **사용 위치** | `src/features/project/api.ts` → `applyStepPermissions()` |
 
 **Request Body**
 
@@ -5436,7 +5447,12 @@ data: { memberId: number; userId: string; name: string; permission: 'VIEWER' | '
 **Response (201 Created)**
 
 ```ts
-data: { stageId: number; userId: string; permission: string; appliedStepCount: number }
+data: {
+  stageId: number;
+  userId: string;
+  permission: string;
+  appliedStepCount: number;
+}
 ```
 
 `appliedStepCount` 는 권한이 적용된 **기존** 스텝 수다. `applyToExistingSteps: false` 면 `0` 이다.
@@ -5478,13 +5494,18 @@ data: { stageId: number; userId: string; permission: string; appliedStepCount: n
 
 ```ts
 data: {
-  projectId: number; name: string; clientName: string;
-  startedOn: string; endedOn: string; contractAmount: number;
-  updatedAt: string; version: number;   // ⚠️ 저장 후의 새 값
+  projectId: number;
+  name: string;
+  clientName: string;
+  startedOn: string;
+  endedOn: string;
+  contractAmount: number;
+  updatedAt: string;
+  version: number; // ⚠️ 저장 후의 새 값
 }
 ```
 
-> ⚠️ **전체 덮어쓰기다. 생략한 필드는 유지가 아니라 해제.** 6필드가 전부 `N` 인 것은 *"안 보내도 요청이 통과한다"* 는 뜻이지 *"안 보내면 기존 값이 남는다"* 는 뜻이 아니다 — **폼 전체를 매번 보낸다.**
+> ⚠️ **전체 덮어쓰기다. 생략한 필드는 유지가 아니라 해제.** 6필드가 전부 `N` 인 것은 _"안 보내도 요청이 통과한다"_ 는 뜻이지 _"안 보내면 기존 값이 남는다"_ 는 뜻이 아니다 — **폼 전체를 매번 보낸다.**
 > ⚠️ **낙관적 락** (2026-08-11 신설) — 늦으면 409 `PROJECT_VERSION_CONFLICT` 다. 409 면 **재조회 / 덮어쓰기(`overwrite: true`)** 중 무엇을 할지 사용자에게 묻는다 (스테이지 수정 113 과 같은 규칙).
 > ⚠️ 응답 `version` 은 **저장 후의 새 값**이다. 화면 상태를 이 값으로 교체하지 않으면 다음 저장이 또 409 다.
 > ⛔ **사업 카테고리는 이 API 로 바꾸지 않는다** — 연결(132) · 해제(133) 소관이다. 계약금액은 `project.contract_amount` 한 곳에만 저장한다 (INV-08). 기간은 자동 계산하지 않는다 (PRJ-006).
@@ -5540,13 +5561,13 @@ data: {
 
 ## 132. 사업 카테고리 연결
 
-| 항목          | 값                                                          |
-| ------------- | ----------------------------------------------------------- |
-| **Method**    | `POST`                                                      |
-| **Path**      | `/api/v1/projects/{projectId}/business-categories`           |
-| **권한**      | 프로젝트 `EDITOR`                                           |
-| **요구사항**  | PRJ-007 · USC-PBC-001 · 002                                 |
-| **사용 위치** | `src/features/project/api.ts` → `linkBusinessCategories()`  |
+| 항목          | 값                                                         |
+| ------------- | ---------------------------------------------------------- |
+| **Method**    | `POST`                                                     |
+| **Path**      | `/api/v1/projects/{projectId}/business-categories`         |
+| **권한**      | 프로젝트 `EDITOR`                                          |
+| **요구사항**  | PRJ-007 · USC-PBC-001 · 002                                |
+| **사용 위치** | `src/features/project/api.ts` → `linkBusinessCategories()` |
 
 **Request Body** — `{ categoryIds: number[] }`
 
@@ -5555,7 +5576,12 @@ data: {
 ```ts
 data: {
   projectId: number;
-  businessCategories: { categoryId: number; name: string; code: string | null }[];
+  businessCategories: {
+    categoryId: number;
+    name: string;
+    code: string | null;
+  }
+  [];
 }
 ```
 
@@ -5567,13 +5593,13 @@ data: {
 
 ## 133. 사업 카테고리 해제
 
-| 항목          | 값                                                                    |
-| ------------- | --------------------------------------------------------------------- |
-| **Method**    | `DELETE`                                                              |
-| **Path**      | `/api/v1/projects/{projectId}/business-categories/{categoryId}`        |
-| **권한**      | 프로젝트 `EDITOR`                                                     |
-| **요구사항**  | USC-PBC-003                                                           |
-| **사용 위치** | `src/features/project/api.ts` → `unlinkBusinessCategory()`            |
+| 항목          | 값                                                              |
+| ------------- | --------------------------------------------------------------- |
+| **Method**    | `DELETE`                                                        |
+| **Path**      | `/api/v1/projects/{projectId}/business-categories/{categoryId}` |
+| **권한**      | 프로젝트 `EDITOR`                                               |
+| **요구사항**  | USC-PBC-003                                                     |
+| **사용 위치** | `src/features/project/api.ts` → `unlinkBusinessCategory()`      |
 
 응답 `data` 는 `null` 이다.
 
@@ -5587,7 +5613,7 @@ data: {
 | 항목          | 값                                                     |
 | ------------- | ------------------------------------------------------ |
 | **Method**    | `GET`                                                  |
-| **Path**      | `/api/v1/steps/{stepId}/permissions`                    |
+| **Path**      | `/api/v1/steps/{stepId}/permissions`                   |
 | **권한**      | **프로젝트 `EDITOR`** (스텝 권한이 아니다)             |
 | **요구사항**  | STP-010 · STP-011 · USC-SPM-004                        |
 | **사용 위치** | `src/features/project/api.ts` → `getStepPermissions()` |
@@ -5599,9 +5625,10 @@ data: {
   permissions: {
     userId: string;
     name: string;
-    permission: 'VIEWER' | 'EDITOR' | 'NONE';   // 최종 판정 등급
-    overridden: boolean;                        // step_permission 행 보유 여부
-  }[];
+    permission: 'VIEWER' | 'EDITOR' | 'NONE'; // 최종 판정 등급
+    overridden: boolean; // step_permission 행 보유 여부
+  }
+  [];
 }
 ```
 
@@ -5615,7 +5642,7 @@ data: {
 | 항목          | 값                                                    |
 | ------------- | ----------------------------------------------------- |
 | **Method**    | `PUT`                                                 |
-| **Path**      | `/api/v1/steps/{stepId}/permissions/{userId}`          |
+| **Path**      | `/api/v1/steps/{stepId}/permissions/{userId}`         |
 | **권한**      | 프로젝트 `EDITOR`                                     |
 | **요구사항**  | STP-010 · USC-SPM-001 · 002                           |
 | **사용 위치** | `src/features/project/api.ts` → `setStepPermission()` |
@@ -5635,7 +5662,7 @@ data: {
 | 항목          | 값                                                       |
 | ------------- | -------------------------------------------------------- |
 | **Method**    | `DELETE`                                                 |
-| **Path**      | `/api/v1/steps/{stepId}/permissions/{userId}`             |
+| **Path**      | `/api/v1/steps/{stepId}/permissions/{userId}`            |
 | **권한**      | 프로젝트 `EDITOR`                                        |
 | **요구사항**  | USC-SPM-003 · STP-011                                    |
 | **사용 위치** | `src/features/project/api.ts` → `revokeStepPermission()` |
@@ -5650,12 +5677,12 @@ data: {
 
 ## 137. 스텝 상태 변경
 
-| 항목          | 값                                                  |
-| ------------- | --------------------------------------------------- |
-| **Method**    | `PATCH`                                             |
+| 항목          | 값                                                   |
+| ------------- | ---------------------------------------------------- |
+| **Method**    | `PATCH`                                              |
 | **Path**      | `/api/v1/steps/{stepId}/status`                      |
-| **권한**      | **스텝 `EDITOR`** (프로젝트가 아니다)               |
-| **요구사항**  | STP-004                                             |
+| **권한**      | **스텝 `EDITOR`** (프로젝트가 아니다)                |
+| **요구사항**  | STP-004                                              |
 | **사용 위치** | `src/features/project/api.ts` → `updateStepStatus()` |
 
 **Request Body** — `{ status: 'NOT_STARTED' | 'IN_PROGRESS', version: number, overwrite?: boolean }`
@@ -5698,12 +5725,25 @@ data: {
 
 ```ts
 data: {
-  projectId: number; name: string; clientName: string | null;
-  status: 'NOT_STARTED'; startedOn: string | null; endedOn: string | null;
+  projectId: number;
+  name: string;
+  clientName: string | null;
+  status: 'NOT_STARTED';
+  startedOn: string | null;
+  endedOn: string | null;
   contractAmount: number | null;
-  businessCategories: { categoryId: number; name: string; code: string | null; deleted: boolean }[];
-  bidNoticeId: number | null;              // 직접 생성이면 null
-  createdBy: { userId: string; name: string };   // userId 는 사번
+  businessCategories: {
+    categoryId: number;
+    name: string;
+    code: string | null;
+    deleted: boolean;
+  }
+  [];
+  bidNoticeId: number | null; // 직접 생성이면 null
+  createdBy: {
+    userId: string;
+    name: string;
+  } // userId 는 사번
   createdAt: string;
 }
 ```
@@ -5730,34 +5770,34 @@ data: {
 
 **Query Parameter**
 
-| 파라미터   | 타입      | 필수 | 설명                                                                       |
-| ---------- | --------- | ---- | -------------------------------------------------------------------------- |
-| `confirm`  | `boolean` | ❌   | **신설 (2026-08-13)** · 기본 `false`. 지울 범위를 확인했다는 표시 — **409 를 받은 뒤 `true` 로 재요청한다** |
+| 파라미터  | 타입      | 필수 | 설명                                                                                                        |
+| --------- | --------- | ---- | ----------------------------------------------------------------------------------------------------------- |
+| `confirm` | `boolean` | ❌   | **신설 (2026-08-13)** · 기본 `false`. 지울 범위를 확인했다는 표시 — **409 를 받은 뒤 `true` 로 재요청한다** |
 
 **Response (200 OK)** — `data: null`
 
 ### ⚠️ 삭제 조건이 폐기됐다 (2026-08-13 전면 변경)
 
-예전: *「진행 전이고 스텝이 0개일 때만 삭제된다」* → **지금: 스텝이 남아 있어도 지운다.** 하위 스테이지 · 스텝 · 블록 · 이슈까지 **계층 전파**로 함께 삭제된다.
+예전: _「진행 전이고 스텝이 0개일 때만 삭제된다」_ → **지금: 스텝이 남아 있어도 지운다.** 하위 스테이지 · 스텝 · 블록 · 이슈까지 **계층 전파**로 함께 삭제된다.
 
-| 단계 | 호출                                    | 결과                                       |
-| ---- | --------------------------------------- | ------------------------------------------ |
-| ①    | `DELETE /projects/12`                   | 409 `PROJECT_DELETE_CONFIRM_REQUIRED` (되물음) |
-| ②    | `DELETE /projects/12?confirm=true`      | 200                                        |
+| 단계 | 호출                               | 결과                                           |
+| ---- | ---------------------------------- | ---------------------------------------------- |
+| ①    | `DELETE /projects/12`              | 409 `PROJECT_DELETE_CONFIRM_REQUIRED` (되물음) |
+| ②    | `DELETE /projects/12?confirm=true` | 200                                            |
 
 > 📌 **진행 전 + 스텝 0개** 면 ① 없이 바로 200 이라 다이얼로그가 한 번만 뜬다.
 > ⚠️ **409 는 금지가 아니다** — `confirm=true` 로 재요청하면 그대로 삭제된다 (블록 삭제 47 의 `APPROVAL_DELETE_CONFIRM_REQUIRED` 와 같은 패턴).
-> ⛔ **409 를 실패로 끝내면 그 프로젝트는 영영 지울 수 없다.** 예전의 *「종결로 처리하라」* 유도는 **폐기**다.
+> ⛔ **409 를 실패로 끝내면 그 프로젝트는 영영 지울 수 없다.** 예전의 _「종결로 처리하라」_ 유도는 **폐기**다.
 > ⚠️ `message` 에 **삭제될 스텝 수**가 담긴다 — 문구를 프론트에서 만들지 말고 서버 `message` 를 그대로 띄운다.
 > ℹ️ 종결(131)은 여전히 **별도 기능**이다 — 기록으로 남기는 마무리가 종결, 없애기가 삭제다.
 
 ### 함께 지워지는 것
 
-| 대상                                        | 방식                     | 비고                                           |
-| ------------------------------------------- | ------------------------ | ---------------------------------------------- |
-| 스테이지 · 스텝 · 블록 · 이슈               | 논리 삭제 (`deleted_at`) | 계층 전파. **프로젝트는 복구가 없다**          |
+| 대상                                          | 방식                     | 비고                                                 |
+| --------------------------------------------- | ------------------------ | ---------------------------------------------------- |
+| 스테이지 · 스텝 · 블록 · 이슈                 | 논리 삭제 (`deleted_at`) | 계층 전파. **프로젝트는 복구가 없다**                |
 | 참여자 · 사업분류 연결 · 스테이지 권한 기본값 | 하드 삭제                | 연결 행이라 D-3 예외 — 스텝이 0개여도 남아 함께 정리 |
-| `activity_log`                              | ❌ 지우지 않는다         | D-5 — 기록은 남긴다                            |
+| `activity_log`                                | ❌ 지우지 않는다         | D-5 — 기록은 남긴다                                  |
 
 > ⚠️ 삭제는 `deleted_at` **논리 삭제**이고, **연결된 공고(`bid_notice_id`)를 비운다** — 그렇게 하지 않으면 `UNIQUE` 를 시체가 점유해 그 공고로 프로젝트를 다시 못 만든다.
 > 🚧 **아직 끊지 않는 연결** — `cash_flow.settle_block_id` · `tax_invoice.settle_block_id` 가 삭제된 정산 블록을 계속 가리키고, 진행 중 결재도 남는다 (BLK-013 미구현 · 스텝 단건 삭제와 같은 상태).
@@ -5769,10 +5809,10 @@ data: {
 
 ## 142. 담당 이슈 캘린더 조회
 
-| 항목          | 값                                                |
-| ------------- | ------------------------------------------------- |
-| **Method**    | `GET`                                             |
-| **Path**      | `/api/v1/issues/calendar`                         |
+| 항목          | 값                                                 |
+| ------------- | -------------------------------------------------- |
+| **Method**    | `GET`                                              |
+| **Path**      | `/api/v1/issues/calendar`                          |
 | **권한**      | 없음 (본인 담당 이슈만 오므로 스텝 권한 검사 없음) |
 | **사용 위치** | `src/features/issue/api.ts` → `getIssueCalendar()` |
 
@@ -5830,32 +5870,32 @@ data: {
 > 📌 초안 명세가 없어 **스웨거(`/v3/api-docs`) 실측**으로 정리했다 (2026-08-12).
 > 연동 코드는 `src/features/finance/api.ts` · 타입은 `types.ts` 한 곳에 모여 있다.
 
-| 항목          | 내용                                              |
-| ------------- | ------------------------------------------------- |
-| **인증 필요** | ✅ `FINANCE` 페이지 **접근 권한** (없으면 403 `FINANCE_ACCESS_DENIED`) |
+| 항목          | 내용                                                                                |
+| ------------- | ----------------------------------------------------------------------------------- |
+| **인증 필요** | ✅ `FINANCE` 페이지 **접근 권한** (없으면 403 `FINANCE_ACCESS_DENIED`)              |
 | **편집**      | 등록 · 수정 · 삭제 · 제외 · 매칭은 **편집 권한** (403 `FINANCE_EDIT_ACCESS_DENIED`) |
 
 ### 경로
 
-| Method   | Path                                          | 용도                       |
-| -------- | --------------------------------------------- | -------------------------- |
-| `GET`    | `/finance/summary`                            | 허브 3개 항목 수치         |
-| `GET`    | `/finance/cash-flows`                         | 목록 (**페이징 없음**)     |
-| `GET`    | `/finance/cash-flows/filters`                 | 프로젝트 필터 옵션         |
-| `POST`   | `/finance/cash-flows`                         | 직접 등록                  |
-| `PATCH`  | `/finance/cash-flows/{cashFlowId}`            | 수정                       |
-| `DELETE` | `/finance/cash-flows`                         | 다건 삭제 (body: `cashFlowIds`) |
-| `PATCH`  | `/finance/cash-flows/exclude`                 | 연결 제외 · 취소           |
-| `GET`    | `/finance/cash-flows/{cashFlowId}/match-candidates` | 매칭 추천 (최대 5건) |
-| `PATCH`  | `/finance/cash-flows/{cashFlowId}/match`      | 정산 블록 연결             |
-| `PATCH`  | `/finance/cash-flows/{cashFlowId}/unmatch`    | 연결 해제                  |
-| `POST`   | `/finance/cash-flows/csv/preview` · `/csv`    | CSV 미리보기 · 업로드 (#13) |
+| Method   | Path                                                | 용도                            |
+| -------- | --------------------------------------------------- | ------------------------------- |
+| `GET`    | `/finance/summary`                                  | 허브 3개 항목 수치              |
+| `GET`    | `/finance/cash-flows`                               | 목록 (**페이징 없음**)          |
+| `GET`    | `/finance/cash-flows/filters`                       | 프로젝트 필터 옵션              |
+| `POST`   | `/finance/cash-flows`                               | 직접 등록                       |
+| `PATCH`  | `/finance/cash-flows/{cashFlowId}`                  | 수정                            |
+| `DELETE` | `/finance/cash-flows`                               | 다건 삭제 (body: `cashFlowIds`) |
+| `PATCH`  | `/finance/cash-flows/exclude`                       | 연결 제외 · 취소                |
+| `GET`    | `/finance/cash-flows/{cashFlowId}/match-candidates` | 매칭 추천 (최대 5건)            |
+| `PATCH`  | `/finance/cash-flows/{cashFlowId}/match`            | 정산 블록 연결                  |
+| `PATCH`  | `/finance/cash-flows/{cashFlowId}/unmatch`          | 연결 해제                       |
+| `POST`   | `/finance/cash-flows/csv/preview` · `/csv`          | CSV 미리보기 · 업로드 (#13)     |
 
 ### 요약 응답 (`GET /finance/summary`)
 
 ```json
 {
-  "cashFlow":   { "unlinkedCount": 3, "totalCount": 7 },
+  "cashFlow": { "unlinkedCount": 3, "totalCount": 7 },
   "taxInvoice": { "unlinkedCount": 2, "totalCount": 5 },
   "settlement": { "unlinkedCount": 5, "inProgressCount": 3 }
 }
@@ -5865,19 +5905,19 @@ data: {
 
 ### 목록 응답 (`GET /finance/cash-flows`)
 
-| 필드                                          | 타입             | 설명                                     |
-| --------------------------------------------- | ---------------- | ---------------------------------------- |
-| `cashFlowId`                                  | `number`         |                                          |
-| `tradedAt`                                    | `string`         | `2026-07-15T10:30:00`                    |
-| `bankTxnId`                                   | `string`         | 거래고유번호 — **은행명 + 거래일시**로 자동 생성 |
-| `type`                                        | `INCOME`·`OUTCOME` | 구분                                   |
-| `amount`                                      | `number`         | 항상 양수                                |
-| `depositorName` · `bankMemo`                  | `string`         | 입금자명 · 적요                          |
-| `sourceType`                                  | `MANUAL`·`CSV`·`API` | **수정 가능 범위를 가르는 값**       |
-| `projectId` · `projectName` · `settleId` · `roundName` | `… \| null` | 연결 정보. 미연결이면 `null`     |
-| `linkedBy` · `linkedByName` · `linkedAt`      | `… \| null`      | 매칭 처리자 · 일시                       |
-| `isExcluded`                                  | `boolean`        | 연결 대상 제외                           |
-| `linkStatus`                                  | `UNLINKED`·`LINKED`·`LINK_BLOCK_DELETED` | 2026-08-10 추가  |
+| 필드                                                   | 타입                                     | 설명                                             |
+| ------------------------------------------------------ | ---------------------------------------- | ------------------------------------------------ |
+| `cashFlowId`                                           | `number`                                 |                                                  |
+| `tradedAt`                                             | `string`                                 | `2026-07-15T10:30:00`                            |
+| `bankTxnId`                                            | `string`                                 | 거래고유번호 — **은행명 + 거래일시**로 자동 생성 |
+| `type`                                                 | `INCOME`·`OUTCOME`                       | 구분                                             |
+| `amount`                                               | `number`                                 | 항상 양수                                        |
+| `depositorName` · `bankMemo`                           | `string`                                 | 입금자명 · 적요                                  |
+| `sourceType`                                           | `MANUAL`·`CSV`·`API`                     | **수정 가능 범위를 가르는 값**                   |
+| `projectId` · `projectName` · `settleId` · `roundName` | `… \| null`                              | 연결 정보. 미연결이면 `null`                     |
+| `linkedBy` · `linkedByName` · `linkedAt`               | `… \| null`                              | 매칭 처리자 · 일시                               |
+| `isExcluded`                                           | `boolean`                                | 연결 대상 제외                                   |
+| `linkStatus`                                           | `UNLINKED`·`LINKED`·`LINK_BLOCK_DELETED` | 2026-08-10 추가                                  |
 
 **요청 Query** — `startDate` · `endDate` · `unlinked` · `projectId` · `keyword`
 
@@ -5889,28 +5929,28 @@ data: {
 
 프로젝트 단위로 정산 진행을 모아 보는 화면이다. 경로가 `/finance` 가 아니라 **`/projects` 아래**에 있다.
 
-| Method | Path                                    | 용도                        |
-| ------ | --------------------------------------- | --------------------------- |
-| `GET`  | `/projects/settlements`                 | 프로젝트 집계 (**페이징 있음**) |
-| `GET`  | `/projects/settlements/filters`         | 발주처 선택지 (`clients[]`) |
-| `GET`  | `/projects/{projectId}/settlements`     | 회차(정산 블록) 목록 (페이징 없음) |
+| Method | Path                                | 용도                               |
+| ------ | ----------------------------------- | ---------------------------------- |
+| `GET`  | `/projects/settlements`             | 프로젝트 집계 (**페이징 있음**)    |
+| `GET`  | `/projects/settlements/filters`     | 발주처 선택지 (`clients[]`)        |
+| `GET`  | `/projects/{projectId}/settlements` | 회차(정산 블록) 목록 (페이징 없음) |
 
 **목록 Query** — `startDate` · `endDate` · `client` · `includeCompleted` · `page` · `size` · `sort`
 `sort` 는 **`NEXT_PLANNED_DATE_ASC` · `TOTAL_AMOUNT_DESC` 둘뿐이다** — 표 머리글 정렬을 붙이면 안 된다.
 
 **목록 응답** — `projects[]` + `page` · `size` · `totalElements` · `totalPages`
 
-| 필드                                              | 설명                                     |
-| ------------------------------------------------- | ---------------------------------------- |
-| `projectId` · `projectName` · `clientName?`       | 프로젝트 · 발주처                         |
-| `projectManager`                                  | 담당자(PM) 이름                           |
-| `totalPlannedAmount?`                             | **회차 예정 금액 합계** (계약금액이 아니다) |
-| `totalIncome` · `totalOutcome` · `totalAmount`    | 수입 · 지출 · 합계 — 합계는 **서버 값을 그대로 쓴다** |
-| `completedRoundCount` / `totalRoundCount`         | 정산 진행                                 |
-| `nextPlannedDate?`                                | 다음 예정일                               |
-| `paymentUnlinkedCount` · `taxInvoiceUnlinkedCount` | 미연결 건수                              |
-| `paymentOverdueDays` · `taxInvoiceOverdueDays`    | 지연 일수 (0 이면 지연 아님)              |
-| `projectStatus` · `endedOn?`                      | 프로젝트 상태 · 종료일                    |
+| 필드                                               | 설명                                                  |
+| -------------------------------------------------- | ----------------------------------------------------- |
+| `projectId` · `projectName` · `clientName?`        | 프로젝트 · 발주처                                     |
+| `projectManager`                                   | 담당자(PM) 이름                                       |
+| `totalPlannedAmount?`                              | **회차 예정 금액 합계** (계약금액이 아니다)           |
+| `totalIncome` · `totalOutcome` · `totalAmount`     | 수입 · 지출 · 합계 — 합계는 **서버 값을 그대로 쓴다** |
+| `completedRoundCount` / `totalRoundCount`          | 정산 진행                                             |
+| `nextPlannedDate?`                                 | 다음 예정일                                           |
+| `paymentUnlinkedCount` · `taxInvoiceUnlinkedCount` | 미연결 건수                                           |
+| `paymentOverdueDays` · `taxInvoiceOverdueDays`     | 지연 일수 (0 이면 지연 아님)                          |
+| `projectStatus` · `endedOn?`                       | 프로젝트 상태 · 종료일                                |
 
 **회차 응답** — `blocks[]`
 
@@ -5922,14 +5962,14 @@ data: {
 회차 상태는 정산 블록과 같은 4값이다 — `PENDING`(미연결) · `WAITING`(정산 대기) · `PARTIAL`(부분 정산) · `COMPLETED`(정산 완료).
 
 > ⚠️ **프로젝트 단위 상태 값은 없다** (2026-08-17 팀 확인). 화면이 지연 일수 · 미연결 건수 · 회차 수로
->    `입금 대기 N일` · `계산서 미발행 N일` · `예정일 미입력` · `정산 완료` · `진행 중` 을 판정한다
->    (`features/finance/display.ts` → `settlementProjectState`). 서버 정의가 생기면 그 함수를 지운다.
+> `입금 대기 N일` · `계산서 미발행 N일` · `예정일 미입력` · `정산 완료` · `진행 중` 을 판정한다
+> (`features/finance/display.ts` → `settlementProjectState`). 서버 정의가 생기면 그 함수를 지운다.
 > ⚠️ **계약 금액 · 미계획 금액 필드가 없다** — 와이어프레임의 `미계획 N원` 배지는 계산 근거가 없어 뺐다.
 > ⚠️ 회차의 **계좌 정보는 출금에만** 있다 — 표의 열로 두지 않고 `계좌 보기` 로 펼친다.
 > 🔒 **계좌번호는 마스킹 없이 원본으로 온다** (2026-08-17 백엔드 PR #422). 이 API 는 `FINANCE`
->    페이지 권한자(재무팀)만 부를 수 있어 원본 노출이 허용된 자리다 — **다른 응답(정산 항목 조회 등)은
->    그대로 마스킹**이므로, 계좌번호를 다루는 화면을 늘릴 때 이 차이를 확인한다.
->    화면은 기본으로 접어 두고 눌렀을 때만 편다 (화면 공유 · 어깨너머 노출을 줄인다).
+> 페이지 권한자(재무팀)만 부를 수 있어 원본 노출이 허용된 자리다 — **다른 응답(정산 항목 조회 등)은
+> 그대로 마스킹**이므로, 계좌번호를 다루는 화면을 늘릴 때 이 차이를 확인한다.
+> 화면은 기본으로 접어 두고 눌렀을 때만 편다 (화면 공유 · 어깨너머 노출을 줄인다).
 
 ---
 
@@ -5941,32 +5981,31 @@ body 는 등록과 같은 모양이고 전부 선택이다.
 
 ### 다건 처리 (삭제 · 제외)
 
-| API      | body                                  | 응답                                  |
-| -------- | ------------------------------------- | ------------------------------------- |
-| 삭제     | `{ cashFlowIds }`                     | `{ deletedCount, skippedItems[] }`    |
-| 제외     | `{ cashFlowIds, isExcluded }`         | `{ updatedCount, skippedItems[] }`    |
+| API  | body                          | 응답                               |
+| ---- | ----------------------------- | ---------------------------------- |
+| 삭제 | `{ cashFlowIds }`             | `{ deletedCount, skippedItems[] }` |
+| 제외 | `{ cashFlowIds, isExcluded }` | `{ updatedCount, skippedItems[] }` |
 
 > ❗ **부분 성공이 정상 동작이다.** 매칭된 건은 막혀 `skippedItems`(`{ cashFlowId, reason }`)로 빠진다. 사유는 서버 문구를 그대로 띄운다.
 > ❗ 제외는 토글이 아니라 **값 지정**이다.
 
 ### 매칭
 
-| 상황                              | 코드                                        |
-| --------------------------------- | ------------------------------------------- |
-| 이미 매칭된 입출금                | 400 `FINANCE_CASH_FLOW_ALREADY_MATCHED`     |
-| **구분과 블록 타입 불일치**       | 400 `FINANCE_MATCH_TYPE_MISMATCH`           |
-| 이미 매칭된 정산 블록             | 400 `FINANCE_SETTLEMENT_BLOCK_ALREADY_MATCHED` |
-| 매칭 안 된 건의 해제              | 400 `FINANCE_CASH_FLOW_NOT_MATCHED`         |
-| 대상 없음                         | 404 `FINANCE_MATCH_TARGET_NOT_FOUND`        |
+| 상황                        | 코드                                           |
+| --------------------------- | ---------------------------------------------- |
+| 이미 매칭된 입출금          | 400 `FINANCE_CASH_FLOW_ALREADY_MATCHED`        |
+| **구분과 블록 타입 불일치** | 400 `FINANCE_MATCH_TYPE_MISMATCH`              |
+| 이미 매칭된 정산 블록       | 400 `FINANCE_SETTLEMENT_BLOCK_ALREADY_MATCHED` |
+| 매칭 안 된 건의 해제        | 400 `FINANCE_CASH_FLOW_NOT_MATCHED`            |
+| 대상 없음                   | 404 `FINANCE_MATCH_TARGET_NOT_FOUND`           |
 
 추천 후보(`match-candidates`)는 **정산 블록** 단위이고 `matchTags`(`["금액 일치", "상호명 일치"]`)로 추천 이유가 함께 온다.
 
-
 ### CSV · 엑셀 일괄 등록 (#13)
 
-| Method | Path                              | 요청                                        |
-| ------ | --------------------------------- | ------------------------------------------- |
-| `POST` | `/finance/cash-flows/csv/preview` | `multipart` — `file` (+ `password` 선택)     |
+| Method | Path                              | 요청                                              |
+| ------ | --------------------------------- | ------------------------------------------------- |
+| `POST` | `/finance/cash-flows/csv/preview` | `multipart` — `file` (+ `password` 선택)          |
 | `POST` | `/finance/cash-flows/csv`         | `multipart` — `file` + `request`(**JSON 문자열**) |
 
 **미리보기 응답** — `columns[]` · `bankOptions[]` · `sampleRows[]`(상위 5행) ·
@@ -5975,12 +6014,12 @@ body 는 등록과 같은 모양이고 전부 선택이다.
 
 **업로드 응답** — `totalRows` · `savedCount` · `duplicateCount` · `duplicateRows[]`(`tradedAt` · `amount` · `reason`)
 
-| status | code                            | 화면 처리                                   |
-| ------ | ------------------------------- | ------------------------------------------- |
-| 400    | `FINANCE_CSV_PASSWORD_REQUIRED` | **실패가 아니다** — 비밀번호 칸을 열고 재시도 |
-| 400    | `FINANCE_CSV_PASSWORD_INVALID`  | 같은 자리에서 다시 입력                      |
-| 400    | `FINANCE_CSV_MAPPING_REQUIRED`  | 필수 컬럼 매핑 누락                          |
-| **404** | `FINANCE_INVALID_CSV_FILE`     | ❗ **형식 오류가 404 다** — '없는 리소스' 가 아니다 |
+| status  | code                            | 화면 처리                                           |
+| ------- | ------------------------------- | --------------------------------------------------- |
+| 400     | `FINANCE_CSV_PASSWORD_REQUIRED` | **실패가 아니다** — 비밀번호 칸을 열고 재시도       |
+| 400     | `FINANCE_CSV_PASSWORD_INVALID`  | 같은 자리에서 다시 입력                             |
+| 400     | `FINANCE_CSV_MAPPING_REQUIRED`  | 필수 컬럼 매핑 누락                                 |
+| **404** | `FINANCE_INVALID_CSV_FILE`      | ❗ **형식 오류가 404 다** — '없는 리소스' 가 아니다 |
 
 > ❗ **`request` 파트의 JSON 스키마가 스웨거에 없다.** 미리보기 응답의 키에 `bankName` ·
 > `dateTimeMode` · `amountMode` 를 더한 모양으로 보내고 있다 (`types.ts` 의 `CsvUploadRequest`).
@@ -5990,41 +6029,41 @@ body 는 등록과 같은 모양이고 전부 선택이다.
 
 ### ⚠️ 백엔드 대기
 
-| 내용                                                                    |
-| ----------------------------------------------------------------------- |
+| 내용                                                                                                                  |
+| --------------------------------------------------------------------------------------------------------------------- |
 | `PATCH /blocks/settlements/{id}/items` — `?type=` 을 실어 보내도 컨트롤러에서 null 이라 **500 NPE** (파라미터 바인딩) |
-| 목록 응답에 `bankName` 추가 (또는 단건 조회 API)                        |
-| 정산 블록 `detail` 에 **연결 여부 플래그** — 지금은 정산 상태로 추정한다 |
-| 엑셀 시간 전용 셀 파싱 (`1899-12-31 …`) — CSV 업로드가 막혀 있다        |
-| `request` 파트 JSON 스키마 공개 (입출금 · 세금계산서 둘 다)             |
-| `GET /finance/cash-flows/{cashFlowId}` 단건 조회                        |
-| `GET /finance/tax-invoices/{taxId}` 단건 조회 — 지금은 **목록을 넘겨 가며 찾는다** |
+| 목록 응답에 `bankName` 추가 (또는 단건 조회 API)                                                                      |
+| 정산 블록 `detail` 에 **연결 여부 플래그** — 지금은 정산 상태로 추정한다                                              |
+| 엑셀 시간 전용 셀 파싱 (`1899-12-31 …`) — CSV 업로드가 막혀 있다                                                      |
+| `request` 파트 JSON 스키마 공개 (입출금 · 세금계산서 둘 다)                                                           |
+| `GET /finance/cash-flows/{cashFlowId}` 단건 조회                                                                      |
+| `GET /finance/tax-invoices/{taxId}` 단건 조회 — 지금은 **목록을 넘겨 가며 찾는다**                                    |
 
 ### 세금계산서 — `/finance/tax-invoices` (2026-08-14 스웨거 실측 · 연동 완료)
 
 > ⚠️ 변경사항 (2026-08-14) — 이전 기록의 "필터 옵션만 구현" 은 **낡았다.** 전부 배포됐다.
 
-| 메서드   | 경로                                            | 설명                                             |
-| -------- | ----------------------------------------------- | ------------------------------------------------ |
-| `GET`    | `/finance/tax-invoices`                         | 목록 — ⚠️ **페이징 있음** (`page`·`size`·`sort`) |
-| `DELETE` | `/finance/tax-invoices`                         | 다건 삭제 (body 에 `taxIds`)                     |
-| `GET`    | `/finance/tax-invoices/filters`                 | 프로젝트 옵션                                    |
-| `PATCH`  | `/finance/tax-invoices/exclude`                 | 연결 대상 제외/포함 (`taxIds` · `isExcluded`)    |
-| `PATCH`  | `/finance/tax-invoices/{taxId}`                 | ⚠️ **메모만** 수정된다                           |
+| 메서드   | 경로                                             | 설명                                             |
+| -------- | ------------------------------------------------ | ------------------------------------------------ |
+| `GET`    | `/finance/tax-invoices`                          | 목록 — ⚠️ **페이징 있음** (`page`·`size`·`sort`) |
+| `DELETE` | `/finance/tax-invoices`                          | 다건 삭제 (body 에 `taxIds`)                     |
+| `GET`    | `/finance/tax-invoices/filters`                  | 프로젝트 옵션                                    |
+| `PATCH`  | `/finance/tax-invoices/exclude`                  | 연결 대상 제외/포함 (`taxIds` · `isExcluded`)    |
+| `PATCH`  | `/finance/tax-invoices/{taxId}`                  | ⚠️ **메모만** 수정된다                           |
 | `GET`    | `/finance/tax-invoices/{taxId}/match-candidates` | 정산 블록 추천 (최대 5건)                        |
-| `PATCH`  | `/finance/tax-invoices/{taxId}/match`           | 정산 블록 연결 (`settleId`)                      |
-| `PATCH`  | `/finance/tax-invoices/{taxId}/unmatch`         | 연결 해제                                        |
-| `POST`   | `/finance/tax-invoices/csv/preview`             | 컬럼 추천 — 파일은 저장되지 않는다               |
-| `POST`   | `/finance/tax-invoices/csv`                     | 매핑 확정 후 저장                                |
+| `PATCH`  | `/finance/tax-invoices/{taxId}/match`            | 정산 블록 연결 (`settleId`)                      |
+| `PATCH`  | `/finance/tax-invoices/{taxId}/unmatch`          | 연결 해제                                        |
+| `POST`   | `/finance/tax-invoices/csv/preview`              | 컬럼 추천 — 파일은 저장되지 않는다               |
+| `POST`   | `/finance/tax-invoices/csv`                      | 매핑 확정 후 저장                                |
 
 **입출금과 다른 점**
 
-| 항목        | 입출금                | 세금계산서               |
-| ----------- | --------------------- | ------------------------ |
-| 목록 페이징 | 없음 (배열 통째로)    | **있음**                 |
-| 직접 등록   | 있음 (`POST`)         | **없음** — CSV 가 유일   |
-| 수정 범위   | 미연결 · 직접등록이면 전체 | **메모만**          |
-| 중복 기준   | 거래일시 + 금액       | **승인번호**             |
+| 항목        | 입출금                     | 세금계산서             |
+| ----------- | -------------------------- | ---------------------- |
+| 목록 페이징 | 없음 (배열 통째로)         | **있음**               |
+| 직접 등록   | 있음 (`POST`)              | **없음** — CSV 가 유일 |
+| 수정 범위   | 미연결 · 직접등록이면 전체 | **메모만**             |
+| 중복 기준   | 거래일시 + 금액            | **승인번호**           |
 
 **CSV 미리보기 응답** — `columns` · `sampleRows` · `recommendedType`(⚠️ `null` 로 올 수 있다) ·
 `recommendedMapping`(필수 8 + 선택 4: `approvalNo` · `issuedDate` · `supplierBizNo` ·
