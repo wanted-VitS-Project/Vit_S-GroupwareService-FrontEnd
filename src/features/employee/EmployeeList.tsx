@@ -340,6 +340,7 @@ export default function EmployeeList() {
 
       <DataTable
         caption="사원 목록"
+        loadingLabel="사원을 불러오는 중"
         columns={[
           {
             key: 'select',
@@ -483,7 +484,7 @@ export default function EmployeeList() {
               조건에 맞는 사원이 없습니다
             </p>
             <p className="text-label break-keep text-text-secondary">
-              검색어나 필터를 바꿔 주세요
+              검색어나 필터를 바꿔주세요
             </p>
           </>
         }
@@ -502,7 +503,6 @@ export default function EmployeeList() {
           <Pagination
             page={page.page}
             totalPages={page.totalPages}
-            totalElements={page.totalElements}
             onChange={(next) => applyFilter({ page: String(next) })}
           />
         </div>
@@ -541,13 +541,14 @@ function FilterSelect({
   onChange: (value?: string) => void;
   options: { value: string; label: string }[];
 }) {
+  /* 폭을 고정한다 — 선택지가 늦게 오면 칸이 넓어졌다 좁아져 필터바가 흔들린다 */
   return (
     <label className="flex items-center gap-1.5">
       <span className="sr-only">{label}</span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value || undefined)}
-        className="cursor-pointer rounded-lg border border-border-default px-2.5 py-2 text-label text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+        className="w-36 shrink-0 cursor-pointer rounded-lg border border-border-default px-2.5 py-2 text-label text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary sm:w-40"
       >
         <option value="">{label} 전체</option>
         {options.map((option) => (

@@ -5,9 +5,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
+import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import MemberAvatar from '@/components/MemberAvatar';
 import { logout } from '@/features/auth/api';
-import { clearShellCookie, readShellCookie } from '@/features/auth/shellCache';
+import { useShellAvatar } from '@/features/auth/CurrentUserProvider';
+import { clearShellCookie } from '@/features/auth/shellCache';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { ApiError } from '@/lib/api';
 
@@ -26,8 +28,10 @@ export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
 
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  /** 로그아웃 확인 모달 */
+  const [isConfirming, setIsConfirming] = useState(false);
   /** 셸 자리표시가 쓰던 사진 사본 — 넘겨받지 않으면 교체 순간 사진이 한 번 비운다 */
-  const [thumbnail] = useState(() => readShellCookie()?.avatar ?? null);
+  const thumbnail = useShellAvatar();
   const [error, setError] = useState('');
 
   // 소속이 없는 계정(ADMIN 등)이 있다 — 직급·부서가 null 로 온다.
@@ -60,6 +64,7 @@ export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
   async function handleLogout() {
     if (isPending) return;
 
+    setIsConfirming(false);
     setError('');
     setIsPending(true);
 
@@ -161,13 +166,17 @@ export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
             마이페이지
           </Link>
 
+          {/*
+            ⚠️ 바로 나가지 않는다 — 드롭다운은 마이페이지 바로 아래라 잘못 누르기 쉽고,
+               나가면 작성 중이던 화면이 사라진다. 한 번 되묻는다.
+          */}
           <button
             type="button"
-            onClick={handleLogout}
+            onClick={() => setIsConfirming(true)}
             disabled={isPending}
             className="block w-full cursor-pointer border-t border-border-default px-4 py-2.5 text-left text-label text-text-primary hover:bg-bg-hover disabled:cursor-not-allowed disabled:text-text-muted"
           >
-            {isPending ? '로그아웃 중…' : '로그아웃'}
+            로그아웃
           </button>
 
           {error !== '' && (
@@ -179,6 +188,18 @@ export default function ProfileMenu({ isDark = false }: { isDark?: boolean }) {
             </p>
           )}
         </div>
+      )}
+
+      {isConfirming && (
+        <AlertDialogTwoButton
+          icon={DialogIcons.info}
+          title="로그아웃할까요?"
+          description="작성 중인 내용이 있으면 저장한 뒤 나가주세요."
+          confirmLabel="로그아웃"
+          isBusy={isPending}
+          onConfirm={handleLogout}
+          onCancel={() => setIsConfirming(false)}
+        />
       )}
     </div>
   );

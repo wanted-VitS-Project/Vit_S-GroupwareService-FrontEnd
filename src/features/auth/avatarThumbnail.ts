@@ -25,8 +25,11 @@ export function captureAvatarThumbnail(source: string) {
   capturedSource = source;
 
   const image = new Image();
-  /** 쿠키를 실어야 사진이 내려온다 — 서버가 이 오리진을 허용하지 않으면 `onerror` 로 빠진다 */
-  image.crossOrigin = 'use-credentials';
+  /*
+    같은 오리진 창구(`/api/avatar/{userId}`)로 받으므로 `crossOrigin` 이 필요 없다 —
+    예전에는 백엔드 서빙(302 → 저장소)을 직접 받아 저장소 CORS 에 막혔고, 그래서
+    썸네일이 한 번도 저장되지 못했다 (2026-08-17).
+  */
 
   image.onload = () => {
     try {

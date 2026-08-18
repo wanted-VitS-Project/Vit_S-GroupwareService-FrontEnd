@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import PanelModal from '@/components/PanelModal';
+import LoadingSpinner from '@/components/Spinner';
 import { isAbortError } from '@/lib/api';
 
 import { getJobPositionEmployees } from './api';
@@ -67,9 +68,7 @@ export default function JobPositionEmployeesModal({
               </button>
             </Centered>
           ) : employees === null ? (
-            <Centered>
-              <p className="text-detail text-text-secondary">불러오는 중…</p>
-            </Centered>
+            <LoadingSpinner label="사원 목록을 불러오는 중" className="py-16" />
           ) : employees.length === 0 ? (
             <Centered>
               <p className="text-detail break-keep text-text-secondary">
@@ -86,7 +85,15 @@ export default function JobPositionEmployeesModal({
                       {employee.userId}
                     </span>
                   </span>
-                  <span className="mt-0.5 block truncate text-caption text-text-secondary">
+                  <span
+                    /* 긴 경로는 잘리므로 전체를 tooltip 으로 남긴다 */
+                    title={
+                      employee.departmentPath ??
+                      employee.departmentName ??
+                      '소속 없음'
+                    }
+                    className="mt-0.5 block truncate text-caption text-text-secondary"
+                  >
                     {/* 경로가 있으면 상위 부서까지 보여야 같은 이름의 팀을 가릴 수 있다 */}
                     {employee.departmentPath ??
                       employee.departmentName ??

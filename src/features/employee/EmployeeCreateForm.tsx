@@ -15,6 +15,13 @@ import { getJobPositions } from '@/features/jobPosition/api';
 
 import { writeCachedDepartments, writeCachedJobPositions } from './optionCache';
 import type { JobPosition } from '@/features/jobPosition/types';
+import QualificationFields, {
+  toQualificationPayload,
+} from '@/features/masterItem/QualificationFields';
+import type {
+  CertificateInput,
+  EducationInput,
+} from '@/features/masterItem/types';
 import { ApiError, messageOf } from '@/lib/api';
 import { formatPhone } from '@/lib/format';
 
@@ -75,7 +82,8 @@ const REQUIRED_MESSAGES: Partial<Record<FieldName, string>> = {
  * 사원 등록 화면. (ADMIN 전용, .ai/API.md 32)
  *
  * 계정이 항상 함께 발급된다 — 사원만 등록하는 경로는 없다.
- * 초기 비밀번호는 입력한 이메일로 가고, **메일 발송이 실패해도 201** 이라 응답을 반드시 확인한다.
+ * 사번 · 초기 비밀번호가 입력한 이메일로 가고(2026-08-17 백엔드에서 사번 추가),
+ * **메일 발송이 실패해도 201** 이라 응답을 반드시 확인한다.
  */
 export default function EmployeeCreateForm() {
   const router = useRouter();
@@ -86,6 +94,14 @@ export default function EmployeeCreateForm() {
   >({});
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  /**
+   * 학력 · 자격증. 값 모양이 문자열 폼(`values`)과 달라 **따로 담는다** —
+   * 줄 단위 배열이라 `FieldName` 체계에 넣으면 검증 · 초기화가 뒤엉킨다.
+   */
+  const [qualifications, setQualifications] = useState<{
+    educations: EducationInput[];
+    certificates: CertificateInput[];
+  }>({ educations: [], certificates: [] });
   /** 등록에 성공하면 폼 대신 결과를 보여준다 */
   const [result, setResult] = useState<CreateEmployeeResult | null>(null);
 
@@ -177,6 +193,13 @@ export default function EmployeeCreateForm() {
 
     if (Object.keys(missing).length > 0) {
       setFieldErrors(missing);
+
+      /*
+        빠뜨린 첫 칸으로 포커스를 옮긴다. 문구만 띄우면 그 칸이 화면 밖일 때
+        **아무 일도 안 일어난 것처럼** 보인다 — 스크롤과 낭독이 함께 따라온다.
+        (칸의 `id` 가 필드명과 같아 그대로 찾는다. `ProjectCreateForm` 과 같은 방식)
+      */
+      document.getElementById(Object.keys(missing)[0])?.focus();
       return;
     }
 
@@ -205,6 +228,8 @@ export default function EmployeeCreateForm() {
         }),
         ...(values.email.trim() && { email: values.email.trim() }),
         ...(values.phone.trim() && { phone: values.phone.trim() }),
+        // 고르지 않은 줄은 여기서 걸러진다 (`majorId: 0` 을 보내면 404 다)
+        ...toQualificationPayload(qualifications),
       });
 
       setResult(created);
@@ -254,7 +279,7 @@ export default function EmployeeCreateForm() {
 
       <PageTitle
         title="사원 등록"
-        description="로그인 계정이 함께 발급됩니다. 초기 비밀번호는 입력한 이메일로 발송됩니다."
+        description="로그인 계정이 함께 발급됩니다. 사번과 초기 비밀번호를 입력한 이메일로 보냅니다."
       />
 
       {result ? (
@@ -380,7 +405,7 @@ export default function EmployeeCreateForm() {
                 hint={
                   values.email.trim() === ''
                     ? '⚠ 비워두면 초기 비밀번호를 보낼 수 없어 로그인 불가 계정으로 등록됩니다.'
-                    : '이 주소로 초기 비밀번호를 보냅니다.'
+                    : '이 주소로 사번과 초기 비밀번호를 보냅니다.'
                 }
                 onChange={(value) => change('email', value)}
               />
@@ -395,6 +420,13 @@ export default function EmployeeCreateForm() {
               />
             </div>
           </section>
+
+          {/* 입찰 참여 검토에 쓰는 자료라 등록 단계에서 함께 받는다 (선택 입력) */}
+          <QualificationFields
+            educations={qualifications.educations}
+            certificates={qualifications.certificates}
+            onChange={setQualifications}
+          />
 
           <div className="flex items-center justify-end gap-2">
             {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}
@@ -467,8 +499,8 @@ function CreatedResult({
           </p>
         ) : (
           <p className="mt-4 rounded-lg bg-bg-surface px-3 py-2.5 text-detail leading-relaxed break-keep text-text-secondary">
-            초기 비밀번호를 등록한 이메일로 보냈습니다. 첫 로그인 때 비밀번호를
-            변경하게 됩니다.
+            사번과 초기 비밀번호를 등록한 이메일로 보냈습니다. 첫 로그인 때
+            비밀번호를 변경하게 됩니다.
           </p>
         )}
 

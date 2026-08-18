@@ -433,9 +433,6 @@ export default function SettlementStatusList() {
           <Pagination
             page={projectPage.page}
             totalPages={projectPage.totalPages}
-            totalElements={projectPage.totalElements}
-            unit="건"
-            showTotal={false}
             onChange={movePage}
           />
         </div>

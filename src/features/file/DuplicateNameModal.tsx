@@ -40,7 +40,7 @@ export default function DuplicateNameModal({
         <strong className="text-text-primary">{fileName}</strong>
         {canAddVersion
           ? ' 을(를) 기존 문서의 새 버전으로 올릴지, 이름이 같은 새 문서로 추가할지 고르세요.'
-          : ' 을(를) 새 문서로 추가할까요? 같은 이름이 여러 개라 어느 문서에 얹을지 정할 수 없습니다 — 새 버전으로 올리려면 그 문서 행의 `새 버전 올리기` 를 쓰세요.'}
+          : ' 을(를) 새 문서로 추가합니다. 같은 이름의 문서가 여러 개라 어느 문서에 얹을지 정할 수 없습니다. 새 버전으로 올리려면 목록에서 해당 문서의 새 버전 올리기를 사용하세요.'}
       </p>
     </>
   );

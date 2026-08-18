@@ -12,8 +12,11 @@ export default function MyPage() {
 
   return (
     <>
-      <p className="text-label text-text-secondary">마이페이지</p>
-      <PageTitle title="내 정보" />
+      {/*
+        `마이페이지` 윗줄은 두지 않는다 — 위에 얹을 상위 화면이 없어 경로처럼 읽히고,
+        제목(`내 정보`)과 같은 자리를 두 줄로 나눠 쓴다.
+      */}
+      <PageTitle variant="top" title="내 정보" />
 
       <div className="space-y-6">
         <Card title="프로필 사진" isPlain>

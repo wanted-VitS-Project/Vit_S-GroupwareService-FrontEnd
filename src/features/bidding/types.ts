@@ -54,6 +54,11 @@ export interface BidNoticeListItem {
    */
   dDay: number | null;
   noticeStatus: NoticeStatus;
+  /**
+   * 관심 등록 여부 — **회사 공용**이다 (개인 즐겨찾기가 아니다).
+   * ⚠️ **목록에만 온다.** 상세 응답에는 없어 상세 화면에서는 관심을 다루지 않는다.
+   */
+  isFavorite: boolean;
   /** 전환된 프로젝트 ID. `null` 이면 아직 전환되지 않았다 */
   projectId: number | null;
 }
@@ -72,6 +77,8 @@ export interface NoticeListQuery {
   /** 공고명 검색어 */
   keyword?: string;
   noticeStatus?: NoticeStatus;
+  /** 관심 등록된 공고만 본다. `false` 는 보내지 않고 조건을 빼는 것과 같게 다룬다 */
+  favorite?: boolean;
   sort?: NoticeSort;
   /** 0-based — 백엔드 페이징이 0부터 센다 */
   page?: number;
@@ -161,6 +168,29 @@ export interface NoticeAttachmentInput {
   sourceUrl: string;
 }
 
+/* ─────────────── 첨부 파일 업로드 (2026-08-17) ─────────────── */
+
+/** ① 업로드 시작 — 발급받은 `uploadUrl` 로 저장소에 직접 PUT 한다 */
+export interface StartNoticeAttachmentUploadRequest {
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+}
+
+export interface NoticeAttachmentUploadStart {
+  attachmentId: number;
+  uploadUrl: string;
+  /** presigned 만료 시각 */
+  expiresAt: string;
+}
+
+/** ③ 완료 통보 — 이 호출이 빠지면 첨부가 목록에 나오지 않는다 */
+export interface NoticeAttachmentUploadResult {
+  attachmentId: number;
+  fileName: string;
+  sizeBytes: number;
+}
+
 /**
  * 공고 직접 등록 본문 (`POST /bidding/notices`).
  *
@@ -210,6 +240,28 @@ export interface NoticeMutationResult {
   noticeId: number;
 }
 
+/**
+ * 관심 · 제외 · 복구의 **공통 응답**. 네 API 가 같은 모양을 돌려준다.
+ *
+ * 바뀐 뒤의 값이 그대로 오므로 화면은 이 값으로 갱신한다 —
+ * 목록을 통째로 다시 읽지 않아도 눌린 줄만 제자리에서 바뀐다.
+ */
+export interface NoticeStatusResult {
+  noticeId: number;
+  noticeStatus: NoticeStatus;
+  dismissReason: string | null;
+  isFavorite: boolean;
+  updatedAt: string;
+}
+
+/** 제외 요청 — `reason` 은 **필수**이고 500자까지다 (스웨거 실측) */
+export interface DismissNoticeRequest {
+  reason: string;
+}
+
+/** 제외 사유 입력 상한 — 서버 제약과 같은 값이다 */
+export const DISMISS_REASON_MAX_LENGTH = 500;
+
 /* ─────────────────── 수집 조건 · 수집 실행 ─────────────────── */
 
 /**
@@ -226,10 +278,7 @@ export type CollectionScheduleType = 'DAILY' | 'WEEKDAYS' | (string & {});
  *    길수록 매번 훑는 양이 늘어 수집이 느려진다.
  */
 export type CollectionLookbackPeriod =
-  | 'ONE_WEEK'
-  | 'TWO_WEEKS'
-  | 'ONE_MONTH'
-  | (string & {});
+  'ONE_WEEK' | 'TWO_WEEKS' | 'ONE_MONTH' | (string & {});
 
 export const COLLECTION_LOOKBACK_LABELS: Record<string, string> = {
   ONE_WEEK: '최근 1주 (7일)',
@@ -242,7 +291,9 @@ export const COLLECTION_LOOKBACK_LABELS: Record<string, string> = {
  * 서버가 새 값(`THREE_MONTHS` 등)을 주기 시작했을 때 `최근 1주` 로 둘러대면
  * 0건 원인을 찾는 사람이 실제 설정과 다른 기간을 보고 판단하게 된다.
  */
-export function lookbackLabel(period: CollectionLookbackPeriod | null | undefined) {
+export function lookbackLabel(
+  period: CollectionLookbackPeriod | null | undefined,
+) {
   if (!period) return COLLECTION_LOOKBACK_LABELS.ONE_WEEK;
   return COLLECTION_LOOKBACK_LABELS[period] ?? period;
 }
@@ -377,7 +428,16 @@ export type SummaryStatus =
   | 'PROCESSING'
   | 'COMPLETED'
   | 'FAILED'
+  /** 사람이 중단시킨 요약 (2026-08-18 · `PATCH /summaries/{id}/abandon`) */
+  | 'ABANDONED'
   | (string & {});
+
+/** 요약 중단 응답 — 검토 종료(`abandonReview`)와 같은 모양이다 */
+export interface AbandonSummaryResult {
+  summaryId: number;
+  summaryStatus: SummaryStatus;
+  abandonedAt: string;
+}
 
 /** AI 요약 본문 6칸. 수정(PATCH)도 이 모양 그대로 보낸다 */
 export interface SummarySections {
@@ -501,9 +561,7 @@ export type ReviewStatus =
  * 셋 중 **하나만** 채워진다 — `documentRole` 로 어느 ID 를 볼지 정한다.
  */
 export type DocumentRole =
-  | 'BID_ATTACHMENT'
-  | 'INTERNAL_REFERENCE'
-  | (string & {});
+  'BID_ATTACHMENT' | 'INTERNAL_REFERENCE' | (string & {});
 
 /** 검토 화면에서 고를 공고 첨부 (`GET .../review-sources`) */
 export interface ReviewAttachment {
@@ -641,4 +699,3 @@ export interface ConvertNoticeToProjectRequest {
 export interface ConvertNoticeToProjectResult {
   projectId: number;
 }
-

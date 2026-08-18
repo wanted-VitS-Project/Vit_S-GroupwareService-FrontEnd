@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 
-import { ENDPOINTS } from '@/constants/endpoints';
-import { apiUrl } from '@/lib/api';
 
 import { personLabel } from './PersonNote';
 
@@ -239,13 +237,27 @@ const IMMEDIATE_SIZES = new Set<keyof typeof SIZES>(['md', 'lg', 'xl']);
  * 서빙 경로를 만든다. 둘 다 **상대 경로**라 API 오리진을 씌워야 한다 —
  * 안 씌우면 프론트 오리진으로 나가 404 가 된다.
  */
+/**
+ * 그릴 사진 주소.
+ *
+ * ⚠️ 백엔드 경로가 아니라 **우리 오리진의 창구**(`/api/avatar/{userId}`)로 부른다 —
+ *    백엔드 서빙은 저장소(S3)로 302 인데 저장소가 CORS 를 주지 않아, 첫 화면용 썸네일을
+ *    만들 때 쓰는 `crossOrigin` 요청이 막혔다. 같은 오리진이면 그 문제가 없다.
+ *    (저장소 CORS 가 열리면 이 우회를 걷고 백엔드 경로를 직접 쓴다)
+ * ℹ️ `imageUrl` 로 받은 값도 **사번만 뽑아** 같은 창구로 보낸다 — 서빙 경로가
+ *    `/employees/{userId}/profile-image` 로 정해져 있어 사번을 되읽을 수 있다.
+ */
 function sourceOf(userId: string, imageUrl?: string | null) {
-  const path =
-    imageUrl !== undefined
-      ? imageUrl
-      : isKnownMissing(userId)
-        ? null
-        : ENDPOINTS.employees.profileImage(userId);
+  // `null` 은 사진이 없다는 것을 이미 안다는 뜻이다
+  if (imageUrl === null) return null;
+  if (imageUrl === undefined && isKnownMissing(userId)) return null;
 
-  return path ? apiUrl(path) : null;
+  const idInUrl = imageUrl?.match(/employees\/([^/]+)\/profile-image/)?.[1];
+  const target = idInUrl ?? userId;
+  // 사진을 바꾼 직후에는 화면이 `?t=` 를 붙여 캐시를 비킨다 — 그 값을 그대로 잇는다
+  const bust = imageUrl?.includes('?')
+    ? imageUrl.slice(imageUrl.indexOf('?'))
+    : '';
+
+  return `/api/avatar/${encodeURIComponent(target)}${bust}`;
 }

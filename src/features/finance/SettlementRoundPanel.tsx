@@ -24,6 +24,9 @@ import type { SettlementRound } from './types';
  * ⚠️ 값 대부분이 비어 있을 수 있다 — 정산 블록을 만들어 두고 아직 안 쓴 회차가 있다.
  * ⚠️ 계좌 정보(은행 · 번호 · 예금주)는 **열로 두지 않는다.** 출금 회차에만 있는 값이라
  *    열로 세우면 대부분의 줄이 비어 표만 넓어진다 — 눌러서 펼치게 한다.
+ * 🔒 **계좌번호는 마스킹 없이 원본으로 온다** (2026-08-17 백엔드 PR #422). 이 API 는
+ *    `FINANCE` 권한자(재무팀)만 부를 수 있어 원본이 허용된 자리다. 다만 화면 공유 ·
+ *    어깨너머로 새기 쉬운 값이라 **기본은 접어 두고 눌렀을 때만** 편다.
  */
 export default function SettlementRoundPanel({
   projectId,
@@ -198,7 +201,7 @@ function RoundRows({
               {formatDate(round.paidDate)}
             </span>
           )}
-          {/* 계좌는 출금 회차에만 있다 — 값이 있을 때만 여는 단추를 둔다 */}
+          {/* 계좌는 출금 회차에만 있다 — 값이 있을 때만 여는 단추를 둔다 (원본 번호라 기본은 접음) */}
           {hasAccount && (
             <button
               type="button"

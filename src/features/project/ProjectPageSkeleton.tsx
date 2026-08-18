@@ -20,7 +20,7 @@ export default function ProjectPageSkeleton({ rows = 10 }: { rows?: number }) {
         {[0, 1, 2, 3, 4].map((card) => (
           <div
             key={card}
-            className="flex h-24 items-center gap-4 rounded-base border border-border-default bg-bg-card px-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+            className="flex h-24 items-center gap-4 rounded-base border border-border-default bg-bg-card px-5 shadow-sm"
           >
             <Skeleton className="size-10 shrink-0 rounded-lg" />
             <div className="min-w-0 flex-1">

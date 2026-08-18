@@ -415,6 +415,7 @@ export default function CompanyDocumentList() {
         <div className="min-w-0">
           <DataTable
             caption="사내 문서 목록"
+            loadingLabel="문서를 불러오는 중"
             dense
             rows={documents}
             rowKey={(item) => item.companyDocumentId}
@@ -431,8 +432,8 @@ export default function CompanyDocumentList() {
                 </p>
                 <p className="text-label break-keep text-text-secondary">
                   {hasFilter
-                    ? '검색어나 분류를 바꾸세요'
-                    : '`새 문서 추가` 버튼으로 파일을 올려 시작하세요'}
+                    ? '검색어나 분류를 바꿔주세요'
+                    : '새 문서 추가 버튼으로 파일을 올려주세요'}
                 </p>
               </>
             }
@@ -560,8 +561,6 @@ export default function CompanyDocumentList() {
               <Pagination
                 page={documentPage.page}
                 totalPages={documentPage.totalPages}
-                totalElements={documentPage.totalElements}
-                unit="개"
                 onChange={setPage}
               />
             </div>

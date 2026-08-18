@@ -16,6 +16,14 @@ import { getJobPositions } from '@/features/jobPosition/api';
 
 import { writeCachedDepartments, writeCachedJobPositions } from './optionCache';
 import type { JobPosition } from '@/features/jobPosition/types';
+import QualificationFields, {
+  toQualificationPayload,
+} from '@/features/masterItem/QualificationFields';
+import type {
+  CertificateInput,
+  EducationInput,
+} from '@/features/masterItem/types';
+import { newRowKey } from '@/features/masterItem/types';
 import { ApiError, messageOf } from '@/lib/api';
 import { formatPhone } from '@/lib/format';
 
@@ -45,6 +53,27 @@ function toFormValues(employee: EmployeeDetail): FormValues {
     departmentId: employee.departmentId ? String(employee.departmentId) : '',
     jobPositionId: employee.jobPositionId ? String(employee.jobPositionId) : '',
     hiredAt: employee.hiredAt ?? '',
+  };
+}
+
+/**
+ * 상세 응답(표시명 포함)을 폼이 다루는 입력값(id 만)으로 옮긴다.
+ * ⚠️ 예전 응답에는 없던 필드라 빈 목록으로 받쳐 둔다.
+ */
+function toQualifications(employee: EmployeeDetail) {
+  return {
+    // 줄을 지웠을 때 입력 상태가 옆줄로 새지 않도록 화면 전용 키를 붙인다
+    educations: (employee.educations ?? []).map((education) => ({
+      rowKey: newRowKey(),
+      majorId: education.majorId,
+      degree: education.degree,
+      school: education.school,
+    })),
+    certificates: (employee.certificates ?? []).map((certificate) => ({
+      rowKey: newRowKey(),
+      certificateId: certificate.certificateId,
+      acquiredDate: certificate.acquiredDate,
+    })),
   };
 }
 
@@ -105,6 +134,17 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
   >({});
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  /**
+   * 학력 · 자격증.
+   *
+   * ⚠️ 이 두 필드는 **부분 수정이 아니라 전체 교체**다 — 보낸 배열이 최종 상태가 되고
+   *    `[]` 는 "전부 삭제" 다. 그래서 **손대지 않았으면 요청에서 아예 뺀다**
+   *    (넣어 버리면 안 건드린 사원의 학력이 통째로 지워진다).
+   */
+  const [qualifications, setQualifications] = useState<{
+    educations: EducationInput[];
+    certificates: CertificateInput[];
+  } | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -114,6 +154,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
       .then((data) => {
         setEmployee(data);
         setValues(toFormValues(data));
+        setQualifications(toQualifications(data));
       })
       .catch((caught: unknown) => {
         // 취소는 실패가 아니다
@@ -149,7 +190,27 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
   }, [optionsReloadCount]);
 
   const initial = employee ? toFormValues(employee) : null;
-  const patch = initial && values ? buildPatch(initial, values) : {};
+  const fieldPatch = initial && values ? buildPatch(initial, values) : {};
+
+  /**
+   * 학력 · 자격증을 건드렸는지. **보낼 모양끼리** 비교한다 —
+   * 화면 상태(빈 줄 · 빈 문자열)를 그대로 비교하면 줄만 추가했다 지워도 바뀐 것으로 읽힌다.
+   */
+  const savedQualifications = employee
+    ? toQualificationPayload(toQualifications(employee))
+    : null;
+  const nextQualifications = qualifications
+    ? toQualificationPayload(qualifications)
+    : null;
+  const isQualificationDirty =
+    savedQualifications !== null &&
+    nextQualifications !== null &&
+    JSON.stringify(savedQualifications) !== JSON.stringify(nextQualifications);
+
+  const patch = {
+    ...fieldPatch,
+    ...(isQualificationDirty ? nextQualifications : {}),
+  };
   const isDirty = Object.keys(patch).length > 0;
 
   /** 새로고침 · 탭 닫기로 빠져나갈 때만 브라우저가 막아준다 */
@@ -388,6 +449,15 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
                 />
               </div>
             </section>
+
+            {/* 손대지 않으면 요청에 실리지 않는다 (전체 교체 필드라 빈 배열이 곧 삭제다) */}
+            {qualifications && (
+              <QualificationFields
+                educations={qualifications.educations}
+                certificates={qualifications.certificates}
+                onChange={setQualifications}
+              />
+            )}
 
             <div className="flex items-center justify-end gap-2">
               {/* 요소를 먼저 두고 내용만 바꿔야 스크린리더가 읽는다 */}

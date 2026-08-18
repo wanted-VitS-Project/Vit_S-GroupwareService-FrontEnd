@@ -346,14 +346,19 @@ export function readApprovalBlockDetail(
 ): ApprovalBlockDetail | null {
   if (typeof detail !== 'object' || detail === null) return null;
 
-  const { approvalId, revisionId, title, content, requiresApproverReplacement } =
-    detail as {
-      approvalId?: unknown;
-      revisionId?: unknown;
-      title?: unknown;
-      content?: unknown;
-      requiresApproverReplacement?: unknown;
-    };
+  const {
+    approvalId,
+    revisionId,
+    title,
+    content,
+    requiresApproverReplacement,
+  } = detail as {
+    approvalId?: unknown;
+    revisionId?: unknown;
+    title?: unknown;
+    content?: unknown;
+    requiresApproverReplacement?: unknown;
+  };
 
   // 둘 중 하나라도 없으면 어떤 결재의 어느 회차인지 특정할 수 없다
   if (typeof approvalId !== 'number' || typeof revisionId !== 'number') {

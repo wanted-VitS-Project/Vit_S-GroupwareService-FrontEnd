@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { ROLE_LABELS } from '@/constants/status';
+import { DEGREE_LABELS } from '@/features/masterItem/types';
 import { EmployeeDetailSkeleton } from '@/components/settings/SettingsSkeletons';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { ApiError } from '@/lib/api';
@@ -150,6 +151,9 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
   const modal = useModalRouter<OpenModal>();
 
   const isResigned = employee.resignedAt !== null;
+  /** 예전 응답에는 없던 필드라 빈 목록으로 받쳐 둔다 */
+  const educations = employee.educations ?? [];
+  const certificates = employee.certificates ?? [];
   const isSuspended = employee.accountStatus === 'INACTIVE';
 
   return (
@@ -200,7 +204,7 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
               warning={
                 employee.emailRegistered
                   ? undefined
-                  : '미등록 — 로그인 · 비밀번호 재설정 불가'
+                  : '미등록 (로그인 · 비밀번호 재설정 불가)'
               }
             />
             <Field label="연락처" value={employee.phone} />
@@ -212,6 +216,67 @@ function Loaded({ employee, isSelf, onSaved }: LoadedProps) {
             )}
           </FieldList>
         </Card>
+
+        {/*
+          학력 · 자격증은 **있을 때만** 칸을 만든다 — 대부분의 사원이 비어 있는데
+          빈 카드를 늘 세우면 화면만 길어지고 읽을 것이 없다.
+        */}
+        {(educations.length > 0 || certificates.length > 0) && (
+          <Card title="학력 · 자격증">
+            {educations.length > 0 && (
+              <div>
+                <p className="text-caption font-semibold text-text-secondary">
+                  학력
+                </p>
+                <ul className="mt-1.5 flex flex-col gap-1.5">
+                  {educations.map((education, index) => (
+                    <li
+                      key={`${education.majorId}-${index}`}
+                      className="flex flex-wrap items-center gap-2 rounded-lg border border-border-default px-3 py-2"
+                    >
+                      <span className="text-detail font-medium text-text-primary">
+                        {education.majorName}
+                      </span>
+                      <span className="rounded-button-sm bg-blue-bg-soft px-1.5 py-0.5 text-caption text-text-primary-blue">
+                        {DEGREE_LABELS[education.degree]}
+                      </span>
+                      {education.school && (
+                        <span className="ml-auto text-caption text-text-secondary">
+                          {education.school}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {certificates.length > 0 && (
+              <div className={educations.length > 0 ? 'mt-4' : ''}>
+                <p className="text-caption font-semibold text-text-secondary">
+                  자격증
+                </p>
+                <ul className="mt-1.5 flex flex-col gap-1.5">
+                  {certificates.map((certificate, index) => (
+                    <li
+                      key={`${certificate.certificateId}-${index}`}
+                      className="flex flex-wrap items-center gap-2 rounded-lg border border-border-default px-3 py-2"
+                    >
+                      <span className="text-detail font-medium text-text-primary">
+                        {certificate.certificateName}
+                      </span>
+                      {certificate.acquiredDate && (
+                        <span className="ml-auto text-caption text-text-secondary">
+                          {formatDate(certificate.acquiredDate)} 취득
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </Card>
+        )}
 
         <Card title="계정 정보">
           <FieldList>

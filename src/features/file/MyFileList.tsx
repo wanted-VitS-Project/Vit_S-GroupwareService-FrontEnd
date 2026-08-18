@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
-import Breadcrumb from '@/components/Breadcrumb';
 import PageTitle from '@/components/PageTitle';
 import { messageOf } from '@/lib/api';
 import { formatDate } from '@/lib/format';
@@ -56,10 +55,13 @@ export default function MyFileList() {
   const [optionSource, setOptionSource] = useState<MyFile[] | null>(null);
   /** 다운로드 실패처럼 화면을 막지 않는 오류 */
   const [errorMessage, setErrorMessage] = useState('');
-  /** 접어 둔 프로젝트. 기본이 펼침이라 **닫은 것만** 담는다 */
-  const [closedProjectIds, setClosedProjectIds] = useState<Set<number>>(
-    new Set(),
-  );
+  /**
+   * 펼쳐 둔 프로젝트. **기본이 접힘**이라 연 것만 담는다.
+   *
+   * 참여 프로젝트가 여럿이면 전부 펼쳐진 채로 떠서 첫 화면이 표로 가득 찼다 —
+   * 어느 프로젝트가 있는지부터 훑고 필요한 것만 여는 편이 빠르다.
+   */
+  const [openProjectIds, setOpenProjectIds] = useState<Set<number>>(new Set());
   const viewerModal = useModalTarget<MyFile>();
 
   function changeKeyword(value: string) {
@@ -120,7 +122,7 @@ export default function MyFileList() {
   }, []);
 
   const toggleProject = useCallback((id: number) => {
-    setClosedProjectIds((prev) => {
+    setOpenProjectIds((prev) => {
       const next = new Set(prev);
       if (!next.delete(id)) next.add(id);
       return next;
@@ -140,9 +142,12 @@ export default function MyFileList() {
 
   return (
     <div onPointerEnter={preloadViewer}>
-      <Breadcrumb items={[{ label: '내 파일' }]} />
-
+      {/*
+        ⚠️ **최상위 화면이라 경로를 두지 않는다** — 사이드바가 곧장 여는 화면이라
+           위에 얹을 상위 화면이 없다 (재무 관리 · 전사 관리와 같은 규칙).
+      */}
       <PageTitle
+        variant="top"
         title="내 프로젝트 파일"
         description="내가 속한 모든 프로젝트의 파일을 프로젝트별로 모아 봅니다. 업로드 · 수정은 각 스텝 화면에서 할 수 있습니다."
       />
@@ -225,7 +230,7 @@ export default function MyFileList() {
           </p>
           <p className="text-label break-keep text-text-secondary">
             {hasFilter
-              ? '검색어나 필터를 바꾸세요'
+              ? '검색어나 필터를 바꿔주세요'
               : '참여 중인 프로젝트의 스텝에 문서를 올리면 여기에 모입니다'}
           </p>
           {hasFilter && (
@@ -246,7 +251,7 @@ export default function MyFileList() {
               projectId={group.projectId}
               projectName={group.projectName}
               files={group.files}
-              isOpen={!closedProjectIds.has(group.projectId)}
+              isOpen={openProjectIds.has(group.projectId)}
               onToggle={toggleProject}
               onOpen={viewerModal.open}
               onDownload={download}
@@ -410,7 +415,7 @@ const FileRow = memo(function FileRow({
           </span>
           <span
             style={{ color: style.text, backgroundColor: style.background }}
-            className="shrink-0 rounded-button-sm px-1 py-0.5 font-mono text-[8px] font-semibold"
+            className="shrink-0 rounded-button-sm px-1 py-0.5 font-mono text-micro font-semibold"
           >
             {extensionLabel(file.extension)}
           </span>
@@ -501,6 +506,7 @@ function FilterSelect({
   onChange: (value: string) => void;
   options: FilterOption[];
 }) {
+  /* 폭을 고정한다 — 선택지가 늦게 오면 칸이 넓어졌다 좁아져 필터바가 흔들린다 */
   return (
     <div className="shrink-0">
       <label htmlFor={id} className="sr-only">
@@ -510,7 +516,7 @@ function FilterSelect({
         id={id}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="cursor-pointer rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-label text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+        className="w-36 shrink-0 cursor-pointer rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-label text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary sm:w-40"
       >
         <option value="">{allLabel}</option>
         {options.map((option) => (
@@ -532,10 +538,14 @@ function EmptyBox({ children }: { children: React.ReactNode }) {
 }
 
 /** 프로젝트 묶음 2개를 흉내 낸다 — 실제 개수를 모르니 과하지 않게 둔다 */
+/**
+ * ⚠️ **머리줄만 그린다** — 실물이 접힌 채로 오기 때문이다 (`openProjectIds` 기본값).
+ *    파일 줄까지 깔아 두면 목록이 도착하는 순간 표가 통째로 사라져 화면이 접히듯 튄다.
+ */
 function MyFileSkeleton() {
   return (
     <div aria-hidden className="flex animate-pulse flex-col gap-4">
-      {[0, 1].map((index) => (
+      {[0, 1, 2].map((index) => (
         <div
           key={index}
           className="overflow-hidden rounded-base border border-border-default bg-bg-card"
@@ -543,11 +553,6 @@ function MyFileSkeleton() {
           <div className="flex items-center gap-2 px-4 py-3">
             <div className="size-4 rounded-button-sm bg-bg-hover" />
             <div className="h-4 w-48 rounded-button-sm bg-bg-hover" />
-          </div>
-          <div className="flex flex-col gap-2 border-t border-border-default p-3">
-            {[0, 1, 2].map((row) => (
-              <div key={row} className="h-8 rounded-button-sm bg-bg-hover" />
-            ))}
           </div>
         </div>
       ))}

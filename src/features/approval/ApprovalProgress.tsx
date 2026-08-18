@@ -66,12 +66,12 @@ export default function ApprovalProgress({
 
 /** 앞 단계가 끝났으면 선을 채워 어디까지 왔는지 보이게 한다 */
 function connectorClass(line: ApprovalDetailLine) {
-  return line.status === 'APPROVED' ? 'bg-[#12B76A]' : 'bg-bg-sidebar/10';
+  return line.status === 'APPROVED' ? 'bg-green-text' : 'bg-bg-sidebar/10';
 }
 
 /** 동그라미 색. 승인만 채우고 나머지는 테두리로 구분한다 */
 const MARKER_CLASS: Record<ApprovalLineStatus, string> = {
-  APPROVED: 'border-[#12B76A] bg-[#12B76A] text-text-white',
+  APPROVED: 'border-green-text bg-green-text text-text-white',
   REJECTED: 'border-border-danger bg-bg-card text-text-danger',
   ACTIVE: 'border-border-primary bg-bg-card text-text-primary-blue',
   WAITING: 'border-border-default bg-bg-card text-text-secondary',

@@ -202,7 +202,10 @@ export default function GrantPermissionModal({
                       </span>
                     </span>
                     {item.belongs && (
-                      <span className="mt-0.5 block truncate text-caption text-text-secondary">
+                      <span
+                        title={item.belongs}
+                        className="mt-0.5 block truncate text-caption text-text-secondary"
+                      >
                         {item.belongs}
                       </span>
                     )}

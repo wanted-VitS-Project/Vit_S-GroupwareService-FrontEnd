@@ -4,11 +4,6 @@ interface PaginationProps {
   /** 0-based — 백엔드 페이징이 0부터 센다 */
   page: number;
   totalPages: number;
-  totalElements: number;
-  /** 세는 단위. 사람이 아닌 목록은 바꿔 넘긴다 (예: '건') */
-  unit?: string;
-  /** 전체 건수를 감춘다 — 화면에 이미 같은 수가 있으면 중복이다 */
-  showTotal?: boolean;
   /** 요청이 도는 동안 잠근다 — 연달아 누르면 응답 순서가 뒤집힌다 */
   disabled?: boolean;
   onChange: (page: number) => void;
@@ -26,9 +21,6 @@ interface PaginationProps {
 export default function Pagination({
   page,
   totalPages,
-  totalElements,
-  unit = '명',
-  showTotal = true,
   disabled = false,
   onChange,
 }: PaginationProps) {
@@ -38,16 +30,8 @@ export default function Pagination({
   const items = pageItemsOf(currentPage, lastPage);
 
   return (
-    /**
-     * 세 칸 격자로 나눈다 — 양옆 칸의 폭이 같아야 가운데 번호줄이 **화면 한가운데**에 선다.
-     * `justify-between` 으로 두면 전체 건수 글자 길이에 따라 번호줄이 좌우로 밀린다.
-     */
-    <div className="grid grid-cols-1 items-center gap-2 border-t border-border-default px-5 py-3 md:grid-cols-[1fr_auto_1fr] md:gap-4">
-      {/* 감춰도 자리는 남겨야 번호줄이 가운데에 그대로 있는다 */}
-      <p className="text-center text-detail text-text-secondary md:text-left">
-        {showTotal && `전체 ${totalElements.toLocaleString('ko-KR')}${unit}`}
-      </p>
-
+    /* 번호줄만 둔다 — 전체 건수는 적지 않는다 */
+    <div className="flex items-center justify-center border-t border-border-default px-5 py-3">
       <nav
         aria-label="페이지 이동"
         className="flex flex-wrap items-center justify-center gap-1"
@@ -181,10 +165,8 @@ export function PaginationPlaceholder() {
   return (
     <div
       aria-hidden
-      className="grid grid-cols-1 items-center gap-2 border-t border-border-default px-5 py-3 md:grid-cols-[1fr_auto_1fr] md:gap-4"
+      className="flex items-center justify-center border-t border-border-default px-5 py-3"
     >
-      <span className="h-4 w-20 rounded-button-sm bg-bg-hover" />
-
       <div className="flex items-center justify-center gap-1">
         {[0, 1, 2, 3, 4].map((index) => (
           <span
@@ -195,8 +177,6 @@ export function PaginationPlaceholder() {
           />
         ))}
       </div>
-
-      <span className="hidden md:block" />
     </div>
   );
 }

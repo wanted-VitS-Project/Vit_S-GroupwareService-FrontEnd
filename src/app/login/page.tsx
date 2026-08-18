@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import Logo from '@/components/Logo';
+import { Spinner } from '@/components/Spinner';
 import PasswordVisibilityToggle from '@/components/PasswordVisibilityToggle';
 import { login } from '@/features/auth/api';
 import { isGateCode, LOGIN_ERROR_MESSAGES } from '@/features/auth/errorCodes';
@@ -103,15 +104,10 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
       <div className="w-full max-w-md rounded-base border border-border-default px-10 py-12">
-        {/**
-         * ⚠️ 로고는 **어두운 바탕 전용**이다 (글자가 흰색). 로그인 화면은 밝아서
-         *    사이드바와 같은 어두운 판 위에 올린다 — 자산을 한 벌로 유지한다.
-         */}
+        {/* 밝은 화면이라 어두운 글자 자산을 쓴다 — 로고를 감싸는 판을 두지 않는다 */}
         <h1 className="flex justify-center">
           <span className="sr-only">VitaS</span>
-          <span className="flex h-13 items-center rounded-base bg-bg-sidebar px-6">
-            <Logo onReady={() => setIsLogoReady(true)} />
-          </span>
+          <Logo tone="onLight" onReady={() => setIsLogoReady(true)} />
         </h1>
 
         {/**
@@ -149,9 +145,21 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={!canSubmit}
-            className="w-full cursor-pointer rounded-lg bg-text-primary py-3.5 text-body-m font-bold text-text-white transition-colors hover:bg-bg-sidebar-hover disabled:cursor-not-allowed disabled:bg-bg-hover-secondary"
+            /*
+              ⚠️ 비활성일 때 **배경만 밝게 바꾸지 않는다** — 흰 글씨가 연회색 배경에 묻혀
+                 버튼에 글자가 없는 것처럼 보였다. 어두운 배경을 그대로 두고 흐리게만 해
+                 글자가 계속 읽히게 한다. 0.6 은 흰 글씨 대비 4.5:1 을 넘기는 값이다.
+            */
+            className="w-full cursor-pointer rounded-lg bg-text-primary py-3.5 text-body-m font-bold text-text-white transition-colors hover:bg-bg-sidebar-hover disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-text-primary"
           >
-            {isPending ? '로그인 중…' : '로그인'}
+            {isPending ? (
+              <span className="flex items-center justify-center gap-2">
+                <Spinner className="size-4 border-white/40 border-t-white" />
+                로그인 중
+              </span>
+            ) : (
+              '로그인'
+            )}
           </button>
         </form>
 

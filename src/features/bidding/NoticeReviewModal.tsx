@@ -687,7 +687,11 @@ function PickSection({
     <div className={className}>
       <p className="text-caption font-semibold text-text-primary">{title}</p>
       {isLoading ? (
-        <p className="mt-2 text-caption text-text-secondary">불러오는 중…</p>
+        <LoadingSpinner
+          label={`${title} 불러오는 중`}
+          className="mt-2 py-6"
+          spinnerClassName="size-5"
+        />
       ) : isEmpty ? (
         <p className="mt-2 text-caption text-text-secondary">{emptyText}</p>
       ) : (

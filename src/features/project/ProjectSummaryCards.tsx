@@ -82,7 +82,7 @@ export default function ProjectSummaryCards({
       {cards.map((card, index) => (
         <div
           key={card.label}
-          className="flex h-24 items-center gap-4 rounded-base border border-border-default bg-bg-card px-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+          className="flex h-24 items-center gap-4 rounded-base border border-border-default bg-bg-card px-5 shadow-sm"
         >
           <span
             aria-hidden

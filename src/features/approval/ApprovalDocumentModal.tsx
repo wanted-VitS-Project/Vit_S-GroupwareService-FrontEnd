@@ -196,9 +196,7 @@ export default function ApprovalDocumentModal({
       {/* 스크롤은 이 영역이 갖는다 — PdfPages 는 페이지를 쌓기만 한다 */}
       <div className="min-h-0 flex-1 overflow-y-auto bg-bg-surface p-5">
         {preview.kind === 'loading' && (
-          <p className="text-center text-label text-text-secondary">
-            미리보기를 불러오는 중…
-          </p>
+          <LoadingSpinner label="미리보기를 불러오는 중" className="py-20" />
         )}
 
         {preview.kind === 'ready' && (

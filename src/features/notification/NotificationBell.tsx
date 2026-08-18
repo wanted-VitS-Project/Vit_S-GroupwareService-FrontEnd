@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 import { writeShellCookie } from '@/features/auth/shellCache';
+import LoadingSpinner from '@/components/Spinner';
 import { messageOf } from '@/lib/api';
 
 import { getNotifications, getNotificationTarget } from './api';
@@ -283,9 +284,11 @@ export default function NotificationBell({
           )}
 
           {items === null && (
-            <p className="px-4 pb-4 text-caption text-text-secondary">
-              불러오는 중…
-            </p>
+            <LoadingSpinner
+              label="알림을 불러오는 중"
+              className="px-4 pb-4"
+              spinnerClassName="size-5"
+            />
           )}
 
           {items?.length === 0 && error === '' && (
