@@ -32,6 +32,9 @@ const PermanentDeleteImagesModal = dynamic(loadPermanentDeleteModal, {
 /** 한 판에 20장 — 모아보기와 같은 수로 맞춘다 */
 const PAGE_SIZE = 20;
 
+/** 다른 프로젝트의 선택을 물려받지 않도록 쓰는 빈 선택 */
+const NO_SELECTION: ReadonlySet<number> = new Set();
+
 // 휴지통 — 이미지. (명세 109·110·111번)
 // 문서 휴지통과 조작 방식이 다르다 — 복구·영구 삭제 API 가 다건(imgIds[])이라
 // 건별 버튼 대신 선택 후 일괄 처리로 둔다. 한 장만 고르면 그대로 한 건 처리다.
@@ -67,8 +70,18 @@ export default function TrashImages() {
   const [failedProjectId, setFailedProjectId] = useState<string | null>(null);
   const [reloadCount, setReloadCount] = useState(0);
 
-  /** 고른 것은 **이 페이지 안에서만** 센다 — 장을 넘기면 비운다 */
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  /*
+   * 고른 것은 **이 프로젝트 · 이 페이지 안에서만** 센다.
+   * 장을 넘기면 비우고, 경로가 바뀌면 값이 어긋나 저절로 빈 선택이 된다 —
+   * 선택이 남은 채 프로젝트를 옮기면 복구 · 영구 삭제 버튼이 켜진 채로 열려
+   * 지금 화면에 없는 이미지에 손이 닿는다.
+   */
+  const [selectedOf, setSelectedOf] = useState<{
+    projectId: string;
+    ids: ReadonlySet<number>;
+  }>({ projectId, ids: NO_SELECTION });
+  const selectedIds =
+    selectedOf.projectId === projectId ? selectedOf.ids : NO_SELECTION;
 
   const deleteModal = useModal();
 
@@ -106,18 +119,21 @@ export default function TrashImages() {
   const isPending = loaded?.key !== requestKey;
   const hasFailed = failedProjectId === projectId;
 
+  /** 선택을 갈아 끼운다 — 어느 프로젝트의 선택인지 함께 적어 둔다 */
+  function select(ids: ReadonlySet<number>) {
+    setSelectedOf({ projectId, ids });
+  }
+
   /** 장을 넘긴다 — 선택은 이 페이지의 것이라 함께 비운다 */
   function goToPage(next: number) {
     setPageOf({ projectId, page: next });
-    setSelectedIds(new Set());
+    select(NO_SELECTION);
   }
 
   function toggle(imgId: number) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (!next.delete(imgId)) next.add(imgId);
-      return next;
-    });
+    const next = new Set(selectedIds);
+    if (!next.delete(imgId)) next.add(imgId);
+    select(next);
   }
 
   // 고른 것을 화면에서 뺀다 — 되돌릴 수 있게 뺀 항목을 그대로 돌려준다.
@@ -144,7 +160,7 @@ export default function TrashImages() {
             },
           },
     );
-    setSelectedIds(new Set());
+    select(NO_SELECTION);
 
     return taken;
   }
@@ -291,9 +307,9 @@ export default function TrashImages() {
             <button
               type="button"
               onClick={() =>
-                setSelectedIds(
+                select(
                   areAllSelected
-                    ? new Set()
+                    ? NO_SELECTION
                     : new Set(pageImages.map((image) => image.imgId)),
                 )
               }
