@@ -143,7 +143,7 @@ export default function ApprovalDraftForm({
       <button
         type="button"
         onClick={closeAfterSave}
-        className="w-full cursor-pointer rounded-lg bg-[#4F39F6] py-2 text-detail font-semibold text-text-white hover:bg-[#4430d6]"
+        className="btn btn-md btn-primary w-full"
       >
         저장
       </button>

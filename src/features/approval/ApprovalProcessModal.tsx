@@ -19,7 +19,7 @@ const COPY = {
     submit: '승인',
     busy: '승인 중…',
     placeholder: '의견을 남길 수 있어요 (선택)',
-    className: 'bg-[#4F39F6] hover:bg-[#4430d6]',
+    className: 'btn-primary',
     failure: '승인하지 못했습니다.',
   },
   reject: {
@@ -29,7 +29,7 @@ const COPY = {
     submit: '반려',
     busy: '반려 중…',
     placeholder: '반려 사유를 입력해주세요',
-    className: 'bg-red-text hover:bg-btn-danger-hover',
+    className: 'btn-danger',
     failure: '반려하지 못했습니다.',
   },
 } as const;
@@ -135,7 +135,8 @@ export default function ApprovalProcessModal({
           type="button"
           onClick={submit}
           disabled={isBusy || (isOpinionRequired && isEmpty)}
-          className={`flex-1 cursor-pointer rounded-lg py-2 text-label font-semibold text-text-white disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary ${copy.className}`}
+          /* 공용 버튼 체계를 쓴다 — 색·비활성 처리는 `.btn` 변형이 이미 갖고 있다 */
+          className={`btn btn-md flex-1 ${copy.className}`}
         >
           {isBusy ? copy.busy : copy.submit}
         </button>

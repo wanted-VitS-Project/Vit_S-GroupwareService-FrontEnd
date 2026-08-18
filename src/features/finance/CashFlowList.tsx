@@ -8,6 +8,7 @@ import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import Breadcrumb from '@/components/Breadcrumb';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
 import PageTitle from '@/components/PageTitle';
+import LoadingSpinner from '@/components/Spinner';
 import { notifyToast } from '@/components/Toast';
 import { messageOf } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
@@ -220,8 +221,8 @@ export default function CashFlowList() {
     // 한 건도 처리되지 않았으면 성공 문구를 붙이지 않는다 (`0건을 …했습니다` 는 어색하다)
     notifyToast(
       result.count === 0
-        ? `${skipped}건을 처리하지 못했습니다 — ${reason}`
-        : `${result.count}건을 ${done}했습니다. ${skipped}건은 처리하지 못했습니다 — ${reason}`,
+        ? `${skipped}건을 처리하지 못했습니다. ${reason}`
+        : `${result.count}건을 ${done}했습니다. ${skipped}건은 처리하지 못했습니다. ${reason}`,
       'error',
     );
   }
@@ -376,12 +377,11 @@ export default function CashFlowList() {
        * (재조회는 직전 결과를 그대로 두므로 이 경우가 아니다)
        */}
       {isLoading && !rows && !hasFailed ? (
-        <p className="py-20 text-center text-caption text-text-secondary">
-          입출금 내역을 불러오는 중입니다.
-        </p>
+        <LoadingSpinner label="입출금 내역을 불러오는 중" className="py-20" />
       ) : (
         <DataTable
           caption="입출금 내역 목록"
+          loadingLabel="입출금 내역을 불러오는 중"
           columns={columns}
           rows={hasFailed ? [] : (rows ?? [])}
           rowKey={(row) => row.cashFlowId}
@@ -441,13 +441,6 @@ export default function CashFlowList() {
             setReloadCount((count) => count + 1);
           }}
         />
-      )}
-
-      {/* 페이징이 없어 총 건수를 알려 줄 곳이 표 아래뿐이다 */}
-      {!hasFailed && rows !== null && rows.length > 0 && (
-        <p className="mt-3 text-caption text-text-secondary">
-          전체 {rows.length.toLocaleString('ko-KR')}건
-        </p>
       )}
     </>
   );

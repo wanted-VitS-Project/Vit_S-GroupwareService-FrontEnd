@@ -263,6 +263,7 @@ export default function PagePermissionList() {
           <div className="overflow-hidden rounded-base border border-border-default bg-bg-card">
             <DataTable
               caption="접근 가능자 목록"
+              loadingLabel="접근 가능자를 불러오는 중"
               columns={[
                 {
                   key: 'name',

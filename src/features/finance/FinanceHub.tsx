@@ -97,8 +97,14 @@ export default function FinanceHub() {
 
   return (
     <>
-      <p className="text-caption text-text-secondary">재무 관리</p>
+      {/* 다른 화면과 같은 자리 · 같은 간격을 쓰도록 브레드크럼 컴포넌트로 통일한다 */}
+      {/*
+        ⚠️ **최상위 화면이라 경로를 두지 않는다** — 위에 얹을 상위 화면이 없어
+           `재무 관리` 한 마디만 남고, 제목과 같은 말이 두 줄로 반복된다.
+           하위 화면(입출금 내역 · 세금계산서 · 정산 현황)은 그대로 경로를 그린다.
+      */}
       <PageTitle
+        variant="top"
         title="재무 관리"
         description="입출금 내역 · 세금계산서 · 정산 현황을 한 곳에서 관리합니다."
       />

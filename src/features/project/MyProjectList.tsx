@@ -245,8 +245,6 @@ export default function MyProjectList() {
               <Pagination
                 page={query.page ?? 0}
                 totalPages={page.totalPages}
-                totalElements={page.totalElements}
-                unit="건"
                 onChange={(next) => applyFilter({ page: String(next) })}
               />
             </div>

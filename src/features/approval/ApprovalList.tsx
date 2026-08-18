@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
-import { ApprovalListSkeleton } from '@/components/approval/ApprovalSkeletons';
+import LoadingSpinner from '@/components/Spinner';
 import PageTitle from '@/components/PageTitle';
 import Pagination from '@/components/Pagination';
 import { APPROVAL_STATUS_LABELS } from '@/constants/status';
@@ -154,48 +154,6 @@ export default function ApprovalList() {
   const hasFailed = current?.hasFailed ?? false;
   const isLoading = current === null && !hasFailed;
 
-  /**
-   * 탭마다의 건수.
-   *
-   * ⭐ **누르지 않아도 보이게** 한다 — 어느 탭에 볼 것이 있는지 눌러 보고서야 아는 것은
-   *    탭을 하나씩 열어 보라는 말과 같다. 0 건도 숨기지 않는다. 비어 있다는 것도 정보다.
-   * ⚠️ 지금 필터(상태 · 기간 · 검색어)를 그대로 얹어 센다 — 탭 건수만 조건을 무시하면
-   *    `전체 (12)` 인데 목록은 2줄인 화면이 나온다.
-   * ℹ️ 건수 전용 API 가 없어 **가장 작은 페이지(1건)** 를 받아 `totalElements` 만 쓴다.
-   */
-  const [counts, setCounts] = useState<Partial<Record<ApprovalScope, number>>>(
-    {},
-  );
-  const countKey = `${reloadCount} ${searchParams.toString()}`;
-  const [countedKey, setCountedKey] = useState('');
-
-  useEffect(() => {
-    const controller = new AbortController();
-    const { signal } = controller;
-
-    Promise.all(
-      scopes.map((option) =>
-        getApprovals({ ...query, scope: option, page: 0, size: 1 }, signal)
-          .then((data) => [option, data.totalElements] as const)
-          // 한 탭을 못 받아도 나머지 숫자는 쓸 수 있다
-          .catch(() => [option, undefined] as const),
-      ),
-    ).then((pairs) => {
-      if (signal.aborted) return;
-
-      setCountedKey(countKey);
-      setCounts(
-        Object.fromEntries(
-          pairs.filter(([, count]) => count !== undefined),
-        ) as Partial<Record<ApprovalScope, number>>,
-      );
-    });
-
-    return () => controller.abort();
-    // `scopes` 는 역할에서 나오는 고정 값이라 의존성에 넣지 않는다
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [countKey]);
-
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
@@ -229,6 +187,7 @@ export default function ApprovalList() {
     <>
       {/* 관리자는 결재선에 들어가지 않아 `내가 올린 결재` 가 없다 — 설명도 그에 맞춘다 */}
       <PageTitle
+        variant="top"
         title="결재 관리"
         description={
           user.role === 'ADMIN'
@@ -265,9 +224,6 @@ export default function ApprovalList() {
                * 숫자가 나중에 붙으면서 글자가 늘면 탭 폭이 커지며 옆 탭이 밀린다.
                * 자리를 미리 잡아 두면 숫자가 붙어도 아무것도 움직이지 않는다.
                */}
-              <span className="ml-1 inline-block min-w-[3.5ch] text-left tabular-nums">
-                {countedKey === countKey ? `(${counts[option] ?? 0})` : ''}
-              </span>
             </button>
           );
         })}
@@ -332,7 +288,13 @@ export default function ApprovalList() {
           </button>
         </Centered>
       ) : isLoading && !rows ? (
-        <ApprovalListSkeleton rows={PAGE_SIZE} />
+        /*
+          ⚠️ 자리표시 막대를 쓰지 않는다 — 결재가 한두 건일 때도 스무 줄이 그려졌다
+             사라져 화면이 크게 흔들렸다. 목록 표와 같은 이유로 스피너를 둔다.
+        */
+        <div className="rounded-base border border-border-default bg-bg-card">
+          <LoadingSpinner label="결재를 불러오는 중" className="py-16" />
+        </div>
       ) : !rows || rows.length === 0 ? (
         <Centered>
           <p className="text-label text-text-secondary">
@@ -359,9 +321,6 @@ export default function ApprovalList() {
             <Pagination
               page={query.page ?? 0}
               totalPages={page.totalPages}
-              totalElements={page.totalElements}
-              // 건수는 탭 옆에 이미 있다 — 아래에 또 적으면 같은 수가 두 번 나온다
-              showTotal={false}
               onChange={(next) => applyFilter({ page: String(next) })}
             />
           )}
@@ -441,7 +400,7 @@ function ApprovalRow({
           <span
             className={`w-14 shrink-0 rounded-lg py-1.5 text-center text-detail font-semibold ${
               isMyTurn
-                ? 'bg-[#4F39F6] text-text-white'
+                ? 'bg-btn-primary text-text-white'
                 : 'border border-border-default text-text-secondary'
             }`}
           >
@@ -469,13 +428,14 @@ function FilterSelect({
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
 }) {
+  /* 폭을 고정한다 — 선택지가 늦게 오면 칸이 넓어졌다 좁아져 필터바가 흔들린다 */
   return (
     <label className="flex items-center">
       <span className="sr-only">{label}</span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="cursor-pointer rounded-lg border border-border-default px-3 py-2 text-label text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+        className="w-36 shrink-0 cursor-pointer rounded-lg border border-border-default px-3 py-2 text-label text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary sm:w-40"
       >
         <option value="">{label}</option>
         {options.map((option) => (

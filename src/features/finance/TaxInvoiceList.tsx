@@ -8,6 +8,7 @@ import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import Breadcrumb from '@/components/Breadcrumb';
 import DataTable, { type DataTableColumn } from '@/components/DataTable';
 import PageTitle from '@/components/PageTitle';
+import LoadingSpinner from '@/components/Spinner';
 import { notifyToast } from '@/components/Toast';
 import { messageOf } from '@/lib/api';
 import { formatDate } from '@/lib/format';
@@ -244,12 +245,11 @@ export default function TaxInvoiceList() {
        *    스켈레톤을 깔면 결과가 2건일 때 표가 떴다가 줄어들어 화면이 튄다.
        */}
       {rows === null && !error ? (
-        <p className="py-20 text-center text-caption text-text-secondary">
-          세금계산서를 불러오는 중입니다.
-        </p>
+        <LoadingSpinner label="세금계산서를 불러오는 중" className="py-20" />
       ) : (
         <DataTable
           caption="세금계산서 목록"
+          loadingLabel="세금계산서를 불러오는 중"
           columns={columns}
           rows={error ? [] : rows}
           rowKey={(row) => row.taxId}

@@ -325,8 +325,7 @@ export default function AdminFileList({
 
       <DataTable
         caption="전사 파일 목록"
-        // 탐색기에서 자리를 옮길 때마다 막대가 번쩍이지 않게 한다
-        showSkeleton={!isLocked}
+        loadingLabel="파일을 불러오는 중"
         dense
         rows={files}
         rowKey={(file) => file.fileId}
@@ -341,7 +340,7 @@ export default function AdminFileList({
             </p>
             <p className="text-label break-keep text-text-secondary">
               {hasFilter
-                ? '검색어나 필터를 바꾸세요'
+                ? '검색어나 필터를 바꿔주세요'
                 : isStepLocked
                   ? '이 스텝의 문서 블록에 파일을 올리면 여기에 모입니다'
                   : '프로젝트 스텝에 문서를 올리면 여기에 모입니다'}
@@ -476,10 +475,6 @@ export default function AdminFileList({
           <Pagination
             page={filePage.page}
             totalPages={filePage.totalPages}
-            totalElements={filePage.totalElements}
-            unit="개"
-            // 위 요약 카드에 같은 수가 이미 있다
-            showTotal={false}
             onChange={setPage}
           />
         </div>
@@ -560,7 +555,7 @@ function SummaryCard({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="flex h-24 items-center gap-4 rounded-base border border-border-default bg-bg-card px-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+    <div className="flex h-24 items-center gap-4 rounded-base border border-border-default bg-bg-card px-5 shadow-sm">
       <span
         aria-hidden
         className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${iconStyle}`}
@@ -614,6 +609,7 @@ function FilterSelect({
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
 }) {
+  /* 폭을 고정한다 — 선택지가 늦게 오면 칸이 넓어졌다 좁아져 필터바가 흔들린다 */
   return (
     <div className="shrink-0">
       <label htmlFor={id} className="sr-only">
@@ -623,7 +619,7 @@ function FilterSelect({
         id={id}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="cursor-pointer rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-label text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary"
+        className="w-36 shrink-0 cursor-pointer rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-label text-text-primary focus:outline-2 focus:outline-offset-2 focus:outline-border-primary sm:w-40"
       >
         <option value="">{allLabel}</option>
         {options.map((option) => (

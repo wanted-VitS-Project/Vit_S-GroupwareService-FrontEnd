@@ -3,8 +3,6 @@ import { cookies } from 'next/headers';
 
 import AppShell from '@/components/AppShell';
 import { decodeShell, SHELL_COOKIE } from '@/features/auth/shellCache';
-import { ENDPOINTS } from '@/constants/endpoints';
-import { apiUrl } from '@/lib/api';
 
 import Providers from './providers';
 import './globals.css';
@@ -29,11 +27,9 @@ export default async function RootLayout({
    * 사진 서빙은 302 라 왕복이 한 번 더 있는데, `<img>` 를 만나서야 시작하면
    * 그 사이 아바타가 색 원으로 남는다.
    */
+  /* 화면이 부르는 주소와 **같아야** 미리 받아둔 것이 쓰인다 (`MemberAvatar` 의 `sourceOf`) */
   const avatarUrl = shell?.user
-    ? apiUrl(
-        shell.user.profileImageUrl ??
-          ENDPOINTS.employees.profileImage(shell.user.userId),
-      )
+    ? `/api/avatar/${encodeURIComponent(shell.user.userId)}`
     : null;
 
   return (

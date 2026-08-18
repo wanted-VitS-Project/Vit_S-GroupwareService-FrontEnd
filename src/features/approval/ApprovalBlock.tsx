@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import BlockCard from '@/features/block/BlockCard';
+import LoadingSpinner from '@/components/Spinner';
 import { notifyBlockChanged } from '@/features/block/events';
 import type { StepBlock } from '@/features/block/types';
 import { ApiError, messageOf } from '@/lib/api';
@@ -201,7 +202,11 @@ function Loaded({
   if (!revision) {
     return (
       <BlockCard block={block}>
-        <p className="text-caption text-text-secondary">불러오는 중…</p>
+        <LoadingSpinner
+          label="결재를 불러오는 중"
+          className="py-8"
+          spinnerClassName="size-5"
+        />
       </BlockCard>
     );
   }
@@ -269,7 +274,7 @@ function Loaded({
         )}
 
         {isCompleted && (
-          <p className="rounded-lg border border-[#12B76A]/20 bg-[#12B76A]/5 px-2.5 py-2 text-caption font-semibold text-[#12B76A]">
+          <p className="rounded-lg border border-green-text/20 bg-green-text/5 px-2.5 py-2 text-caption font-semibold text-green-text">
             최종 승인 완료
           </p>
         )}
@@ -356,7 +361,7 @@ function Loaded({
               <button
                 type="button"
                 aria-disabled
-                className="w-full cursor-pointer rounded-lg bg-[#4F39F6] py-2 text-detail font-semibold text-text-white hover:bg-[#4430d6]"
+                className="btn btn-md btn-primary w-full"
               >
                 결재 승인 확인
               </button>
@@ -371,7 +376,7 @@ function Loaded({
               type="button"
               onClick={submit}
               disabled={isBusy || blocker !== null}
-              className="w-full cursor-pointer rounded-lg bg-[#4F39F6] py-2 text-detail font-semibold text-text-white hover:bg-[#4430d6] disabled:cursor-not-allowed disabled:bg-bg-hover disabled:text-text-secondary"
+              className="btn btn-md btn-primary w-full"
             >
               {isBusy ? '상신 중…' : '상신'}
             </button>

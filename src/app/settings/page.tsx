@@ -36,6 +36,12 @@ const SECTIONS: { title: string; items: SettingItem[] }[] = [
         description: '직급 등록 및 노출 순서 관리',
         href: '/settings/job-positions',
       },
+      {
+        icon: 'badge',
+        label: '학력 · 자격증 항목',
+        description: '사원 등록에서 고를 전공 · 자격증 목록 관리',
+        href: '/settings/qualifications',
+      },
     ],
   },
   {
@@ -87,12 +93,17 @@ export default function Page() {
         제목과 같은 말을 두 줄로 반복하면 브레드크럼처럼 보여 한 단계 위가 있는 줄 알게 된다.
         (하위 화면은 `전사 관리 > 부서 관리` 처럼 상위를 가리키므로 그대로 둔다)
       */}
-      <PageTitle title="전사 관리" />
+      {/*
+        구역 이름(`조직 · 인사`)이 설명 자리에 오므로 아래 여백을 그만큼만 준다 —
+        아래 `SECTIONS` 의 `h3` 이 설명과 같은 글자 크기 · 같은 간격을 이어받는다.
+      */}
+      <PageTitle variant="top" title="전사 관리" tightBottom />
 
       <div className="space-y-8">
         {SECTIONS.map((section) => (
           <section key={section.title}>
-            <h3 className="mb-2 px-1 text-label font-medium text-text-secondary">
+            {/* 재무 관리의 설명 줄과 같은 글자 크기 · 같은 아래 여백(24px)이다 */}
+            <h3 className="mb-6 px-1 text-detail font-medium text-text-secondary">
               {section.title}
             </h3>
 

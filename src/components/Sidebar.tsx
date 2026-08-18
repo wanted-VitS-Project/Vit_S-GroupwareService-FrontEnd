@@ -11,7 +11,7 @@ import { mobileSidebarClasses } from '@/components/mobileSidebarClasses';
 import MobileSidebarToggle from '@/components/MobileSidebarToggle';
 import { useNarrowScreen } from '@/components/useNarrowScreen';
 import { findActiveMenu, MENU_ORDER } from '@/constants/menu';
-import { readShellCookie } from '@/features/auth/shellCache';
+import { useShellAvatar } from '@/features/auth/CurrentUserProvider';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useMenuItems } from '@/features/pagePermission/useMyPages';
 
@@ -23,7 +23,7 @@ export default function Sidebar() {
    * 셸 자리표시가 쓰던 사진 사본을 그대로 이어받는다 —
    * 넘겨받지 않으면 자리표시 → 실제 사이드바로 바뀌는 순간 사진이 한 번 비운다.
    */
-  const [thumbnail] = useState(() => readShellCookie()?.avatar ?? null);
+  const thumbnail = useShellAvatar();
   const isLoading = status === 'loading';
   const activeHref = findActiveMenu(pathname, items)?.href;
   /** 소속이 없는 계정(ADMIN 등)은 직급 · 부서가 `null` 로 온다 */

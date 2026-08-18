@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import Pagination from '@/components/Pagination';
+import LoadingSpinner from '@/components/Spinner';
 import { groupByDate } from '@/features/activityLog/time';
 import { messageOf } from '@/lib/api';
 
@@ -177,9 +178,7 @@ export default function NotificationSection({
         )}
 
         {!hasFailed && data === null && (
-          <p className="flex-1 px-4 py-10 text-center text-caption text-text-secondary">
-            불러오는 중…
-          </p>
+          <LoadingSpinner label="알림을 불러오는 중" className="px-4 py-10" />
         )}
 
         {data?.content.length === 0 && (
@@ -228,10 +227,6 @@ export default function NotificationSection({
             <Pagination
               page={page}
               totalPages={data.totalPages}
-              totalElements={data.totalElements}
-              unit="건"
-              // 건수는 구역 제목 옆에 이미 있다 — 아래에 또 적으면 같은 수가 두 번 나온다
-              showTotal={false}
               onChange={setPage}
             />
           </>

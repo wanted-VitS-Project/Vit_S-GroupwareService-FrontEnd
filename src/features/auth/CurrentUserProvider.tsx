@@ -14,7 +14,6 @@ import {
 import AppShellSkeleton from '@/components/AppShellSkeleton';
 import {
   ApiError,
-  apiUrl,
   FORBIDDEN_EVENT,
   UNAUTHORIZED_EVENT,
 } from '@/lib/api';
@@ -78,6 +77,20 @@ export function SessionConfirmedOnly({
   children: React.ReactNode;
 }) {
   return useContext(SessionConfirmedContext) ? <>{children}</> : null;
+}
+
+/**
+ * 첫 페인트에 쓸 사진 사본(data URL).
+ *
+ * ⚠️ 화면에서 `document.cookie` 를 **직접 읽지 않는다** — 셸(사이드바 · 헤더)은 서버에서도
+ *    그려지는데 그쪽엔 `document` 가 없어 사본이 늘 `null` 이 된다. 브라우저는 값을 읽으니
+ *    첫 렌더 결과가 서버 HTML 과 어긋나 하이드레이션이 깨졌다 (2026-08-18).
+ *    서버가 쿠키에서 읽어 넘긴 값 하나를 여기서 나눠 쓴다.
+ */
+const ShellAvatarContext = createContext<string | null>(null);
+
+export function useShellAvatar() {
+  return useContext(ShellAvatarContext);
 }
 
 /**
@@ -164,7 +177,10 @@ export default function CurrentUserProvider({
          * 사진이 없는 계정은 사본도 지운다 (없는 얼굴이 계속 비치면 안 된다).
          */
         if (me.profileImageUrl) {
-          captureAvatarThumbnail(apiUrl(me.profileImageUrl));
+          // 같은 오리진 창구로 받아야 `<canvas>` 가 오염되지 않는다 (`/api/avatar`)
+          captureAvatarThumbnail(
+            `/api/avatar/${encodeURIComponent(me.userId)}`,
+          );
         } else {
           clearAvatarThumbnail();
         }
@@ -316,7 +332,9 @@ export default function CurrentUserProvider({
       <SessionConfirmedContext.Provider value={user !== null}>
         <PermissionDeniedContext.Provider value={deniedCode}>
           <SetProfileImageContext.Provider value={setProfileImage}>
-            {children}
+            <ShellAvatarContext.Provider value={initialShell?.avatar ?? null}>
+              {children}
+            </ShellAvatarContext.Provider>
           </SetProfileImageContext.Provider>
         </PermissionDeniedContext.Provider>
       </SessionConfirmedContext.Provider>

@@ -1,8 +1,8 @@
 # 연동 API 명세서
 
+**최종 업데이트**: 2026-08-17 (사원 검색 `departmentId` 허용 · 목록 · 검색에 `profileImageUrl` · 사진 캐시 헤더 · 결재 첨부 열람 예외)
+**최종 업데이트**: 2026-08-17 (전공 · 자격증 마스터 155~158 신설, 사원 등록 · 상세 · 수정에 학력 · 자격증 반영)
 **최종 업데이트**: 2026-08-17 (정산 현황 — 프로젝트 집계 · 회차 조회 3종 추가)
-**최종 업데이트**: 2026-08-16 (전사 파일 탐색기 151~~154 신설, 블록 삭제 D안 — 파일 동반 휴지통행 반영)
-**최종 업데이트**: 2026-08-13 (프로젝트 인원 편집 · 설정 · 스텝 권한 — 125~~137 추가, 45번 `deleted` · `NONE` 폐기 반영)
 
 > 📌 이 파일은 **프론트가 연동하는 백엔드 API**를 정리하는 곳이에요. (내가 만드는 게 아니라 **호출하는** 입장)
 > AI는 API 연동 코드를 작성하기 전에 이 파일을 먼저 읽어요. (잘못된 경로/필드/타입으로 fetch 짜는 실수 방지)
@@ -158,6 +158,7 @@
 | [142](#142-전사-파일-목록-admin)          | 전사 파일 목록     | `GET /admin/files`                                           | ✅ `features/file/api.ts`             |
 | [143~150](#143150-사내-문서함-admin)      | 사내 문서함        | `/admin/company-documents …`                                 | ✅ `features/companyDocument/api.ts`  |
 | [151~154](#151154-전사-파일-탐색기-admin) | 전사 파일 탐색기   | `/admin/files/projects …`                                    | ✅ `features/file/api.ts`             |
+| [155~158](#155158-전공--자격증-마스터-admin) | 전공 · 자격증 마스터 | `/majors` · `/certificates`                                 | ✅ `features/masterItem/api.ts`       |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
 > 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통) · [이미지 도메인 — 공통](#이미지-도메인--공통) · [사원 그룹 도메인 — 공통](#사원-그룹-도메인--공통) · [페이지 권한 도메인 — 공통](#페이지-권한-도메인--공통) · [스테이지 · 스텝 도메인 — 공통](#스테이지--스텝-도메인--공통) · [이슈 도메인 — 공통](#이슈-도메인--공통) · [입찰 도메인 — 공통](#입찰-도메인--공통) · [프로젝트 참여자 · 설정 도메인 — 공통](#프로젝트-참여자--설정-도메인--공통)
@@ -1320,6 +1321,14 @@ data: {
 | `content[].accountStatus`                        | `string`  | `ACTIVE` · `INACTIVE`                  |
 | `content[].passwordStatus`                       | `string`  | `NORMAL` · `RESET_REQUIRED`            |
 | `content[].resignedAt`                           | `string?` | 퇴사일 (`null` = 재직중)               |
+| `content[].profileImageUrl`                      | `string?` | 사진 서빙 경로. 없으면 `null` (2026-08-17 추가) |
+
+> ⭐ **아바타는 이 값을 그대로 쓴다.** presigned 가 아니라 만료되지 않는 우리 경로다
+>    (`/api/v1/employees/{userId}/profile-image`). 사번으로 경로를 조립하지 않는다.
+> ℹ️ 서빙 응답(302)의 캐시가 `no-store` → **`max-age=300, private`** 로 바뀌었다 (2026-08-17).
+>    목록 아바타의 반복 왕복 · 깜빡임이 줄었다.
+> ⚠️ 대신 **사진 교체 반영이 최대 5분 늦다** — 방금 바꾼 사진을 바로 보여야 하는 자리는
+>    주소 뒤에 `?t={시각}` 을 붙여 캐시를 비킨다 (`ProfileImageField` 가 그렇게 한다).
 | `page` / `size` / `totalElements` / `totalPages` | `int`     | 페이징 메타                            |
 
 | status | code                    | 화면 처리             |
@@ -1462,9 +1471,13 @@ data: {
 | **인증 필요** | ✅ (로그인 사용자 전체 — **ADMIN 전용 아님**)         |
 | **사용 위치** | ✅ `features/employee/api.ts` — `EmployeeSearchInput` |
 
-**요청 Query** — `name` (✅, 이름 부분 일치)
+**요청 Query** — `name`(이름 부분 일치) · `departmentId`(부서) — **둘 중 하나는 필수**
+둘 다 비면 400 `EMP_INVALID_PARAMETER` 다. (2026-08-17 `departmentId` 추가)
 
-**응답 data[]** — **배열** (`content` 래퍼 없음)
+> ⭐ 이름을 모를 때 **부서로 후보를 펼친다** — 전 사원 목록(30번)은 ADMIN 전용이라 쓸 수 없다.
+> ℹ️ `%` · `_` 는 **리터럴**이다 (와일드카드로 전 사원을 훑을 수 없다).
+
+**응답 data[]** — **배열** (`content` 래퍼 없음). 2026-08-17 부터 `profileImageUrl` 이 함께 온다
 
 | 필드         | 타입      | 설명                     |
 | ------------ | --------- | ------------------------ |
@@ -3555,6 +3568,68 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 ---
 
+## 155~158. 전공 · 자격증 마스터 (ADMIN)
+
+> 2026-08-17 명세 수령 · `develop` 반영 확인. 전 API **ADMIN 전용**(403 `ACC_ADMIN_REQUIRED`).
+> **사용 위치**: `features/masterItem/api.ts` · 화면 `/settings/qualifications`
+
+사원의 **학력 · 자격증에서 고를 값**을 관리한다. 자유입력을 두지 않아 표기가 갈리지 않는다.
+두 도메인은 **경로와 에러 접두어만 다르고 구조가 같다** — 프론트는 한 벌로 다룬다.
+
+| 번호 | Method · Path                          | 내용             |
+| ---- | -------------------------------------- | ---------------- |
+| 155  | `GET /majors` · `GET /certificates`    | 목록 (페이징 없음) |
+| 156  | `POST /majors` · `POST /certificates`  | 생성             |
+| 157  | `PATCH /{id}`                          | 이름 수정        |
+| 158  | `DELETE /{id}`                         | 삭제             |
+
+**155 목록** — `data.majors[]` · `data.certificates[]`
+`majorId`/`certificateId` · `name` · `employeeCount`(쓰는 사원 수) · `deletable`
+
+**156 · 157 본문** — `name` (필수 · 100자 이하)
+
+| status | code                                        | 화면 처리                       |
+| ------ | ------------------------------------------- | ------------------------------- |
+| 409    | `MAJOR_NAME_DUPLICATED` · `CERT_NAME_DUPLICATED` | `이미 있는 이름입니다`          |
+| 409    | `MAJOR_IN_USE` · `CERT_IN_USE`              | 삭제 거부 — **사원 수는 `message` 에 담겨 온다** |
+| 404    | `MAJOR_NOT_FOUND` · `CERT_NOT_FOUND`        | 목록 재조회                     |
+
+> ⚠️ `deletable` 로 삭제 버튼을 잠그지만 **경합은 못 막는다** — 목록을 띄워 둔 사이 누가 그
+>    항목으로 사원을 등록하면 409 가 온다. 잠금과 409 처리를 **둘 다** 둔다.
+> ℹ️ 응답 필드 이름이 도메인마다 달라(`majorId`/`certificateId`) API 계층에서 공용 모양(`MasterItem`)으로 바꾼다.
+
+### 사원 API 에 붙는 학력 · 자격증 (32 · 31 · 33)
+
+| API                          | 무엇이 붙나                                                                 |
+| ---------------------------- | --------------------------------------------------------------------------- |
+| **32 등록** `POST /employees` | `educations[]`(`majorId` 필수 · `degree` 필수 · `school?`) · `certificates[]`(`certificateId` 필수 · `acquiredDate?`) |
+| **31 상세** `GET /employees/{userId}` | 위 필드에 **표시명이 조인돼** 온다 — `majorName` · `certificateName`   |
+| **33 수정** `PATCH /employees/{userId}` | 같은 필드. ⚠️ **전체 교체**                                          |
+
+`degree` 는 `BACHELOR` · `MASTER` · `DOCTOR` 3값이다. 없는 항목 id 를 보내면 404 `MAJOR_NOT_FOUND` · `CERT_NOT_FOUND` 다.
+
+> 🚨 **수정은 부분 수정이 아니라 전체 교체다.** 보낸 배열이 최종 상태가 된다 —
+>    **생략하면 기존 유지, `[]` 면 전부 삭제.** "안 건드림" 과 "다 지움" 이 다른 요청이라,
+>    화면은 **편집 여부를 비교해 손대지 않았으면 키를 빼고** 보낸다 (`EmployeeEditForm`).
+> ⚠️ 화면에서 고르지 않은 줄(`majorId: 0`)은 **보내기 전에 걸러낸다** — 0 을 보내면 404 다.
+
+### 엑셀 일괄 등록 (87~89)
+
+기존 8열 뒤에 **학력 · 자격증 2열**이 붙어 **10열**이다.
+
+| 열     | 형식                                                    |
+| ------ | ------------------------------------------------------- |
+| 학력   | `전공:학위;…` — 예) `컴퓨터공학:학사;소프트웨어공학:석사` |
+| 자격증 | `자격증;…` — 예) `정보처리기사;SQLD`                     |
+
+구분자는 `;` · `,` · **셀 안 줄바꿈**(Alt+Enter) 셋 다 되고 뒤 공백도 허용된다 (2026-08-17 확대).
+⚠️ 그래서 **전공 · 자격증 이름에 쉼표를 넣으면** 두 항목으로 쪼개진다.
+
+목록에 없는 이름이 섞이면 **그 행만** 검증에서 빠진다 (`EDU_NOT_FOUND` · `CERT_NOT_FOUND`).
+행 오류 표는 서버 `message` 를 그대로 띄우므로 화면 코드 분기는 필요 없다.
+
+---
+
 ## 91. 사원 그룹 목록 조회
 
 | 항목          | 내용                                           |
@@ -3882,6 +3957,12 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | 영구 삭제   | `POST /files/{fileId}/permanent-deletion` (104번) | ❌ 불가  |
 
 > ⚠️ **결재가 잠근다.** 진행 중 결재의 대상이면 휴지통 이동이 409 로 막히고, **완료 포함** 결재 참조가 있으면 영구 삭제가 409 로 막힌다.
+
+> ⭐ **결재자는 스텝 권한이 없어도 첨부를 읽을 수 있다** (2026-08-17). 다운로드 · 미리보기 ·
+>    버전 단건 · 버전 이력 4종에 결재선 참여 예외가 생겨, 프로젝트에 속하지 않은 결재자도
+>    자기가 결재할 문서를 연다. 그동안 나던 403 `FILE_ACCESS_PERMISSION_REQUIRED` 가 사라진다.
+> ⚠️ **읽기 전용이고 그 결재에 걸린 첨부로만** 한정된다 — 업로드 · 수정 · 삭제 · 블록 파일 목록은
+>    여전히 스텝 권한을 따른다.
 
 ---
 
@@ -4733,7 +4814,35 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 화면에서 호출하지 않는다.
 
 - `GET /bidding/collection-runs` — 실행 이력 **목록** (단건 조회만 있다)
-- **요약 중단 · 취소** — 검토의 `abandon` 에 대응하는 API 가 요약엔 없다 (아래 참고)
+
+> ✅ 2026-08-18 해소 — `PATCH /bidding/summaries/{summaryId}/abandon`(요약 중단)이 배포됐고
+> 연동을 마쳤다 (`abandonSummary()` · `NoticeSummaryCard` 의 `중단` 버튼).
+> 응답은 `{ summaryId, summaryStatus: 'ABANDONED', abandonedAt }` 로 검토 종료와 같은 모양이다.
+
+### 관심 · 제외 · 복구 (2026-08-18 스웨거 실측 · 연동 완료)
+
+| 메서드  | 경로                                       | 설명                                        |
+| ------- | ------------------------------------------ | ------------------------------------------- |
+| `PATCH` | `/bidding/notices/{noticeId}/favorite`     | 관심 등록 — **회사 공용**이다 (개인 즐겨찾기가 아니다) |
+| `PATCH` | `/bidding/notices/{noticeId}/unfavorite`   | 관심 해제                                   |
+| `PATCH` | `/bidding/notices/{noticeId}/dismiss`      | 제외 — body `{ reason }` **필수**, 500자    |
+| `PATCH` | `/bidding/notices/{noticeId}/restore`      | 제외 해제 (본문 없음)                       |
+
+**네 API 의 공통 응답** — `{ noticeId, noticeStatus, dismissReason, isFavorite, updatedAt }`
+
+> ❗ **관심 여부(`isFavorite`)는 목록 응답에만 있다.** 상세(`GET /bidding/notices/{id}`)에는
+> 없어 상세 화면에서는 관심을 다루지 않는다 (제외 · 복구만 둔다).
+> ℹ️ 목록 쿼리에 `favorite`(boolean) 가 있다 — 관심만 추려 본다.
+> ℹ️ 목록 응답에는 `isNew` · `sourceCode` · `sourceName` · `sourceUrl` 도 온다 (화면 미사용).
+
+### 직접 등록 공고 첨부 — 개수 상한
+
+`POST /bidding/notices/{noticeId}/attachments/uploads` 는 **첨부 10개를 넘으면**
+409 `BIDDING_MANUAL_NOTICE_ATTACHMENT_LIMIT_EXCEEDED` 다. 첨부는 공고를 만든 **뒤에**
+올라가므로 그때 막히면 공고만 남는다 — 화면(`NoticeCreateForm`)이 고르는 자리에서 먼저 막는다.
+
+완료 통보(`.../complete`)의 409 는 네 갈래다 — `ALREADY_COMPLETED` · `UPLOAD_FAILED` ·
+`OBJECT_NOT_FOUND` · `SIZE_MISMATCH` (전부 `errorCodes.ts` 에 있다).
 
 > ⚠️ 변경사항 (2026-08-16 · 백엔드 소스 확인)
 >
@@ -4778,8 +4887,8 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------- | --------------------------------------------------- | -------------------------------------------------------------------------------- |
 | `GET`   | `/bidding/notices`                                  | [122](#122-입찰-공고-목록-조회)                                                  |
 | `GET`   | `/bidding/notices/{noticeId}`                       | [123](#123-입찰-공고-상세-조회)                                                  |
-| `POST`  | `/bidding/notices`                                  | 공고 직접 등록 (미연동)                                                          |
-| `PATCH` | `/bidding/notices/{noticeId}`                       | 직접 등록 공고 수정 — 수집 공고는 `409 BIDDING_NOTICE_EDIT_NOT_ALLOWED` (미연동) |
+| `POST`  | `/bidding/notices`                                  | 공고 직접 등록 (연동 완료)                                                       |
+| `PATCH` | `/bidding/notices/{noticeId}`                       | 직접 등록 공고 수정 — 수집 공고는 `409 BIDDING_NOTICE_EDIT_NOT_ALLOWED` (연동 완료) |
 | `GET`   | `/bidding/collection-conditions`                    | 아래 `수집 조건`                                                                 |
 | `POST`  | `/bidding/collection-conditions`                    | 아래 `수집 조건`                                                                 |
 | `PATCH` | `/bidding/collection-conditions/{conditionId}`      | 아래 `수집 조건`                                                                 |
@@ -4953,7 +5062,7 @@ GET  /bidding/collection-runs/{runId}          ← COMPLETED | FAILED 까지 폴
 ⚠️ 조건이 하나도 없으면 수동 수집을 **시작할 수 없다** — 화면은 조건 등록으로 유도해야 한다.
 ⚠️ 실행 이력 **목록** API 가 없다. 화면을 떠나면 `runId` 를 잃으므로 진행 상태를 되살릴 수 없다.
 
-### 공고 직접 등록 — `POST /bidding/notices` (미연동)
+### 공고 직접 등록 — `POST /bidding/notices` (2026-08-18 연동 완료 · `createNotice()`)
 
 ```jsonc
 {
@@ -4988,7 +5097,7 @@ GET  /bidding/collection-runs/{runId}          ← COMPLETED | FAILED 까지 폴
 
 ⚠️ 첨부는 **파일 업로드가 아니라 URL 등록**이다 (`files` 도메인과 무관). 응답은 `noticeId`.
 
-### 직접 등록 공고 수정 — `PATCH /bidding/notices/{noticeId}` (미연동)
+### 직접 등록 공고 수정 — `PATCH /bidding/notices/{noticeId}` (2026-08-18 연동 완료 · `updateNotice()`)
 
 보낸 필드만 바뀌는 부분 수정이다. 단 **`attachments` 는 예외로 통째로 교체**된다 —
 1개만 보내면 기존 첨부가 전부 사라지고 그 1개만 남는다.
@@ -5773,6 +5882,10 @@ data: {
 >    (`features/finance/display.ts` → `settlementProjectState`). 서버 정의가 생기면 그 함수를 지운다.
 > ⚠️ **계약 금액 · 미계획 금액 필드가 없다** — 와이어프레임의 `미계획 N원` 배지는 계산 근거가 없어 뺐다.
 > ⚠️ 회차의 **계좌 정보는 출금에만** 있다 — 표의 열로 두지 않고 `계좌 보기` 로 펼친다.
+> 🔒 **계좌번호는 마스킹 없이 원본으로 온다** (2026-08-17 백엔드 PR #422). 이 API 는 `FINANCE`
+>    페이지 권한자(재무팀)만 부를 수 있어 원본 노출이 허용된 자리다 — **다른 응답(정산 항목 조회 등)은
+>    그대로 마스킹**이므로, 계좌번호를 다루는 화면을 늘릴 때 이 차이를 확인한다.
+>    화면은 기본으로 접어 두고 눌렀을 때만 편다 (화면 공유 · 어깨너머 노출을 줄인다).
 
 ---
 

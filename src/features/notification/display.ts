@@ -37,7 +37,7 @@ const ICONS: Record<string, NotificationIcon> = {
     symbol: '⊗',
     className: 'bg-red-bg-soft text-text-danger',
   },
-  APPROVAL_COMPLETED: { symbol: '✓', className: 'bg-green-bg text-[#12B76A]' },
+  APPROVAL_COMPLETED: { symbol: '✓', className: 'bg-green-bg text-green-text' },
   ISSUE_ASSIGNED: {
     symbol: '⚠',
     className: 'bg-yellow-bg-soft text-yellow-text',

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { ApprovalDetailSkeleton } from '@/components/approval/ApprovalSkeletons';
+import LoadingSpinner, { Spinner } from '@/components/Spinner';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { formatFileSize } from '@/features/file/format';
 import { ApiError, messageOf } from '@/lib/api';
@@ -251,7 +252,11 @@ export default function ApprovalDetailView({
           </div>
           <h2 className="mt-1.5 text-heading-m font-bold break-keep">
             {/* 제목만은 이력 요약에 없다 — 회차가 도착해야 알 수 있다 */}
-            {viewing ? viewing.title || '제목 없음' : '불러오는 중…'}
+            {viewing ? (
+              viewing.title || '제목 없음'
+            ) : (
+              <Spinner className="inline-block size-4 align-middle" />
+            )}
           </h2>
           <p className="mt-1.5 text-label text-text-secondary">
             {approval.drafterName}
@@ -280,7 +285,7 @@ export default function ApprovalDetailView({
       {/* 지난 회차는 따로 받아온다 — 도착 전까지 본문을 그릴 수 없다 (현재 회차는 늘 있다) */}
       {!viewing ? (
         pastError === '' ? (
-          <p className="mt-6 text-label text-text-secondary">불러오는 중…</p>
+          <LoadingSpinner label="회차를 불러오는 중" className="mt-6 py-16" />
         ) : (
           <p className="mt-6 text-label break-keep text-text-danger">
             {pastError}
@@ -348,7 +353,7 @@ function RevisionTabs({
             }
             className={`cursor-pointer rounded-lg border px-2.5 py-1.5 text-detail font-semibold ${
               isSelected
-                ? 'border-[#4F39F6] bg-[#4F39F6]/5 text-[#4F39F6]'
+                ? 'border-border-primary bg-blue-bg-soft text-text-primary-blue'
                 : 'border-border-default text-text-secondary hover:bg-bg-hover'
             }`}
           >
@@ -447,7 +452,7 @@ function RevisionBody({
               <button
                 type="button"
                 onClick={() => onProcess('approve')}
-                className="flex-1 cursor-pointer rounded-lg bg-[#4F39F6] py-2 text-label font-semibold text-text-white hover:bg-[#4430d6]"
+                className="btn btn-md btn-primary flex-1"
               >
                 승인
               </button>
