@@ -1,4 +1,5 @@
 'use client';
+import { dateInputProps } from '@/lib/dateInput';
 
 /**
  * 공고 직접 등록 · 수정 폼이 함께 쓰는 입력 컴포넌트.
@@ -107,6 +108,7 @@ export function TextField({
       <input
         id={id}
         type={type}
+        {...dateInputProps(type)}
         value={value}
         placeholder={placeholder}
         maxLength={maxLength}

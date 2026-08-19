@@ -1,4 +1,5 @@
 'use client';
+import { dateInputProps } from '@/lib/dateInput';
 
 import { Skeleton } from '@/components/Skeleton';
 
@@ -116,6 +117,7 @@ export function TextField({
       <input
         id={id}
         type={type}
+        {...dateInputProps(type)}
         value={value}
         placeholder={placeholder}
         maxLength={maxLength}
@@ -154,7 +156,8 @@ export function SelectField({
   value: string;
   error?: string;
   hint?: string;
-  options: { value: string; label: string }[];
+  /** `disabled` 는 머리글 노릇만 하는 줄(하위를 가진 상위 부서 등)에 쓴다 */
+  options: { value: string; label: string; disabled?: boolean }[];
   isLoading?: boolean;
   onChange: (value: string) => void;
 }) {
@@ -180,7 +183,11 @@ export function SelectField({
         >
           <option value="">{emptyLabel}</option>
           {options.map((option) => (
-            <option key={option.value} value={option.value}>
+            <option
+              key={option.value}
+              value={option.value}
+              disabled={option.disabled}
+            >
               {option.label}
             </option>
           ))}

@@ -11,6 +11,7 @@ import Pagination from '@/components/Pagination';
 import { PROJECT_ROUTES } from '@/features/project/routes';
 import { messageOf } from '@/lib/api';
 import { formatDate } from '@/lib/format';
+import { dateInputProps } from '@/lib/dateInput';
 
 import { getSettlementClients, getSettlementProjects } from './api';
 import { formatAmount, settlementProjectTags } from './display';
@@ -27,14 +28,8 @@ const SORT_OPTIONS: { value: SettlementSort; label: string }[] = [
 ];
 
 /**
- * 정산 현황 — **프로젝트 단위 집계** 화면. (재무 관리 › 정산 현황)
- *
- * 정산은 프로젝트 스텝 안의 블록에서 쓰는데, 그러면 "지금 어느 프로젝트의 수금이 밀렸는지"
- * 를 보려고 프로젝트를 하나씩 열어야 한다. 이 화면은 그 값을 한 곳에 모아 보여준다.
- *
- * ⭐ 행을 열면 **회차 목록**이 그 자리에서 펼쳐진다 — 화면을 옮기지 않아 여러 프로젝트를
- *    연달아 훑을 수 있다. 회차는 페이징이 없어 한 번에 온다.
- * ⚠️ 조회 전용이다. 값을 고치는 곳은 프로젝트 스텝의 정산 블록이다.
+ * 정산 현황 — 프로젝트 단위 집계 화면. 행을 열면 회차 목록이 그 자리에서 펼쳐진다.
+ * 조회 전용이고, 값을 고치는 곳은 프로젝트 스텝의 정산 블록이다.
  */
 export default function SettlementStatusList() {
   const router = useRouter();
@@ -47,10 +42,7 @@ export default function SettlementStatusList() {
   const page = pageOf(searchParams.get('page'));
 
   const [reloadCount, setReloadCount] = useState(0);
-  /**
-   * 어떤 조건의 결과인지 `key` 로 들고 있는다 — 조건이 바뀌면 키가 어긋나
-   * 자동으로 로딩 상태가 된다 (효과에서 상태를 비우지 않는다).
-   */
+  /** 어떤 조건의 결과인지 `key` 로 들고 있어 조건이 바뀌면 자동으로 로딩이 된다 */
   const [result, setResult] = useState<{
     key: string;
     data?: SettlementProjectPage;
@@ -63,11 +55,7 @@ export default function SettlementStatusList() {
   const requestKey = `${reloadCount} ${startDate} ${endDate} ${client} ${sort} ${page}`;
   const current = result?.key === requestKey ? result : null;
   /**
-   * 조건을 바꾸는 동안 **직전 결과를 그대로 둔다.**
-   *
-   * 지금 조건의 결과만 쓰면 필터를 건드릴 때마다 표가 자리표시로 되돌아가 화면이 번쩍인다.
-   * 첫 조회(아직 아무 결과도 없을 때)에만 자리표시를 보여주고, 그 뒤로는 새 결과가
-   * 도착할 때까지 이전 표를 남긴다.
+   * 조건을 바꾸는 동안 직전 결과를 그대로 둔다 — 매번 자리표시로 되돌아가면 번쩍인다.
    */
   const projectPage = current?.data ?? result?.data ?? null;
   const rows = current?.errorMessage ? null : (projectPage?.projects ?? null);
@@ -159,6 +147,7 @@ export default function SettlementStatusList() {
           <input
             id="settlementStart"
             type="date"
+            {...dateInputProps('date')}
             value={startDate}
             max="2999-12-31"
             onChange={(event) =>
@@ -175,6 +164,7 @@ export default function SettlementStatusList() {
           <input
             id="settlementEnd"
             type="date"
+            {...dateInputProps('date')}
             value={endDate}
             max="2999-12-31"
             onChange={(event) =>
@@ -184,10 +174,7 @@ export default function SettlementStatusList() {
           />
         </div>
 
-        {/*
-          ⚠️ 폭을 고정한다. 발주처 선택지는 늦게 도착하는데, 폭이 글자에 따라 정해지면
-             목록이 오는 순간 필터바가 넓어졌다 좁아지며 화면이 딸깍거린다.
-        */}
+        {/* 폭을 고정한다 — 선택지가 늦게 오면 필터바가 넓어졌다 좁아진다 */}
         <FilterSelect
           id="settlementClient"
           label="발주처"
@@ -209,10 +196,7 @@ export default function SettlementStatusList() {
       <DataTable
         caption="프로젝트별 정산 현황"
         dense
-        /*
-          ⚠️ 자리표시 막대를 쓰지 않는다 — 열이 9개라 막대 폭이 실제 값과 어긋나
-             결과가 오는 순간 표가 흔들린다. 머리글만 남기고 본문 자리에 스피너를 둔다.
-        */
+        /* 열이 9개라 막대 폭이 값과 어긋난다 — 머리글만 남기고 스피너를 둔다 */
         loadingLabel="정산 현황 불러오는 중"
         rows={rows}
         rowKey={(row) => row.projectId}
@@ -253,10 +237,7 @@ export default function SettlementStatusList() {
         }
         columns={[
           {
-            /*
-              ⚠️ 행 클릭만으로는 **키보드로 펼칠 수 없다.** 누를 수 있는 단추를 따로 둔다
-                 (`stopRowClick` 이라 행 클릭과 겹치지 않는다).
-            */
+            /* 행 클릭만으로는 키보드로 펼칠 수 없어 단추를 따로 둔다 */
             key: 'toggle',
             header: '',
             width: '4%',
@@ -390,10 +371,7 @@ export default function SettlementStatusList() {
             ),
           },
           {
-            /*
-              ⚠️ 수입 − 지출을 직접 계산하지 않는다 — 서버가 준 `totalAmount` 를 그대로 적는다.
-                 산식이 바뀌면 화면 값만 어긋난다.
-            */
+            /* 수입 − 지출을 직접 계산하지 않는다 — 산식이 바뀌면 화면 값만 어긋난다 */
             key: 'total',
             header: '합계',
             width: '11%',

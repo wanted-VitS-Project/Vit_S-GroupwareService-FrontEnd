@@ -20,14 +20,8 @@ import { cancelPreviewPrefetch, schedulePreviewPrefetch } from './previewCache';
 import type { MyFile } from './types';
 
 /**
- * 내 프로젝트 파일 모아보기. (.ai/API.md `내 파일` · FILE-Q-03)
- *
- * 내가 멤버인 **모든 프로젝트**를 가로질러 문서를 모아 프로젝트별로 보여준다.
- * 권한은 스텝을 따르므로 볼 수 없는 파일은 애초에 응답에 오지 않는다 —
- * 화면에서 다시 거르지 않는다.
- *
- * ⚠️ **조회 전용이다.** 업로드 · 이름 수정 · 삭제는 문서가 붙은 스텝 화면에서 한다.
- * ⚠️ 페이징이 없어 전체를 받는다 — 검색 · 필터는 **서버 쿼리**로 넘긴다.
+ * 내 프로젝트 파일 모아보기. 멤버인 모든 프로젝트의 문서를 프로젝트별로 보여준다.
+ * 조회 전용이고 페이징이 없어 전체를 받는다 — 검색 · 필터는 서버 쿼리로 넘긴다.
  */
 export default function MyFileList() {
   const [keyword, setKeyword] = useState('');
@@ -38,11 +32,7 @@ export default function MyFileList() {
   const [extension, setExtension] = useState('');
   const [reloadCount, setReloadCount] = useState(0);
 
-  /**
-   * 어떤 요청의 결과인지 `key` 로 들고 있는다.
-   * 조건이 바뀌면 key 가 어긋나 자동으로 로딩 상태가 되므로,
-   * 효과 본문에서 상태를 되돌릴 필요가 없다 (`react-hooks/set-state-in-effect`).
-   */
+  /** 어떤 요청의 결과인지 `key` 로 들고 있어 조건이 바뀌면 자동으로 로딩이 된다 */
   const [result, setResult] = useState<{
     key: string;
     list?: MyFile[];
@@ -56,10 +46,7 @@ export default function MyFileList() {
   /** 다운로드 실패처럼 화면을 막지 않는 오류 */
   const [errorMessage, setErrorMessage] = useState('');
   /**
-   * 펼쳐 둔 프로젝트. **기본이 접힘**이라 연 것만 담는다.
-   *
-   * 참여 프로젝트가 여럿이면 전부 펼쳐진 채로 떠서 첫 화면이 표로 가득 찼다 —
-   * 어느 프로젝트가 있는지부터 훑고 필요한 것만 여는 편이 빠르다.
+   * 펼쳐 둔 프로젝트. 전부 펼치면 첫 화면이 표로 가득 차 기본은 접힘이다.
    */
   const [openProjectIds, setOpenProjectIds] = useState<Set<number>>(new Set());
   const viewerModal = useModalTarget<MyFile>();
@@ -142,10 +129,7 @@ export default function MyFileList() {
 
   return (
     <div onPointerEnter={preloadViewer}>
-      {/*
-        ⚠️ **최상위 화면이라 경로를 두지 않는다** — 사이드바가 곧장 여는 화면이라
-           위에 얹을 상위 화면이 없다 (재무 관리 · 전사 관리와 같은 규칙).
-      */}
+      {/* 최상위 화면이라 경로를 두지 않는다 — 위에 얹을 상위 화면이 없다 */}
       <PageTitle
         variant="top"
         title="내 프로젝트 파일"
@@ -290,7 +274,8 @@ const ProjectGroup = memo(function ProjectGroup({
 }) {
   return (
     <section className="overflow-hidden rounded-base border border-border-default bg-bg-card">
-      <div className="flex items-center gap-3 px-4 py-3">
+      {/* 줄 전체가 접고 펴는 자리다 — 버튼만 칠하면 어디를 눌러야 할지 애매하다 */}
+      <div className="flex items-center gap-3 px-4 py-3 hover:bg-bg-hover">
         <button
           type="button"
           aria-expanded={isOpen}
@@ -371,10 +356,8 @@ function Th({
 }
 
 /**
- * 문서 한 줄. `memo` 라서 콜백은 **대상을 인자로 받는** 고정 함수를 받는다.
- *
- * 미리보기가 안 되는 파일(`previewable: false`)은 뷰어 버튼을 숨긴다 —
- * 눌러도 빈 화면만 뜨기 때문이다. 다운로드는 종류와 무관하게 열어 둔다.
+ * 문서 한 줄. `memo` 라서 콜백은 대상을 인자로 받는 고정 함수를 받는다.
+ * 미리보기가 안 되는 파일은 뷰어 버튼을 숨기고 다운로드만 열어 둔다.
  */
 const FileRow = memo(function FileRow({
   file,
@@ -539,8 +522,7 @@ function EmptyBox({ children }: { children: React.ReactNode }) {
 
 /** 프로젝트 묶음 2개를 흉내 낸다 — 실제 개수를 모르니 과하지 않게 둔다 */
 /**
- * ⚠️ **머리줄만 그린다** — 실물이 접힌 채로 오기 때문이다 (`openProjectIds` 기본값).
- *    파일 줄까지 깔아 두면 목록이 도착하는 순간 표가 통째로 사라져 화면이 접히듯 튄다.
+ * 머리줄만 그린다 — 실물이 접힌 채로 와서, 파일 줄까지 깔면 도착하는 순간 표가 사라진다.
  */
 function MyFileSkeleton() {
   return (
@@ -606,7 +588,7 @@ function FolderIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className="mb-2 size-10 text-text-muted"
+      className="mx-auto mb-2 size-10 text-text-muted"
     >
       <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
     </svg>

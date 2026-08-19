@@ -18,6 +18,7 @@ import type {
   BulkRegisterResult,
   BulkRowError,
   BulkValidateResult,
+  MasterNameCount,
 } from './types';
 
 /** 5MB. 서버 상한과 같은 값이라 넘기면 보내기 전에 막는다 */
@@ -105,6 +106,8 @@ export default function BulkUploadModal({
   const [validation, setValidation] = useState<BulkValidateResult | null>(null);
   const [result, setResult] = useState<BulkRegisterResult | null>(null);
   const [skipErrors, setSkipErrors] = useState(false);
+  /** 검증과 등록에 같은 값을 보내야 결과가 어긋나지 않는다 */
+  const [autoCreateMasters, setAutoCreateMasters] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   /** 등록은 되돌릴 수 없고 초기 비밀번호 메일까지 나가 한 번 더 묻는다 */
   const confirmModal = useModal();
@@ -138,7 +141,7 @@ export default function BulkUploadModal({
     setBusy('validate');
     setErrorMessage('');
     try {
-      const next = await validateBulkEmployees(file);
+      const next = await validateBulkEmployees(file, autoCreateMasters);
       setValidation(next);
       // 오류가 없으면 건너뛰기를 물을 이유가 없다
       setSkipErrors(next.errorCount > 0);
@@ -167,7 +170,11 @@ export default function BulkUploadModal({
     setBusy('register');
     setErrorMessage('');
     try {
-      const next = await registerBulkEmployees(file, skipErrors);
+      const next = await registerBulkEmployees(
+        file,
+        skipErrors,
+        autoCreateMasters,
+      );
       setResult(next);
       confirmModal.close();
       setStep('done');
@@ -198,6 +205,8 @@ export default function BulkUploadModal({
       <div className="mt-5">
         {step === 'pick' && (
           <PickStep
+            autoCreateMasters={autoCreateMasters}
+            onToggleAutoCreate={setAutoCreateMasters}
             fileInputId={fileInputId}
             fileInputRef={fileInputRef}
             file={file}
@@ -325,17 +334,21 @@ function PickStep({
   fileInputRef,
   file,
   busy,
+  autoCreateMasters,
   onDownload,
   onPick,
   onInvalidFile,
+  onToggleAutoCreate,
 }: {
   fileInputId: string;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   file: File | null;
   busy: Busy;
+  autoCreateMasters: boolean;
   onDownload: () => void;
   onPick: (file: File | null) => void;
   onInvalidFile: (message: string) => void;
+  onToggleAutoCreate: (next: boolean) => void;
 }) {
   const isBusy = busy !== null;
 
@@ -444,6 +457,24 @@ function PickStep({
         <p className="mt-2 text-label text-text-secondary">
           {file ? `선택된 파일: ${file.name}` : '선택된 파일이 없습니다.'}
         </p>
+
+        {/* 켜면 목록에 없는 이름이 행 오류가 아니라 생성 대상이 된다 */}
+        <label className="mt-4 flex cursor-pointer items-start gap-2 text-label text-text-primary">
+          <input
+            type="checkbox"
+            checked={autoCreateMasters}
+            disabled={isBusy}
+            onChange={(event) => onToggleAutoCreate(event.target.checked)}
+            className="mt-0.5 cursor-pointer"
+          />
+          <span className="break-keep">
+            목록에 없는 전공 · 자격증은 자동 등록
+            <span className="block text-text-secondary">
+              끄면 등록되지 않은 이름이 있는 행은 오류로 빠집니다. 켜면 검증
+              화면에서 새로 생길 이름을 먼저 확인할 수 있습니다.
+            </span>
+          </span>
+        </label>
       </section>
     </div>
   );
@@ -470,6 +501,8 @@ function ValidatedStep({
           { label: '오류', value: validation.errorCount, isDanger: true },
         ]}
       />
+
+      <NewMastersPreview newMasters={validation.newMasters} />
 
       {validation.emailNotRegisteredCount > 0 && (
         <p className="rounded-lg bg-bg-hover px-4 py-3 text-label break-keep text-text-secondary">
@@ -524,6 +557,42 @@ function ValidatedStep({
         )
       )}
     </div>
+  );
+}
+
+/** 새로 생길 전공 · 자격증. 오타가 마스터가 되는 걸 등록 전에 잡는 유일한 자리다 */
+function NewMastersPreview({ newMasters }: { newMasters: MasterNameCount }) {
+  const groups = [
+    { label: '전공', items: newMasters?.majors ?? [] },
+    { label: '자격증', items: newMasters?.certificates ?? [] },
+  ].filter((group) => group.items.length > 0);
+
+  if (groups.length === 0) return null;
+
+  return (
+    <section className="rounded-lg border border-border-primary bg-blue-bg-soft px-4 py-3">
+      <h3 className="text-label font-semibold text-text-primary">
+        등록하면 아래 이름이 새로 만들어집니다
+      </h3>
+
+      {groups.map((group) => (
+        <p key={group.label} className="mt-2 text-label break-keep">
+          <span className="font-semibold text-text-primary">
+            {group.label} {group.items.length}개
+          </span>
+          <span className="text-text-secondary">
+            {' — '}
+            {group.items
+              .map((item) => `${item.name} (${item.rowCount}행)`)
+              .join(' · ')}
+          </span>
+        </p>
+      ))}
+
+      <p className="mt-2 text-micro break-keep text-text-secondary">
+        오타가 있으면 그대로 등록됩니다. 파일을 고치고 다시 검증해주세요.
+      </p>
+    </section>
   );
 }
 

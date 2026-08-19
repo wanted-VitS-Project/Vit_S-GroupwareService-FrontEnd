@@ -64,6 +64,8 @@ export default function EmployeeList() {
     () => ({
       keyword: searchParams.get('keyword') ?? undefined,
       departmentId: pickInt(searchParams.get('departmentId'), 1),
+      includeSubDepartments:
+        searchParams.get('includeSubDepartments') === 'true' || undefined,
       role: pickOption(searchParams.get('role'), ROLE_OPTIONS),
       status: pickOption(searchParams.get('status'), STATUS_OPTIONS),
       resigned: searchParams.get('resigned') === 'true' || undefined,
@@ -255,7 +257,12 @@ export default function EmployeeList() {
         <FilterSelect
           label="부서"
           value={query.departmentId ? String(query.departmentId) : ''}
-          onChange={(value) => applyFilter({ departmentId: value })}
+          onChange={(value) =>
+            applyFilter({
+              departmentId: value,
+              includeSubDepartments: undefined,
+            })
+          }
           options={toDepartmentOptions(departments).map((option) => ({
             value: String(option.id),
             label: option.label,
@@ -303,7 +310,7 @@ export default function EmployeeList() {
             <button
               type="button"
               onClick={() => setDepartmentReloadCount((count) => count + 1)}
-              className="cursor-pointer font-semibold underline"
+              className="cursor-pointer font-semibold underline hover:text-text-primary"
             >
               다시 시도
             </button>
@@ -585,7 +592,7 @@ function PeopleIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className="mb-2 size-10 text-text-muted"
+      className="mx-auto mb-2 size-10 text-text-muted"
     >
       <circle cx="9" cy="8" r="3.5" />
       <path d="M2 20a7 7 0 0 1 14 0" />

@@ -403,6 +403,8 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
                   options={departmentOptions.map((option) => ({
                     value: String(option.id),
                     label: option.label,
+                    // 하위를 가진 상위 부서는 머리글일 뿐이다 — 사원은 말단 부서에 속한다
+                    disabled: option.hasChildren,
                   }))}
                 />
                 <SelectField
@@ -426,7 +428,7 @@ export default function EmployeeEditForm({ userId }: { userId: string }) {
                       onClick={() =>
                         setOptionsReloadCount((count) => count + 1)
                       }
-                      className="cursor-pointer font-semibold underline"
+                      className="cursor-pointer font-semibold underline hover:text-text-primary"
                     >
                       다시 시도
                     </button>

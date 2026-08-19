@@ -314,8 +314,14 @@ export default function BlockBoard({
       /*
        * 서버 목록을 새로 받았으면 편집 기준도 갈아끼운다 —
        * 옛 기준과 비교하면 남이 바꾼 배치를 "내가 옮긴 것" 으로 오인해 저장을 묻게 된다.
+       *
+       * ⚠️ 단, **우리가 방금 올려보낸 목록이면 건드리지 않는다.** 위 isEcho 는 참조 비교라
+       * 늘 어긋나서(react-query 구조 공유) 내 이동이 남의 변경으로 읽힌다. 그대로 두면
+       * 한 번 옮길 때마다 기준이 "지금 순서" 로 갈려 hasChanges() 가 false 가 되고,
+       * 배치 완료 를 눌러도 **저장을 묻지 않고 그냥 빠져나간다** — 요청이 아예 없다.
+       * 화면과 순서가 같은 목록은 내 메아리다. 남이 바꿨다면 순서가 다르게 온다.
        */
-      if (arrangeBase) setArrangeBase(fresh);
+      if (arrangeBase && !hasSameOrder(fresh, order)) setArrangeBase(fresh);
     }
   }
 
@@ -458,8 +464,9 @@ export default function BlockBoard({
         const final = liveOrder.current;
         // 저장한 배치가 새 기준이다 — 이어서 또 물어보지 않게
         setArrangeBase(final);
-        saver.schedule(final);
-        saver.flushNow();
+        // 예약(schedule)이 아니라 강제 전송이다 — 사용자가 저장 을 눌렀는데
+        // "달라진 게 없다" 며 건너뛰면 화면만 옮겨진 채 서버는 옛 배치로 남는다.
+        saver.saveNow(final);
       },
       revert: () => {
         if (!arrangeBase || hasSameOrder(liveOrder.current, arrangeBase))

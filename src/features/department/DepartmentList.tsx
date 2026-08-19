@@ -202,10 +202,17 @@ function departmentColumns(
       header: '인원',
       width: '7rem',
       skeletonWidth: 'w-12',
-      // 하위 포함 인원. 삭제 가능 여부는 직속 인원으로 따로 판단한다
+      /* 하위 포함 인원이다. 옆 칸 `사원 보기` 도 같은 기준으로 열린다 (2026-08-19) */
       cell: ({ department }) =>
         department.totalEmployeeCount > 0 ? (
-          <span className="text-text-secondary">
+          <span
+            className="text-text-secondary"
+            title={
+              department.totalEmployeeCount === department.directEmployeeCount
+                ? undefined
+                : `하위 부서 포함 ${department.totalEmployeeCount}명 · 직속 ${department.directEmployeeCount}명`
+            }
+          >
             {department.totalEmployeeCount}명
           </span>
         ) : (
@@ -219,7 +226,7 @@ function departmentColumns(
       skeletonWidth: 'w-16',
       cell: ({ department }) => (
         <Link
-          href={`/settings/employees?departmentId=${department.departmentId}`}
+          href={`/settings/employees?departmentId=${department.departmentId}&includeSubDepartments=true`}
           className="font-medium text-text-primary-blue hover:underline"
         >
           사원 보기
@@ -276,7 +283,7 @@ function TreeIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className="mb-2 size-10 text-text-muted"
+      className="mx-auto mb-2 size-10 text-text-muted"
     >
       <rect x="9" y="3" width="6" height="5" rx="1" />
       <rect x="3" y="16" width="6" height="5" rx="1" />

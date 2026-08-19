@@ -24,6 +24,7 @@ import type {
   TaxInvoiceCsvUploadRequest,
   TaxInvoiceCsvUploadResult,
   TaxInvoiceFilterOptions,
+  TaxInvoiceItem,
   TaxInvoiceListQuery,
   TaxInvoiceListResponse,
   TaxInvoiceSkippedItem,
@@ -42,14 +43,26 @@ export function getFinanceSummary(signal?: AbortSignal) {
 function toSearch(query: CashFlowListQuery) {
   const params = new URLSearchParams();
 
-  const { startDate, endDate, unlinked, projectId, keyword, page, size } =
-    query;
+  const {
+    startDate,
+    endDate,
+    unlinked,
+    projectId,
+    keyword,
+    type,
+    sourceType,
+    page,
+    size,
+  } = query;
 
   if (startDate) params.set('startDate', startDate);
   if (endDate) params.set('endDate', endDate);
   if (unlinked) params.set('unlinked', 'true');
   if (projectId !== undefined) params.set('projectId', String(projectId));
   if (keyword) params.set('keyword', keyword);
+  // 구분 · 출처는 나머지 조건과 AND 로 묶인다
+  if (type) params.set('type', type);
+  if (sourceType) params.set('sourceType', sourceType);
   // 0 페이지도 유효한 값이라 값 유무로 판단한다
   if (page !== undefined) params.set('page', String(page));
   if (size !== undefined) params.set('size', String(size));
@@ -67,25 +80,14 @@ export function getCashFlows(query: CashFlowListQuery, signal?: AbortSignal) {
 }
 
 /**
- * 입출금 한 건을 찾는다.
- * 단건 조회 API 가 없어 목록 페이지를 넘기며 찾는다 (세금계산서와 같은 방식).
- * 건수가 늘면 요청도 함께 늘어 백엔드에 단건 조회를 요청해 둔 상태다.
+ * 입출금 단건 조회. 목록 아이템(`CashFlowItem`)과 같은 모양이 온다.
+ * 없는 ID 는 404 로 떨어지므로 화면은 실패로 받아 처리한다.
  */
-export async function findCashFlow(cashFlowId: number, signal?: AbortSignal) {
-  const size = 100;
-
-  /* 임의 상한을 두지 않고 서버가 준 totalPages 까지만 넘긴다 */
-  let totalPages = 1;
-
-  for (let page = 0; page < totalPages; page++) {
-    const data = await getCashFlows({ page, size }, signal);
-    totalPages = data.totalPages;
-
-    const found = data.cashFlows.find((item) => item.cashFlowId === cashFlowId);
-    if (found) return found;
-  }
-
-  return null;
+export function getCashFlow(cashFlowId: number, signal?: AbortSignal) {
+  return api.get<CashFlowItem>(
+    ENDPOINTS.finance.cashFlows.detail(cashFlowId),
+    signal,
+  );
 }
 
 /** 입출금 필터 옵션. 프로젝트 목록만 내려온다 */
@@ -234,24 +236,14 @@ export function getTaxInvoices(
 }
 
 /**
- * 세금계산서 한 건을 찾는다.
- * 단건 조회 API 가 없어 목록 페이지를 넘기며 찾는다.
+ * 세금계산서 단건 조회. 목록 아이템(`TaxInvoiceItem`)과 같은 모양이 온다.
+ * 없는 ID 는 404 로 떨어진다 (입출금 단건 조회와 같다).
  */
-export async function findTaxInvoice(taxId: number, signal?: AbortSignal) {
-  const size = 100;
-
-  /* 임의 상한을 두지 않고 서버가 준 totalPages 까지만 넘긴다 */
-  let totalPages = 1;
-
-  for (let page = 0; page < totalPages; page++) {
-    const data = await getTaxInvoices({ page, size }, signal);
-    totalPages = data.totalPages;
-
-    const found = data.taxInvoices.find((item) => item.taxId === taxId);
-    if (found) return found;
-  }
-
-  return null;
+export function getTaxInvoice(taxId: number, signal?: AbortSignal) {
+  return api.get<TaxInvoiceItem>(
+    ENDPOINTS.finance.taxInvoices.detail(taxId),
+    signal,
+  );
 }
 
 /** 세금계산서 필터 옵션. 프로젝트 목록만 내려온다 */

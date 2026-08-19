@@ -10,6 +10,7 @@ import Pagination, { PaginationPlaceholder } from '@/components/Pagination';
 import { notifyToast } from '@/components/Toast';
 import { messageOf } from '@/lib/api';
 import { formatDate, formatTime } from '@/lib/format';
+import { dateInputProps } from '@/lib/dateInput';
 
 import { favoriteNotice, getNotices, unfavoriteNotice } from './api';
 import { formatAmountShort } from './display';
@@ -658,6 +659,7 @@ function DateInput({
       <span className="sr-only">{label}</span>
       <input
         type="date"
+        {...dateInputProps('date')}
         value={value}
         aria-label={label}
         onChange={(event) => onChange(event.target.value || undefined)}

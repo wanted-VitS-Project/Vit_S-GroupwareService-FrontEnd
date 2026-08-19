@@ -16,20 +16,8 @@ import { formatAmount } from './display';
 import type { SettlementRound } from './types';
 
 /**
- * 고른 프로젝트의 **정산 회차** 표.
- *
- * 누른 행 **바로 아래**에 펼쳐진다 — 화면을 옮기지 않아 프로젝트를 연달아 훑을 수 있다.
- * 회차는 페이징이 없어 한 번에 온다.
- *
- * ℹ️ 닫는 단추를 두지 않는다 — **행을 다시 누르면 접힌다.** 여는 자리와 닫는 자리가 같아야
- *    한 번 배우면 잊지 않는다.
- *
- * ⚠️ 값 대부분이 비어 있을 수 있다 — 정산 블록을 만들어 두고 아직 안 쓴 회차가 있다.
- * ⚠️ 계좌 정보(은행 · 번호 · 예금주)는 **열로 두지 않는다.** 출금 회차에만 있는 값이라
- *    열로 세우면 대부분의 줄이 비어 표만 넓어진다 — 눌러서 펼치게 한다.
- * 🔒 **계좌번호는 마스킹 없이 원본으로 온다** (2026-08-17 백엔드 PR #422). 이 API 는
- *    `FINANCE` 권한자(재무팀)만 부를 수 있어 원본이 허용된 자리다. 다만 화면 공유 ·
- *    어깨너머로 새기 쉬운 값이라 **기본은 접어 두고 눌렀을 때만** 편다.
+ * 고른 프로젝트의 정산 회차 표. 누른 행 바로 아래에 펼쳐지고 다시 누르면 접힌다.
+ * 계좌번호는 마스킹 없이 오므로 열로 세우지 않고 눌렀을 때만 편다.
  */
 export default function SettlementRoundPanel({
   projectId,
@@ -38,10 +26,7 @@ export default function SettlementRoundPanel({
   projectId: number;
   projectName: string;
 }) {
-  /**
-   * 어느 프로젝트의 결과인지 함께 담는다 — 프로젝트를 바꾸면 키가 어긋나
-   * 자동으로 로딩이 된다 (효과에서 상태를 비우지 않는다).
-   */
+  /** 어느 프로젝트의 결과인지 함께 담아 프로젝트가 바뀌면 자동으로 로딩이 되게 한다 */
   const [result, setResult] = useState<{
     key: string;
     rounds?: SettlementRound[];
@@ -79,11 +64,7 @@ export default function SettlementRoundPanel({
   return (
     <section
       aria-label={`${projectName} 정산 회차`}
-      /*
-        표 안에 끼어드는 줄이라 **어느 행에 딸린 것인지**가 먼저 보여야 한다.
-        왼쪽 굵은 선 + 들여쓰기로 목록보다 한 단 안쪽임을 표시하고,
-        바탕은 목록(흰색)과 다른 회색으로 둔다.
-      */
+      /* 어느 행에 딸린 줄인지 보이도록 왼쪽 선 · 들여쓰기 · 회색 바탕으로 한 단 낮춘다 */
       className="border-l-4 border-border-primary bg-bg-surface py-4 pr-5 pl-8"
     >
       {errorMessage ? (
@@ -92,7 +73,7 @@ export default function SettlementRoundPanel({
           <button
             type="button"
             onClick={() => setReloadCount((count) => count + 1)}
-            className="cursor-pointer font-semibold underline"
+            className="cursor-pointer font-semibold underline hover:text-text-primary"
           >
             다시 시도
           </button>
@@ -270,10 +251,7 @@ function AmountWithDate({
   );
 }
 
-/**
- * 누가 언제 연결했는지. 재무팀이 처리 내역을 되짚을 때 쓴다.
- * 아직 연결 전이면 자리만 비운다 — 줄 높이가 들쭉날쭉하지 않게.
- */
+/** 누가 언제 연결했는지. 연결 전이면 줄 높이가 흔들리지 않게 자리만 비운다 */
 function LinkedBy({
   label,
   name,
