@@ -13,153 +13,153 @@
 
 ## 목차
 
-| #                                            | API                  | Method · Path                                                | 연동                               |
-| -------------------------------------------- | -------------------- | ------------------------------------------------------------ | ---------------------------------- |
-| [1](#1-로그인)                               | 로그인               | `POST /auth/login`                                           | `features/auth/api.ts`             |
-| [2](#2-로그아웃)                             | 로그아웃             | `POST /auth/logout`                                          | `features/auth/api.ts`             |
-| [3](#3-내-정보-조회)                         | 내 정보 조회         | `GET /auth/me`                                               | `features/auth/api.ts`             |
-| [4](#4-약관-동의)                            | 약관 동의            | `POST /auth/terms-agreements`                                | `features/auth/api.ts`             |
-| [5](#5-비밀번호-변경)                        | 비밀번호 변경        | `PATCH /auth/password`                                       | `features/auth/api.ts`             |
-| [6](#6-프로젝트-상세-조회)                   | 프로젝트 상세        | `GET /projects/{projectId}`                                  | `features/project/api.ts`          |
-| [7](#7-프로젝트-스테이지-목록)               | 스테이지 목록        | `GET /projects/{projectId}/stages`                           | `features/project/api.ts`          |
-| [8](#8-프로젝트-스텝-목록)                   | 스텝 목록            | `GET /projects/{projectId}/steps`                            | `features/project/api.ts`          |
-| [9](#9-블록-생성)                            | 블록 생성            | `POST /steps/{stepId}/blocks`                                | `features/block/api.ts`            |
-| [10](#10-스텝-블록-일괄-조회)                | 블록 일괄 조회       | `GET /steps/{stepId}/blocks`                                 | `features/block/api.ts`            |
-| [11](#11-텍스트-본문-수정)                   | 텍스트 본문 수정     | `PATCH /blocks/texts/{txtId}`                                | `features/block/api.ts`            |
-| [12](#12-체크리스트-항목-생성)               | 체크리스트 생성      | `POST /blocks/checklists/{chkBlockId}/items`                 | `features/block/api.ts`            |
-| [13](#13-체크리스트-항목-수정)               | 체크리스트 수정      | `PATCH /blocks/checklists/items/{chkId}`                     | `features/block/api.ts`            |
-| [14](#14-체크리스트-항목-삭제)               | 체크리스트 삭제      | `DELETE /blocks/checklists/items/{chkId}`                    | `features/block/api.ts`            |
-| [15](#15-사업-카테고리-목록-조회)            | 카테고리 목록        | `GET /business-categories`                                   | `features/businessCategory/api.ts` |
-| [16](#16-사업-카테고리-생성)                 | 카테고리 생성        | `POST /business-categories`                                  | `features/businessCategory/api.ts` |
-| [17](#17-사업-카테고리-수정)                 | 카테고리 수정        | `PATCH /business-categories/{categoryId}`                    | `features/businessCategory/api.ts` |
-| [18](#18-사업-카테고리-삭제)                 | 카테고리 삭제        | `DELETE /business-categories/{categoryId}`                   | `features/businessCategory/api.ts` |
-| [19](#19-전역-권한-변경)                     | 권한 변경            | `PATCH /accounts/{userId}/role`                              | `features/employee/api.ts`         |
-| [20](#20-계정-상태-변경)                     | 계정 상태 변경       | `PATCH /accounts/{userId}/status`                            | `features/employee/api.ts`         |
-| [21](#21-비밀번호-재설정-개인--다중-공용)    | 비밀번호 재설정      | `POST /accounts/password-resets`                             | `features/employee/api.ts`         |
-| [22](#22-부서-목록-조회)                     | 부서 목록            | `GET /departments`                                           | `features/department/api.ts`       |
-| [23](#23-부서-생성-최상위--하위-공용)        | 부서 생성            | `POST /departments`                                          | `features/department/api.ts`       |
-| [24](#24-부서명-수정)                        | 부서명 수정          | `PATCH /departments/{departmentId}`                          | `features/department/api.ts`       |
-| [25](#25-부서-삭제)                          | 부서 삭제            | `DELETE /departments/{departmentId}`                         | `features/department/api.ts`       |
-| [26](#26-직급-목록-조회)                     | 직급 목록            | `GET /job-positions`                                         | `features/jobPosition/api.ts`      |
-| [27](#27-직급-생성)                          | 직급 생성            | `POST /job-positions`                                        | `features/jobPosition/api.ts`      |
-| [28](#28-직급-수정-직급명--순서)             | 직급 수정            | `PATCH /job-positions/{jobPositionId}`                       | `features/jobPosition/api.ts`      |
-| [29](#29-직급-삭제)                          | 직급 삭제            | `DELETE /job-positions/{jobPositionId}`                      | `features/jobPosition/api.ts`      |
-| [30](#30-사원-목록-조회-인사관리)            | 사원 목록            | `GET /employees`                                             | `features/employee/api.ts`         |
-| [31](#31-사원-상세-조회)                     | 사원 상세            | `GET /employees/{userId}`                                    | `features/employee/api.ts`         |
-| [32](#32-사원-등록-계정-동시-발급)           | 사원 등록            | `POST /employees`                                            | `features/employee/api.ts`         |
-| [33](#33-사원-정보-수정)                     | 사원 수정            | `PATCH /employees/{userId}`                                  | `features/employee/api.ts`         |
-| [34](#34-퇴사-처리)                          | 퇴사 처리            | `PATCH /employees/{userId}/resignation`                      | `features/employee/api.ts`         |
-| [35](#35-사원-이름-검색-결재선-지정용)       | 사원 이름 검색       | `GET /employees/search`                                      | `EmployeeSearchInput` (#41)        |
-| [36](#36-블록-파일-목록-조회)                | 블록 파일 목록       | `GET /blocks/{blockId}/files`                                | `features/file/api.ts`             |
-| [37](#37-파일-업로드-시작)                   | 업로드 시작          | `POST /files/uploads`                                        | `features/file/api.ts`             |
-| [38](#38-업로드-완료-통보)                   | 업로드 완료 통보     | `POST /files/uploads/{fileVersionId}/complete`               | `features/file/api.ts`             |
-| [39](#39-문서명-수정)                        | 문서명 수정          | `PATCH /files/{fileId}`                                      | `features/file/api.ts`             |
-| [40](#40-휴지통으로-이동)                    | 휴지통으로 이동      | `DELETE /files/{fileId}`                                     | `features/file/api.ts`             |
-| [41](#41-버전-이력-조회)                     | 버전 이력            | `GET /files/{fileId}/versions`                               | `features/file/api.ts`             |
-| [42](#42-다운로드-url-발급)                  | 다운로드 URL         | `GET /file-versions/{id}/download`                           | `features/file/api.ts`             |
-| [43](#43-미리보기-조회-pdf-바이너리)         | 미리보기 (PDF)       | `GET /file-versions/{id}/preview`                            | `features/file/api.ts`             |
-| [44](#44-블록-배치-변경)                     | 블록 배치 변경       | `PATCH /steps/{stepId}/blocks/layout`                        | `features/block/api.ts`            |
-| [45](#45-프로젝트-참여자-목록-조회)          | 참여자 목록          | `GET /projects/{projectId}/members`                          | `features/project/api.ts`          |
-| [46](#46-블록-수정)                          | 블록 수정            | `PATCH /blocks/{blockId}`                                    | `features/block/api.ts`            |
-| [47](#47-블록-삭제)                          | 블록 삭제            | `DELETE /blocks/{blockId}`                                   | `features/block/api.ts`            |
-| [48](#48-결재-회차-상세조회)                 | 결재 회차 상세       | `GET /approvals/{id}/revisions/{revId}`                      | `features/approval/api.ts`         |
-| [49](#49-결재-제목--내용-수정)               | 제목 · 내용 수정     | `PATCH /approvals/{id}/revisions/{revId}`                    | `features/approval/api.ts`         |
-| [50](#50-재상신-회차-생성)                   | 재상신 회차 생성     | `POST /approvals/{id}/revisions`                             | `features/approval/api.ts`         |
-| [51](#51-결재-상신)                          | 결재 상신            | `POST /approvals/{id}/revisions/{revId}/submit`              | `features/approval/api.ts`         |
-| [52](#52-결재-문서-추가)                     | 결재 문서 추가       | `POST /approvals/{id}/revisions/{revId}/documents`           | `features/approval/api.ts`         |
-| [53](#53-결재-문서-제거)                     | 결재 문서 제거       | `DELETE /approvals/{id}/revisions/{revId}/documents/{docId}` | `features/approval/api.ts`         |
-| [54](#54-결재선-등록--수정)                  | 결재선 등록·수정     | `PUT /approvals/{id}/revisions/{revId}/lines`                | `features/approval/api.ts`         |
-| [55](#55-스텝별-이슈-목록-조회)              | 이슈 목록            | `GET /steps/{stepId}/issues`                                 | `features/issue/api.ts`            |
-| [56](#56-이슈-생성)                          | 이슈 생성            | `POST /steps/{stepId}/issues`                                | `features/issue/api.ts`            |
-| [57](#57-이슈-상세-조회)                     | 이슈 상세            | `GET /issues/{issueId}`                                      | `features/issue/api.ts`            |
-| [58](#58-이슈-부분-수정)                     | 이슈 부분 수정       | `PATCH /issues/{issueId}`                                    | `features/issue/api.ts`            |
-| [59](#59-이슈-상태-변경)                     | 이슈 상태 변경       | `PATCH /issues/{issueId}/status`                             | `features/issue/api.ts`            |
-| [60](#60-이슈-삭제)                          | 이슈 삭제            | `DELETE /issues/{issueId}`                                   | `features/issue/api.ts`            |
-| [61](#61-결재관리-목록조회)                  | 결재 목록            | `GET /approvals`                                             | `features/approval/api.ts`         |
-| [62](#62-결재-상세조회)                      | 결재 상세            | `GET /approvals/{id}`                                        | `features/approval/api.ts`         |
-| [63](#63-결재-승인)                          | 결재 승인            | `POST /approval-lines/{lineId}/approve`                      | `features/approval/api.ts`         |
-| [64](#64-결재-반려)                          | 결재 반려            | `POST /approval-lines/{lineId}/reject`                       | `features/approval/api.ts`         |
-| [65](#65-버전-단건-조회-결재용)              | 버전 단건 조회       | `GET /file-versions/{fileVersionId}`                         | `features/file/api.ts`             |
-| [66](#66-이미지-항목-조회-한-장)             | 이미지 한 장 조회    | `GET /blocks/images/{id}/items/{orderIndex}`                 | `features/block/api.ts`            |
-| [67](#67-이미지-항목-생성)                   | 이미지 생성          | `POST /blocks/images/{id}/items`                             | `features/block/api.ts`            |
-| [68](#68-이미지-순서--캡션-수정)             | 이미지 순서·캡션     | `PATCH /blocks/images/items/{imgBlockId}`                    | `features/block/api.ts`            |
-| [69](#69-이미지-항목-삭제)                   | 이미지 삭제          | `DELETE /blocks/images/items/{imgId}`                        | `features/block/api.ts`            |
-| [70](#70-이미지-다운로드)                    | 이미지 다운로드      | `GET /blocks/images/{id}/download`                           | `features/block/api.ts`            |
-| [71](#71-이미지-항목-전체-조회)              | 이미지 전체 조회     | `GET /blocks/images/{id}/items`                              | `features/block/api.ts`            |
-| [73](#73-결재-이력조회)                      | 결재 이력            | `GET /approvals/{id}/revisions`                              | `features/approval/api.ts`         |
-| [74](#74-프로젝트-파일-버전-목록)            | 프로젝트 버전 목록   | `GET /projects/{projectId}/file-versions`                    | `features/file/api.ts`             |
-| [75](#75-검토-템플릿-목록)                   | 검토 템플릿          | `GET /vitamate/review-templates`                             | `features/vitamate/api.ts`         |
-| [76](#76-비타메이트-분석-요청)               | 분석 요청            | `POST /blocks/{blockId}/vitamate/analyses`                   | `features/vitamate/api.ts`         |
-| [77](#77-비타메이트-분석-단건-조회)          | 분석 단건 조회       | `GET /vitamate/analyses/{analysisId}`                        | `features/vitamate/api.ts`         |
-| [78](#78-블록별-분석-이력)                   | 분석 이력            | `GET /blocks/{blockId}/vitamate/analyses`                    | `features/vitamate/api.ts`         |
-| [79](#79-알림-목록-조회)                     | 알림 목록            | `GET /notifications`                                         | `features/notification/api.ts`     |
-| [80](#80-알림-이동-대상-조회)                | 알림 이동 대상       | `GET /notifications/{id}/target`                             | `features/notification/api.ts`     |
-| [81](#81-알림-읽음-처리)                     | 알림 읽음            | `PATCH /notifications/{id}/read`                             | `features/notification/api.ts`     |
-| [82](#82-알림-전체-읽음-처리)                | 알림 전체 읽음       | `PATCH /notifications/read-all`                              | `features/notification/api.ts`     |
-| [83](#83-알림-삭제)                          | 알림 삭제            | `DELETE /notifications/{id}`                                 | `features/notification/api.ts`     |
-| [84](#84-프로젝트-목록-조회)                 | 프로젝트 목록        | `GET /projects`                                              | `features/project/api.ts`          |
-| [85](#85-정산-항목-수정-시-조회)             | 정산 수정 조회       | `GET /blocks/settlements/{id}/items`                         | `features/settlement/api.ts`       |
-| [86](#86-정산-항목-작성--수정)               | 정산 작성·수정       | `PATCH /blocks/settlements/{id}/items`                       | `features/settlement/api.ts`       |
-| [87](#87-사원-엑셀-템플릿-다운로드)          | 엑셀 템플릿          | `GET /employees/bulk-template`                               | `features/employee/api.ts`         |
-| [88](#88-사원-엑셀-일괄-등록-검증)           | 일괄 등록 검증       | `POST /employees/bulk/validate`                              | `features/employee/api.ts`         |
-| [89](#89-사원-엑셀-일괄-등록)                | 일괄 등록            | `POST /employees/bulk`                                       | `features/employee/api.ts`         |
-| [90](#90-직급별-사원-목록)                   | 직급별 사원 목록     | `GET /job-positions/{id}/employees`                          | `features/jobPosition/api.ts`      |
-| [91](#91-사원-그룹-목록-조회)                | 그룹 목록            | `GET /employee-groups`                                       | `features/employeeGroup/api.ts`    |
-| [92](#92-사원-그룹-생성)                     | 그룹 생성            | `POST /employee-groups`                                      | `features/employeeGroup/api.ts`    |
-| [93](#93-사원-그룹-수정)                     | 그룹 수정            | `PATCH /employee-groups/{groupId}`                           | `features/employeeGroup/api.ts`    |
-| [94](#94-사원-그룹-삭제)                     | 그룹 삭제            | `DELETE /employee-groups/{groupId}`                          | `features/employeeGroup/api.ts`    |
-| [95](#95-그룹-구성원-목록-조회)              | 구성원 목록          | `GET /employee-groups/{groupId}/members`                     | `features/employeeGroup/api.ts`    |
-| [96](#96-그룹-구성원-추가)                   | 구성원 추가          | `POST /employee-groups/{groupId}/members`                    | `features/employeeGroup/api.ts`    |
-| [97](#97-그룹-구성원-제거)                   | 구성원 제거          | `DELETE /employee-groups/{id}/members/{userId}`              | `features/employeeGroup/api.ts`    |
-| [98](#98-내-페이지-목록-조회)                | 내 페이지 목록       | `GET /my/pages`                                              | `features/pagePermission/api.ts`   |
-| [99](#99-페이지-목록-조회-권한-부여용)       | 페이지 목록          | `GET /pages`                                                 | `features/pagePermission/api.ts`   |
-| [100](#100-페이지-접근-가능자-목록)          | 접근 가능자 목록     | `GET /pages/{pageCode}/permissions`                          | `features/pagePermission/api.ts`   |
-| [101](#101-페이지-권한-부여--등급-변경)      | 권한 부여·변경       | `POST /pages/{pageCode}/permissions`                         | `features/pagePermission/api.ts`   |
-| [102](#102-페이지-권한-회수)                 | 권한 회수            | `DELETE /pages/{pageCode}/permissions/{userId}`              | `features/pagePermission/api.ts`   |
-| [103](#103-휴지통에서-복구)                  | 파일 복구            | `POST /files/{fileId}/restore`                               | `features/file/api.ts`             |
-| [104](#104-파일-영구-삭제)                   | 파일 영구 삭제       | `POST /files/{fileId}/permanent-deletion`                    | `features/file/api.ts`             |
-| [105](#105-프로젝트-문서함-전체-파일)        | 프로젝트 문서함      | `GET /projects/{projectId}/files`                            | `features/file/api.ts`             |
-| [106](#106-프로젝트-휴지통-모아보기)         | 프로젝트 휴지통      | `GET /projects/{projectId}/files/trash`                      | `features/file/api.ts`             |
-| [107](#107-프로젝트-이미지-모아보기)         | 이미지 모아보기      | `GET /projects/{projectId}/images`                           | `features/block/api.ts`            |
-| [108](#108-프로젝트-단위-이슈-목록-조회)     | 프로젝트 이슈        | `GET /projects/{projectId}/issues`                           | `features/issue/api.ts`            |
-| [109](#109-이미지-휴지통-조회)               | 이미지 휴지통        | `GET /projects/{projectId}/images/trash`                     | `features/block/api.ts`            |
-| [110](#110-이미지-복구-다건)                 | 이미지 복구          | `PATCH /blocks/images/items/restore`                         | `features/block/api.ts`            |
-| [111](#111-이미지-영구-삭제-다건)            | 이미지 영구 삭제     | `DELETE /blocks/images/items/hard`                           | `features/block/api.ts`            |
-| [112](#112-스테이지-생성)                    | 스테이지 생성        | `POST /projects/{projectId}/stages`                          | `features/project/api.ts`          |
-| [113](#113-스테이지-수정)                    | 스테이지 수정        | `PATCH /stages/{stageId}`                                    | `features/project/api.ts`          |
-| [114](#114-스테이지-삭제)                    | 스테이지 삭제        | `DELETE /stages/{stageId}`                                   | `features/project/api.ts`          |
-| [115](#115-스텝-생성)                        | 스텝 생성            | `POST /projects/{projectId}/steps`                           | `features/project/api.ts`          |
-| [116](#116-스텝-수정)                        | 스텝 수정            | `PATCH /steps/{stepId}`                                      | `features/project/api.ts`          |
-| [117](#117-스텝-삭제)                        | 스텝 삭제            | `DELETE /steps/{stepId}`                                     | `features/project/api.ts`          |
-| [118](#118-스텝-완료-처리)                   | 스텝 완료 처리       | `POST /steps/{stepId}/complete`                              | `features/project/api.ts`          |
-| [119](#119-스테이지-순서-변경)               | 스테이지 순서        | `PATCH /projects/{projectId}/stages/order`                   | `features/project/api.ts`          |
-| [120](#120-스텝-순서-변경)                   | 스텝 순서 · 소속     | `PATCH /projects/{projectId}/steps/order`                    | `features/project/api.ts`          |
-| [121](#121-블록-스텝-이동)                   | 블록 스텝 이동       | `PATCH /blocks/{blockId}/step`                               | `features/block/api.ts`            |
-| [122](#122-입찰-공고-목록-조회)              | 입찰 공고 목록       | `GET /bidding/notices`                                       | `features/bidding/api.ts`          |
-| [123](#123-입찰-공고-상세-조회)              | 입찰 공고 상세       | `GET /bidding/notices/{noticeId}`                            | `features/bidding/api.ts`          |
-| [124](#124-스텝-상세-조회)                   | 스텝 상세            | `GET /steps/{stepId}`                                        | 미연동                             |
-| [125](#125-참여자-추가)                      | 참여자 추가          | `POST /projects/{projectId}/members`                         | `features/project/api.ts`          |
-| [126](#126-참여자-권한-변경)                 | 참여자 권한 변경     | `PATCH /projects/{projectId}/members/{memberId}`             | `features/project/api.ts`          |
-| [127](#127-참여자-제거)                      | 참여자 제거          | `DELETE /projects/{projectId}/members/{memberId}`            | `features/project/api.ts`          |
-| [128](#128-하위-스텝-권한-일괄-적용)         | 스텝 권한 기본값     | `POST /stages/{stageId}/step-permissions`                    | `features/project/api.ts`          |
-| [129](#129-프로젝트-수정)                    | 프로젝트 수정        | `PATCH /projects/{projectId}`                                | `features/project/api.ts`          |
-| [130](#130-프로젝트-상태-변경)               | 프로젝트 상태 변경   | `PATCH /projects/{projectId}/status`                         | `features/project/api.ts`          |
-| [131](#131-프로젝트-종결)                    | 프로젝트 종결        | `POST /projects/{projectId}/close`                           | `features/project/api.ts`          |
-| [132](#132-사업-카테고리-연결)               | 카테고리 연결        | `POST /projects/{projectId}/business-categories`             | `features/project/api.ts`          |
-| [133](#133-사업-카테고리-해제)               | 카테고리 해제        | `DELETE /projects/{projectId}/business-categories/{id}`      | `features/project/api.ts`          |
-| [134](#134-스텝-권한-목록-조회)              | 스텝 권한 목록       | `GET /steps/{stepId}/permissions`                            | `features/project/api.ts`          |
-| [135](#135-스텝-권한-부여--변경)             | 스텝 권한 부여       | `PUT /steps/{stepId}/permissions/{userId}`                   | `features/project/api.ts`          |
-| [136](#136-스텝-권한-회수)                   | 스텝 권한 회수       | `DELETE /steps/{stepId}/permissions/{userId}`                | `features/project/api.ts`          |
-| [137](#137-스텝-상태-변경)                   | 스텝 상태 변경       | `PATCH /steps/{stepId}/status`                               | `features/project/api.ts`          |
-| [138](#138-프로젝트-직접-생성)               | 프로젝트 생성        | `POST /projects`                                             | `features/project/api.ts`          |
-| [139](#139-프로젝트-삭제)                    | 프로젝트 삭제        | `DELETE /projects/{projectId}`                               | `features/project/api.ts`          |
-| [140](#140-내-프로젝트-파일-모아보기)        | 내 파일              | `GET /files/my`                                              | `features/file/api.ts`             |
-| [141](#141-알림-실시간-수신-sse)             | 알림 실시간 수신     | `GET /notifications/stream`                                  | `features/notification/stream.ts`  |
-| [142](#142-전사-파일-목록-admin)             | 전사 파일 목록       | `GET /admin/files`                                           | `features/file/api.ts`             |
-| [143~150](#143150-사내-문서함-admin)         | 사내 문서함          | `/admin/company-documents …`                                 | `features/companyDocument/api.ts`  |
-| [151~154](#151154-전사-파일-탐색기-admin)    | 전사 파일 탐색기     | `/admin/files/projects …`                                    | `features/file/api.ts`             |
-| [155~158](#155158-전공--자격증-마스터-admin) | 전공 · 자격증 마스터 | `/majors` · `/certificates`                                  | `features/masterItem/api.ts`       |
-| [159](#159-세션-조회--연장)                  | 세션 조회 · 연장     | `GET /auth/session`                                          | `features/auth/api.ts`             |
+| #                                            | API                  | Method · Path                                                | 연동                                  |
+| -------------------------------------------- | -------------------- | ------------------------------------------------------------ | ------------------------------------- |
+| [1](#1-로그인)                               | 로그인               | `POST /auth/login`                                           | ✅ `features/auth/api.ts`             |
+| [2](#2-로그아웃)                             | 로그아웃             | `POST /auth/logout`                                          | ✅ `features/auth/api.ts`             |
+| [3](#3-내-정보-조회)                         | 내 정보 조회         | `GET /auth/me`                                               | ✅ `features/auth/api.ts`             |
+| [4](#4-약관-동의)                            | 약관 동의            | `POST /auth/terms-agreements`                                | ✅ `features/auth/api.ts`             |
+| [5](#5-비밀번호-변경)                        | 비밀번호 변경        | `PATCH /auth/password`                                       | ✅ `features/auth/api.ts`             |
+| [6](#6-프로젝트-상세-조회)                   | 프로젝트 상세        | `GET /projects/{projectId}`                                  | ✅ `features/project/api.ts`          |
+| [7](#7-프로젝트-스테이지-목록)               | 스테이지 목록        | `GET /projects/{projectId}/stages`                           | ✅ `features/project/api.ts`          |
+| [8](#8-프로젝트-스텝-목록)                   | 스텝 목록            | `GET /projects/{projectId}/steps`                            | ✅ `features/project/api.ts`          |
+| [9](#9-블록-생성)                            | 블록 생성            | `POST /steps/{stepId}/blocks`                                | ✅ `features/block/api.ts`            |
+| [10](#10-스텝-블록-일괄-조회)                | 블록 일괄 조회       | `GET /steps/{stepId}/blocks`                                 | ✅ `features/block/api.ts`            |
+| [11](#11-텍스트-본문-수정)                   | 텍스트 본문 수정     | `PATCH /blocks/texts/{txtId}`                                | ✅ `features/block/api.ts`            |
+| [12](#12-체크리스트-항목-생성)               | 체크리스트 생성      | `POST /blocks/checklists/{chkBlockId}/items`                 | ✅ `features/block/api.ts`            |
+| [13](#13-체크리스트-항목-수정)               | 체크리스트 수정      | `PATCH /blocks/checklists/items/{chkId}`                     | ✅ `features/block/api.ts`            |
+| [14](#14-체크리스트-항목-삭제)               | 체크리스트 삭제      | `DELETE /blocks/checklists/items/{chkId}`                    | ✅ `features/block/api.ts`            |
+| [15](#15-사업-카테고리-목록-조회)            | 카테고리 목록        | `GET /business-categories`                                   | ✅ `features/businessCategory/api.ts` |
+| [16](#16-사업-카테고리-생성)                 | 카테고리 생성        | `POST /business-categories`                                  | ✅ `features/businessCategory/api.ts` |
+| [17](#17-사업-카테고리-수정)                 | 카테고리 수정        | `PATCH /business-categories/{categoryId}`                    | ✅ `features/businessCategory/api.ts` |
+| [18](#18-사업-카테고리-삭제)                 | 카테고리 삭제        | `DELETE /business-categories/{categoryId}`                   | ✅ `features/businessCategory/api.ts` |
+| [19](#19-전역-권한-변경)                     | 권한 변경            | `PATCH /accounts/{userId}/role`                              | ✅ `features/employee/api.ts`         |
+| [20](#20-계정-상태-변경)                     | 계정 상태 변경       | `PATCH /accounts/{userId}/status`                            | ✅ `features/employee/api.ts`         |
+| [21](#21-비밀번호-재설정-개인--다중-공용)    | 비밀번호 재설정      | `POST /accounts/password-resets`                             | ✅ `features/employee/api.ts`         |
+| [22](#22-부서-목록-조회)                     | 부서 목록            | `GET /departments`                                           | ✅ `features/department/api.ts`       |
+| [23](#23-부서-생성-최상위--하위-공용)        | 부서 생성            | `POST /departments`                                          | ✅ `features/department/api.ts`       |
+| [24](#24-부서명-수정)                        | 부서명 수정          | `PATCH /departments/{departmentId}`                          | ✅ `features/department/api.ts`       |
+| [25](#25-부서-삭제)                          | 부서 삭제            | `DELETE /departments/{departmentId}`                         | ✅ `features/department/api.ts`       |
+| [26](#26-직급-목록-조회)                     | 직급 목록            | `GET /job-positions`                                         | ✅ `features/jobPosition/api.ts`      |
+| [27](#27-직급-생성)                          | 직급 생성            | `POST /job-positions`                                        | ✅ `features/jobPosition/api.ts`      |
+| [28](#28-직급-수정-직급명--순서)             | 직급 수정            | `PATCH /job-positions/{jobPositionId}`                       | ✅ `features/jobPosition/api.ts`      |
+| [29](#29-직급-삭제)                          | 직급 삭제            | `DELETE /job-positions/{jobPositionId}`                      | ✅ `features/jobPosition/api.ts`      |
+| [30](#30-사원-목록-조회-인사관리)            | 사원 목록            | `GET /employees`                                             | ✅ `features/employee/api.ts`         |
+| [31](#31-사원-상세-조회)                     | 사원 상세            | `GET /employees/{userId}`                                    | ✅ `features/employee/api.ts`         |
+| [32](#32-사원-등록-계정-동시-발급)           | 사원 등록            | `POST /employees`                                            | ✅ `features/employee/api.ts`         |
+| [33](#33-사원-정보-수정)                     | 사원 수정            | `PATCH /employees/{userId}`                                  | ✅ `features/employee/api.ts`         |
+| [34](#34-퇴사-처리)                          | 퇴사 처리            | `PATCH /employees/{userId}/resignation`                      | ✅ `features/employee/api.ts`         |
+| [35](#35-사원-이름-검색-결재선-지정용)       | 사원 이름 검색       | `GET /employees/search`                                      | ✅ `EmployeeSearchInput` (#41)        |
+| [36](#36-블록-파일-목록-조회)                | 블록 파일 목록       | `GET /blocks/{blockId}/files`                                | ✅ `features/file/api.ts`             |
+| [37](#37-파일-업로드-시작)                   | 업로드 시작          | `POST /files/uploads`                                        | ✅ `features/file/api.ts`             |
+| [38](#38-업로드-완료-통보)                   | 업로드 완료 통보     | `POST /files/uploads/{fileVersionId}/complete`               | ✅ `features/file/api.ts`             |
+| [39](#39-문서명-수정)                        | 문서명 수정          | `PATCH /files/{fileId}`                                      | ✅ `features/file/api.ts`             |
+| [40](#40-휴지통으로-이동)                    | 휴지통으로 이동      | `DELETE /files/{fileId}`                                     | ✅ `features/file/api.ts`             |
+| [41](#41-버전-이력-조회)                     | 버전 이력            | `GET /files/{fileId}/versions`                               | ✅ `features/file/api.ts`             |
+| [42](#42-다운로드-url-발급)                  | 다운로드 URL         | `GET /file-versions/{id}/download`                           | ✅ `features/file/api.ts`             |
+| [43](#43-미리보기-조회-pdf-바이너리)         | 미리보기 (PDF)       | `GET /file-versions/{id}/preview`                            | ✅ `features/file/api.ts`             |
+| [44](#44-블록-배치-변경)                     | 블록 배치 변경       | `PATCH /steps/{stepId}/blocks/layout`                        | ✅ `features/block/api.ts`            |
+| [45](#45-프로젝트-참여자-목록-조회)          | 참여자 목록          | `GET /projects/{projectId}/members`                          | ✅ `features/project/api.ts`          |
+| [46](#46-블록-수정)                          | 블록 수정            | `PATCH /blocks/{blockId}`                                    | ✅ `features/block/api.ts`            |
+| [47](#47-블록-삭제)                          | 블록 삭제            | `DELETE /blocks/{blockId}`                                   | ✅ `features/block/api.ts`            |
+| [48](#48-결재-회차-상세조회)                 | 결재 회차 상세       | `GET /approvals/{id}/revisions/{revId}`                      | ✅ `features/approval/api.ts`         |
+| [49](#49-결재-제목--내용-수정)               | 제목 · 내용 수정     | `PATCH /approvals/{id}/revisions/{revId}`                    | ✅ `features/approval/api.ts`         |
+| [50](#50-재상신-회차-생성)                   | 재상신 회차 생성     | `POST /approvals/{id}/revisions`                             | ✅ `features/approval/api.ts`         |
+| [51](#51-결재-상신)                          | 결재 상신            | `POST /approvals/{id}/revisions/{revId}/submit`              | ✅ `features/approval/api.ts`         |
+| [52](#52-결재-문서-추가)                     | 결재 문서 추가       | `POST /approvals/{id}/revisions/{revId}/documents`           | ✅ `features/approval/api.ts`         |
+| [53](#53-결재-문서-제거)                     | 결재 문서 제거       | `DELETE /approvals/{id}/revisions/{revId}/documents/{docId}` | ✅ `features/approval/api.ts`         |
+| [54](#54-결재선-등록--수정)                  | 결재선 등록·수정     | `PUT /approvals/{id}/revisions/{revId}/lines`                | ✅ `features/approval/api.ts`         |
+| [55](#55-스텝별-이슈-목록-조회)              | 이슈 목록            | `GET /steps/{stepId}/issues`                                 | ✅ `features/issue/api.ts`            |
+| [56](#56-이슈-생성)                          | 이슈 생성            | `POST /steps/{stepId}/issues`                                | ✅ `features/issue/api.ts`            |
+| [57](#57-이슈-상세-조회)                     | 이슈 상세            | `GET /issues/{issueId}`                                      | ✅ `features/issue/api.ts`            |
+| [58](#58-이슈-부분-수정)                     | 이슈 부분 수정       | `PATCH /issues/{issueId}`                                    | ✅ `features/issue/api.ts`            |
+| [59](#59-이슈-상태-변경)                     | 이슈 상태 변경       | `PATCH /issues/{issueId}/status`                             | ✅ `features/issue/api.ts`            |
+| [60](#60-이슈-삭제)                          | 이슈 삭제            | `DELETE /issues/{issueId}`                                   | ✅ `features/issue/api.ts`            |
+| [61](#61-결재관리-목록조회)                  | 결재 목록            | `GET /approvals`                                             | ✅ `features/approval/api.ts`         |
+| [62](#62-결재-상세조회)                      | 결재 상세            | `GET /approvals/{id}`                                        | ✅ `features/approval/api.ts`         |
+| [63](#63-결재-승인)                          | 결재 승인            | `POST /approval-lines/{lineId}/approve`                      | ✅ `features/approval/api.ts`         |
+| [64](#64-결재-반려)                          | 결재 반려            | `POST /approval-lines/{lineId}/reject`                       | ✅ `features/approval/api.ts`         |
+| [65](#65-버전-단건-조회-결재용)              | 버전 단건 조회       | `GET /file-versions/{fileVersionId}`                         | ✅ `features/file/api.ts`             |
+| [66](#66-이미지-항목-조회-한-장)             | 이미지 한 장 조회    | `GET /blocks/images/{id}/items/{orderIndex}`                 | ✅ `features/block/api.ts`            |
+| [67](#67-이미지-항목-생성)                   | 이미지 생성          | `POST /blocks/images/{id}/items`                             | ✅ `features/block/api.ts`            |
+| [68](#68-이미지-순서--캡션-수정)             | 이미지 순서·캡션     | `PATCH /blocks/images/items/{imgBlockId}`                    | ✅ `features/block/api.ts`            |
+| [69](#69-이미지-항목-삭제)                   | 이미지 삭제          | `DELETE /blocks/images/items/{imgId}`                        | ✅ `features/block/api.ts`            |
+| [70](#70-이미지-다운로드)                    | 이미지 다운로드      | `GET /blocks/images/{id}/download`                           | ✅ `features/block/api.ts`            |
+| [71](#71-이미지-항목-전체-조회)              | 이미지 전체 조회     | `GET /blocks/images/{id}/items`                              | ✅ `features/block/api.ts`            |
+| [73](#73-결재-이력조회)                      | 결재 이력            | `GET /approvals/{id}/revisions`                              | ✅ `features/approval/api.ts`         |
+| [74](#74-프로젝트-파일-버전-목록)            | 프로젝트 버전 목록   | `GET /projects/{projectId}/file-versions`                    | ✅ `features/file/api.ts`             |
+| [75](#75-검토-템플릿-목록)                   | 검토 템플릿          | `GET /vitamate/review-templates`                             | ✅ `features/vitamate/api.ts`         |
+| [76](#76-비타메이트-분석-요청)               | 분석 요청            | `POST /blocks/{blockId}/vitamate/analyses`                   | ✅ `features/vitamate/api.ts`         |
+| [77](#77-비타메이트-분석-단건-조회)          | 분석 단건 조회       | `GET /vitamate/analyses/{analysisId}`                        | ✅ `features/vitamate/api.ts`         |
+| [78](#78-블록별-분석-이력)                   | 분석 이력            | `GET /blocks/{blockId}/vitamate/analyses`                    | ✅ `features/vitamate/api.ts`         |
+| [79](#79-알림-목록-조회)                     | 알림 목록            | `GET /notifications`                                         | ✅ `features/notification/api.ts`     |
+| [80](#80-알림-이동-대상-조회)                | 알림 이동 대상       | `GET /notifications/{id}/target`                             | ✅ `features/notification/api.ts`     |
+| [81](#81-알림-읽음-처리)                     | 알림 읽음            | `PATCH /notifications/{id}/read`                             | ✅ `features/notification/api.ts`     |
+| [82](#82-알림-전체-읽음-처리)                | 알림 전체 읽음       | `PATCH /notifications/read-all`                              | ✅ `features/notification/api.ts`     |
+| [83](#83-알림-삭제)                          | 알림 삭제            | `DELETE /notifications/{id}`                                 | ✅ `features/notification/api.ts`     |
+| [84](#84-프로젝트-목록-조회)                 | 프로젝트 목록        | `GET /projects`                                              | ✅ `features/project/api.ts`          |
+| [85](#85-정산-항목-수정-시-조회)             | 정산 수정 조회       | `GET /blocks/settlements/{id}/items`                         | ✅ `features/settlement/api.ts`       |
+| [86](#86-정산-항목-작성--수정)               | 정산 작성·수정       | `PATCH /blocks/settlements/{id}/items`                       | ✅ `features/settlement/api.ts`       |
+| [87](#87-사원-엑셀-템플릿-다운로드)          | 엑셀 템플릿          | `GET /employees/bulk-template`                               | ✅ `features/employee/api.ts`         |
+| [88](#88-사원-엑셀-일괄-등록-검증)           | 일괄 등록 검증       | `POST /employees/bulk/validate`                              | ✅ `features/employee/api.ts`         |
+| [89](#89-사원-엑셀-일괄-등록)                | 일괄 등록            | `POST /employees/bulk`                                       | ✅ `features/employee/api.ts`         |
+| [90](#90-직급별-사원-목록)                   | 직급별 사원 목록     | `GET /job-positions/{id}/employees`                          | ✅ `features/jobPosition/api.ts`      |
+| [91](#91-사원-그룹-목록-조회)                | 그룹 목록            | `GET /employee-groups`                                       | ✅ `features/employeeGroup/api.ts`    |
+| [92](#92-사원-그룹-생성)                     | 그룹 생성            | `POST /employee-groups`                                      | ✅ `features/employeeGroup/api.ts`    |
+| [93](#93-사원-그룹-수정)                     | 그룹 수정            | `PATCH /employee-groups/{groupId}`                           | ✅ `features/employeeGroup/api.ts`    |
+| [94](#94-사원-그룹-삭제)                     | 그룹 삭제            | `DELETE /employee-groups/{groupId}`                          | ✅ `features/employeeGroup/api.ts`    |
+| [95](#95-그룹-구성원-목록-조회)              | 구성원 목록          | `GET /employee-groups/{groupId}/members`                     | ✅ `features/employeeGroup/api.ts`    |
+| [96](#96-그룹-구성원-추가)                   | 구성원 추가          | `POST /employee-groups/{groupId}/members`                    | ✅ `features/employeeGroup/api.ts`    |
+| [97](#97-그룹-구성원-제거)                   | 구성원 제거          | `DELETE /employee-groups/{id}/members/{userId}`              | ✅ `features/employeeGroup/api.ts`    |
+| [98](#98-내-페이지-목록-조회)                | 내 페이지 목록       | `GET /my/pages`                                              | ✅ `features/pagePermission/api.ts`   |
+| [99](#99-페이지-목록-조회-권한-부여용)       | 페이지 목록          | `GET /pages`                                                 | ✅ `features/pagePermission/api.ts`   |
+| [100](#100-페이지-접근-가능자-목록)          | 접근 가능자 목록     | `GET /pages/{pageCode}/permissions`                          | ✅ `features/pagePermission/api.ts`   |
+| [101](#101-페이지-권한-부여--등급-변경)      | 권한 부여·변경       | `POST /pages/{pageCode}/permissions`                         | ✅ `features/pagePermission/api.ts`   |
+| [102](#102-페이지-권한-회수)                 | 권한 회수            | `DELETE /pages/{pageCode}/permissions/{userId}`              | ✅ `features/pagePermission/api.ts`   |
+| [103](#103-휴지통에서-복구)                  | 파일 복구            | `POST /files/{fileId}/restore`                               | ✅ `features/file/api.ts`             |
+| [104](#104-파일-영구-삭제)                   | 파일 영구 삭제       | `POST /files/{fileId}/permanent-deletion`                    | ✅ `features/file/api.ts`             |
+| [105](#105-프로젝트-문서함-전체-파일)        | 프로젝트 문서함      | `GET /projects/{projectId}/files`                            | ✅ `features/file/api.ts`             |
+| [106](#106-프로젝트-휴지통-모아보기)         | 프로젝트 휴지통      | `GET /projects/{projectId}/files/trash`                      | ✅ `features/file/api.ts`             |
+| [107](#107-프로젝트-이미지-모아보기)         | 이미지 모아보기      | `GET /projects/{projectId}/images`                           | ✅ `features/block/api.ts`            |
+| [108](#108-프로젝트-단위-이슈-목록-조회)     | 프로젝트 이슈        | `GET /projects/{projectId}/issues`                           | ✅ `features/issue/api.ts`            |
+| [109](#109-이미지-휴지통-조회)               | 이미지 휴지통        | `GET /projects/{projectId}/images/trash`                     | ✅ `features/block/api.ts`            |
+| [110](#110-이미지-복구-다건)                 | 이미지 복구          | `PATCH /blocks/images/items/restore`                         | ✅ `features/block/api.ts`            |
+| [111](#111-이미지-영구-삭제-다건)            | 이미지 영구 삭제     | `DELETE /blocks/images/items/hard`                           | ✅ `features/block/api.ts`            |
+| [112](#112-스테이지-생성)                    | 스테이지 생성        | `POST /projects/{projectId}/stages`                          | ✅ `features/project/api.ts`          |
+| [113](#113-스테이지-수정)                    | 스테이지 수정        | `PATCH /stages/{stageId}`                                    | ✅ `features/project/api.ts`          |
+| [114](#114-스테이지-삭제)                    | 스테이지 삭제        | `DELETE /stages/{stageId}`                                   | ✅ `features/project/api.ts`          |
+| [115](#115-스텝-생성)                        | 스텝 생성            | `POST /projects/{projectId}/steps`                           | ✅ `features/project/api.ts`          |
+| [116](#116-스텝-수정)                        | 스텝 수정            | `PATCH /steps/{stepId}`                                      | ✅ `features/project/api.ts`          |
+| [117](#117-스텝-삭제)                        | 스텝 삭제            | `DELETE /steps/{stepId}`                                     | ✅ `features/project/api.ts`          |
+| [118](#118-스텝-완료-처리)                   | 스텝 완료 처리       | `POST /steps/{stepId}/complete`                              | ✅ `features/project/api.ts`          |
+| [119](#119-스테이지-순서-변경)               | 스테이지 순서        | `PATCH /projects/{projectId}/stages/order`                   | ✅ `features/project/api.ts`          |
+| [120](#120-스텝-순서-변경)                   | 스텝 순서 · 소속     | `PATCH /projects/{projectId}/steps/order`                    | ✅ `features/project/api.ts`          |
+| [121](#121-블록-스텝-이동)                   | 블록 스텝 이동       | `PATCH /blocks/{blockId}/step`                               | ✅ `features/block/api.ts`            |
+| [122](#122-입찰-공고-목록-조회)              | 입찰 공고 목록       | `GET /bidding/notices`                                       | ✅ `features/bidding/api.ts`          |
+| [123](#123-입찰-공고-상세-조회)              | 입찰 공고 상세       | `GET /bidding/notices/{noticeId}`                            | ✅ `features/bidding/api.ts`          |
+| [124](#124-스텝-상세-조회)                   | 스텝 상세            | `GET /steps/{stepId}`                                        | ❌ 미연동                             |
+| [125](#125-참여자-추가)                      | 참여자 추가          | `POST /projects/{projectId}/members`                         | ✅ `features/project/api.ts`          |
+| [126](#126-참여자-권한-변경)                 | 참여자 권한 변경     | `PATCH /projects/{projectId}/members/{memberId}`             | ✅ `features/project/api.ts`          |
+| [127](#127-참여자-제거)                      | 참여자 제거          | `DELETE /projects/{projectId}/members/{memberId}`            | ✅ `features/project/api.ts`          |
+| [128](#128-하위-스텝-권한-일괄-적용)         | 스텝 권한 기본값     | `POST /stages/{stageId}/step-permissions`                    | ✅ `features/project/api.ts`          |
+| [129](#129-프로젝트-수정)                    | 프로젝트 수정        | `PATCH /projects/{projectId}`                                | ✅ `features/project/api.ts`          |
+| [130](#130-프로젝트-상태-변경)               | 프로젝트 상태 변경   | `PATCH /projects/{projectId}/status`                         | ✅ `features/project/api.ts`          |
+| [131](#131-프로젝트-종결)                    | 프로젝트 종결        | `POST /projects/{projectId}/close`                           | ✅ `features/project/api.ts`          |
+| [132](#132-사업-카테고리-연결)               | 카테고리 연결        | `POST /projects/{projectId}/business-categories`             | ✅ `features/project/api.ts`          |
+| [133](#133-사업-카테고리-해제)               | 카테고리 해제        | `DELETE /projects/{projectId}/business-categories/{id}`      | ✅ `features/project/api.ts`          |
+| [134](#134-스텝-권한-목록-조회)              | 스텝 권한 목록       | `GET /steps/{stepId}/permissions`                            | ✅ `features/project/api.ts`          |
+| [135](#135-스텝-권한-부여--변경)             | 스텝 권한 부여       | `PUT /steps/{stepId}/permissions/{userId}`                   | ✅ `features/project/api.ts`          |
+| [136](#136-스텝-권한-회수)                   | 스텝 권한 회수       | `DELETE /steps/{stepId}/permissions/{userId}`                | ✅ `features/project/api.ts`          |
+| [137](#137-스텝-상태-변경)                   | 스텝 상태 변경       | `PATCH /steps/{stepId}/status`                               | ✅ `features/project/api.ts`          |
+| [138](#138-프로젝트-직접-생성)               | 프로젝트 생성        | `POST /projects`                                             | ✅ `features/project/api.ts`          |
+| [139](#139-프로젝트-삭제)                    | 프로젝트 삭제        | `DELETE /projects/{projectId}`                               | ✅ `features/project/api.ts`          |
+| [140](#140-내-프로젝트-파일-모아보기)        | 내 파일              | `GET /files/my`                                              | ✅ `features/file/api.ts`             |
+| [141](#141-알림-실시간-수신-sse)             | 알림 실시간 수신     | `GET /notifications/stream`                                  | ✅ `features/notification/stream.ts`  |
+| [142](#142-전사-파일-목록-admin)             | 전사 파일 목록       | `GET /admin/files`                                           | ✅ `features/file/api.ts`             |
+| [143~150](#143150-사내-문서함-admin)         | 사내 문서함          | `/admin/company-documents …`                                 | ✅ `features/companyDocument/api.ts`  |
+| [151~154](#151154-전사-파일-탐색기-admin)    | 전사 파일 탐색기     | `/admin/files/projects …`                                    | ✅ `features/file/api.ts`             |
+| [155~158](#155158-전공--자격증-마스터-admin) | 전공 · 자격증 마스터 | `/majors` · `/certificates`                                  | ✅ `features/masterItem/api.ts`       |
+| [159](#159-세션-조회--연장)                  | 세션 조회 · 연장     | `GET /auth/session`                                          | ✅ `features/auth/api.ts`             |
 
 > `Base URL` 과 `/api/v1` 접두사는 생략했다. 실제 경로는 각 섹션 참고.
 > 번호 없는 절 — [공통 규약](#공통-규약) · [공통 403 — 게이트 · 권한](#공통-403--게이트--권한) · [파일 도메인 — 공통](#파일-도메인--공통) · [결재 도메인 — 공통](#결재-도메인--공통) · [이미지 도메인 — 공통](#이미지-도메인--공통) · [사원 그룹 도메인 — 공통](#사원-그룹-도메인--공통) · [페이지 권한 도메인 — 공통](#페이지-권한-도메인--공통) · [스테이지 · 스텝 도메인 — 공통](#스테이지--스텝-도메인--공통) · [이슈 도메인 — 공통](#이슈-도메인--공통) · [입찰 도메인 — 공통](#입찰-도메인--공통) · [프로젝트 참여자 · 설정 도메인 — 공통](#프로젝트-참여자--설정-도메인--공통)
@@ -178,18 +178,18 @@
 | 휴지통 화면 목업                                 | 복구 · 영구 삭제 API 연동                                    | —     |
 | 이슈 `version` 불일치 + 같은 상태 요청           | 200 인지 409 인지 명세가 갈라져 있다 (화면은 요청을 안 보냄) | 59    |
 
-#### 2026-08-13 해소 — `PATCH /steps/{stepId}/status` 명세 도착
+#### ✅ 2026-08-13 해소 — `PATCH /steps/{stepId}/status` 명세 도착
 
 **137번**으로 추가했다. 완료 처리(118)와 **별개 API** 가 맞고 `version` 은 필수다 — `DONE` 은 이 API 로 보낼 수 없다 (미완료 이슈 처리 선택이 필요해 118 소관).
 
-#### 2026-08-12 해소 — `version` 조회 응답 실림 (실서버 스키마 확인)
+#### ✅ 2026-08-12 해소 — `version` 조회 응답 실림 (실서버 스키마 확인)
 
 기동 중인 백엔드 `/v3/api-docs` 에서 응답 DTO 스키마를 직접 대조했다.
 
 | 확인한 스키마                                                                      | 해당 API      | 프론트 타입                   |
 | ---------------------------------------------------------------------------------- | ------------- | ----------------------------- |
-| `IssueListResponseIssueSummary` · `IssueDetailResponse` · `ProjectIssueListRespo…` | 55 · 57 · 108 | **필수로 조임**               |
-| `IssueStatusChangeResponse`                                                        | 59            | **필수로 조임**               |
+| `IssueListResponseIssueSummary` · `IssueDetailResponse` · `ProjectIssueListRespo…` | 55 · 57 · 108 | ✅ **필수로 조임**            |
+| `IssueStatusChangeResponse`                                                        | 59            | ✅ **필수로 조임**            |
 | `StageItemResponse` · `StepItemResponse`                                           | 7 · 8         | 아직 `version?` (조이기 가능) |
 | `BlockItemResponse`                                                                | 10            | 아직 `version?` (조이기 가능) |
 | `BlockFileListResponseItem`                                                        | 36            | 아직 `version?` (조이기 가능) |
@@ -256,7 +256,7 @@
 | ------------- | -------------------------------------- |
 | **Method**    | `POST`                                 |
 | **Path**      | `/api/v1/auth/login`                   |
-| **인증 필요** | X                                      |
+| **인증 필요** | ❌                                     |
 | **사용 위치** | `src/features/auth/api.ts` → `login()` |
 
 **Request Body**
@@ -310,7 +310,7 @@ interface LoginRequest {
 | ------------- | --------------------------------------- |
 | **Method**    | `POST`                                  |
 | **Path**      | `/api/v1/auth/logout`                   |
-| **인증 필요** | O                                       |
+| **인증 필요** | ✅                                      |
 | **사용 위치** | `src/features/auth/api.ts` → `logout()` |
 
 세션을 종료하고 쿠키를 만료시킨다. 응답 `data` 없음.
@@ -327,7 +327,7 @@ interface LoginRequest {
 | ------------- | -------------------------------------- |
 | **Method**    | `GET`                                  |
 | **Path**      | `/api/v1/auth/me`                      |
-| **인증 필요** | O                                      |
+| **인증 필요** | ✅                                     |
 | **사용 위치** | `src/features/auth/api.ts` → `getMe()` |
 
 **Response (200 OK)** — Swagger 스키마로 확인
@@ -370,7 +370,7 @@ interface LoginRequest {
 | ------------- | --------------------------------------------- |
 | **Method**    | `POST`                                        |
 | **Path**      | `/api/v1/auth/terms-agreements`               |
-| **인증 필요** | O                                             |
+| **인증 필요** | ✅                                            |
 | **요청 본문** | 없음                                          |
 | **사용 위치** | `src/features/auth/api.ts` → `agreeToTerms()` |
 
@@ -394,7 +394,7 @@ interface LoginRequest {
 | ------------- | ----------------------- |
 | **Method**    | `PATCH`                 |
 | **Path**      | `/api/v1/auth/password` |
-| **인증 필요** | O                       |
+| **인증 필요** | ✅                      |
 | **사용 위치** | 미구현                  |
 
 **Request Body**
@@ -425,7 +425,7 @@ interface ChangePasswordRequest {
 | ------------- | ---------------------------------------------------------------------- |
 | **Method**    | `GET`                                                                  |
 | **Path**      | `/api/v1/auth/session`                                                 |
-| **인증 필요** | O                                                                      |
+| **인증 필요** | ✅                                                                     |
 | **권한**      | 전체 사용자                                                            |
 | **사용 위치** | `src/features/auth/api.ts` → `getSession()` · `SessionTimer` (PR #424) |
 
@@ -486,7 +486,7 @@ interface ChangePasswordRequest {
 | ------------- | ---------------------------------------------- |
 | **Method**    | `GET`                                          |
 | **Path**      | `/api/v1/projects/{projectId}`                 |
-| **인증 필요** | O                                              |
+| **인증 필요** | ✅                                             |
 | **사용 위치** | `src/features/project/api.ts` → `getProject()` |
 
 **Response (200 OK)**
@@ -525,7 +525,7 @@ interface ChangePasswordRequest {
 
 > `progressRate` 는 **선택 필드**다. 스텝이 0개면 아예 오지 않으므로 `?? 0` 로 받는다.
 > `myPermission === 'VIEWER'` 면 수정·추가 버튼을 숨긴다. (실제 차단은 백엔드가 한다)
-> 참여자 목록은 45번 API로 연동했다. 사이드바와 블록 담당자 지정이 같은 목록을 사용한다.
+> ✅ 참여자 목록은 45번 API로 연동했다. 사이드바와 블록 담당자 지정이 같은 목록을 사용한다.
 > **`version` 은 화면에 그리는 값이 아니라 다음 쓰기 요청에 실어 보낼 값**이다 (2026-08-11 신설). 상세를 받아 보관하지 않으면 프로젝트 수정·상태변경을 호출할 수 없다.
 > **삭제된 카테고리도 이름은 그대로 내려온다** (D-6 · 2026-08-11). 연결 행이 남아 있어 목록에서 사라지지 않으니 `deleted: true` 는 **배지로 표시**하고, **선택 드롭다운에서만 제외**한다.
 > `businessCategories[].code` 는 **`null` 이 올 수 있다.**
@@ -548,7 +548,7 @@ interface ChangePasswordRequest {
 | ------------- | ---------------------------------------------------- |
 | **Method**    | `GET`                                                |
 | **Path**      | `/api/v1/projects/{projectId}/stages`                |
-| **인증 필요** | O                                                    |
+| **인증 필요** | ✅                                                   |
 | **사용 위치** | `src/features/project/api.ts` → `getProjectStages()` |
 
 **Response (200 OK)**
@@ -580,7 +580,7 @@ interface ChangePasswordRequest {
 | ------------- | --------------------------------------------------- |
 | **Method**    | `GET`                                               |
 | **Path**      | `/api/v1/projects/{projectId}/steps`                |
-| **인증 필요** | O                                                   |
+| **인증 필요** | ✅                                                  |
 | **사용 위치** | `src/features/project/api.ts` → `getProjectSteps()` |
 
 **Response (200 OK)**
@@ -623,7 +623,7 @@ interface ChangePasswordRequest {
 | ------------- | --------------------------------------------- |
 | **Method**    | `POST`                                        |
 | **Path**      | `/api/v1/steps/{stepId}/blocks`               |
-| **인증 필요** | (스텝 `EDITOR`)                               |
+| **인증 필요** | ✅ (스텝 `EDITOR`)                            |
 | **사용 위치** | `src/features/block/api.ts` → `createBlock()` |
 | **요구사항**  | BLK-001 · BLK-002 · BLK-003                   |
 
@@ -662,7 +662,7 @@ interface CreateBlockRequest {
 > **`BID_NOTICE` 는 사용자가 직접 만들 수 없다** (2026-08-11 확인). 공고→프로젝트 전환 API 가 자동 생성한다 (`BID-V1` CNV-06) — 이 API 로 보내면 400 `BLOCK_TYPE_INVALID` 다. **블록 추가 모달 목록에서 제거할 것.**
 > `MEMO` 는 폐기됐다 (2026-08-03). enum 에도 타입 선택 목록에도 없다.
 
-**Response (201 Created)** — 2026-08-11 확정
+**Response (201 Created)** — ✅ 2026-08-11 확정
 
 ```ts
 data: {
@@ -683,7 +683,7 @@ data: {
 > ℹ 생성 응답의 `owner.deleted` 는 **항상 `false`** 다. `true` 가 올 수 있는 곳은 조회(10번)뿐이다.
 > ℹ 10번과 달리 `projectId` 가 여기엔 온다 — 조회 응답에는 내려주지 않는다.
 
-**Status Code** — 2026-08-11 확정
+**Status Code** — ✅ 2026-08-11 확정
 
 | 코드 | code                                | 설명                                                  |
 | ---- | ----------------------------------- | ----------------------------------------------------- |
@@ -707,7 +707,7 @@ data: {
 | ------------- | ----------------------------------------------- |
 | **Method**    | `GET`                                           |
 | **Path**      | `/api/v1/steps/{stepId}/blocks`                 |
-| **인증 필요** | O                                               |
+| **인증 필요** | ✅                                              |
 | **사용 위치** | `src/features/block/api.ts` → `getStepBlocks()` |
 
 **Response (200 OK)**
@@ -734,7 +734,7 @@ data: {
 }
 ```
 
-**타입별 `detail` — 확정 2종**
+**타입별 `detail` — ✅ 확정 2종**
 
 ```ts
 // TEXT
@@ -757,14 +757,14 @@ detail: {
 }
 ```
 
-> **`detail.txtId` · `detail.chkBlockId` · `detail.items` 키 이름이 확정됐다** (2026-08-11). 프론트의 런타임 검증(`readChecklistBlockDetail` 등)은 방어용으로 남겨도 되지만 **키 추측 분기는 정리 가능**하다.
+> ✅ **`detail.txtId` · `detail.chkBlockId` · `detail.items` 키 이름이 확정됐다** (2026-08-11). 프론트의 런타임 검증(`readChecklistBlockDetail` 등)은 방어용으로 남겨도 되지만 **키 추측 분기는 정리 가능**하다.
 > ℹ 블록 추가 직후 `CHECKLIST` 는 `{ chkBlockId, totalCount: 0, completedCount: 0, items: [] }` 다.
 > ℹ `items` 에 `sortOrder` 가 없다 — **체크리스트 드래그 재정렬 기능은 만들 수 없다.**
 
 > ℹ `data` 안에 `blocks` 로 한 겹 더 감싸져 있다. `getStepBlocks()` 가 벗겨서 배열만 반환한다.
 > ℹ **`rowIndex` · `sortOrder` 순으로 정렬되어 온다.** 보드는 이 둘로 **평면 순서**를 만든 뒤 앞에서부터 3칸씩 채워 행을 다시 만든다 (`blockLayout.ts`). 서버 `rowIndex` 를 그대로 행으로 쓰지 않으므로 한 행이 3칸을 넘는 일이 없다.
 > **`colSpan` 이 1~3 이다.** 블록 생성 명세와 같지만, 화면 기획상 1·2칸만 쓰이더라도 3까지 들어올 수 있어 보드는 3칸까지 그린다.
-> **블록 타입 10종 확정** (2026-08-11) — 9번의 9종 + **`SETTLEMENT`**(정산). `MEMO` 는 폐기됐다. 조회에는 10종이 오지만 **생성 가능한 것은 9종**이고, 그중 `BID_NOTICE` 도 사용자가 못 만든다. 프론트는 모르는 값이 오면 `준비 중인 블록입니다.` 껍데기로 그린다.
+> ✅ **블록 타입 10종 확정** (2026-08-11) — 9번의 9종 + **`SETTLEMENT`**(정산). `MEMO` 는 폐기됐다. 조회에는 10종이 오지만 **생성 가능한 것은 9종**이고, 그중 `BID_NOTICE` 도 사용자가 못 만든다. 프론트는 모르는 값이 오면 `준비 중인 블록입니다.` 껍데기로 그린다.
 > **`status` 필드가 없다.** 블록은 자체 진행 상태를 갖지 않는다 (BLK-005).
 > **`typeId` · `projectId` 는 내려오지 않는다.** `type_id` 는 다형성 내부 식별자라 노출하지 않고, `block.project_id` 는 폐기됐다.
 > ℹ **`detail` 은 블록의 내용을 담는 하위 계층이다.** `blockId` 로 관리하는 것은 위 공통 필드까지고, 내용은 타입별 상세 ID(예: `CHECKLIST` 의 `chkBlockId`)로 관리한다.
@@ -801,7 +801,7 @@ detail: {
 | ------------- | ------------------------------------------------- |
 | **Method**    | `PATCH`                                           |
 | **Path**      | `/api/v1/blocks/texts/{txtId}`                    |
-| **인증 필요** | O                                                 |
+| **인증 필요** | ✅                                                |
 | **사용 위치** | `src/features/block/api.ts` → `updateTextBlock()` |
 
 **Request Body**
@@ -849,7 +849,7 @@ data: {
 | ------------- | ----------------------------------------------------- |
 | **Method**    | `POST`                                                |
 | **Path**      | `/api/v1/blocks/checklists/{chkBlockId}/items`        |
-| **인증 필요** | O                                                     |
+| **인증 필요** | ✅                                                    |
 | **사용 위치** | `src/features/block/api.ts` → `createChecklistItem()` |
 
 **Request Body**
@@ -886,7 +886,7 @@ data: {
 | ------------- | ----------------------------------------------------- |
 | **Method**    | `PATCH`                                               |
 | **Path**      | `/api/v1/blocks/checklists/items/{chkId}`             |
-| **인증 필요** | O                                                     |
+| **인증 필요** | ✅                                                    |
 | **사용 위치** | `src/features/block/api.ts` → `updateChecklistItem()` |
 
 **Request Body** — 두 필드 모두 nullable. 내용만 · 완료 여부만 · 둘 다 보낼 수 있다.
@@ -921,7 +921,7 @@ data: {
 | ------------- | ----------------------------------------------------- |
 | **Method**    | `DELETE`                                              |
 | **Path**      | `/api/v1/blocks/checklists/items/{chkId}`             |
-| **인증 필요** | O                                                     |
+| **인증 필요** | ✅                                                    |
 | **사용 위치** | `src/features/block/api.ts` → `deleteChecklistItem()` |
 
 **Response (200 OK)**
@@ -945,7 +945,7 @@ data: {
 | ------------- | ---------------------------------------------------------- |
 | **Method**    | `GET`                                                      |
 | **Path**      | `/api/v1/business-categories`                              |
-| **인증 필요** | O                                                          |
+| **인증 필요** | ✅                                                         |
 | **사용 위치** | `src/features/businessCategory/api.ts` → `getCategories()` |
 
 **Query**
@@ -987,7 +987,7 @@ data: {
 | ------------- | ----------------------------------------------------------- |
 | **Method**    | `POST`                                                      |
 | **Path**      | `/api/v1/business-categories`                               |
-| **인증 필요** | (ADMIN)                                                     |
+| **인증 필요** | ✅ (ADMIN)                                                  |
 | **사용 위치** | `src/features/businessCategory/api.ts` → `createCategory()` |
 
 **Request Body**
@@ -1019,7 +1019,7 @@ data: {
 | ------------- | ----------------------------------------------------------- |
 | **Method**    | `PATCH`                                                     |
 | **Path**      | `/api/v1/business-categories/{categoryId}`                  |
-| **인증 필요** | (ADMIN)                                                     |
+| **인증 필요** | ✅ (ADMIN)                                                  |
 | **사용 위치** | `src/features/businessCategory/api.ts` → `updateCategory()` |
 
 **Request Body** — 보낸 필드만 바뀐다
@@ -1052,7 +1052,7 @@ data: {
 | ------------- | ----------------------------------------------------------- |
 | **Method**    | `DELETE`                                                    |
 | **Path**      | `/api/v1/business-categories/{categoryId}`                  |
-| **인증 필요** | (ADMIN)                                                     |
+| **인증 필요** | ✅ (ADMIN)                                                  |
 | **사용 위치** | `src/features/businessCategory/api.ts` → `deleteCategory()` |
 
 **논리 삭제**다. 하드 삭제하지 않고, **이미 걸린 연결은 끊지 않는다** — 연결 해제는 프로젝트 쪽 API 소관.
@@ -1073,14 +1073,14 @@ data: {
 | ------------- | ------------------------------------------------------- |
 | **Method**    | `PATCH`                                                 |
 | **Path**      | `/api/v1/accounts/{userId}/role`                        |
-| **인증 필요** | (ADMIN)                                                 |
+| **인증 필요** | ✅ (ADMIN)                                              |
 | **사용 위치** | `src/features/employee/api.ts` → `updateEmployeeRole()` |
 
 **요청 Body**
 
 | 필드   | 타입     | 필수 | 설명                             |
 | ------ | -------- | ---- | -------------------------------- |
-| `role` | `string` | O    | `MASTER` · `MEMBER` — ADMIN 불가 |
+| `role` | `string` | ✅   | `MASTER` · `MEMBER` — ADMIN 불가 |
 
 **응답 data** — `userId` · `role`
 
@@ -1100,14 +1100,14 @@ data: {
 | ------------- | -------------------------------------------------------- |
 | **Method**    | `PATCH`                                                  |
 | **Path**      | `/api/v1/accounts/{userId}/status`                       |
-| **인증 필요** | (ADMIN)                                                  |
+| **인증 필요** | ✅ (ADMIN)                                               |
 | **사용 위치** | `src/features/employee/api.ts` → `updateAccountStatus()` |
 
 **요청 Body**
 
 | 필드     | 타입     | 필수 | 설명                  |
 | -------- | -------- | ---- | --------------------- |
-| `status` | `string` | O    | `ACTIVE` · `INACTIVE` |
+| `status` | `string` | ✅   | `ACTIVE` · `INACTIVE` |
 
 **응답 data** — `userId` · `status`
 
@@ -1128,14 +1128,14 @@ data: {
 | ------------- | --------------------------------------------------- |
 | **Method**    | `POST`                                              |
 | **Path**      | `/api/v1/accounts/password-resets`                  |
-| **인증 필요** | (ADMIN)                                             |
+| **인증 필요** | ✅ (ADMIN)                                          |
 | **사용 위치** | `src/features/employee/api.ts` → `resetPasswords()` |
 
 **요청 Body**
 
 | 필드      | 타입       | 필수 | 설명                            |
 | --------- | ---------- | ---- | ------------------------------- |
-| `userIds` | `string[]` | O    | 대상 사번 목록 (1명이면 길이 1) |
+| `userIds` | `string[]` | ✅   | 대상 사번 목록 (1명이면 길이 1) |
 
 **응답 data**
 
@@ -1165,7 +1165,7 @@ data: {
 | ------------- | ---------------------------------------------------------------------------------------------- |
 | **Method**    | `GET`                                                                                          |
 | **Path**      | `/api/v1/departments`                                                                          |
-| **인증 필요** | (전체 사용자 — 사원 등록 · 필터에 쓰임)                                                        |
+| **인증 필요** | ✅ (전체 사용자 — 사원 등록 · 필터에 쓰임)                                                     |
 | **사용 위치** | `src/features/department/api.ts` → `getDepartments()` (사원 목록 필터 셀렉트도 이 API 를 쓴다) |
 
 **응답 data.content[]**
@@ -1189,13 +1189,13 @@ data: {
 | ------------- | --------------------- |
 | **Method**    | `POST`                |
 | **Path**      | `/api/v1/departments` |
-| **인증 필요** | (ADMIN)               |
+| **인증 필요** | ✅ (ADMIN)            |
 
 **요청 Body**
 
 | 필드       | 타입     | 필수 | 설명                                      |
 | ---------- | -------- | ---- | ----------------------------------------- |
-| `name`     | `string` | O    | 최대 50자, 전체 중복 불가 ( 변경 요청 중) |
+| `name`     | `string` | ✅   | 최대 50자, 전체 중복 불가 ( 변경 요청 중) |
 | `parentId` | `Long`   | —    | 생략하면 최상위. 하위 추가 시 고정 전송   |
 
 **응답 data** — `departmentId` · `name` · `parentId` · `parentName` · `directEmployeeCount`(0) · `totalEmployeeCount`(0)
@@ -1207,7 +1207,7 @@ data: {
 | 409    | `DEPT_NAME_DUPLICATED`    | 이름 입력 아래 인라인 에러            |
 | 409    | `DEPT_MAX_DEPTH_EXCEEDED` | 2단 초과 — 하위 추가 메뉴를 미리 숨김 |
 
-> **부서명은 같은 상위 부서(형제) 안에서 유니크다** (최상위 부서끼리는 전체 기준) — 2026-08-10 최종 명세로 확정.
+> ✅ **부서명은 같은 상위 부서(형제) 안에서 유니크다** (최상위 부서끼리는 전체 기준) — 2026-08-10 최종 명세로 확정.
 > 그래서 `기술본부 > 개발팀` 과 `SI본부 > 개발팀` 을 함께 만들 수 있다. 409 문구는 백엔드 `message` 를 그대로 쓴다.
 
 ---
@@ -1218,10 +1218,10 @@ data: {
 | ------------- | ------------------------------------------------------- |
 | **Method**    | `PATCH`                                                 |
 | **Path**      | `/api/v1/departments/{departmentId}`                    |
-| **인증 필요** | (ADMIN)                                                 |
+| **인증 필요** | ✅ (ADMIN)                                              |
 | **사용 위치** | `src/features/department/api.ts` → `updateDepartment()` |
 
-**요청 Body** — `name` (, 최대 50자)
+**요청 Body** — `name` (✅, 최대 50자)
 
 **응답 data** — `departmentId` · `name` · `parentId` · `parentName`
 
@@ -1242,7 +1242,7 @@ data: {
 | ------------- | ------------------------------------ |
 | **Method**    | `DELETE`                             |
 | **Path**      | `/api/v1/departments/{departmentId}` |
-| **인증 필요** | (ADMIN)                              |
+| **인증 필요** | ✅ (ADMIN)                           |
 
 **하드 삭제**다 (논리 삭제 아님). 하위 부서를 함께 지우지 않는다.
 
@@ -1260,7 +1260,7 @@ data: {
 | ------------- | ------------------------------------------------------- |
 | **Method**    | `GET`                                                   |
 | **Path**      | `/api/v1/job-positions`                                 |
-| **인증 필요** | (ADMIN)                                                 |
+| **인증 필요** | ✅ (ADMIN)                                              |
 | **사용 위치** | `src/features/jobPosition/api.ts` → `getJobPositions()` |
 
 **응답 data.content[]**
@@ -1282,14 +1282,14 @@ data: {
 | ------------- | --------------------------------------------------------- |
 | **Method**    | `POST`                                                    |
 | **Path**      | `/api/v1/job-positions`                                   |
-| **인증 필요** | (ADMIN)                                                   |
+| **인증 필요** | ✅ (ADMIN)                                                |
 | **사용 위치** | `src/features/jobPosition/api.ts` → `createJobPosition()` |
 
 **요청 Body**
 
 | 필드        | 타입     | 필수 | 설명                         |
 | ----------- | -------- | ---- | ---------------------------- |
-| `name`      | `string` | O    | 최대 30자, 중복 불가         |
+| `name`      | `string` | ✅   | 최대 30자, 중복 불가         |
 | `sortOrder` | `int`    | —    | 생략하면 **마지막 순서 + 1** |
 
 **응답 data** (201) — `jobPositionId` · `name` · `sortOrder` · `employeeCount`(0)
@@ -1307,7 +1307,7 @@ data: {
 | ------------- | --------------------------------------------------------- |
 | **Method**    | `PATCH`                                                   |
 | **Path**      | `/api/v1/job-positions/{jobPositionId}`                   |
-| **인증 필요** | (ADMIN)                                                   |
+| **인증 필요** | ✅ (ADMIN)                                                |
 | **사용 위치** | `src/features/jobPosition/api.ts` → `updateJobPosition()` |
 
 **요청 Body** — 전달한 필드만 수정된다
@@ -1336,7 +1336,7 @@ data: {
 | ------------- | --------------------------------------------------------- |
 | **Method**    | `DELETE`                                                  |
 | **Path**      | `/api/v1/job-positions/{jobPositionId}`                   |
-| **인증 필요** | (ADMIN)                                                   |
+| **인증 필요** | ✅ (ADMIN)                                                |
 | **사용 위치** | `src/features/jobPosition/api.ts` → `deleteJobPosition()` |
 
 **하드 삭제**다. 사용 인원이 있으면 먼저 사원의 직급을 바꾸거나 비워야 한다.
@@ -1356,7 +1356,7 @@ data: {
 | ------------- | ------------------------------------------------- |
 | **Method**    | `GET`                                             |
 | **Path**      | `/api/v1/employees`                               |
-| **인증 필요** | (ADMIN)                                           |
+| **인증 필요** | ✅ (ADMIN)                                        |
 | **사용 위치** | `src/features/employee/api.ts` → `getEmployees()` |
 
 **요청 Query**
@@ -1399,7 +1399,7 @@ data: {
 | 400    | `EMP_INVALID_PARAMETER` | 허용되지 않는 필터 값 |
 
 > 결재선 검색([35](#35-사원-이름-검색-결재선-지정용))과 **다른 API** 다 — 이건 ADMIN 전용 인사관리용.
-> **`includeSubDepartments`** (2026-08-19 백엔드 `#432`) — 부서 관리의 인원 배지는 하위 포함 수
+> ✅ **`includeSubDepartments`** (2026-08-19 백엔드 `#432`) — 부서 관리의 인원 배지는 하위 포함 수
 > (`totalEmployeeCount`)인데 `사원 보기` 는 직속만 보여줘 숫자가 어긋났다. 링크에 `true` 를 붙여 맞춘다.
 > `departmentId` 없이 단독으로 주면 무시된다. 부서 트리가 최대 2단이라 하위 부서에 걸면 직속과 같다.
 > ℹ 상태 배지는 `accountStatus` + `passwordStatus` **두 원본을 프론트가 조합**한다.
@@ -1414,7 +1414,7 @@ data: {
 | ------------- | ------------------------------------------------ |
 | **Method**    | `GET`                                            |
 | **Path**      | `/api/v1/employees/{userId}`                     |
-| **인증 필요** | (ADMIN)                                          |
+| **인증 필요** | ✅ (ADMIN)                                       |
 | **사용 위치** | `src/features/employee/api.ts` → `getEmployee()` |
 
 **응답 data** — 목록 필드 + 아래
@@ -1440,18 +1440,18 @@ data: {
 | ------------- | --------------------------------------------------- |
 | **Method**    | `POST`                                              |
 | **Path**      | `/api/v1/employees`                                 |
-| **인증 필요** | (ADMIN)                                             |
+| **인증 필요** | ✅ (ADMIN)                                          |
 | **사용 위치** | `src/features/employee/api.ts` → `createEmployee()` |
 
 **요청 Body**
 
 | 필드            | 타입     | 필수 | 설명                             |
 | --------------- | -------- | ---- | -------------------------------- |
-| `userId`        | `string` | O    | 사번 = 로그인 아이디 (불변)      |
-| `name`          | `string` | O    | 이름                             |
-| `departmentId`  | `Long`   | O    | 부서 ID                          |
-| `hiredAt`       | `string` | O    | 입사일 `yyyy-MM-dd`              |
-| `role`          | `string` | O    | `MASTER` · `MEMBER` (ADMIN 불가) |
+| `userId`        | `string` | ✅   | 사번 = 로그인 아이디 (불변)      |
+| `name`          | `string` | ✅   | 이름                             |
+| `departmentId`  | `Long`   | ✅   | 부서 ID                          |
+| `hiredAt`       | `string` | ✅   | 입사일 `yyyy-MM-dd`              |
+| `role`          | `string` | ✅   | `MASTER` · `MEMBER` (ADMIN 불가) |
 | `jobPositionId` | `Long`   | —    | 직급 ID                          |
 | `email`         | `string` | —    | 초기 비밀번호를 이 주소로 발송   |
 | `phone`         | `string` | —    | 연락처                           |
@@ -1478,7 +1478,7 @@ data: {
 | ------------- | --------------------------------------------------- |
 | **Method**    | `PATCH`                                             |
 | **Path**      | `/api/v1/employees/{userId}`                        |
-| **인증 필요** | (ADMIN)                                             |
+| **인증 필요** | ✅ (ADMIN)                                          |
 | **사용 위치** | `src/features/employee/api.ts` → `updateEmployee()` |
 
 **요청 Body** — 전달한 필드만 수정된다
@@ -1509,10 +1509,10 @@ data: {
 | ------------- | --------------------------------------------------- |
 | **Method**    | `PATCH`                                             |
 | **Path**      | `/api/v1/employees/{userId}/resignation`            |
-| **인증 필요** | (ADMIN)                                             |
+| **인증 필요** | ✅ (ADMIN)                                          |
 | **사용 위치** | `src/features/employee/api.ts` → `resignEmployee()` |
 
-**요청 Body** — `resignedAt` (, 퇴사일 `yyyy-MM-dd`)
+**요청 Body** — `resignedAt` (✅, 퇴사일 `yyyy-MM-dd`)
 
 **응답 data** — `userId` · `resignedAt` · `accountStatus`(`INACTIVE`)
 
@@ -1530,12 +1530,12 @@ data: {
 
 ## 35. 사원 이름 검색 (결재선 지정용)
 
-| 항목          | 내용                                               |
-| ------------- | -------------------------------------------------- |
-| **Method**    | `GET`                                              |
-| **Path**      | `/api/v1/employees/search`                         |
-| **인증 필요** | (로그인 사용자 전체 — **ADMIN 전용 아님**)         |
-| **사용 위치** | `features/employee/api.ts` — `EmployeeSearchInput` |
+| 항목          | 내용                                                  |
+| ------------- | ----------------------------------------------------- |
+| **Method**    | `GET`                                                 |
+| **Path**      | `/api/v1/employees/search`                            |
+| **인증 필요** | ✅ (로그인 사용자 전체 — **ADMIN 전용 아님**)         |
+| **사용 위치** | ✅ `features/employee/api.ts` — `EmployeeSearchInput` |
 
 **요청 Query** — `name`(이름 부분 일치) · `departmentId`(부서) — **둘 중 하나는 필수**
 둘 다 비면 400 `EMP_INVALID_PARAMETER` 다. (2026-08-17 `departmentId` 추가)
@@ -1584,7 +1584,7 @@ data: {
 | ------------- | ---------------------------------------------- |
 | **Method**    | `GET`                                          |
 | **Path**      | `/api/v1/blocks/{blockId}/files`               |
-| **인증 필요** | (스텝 `VIEWER`)                                |
+| **인증 필요** | ✅ (스텝 `VIEWER`)                             |
 | **사용 위치** | `src/features/file/api.ts` → `getBlockFiles()` |
 
 **요청 Query** — `deleted` (선택, `true` 면 휴지통. 기본 `false`)
@@ -1618,16 +1618,16 @@ data: {
 | ------------- | -------------------------------------------- |
 | **Method**    | `POST`                                       |
 | **Path**      | `/api/v1/files/uploads`                      |
-| **인증 필요** | (스텝 `EDITOR`)                              |
+| **인증 필요** | ✅ (스텝 `EDITOR`)                           |
 | **사용 위치** | `src/features/file/api.ts` → `startUpload()` |
 
 **요청 Body**
 
 ```ts
 {
-  blockId: number;            //
-  originalFileName: string;   //  확장자 포함
-  sizeBytes: number;          //  50MB 이하
+  blockId: number;            // ✅
+  originalFileName: string;   // ✅ 확장자 포함
+  sizeBytes: number;          // ✅ 50MB 이하
   mimeType?: string;
   name?: string;              // 표시명. 생략 시 확장자 뗀 원본명
   fileId?: number;            // 주면 그 문서의 새 버전, 없으면 새 문서(v1)
@@ -1657,7 +1657,7 @@ data: {
 | ------------- | ------------------------------------------------ |
 | **Method**    | `POST`                                           |
 | **Path**      | `/api/v1/files/uploads/{fileVersionId}/complete` |
-| **인증 필요** | (스텝 `EDITOR`)                                  |
+| **인증 필요** | ✅ (스텝 `EDITOR`)                               |
 | **사용 위치** | `src/features/file/api.ts` → `completeUpload()`  |
 
 **요청 Body** — `checksum` (선택, 보내면 서버가 대조)
@@ -1681,10 +1681,10 @@ data: {
 | ------------- | ------------------------------------------- |
 | **Method**    | `PATCH`                                     |
 | **Path**      | `/api/v1/files/{fileId}`                    |
-| **인증 필요** | (스텝 `EDITOR`)                             |
+| **인증 필요** | ✅ (스텝 `EDITOR`)                          |
 | **사용 위치** | `src/features/file/api.ts` → `renameFile()` |
 
-**요청 Body** — `name` (, 최대 255자) · `version` () · `overwrite` (선택)
+**요청 Body** — `name` (✅, 최대 255자) · `version` (✅) · `overwrite` (선택)
 **응답 data** — `fileId` · `name` · `version`(저장 후 **+1** 된 새 값)
 
 | status | code                            | 화면 처리                                 |
@@ -1707,7 +1707,7 @@ data: {
 | ------------- | ------------------------------------------ |
 | **Method**    | `DELETE`                                   |
 | **Path**      | `/api/v1/files/{fileId}`                   |
-| **인증 필요** | (스텝 `EDITOR`)                            |
+| **인증 필요** | ✅ (스텝 `EDITOR`)                         |
 | **사용 위치** | `src/features/file/api.ts` → `trashFile()` |
 
 **응답 data** — `fileId` · `deletedAt`
@@ -1729,7 +1729,7 @@ data: {
 | ------------- | ------------------------------------------------ |
 | **Method**    | `GET`                                            |
 | **Path**      | `/api/v1/files/{fileId}/versions`                |
-| **인증 필요** | (스텝 `VIEWER`)                                  |
+| **인증 필요** | ✅ (스텝 `VIEWER`)                               |
 | **사용 위치** | `src/features/file/api.ts` → `getFileVersions()` |
 
 **응답 data** — `fileId` · `name` · `versionCount` · `content[]`
@@ -1751,7 +1751,7 @@ data: {
 | ------------- | ------------------------------------------------ |
 | **Method**    | `GET`                                            |
 | **Path**      | `/api/v1/file-versions/{fileVersionId}/download` |
-| **인증 필요** | (스텝 `VIEWER`)                                  |
+| **인증 필요** | ✅ (스텝 `VIEWER`)                               |
 | **사용 위치** | `src/features/file/api.ts` → `getDownloadUrl()`  |
 
 **응답 data** — `fileVersionId` · `originalFileName` · `sizeBytes` · `downloadUrl`(presigned, 5분) · `expiresAt`
@@ -1772,7 +1772,7 @@ data: {
 | ------------- | ----------------------------------------------- |
 | **Method**    | `GET`                                           |
 | **Path**      | `/api/v1/file-versions/{fileVersionId}/preview` |
-| **인증 필요** | (스텝 `VIEWER`)                                 |
+| **인증 필요** | ✅ (스텝 `VIEWER`)                              |
 | **사용 위치** | `src/features/file/api.ts` → `getPreview()`     |
 
 **응답** — **JSON 이 아니라 잘라낸 PDF 바이너리다.**
@@ -1802,7 +1802,7 @@ data: {
 | ------------- | --------------------------------------------------- |
 | **Method**    | `PATCH`                                             |
 | **Path**      | `/api/v1/steps/{stepId}/blocks/layout`              |
-| **인증 필요** | (스텝 `EDITOR`)                                     |
+| **인증 필요** | ✅ (스텝 `EDITOR`)                                  |
 | **요구사항**  | BLK-003 · BLK-004                                   |
 | **사용 위치** | `src/features/block/api.ts` → `updateBlockLayout()` |
 
@@ -1845,7 +1845,7 @@ interface UpdateBlockLayoutRequest {
 > **같은 블록이 여러 요청에 포함되면 마지막에 저장된 값이 남는다.** 서로 다른 블록만 포함한 요청은 독립적으로 반영되지만, 현재 FE가 스텝 전체 목록을 보내면 요청 범위가 겹쳐 다른 사용자의 변경을 덮을 수 있다. 충돌을 실제로 막으려면 블록별 **version 검증과 409**가 필요하고, 다른 사용자의 변경 감지는 폴링 또는 SSE가 별도로 담당한다.
 > **"보내지 않는다" 가 가장 위험한 실패다** (2026-08-19). 마지막으로 저장된 배치와 지문이 같으면 요청을 건너뛰는데, 그 기준(`confirmed`)이 **아직 저장하지 않은 배치**로 오염되면 `배치 완료` 를 눌러도 요청이 나가지 않고 오류도 안 뜬다 — 화면만 옮겨져 있고 새로고침하면 옛 배치로 돌아간다.
 > 더 앞단에서 **저장을 묻지도 않는 실패**가 있었다 (2026-08-19). 같은 메아리 오인이 편집 기준(`arrangeBase`)까지 매 이동마다 현재 순서로 덮어, `hasChanges()` 가 늘 false → `배치 완료` 가 모달 없이 편집 모드만 닫고 **저장 함수 자체가 호출되지 않았다.** 화면과 순서가 같은 목록은 내 메아리로 보고 기준을 건드리지 않는다.
-> 그래서 **사용자가 저장 을 누른 경로만 지문 검사를 건너뛰고 무조건 보낸다** (`useLayoutSaver.saveNow()`). 자동 저장(디바운스)은 지금도 지문이 같으면 보내지 않는다.
+> ✅ 그래서 **사용자가 저장 을 누른 경로만 지문 검사를 건너뛰고 무조건 보낸다** (`useLayoutSaver.saveNow()`). 자동 저장(디바운스)은 지금도 지문이 같으면 보내지 않는다.
 > 오염의 뿌리는 **자기 메아리 오인**이다 — 드래그 결과를 캐시에 꽂으면(`useSetStepBlocks`) 그 목록이 prop 으로 되돌아오는데, 보드는 그걸 `blocks === echoed` 참조 비교로 가린다. react-query 는 `setQueryData` 와 `select` 양쪽에 구조 공유(`replaceEqualDeep`)를 적용해 **캐시가 보관한 배열과 화면이 받는 배열이 서로 다른 참조**라, 이 비교는 늘 어긋난 채였다(`query-core@5.101.4` 로 재현). 좌표 지문 비교로 바꾸는 시도는 **드래그 미리보기가 멈추는 회귀**가 나 되돌렸다 — 재시도 시 미리보기(`applyMove` → `setOrder`)부터 확인할 것.
 > ℹ `rowIndex` · `sortOrder` 는 서버가 준 값을 재활용하지 않고 **화면에 그려진 행 기준으로 0부터 다시 매겨** 보낸다 (`blockLayout.ts` → `toLayouts()`). 보이는 배치와 저장되는 배치가 어긋나지 않는다.
 > ℹ 응답으로 온 배치를 블록에 덮어쓴다 (`applyLayouts()`). 건너뛰면 다음 블록 생성이 옛 좌표로 자리를 잡는다.
@@ -2017,8 +2017,8 @@ soft delete(`deleted_at` 플래그)만 지원하며 응답 `data` 는 `null` 이
 | ------------- | ------------------------------------------------------- |
 | **Method**    | `GET`                                                   |
 | **Path**      | `/api/v1/approvals/{approvalId}/revisions/{revisionId}` |
-| **인증 필요** | 기안자 · 해당 회차 `ACTIVE` 이상 결재자 · MASTER        |
-| **사용 위치** | `features/approval/api.ts` — `getRevision()`            |
+| **인증 필요** | ✅ 기안자 · 해당 회차 `ACTIVE` 이상 결재자 · MASTER     |
+| **사용 위치** | ✅ `features/approval/api.ts` — `getRevision()`         |
 
 **응답 data**
 
@@ -2049,8 +2049,8 @@ soft delete(`deleted_at` 플래그)만 지원하며 응답 `data` 는 `null` 이
 | ------------- | ------------------------------------------------------- |
 | **Method**    | `PATCH`                                                 |
 | **Path**      | `/api/v1/approvals/{approvalId}/revisions/{revisionId}` |
-| **인증 필요** | 기안자                                                  |
-| **사용 위치** | `features/approval/api.ts` — `updateRevision()`         |
+| **인증 필요** | ✅ 기안자                                               |
+| **사용 위치** | ✅ `features/approval/api.ts` — `updateRevision()`      |
 
 **요청 body** — `{ title?, content? }` · **보낸 필드만** 바뀐다 (둘 중 하나만 보내도 된다)
 
@@ -2067,12 +2067,12 @@ soft delete(`deleted_at` 플래그)만 지원하며 응답 `data` 는 `null` 이
 
 ## 50. 재상신 회차 생성
 
-| 항목          | 내용                                            |
-| ------------- | ----------------------------------------------- |
-| **Method**    | `POST`                                          |
-| **Path**      | `/api/v1/approvals/{approvalId}/revisions`      |
-| **인증 필요** | 기안자                                          |
-| **사용 위치** | `features/approval/api.ts` — `createRevision()` |
+| 항목          | 내용                                               |
+| ------------- | -------------------------------------------------- |
+| **Method**    | `POST`                                             |
+| **Path**      | `/api/v1/approvals/{approvalId}/revisions`         |
+| **인증 필요** | ✅ 기안자                                          |
+| **사용 위치** | ✅ `features/approval/api.ts` — `createRevision()` |
 
 **응답 data** — `revisionId` · `revisionNo` · `status` · `copiedFromRevisionNo` · `title` · `content` · `documents[]` · `lines[]`
 
@@ -2094,8 +2094,8 @@ soft delete(`deleted_at` 플래그)만 지원하며 응답 `data` 는 `null` 이
 | ------------- | -------------------------------------------------------------- |
 | **Method**    | `POST`                                                         |
 | **Path**      | `/api/v1/approvals/{approvalId}/revisions/{revisionId}/submit` |
-| **인증 필요** | 기안자                                                         |
-| **사용 위치** | `features/approval/api.ts` — `submitRevision()`                |
+| **인증 필요** | ✅ 기안자                                                      |
+| **사용 위치** | ✅ `features/approval/api.ts` — `submitRevision()`             |
 
 **응답 data** — `approvalId` · `revisionId` · `revisionNo` · `status` · `submittedAt` · `firstActiveLineId`
 
@@ -2120,8 +2120,8 @@ soft delete(`deleted_at` 플래그)만 지원하며 응답 `data` 는 `null` 이
 | ------------- | ----------------------------------------------------------------- |
 | **Method**    | `POST`                                                            |
 | **Path**      | `/api/v1/approvals/{approvalId}/revisions/{revisionId}/documents` |
-| **인증 필요** | 기안자                                                            |
-| **사용 위치** | `features/approval/api.ts` — `addDocument()`                      |
+| **인증 필요** | ✅ 기안자                                                         |
+| **사용 위치** | ✅ `features/approval/api.ts` — `addDocument()`                   |
 
 **요청 body** — `{ fileVersionId }`
 
@@ -2144,8 +2144,8 @@ soft delete(`deleted_at` 플래그)만 지원하며 응답 `data` 는 `null` 이
 | ------------- | ------------------------------------------------------------------------------ |
 | **Method**    | `DELETE`                                                                       |
 | **Path**      | `/api/v1/approvals/{approvalId}/revisions/{revisionId}/documents/{documentId}` |
-| **인증 필요** | 기안자                                                                         |
-| **사용 위치** | `features/approval/api.ts` — `removeDocument()`                                |
+| **인증 필요** | ✅ 기안자                                                                      |
+| **사용 위치** | ✅ `features/approval/api.ts` — `removeDocument()`                             |
 
 **응답** — `204 No Content`
 
@@ -2165,8 +2165,8 @@ soft delete(`deleted_at` 플래그)만 지원하며 응답 `data` 는 `null` 이
 | ------------- | ------------------------------------------------------------- |
 | **Method**    | `PUT`                                                         |
 | **Path**      | `/api/v1/approvals/{approvalId}/revisions/{revisionId}/lines` |
-| **인증 필요** | 기안자                                                        |
-| **사용 위치** | `features/approval/api.ts` — `setLines()`                     |
+| **인증 필요** | ✅ 기안자                                                     |
+| **사용 위치** | ✅ `features/approval/api.ts` — `setLines()`                  |
 
 **요청 body** — `{ lines: [{ approverId, order }] }`
 
@@ -2241,9 +2241,9 @@ soft delete(`deleted_at` 플래그)만 지원하며 응답 `data` 는 `null` 이
 
 | API               | `version` | `overwrite` | 409                            |
 | ----------------- | --------- | ----------- | ------------------------------ |
-| 58 부분 수정      | 필수      | **없음**    | 필드 단위로 병합 · 사용자 선택 |
-| 59 상태 변경      | 필수      | 없음        | 최신 상태로 카드 동기화        |
-| 56 생성 · 60 삭제 | X         | X           | 없음 (기준 버전이 없거나 멱등) |
+| 58 부분 수정      | ✅ 필수   | ❌ **없음** | 필드 단위로 병합 · 사용자 선택 |
+| 59 상태 변경      | ✅ 필수   | ❌ 없음     | 최신 상태로 카드 동기화        |
+| 56 생성 · 60 삭제 | ❌        | ❌          | 없음 (기준 버전이 없거나 멱등) |
 
 `issue.version` 은 `INT NOT NULL DEFAULT 1` 이고, 서버는 `WHERE issue_id = ? AND version = ? AND deleted_at IS NULL` 로 **조건부 갱신**한다. 영향 행이 0건이면 `409 ISSUE_VERSION_CONFLICT`. 성공하면 `version + 1` 한 새 값을 응답에 담는다.
 
@@ -2252,7 +2252,7 @@ soft delete(`deleted_at` 플래그)만 지원하며 응답 `data` 는 `null` 이
 >
 > 담당자 · 관련 블록만 바꿔도 서버가 **issue 버전을 먼저 조건부 증가**시킨 뒤 관계를 갱신한다 (실패 시 전체 롤백). 관계 목록도 낙관적 락 대상이라는 뜻이다.
 >
-> **조회 응답 `version` 검증 완료** (2026-08-12) — 기동 중인 백엔드의 `/v3/api-docs` 스키마에서 직접 확인했다:
+> ✅ **조회 응답 `version` 검증 완료** (2026-08-12) — 기동 중인 백엔드의 `/v3/api-docs` 스키마에서 직접 확인했다:
 > `IssueListResponseIssueSummary`(55) · `IssueDetailResponse`(57) · `ProjectIssueListResponseIssueSummary`(108) · `IssueStatusChangeResponse`(59) 전부 `version: integer` 를 갖는다.
 > 프론트 타입도 **`IssueSummary.version` 필수**로 조였고, "버전 없으면 저장 차단" 가드는 걷어냈다.
 >
@@ -2325,11 +2325,11 @@ soft delete(`deleted_at` 플래그)만 지원하며 응답 `data` 는 `null` 이
 
 | 필드          | 타입           | 필수 | 비고                                                |
 | ------------- | -------------- | ---- | --------------------------------------------------- |
-| `title`       | string         | O    | 공백 제외 필수, 최대 200자                          |
+| `title`       | string         | ✅   | 공백 제외 필수, 최대 200자                          |
 | `content`     | string \| null | —    |                                                     |
 | `dueDate`     | string         | —    | **`yyyy-MM-ddTHH:mm:ss`** (목록·수정과 형식이 다름) |
 | `status`      | 상태 enum      | —    | 기본 `TODO`                                         |
-| `priority`    | 우선순위 enum  | O    |                                                     |
+| `priority`    | 우선순위 enum  | ✅   |                                                     |
 | `assigneeIds` | string[]       | —    | 사번 목록. 생략 · `[]` 이면 연결 없음               |
 | `blockIds`    | number[]       | —    | 생략 · `[]` 이면 연결 없음                          |
 
@@ -2430,12 +2430,12 @@ soft delete 이며 응답 `data` 는 `null` 이다. 담당자 · 블록은 삭�
 
 ## 61. 결재관리 목록조회
 
-| 항목          | 내용                                          |
-| ------------- | --------------------------------------------- |
-| **Method**    | `GET`                                         |
-| **Path**      | `/api/v1/approvals`                           |
-| **인증 필요** | 로그인 사용자 전체                            |
-| **사용 위치** | `features/approval/api.ts` — `getApprovals()` |
+| 항목          | 내용                                             |
+| ------------- | ------------------------------------------------ |
+| **Method**    | `GET`                                            |
+| **Path**      | `/api/v1/approvals`                              |
+| **인증 필요** | ✅ 로그인 사용자 전체                            |
+| **사용 위치** | ✅ `features/approval/api.ts` — `getApprovals()` |
 
 **요청 Query**
 
@@ -2472,20 +2472,20 @@ soft delete 이며 응답 `data` 는 `null` 이다. 담당자 · 블록은 삭�
 
 ## 62. 결재 상세조회
 
-| 항목          | 내용                                             |
-| ------------- | ------------------------------------------------ |
-| **Method**    | `GET`                                            |
-| **Path**      | `/api/v1/approvals/{approvalId}`                 |
-| **인증 필요** | 기안자 · 현재 회차 `ACTIVE` 이상 결재자 · MASTER |
-| **사용 위치** | `features/approval/api.ts` — `getApproval()`     |
+| 항목          | 내용                                                |
+| ------------- | --------------------------------------------------- |
+| **Method**    | `GET`                                               |
+| **Path**      | `/api/v1/approvals/{approvalId}`                    |
+| **인증 필요** | ✅ 기안자 · 현재 회차 `ACTIVE` 이상 결재자 · MASTER |
+| **사용 위치** | ✅ `features/approval/api.ts` — `getApproval()`     |
 
 **응답 data** — 회차 상세(48번)와 대부분 같고 차이는 아래 셋이다.
 
-| 항목             | 결재 상세 (56)                     | 회차 상세 (48)               |
-| ---------------- | ---------------------------------- | ---------------------------- |
-| 대상 회차        | **항상 현재 회차**                 | 지정한 회차                  |
-| `blockOrigin`    | `blockId` · `stepId` · `projectId` | X                            |
-| 상신 · 종료 일시 | X                                  | `submittedAt` · `finishedAt` |
+| 항목             | 결재 상세 (56)                        | 회차 상세 (48)                  |
+| ---------------- | ------------------------------------- | ------------------------------- |
+| 대상 회차        | **항상 현재 회차**                    | 지정한 회차                     |
+| `blockOrigin`    | ✅ `blockId` · `stepId` · `projectId` | ❌                              |
+| 상신 · 종료 일시 | ❌                                    | ✅ `submittedAt` · `finishedAt` |
 
 | status | code                         | 화면 처리                                            |
 | ------ | ---------------------------- | ---------------------------------------------------- |
@@ -2499,12 +2499,12 @@ soft delete 이며 응답 `data` 는 `null` 이다. 담당자 · 블록은 삭�
 
 ## 63. 결재 승인
 
-| 항목          | 내용                                          |
-| ------------- | --------------------------------------------- |
-| **Method**    | `POST`                                        |
-| **Path**      | `/api/v1/approval-lines/{lineId}/approve`     |
-| **인증 필요** | 그 결재선의 결재자 본인, `ACTIVE` 상태일 때만 |
-| **사용 위치** | `features/approval/api.ts` — `approveLine()`  |
+| 항목          | 내용                                             |
+| ------------- | ------------------------------------------------ |
+| **Method**    | `POST`                                           |
+| **Path**      | `/api/v1/approval-lines/{lineId}/approve`        |
+| **인증 필요** | ✅ 그 결재선의 결재자 본인, `ACTIVE` 상태일 때만 |
+| **사용 위치** | ✅ `features/approval/api.ts` — `approveLine()`  |
 
 **요청 body** — `{ opinion?: string }` (선택, AP-042)
 
@@ -2523,12 +2523,12 @@ soft delete 이며 응답 `data` 는 `null` 이다. 담당자 · 블록은 삭�
 
 ## 64. 결재 반려
 
-| 항목          | 내용                                          |
-| ------------- | --------------------------------------------- |
-| **Method**    | `POST`                                        |
-| **Path**      | `/api/v1/approval-lines/{lineId}/reject`      |
-| **인증 필요** | 그 결재선의 결재자 본인, `ACTIVE` 상태일 때만 |
-| **사용 위치** | `features/approval/api.ts` — `rejectLine()`   |
+| 항목          | 내용                                             |
+| ------------- | ------------------------------------------------ |
+| **Method**    | `POST`                                           |
+| **Path**      | `/api/v1/approval-lines/{lineId}/reject`         |
+| **인증 필요** | ✅ 그 결재선의 결재자 본인, `ACTIVE` 상태일 때만 |
+| **사용 위치** | ✅ `features/approval/api.ts` — `rejectLine()`   |
 
 **요청 body** — `{ opinion?: string }` (선택, AP-054)
 
@@ -2546,11 +2546,11 @@ soft delete 이며 응답 `data` 는 `null` 이다. 담당자 · 블록은 삭�
 
 ## 65. 버전 단건 조회 (결재용)
 
-| 항목          | 내용                                        |
-| ------------- | ------------------------------------------- |
-| **Method**    | `GET`                                       |
-| **Path**      | `/api/v1/file-versions/{fileVersionId}`     |
-| **사용 위치** | `features/file/api.ts` — `getFileVersion()` |
+| 항목          | 내용                                           |
+| ------------- | ---------------------------------------------- |
+| **Method**    | `GET`                                          |
+| **Path**      | `/api/v1/file-versions/{fileVersionId}`        |
+| **사용 위치** | ✅ `features/file/api.ts` — `getFileVersion()` |
 
 **응답 data** — 버전 이력의 한 줄에 아래 넷이 더 붙는다.
 
@@ -2608,7 +2608,7 @@ soft delete 이며 응답 `data` 는 `null` 이다. 담당자 · 블록은 삭�
 | **Method**    | `GET`                                                                 |
 | **Path**      | `/api/v1/blocks/images/{imgBlockId}/items/{currentOrderIndex}`        |
 | **Query**     | `direction` = `prev` \| `next` (필수)                                 |
-| **인증 필요** | (접근 권한 보유자)                                                    |
+| **인증 필요** | ✅ (접근 권한 보유자)                                                 |
 | **사용 위치** | `src/features/block/api.ts` → `getImageItem()` · `getAllImageItems()` |
 
 **Response (200 OK)**
@@ -2640,14 +2640,14 @@ data: {
 | **Method**       | `POST`                                             |
 | **Path**         | `/api/v1/blocks/images/{imgBlockId}/items`         |
 | **Content-Type** | `multipart/form-data`                              |
-| **인증 필요**    | (편집 권한 보유자)                                 |
+| **인증 필요**    | ✅ (편집 권한 보유자)                              |
 | **사용 위치**    | `src/features/block/api.ts` → `createImageItems()` |
 
 **Request Parts**
 
 | 파트      | 타입        | 필수 | 내용                                                |
 | --------- | ----------- | ---- | --------------------------------------------------- |
-| `files`   | `File[]`    | O    | **화면에 정렬된 순서 그대로** — 첫 번째가 1번       |
+| `files`   | `File[]`    | ✅   | **화면에 정렬된 순서 그대로** — 첫 번째가 1번       |
 | `request` | JSON (Blob) | -    | `{ "captions": ["회의실 전경", "", "화이트보드"] }` |
 
 **Response (201 Created)**
@@ -2685,7 +2685,7 @@ data: {
 | ------------- | -------------------------------------------------- |
 | **Method**    | `PATCH`                                            |
 | **Path**      | `/api/v1/blocks/images/items/{imgBlockId}`         |
-| **인증 필요** | (편집 권한 보유자)                                 |
+| **인증 필요** | ✅ (편집 권한 보유자)                              |
 | **사용 위치** | `src/features/block/api.ts` → `updateImageItems()` |
 
 **Request Body**
@@ -2725,7 +2725,7 @@ data: {
 > 부분 수정이 아니라 **전체 치환**이다 — 배열 순서가 곧 새 `orderIndex` (1..N). 항상 전체를 보낸다.
 > ℹ 보낼 전체 목록은 **71번**으로 받는다 (수정 모달을 열 때 1회).
 > 응답에 `imageUrl` · `originalName` 이 없다. 프론트는 화면에 있던 값에 새 `orderIndex` 만 얹는다.
-> **목록에서 빠진 이미지 = 삭제**로 확정됐다 (백엔드 확인 2026-08-19). 빈 배열이면 전체 삭제다. 수정 모달은 **순서 · 캡션 · 삭제를 이 요청 하나로** 보낸다 (69번을 따로 부르지 않는다).
+> ✅ **목록에서 빠진 이미지 = 삭제**로 확정됐다 (백엔드 확인 2026-08-19). 빈 배열이면 전체 삭제다. 수정 모달은 **순서 · 캡션 · 삭제를 이 요청 하나로** 보낸다 (69번을 따로 부르지 않는다).
 > **69번을 먼저 부르면 안 된다** — 삭제가 뒷 장의 `orderIndex` 를 당기며 그 행들의 `version` 을 올려, 이어지는 이 요청이 **제 삭제 탓에 409** 를 맞는다. 화면은 그걸 "다른 사람이 수정함" 으로 읽고 재조회해 **내가 편집한 캡션이 사라졌다** (2026-08-19 수정).
 
 **낙관적 락 (2026-08-11 신설) — 항목별 검사 · 전체 롤백**
@@ -2750,7 +2750,7 @@ data: {
 | ------------- | ------------------------------------------------- |
 | **Method**    | `DELETE`                                          |
 | **Path**      | `/api/v1/blocks/images/items/{imgId}`             |
-| **인증 필요** | (편집 권한 보유자)                                |
+| **인증 필요** | ✅ (편집 권한 보유자)                             |
 | **사용 위치** | `src/features/block/api.ts` → `deleteImageItem()` |
 
 **Response (200 OK)** — `data: null`
@@ -2769,7 +2769,7 @@ data: {
 | **Method**    | `GET`                                                 |
 | **Path**      | `/api/v1/blocks/images/{imgBlockId}/download`         |
 | **Query**     | `imgId` (선택) — 없으면 **블록 전체를 zip** 으로 준다 |
-| **인증 필요** | (접근 권한 보유자)                                    |
+| **인증 필요** | ✅ (접근 권한 보유자)                                 |
 | **사용 위치** | `src/features/block/api.ts` → `downloadBlockImages()` |
 
 **Response (200 OK)** — JSON 이 아니라 **파일 바이너리**
@@ -2792,7 +2792,7 @@ Content-Disposition: attachment; filename="원본파일명.jpg"   또는  "블�
 | ------------- | ----------------------------------------------- |
 | **Method**    | `GET`                                           |
 | **Path**      | `/api/v1/blocks/images/{imgBlockId}/items`      |
-| **인증 필요** | (**편집 권한 보유자**)                          |
+| **인증 필요** | ✅ (**편집 권한 보유자**)                       |
 | **사용 위치** | `src/features/block/api.ts` → `getImageItems()` |
 
 **Response (200 OK)**
@@ -2904,12 +2904,12 @@ data: {
 
 ## 73. 결재 이력조회
 
-| 항목          | 내용                                                  |
-| ------------- | ----------------------------------------------------- |
-| **Method**    | `GET`                                                 |
-| **Path**      | `/api/v1/approvals/{approvalId}/revisions`            |
-| **인증 필요** | 회차 상세와 같은 기준이되 **전체 회차를 통틀어** 판정 |
-| **사용 위치** | `features/approval/api.ts` — `getRevisions()`         |
+| 항목          | 내용                                                     |
+| ------------- | -------------------------------------------------------- |
+| **Method**    | `GET`                                                    |
+| **Path**      | `/api/v1/approvals/{approvalId}/revisions`               |
+| **인증 필요** | ✅ 회차 상세와 같은 기준이되 **전체 회차를 통틀어** 판정 |
+| **사용 위치** | ✅ `features/approval/api.ts` — `getRevisions()`         |
 
 **응답 data** — `{ content: [] }` · **페이징이 없다** (`totalElements` · `totalPages` 도 없음)
 
@@ -2964,12 +2964,12 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 ## 74. 프로젝트 파일 버전 목록
 
-| 항목          | 내용                                                |
-| ------------- | --------------------------------------------------- |
-| **Method**    | `GET`                                               |
-| **Path**      | `/api/v1/projects/{projectId}/file-versions`        |
-| **인증 필요** | 프로젝트 참여자                                     |
-| **사용 위치** | `features/file/api.ts` — `getProjectFileVersions()` |
+| 항목          | 내용                                                   |
+| ------------- | ------------------------------------------------------ |
+| **Method**    | `GET`                                                  |
+| **Path**      | `/api/v1/projects/{projectId}/file-versions`           |
+| **인증 필요** | ✅ 프로젝트 참여자                                     |
+| **사용 위치** | ✅ `features/file/api.ts` — `getProjectFileVersions()` |
 
 **응답 data** — 배열 그대로 (없으면 `[]`). 휴지통 버전은 오지 않는다.
 
@@ -2996,12 +2996,12 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 ## 75. 검토 템플릿 목록
 
-| 항목          | 내용                                                |
-| ------------- | --------------------------------------------------- |
-| **Method**    | `GET`                                               |
-| **Path**      | `/api/v1/vitamate/review-templates`                 |
-| **인증 필요** | 프로젝트 참여자                                     |
-| **사용 위치** | `features/vitamate/api.ts` — `getReviewTemplates()` |
+| 항목          | 내용                                                   |
+| ------------- | ------------------------------------------------------ |
+| **Method**    | `GET`                                                  |
+| **Path**      | `/api/v1/vitamate/review-templates`                    |
+| **인증 필요** | ✅ 프로젝트 참여자                                     |
+| **사용 위치** | ✅ `features/vitamate/api.ts` — `getReviewTemplates()` |
 
 **응답 data** — `{ reviewTypes: [] }`
 
@@ -3023,23 +3023,23 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 ## 76. 비타메이트 분석 요청
 
-| 항목          | 내용                                            |
-| ------------- | ----------------------------------------------- |
-| **Method**    | `POST`                                          |
-| **Path**      | `/api/v1/blocks/{blockId}/vitamate/analyses`    |
-| **인증 필요** | 프로젝트 참여자                                 |
-| **헤더**      | `Idempotency-Key` **필수**                      |
-| **사용 위치** | `features/vitamate/api.ts` — `createAnalysis()` |
+| 항목          | 내용                                               |
+| ------------- | -------------------------------------------------- |
+| **Method**    | `POST`                                             |
+| **Path**      | `/api/v1/blocks/{blockId}/vitamate/analyses`       |
+| **인증 필요** | ✅ 프로젝트 참여자                                 |
+| **헤더**      | `Idempotency-Key` **필수**                         |
+| **사용 위치** | ✅ `features/vitamate/api.ts` — `createAnalysis()` |
 
 **요청 body**
 
 | 필드                      | 타입       | 필수 | 설명                                      |
 | ------------------------- | ---------- | ---- | ----------------------------------------- |
-| `referenceFileVersionIds` | `number[]` | O    | 기준 문서 — 1개 이상                      |
-| `targetFileVersionIds`    | `number[]` | O    | 검토 대상 — 1개 이상, 기준과 겹칠 수 없다 |
-| `reviewType`              | `string`   | O    | 75번에서 고른 유형                        |
-| `reviewCategoryCodes`     | `string[]` | O    | 75번에서 고른 세부 카테고리               |
-| `prompt`                  | `string`   | O    | `exampleText` 를 사용자가 확인·보완한 값  |
+| `referenceFileVersionIds` | `number[]` | ✅   | 기준 문서 — 1개 이상                      |
+| `targetFileVersionIds`    | `number[]` | ✅   | 검토 대상 — 1개 이상, 기준과 겹칠 수 없다 |
+| `reviewType`              | `string`   | ✅   | 75번에서 고른 유형                        |
+| `reviewCategoryCodes`     | `string[]` | ✅   | 75번에서 고른 세부 카테고리               |
+| `prompt`                  | `string`   | ✅   | `exampleText` 를 사용자가 확인·보완한 값  |
 
 **응답 data** — `202`
 
@@ -3061,12 +3061,12 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 ## 77. 비타메이트 분석 단건 조회
 
-| 항목          | 내용                                         |
-| ------------- | -------------------------------------------- |
-| **Method**    | `GET`                                        |
-| **Path**      | `/api/v1/vitamate/analyses/{analysisId}`     |
-| **인증 필요** | 스텝 접근 권한                               |
-| **사용 위치** | `features/vitamate/api.ts` — `getAnalysis()` |
+| 항목          | 내용                                            |
+| ------------- | ----------------------------------------------- |
+| **Method**    | `GET`                                           |
+| **Path**      | `/api/v1/vitamate/analyses/{analysisId}`        |
+| **인증 필요** | ✅ 스텝 접근 권한                               |
+| **사용 위치** | ✅ `features/vitamate/api.ts` — `getAnalysis()` |
 
 **응답 data**
 
@@ -3099,12 +3099,12 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 ## 78. 블록별 분석 이력
 
-| 항목          | 내용                                              |
-| ------------- | ------------------------------------------------- |
-| **Method**    | `GET`                                             |
-| **Path**      | `/api/v1/blocks/{blockId}/vitamate/analyses`      |
-| **인증 필요** | 프로젝트 참여자                                   |
-| **사용 위치** | `features/vitamate/api.ts` — `getBlockAnalyses()` |
+| 항목          | 내용                                                 |
+| ------------- | ---------------------------------------------------- |
+| **Method**    | `GET`                                                |
+| **Path**      | `/api/v1/blocks/{blockId}/vitamate/analyses`         |
+| **인증 필요** | ✅ 프로젝트 참여자                                   |
+| **사용 위치** | ✅ `features/vitamate/api.ts` — `getBlockAnalyses()` |
 
 **응답 data** — 최신순(`createdAt DESC`), **최대 20건 · 페이징 없음**
 
@@ -3142,12 +3142,12 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 ## 79. 알림 목록 조회
 
-| 항목          | 내용                                                  |
-| ------------- | ----------------------------------------------------- |
-| **Method**    | `GET`                                                 |
-| **Path**      | `/api/v1/notifications`                               |
-| **인증 필요** | 본인 알림만                                           |
-| **사용 위치** | `features/notification/api.ts` — `getNotifications()` |
+| 항목          | 내용                                                     |
+| ------------- | -------------------------------------------------------- |
+| **Method**    | `GET`                                                    |
+| **Path**      | `/api/v1/notifications`                                  |
+| **인증 필요** | ✅ 본인 알림만                                           |
+| **사용 위치** | ✅ `features/notification/api.ts` — `getNotifications()` |
 
 **요청 Query** — 전부 선택
 
@@ -3176,11 +3176,11 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 ## 80. 알림 이동 대상 조회
 
-| 항목          | 내용                                                       |
-| ------------- | ---------------------------------------------------------- |
-| **Method**    | `GET`                                                      |
-| **Path**      | `/api/v1/notifications/{notificationId}/target`            |
-| **사용 위치** | `features/notification/api.ts` — `getNotificationTarget()` |
+| 항목          | 내용                                                          |
+| ------------- | ------------------------------------------------------------- |
+| **Method**    | `GET`                                                         |
+| **Path**      | `/api/v1/notifications/{notificationId}/target`               |
+| **사용 위치** | ✅ `features/notification/api.ts` — `getNotificationTarget()` |
 
 **응답 data**
 
@@ -3216,11 +3216,11 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 ## 81. 알림 읽음 처리
 
-| 항목          | 내용                                                  |
-| ------------- | ----------------------------------------------------- |
-| **Method**    | `PATCH`                                               |
-| **Path**      | `/api/v1/notifications/{notificationId}/read`         |
-| **사용 위치** | `features/notification/api.ts` — `readNotification()` |
+| 항목          | 내용                                                     |
+| ------------- | -------------------------------------------------------- |
+| **Method**    | `PATCH`                                                  |
+| **Path**      | `/api/v1/notifications/{notificationId}/read`            |
+| **사용 위치** | ✅ `features/notification/api.ts` — `readNotification()` |
 
 **응답 data** — `notificationId` · `readAt`
 
@@ -3231,11 +3231,11 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 ## 82. 알림 전체 읽음 처리
 
-| 항목          | 내용                                                      |
-| ------------- | --------------------------------------------------------- |
-| **Method**    | `PATCH`                                                   |
-| **Path**      | `/api/v1/notifications/read-all`                          |
-| **사용 위치** | `features/notification/api.ts` — `readAllNotifications()` |
+| 항목          | 내용                                                         |
+| ------------- | ------------------------------------------------------------ |
+| **Method**    | `PATCH`                                                      |
+| **Path**      | `/api/v1/notifications/read-all`                             |
+| **사용 위치** | ✅ `features/notification/api.ts` — `readAllNotifications()` |
 
 > **응답 본문 미확인** — Swagger 문서를 받지 못했다. 프론트는 응답을 쓰지 않고 성공 여부만 보므로, 몇 건 처리됐는지가 오더라도 화면은 목록을 다시 받아 그린다.
 
@@ -3243,11 +3243,11 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 ## 83. 알림 삭제
 
-| 항목          | 내용                                                    |
-| ------------- | ------------------------------------------------------- |
-| **Method**    | `DELETE`                                                |
-| **Path**      | `/api/v1/notifications/{notificationId}`                |
-| **사용 위치** | `features/notification/api.ts` — `deleteNotification()` |
+| 항목          | 내용                                                       |
+| ------------- | ---------------------------------------------------------- |
+| **Method**    | `DELETE`                                                   |
+| **Path**      | `/api/v1/notifications/{notificationId}`                   |
+| **사용 위치** | ✅ `features/notification/api.ts` — `deleteNotification()` |
 
 **응답** — `204` (본문 없음)
 
@@ -3268,7 +3268,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ------------------------------------------------------------------- |
 | **Method**    | `GET` (`text/event-stream`)                                         |
 | **Path**      | `/api/v1/notifications/stream`                                      |
-| **인증 필요** | **기존 세션 쿠키 그대로** (별도 토큰 없음)                          |
+| **인증 필요** | ✅ **기존 세션 쿠키 그대로** (별도 토큰 없음)                       |
 | **사용 위치** | `features/notification/stream.ts` → `subscribeNotificationStream()` |
 
 **응답이 닫히지 않는다.** 요청은 1건이고 그 열린 연결로 서버가 계속 써 보낸다 — 그래서 `lib/api.ts` 래퍼가 아니라 `EventSource` 로 직접 연다 (`apiUrl()` 로 오리진을 씌운다).
@@ -3300,7 +3300,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ----------------------------------------------- |
 | **Method**    | `GET`                                           |
 | **Path**      | `/api/v1/projects`                              |
-| **인증 필요** | 참여자 (`MASTER` · `ADMIN` 은 전 프로젝트)      |
+| **인증 필요** | ✅ 참여자 (`MASTER` · `ADMIN` 은 전 프로젝트)   |
 | **사용 위치** | `src/features/project/api.ts` → `getProjects()` |
 | **요구사항**  | PRJ-013 · PRJ-015                               |
 
@@ -3373,7 +3373,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 > 블록 생성 직후 `수정하기` 로 들어갈 때만 의미가 있다 — 입력값이 아니라 **안내 문구**로 쓴다.
 > **이미 저장된 항목의 현재 값을 주는 API 가 없다.** 85번은 추천값 · 원본 계좌번호만 준다 —
 > 저장된 회차 · 금액 · 일자는 **블록 목록(10번)의 `detail`** 에서 읽는다 (아래 스키마).
-> **블록 `type` 은 `SETTLEMENT`, `detail` 키는 `settleId`** 다 (스웨거 실제 응답 확인).
+> ✅ **블록 `type` 은 `SETTLEMENT`, `detail` 키는 `settleId`** 다 (스웨거 실제 응답 확인).
 > **타입은 한 방향으로만 바뀐다** — `OUTCOME` → `INCOME` 은 409(`SETL-006`)다. 조회에도 걸린다.
 > **총 예정 금액은 프로젝트 안에서 같아야 한다** — 어긋나면 409(`SETL-008`).
 > **연결되면 수정할 수 없다** — 세금계산서 · 입출금 내역이 붙은 뒤에는 409(`SETL-007`).
@@ -3406,14 +3406,14 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 ## 85. 정산 항목 수정 시 조회
 
-| 항목          | 내용                                                  |
-| ------------- | ----------------------------------------------------- |
-| **Method**    | `GET`                                                 |
-| **Path**      | `/api/v1/blocks/settlements/{settleId}/items`         |
-| **인증 필요** | 편집 권한                                             |
-| **사용 위치** | `features/settlement/api.ts` — `getSettlementDraft()` |
+| 항목          | 내용                                                     |
+| ------------- | -------------------------------------------------------- |
+| **Method**    | `GET`                                                    |
+| **Path**      | `/api/v1/blocks/settlements/{settleId}/items`            |
+| **인증 필요** | ✅ 편집 권한                                             |
+| **사용 위치** | ✅ `features/settlement/api.ts` — `getSettlementDraft()` |
 
-**요청 Query** — `type` ( `INCOME` · `OUTCOME`)
+**요청 Query** — `type` (✅ `INCOME` · `OUTCOME`)
 
 **응답 data**
 
@@ -3441,31 +3441,31 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 ## 86. 정산 항목 작성 · 수정
 
-| 항목          | 내용                                              |
-| ------------- | ------------------------------------------------- |
-| **Method**    | `PATCH`                                           |
-| **Path**      | `/api/v1/blocks/settlements/{settleId}/items`     |
-| **인증 필요** | 편집 권한                                         |
-| **사용 위치** | `features/settlement/api.ts` — `saveSettlement()` |
+| 항목          | 내용                                                 |
+| ------------- | ---------------------------------------------------- |
+| **Method**    | `PATCH`                                              |
+| **Path**      | `/api/v1/blocks/settlements/{settleId}/items`        |
+| **인증 필요** | ✅ 편집 권한                                         |
+| **사용 위치** | ✅ `features/settlement/api.ts` — `saveSettlement()` |
 
-**요청 Query** — `type` ( `INCOME` · `OUTCOME`)
+**요청 Query** — `type` (✅ `INCOME` · `OUTCOME`)
 
 **요청 body**
 
-| 필드                | 타입             | 필수             | 설명                                                                         |
-| ------------------- | ---------------- | ---------------- | ---------------------------------------------------------------------------- |
-| `roundNo`           | `number`         | O                | 정산 회차                                                                    |
-| `totalAmount`       | `number`         | O                | 프로젝트 정산 예정 총 금액                                                   |
-| `plannedAmount`     | `number`         | O                | 회차별 정산 예정 금액                                                        |
-| `plannedTaxAmount`  | `number`         | O                | 회차별 정산 예정 세금 금액                                                   |
-| `plannedDate`       | `string`         | O                | **입출금 기한** (`yyyy-MM-dd`) — 화면 라벨이 `입출금 기한` 이다              |
-| `taxInvoiceDueDate` | `string \| null` | —                | **세금계산서 기한** (2026-08-18 신설). 면세처럼 받지 않는 회차면 `null`      |
-| `traderName`        | `string`         | O                | **돈을 보내는 쪽** — `INCOME` 은 상대 클라이언트, `OUTCOME` 은 **우리 회사** |
-| `bankName`          | `string`         | **`OUTCOME` 만** | 외주 업체 은행명                                                             |
-| `accountNumber`     | `string`         | **`OUTCOME` 만** | **하이픈 · 공백 없이**                                                       |
-| `accountHolder`     | `string`         | **`OUTCOME` 만** | 외주 업체 예금주                                                             |
-| `version`           | `number`         | O                | 블록 목록(10번) `detail.version` 그대로 (2026-08-12 낙관적 락)               |
-| `overwrite`         | `boolean`        | —                | `true` 면 충돌을 무시하고 덮어쓴다                                           |
+| 필드                | 타입             | 필수                | 설명                                                                         |
+| ------------------- | ---------------- | ------------------- | ---------------------------------------------------------------------------- |
+| `roundNo`           | `number`         | ✅                  | 정산 회차                                                                    |
+| `totalAmount`       | `number`         | ✅                  | 프로젝트 정산 예정 총 금액                                                   |
+| `plannedAmount`     | `number`         | ✅                  | 회차별 정산 예정 금액                                                        |
+| `plannedTaxAmount`  | `number`         | ✅                  | 회차별 정산 예정 세금 금액                                                   |
+| `plannedDate`       | `string`         | ✅                  | **입출금 기한** (`yyyy-MM-dd`) — 화면 라벨이 `입출금 기한` 이다              |
+| `taxInvoiceDueDate` | `string \| null` | —                   | **세금계산서 기한** (2026-08-18 신설). 면세처럼 받지 않는 회차면 `null`      |
+| `traderName`        | `string`         | ✅                  | **돈을 보내는 쪽** — `INCOME` 은 상대 클라이언트, `OUTCOME` 은 **우리 회사** |
+| `bankName`          | `string`         | **`OUTCOME` 만** ✅ | 외주 업체 은행명                                                             |
+| `accountNumber`     | `string`         | **`OUTCOME` 만** ✅ | **하이픈 · 공백 없이**                                                       |
+| `accountHolder`     | `string`         | **`OUTCOME` 만** ✅ | 외주 업체 예금주                                                             |
+| `version`           | `number`         | ✅                  | 블록 목록(10번) `detail.version` 그대로 (2026-08-12 낙관적 락)               |
+| `overwrite`         | `boolean`        | —                   | `true` 면 충돌을 무시하고 덮어쓴다                                           |
 
 **응답 data** — 요청 필드에 아래가 더 붙는다.
 
@@ -3495,8 +3495,8 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | 409    | `SETL-008`                    | 같은 프로젝트의 다른 정산 블록과 **총 예정 금액 불일치**                |
 | 409    | `SETTLEMENT_VERSION_CONFLICT` | **새로고침 / 덮어쓰기**를 사용자에게 묻는다                             |
 
-> **성공은 `200`** 이다 (스웨거 실제 응답 확인 — 문서의 `201` 표기가 잘못됐다).
-> **`status` 는 `PENDING`** 이다 (본문의 `PENDGING` 은 오타).
+> ✅ **성공은 `200`** 이다 (스웨거 실제 응답 확인 — 문서의 `201` 표기가 잘못됐다).
+> ✅ **`status` 는 `PENDING`** 이다 (본문의 `PENDGING` 은 오타).
 > **`paidAmountRatio` 단위 확인 필요.** 작성 직후 값(`0`)만 확인돼 비율인지 백분율인지 알 수 없다.
 > 화면은 **백분율(0~100)** 로 보고 그린다 — 비율이면 절반 정산이 `0.5%` 로 보인다.
 > ℹ **409 셋은 사후 처리다.** `SETL-007`(연결됨) · `SETL-008`(총액 불일치)은 화면이 미리 알 수 없어
@@ -3527,7 +3527,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | -------------------------------------------- |
 | **Method**    | `GET`                                        |
 | **Path**      | `/api/v1/employees/bulk-template`            |
-| **인증 필요** | (ADMIN)                                      |
+| **인증 필요** | ✅ (ADMIN)                                   |
 | **사용 위치** | `employee/api.ts` → `downloadBulkTemplate()` |
 
 **응답** — JSON 이 아니라 **`.xlsx` 바이너리**다. 헤더만 있는 8컬럼:
@@ -3548,7 +3548,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | --------------------------------------------- |
 | **Method**    | `POST` (`multipart/form-data`)                |
 | **Path**      | `/api/v1/employees/bulk/validate`             |
-| **인증 필요** | (ADMIN)                                       |
+| **인증 필요** | ✅ (ADMIN)                                    |
 | **사용 위치** | `employee/api.ts` → `validateBulkEmployees()` |
 
 **요청** — `file` (엑셀 파일) · `autoCreateMasters` (기본 `false`). 등록하지 않고 **행별 오류만** 반환한다.
@@ -3572,7 +3572,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | 403    | `ACC_ADMIN_REQUIRED`     | 권한 없음    |
 
 > **오류 행이 있어도 200** 이다 — `errorCount` 로 분기해야 한다. 400 은 파일 자체 문제 3가지뿐.
-> **`autoCreateMasters`** (2026-08-19 백엔드 `#431`) — 켜면 목록에 없는 전공 · 자격증이 `EDU_NOT_FOUND` ·
+> ✅ **`autoCreateMasters`** (2026-08-19 백엔드 `#431`) — 켜면 목록에 없는 전공 · 자격증이 `EDU_NOT_FOUND` ·
 > `CERT_NOT_FOUND` 행 오류가 되지 않고 `newMasters` 로 분류된다. 끄면 빈 배열이라 기존 동작 그대로다.
 > **`newMasters` 는 화면에 반드시 보여준다** — 오타가 그대로 마스터가 되는 걸 등록 전에 잡는 유일한 지점이다.
 > `rowCount` 는 그 이름을 쓰는 **오류 없는 행** 수다. 학위 표기 오류 · 100자 초과 · 자격증명의 `:` 는 여전히 행 오류다.
@@ -3585,7 +3585,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | --------------------------------------------- |
 | **Method**    | `POST` (`multipart/form-data`)                |
 | **Path**      | `/api/v1/employees/bulk`                      |
-| **인증 필요** | (ADMIN)                                       |
+| **인증 필요** | ✅ (ADMIN)                                    |
 | **사용 위치** | `employee/api.ts` → `registerBulkEmployees()` |
 
 **요청** — `file` · `skipErrors` (기본 `false`) · `autoCreateMasters` (기본 `false`)
@@ -3621,7 +3621,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | -------------------------------------------------- |
 | **Method**    | `GET`                                              |
 | **Path**      | `/api/v1/job-positions/{jobPositionId}/employees`  |
-| **인증 필요** | (ADMIN)                                            |
+| **인증 필요** | ✅ (ADMIN)                                         |
 | **사용 위치** | `jobPosition/api.ts` → `getJobPositionEmployees()` |
 
 **응답 data**
@@ -3683,7 +3683,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 > `deletable` 로 삭제 버튼을 잠그지만 **경합은 못 막는다** — 목록을 띄워 둔 사이 누가 그
 > 항목으로 사원을 등록하면 409 가 온다. 잠금과 409 처리를 **둘 다** 둔다.
 > ℹ 응답 필드 이름이 도메인마다 달라(`majorId`/`certificateId`) API 계층에서 공용 모양(`MasterItem`)으로 바꾼다.
-> **이름 금지 문자** (2026-08-19 백엔드 `#431`) — `,` `;` `:` 줄바꿈은 엑셀이 항목 구분자 · `전공:학위`
+> ✅ **이름 금지 문자** (2026-08-19 백엔드 `#431`) — `,` `;` `:` 줄바꿈은 엑셀이 항목 구분자 · `전공:학위`
 > 구분자로 쓰는 문자라 마스터 이름에 들어가면 쪼개진다. 화면이 `masterItemNameError()` 로 먼저 거른다.
 > 기존에 저장된 이름은 서버도 소급 검사하지 않는다 — 신규 생성 · 수정에만 적용된다.
 
@@ -3725,7 +3725,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ---------------------------------------------- |
 | **Method**    | `GET`                                          |
 | **Path**      | `/api/v1/employee-groups`                      |
-| **인증 필요** | (전체 사용자)                                  |
+| **인증 필요** | ✅ (전체 사용자)                               |
 | **사용 위치** | `employeeGroup/api.ts` → `getEmployeeGroups()` |
 
 **요청 Query** — `keyword` (`string`, 그룹명 부분검색)
@@ -3749,14 +3749,14 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ------------------------------------------------ |
 | **Method**    | `POST`                                           |
 | **Path**      | `/api/v1/employee-groups`                        |
-| **인증 필요** | (ADMIN)                                          |
+| **인증 필요** | ✅ (ADMIN)                                       |
 | **사용 위치** | `employeeGroup/api.ts` → `createEmployeeGroup()` |
 
 **요청 Body**
 
 | 필드          | 타입      | 필수 | 설명       |
 | ------------- | --------- | ---- | ---------- |
-| `name`        | `string`  | O    | 최대 50자  |
+| `name`        | `string`  | ✅   | 최대 50자  |
 | `description` | `string?` | —    | 최대 500자 |
 
 **응답 data** — `groupId` · `name` · `description` · `memberCount`(생성 직후 `0`)
@@ -3777,7 +3777,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ------------------------------------------------ |
 | **Method**    | `PATCH`                                          |
 | **Path**      | `/api/v1/employee-groups/{groupId}`              |
-| **인증 필요** | (ADMIN)                                          |
+| **인증 필요** | ✅ (ADMIN)                                       |
 | **사용 위치** | `employeeGroup/api.ts` → `updateEmployeeGroup()` |
 
 **요청 Body** — `name` · `description` 중 **보낸 필드만** 바뀐다. 응답은 [91](#91-사원-그룹-목록-조회)과 같은 구조.
@@ -3799,7 +3799,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ------------------------------------------------ |
 | **Method**    | `DELETE`                                         |
 | **Path**      | `/api/v1/employee-groups/{groupId}`              |
-| **인증 필요** | (ADMIN)                                          |
+| **인증 필요** | ✅ (ADMIN)                                       |
 | **사용 위치** | `employeeGroup/api.ts` → `deleteEmployeeGroup()` |
 
 **응답 data** — `null`
@@ -3819,7 +3819,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | -------------------------------------------- |
 | **Method**    | `GET`                                        |
 | **Path**      | `/api/v1/employee-groups/{groupId}/members`  |
-| **인증 필요** | (전체 사용자)                                |
+| **인증 필요** | ✅ (전체 사용자)                             |
 | **사용 위치** | `employeeGroup/api.ts` → `getGroupMembers()` |
 
 **응답 data** — 이름 오름차순
@@ -3844,7 +3844,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | -------------------------------------------- |
 | **Method**    | `POST`                                       |
 | **Path**      | `/api/v1/employee-groups/{groupId}/members`  |
-| **인증 필요** | (ADMIN)                                      |
+| **인증 필요** | ✅ (ADMIN)                                   |
 | **사용 위치** | `employeeGroup/api.ts` → `addGroupMembers()` |
 
 **요청 Body** — `userIds` (`string[]`, 1개 이상)
@@ -3869,7 +3869,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ---------------------------------------------------- |
 | **Method**    | `DELETE`                                             |
 | **Path**      | `/api/v1/employee-groups/{groupId}/members/{userId}` |
-| **인증 필요** | (ADMIN)                                              |
+| **인증 필요** | ✅ (ADMIN)                                           |
 | **사용 위치** | `employeeGroup/api.ts` → `removeGroupMember()`       |
 
 **응답 data** — `groupId` · `memberCount`
@@ -3905,7 +3905,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ------------------------------------------------------------------------ |
 | **Method**    | `GET`                                                                    |
 | **Path**      | `/api/v1/my/pages`                                                       |
-| **인증 필요** | (전체 사용자)                                                            |
+| **인증 필요** | ✅ (전체 사용자)                                                         |
 | **사용 위치** | `features/pagePermission/api.ts` → `getMyPages()` (사이드바 · 접근 가드) |
 
 **응답 data** — `content[]`
@@ -3929,7 +3929,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ----------------------------------------------- |
 | **Method**    | `GET`                                           |
 | **Path**      | `/api/v1/pages`                                 |
-| **인증 필요** | (ADMIN)                                         |
+| **인증 필요** | ✅ (ADMIN)                                      |
 | **사용 위치** | `features/pagePermission/api.ts` → `getPages()` |
 
 **응답 data** — `content[]`
@@ -3952,7 +3952,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ------------------------------------------------------- |
 | **Method**    | `GET`                                                   |
 | **Path**      | `/api/v1/pages/{pageCode}/permissions`                  |
-| **인증 필요** | (ADMIN)                                                 |
+| **인증 필요** | ✅ (ADMIN)                                              |
 | **사용 위치** | `features/pagePermission/api.ts` → `getPageAccessors()` |
 
 **응답 data** — 정렬은 `GRANTED` 먼저, 그다음 이름순
@@ -3982,16 +3982,16 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ----------------------------------------------------------- |
 | **Method**    | `POST`                                                      |
 | **Path**      | `/api/v1/pages/{pageCode}/permissions`                      |
-| **인증 필요** | (ADMIN)                                                     |
+| **인증 필요** | ✅ (ADMIN)                                                  |
 | **사용 위치** | `features/pagePermission/api.ts` → `grantPagePermissions()` |
 
 **요청 Body**
 
 | 필드                       | 타입       | 필수 | 설명                |
 | -------------------------- | ---------- | ---- | ------------------- |
-| `permissions`              | `Object[]` | O    | 1개 이상            |
-| `permissions[].userId`     | `string`   | O    | 사번                |
-| `permissions[].permission` | `string`   | O    | `VIEWER` · `EDITOR` |
+| `permissions`              | `Object[]` | ✅   | 1개 이상            |
+| `permissions[].userId`     | `string`   | ✅   | 사번                |
+| `permissions[].permission` | `string`   | ✅   | `VIEWER` · `EDITOR` |
 
 **응답 data** — `pageCode` · `requestedCount` · `grantedCount` · `updatedCount` · `unchangedCount`
 
@@ -4013,7 +4013,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ----------------------------------------------------------- |
 | **Method**    | `DELETE`                                                    |
 | **Path**      | `/api/v1/pages/{pageCode}/permissions/{userId}`             |
-| **인증 필요** | (ADMIN)                                                     |
+| **인증 필요** | ✅ (ADMIN)                                                  |
 | **사용 위치** | `features/pagePermission/api.ts` → `revokePagePermission()` |
 
 **응답 data**
@@ -4043,7 +4043,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ----------- | ------------------------------------------------- | -------- |
 | 휴지통 이동 | `DELETE /files/{fileId}` (40번)                   | 가능     |
 | 복구        | `POST /files/{fileId}/restore` (103번)            | —        |
-| 영구 삭제   | `POST /files/{fileId}/permanent-deletion` (104번) | 불가     |
+| 영구 삭제   | `POST /files/{fileId}/permanent-deletion` (104번) | ❌ 불가  |
 
 > **결재가 잠근다.** 진행 중 결재의 대상이면 휴지통 이동이 409 로 막히고, **완료 포함** 결재 참조가 있으면 영구 삭제가 409 로 막힌다.
 
@@ -4061,7 +4061,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ---------------------------------------- |
 | **Method**    | `POST`                                   |
 | **Path**      | `/api/v1/files/{fileId}/restore`         |
-| **인증 필요** | (스텝 `EDITOR`)                          |
+| **인증 필요** | ✅ (스텝 `EDITOR`)                       |
 | **사용 위치** | `features/file/api.ts` → `restoreFile()` |
 
 원래 블록으로 복구된다 (연결은 휴지통에 있는 동안에도 유지). **블록이 삭제됐어도 복구되며**, 이 경우 파일은 블록에 붙지 않은 채 살아나 `blockId: null` · `blockDeleted: true` 로 응답한다.
@@ -4092,7 +4092,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | -------------------------------------------------- |
 | **Method**    | `POST` ( `DELETE` 가 아니다)                       |
 | **Path**      | `/api/v1/files/{fileId}/permanent-deletion`        |
-| **인증 필요** | (스텝 `EDITOR`)                                    |
+| **인증 필요** | ✅ (스텝 `EDITOR`)                                 |
 | **사용 위치** | `features/file/api.ts` → `permanentlyDeleteFile()` |
 
 **휴지통 문서만** 대상이다. 확인 문자가 정확히 `영구 삭제` 여야 하고 **서버가 검증**한다 — 본문이 필요해서 `DELETE` 가 아니라 `POST` 다 (일부 프록시가 `DELETE` 본문을 버린다).
@@ -4101,7 +4101,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 | 필드          | 타입     | 필수 | 설명                       |
 | ------------- | -------- | ---- | -------------------------- |
-| `confirmText` | `string` | O    | `영구 삭제` 와 정확히 일치 |
+| `confirmText` | `string` | ✅   | `영구 삭제` 와 정확히 일치 |
 
 **응답 data**
 
@@ -4130,7 +4130,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | -------------------------------------------- |
 | **Method**    | `GET`                                        |
 | **Path**      | `/api/v1/projects/{projectId}/files`         |
-| **인증 필요** | (접근 권한 보유자)                           |
+| **인증 필요** | ✅ (접근 권한 보유자)                        |
 | **사용 위치** | `features/file/api.ts` → `getProjectFiles()` |
 
 스텝 · 블록 위치와 함께 **평면 목록**(`files[]`)을 주고 **프론트가 스텝 → 블록 트리로 조합**한다 (이미지 모아보기와 구조 통일). 활성 문서만 · 문서 단위 최신 1행. 고아 파일도 포함(`blockId: null` · `blockDeleted: true`).
@@ -4171,7 +4171,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | --------------------------------------- |
 | **Method**    | `GET`                                   |
 | **Path**      | `/api/v1/files/my`                      |
-| **인증 필요** | (로그인 사용자)                         |
+| **인증 필요** | ✅ (로그인 사용자)                      |
 | **사용 위치** | `features/file/api.ts` → `getMyFiles()` |
 
 **내가 멤버인 모든 프로젝트**를 가로질러 문서를 모은다. 105번과 같은 평면 목록(`files[]`)이고 **프론트가 `projectId` 로 그룹핑**한다.
@@ -4213,7 +4213,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ------------------------------------------ |
 | **Method**    | `GET`                                      |
 | **Path**      | `/api/v1/admin/files`                      |
-| **인증 필요** | **ADMIN 전용**                             |
+| **인증 필요** | ✅ **ADMIN 전용**                          |
 | **사용 위치** | `features/file/api.ts` → `getAdminFiles()` |
 
 **전사 모든 프로젝트**의 파일을 가로지른다. 105 · 140번과 달리 **문서 단위 최신 완료 버전 1행**이고 **페이징이 있다**.
@@ -4247,7 +4247,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 > ℹ 다운로드 · 미리보기는 행에서 **공용 파일 버전 API**(42번 `download` · `preview`)를 그대로 부른다.
 > **정렬 파라미터가 없다** — 목업의 `최근 수정순` 드롭다운은 화면에서 뺐다.
-> **스텝 단위 조회는 151~154번(탐색기)이 맡는다** (2026-08-16 해소) — 이 API 에 `stepId` 필터를 붙이는 대신
+> ✅ **스텝 단위 조회는 151~154번(탐색기)이 맡는다** (2026-08-16 해소) — 이 API 에 `stepId` 필터를 붙이는 대신
 > 전용 트리 API 가 왔다. 탐색기가 프로젝트 500건을 미리 받아 화면에서 나누던 방식은 걷어냈다.
 > 이 API 는 이제 **검색 · 필터 담당**이다 (프로젝트 · 스테이지 단계에서 쓴다).
 > **집계가 없다** — 총 용량 · 기간별 업로드 수는 응답으로 알 수 없어 요약 카드에 넣지 않았다.
@@ -4305,10 +4305,10 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 | 번호 | Method · Path                                  | 페이징 | 반환                     |
 | ---- | ---------------------------------------------- | ------ | ------------------------ |
-| 151  | `GET /admin/files/projects`                    | O      | 프로젝트 (이름 오름차순) |
+| 151  | `GET /admin/files/projects`                    | ✅     | 프로젝트 (이름 오름차순) |
 | 152  | `GET /admin/files/projects/{projectId}/stages` | —      | 스테이지 + 미분류 버킷   |
 | 153  | `GET /admin/files/projects/{projectId}/steps`  | —      | 스텝 (`stageId` 필터)    |
-| 154  | `GET /admin/files/steps/{stepId}/files`        | O      | 스텝 안의 파일           |
+| 154  | `GET /admin/files/steps/{stepId}/files`        | ✅     | 스텝 안의 파일           |
 
 **151 프로젝트** — Query `page`(0-base) · `size`(기본 10)
 `data.content[]`: `projectId` · `name` · `status`(`NOT_STARTED`·`IN_PROGRESS`·`SETTLEMENT`·`COMPLETED`·`CLOSED`) · `clientName?` · `updatedAt`(`yyyy-MM-dd HH:mm:ss`)
@@ -4341,7 +4341,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ------------------------------------------------- |
 | **Method**    | `GET`                                             |
 | **Path**      | `/api/v1/projects/{projectId}/files/trash`        |
-| **인증 필요** | (접근 권한 보유자)                                |
+| **인증 필요** | ✅ (접근 권한 보유자)                             |
 | **사용 위치** | `features/file/api.ts` → `getProjectTrashFiles()` |
 
 블록 파일 목록(36번 `?deleted=true`)이 **블록 단위**인 것과 달리 **프로젝트 범위**다. 블록 삭제로 블록 목록에서 사라진 고아 파일도 여기서 보이고 복구 · 영구삭제 대상이 된다.
@@ -4373,15 +4373,15 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ---------------------------------------------- |
 | **Method**    | `GET`                                          |
 | **Path**      | `/api/v1/projects/{projectId}/images`          |
-| **인증 필요** | (접근 권한 보유자)                             |
+| **인증 필요** | ✅ (접근 권한 보유자)                          |
 | **사용 위치** | `features/block/api.ts` → `getProjectImages()` |
 
 **쿼리 파라미터** (2026-08-16 추가)
 
 | 필드   | 타입  | 필수 | 설명                                      |
 | ------ | ----- | ---- | ----------------------------------------- |
-| `page` | `int` | X    | 0-base 페이지 번호. 생략하면 `0`          |
-| `size` | `int` | X    | 페이지당 개수. 생략하면 `20` · 최대 `100` |
+| `page` | `int` | ❌   | 0-base 페이지 번호. 생략하면 `0`          |
+| `size` | `int` | ❌   | 페이지당 개수. 생략하면 `20` · 최대 `100` |
 
 **응답 data**
 
@@ -4424,7 +4424,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ---------------------------------------------- |
 | **Method**    | `GET`                                          |
 | **Path**      | `/api/v1/projects/{projectId}/issues`          |
-| **인증 필요** | (프로젝트 참여자 · `VIEWER` 이상)              |
+| **인증 필요** | ✅ (프로젝트 참여자 · `VIEWER` 이상)           |
 | **사용 위치** | `features/issue/api.ts` → `getProjectIssues()` |
 
 삭제되지 않은 모든 Step 의 이슈를 **Step 별로 묶어** 반환한다. 이슈가 없는 Step 도 `issues: []` 로 포함되고, 삭제된 Step 은 응답에서 완전히 빠진다. **페이징이 없다.**
@@ -4466,13 +4466,13 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 이미지도 문서와 같은 3단계(soft → 복구 → 영구)지만 **계약이 다르다.** 같은 화면(휴지통)에 붙이므로 차이를 여기 모아 둔다.
 
-| 항목        | 문서 (103 · 104)                 | 이미지 (110 · 111)                        |
-| ----------- | -------------------------------- | ----------------------------------------- |
-| 대상        | 한 건 (`{fileId}` 경로)          | **다건** (`imgIds[]` 본문)                |
-| 복구        | `POST /files/{id}/restore`       | `PATCH /blocks/images/items/restore`      |
-| 영구 삭제   | `POST .../permanent-deletion`    | `DELETE /blocks/images/items/hard`        |
-| 확인 문자   | `영구 삭제` 서버 검증            | **없다** — 화면이 확인 모달로 막아야 한다 |
-| 휴지통 조회 | `GET /projects/{id}/files/trash` | `GET /projects/{id}/images/trash`         |
+| 항목        | 문서 (103 · 104)                 | 이미지 (110 · 111)                           |
+| ----------- | -------------------------------- | -------------------------------------------- |
+| 대상        | 한 건 (`{fileId}` 경로)          | **다건** (`imgIds[]` 본문)                   |
+| 복구        | `POST /files/{id}/restore`       | `PATCH /blocks/images/items/restore`         |
+| 영구 삭제   | `POST .../permanent-deletion`    | `DELETE /blocks/images/items/hard`           |
+| 확인 문자   | ✅ `영구 삭제` 서버 검증         | ❌ **없다** — 화면이 확인 모달로 막아야 한다 |
+| 휴지통 조회 | `GET /projects/{id}/files/trash` | `GET /projects/{id}/images/trash`            |
 
 > 이미지 영구 삭제는 **본문 있는 `DELETE`** 다. 문서 쪽(104번)은 "일부 프록시가 `DELETE` 본문을 버린다" 는 이유로 `POST` 를 쓰는데 이미지는 그러지 않는다 — **배포 환경에서 본문이 사라지면 400 이 난다.** 실동작 확인 필요.
 > 이미지에는 확인 문자가 없어 오조작이 곧 영구 삭제다. 화면은 문서와 **같은 무게의 확인 모달**을 띄운다.
@@ -4486,7 +4486,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | --------------------------------------------------- |
 | **Method**    | `GET`                                               |
 | **Path**      | `/api/v1/projects/{projectId}/images/trash`         |
-| **인증 필요** | (접근 권한 보유자)                                  |
+| **인증 필요** | ✅ (접근 권한 보유자)                               |
 | **사용 위치** | `features/block/api.ts` → `getProjectTrashImages()` |
 
 **쿼리 파라미터** (2026-08-16 추가) — 107번과 같다 (`page` 0-base · `size` 기본 20 · 최대 100).
@@ -4522,18 +4522,18 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 ## 110. 이미지 복구 (다건)
 
-| 항목          | 내용                                             |
-| ------------- | ------------------------------------------------ |
-| **Method**    | `PATCH`                                          |
-| **Path**      | `/api/v1/blocks/images/items/restore`            |
-| **인증 필요** | (편집 권한 — **각 이미지가 속한 스텝별로** 확인) |
-| **사용 위치** | `features/block/api.ts` → `restoreImages()`      |
+| 항목          | 내용                                                |
+| ------------- | --------------------------------------------------- |
+| **Method**    | `PATCH`                                             |
+| **Path**      | `/api/v1/blocks/images/items/restore`               |
+| **인증 필요** | ✅ (편집 권한 — **각 이미지가 속한 스텝별로** 확인) |
+| **사용 위치** | `features/block/api.ts` → `restoreImages()`         |
 
 **요청 body**
 
 | 필드     | 타입       | 필수 | 설명             |
 | -------- | ---------- | ---- | ---------------- |
-| `imgIds` | `number[]` | O    | 복구할 이미지 ID |
+| `imgIds` | `number[]` | ✅   | 복구할 이미지 ID |
 
 **응답 data — `images[]`**
 
@@ -4554,14 +4554,14 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ----------------------------------------------------- |
 | **Method**    | `DELETE` ( **본문 있음**)                             |
 | **Path**      | `/api/v1/blocks/images/items/hard`                    |
-| **인증 필요** | (편집 권한)                                           |
+| **인증 필요** | ✅ (편집 권한)                                        |
 | **사용 위치** | `features/block/api.ts` → `permanentlyDeleteImages()` |
 
 **요청 body**
 
 | 필드     | 타입       | 필수 | 설명                                    |
 | -------- | ---------- | ---- | --------------------------------------- |
-| `imgIds` | `number[]` | O    | 영구 삭제할 이미지 (휴지통에 있는 것만) |
+| `imgIds` | `number[]` | ✅   | 영구 삭제할 이미지 (휴지통에 있는 것만) |
 
 **응답 data** — `null`
 
@@ -4578,11 +4578,11 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 | API                       | `version` | `overwrite` | 409           |
 | ------------------------- | --------- | ----------- | ------------- |
-| 113 스테이지 수정         | 필수      | 있음        | 덮어쓰기 가능 |
-| 116 스텝 수정             | 필수      | 있음        | 덮어쓰기 가능 |
-| 119 스테이지 순서 변경    | 항목별    | **없음**    | **전체 롤백** |
-| 120 스텝 순서 변경        | 항목별    | **없음**    | **전체 롤백** |
-| 114 · 117 삭제 · 118 완료 | X         | X           | 없음 (멱등)   |
+| 113 스테이지 수정         | ✅ 필수   | ✅ 있음     | 덮어쓰기 가능 |
+| 116 스텝 수정             | ✅ 필수   | ✅ 있음     | 덮어쓰기 가능 |
+| 119 스테이지 순서 변경    | ✅ 항목별 | ❌ **없음** | **전체 롤백** |
+| 120 스텝 순서 변경        | ✅ 항목별 | ❌ **없음** | **전체 롤백** |
+| 114 · 117 삭제 · 118 완료 | ❌        | ❌          | 없음 (멱등)   |
 
 > **`version` 이 조회 응답(7 · 8번)에 아직 명시돼 있지 않다.** 수정 · 순서 변경은 이 값이 없으면 400 이다.
 > 프론트는 `ProjectStage.version?` · `ProjectStep.version?` **선택 필드**로 받고, 값이 없으면 저장 버튼을 막고 재조회를 안내한다. 백엔드 확인 후 `?` 를 뗀다.
@@ -4625,14 +4625,14 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ------------------------------------------- |
 | **Method**    | `POST`                                      |
 | **Path**      | `/api/v1/projects/{projectId}/stages`       |
-| **인증 필요** | (프로젝트 EDITOR)                           |
+| **인증 필요** | ✅ (프로젝트 EDITOR)                        |
 | **사용 위치** | `features/project/api.ts` → `createStage()` |
 
 **요청 body**
 
 | 필드        | 타입     | 필수 | 설명                               |
 | ----------- | -------- | ---- | ---------------------------------- |
-| `name`      | `string` | O    | 스테이지명 (최대 100자)            |
+| `name`      | `string` | ✅   | 스테이지명 (최대 100자)            |
 | `sortOrder` | `number` | —    | 미지정 시 `max+1` (화면은 안 보냄) |
 
 **응답 data (201)** — `stageId` · `projectId` · `name` · `sortOrder`
@@ -4645,15 +4645,15 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ------------------------------------------- |
 | **Method**    | `PATCH`                                     |
 | **Path**      | `/api/v1/stages/{stageId}`                  |
-| **인증 필요** | (프로젝트 EDITOR)                           |
+| **인증 필요** | ✅ (프로젝트 EDITOR)                        |
 | **사용 위치** | `features/project/api.ts` → `updateStage()` |
 
 **요청 body**
 
 | 필드        | 타입      | 필수 | 설명                               |
 | ----------- | --------- | ---- | ---------------------------------- |
-| `name`      | `string`  | O    | 스테이지명 (최대 100자)            |
-| `version`   | `number`  | O    | 목록에서 받은 값. 누락하면 400     |
+| `name`      | `string`  | ✅   | 스테이지명 (최대 100자)            |
+| `version`   | `number`  | ✅   | 목록에서 받은 값. 누락하면 400     |
 | `overwrite` | `boolean` | —    | `true` 면 충돌을 무시하고 덮어쓴다 |
 
 **응답 data** — `stageId` · `name` · `sortOrder` · `version`(**저장 후 새 값**)
@@ -4669,14 +4669,14 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ------------------------------------------- |
 | **Method**    | `DELETE`                                    |
 | **Path**      | `/api/v1/stages/{stageId}`                  |
-| **인증 필요** | (프로젝트 EDITOR)                           |
+| **인증 필요** | ✅ (프로젝트 EDITOR)                        |
 | **사용 위치** | `features/project/api.ts` → `deleteStage()` |
 
 **쿼리 파라미터**
 
 | 필드            | 타입     | 필수 | 설명                                    |
 | --------------- | -------- | ---- | --------------------------------------- |
-| `moveToStageId` | `number` | O    | 하위 스텝을 옮길 스테이지. `0` = 미소속 |
+| `moveToStageId` | `number` | ✅   | 하위 스텝을 옮길 스테이지. `0` = 미소속 |
 
 **응답 data** — `deletedStageId` · `movedStepCount` · `moveToStageId`(`null` 이면 미소속)
 
@@ -4698,14 +4698,14 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ------------------------------------------ |
 | **Method**    | `POST`                                     |
 | **Path**      | `/api/v1/projects/{projectId}/steps`       |
-| **인증 필요** | (프로젝트 EDITOR)                          |
+| **인증 필요** | ✅ (프로젝트 EDITOR)                       |
 | **사용 위치** | `features/project/api.ts` → `createStep()` |
 
 **요청 body**
 
 | 필드          | 타입     | 필수 | 설명                             |
 | ------------- | -------- | ---- | -------------------------------- |
-| `name`        | `string` | O    | 스텝명 (**최대 200자**)          |
+| `name`        | `string` | ✅   | 스텝명 (**최대 200자**)          |
 | `stageId`     | `number` | —    | 미지정 시 미소속(`null`)         |
 | `startedOn`   | `string` | —    | `YYYY-MM-DD`                     |
 | `endedOn`     | `string` | —    | `YYYY-MM-DD`                     |
@@ -4723,18 +4723,18 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ------------------------------------------ |
 | **Method**    | `PATCH`                                    |
 | **Path**      | `/api/v1/steps/{stepId}`                   |
-| **인증 필요** | (**스텝** EDITOR — 프로젝트가 아니다)      |
+| **인증 필요** | ✅ (**스텝** EDITOR — 프로젝트가 아니다)   |
 | **사용 위치** | `features/project/api.ts` → `updateStep()` |
 
 **요청 body**
 
 | 필드          | 타입      | 필수 | 설명                              |
 | ------------- | --------- | ---- | --------------------------------- |
-| `name`        | `string`  | O    | 최대 200자. 빈 문자열 · 공백 불가 |
+| `name`        | `string`  | ✅   | 최대 200자. 빈 문자열 · 공백 불가 |
 | `startedOn`   | `string`  | —    | `YYYY-MM-DD`                      |
 | `endedOn`     | `string`  | —    | `YYYY-MM-DD`                      |
 | `ownerUserId` | `string`  | —    | **생략하면 책임자가 해제된다**    |
-| `version`     | `number`  | O    | 누락하면 400                      |
+| `version`     | `number`  | ✅   | 누락하면 400                      |
 | `overwrite`   | `boolean` | —    | `true` 면 덮어쓴다                |
 
 **응답 data** — `stepId` · `name` · `stageId`(**현재값 에코**) · `startedOn` · `endedOn` · `owner`(`owner.deleted` 포함) · `updatedAt` · `version`
@@ -4751,7 +4751,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ------------------------------------------ |
 | **Method**    | `DELETE`                                   |
 | **Path**      | `/api/v1/steps/{stepId}`                   |
-| **인증 필요** | (프로젝트 EDITOR)                          |
+| **인증 필요** | ✅ (프로젝트 EDITOR)                       |
 | **사용 위치** | `features/project/api.ts` → `deleteStep()` |
 
 **쿼리 파라미터**
@@ -4783,14 +4783,14 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | -------------------------------------------- |
 | **Method**    | `POST`                                       |
 | **Path**      | `/api/v1/steps/{stepId}/complete`            |
-| **인증 필요** | (스텝 EDITOR)                                |
+| **인증 필요** | ✅ (스텝 EDITOR)                             |
 | **사용 위치** | `features/project/api.ts` → `completeStep()` |
 
 **요청 body**
 
 | 필드              | 타입     | 필수 | 설명                                     |
 | ----------------- | -------- | ---- | ---------------------------------------- |
-| `openIssueAction` | `string` | O    | `KEEP`(그대로 두기) · `CLOSE`(함께 종료) |
+| `openIssueAction` | `string` | ✅   | `KEEP`(그대로 두기) · `CLOSE`(함께 종료) |
 
 **응답 data** — `stepId` · `status`(`DONE`) · `openIssueCount` · `openIssueAction` · `closedIssueCount` · `completedBy`(`deleted` 포함) · `completedAt`
 
@@ -4811,17 +4811,17 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ------------------------------------------------ |
 | **Method**    | `PATCH`                                          |
 | **Path**      | `/api/v1/projects/{projectId}/stages/order`      |
-| **인증 필요** | (프로젝트 EDITOR)                                |
+| **인증 필요** | ✅ (프로젝트 EDITOR)                             |
 | **사용 위치** | `features/project/api.ts` → `updateStageOrder()` |
 
 **요청 body**
 
 | 필드                 | 타입       | 필수 | 설명                    |
 | -------------------- | ---------- | ---- | ----------------------- |
-| `orders`             | `object[]` | O    | **재정렬 전체 목록**    |
-| `orders[].stageId`   | `number`   | O    | 스테이지 ID             |
-| `orders[].sortOrder` | `number`   | O    | 새 정렬 순서            |
-| `orders[].version`   | `number`   | O    | 조회했을 때의 `version` |
+| `orders`             | `object[]` | ✅   | **재정렬 전체 목록**    |
+| `orders[].stageId`   | `number`   | ✅   | 스테이지 ID             |
+| `orders[].sortOrder` | `number`   | ✅   | 새 정렬 순서            |
+| `orders[].version`   | `number`   | ✅   | 조회했을 때의 `version` |
 
 **응답 data** — `stages[]` (`stageId` · `sortOrder` · `version`(**저장 후 새 값**))
 
@@ -4852,18 +4852,18 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | ----------------------------------------------- |
 | **Method**    | `PATCH`                                         |
 | **Path**      | `/api/v1/projects/{projectId}/steps/order`      |
-| **인증 필요** | (프로젝트 EDITOR)                               |
+| **인증 필요** | ✅ (프로젝트 EDITOR)                            |
 | **사용 위치** | `features/project/api.ts` → `updateStepOrder()` |
 
 **요청 body**
 
 | 필드                 | 타입             | 필수 | 설명                                    |
 | -------------------- | ---------------- | ---- | --------------------------------------- |
-| `orders`             | `object[]`       | O    | **보드 전체의 최종 배치**               |
-| `orders[].stepId`    | `number`         | O    | 스텝 ID                                 |
-| `orders[].stageId`   | `number \| null` | O    | 이동할 스테이지. **미소속은 `null`**    |
-| `orders[].sortOrder` | `number`         | O    | 새 정렬 순서 — **프로젝트 단위 통번호** |
-| `orders[].version`   | `number`         | O    | 조회했을 때의 `version`                 |
+| `orders`             | `object[]`       | ✅   | **보드 전체의 최종 배치**               |
+| `orders[].stepId`    | `number`         | ✅   | 스텝 ID                                 |
+| `orders[].stageId`   | `number \| null` | ✅   | 이동할 스테이지. **미소속은 `null`**    |
+| `orders[].sortOrder` | `number`         | ✅   | 새 정렬 순서 — **프로젝트 단위 통번호** |
+| `orders[].version`   | `number`         | ✅   | 조회했을 때의 `version`                 |
 
 **응답 data** — `steps[]` (`stepId` · `stageId` · `sortOrder` · `version`(**저장 후 새 값**))
 
@@ -4894,15 +4894,15 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | ------------- | --------------------------------------------- |
 | **Method**    | `PATCH`                                       |
 | **Path**      | `/api/v1/blocks/{blockId}/step`               |
-| **인증 필요** | (**출발 · 도착 양쪽 스텝의 EDITOR**)          |
+| **인증 필요** | ✅ (**출발 · 도착 양쪽 스텝의 EDITOR**)       |
 | **사용 위치** | `features/block/api.ts` → `moveBlockToStep()` |
 
 **요청 body**
 
 | 필드        | 타입      | 필수 | 설명                               |
 | ----------- | --------- | ---- | ---------------------------------- |
-| `stepId`    | `number`  | O    | 같은 프로젝트의 **다른** 스텝      |
-| `version`   | `number`  | O    | 조회에서 받은 값. 누락하면 400     |
+| `stepId`    | `number`  | ✅   | 같은 프로젝트의 **다른** 스텝      |
+| `version`   | `number`  | ✅   | 조회에서 받은 값. 누락하면 400     |
 | `overwrite` | `boolean` | —    | `true` 면 충돌을 무시하고 덮어쓴다 |
 
 **응답 data** — `blockId` · `stepId` · `unlinkedIssueCount` · `version`(**저장 후 새 값**)
@@ -4948,7 +4948,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 - `GET /bidding/collection-runs` — 실행 이력 **목록** (단건 조회만 있다)
 
-> 2026-08-18 해소 — `PATCH /bidding/summaries/{summaryId}/abandon`(요약 중단)이 배포됐고
+> ✅ 2026-08-18 해소 — `PATCH /bidding/summaries/{summaryId}/abandon`(요약 중단)이 배포됐고
 > 연동을 마쳤다 (`abandonSummary()` · `NoticeSummaryCard` 의 `중단` 버튼).
 > 응답은 `{ summaryId, summaryStatus: 'ABANDONED', abandonedAt }` 로 검토 종료와 같은 모양이다.
 
@@ -4980,7 +4980,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 > 변경사항 (2026-08-16 · 백엔드 소스 확인)
 >
 > `POST /bidding/notices/{noticeId}/projects` 는 **배포됐고 연동을 마쳤다** (2026-08-16 · `NoticeProjectConvertModal`).
-> **실제 전환 1건 성공을 확인했다** (2026-08-16).
+> ✅ **실제 전환 1건 성공을 확인했다** (2026-08-16).
 >
 > | 항목 | 값                                                                                                                                                                                     |
 > | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -5181,7 +5181,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 > | `conditionId=3` 15:26              | **성공했지만 `lastCollectedCount: 0`**         |
 > | `runId` 16 (`conditionId=2`) 16:39 | `FAILED` · `all_collection_tasks_failed` (6초) |
 >
-> **2026-08-11 저녁 해소.** 조건 등록 → 수동 수집 → 공고 목록 반영까지 정상 동작하고,
+> ✅ **2026-08-11 저녁 해소.** 조건 등록 → 수동 수집 → 공고 목록 반영까지 정상 동작하고,
 > 나라장터 실공고가 다수 수집됐다. 위 실패 기록은 그 전 상황이라 **참고용으로만** 둔다.
 > 조건이 좁으면 여전히 `COMPLETED` + 0건이 나올 수 있는데, 그건 실패가 아니다.
 
@@ -5264,7 +5264,7 @@ GET  /bidding/collection-runs/{runId}          ← COMPLETED | FAILED 까지 폴
 | ------------- | ------------------------------------------ |
 | **Method**    | `GET`                                      |
 | **Path**      | `/api/v1/bidding/notices`                  |
-| **인증 필요** | (입찰 `VIEWER` · `EDITOR`)                 |
+| **인증 필요** | ✅ (입찰 `VIEWER` · `EDITOR`)              |
 | **사용 위치** | `features/bidding/api.ts` → `getNotices()` |
 
 **요청 쿼리** (전부 선택)
@@ -5330,7 +5330,7 @@ GET  /bidding/collection-runs/{runId}          ← COMPLETED | FAILED 까지 폴
 | ------------- | ----------------------------------------------- |
 | **Method**    | `GET`                                           |
 | **Path**      | `/api/v1/bidding/notices/{noticeId}`            |
-| **인증 필요** | (입찰 `VIEWER` · `EDITOR`)                      |
+| **인증 필요** | ✅ (입찰 `VIEWER` · `EDITOR`)                   |
 | **사용 위치** | `features/bidding/api.ts` → `getNoticeDetail()` |
 
 **응답 data — 기본**
@@ -5388,8 +5388,8 @@ GET  /bidding/collection-runs/{runId}          ← COMPLETED | FAILED 까지 폴
 | ------------- | ------------------------------------ |
 | **Method**    | `GET`                                |
 | **Path**      | `/api/v1/steps/{stepId}`             |
-| **인증 필요** | (스텝 접근 권한)                     |
-| **사용 위치** | **미연동**                           |
+| **인증 필요** | ✅ (스텝 접근 권한)                  |
+| **사용 위치** | ❌ **미연동**                        |
 | **요구사항**  | STP-003 · STP-004 · STP-012 · INV-04 |
 
 **Response (200 OK)**
@@ -5859,7 +5859,7 @@ data: {
 
 | 파라미터  | 타입      | 필수 | 설명                                                                                                        |
 | --------- | --------- | ---- | ----------------------------------------------------------------------------------------------------------- |
-| `confirm` | `boolean` | X    | **신설 (2026-08-13)** · 기본 `false`. 지울 범위를 확인했다는 표시 — **409 를 받은 뒤 `true` 로 재요청한다** |
+| `confirm` | `boolean` | ❌   | **신설 (2026-08-13)** · 기본 `false`. 지울 범위를 확인했다는 표시 — **409 를 받은 뒤 `true` 로 재요청한다** |
 
 **Response (200 OK)** — `data: null`
 
@@ -5884,7 +5884,7 @@ data: {
 | --------------------------------------------- | ------------------------ | ---------------------------------------------------- |
 | 스테이지 · 스텝 · 블록 · 이슈                 | 논리 삭제 (`deleted_at`) | 계층 전파. **프로젝트는 복구가 없다**                |
 | 참여자 · 사업분류 연결 · 스테이지 권한 기본값 | 하드 삭제                | 연결 행이라 D-3 예외 — 스텝이 0개여도 남아 함께 정리 |
-| `activity_log`                                | 지우지 않는다            | D-5 — 기록은 남긴다                                  |
+| `activity_log`                                | ❌ 지우지 않는다         | D-5 — 기록은 남긴다                                  |
 
 > 삭제는 `deleted_at` **논리 삭제**이고, **연결된 공고(`bid_notice_id`)를 비운다** — 그렇게 하지 않으면 `UNIQUE` 를 시체가 점유해 그 공고로 프로젝트를 다시 못 만든다.
 > **아직 끊지 않는 연결** — `cash_flow.settle_block_id` · `tax_invoice.settle_block_id` 가 삭제된 정산 블록을 계속 가리키고, 진행 중 결재도 남는다 (BLK-013 미구현 · 스텝 단건 삭제와 같은 상태).
@@ -5959,7 +5959,7 @@ data: {
 
 | 항목          | 내용                                                                                |
 | ------------- | ----------------------------------------------------------------------------------- |
-| **인증 필요** | `FINANCE` 페이지 **접근 권한** (없으면 403 `FINANCE_ACCESS_DENIED`)                 |
+| **인증 필요** | ✅ `FINANCE` 페이지 **접근 권한** (없으면 403 `FINANCE_ACCESS_DENIED`)              |
 | **편집**      | 등록 · 수정 · 삭제 · 제외 · 매칭은 **편집 권한** (403 `FINANCE_EDIT_ACCESS_DENIED`) |
 
 ### 경로
@@ -6017,14 +6017,14 @@ data: {
 
 조건은 전부 **AND** 로 묶인다.
 
-> **페이징이 있다** (2026-08-18 확인). 응답이 `{ page, size, totalElements, totalPages, cashFlows[] }` 다 —
+> ✅ **페이징이 있다** (2026-08-18 확인). 응답이 `{ page, size, totalElements, totalPages, cashFlows[] }` 다 —
 > 예전 기록(`배열 하나가 통째로 온다`)은 틀렸다. 총 건수는 목록 길이가 아니라 `totalElements` 를 쓴다.
-> **구분 · 출처 필터가 서버에 생겼다** (2026-08-19 백엔드 반영). `type` · `sourceType` 을 그대로 보낸다 —
+> ✅ **구분 · 출처 필터가 서버에 생겼다** (2026-08-19 백엔드 반영). `type` · `sourceType` 을 그대로 보낸다 —
 > 전체를 받아 화면에서 거르던 방식(`getAllCashFlows`)은 지웠고, `page` · `size` · `totalElements` 가 그대로 맞는다.
-> **단건 조회가 생겼다** (2026-08-18). `GET /finance/cash-flows/{cashFlowId}` · `GET /finance/tax-invoices/{taxId}` —
+> ✅ **단건 조회가 생겼다** (2026-08-18). `GET /finance/cash-flows/{cashFlowId}` · `GET /finance/tax-invoices/{taxId}` —
 > 응답은 목록 아이템(`CashFlowItem` · `TaxInvoiceItem`)과 **같은 모양**이고, 없는 ID 는 404 다.
 > 상세 화면이 목록을 넘기며 찾던 방식(`findCashFlow` · `findTaxInvoice`)은 지웠다.
-> **`bankName` 이 목록 · 단건 응답에 실린다** (2026-08-19 백엔드 `#433`). `bankTxnId` 앞부분을 잘라 되읽던
+> ✅ **`bankName` 이 목록 · 단건 응답에 실린다** (2026-08-19 백엔드 `#433`). `bankTxnId` 앞부분을 잘라 되읽던
 > `display.ts` 의 `bankNameFromTxnId` 는 지웠다 — 접두어가 **앞 4자**라 `카카오뱅크` 가 `카카오뱅` 으로 잘렸다.
 
 ### 정산 현황 (2026-08-17 연동)
@@ -6124,10 +6124,10 @@ body 는 등록과 같은 모양이고 전부 선택이다.
 | 400     | `FINANCE_CSV_MAPPING_REQUIRED`  | 필수 컬럼 매핑 누락                              |
 | **404** | `FINANCE_INVALID_CSV_FILE`      | **형식 오류가 404 다** — '없는 리소스' 가 아니다 |
 
-> **`request` 파트는 스웨거에 `type: string` 으로만 보이지만 스펙은 확정돼 있다** (2026-08-19 백엔드
+> ✅ **`request` 파트는 스웨거에 `type: string` 으로만 보이지만 스펙은 확정돼 있다** (2026-08-19 백엔드
 > DTO 대조). 백엔드가 문자열로 받아 직접 파싱해서 그렇고, `CashFlowCsvUploadRequest` 와
 > `types.ts` 의 `CsvUploadRequest` 가 14개 필드 1:1 로 일치한다.
-> **엑셀 시간 전용 셀 파싱은 2026-08-13 백엔드에서 고쳤다** — 시간 컬럼은 시각만 취하고,
+> ✅ **엑셀 시간 전용 셀 파싱은 2026-08-13 백엔드에서 고쳤다** — 시간 컬럼은 시각만 취하고,
 > 접두부가 날짜로 안 읽히면 `FINANCE_CSV_MAPPING_REQUIRED` 로 거부한다.
 
 ### 백엔드 대기 (2026-08-19 소스 대조 기준)
