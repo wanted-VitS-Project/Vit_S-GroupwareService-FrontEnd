@@ -6,9 +6,12 @@ import { useCallback } from 'react';
 import { getStepBlocksResponse } from './api';
 import type { StepBlock } from './types';
 
+/** 모든 스텝의 블록 목록을 한 번에 가리키는 접두 키 (BlockCacheSync 가 쓴다) */
+export const STEP_BLOCKS_KEY_ROOT = ['step-blocks'] as const;
+
 /** 스텝 하나의 블록 목록 캐시 키. 스텝마다 따로 담긴다 */
 export function stepBlocksKey(stepId: number | string) {
-  return ['step-blocks', String(stepId)] as const;
+  return [...STEP_BLOCKS_KEY_ROOT, String(stepId)] as const;
 }
 
 // 스텝 블록 목록 — 조회·캐시·재조회를 한 곳에서 맡는다.

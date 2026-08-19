@@ -6,6 +6,53 @@
 
 ---
 
+## [2026-08-19] 정산 금액 입력 콤마 · 연결 배지 줄바꿈 · 블록 캐시 무효화 ✅
+
+브랜치: `fix/settlement-amount-input-block-sync` · 상태: 🚧 진행 중 (동작 확인 대기)
+
+사용자 제보 3건을 한 묶음으로 고쳤다. 셋 다 재무 - 정산 블록 사이의 손질이라
+따로 올리기보다 한 PR 로 묶는 편이 리뷰가 쉽다.
+
+### 변경 파일
+
+| 파일                                            | 변경                                                        |
+| ----------------------------------------------- | ----------------------------------------------------------- |
+| `src/lib/format.ts`                             | 수정 — `groupDigits` · `AMOUNT_MAX_DIGITS` 추가             |
+| `src/features/settlement/SettlementForm.tsx`    | 수정 — 금액 3칸을 `type="amount"` 로, `toAmountDigits` 추가 |
+| `src/features/finance/CashFlowMatchModal.tsx`   | 수정 — 추천 이유 배지를 금액 · 날짜 아래 줄로               |
+| `src/features/finance/TaxInvoiceMatchModal.tsx` | 수정 — 동일                                                 |
+| `src/features/block/BlockCacheSync.tsx`         | 생성 — `block:changed` 전역 리스너                          |
+| `src/features/block/useStepBlocks.ts`           | 수정 — `STEP_BLOCKS_KEY_ROOT` 접두 키 분리                  |
+| `src/app/providers.tsx`                         | 수정 — `BlockCacheSync` 상주                                |
+| `.ai/local/STATE.md` · `.ai/WORKLOG.md`         | 수정 — 변경사항 · 백로그 · 완료 기록                        |
+
+### 주요 작업 내용
+
+- **정산 금액 칸 콤마 표기** — `type="number"` 를 버리고 `text` + `inputMode="numeric"` 으로 바꿨다. 값은 숫자만 남기고 화면에만 콤마를 넣어, 콤마가 붙은 값을 붙여넣어도 받는다 (예정 총 금액 · 회차 예정 금액 · 예정 세금)
+- **연결 후보 배지를 아래 줄로** — 금액 · 날짜와 같은 `flex-wrap` 줄에 있어 줄바꿈 경계에 걸리면 배지가 반만 보였다. 태그가 없으면 빈 줄이 생기지 않게 개수를 먼저 본다
+- **블록 목록 캐시 무효화를 전역으로** — `Providers` 에 `BlockCacheSync` 를 두고 `block:changed` 를 듣는다. `notifyBlockChanged()` 를 부르는 모든 자리가 함께 고쳐진다
+
+### 트러블슈팅
+
+- **문제**: 재무 화면에서 정산 블록을 연결해도 블록 화면에서 새로고침을 눌러야 반영됐다
+- **원인**: `block:changed` 를 듣는 곳이 `StepBlocks` 뿐이라 보드가 마운트돼 있지 않은 동안에는 아무도 무효화하지 않았고, `staleTime: 30_000` 안에 돌아오면 캐시가 그대로 그려졌다
+- **해결**: 상시 마운트되는 `BlockCacheSync` 가 `['step-blocks']` 접두 키를 무효화한다. 보드가 마운트되는 순간 다시 읽는다
+
+### 부수 결정
+
+- **금액 입력 헬퍼는 `lib/format.ts` 에 둔다** — `features/project` · `features/bidding` 에 같은 `groupDigits` 사본이 이미 두 개 있었다. 세 번째를 만들지 않으려 공용으로 올렸고, 기존 두 사본은 담당이 갈린 파일이라 이번에 건드리지 않았다 (`[REF]` 백로그 등록)
+- **세금계산서 연결 모달도 함께 고쳤다** — 제보는 입출금이었지만 마크업이 같아 한쪽만 고치면 두 화면 모양이 갈린다
+
+### 검증
+
+| 명령                   | 결과                   |
+| ---------------------- | ---------------------- |
+| `npx tsc --noEmit`     | 통과 · 에러 0          |
+| `npx eslint src`       | 통과 · 에러 0 · 경고 0 |
+| `npx prettier --write` | 변경 파일 포맷 정리    |
+
+---
+
 ## [2026-08-19] 재무 단건 조회 연동 · 입출금 구분 · 출처 서버 필터 ✅
 
 브랜치: `feat/finance-single-fetch` · 상태: 🚧 진행 중 (동작 확인 대기)
