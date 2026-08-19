@@ -202,10 +202,7 @@ function departmentColumns(
       header: '인원',
       width: '7rem',
       skeletonWidth: 'w-12',
-      /*
-        하위 포함 인원이다. 옆 칸 `사원 보기` 는 직속만 보여줘 수가 다를 수 있어
-        툴팁으로 직속 인원을 함께 알린다.
-      */
+      /* 하위 포함 인원이다. 옆 칸 `사원 보기` 도 같은 기준으로 열린다 (2026-08-19) */
       cell: ({ department }) =>
         department.totalEmployeeCount > 0 ? (
           <span
@@ -229,7 +226,7 @@ function departmentColumns(
       skeletonWidth: 'w-16',
       cell: ({ department }) => (
         <Link
-          href={`/settings/employees?departmentId=${department.departmentId}`}
+          href={`/settings/employees?departmentId=${department.departmentId}&includeSubDepartments=true`}
           className="font-medium text-text-primary-blue hover:underline"
         >
           사원 보기

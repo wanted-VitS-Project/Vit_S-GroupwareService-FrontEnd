@@ -27,6 +27,9 @@ function toSearchParams(query: EmployeeListQuery) {
   if (query.keyword) params.set('keyword', query.keyword);
   if (query.departmentId)
     params.set('departmentId', String(query.departmentId));
+  // 부서를 고르지 않았으면 서버가 무시하므로 함께 있을 때만 싣는다
+  if (query.departmentId && query.includeSubDepartments)
+    params.set('includeSubDepartments', 'true');
   if (query.role) params.set('role', query.role);
   if (query.status) params.set('status', query.status);
   if (query.resigned) params.set('resigned', 'true');
@@ -133,9 +136,14 @@ export async function downloadBulkTemplate(signal?: AbortSignal) {
  * 일괄 등록 검증. 등록하지 않고 행 오류만 받는다.
  * 오류 행이 있어도 200 이라 호출 측이 errorCount 로 분기한다.
  */
-export function validateBulkEmployees(file: File, signal?: AbortSignal) {
+export function validateBulkEmployees(
+  file: File,
+  autoCreateMasters: boolean,
+  signal?: AbortSignal,
+) {
   const form = new FormData();
   form.append('file', file);
+  form.append('autoCreateMasters', String(autoCreateMasters));
 
   return postForm<BulkValidateResult>(
     ENDPOINTS.employees.bulkValidate,
@@ -151,11 +159,14 @@ export function validateBulkEmployees(file: File, signal?: AbortSignal) {
 export function registerBulkEmployees(
   file: File,
   skipErrors: boolean,
+  autoCreateMasters: boolean,
   signal?: AbortSignal,
 ) {
   const form = new FormData();
   form.append('file', file);
   form.append('skipErrors', String(skipErrors));
+  // 검증 때 보낸 값과 달라지면 검증 화면과 등록 결과가 어긋난다
+  form.append('autoCreateMasters', String(autoCreateMasters));
 
   return postForm<BulkRegisterResult>(ENDPOINTS.employees.bulk, form, signal);
 }

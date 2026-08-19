@@ -22,6 +22,25 @@ export interface MasterItem {
 /** 항목 이름 최대 길이 */
 export const MASTER_ITEM_NAME_MAX_LENGTH = 100;
 
+/** 엑셀이 항목 구분자(`,` `;` 줄바꿈)와 `전공:학위` 구분자(`:`)로 쓰는 문자다 */
+const FORBIDDEN_NAME_CHARS = /[,;:\r\n]/;
+
+export const MASTER_ITEM_NAME_RULE =
+  '쉼표( , ) 세미콜론( ; ) 콜론( : ) 줄바꿈은 쓸 수 없어요.';
+
+/**
+ * 이름 규칙 위반 사유. 통과하면 null 이다.
+ * 서버가 400 으로 막기 전에 같은 기준으로 먼저 거른다.
+ */
+export function masterItemNameError(name: string) {
+  const next = name.trim();
+
+  if (next.length > MASTER_ITEM_NAME_MAX_LENGTH) {
+    return `이름은 ${MASTER_ITEM_NAME_MAX_LENGTH}자까지 쓸 수 있어요.`;
+  }
+  return FORBIDDEN_NAME_CHARS.test(next) ? MASTER_ITEM_NAME_RULE : null;
+}
+
 /** 학위. 세 값 고정이다 */
 export type Degree = 'BACHELOR' | 'MASTER' | 'DOCTOR';
 
