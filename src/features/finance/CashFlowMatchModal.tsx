@@ -234,14 +234,19 @@ function CandidateOption({
           <span className="text-text-secondary">
             {formatDate(candidate.plannedDate) || '-'} 예정
           </span>
-
-          {/* 왜 이 블록이 위에 있는지 알려주는 단서다 */}
-          {candidate.matchTags.map((tag) => (
-            <span key={tag} className="badge badge-blue">
-              {tag}
-            </span>
-          ))}
         </span>
+
+        {/* 왜 이 블록이 위에 있는지 알려주는 단서다. 금액 · 날짜와 같은 줄에 두면
+            줄바꿈 경계에 걸려 배지가 반만 보인다 */}
+        {candidate.matchTags.length > 0 && (
+          <span className="mt-1.5 flex flex-wrap gap-1.5">
+            {candidate.matchTags.map((tag) => (
+              <span key={tag} className="badge badge-blue">
+                {tag}
+              </span>
+            ))}
+          </span>
+        )}
       </span>
     </label>
   );

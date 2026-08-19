@@ -124,3 +124,14 @@ function join(digits: string, headLength: number) {
 
   return `${head}-${rest.slice(0, -4)}-${rest.slice(-4)}`;
 }
+
+/** 금액 입력의 최대 자릿수. 15자리면 계약금액에 충분하다 */
+export const AMOUNT_MAX_DIGITS = 15;
+
+/**
+ * 입력 중인 금액에 천 단위 구분을 넣는다. 숫자가 아닌 글자는 버린다.
+ * toLocaleString() 은 숫자가 아닌 값에 NaN 을 띄우고 큰 수의 정밀도를 깎는다.
+ */
+export function groupDigits(value: string) {
+  return value.replace(/\D/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}

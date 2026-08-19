@@ -3,6 +3,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 
+import BlockCacheSync from '@/features/block/BlockCacheSync';
+
 /**
  * 전역 서버 상태 공급자.
  *
@@ -33,6 +35,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      {/* 화면 밖(재무 등)에서 바뀐 블록도 보드로 돌아오는 순간 다시 읽히게 한다 */}
+      <BlockCacheSync />
+      {children}
+    </QueryClientProvider>
   );
 }
