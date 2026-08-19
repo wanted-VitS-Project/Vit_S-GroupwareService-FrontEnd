@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { AlertDialogTwoButton, DialogIcons } from '@/components/AlertDialog';
 import { ApiError, messageOf } from '@/lib/api';
 import { dateInputProps } from '@/lib/dateInput';
+import { AMOUNT_MAX_DIGITS, groupDigits } from '@/lib/format';
 
 import { getSettlementDraft, saveSettlement } from './api';
 import {
@@ -242,16 +243,19 @@ export default function SettlementForm({
       {/* 다른 정산 블록과 일치해야 하는 값이라 추천값을 미리 채워 둔다 */}
       <Field
         label="예정 총 금액"
+        type="amount"
         value={form.totalAmount}
         onChange={(value) => change('totalAmount', value)}
       />
       <Field
         label="회차 예정 금액"
+        type="amount"
         value={form.plannedAmount}
         onChange={(value) => change('plannedAmount', value)}
       />
       <Field
         label="예정 세금"
+        type="amount"
         value={form.plannedTaxAmount}
         onChange={(value) => change('plannedTaxAmount', value)}
       />
@@ -368,12 +372,15 @@ function Field({
   onChange,
 }: {
   label: string;
-  type?: 'number' | 'text' | 'date';
+  /** amount 는 화면에만 콤마를 넣는 금액 칸이다. 값은 숫자 문자열로 남는다 */
+  type?: 'number' | 'text' | 'date' | 'amount';
   placeholder?: string;
   hint?: string;
   value: string;
   onChange: (value: string) => void;
 }) {
+  const isAmount = type === 'amount';
+
   return (
     <label className="flex items-center gap-2">
       {/* 라벨이 두 줄로 접히지 않도록 자리를 넉넉히 잡는다 */}
@@ -382,11 +389,18 @@ function Field({
       </span>
       <span className="min-w-0 flex-1">
         <input
-          type={type}
+          type={isAmount ? 'text' : type}
+          inputMode={isAmount ? 'numeric' : undefined}
           {...dateInputProps(type)}
-          value={value}
+          value={isAmount ? groupDigits(value) : value}
           placeholder={placeholder}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) =>
+            onChange(
+              isAmount
+                ? toAmountDigits(event.target.value)
+                : event.target.value,
+            )
+          }
           className={FIELD_CLASS}
         />
         {hint && (
@@ -397,6 +411,12 @@ function Field({
       </span>
     </label>
   );
+}
+
+// 콤마를 넣고 붙여넣어도 숫자만 남긴다.
+// 자릿수를 막지 않으면 Number() 가 Infinity 가 되어 서버가 받지 못한다.
+function toAmountDigits(value: string) {
+  return value.replace(/\D/g, '').slice(0, AMOUNT_MAX_DIGITS);
 }
 
 /** 추천값을 입력 칸 문자열로 바꾼다. 값이 없으면 빈 칸을 유지한다 */

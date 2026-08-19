@@ -201,7 +201,7 @@ export default function CashFlowFormModal({
             required={isFullEdit}
             disabled={!isFullEdit}
             value={form.bankName}
-            placeholder="신한은행"
+            placeholder="은행명을 입력해주세요"
             /* 은행명을 되읽는 원본이라 함께 보여줘야 비었을 때 채울 수 있다 */
             hint={isCreate ? undefined : `거래고유번호: ${target.bankTxnId}`}
             onChange={(value) => patch({ bankName: value })}
