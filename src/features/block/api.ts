@@ -303,9 +303,11 @@ export function createImageItems(
   );
 }
 
-// 이미지 순서·캡션 수정.
+// 이미지 순서·캡션 수정 (+ 삭제).
 // 부분 수정이 아니라 전체 치환이다 — 보낸 순서대로 orderIndex 가 다시 매겨지고,
-// 목록에서 빠진 이미지가 어떻게 되는지는 확인되지 않았다. 항상 전체를 보낸다.
+// 목록에서 빠진 이미지는 삭제된다 (2026-08-19 백엔드 확인 · 빈 배열이면 전체 삭제).
+// 그래서 수정 모달은 삭제도 이 API 하나로 보낸다 — 69번을 먼저 부르면 그 삭제가
+// 남은 이미지의 version 을 올려 뒤따르는 이 요청이 409 를 맞는다. 항상 전체를 보낸다.
 // 경로의 마지막 값은 항목 ID 가 아니라 블록 ID 다.
 // 낙관적 락이 항목마다다 (2026-08-11) — images[].version 필수.
 // 하나라도 어긋나면 배열 전체가 409 로 롤백된다 (부분 저장 없음).
@@ -323,7 +325,8 @@ export function updateImageItems(
   );
 }
 
-/** 이미지 항목 삭제 — 이쪽은 항목 ID(imgId) 다 */
+// 이미지 항목 삭제 — 이쪽은 항목 ID(imgId) 다.
+// 카드에서 보고 있는 한 장을 지울 때만 쓴다. 수정 모달의 삭제는 68번에 실어 보낸다.
 export function deleteImageItem(imgId: number | string, signal?: AbortSignal) {
   return api.delete<null>(ENDPOINTS.blocks.imageItem(imgId), signal);
 }

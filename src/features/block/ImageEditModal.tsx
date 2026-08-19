@@ -8,7 +8,7 @@ import LoadingSpinner from '@/components/Spinner';
 import { messageOf } from '@/lib/api';
 import { useFlipReorder } from '@/lib/useFlipReorder';
 
-import { deleteImageItem, getImageItems, updateImageItems } from './api';
+import { getImageItems, updateImageItems } from './api';
 import {
   IMAGE_CONFLICT_MESSAGE,
   isImageVersionConflict,
@@ -42,7 +42,10 @@ function sameMembers(left: BlockImage[], right: BlockImage[]) {
 
 // 이미지 수정 모달 — 순서 변경·캡션 편집·삭제.
 // 수정 API 가 정렬된 전체 목록을 받는 전체 치환이라, 열 때 getImageItems 로 한 번에 받아 그대로 되보낸다.
-// 삭제는 모달 안에서 표시만 해 두고 저장할 때 실제로 지운다 — 취소로 닫으면 아무것도 바뀌지 않아야 한다.
+// 삭제도 같은 요청으로 처리한다 — 배열에서 빼면 서버가 지운다 (빈 배열이면 전체 삭제).
+// 삭제 API(69번)를 따로 부르면 그 삭제가 남은 이미지의 orderIndex 를 당기며 version 을 올려,
+// 이어지는 수정이 제 삭제 탓에 409 를 맞고 캡션 편집이 날아갔다 (2026-08-19).
+// 삭제는 모달 안에서 표시만 해 두고 저장할 때 반영한다 — 취소로 닫으면 아무것도 바뀌지 않아야 한다.
 export default function ImageEditModal({
   imgBlockId,
   seed,
@@ -145,8 +148,7 @@ export default function ImageEditModal({
   }
 
   // 서버에서 읽어 온 목록으로 화면을 갈아끼운다 — 편집 중이던 순서·캡션은 버린다.
-  // 저장이 중간에 끊기면(삭제 3건 중 2건만 나감 등) 화면은 옛 목록을 들고 있는데
-  // 서버에는 이미 지워진 이미지가 있어, 다시 저장하면 없는 imgId 를 보내게 된다.
+  // 남이 먼저 저장했을 때(409)의 유일한 출구다 — 덮어쓰기 API 가 없다.
   function applyLatest(latest: BlockImage[], reason: string) {
     const sorted = [...latest].sort(
       (left, right) => left.orderIndex - right.orderIndex,
@@ -206,29 +208,21 @@ export default function ImageEditModal({
       return;
     }
 
-    // 삭제 → 순서·캡션 순으로 나간다. 지운 이미지가 섞인 목록을 보내면 정렬이 어긋난다.
-    // 둘을 한 번에 처리하는 API 가 없어 중간에 끊길 수 있어, 실패하면 반드시 서버 상태를 다시 읽는다.
-    let hasDeleted = false;
-
+    // 순서·캡션·삭제가 이 요청 하나로 나간다 — 배열에서 빠진 imgId 는 서버가 지운다.
+    // 전체 치환이라 빈 배열도 그대로 보낸다 (남김 없이 삭제).
+    // 실패하면 전체 롤백이라 서버는 손대기 전 그대로다 — 다시 시도만 열어 두면 된다.
     try {
-      for (const imgId of removedIds) {
-        await deleteImageItem(imgId);
-        hasDeleted = true;
-      }
-
-      if (kept.length > 0) {
-        await updateImageItems(
-          imgBlockId,
-          // 방금 재조회한 버전이 아니라 화면이 들고 있던 버전을 보낸다 —
-          // 재조회 값을 실으면 그 사이 남이 고친 캡션까지 조용히 덮어쓰게 된다.
-          // 재조회는 추가·삭제를 알아내는 데만 쓰고 충돌 판정은 서버에 맡긴다.
-          kept.map((image) => ({
-            imgId: image.imgId,
-            caption: image.caption,
-            version: image.version as number,
-          })),
-        );
-      }
+      await updateImageItems(
+        imgBlockId,
+        // 방금 재조회한 버전이 아니라 화면이 들고 있던 버전을 보낸다 —
+        // 재조회 값을 실으면 그 사이 남이 고친 캡션까지 조용히 덮어쓰게 된다.
+        // 재조회는 추가·삭제를 알아내는 데만 쓰고 충돌 판정은 서버에 맡긴다.
+        kept.map((image) => ({
+          imgId: image.imgId,
+          caption: image.caption,
+          version: image.version as number,
+        })),
+      );
 
       // 응답에 imageUrl 이 없어 화면에 있던 값에 새 정렬 번호만 얹는다.
       onSaved(
@@ -242,12 +236,7 @@ export default function ImageEditModal({
         return;
       }
 
-      const message = messageOf(caught, '이미지를 저장하지 못했습니다.');
-
-      // 아무것도 안 지워졌으면 서버는 그대로다 — 다시 읽지 않고 재시도만 열어 둔다.
-      if (hasDeleted) await resync(message);
-      else setErrorMessage(message);
-
+      setErrorMessage(messageOf(caught, '이미지를 저장하지 못했습니다.'));
       setIsSaving(false);
     }
   }
