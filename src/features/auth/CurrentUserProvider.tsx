@@ -6,17 +6,12 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
 
 import AppShellSkeleton from '@/components/AppShellSkeleton';
-import {
-  ApiError,
-  FORBIDDEN_EVENT,
-  UNAUTHORIZED_EVENT,
-} from '@/lib/api';
+import { ApiError, FORBIDDEN_EVENT, UNAUTHORIZED_EVENT } from '@/lib/api';
 
 import { getMe } from './api';
 import {
@@ -179,30 +174,6 @@ export default function CurrentUserProvider({
     };
   }, [router, retryCount]);
 
-  /** 쿠키의 셸 값으로 채운 임시 사용자. 확인 뒤 실제 값으로 덮인다 */
-  const shellUser = useMemo<CurrentUser | null>(() => {
-    const cached = initialShell?.user;
-
-    if (!cached) return null;
-
-    return {
-      userId: cached.userId,
-      name: cached.name,
-      role: cached.role,
-      // 게이트는 확인된 응답으로만 판단하므로 이 값은 쓰이지 않는다
-      termsStatus: 'AGREED',
-      passwordStatus: 'NORMAL',
-      departmentName: null,
-      departmentPath: cached.departmentPath,
-      jobPositionName: cached.jobPositionName,
-      email: null,
-      phone: null,
-      hiredAt: null,
-      lastLoginAt: null,
-      profileImageUrl: cached.profileImageUrl,
-    };
-  }, [initialShell]);
-
   const setProfileImage = useCallback((profileImageUrl: string | null) => {
     setUser((current) => (current ? { ...current, profileImageUrl } : current));
   }, []);
@@ -279,17 +250,14 @@ export default function CurrentUserProvider({
     return <AuthGates {...gates} onDone={refetch} />;
   }
 
-  /* 세션 확인 중에는 문구 대신 셸 모양 자리표시를 그린다 */
-  /** 확인 전에는 쿠키에 남아 있던 직전 값으로 셸을 그린다 */
-  const shownUser = user ?? shellUser;
-
-  if (!shownUser) return <AppShellSkeleton shell={initialShell} />;
+  // 확인 전에는 children 을 그리지 않는다 — 쿠키 셸로 그리면 직전 화면이 번쩍인다
+  if (user === null) return <AppShellSkeleton shell={initialShell} />;
 
   const deniedCode = denied?.code ?? null;
 
   return (
-    <CurrentUserContext.Provider value={shownUser}>
-      <SessionConfirmedContext.Provider value={user !== null}>
+    <CurrentUserContext.Provider value={user}>
+      <SessionConfirmedContext.Provider value>
         <PermissionDeniedContext.Provider value={deniedCode}>
           <SetProfileImageContext.Provider value={setProfileImage}>
             <ShellAvatarContext.Provider value={initialShell?.avatar ?? null}>

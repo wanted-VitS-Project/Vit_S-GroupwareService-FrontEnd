@@ -6,6 +6,50 @@
 
 ---
 
+## [2026-08-19] 사원 API 옵션 3건 연동 · 약관 2종 분리 동의 🚧
+
+이슈: #TBD · 브랜치: `feat/employee-api-options` · 상태: 🚧 진행 중 (동작 확인 대기)
+
+백엔드 `#431` · `#432` 로 인사 도메인에 옵션 3건이 들어와 연동했다. 모두 기본값 `false` 라
+연동 전에도 화면은 그대로였고, 새 기능과 부서 인원 수 불일치만 이번에 반영된다.
+같은 브랜치에서 약관 게이트의 `TODO` 플레이스홀더도 실제 문구로 채웠다.
+
+### 변경 파일
+
+| 파일                                          | 변경                                                          |
+| --------------------------------------------- | ------------------------------------------------------------- |
+| `src/features/employee/{api,types}.ts`        | 수정 — `autoCreateMasters` 전달, `newMasters` · `createdMasters` 타입, `includeSubDepartments` |
+| `src/features/employee/BulkUploadModal.tsx`   | 수정 — 자동 생성 체크박스, `NewMastersPreview` 추가          |
+| `src/features/employee/EmployeeList.tsx`      | 수정 — URL 에서 `includeSubDepartments` 읽기                 |
+| `src/features/department/DepartmentList.tsx`  | 수정 — `사원 보기` 링크에 파라미터 추가                       |
+| `src/features/masterItem/types.ts`            | 수정 — `masterItemNameError` · `MASTER_ITEM_NAME_RULE` 추가  |
+| `src/features/masterItem/MasterItemPanel.tsx` | 수정 — 추가 · 이름 수정에 금지 문자 검증                      |
+| `src/features/auth/termsContent.tsx`          | **생성** — 약관 2종 본문 (표 포함)                            |
+| `src/features/auth/TermsGate.tsx`             | 수정 — 아코디언 2건 · 체크 2개 · 서버 호출 1회                |
+| `src/features/auth/CurrentUserProvider.tsx`   | 수정 — 세션 확인 전 children 미렌더                           |
+
+### 주요 작업 내용
+
+- **엑셀 자동 생성** — 업로드 단계 체크박스 하나로 검증 · 등록에 `autoCreateMasters` 를 같은 값으로 보낸다. 검증 결과 맨 위에 새로 생길 이름을 `이름 (N행)` 으로 펼쳐 보여준다
+- **마스터 이름 규칙** — `,` `;` `:` 줄바꿈과 100자 초과를 요청 전에 막는다. 전공 · 자격증이 같은 패널을 써서 함수 하나로 두 도메인을 덮는다
+- **하위 부서 포함** — 부서 관리 `사원 보기` 링크에 `includeSubDepartments=true` 를 붙여 인원 배지와 목록 수를 맞췄다
+- **약관 2종** — 문서마다 아코디언 + 체크박스를 두고, 둘 다 켜야 `POST /terms-agreements` 를 한 번 부른다
+
+### 트러블슈팅
+
+- **약관 모달 직전에 이전 화면이 번쩍였다** — `refetch()` 가 `user` 를 비우는 사이 `shellUser`(쿠키 셸 값)로 `children` 을 그리고 있었다. 게이트가 필요한 계정에 앱 내용이 잠깐 보이는 문제라, 확인 전에는 `AppShellSkeleton` 만 그리도록 바꾸고 `shellUser` 는 지웠다
+- **스크롤이 3겹이었다** — 모달 + 약관 박스 2개. 고정 높이(`h-56`) 때문에 조문이 문장 가운데서 잘렸다. 아코디언으로 바꿔 스크롤을 모달 하나로 줄였다
+- **백엔드 `#432` 가 로컬 클론에 없었다** — 스웨거 · 소스 어디에도 `includeSubDepartments` 가 없어 미반영으로 볼 뻔했다. `git fetch` 후 `origin/develop` 에서 확인했다
+
+### 부수 결정
+
+- **검증과 등록은 같은 `autoCreateMasters` 를 보낸다** — 명세 경고대로 값이 갈리면 검증 화면의 `newMasters` 와 등록 결과가 어긋난다. 모달 최상위 state 하나로 묶었다
+- **사원 목록에서 부서를 직접 바꾸면 하위 포함을 끈다** — 이 옵션은 부서 관리에서 배지를 눌러 들어온 맥락에서만 뜻이 있다
+- **약관은 강제로 펼치게 하지 않는다** — 형식적인 클릭만 늘고 읽는 데 도움이 안 된다
+- **약관 본문은 `termsContent.tsx` 한 파일** — 문구가 바뀌면 화면을 건드리지 않는다
+
+---
+
 ## [2026-08-18] 블록 드래그 이동이 배포환경에서 두 번 해야 먹히던 문제 ✅
 
 이슈: #215 · 브랜치: `fix/project`

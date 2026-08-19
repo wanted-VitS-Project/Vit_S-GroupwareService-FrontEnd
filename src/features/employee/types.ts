@@ -74,6 +74,8 @@ export interface EmployeeListQuery {
   /** 이름 또는 사번 부분 검색. 서버가 하나로 받는다 */
   keyword?: string;
   departmentId?: number;
+  /** 켜면 그 부서의 직속 + 하위 부서 사원까지 온다. departmentId 없이 보내면 무시된다 */
+  includeSubDepartments?: boolean;
   role?: ManagedRole;
   status?: EmployeeStatusFilter;
   /** 미지정이면 재직자만 나온다 */
@@ -220,6 +222,14 @@ export interface BulkValidateResult {
   errors: BulkRowError[];
   /** 이메일이 없는 행 수. 오류가 아니라 등록은 되고 메일만 못 간다 */
   emailNotRegisteredCount: number;
+  /** 자동 생성을 껐으면 빈 배열로 온다 */
+  newMasters: MasterNameCount;
+}
+
+/** 전공 · 자격증 이름과 그 이름을 쓰는 행 수 */
+export interface MasterNameCount {
+  majors: { name: string; rowCount: number }[];
+  certificates: { name: string; rowCount: number }[];
 }
 
 /** 일괄 등록 결과 */
@@ -232,4 +242,6 @@ export interface BulkRegisterResult {
   emailSentCount: number;
   /** 이메일이 없어 초기 비밀번호를 못 보낸 사번 */
   emailNotRegistered: string[];
+  /** 새로 만들었거나 동명 마스터를 재사용한 이름 */
+  createdMasters: MasterNameCount;
 }

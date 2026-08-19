@@ -1365,6 +1365,7 @@ data: {
 | --------------- | --------- | ------------------------------------------ |
 | `keyword`       | `string`  | **이름 또는 사번** 부분 검색 (하나로 통합) |
 | `departmentId`  | `Long`    | 부서 필터                                  |
+| `includeSubDepartments` | `boolean` | 기본 `false`. `true` 면 직속 + 하위 부서까지 (2026-08-19 추가) |
 | `role`          | `string`  | `MASTER` · `MEMBER`                        |
 | `status`        | `string`  | `ACTIVE` · `RESET_REQUIRED` · `INACTIVE`   |
 | `resigned`      | `boolean` | 미지정이면 **재직자만**                    |
@@ -1398,6 +1399,9 @@ data: {
 | 400    | `EMP_INVALID_PARAMETER` | 허용되지 않는 필터 값 |
 
 > ⚠️ 결재선 검색([35](#35-사원-이름-검색-결재선-지정용))과 **다른 API** 다 — 이건 ADMIN 전용 인사관리용.
+> ✅ **`includeSubDepartments`** (2026-08-19 백엔드 `#432`) — 부서 관리의 인원 배지는 하위 포함 수
+> (`totalEmployeeCount`)인데 `사원 보기` 는 직속만 보여줘 숫자가 어긋났다. 링크에 `true` 를 붙여 맞춘다.
+> `departmentId` 없이 단독으로 주면 무시된다. 부서 트리가 최대 2단이라 하위 부서에 걸면 직속과 같다.
 > ℹ️ 상태 배지는 `accountStatus` + `passwordStatus` **두 원본을 프론트가 조합**한다.
 > ℹ️ 시스템 계정은 어떤 조건으로도 나오지 않는다.
 > ⚠️ 이름 정렬은 프론트에서 `localeCompare('ko')` 로 한다 — DB 콜레이션이 가나다 순이 아니다.
@@ -3543,7 +3547,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | **인증 필요** | ✅ (ADMIN)                                    |
 | **사용 위치** | `employee/api.ts` → `validateBulkEmployees()` |
 
-**요청** — `file` (엑셀 파일). 등록하지 않고 **행별 오류만** 반환한다.
+**요청** — `file` (엑셀 파일) · `autoCreateMasters` (기본 `false`). 등록하지 않고 **행별 오류만** 반환한다.
 
 | 필드                        | 타입      | 설명                            |
 | --------------------------- | --------- | ------------------------------- |
@@ -3554,6 +3558,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | `errors[].validation`       | `string`  | 오류 유형                       |
 | `errors[].message`          | `string`  | 안내 문구 — 그대로 표시         |
 | `emailNotRegisteredCount`   | `int`     | 이메일 없는 행 수 (등록은 가능) |
+| `newMasters.majors[]` · `.certificates[]` | `{name, rowCount}[]` | 등록 시 새로 생길 전공 · 자격증 (2026-08-19 추가) |
 
 | status | code                     | 화면 처리    |
 | ------ | ------------------------ | ------------ |
@@ -3563,6 +3568,10 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | 403    | `ACC_ADMIN_REQUIRED`     | 권한 없음    |
 
 > ⚠️ **오류 행이 있어도 200** 이다 — `errorCount` 로 분기해야 한다. 400 은 파일 자체 문제 3가지뿐.
+> ✅ **`autoCreateMasters`** (2026-08-19 백엔드 `#431`) — 켜면 목록에 없는 전공 · 자격증이 `EDU_NOT_FOUND` ·
+> `CERT_NOT_FOUND` 행 오류가 되지 않고 `newMasters` 로 분류된다. 끄면 빈 배열이라 기존 동작 그대로다.
+> ❗ **`newMasters` 는 화면에 반드시 보여준다** — 오타가 그대로 마스터가 되는 걸 등록 전에 잡는 유일한 지점이다.
+> `rowCount` 는 그 이름을 쓰는 **오류 없는 행** 수다. 학위 표기 오류 · 100자 초과 · 자격증명의 `:` 는 여전히 행 오류다.
 
 ---
 
@@ -3575,7 +3584,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | **인증 필요** | ✅ (ADMIN)                                    |
 | **사용 위치** | `employee/api.ts` → `registerBulkEmployees()` |
 
-**요청** — `file` · `skipErrors` (기본 `false`)
+**요청** — `file` · `skipErrors` (기본 `false`) · `autoCreateMasters` (기본 `false`)
 
 **응답 data**
 
@@ -3586,6 +3595,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 | `errors[]`                        | `Object[]` | 검증([88](#88-사원-엑셀-일괄-등록-검증))과 같은 구조 |
 | `emailSentCount`                  | `int`      | 초기 비밀번호 발송 건수                              |
 | `emailNotRegistered[]`            | `string[]` | 이메일 없어 발송 못 한 사번                          |
+| `createdMasters.majors[]` · `.certificates[]` | `{name, rowCount}[]` | 새로 만들었거나 동명 마스터를 재사용한 이름 |
 
 | status | code                 | 화면 처리                                 |
 | ------ | -------------------- | ----------------------------------------- |
@@ -3595,6 +3605,9 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 > ℹ️ **행마다 독립 트랜잭션**이라 일부 실패해도 나머지는 등록된다.
 > ℹ️ 초기 비밀번호는 이메일이 있는 사원에게만 발송된다 — 나머지는 `emailNotRegistered[]` 로 안내한다.
+> ❗ **`autoCreateMasters` 는 검증([88](#88-사원-엑셀-일괄-등록-검증))과 같은 값을 보내야 한다** — 다르면 검증 화면의
+> `newMasters` 와 등록 결과가 어긋난다. 화면은 모달 최상위 state 하나로 두 호출에 같은 값을 싣는다.
+> ℹ️ 생성 직전 같은 이름이 이미 있으면 새로 만들지 않고 그 마스터를 참조한다 — `createdMasters` 에는 그대로 실린다.
 
 ---
 
@@ -3654,17 +3667,21 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 **155 목록** — `data.majors[]` · `data.certificates[]`
 `majorId`/`certificateId` · `name` · `employeeCount`(쓰는 사원 수) · `deletable`
 
-**156 · 157 본문** — `name` (필수 · 100자 이하)
+**156 · 157 본문** — `name` (필수 · 100자 이하 · `,` `;` `:` 줄바꿈 불가)
 
 | status | code                                             | 화면 처리                                        |
 | ------ | ------------------------------------------------ | ------------------------------------------------ |
 | 409    | `MAJOR_NAME_DUPLICATED` · `CERT_NAME_DUPLICATED` | `이미 있는 이름입니다`                           |
 | 409    | `MAJOR_IN_USE` · `CERT_IN_USE`                   | 삭제 거부 — **사원 수는 `message` 에 담겨 온다** |
 | 404    | `MAJOR_NOT_FOUND` · `CERT_NOT_FOUND`             | 목록 재조회                                      |
+| 400    | `MAJOR_INVALID_REQUEST` · `CERT_INVALID_REQUEST` | 이름 규칙 위반 — 화면이 먼저 막는다              |
 
 > ⚠️ `deletable` 로 삭제 버튼을 잠그지만 **경합은 못 막는다** — 목록을 띄워 둔 사이 누가 그
 > 항목으로 사원을 등록하면 409 가 온다. 잠금과 409 처리를 **둘 다** 둔다.
 > ℹ️ 응답 필드 이름이 도메인마다 달라(`majorId`/`certificateId`) API 계층에서 공용 모양(`MasterItem`)으로 바꾼다.
+> ✅ **이름 금지 문자** (2026-08-19 백엔드 `#431`) — `,` `;` `:` 줄바꿈은 엑셀이 항목 구분자 · `전공:학위`
+> 구분자로 쓰는 문자라 마스터 이름에 들어가면 쪼개진다. 화면이 `masterItemNameError()` 로 먼저 거른다.
+> 기존에 저장된 이름은 서버도 소급 검사하지 않는다 — 신규 생성 · 수정에만 적용된다.
 
 ### 사원 API 에 붙는 학력 · 자격증 (32 · 31 · 33)
 

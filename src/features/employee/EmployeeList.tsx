@@ -64,6 +64,8 @@ export default function EmployeeList() {
     () => ({
       keyword: searchParams.get('keyword') ?? undefined,
       departmentId: pickInt(searchParams.get('departmentId'), 1),
+      includeSubDepartments:
+        searchParams.get('includeSubDepartments') === 'true' || undefined,
       role: pickOption(searchParams.get('role'), ROLE_OPTIONS),
       status: pickOption(searchParams.get('status'), STATUS_OPTIONS),
       resigned: searchParams.get('resigned') === 'true' || undefined,
@@ -255,7 +257,12 @@ export default function EmployeeList() {
         <FilterSelect
           label="부서"
           value={query.departmentId ? String(query.departmentId) : ''}
-          onChange={(value) => applyFilter({ departmentId: value })}
+          onChange={(value) =>
+            applyFilter({
+              departmentId: value,
+              includeSubDepartments: undefined,
+            })
+          }
           options={toDepartmentOptions(departments).map((option) => ({
             value: String(option.id),
             label: option.label,

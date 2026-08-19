@@ -16,7 +16,11 @@ import {
 } from './api';
 import { codesOf } from './errorCodes';
 import type { MasterItem, MasterItemKind } from './types';
-import { MASTER_ITEM_NAME_MAX_LENGTH } from './types';
+import {
+  MASTER_ITEM_NAME_MAX_LENGTH,
+  MASTER_ITEM_NAME_RULE,
+  masterItemNameError,
+} from './types';
 
 /**
  * 전공 · 자격증 한 벌을 관리하는 칸. 두 도메인이 규칙이 같아 종류만 바꿔 두 번 세운다.
@@ -81,6 +85,12 @@ export default function MasterItemPanel({
     const next = name.trim();
     if (next === '' || isAdding) return;
 
+    const invalid = masterItemNameError(next);
+    if (invalid) {
+      setErrorMessage(invalid);
+      return;
+    }
+
     setIsAdding(true);
     setErrorMessage('');
 
@@ -119,6 +129,13 @@ export default function MasterItemPanel({
     // 그대로면 요청을 보내지 않는다. 중복 검사에 자기 이름이 걸린다
     if (next === '' || next === before) {
       setEditing(null);
+      return;
+    }
+
+    // 고칠 기회를 주려고 입력칸을 닫지 않는다
+    const invalid = masterItemNameError(next);
+    if (invalid) {
+      notifyToast(invalid, 'error');
       return;
     }
 
@@ -269,7 +286,8 @@ export default function MasterItemPanel({
             setName(event.target.value);
             setErrorMessage('');
           }}
-          className="input min-w-0 flex-1"
+          aria-invalid={errorMessage !== '' || undefined}
+          className={`input min-w-0 flex-1 ${errorMessage ? 'input-error' : ''}`}
         />
         <button
           type="submit"
@@ -280,9 +298,13 @@ export default function MasterItemPanel({
         </button>
       </form>
 
-      {errorMessage && (
+      {errorMessage ? (
         <p role="alert" className="mt-1 text-caption text-text-danger">
           {errorMessage}
+        </p>
+      ) : (
+        <p className="mt-1 text-micro break-keep text-text-secondary">
+          {MASTER_ITEM_NAME_RULE}
         </p>
       )}
 
