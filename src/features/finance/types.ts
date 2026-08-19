@@ -67,8 +67,10 @@ export interface CashFlowItem {
   cashFlowId: number;
   /** 거래 일시 (ISO 형식) */
   tradedAt: string;
-  /** 거래고유번호. 은행명 + 거래일시로 자동 생성된다 */
+  /** 거래고유번호. 은행명 앞 4자 + 거래일시로 자동 생성된다 */
   bankTxnId: string;
+  /** 은행명 (2026-08-19 서버 추가) */
+  bankName: string;
   type: CashFlowType;
   /** 거래 금액. 구분과 별개로 양수로 온다 */
   amount: number;
@@ -104,7 +106,7 @@ export interface CashFlowListResponse {
 
 /**
  * 목록 조회 조건. 값이 있는 것만 쿼리로 나간다.
- * 구분 · 출처 필터는 서버에 없어 화면이 직접 거른다.
+ * 구분 · 출처까지 전부 서버 조건이다 (2026-08-19).
  */
 export interface CashFlowListQuery {
   /** 거래 일시 날짜 기준 */
@@ -116,6 +118,10 @@ export interface CashFlowListQuery {
   projectId?: number;
   /** 적요 또는 입금자명 검색 */
   keyword?: string;
+  /** 구분 (2026-08-19 서버 필터 추가) */
+  type?: CashFlowType;
+  /** 출처 (2026-08-19 서버 필터 추가) */
+  sourceType?: CashFlowSource;
   /** 0부터 센다 */
   page?: number;
   /** 기본 20 · 최대 100 */

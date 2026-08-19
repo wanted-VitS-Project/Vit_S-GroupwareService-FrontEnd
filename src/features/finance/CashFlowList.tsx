@@ -68,16 +68,13 @@ function pickDate(value: string | null) {
 
 /**
  * 입출금 내역 목록 화면. (#12)
- * 구분 · 출처는 서버 필터가 없어 지금 페이지 안에서만 걸러지고, 표 위에 그 사실을 적는다.
+ * 필터가 전부 서버 조건이라 한 쪽 분량 · 총 건수 · 쪽수를 서버 값 그대로 쓴다.
  */
 export default function CashFlowList() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  /**
-   * URL 이 필터의 원본이다. 서버 조건은 값 하나하나로 풀어 둬야
-   * 화면 필터만 바꿨을 때 같은 목록을 다시 요청하지 않는다.
-   */
+  /** URL 이 필터의 원본이다. 값 하나하나로 풀어야 요청 키가 값 단위로 갈린다 */
   const startDate = pickDate(searchParams.get('startDate'));
   const endDate = pickDate(searchParams.get('endDate'));
   const unlinked = searchParams.get('unlinked') === 'true' || undefined;
@@ -86,23 +83,23 @@ export default function CashFlowList() {
   /** 0 페이지가 기본이다. 이상한 값이 오면 첫 페이지로 본다 */
   const page = pickInt(searchParams.get('page'), 0) ?? 0;
 
-  /** 값이 그대로면 같은 객체를 유지한다 — 조회 효과가 헛돌지 않게 */
-  const query = useMemo<CashFlowListQuery>(
+  /** URL 키는 `source` 지만 서버 파라미터 이름은 `sourceType` 이다 */
+  const type = pickOption(searchParams.get('type'), TYPE_OPTIONS);
+  const sourceType = pickOption(searchParams.get('source'), SOURCE_OPTIONS);
+
+  /** 서버 조건만 담는다. 값이 그대로면 같은 객체를 유지해 조회 효과가 헛돌지 않는다 */
+  const serverQuery = useMemo<Omit<CashFlowListQuery, 'page' | 'size'>>(
     () => ({
       startDate,
       endDate,
       unlinked,
       projectId,
       keyword,
-      page,
-      size: PAGE_SIZE,
+      type,
+      sourceType,
     }),
-    [startDate, endDate, unlinked, projectId, keyword, page],
+    [startDate, endDate, unlinked, projectId, keyword, type, sourceType],
   );
-
-  /** 화면에서만 거르는 조건 — 서버에 없다 */
-  const clientType = pickOption(searchParams.get('type'), TYPE_OPTIONS);
-  const clientSource = pickOption(searchParams.get('source'), SOURCE_OPTIONS);
 
   /** 입력 중인 검색어 — 제출해야 URL 에 반영된다 */
   const [keywordInput, setKeywordInput] = useState(keyword ?? '');
@@ -138,7 +135,7 @@ export default function CashFlowList() {
   const deleteConfirm = useModalTarget<number[]>();
   const [isBusy, setIsBusy] = useState(false);
 
-  /** 서버 조건만 요청 키에 넣는다 — 화면 필터로 다시 조회하면 결과는 같고 요청만 는다 */
+  /** 조건이 하나라도 바뀌면 새 조회다. 선택(체크박스)을 비우는 기준도 이 값이다 */
   const requestKey = [
     reloadCount,
     startDate,
@@ -146,6 +143,8 @@ export default function CashFlowList() {
     unlinked,
     projectId,
     keyword,
+    type,
+    sourceType,
     page,
   ].join(' ');
 
@@ -154,15 +153,12 @@ export default function CashFlowList() {
   const received = current?.data ?? result?.data ?? null;
   const hasFailed = current?.hasFailed ?? false;
   const isLoading = current === null && !hasFailed;
-  /** 재조회 중에도 직전 쪽수를 유지한다. 페이지 줄이 사라졌다 나타나면 화면이 튄다 */
-  const totalElements = current?.totalElements ?? result?.totalElements;
-  const totalPages = current?.totalPages ?? result?.totalPages ?? 0;
 
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
 
-    getCashFlows(query, signal)
+    getCashFlows({ ...serverQuery, page, size: PAGE_SIZE }, signal)
       .then((data) =>
         setResult({
           key: requestKey,
@@ -177,8 +173,7 @@ export default function CashFlowList() {
       });
 
     return () => controller.abort();
-    // `query` 는 서버 조건이 그대로면 같은 객체다 — 화면 필터로는 다시 돌지 않는다
-  }, [requestKey, query]);
+  }, [requestKey, serverQuery, page]);
 
   /** 프로젝트 셀렉트 — 목록과 달리 한 번만 받는다. 실패해도 화면은 그대로 쓴다 */
   useEffect(() => {
@@ -194,28 +189,20 @@ export default function CashFlowList() {
     return () => controller.abort();
   }, []);
 
-  /**
-   * 목록이 갈리면 선택도 비운다 — 안 보이는 건이 남으면 `삭제` 가 그 행까지 지운다.
-   */
+  /** 목록이 갈리면 선택도 비운다 — 안 보이는 건이 남으면 `삭제` 가 그 행까지 지운다 */
   if (selectedKey !== requestKey) {
     setSelectedKey(requestKey);
     setSelectedIds([]);
   }
 
-  /** 화면 필터는 받아온 목록에서 거른다 */
-  const rows = useMemo(() => {
-    if (received === null) return null;
+  /** 서버가 조건에 맞는 한 쪽만 준다 — 화면이 더 거르거나 나누지 않는다 */
+  const rows = received;
 
-    return received.filter(
-      (row) =>
-        (clientType === undefined || row.type === clientType) &&
-        (clientSource === undefined || row.sourceType === clientSource),
-    );
-  }, [received, clientType, clientSource]);
+  /** 서버가 센 값. 재조회 중에는 직전 값을 유지한다 (페이지 줄이 깜빡이지 않게) */
+  const totalElements = current?.totalElements ?? result?.totalElements;
+  const totalPages = current?.totalPages ?? result?.totalPages ?? 0;
 
-  /**
-   * 다건 처리 결과 안내. 부분 성공이 정상 동작이라 빠진 건의 사유까지 알린다.
-   */
+  /** 다건 처리 결과 안내. 부분 성공이 정상이라 빠진 건의 사유까지 알린다 */
   function reportBulk(
     done: string,
     result: { count: number; skippedItems: CashFlowSkippedItem[] },
@@ -390,22 +377,11 @@ export default function CashFlowList() {
       )}
 
       {/* 서버가 센 전체 건수를 적는다. 목록 길이는 지금 쪽 분량이라 총 건수가 아니다 */}
-      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-1">
-        <p className="text-caption text-text-secondary">
-          총 {(totalElements ?? 0).toLocaleString('ko-KR')}건
-        </p>
-        {/* 서버 조건이 아니라 지금 쪽에서만 걸러진다. 오해하지 않게 적는다 */}
-        {(clientType !== undefined || clientSource !== undefined) && (
-          <p className="text-caption break-keep text-text-secondary">
-            구분 · 출처는 이 페이지 안에서만 거릅니다.
-          </p>
-        )}
-      </div>
+      <p className="mb-2 text-caption text-text-secondary">
+        총 {(totalElements ?? 0).toLocaleString('ko-KR')}건
+      </p>
 
-      {/*
-        첫 조회 중에는 표를 그리지 않는다 — 몇 줄이 올지 모르는 채로 깔면
-        결과가 적을 때 표가 떴다가 줄어들며 화면이 튄다.
-      */}
+      {/* 첫 조회 중에는 표를 그리지 않는다 — 결과가 적으면 떴다 줄어들며 화면이 튄다 */}
       {isLoading && !rows && !hasFailed ? (
         <LoadingSpinner label="입출금 내역을 불러오는 중" className="py-20" />
       ) : (

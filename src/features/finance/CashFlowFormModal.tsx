@@ -12,7 +12,6 @@ import {
 import { messageOf } from '@/lib/api';
 
 import { createCashFlow, updateCashFlow } from './api';
-import { bankNameFromTxnId } from './display';
 import {
   CASH_FLOW_SOURCE_LABELS,
   CASH_FLOW_TYPE_LABELS,
@@ -81,8 +80,7 @@ function toApiDateTime(value: string) {
 
 function toFormState(row: CashFlowItem): FormState {
   return {
-    // 목록 응답에 은행명이 없어 거래고유번호에서 되읽는다
-    bankName: bankNameFromTxnId(row.bankTxnId),
+    bankName: row.bankName,
     tradedAt: toInputDateTime(row.tradedAt),
     type: row.type,
     amount: String(row.amount),
