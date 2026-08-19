@@ -6,6 +6,98 @@
 
 ---
 
+## [2026-08-19] 배치 완료 를 눌러도 블록 위치가 저장되지 않던 문제 ✅
+
+브랜치: `fix/project`
+
+배치 편집에서 블록을 옮기고 `배치 완료` 까지 눌렀는데 **새로고침하면 옛 배치로 돌아갔다.**
+오류 문구도 없었다 — `PATCH /steps/{stepId}/blocks/layout` **요청 자체가 나가지 않았다.**
+로컬 · 배포 모두 재현됐다. 수정 후 모달 표시 · 요청 전송 · 새로고침 유지까지 확인했다.
+
+### 변경 파일
+
+| 파일                                   | 변경                                                                                   |
+| -------------------------------------- | -------------------------------------------------------------------------------------- |
+| `src/features/block/BlockBoard.tsx`    | 수정 — 내 메아리로는 `arrangeBase` 를 갈아끼우지 않는다 · `save()` 가 `saveNow()` 사용 |
+| `src/features/block/useLayoutSaver.ts` | 수정 — `saveNow()` 추가 (지문 검사를 건너뛰는 강제 전송)                               |
+| `.ai/API.md`                           | 수정 — 44번 절에 "보내지 않는 실패" 경고 추가                                          |
+
+### 주요 작업 내용
+
+- **편집 기준(`arrangeBase`) 오염 차단** — 새로 온 목록의 순서가 화면과 같으면(= 내 메아리)
+  기준을 갈아끼우지 않는다. 이걸 안 막으면 `hasChanges()` 가 늘 false 라 **저장 여부를 묻는
+  모달조차 뜨지 않고** 편집 모드가 그냥 닫힌다
+- **사용자가 저장 을 누른 경로만** 지문 검사를 건너뛰고 무조건 보낸다 (`saveNow`)
+- 앞 요청이 나가 있는 동안에도 강제 표시를 들고 있다가 이어 보낸다 (`mustSend` ref)
+- 자동 저장(디바운스)은 그대로 — 옮겼다 되돌린 경우 요청을 아끼는 동작은 유지
+
+### 트러블슈팅
+
+- **1차 범인 — 저장을 물어보지도 않았다.** 한 번 옮길 때마다 보드가 자기 메아리를 남의 재조회로
+  오인해 `setArrangeBase(지금 순서)` 를 돌렸고, 편집 시작 시점의 기준이 매번 현재 순서로
+  덮였다 → `hasChanges()` 가 false → `배치 완료` 는 모달 없이 그냥 편집 모드를 닫는다
+  → `arrangeApi.save()` 자체가 호출되지 않아 **요청이 나갈 자리가 없었다**
+- **2차 범인 — 설령 불렸어도 건너뛴다.** `send()` 는 결과 배치가 마지막으로 저장된
+  배치(`confirmedMark`)와 같으면 요청을 건너뛴다. 같은 오인이 `saver.reset(아직 저장 안 한 배치)` 도
+  돌려, 그 순간 미저장 배치가 "서버가 확인해 준 배치" 가 됐다 → 지문이 같아 **PATCH 를 건너뛴다**.
+  둘 다 뿌리가 같아(메아리 오인) 두 곳 모두 막았다
+- **왜 화면은 멀쩡했나** — #215 에서 넣은 `renumber()` 가 캐시에 좌표까지 새겨 주는 덕분에,
+  오인해서 `toFlatOrder()` 로 다시 세워도 순서가 그대로였다. 시각적 증상이 사라진 대신
+  **저장이 조용히 죽는** 형태로 바뀌어 있었다
+- **참조 비교(`isEcho`)는 원리적으로 성립하지 않는다** — `@tanstack/query-core@5.101.4` 로 재현해
+  확인했다. 구조 공유(`replaceEqualDeep`)가 `setQueryData` 뿐 아니라 **`select` 결과에도** 걸려,
+  `getQueryData()` 가 주는 배열과 `useQuery()` 가 주는 배열은 내용이 같아도 **다른 참조**다.
+  #215 의 "캐시에 실제로 들어간 배열을 돌려준다" 는 처방으로도 `isEcho` 는 **항상 false** 다
+
+### 부수 결정
+
+- **메아리 판정을 좌표 지문으로 바꾸는 안은 되돌렸다** — `blockLayout.layoutMark()` 를 만들어
+  `isEcho` 를 대체했더니 **드래그 미리보기가 아예 멈추는 회귀**가 났다 (원인 미규명).
+  근본 원인(기준 오염)은 남아 있고, 지금은 저장 경로에서 강제 전송으로 막아 둔 상태다.
+  다시 손대려면 미리보기 경로(`applyMove` → `setOrder`)부터 확인할 것 — 🔖 백로그
+- `structuralSharing: false` 는 이번에도 쓰지 않았다 — 재조회마다 새 참조가 나와 대기 중인
+  배치가 매번 `reset` 으로 날아간다
+
+---
+
+## [2026-08-19] 이미지 수정에서 삭제하면 내 캡션 편집이 사라지던 문제 ✅
+
+브랜치: `fix/project`
+
+이미지 수정 모달에서 몇 장을 지우고 저장하면 **"다른 사람이 수정했습니다"** 가 뜨면서
+같이 고친 캡션까지 서버 값으로 되돌아갔다. 정작 건드린 사람은 나 자신이었다.
+
+### 변경 파일
+
+| 파일                                    | 변경                                                                 |
+| --------------------------------------- | -------------------------------------------------------------------- |
+| `src/features/block/ImageEditModal.tsx` | 수정 — `save()` 에서 69번 삭제 루프를 걷어내고 68번 한 번으로 보낸다 |
+| `src/features/block/api.ts`             | 수정 — `updateImageItems` · `deleteImageItem` 주석 갱신 (역할 경계)  |
+| `.ai/API.md`                            | 수정 — 68 · 69번 절 갱신, 확인 대기 항목 2건 해소                    |
+
+### 주요 작업 내용
+
+- 수정 모달의 저장이 **순서 · 캡션 · 삭제를 68번 요청 하나로** 보낸다 — 배열에서 빠진 `imgId`
+  는 서버가 지운다 (2026-08-19 백엔드 확인). 전부 지우면 빈 배열을 그대로 보낸다
+- 요청이 1회가 되어 **부분 반영 상태가 사라졌다** — `hasDeleted` 분기와 실패 시 재조회
+  (`resync`) 를 걷어내고, 409 일 때만 재조회를 남겼다 (실패하면 서버는 전체 롤백)
+
+### 트러블슈팅
+
+- **범인이 나 자신이었다** — 69번 삭제가 뒷 장의 `orderIndex` 를 당기면서 남은 행들의
+  `version` 을 올렸고, 뒤이어 나가는 68번이 화면이 들고 있던 옛 `version` 을 실어
+  `409 IMAGE_VERSION_CONFLICT` 를 맞았다. 프론트는 409 를 무조건 "남이 먼저 저장했다" 로
+  읽고 `resync()` 로 화면을 갈아끼워, 함께 편집한 캡션이 서버 값으로 되돌아갔다
+- 저장 직전 `sameMembers` 재조회는 **삭제 이전**에 돌아 통과한다 — 이 검사로는 못 잡는 구멍이었다
+
+### 부수 결정
+
+- 삭제 후 71번을 재조회해 최신 `version` 만 갈아끼우는 안(B안)은 버렸다 — 그 사이 남이 고친
+  캡션을 조용히 덮어쓰게 되어 68번 절이 경고하는 바로 그 동작이 된다
+- `deleteImageItem()` 은 남긴다 — **카드에서 보고 있는 한 장 삭제**는 계속 69번을 쓴다
+
+---
+
 ## [2026-08-19] 사원 API 옵션 3건 연동 · 약관 2종 분리 동의 🚧
 
 이슈: #TBD · 브랜치: `feat/employee-api-options` · 상태: 🚧 진행 중 (동작 확인 대기)
@@ -16,17 +108,17 @@
 
 ### 변경 파일
 
-| 파일                                          | 변경                                                          |
-| --------------------------------------------- | ------------------------------------------------------------- |
+| 파일                                          | 변경                                                                                           |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | `src/features/employee/{api,types}.ts`        | 수정 — `autoCreateMasters` 전달, `newMasters` · `createdMasters` 타입, `includeSubDepartments` |
-| `src/features/employee/BulkUploadModal.tsx`   | 수정 — 자동 생성 체크박스, `NewMastersPreview` 추가          |
-| `src/features/employee/EmployeeList.tsx`      | 수정 — URL 에서 `includeSubDepartments` 읽기                 |
-| `src/features/department/DepartmentList.tsx`  | 수정 — `사원 보기` 링크에 파라미터 추가                       |
-| `src/features/masterItem/types.ts`            | 수정 — `masterItemNameError` · `MASTER_ITEM_NAME_RULE` 추가  |
-| `src/features/masterItem/MasterItemPanel.tsx` | 수정 — 추가 · 이름 수정에 금지 문자 검증                      |
-| `src/features/auth/termsContent.tsx`          | **생성** — 약관 2종 본문 (표 포함)                            |
-| `src/features/auth/TermsGate.tsx`             | 수정 — 아코디언 2건 · 체크 2개 · 서버 호출 1회                |
-| `src/features/auth/CurrentUserProvider.tsx`   | 수정 — 세션 확인 전 children 미렌더                           |
+| `src/features/employee/BulkUploadModal.tsx`   | 수정 — 자동 생성 체크박스, `NewMastersPreview` 추가                                            |
+| `src/features/employee/EmployeeList.tsx`      | 수정 — URL 에서 `includeSubDepartments` 읽기                                                   |
+| `src/features/department/DepartmentList.tsx`  | 수정 — `사원 보기` 링크에 파라미터 추가                                                        |
+| `src/features/masterItem/types.ts`            | 수정 — `masterItemNameError` · `MASTER_ITEM_NAME_RULE` 추가                                    |
+| `src/features/masterItem/MasterItemPanel.tsx` | 수정 — 추가 · 이름 수정에 금지 문자 검증                                                       |
+| `src/features/auth/termsContent.tsx`          | **생성** — 약관 2종 본문 (표 포함)                                                             |
+| `src/features/auth/TermsGate.tsx`             | 수정 — 아코디언 2건 · 체크 2개 · 서버 호출 1회                                                 |
+| `src/features/auth/CurrentUserProvider.tsx`   | 수정 — 세션 확인 전 children 미렌더                                                            |
 
 ### 주요 작업 내용
 
@@ -50,48 +142,6 @@
 
 ---
 
-## [2026-08-18] 블록 드래그 이동이 배포환경에서 두 번 해야 먹히던 문제 ✅
-
-이슈: #215 · 브랜치: `fix/project`
-
-배치 편집에서 블록을 끌어 옮기면 로컬에서는 잘 남는데 배포환경에서는 **같은 자리로 두 번**
-옮겨야 반영됐다. 원인은 react-query 의 구조 공유(`replaceEqualDeep`)가 `setQueryData` 에도
-적용돼, 보드가 자기 메아리를 알아보지 못한 것이었다.
-
-### 변경 파일
-
-| 파일                                  | 변경                                                          |
-| ------------------------------------- | ------------------------------------------------------------- |
-| `src/features/block/useStepBlocks.ts` | 수정 — `useSetStepBlocks` 가 캐시에 실제로 들어간 배열을 반환 |
-| `src/features/block/BlockBoard.tsx`   | 수정 — `publish` 가 그 반환값을 `echoed` 로 잡는다            |
-| `src/features/block/blockLayout.ts`   | 수정 — `renumber()` 추가 (화면 순서를 좌표에 새긴다)          |
-
-### 주요 작업 내용
-
-- `setQueryData` 직후 `getQueryData` 로 **실제 보관된 배열 참조**를 돌려받아 메아리 판정에 쓴다
-- `onOrderChanged` 반환 타입을 `StepBlock[] | void` 로 넓혔다 (보드 밖 호출부는 그대로)
-- **좌표 재번호** — `publish` 가 화면 순서를 좌표에 새겨(`renumber()`) 올려보낸다. 저장 전에도
-  목록의 순서와 `rowIndex·sortOrder` 가 어긋나지 않아, 새 블록 자리 계산(`nextPosition`)이
-  옛 좌표를 보지 않고 리셋이 돌아도 배치가 뒤집히지 않는다 (이중 안전망)
-
-### 트러블슈팅
-
-- **첫 이동이 되돌아갔다** — `isEcho = blocks === echoed` 가 항상 어긋나 보드가 자기 순서를
-  "남의 재조회" 로 오인했고, `toFlatOrder()` 가 아직 저장 전인 옛 `rowIndex·sortOrder` 로
-  다시 정렬해 원래 자리로 튕겼다 (`arrangeBase` 도 함께 갱신돼 `배치 완료` 가 "변경 없음" 이 됐다)
-- **두 번째만 먹혔다** — 같은 자리로 다시 옮기면 만들어지는 배열이 캐시의 배열과 원소별로 같은
-  참조가 돼 구조 공유가 이전 참조를 그대로 돌려준다 → prop 이 바뀌지 않아 리셋이 일어나지 않았다
-- **로컬만 멀쩡했던 이유(확인 필요)** — 재정렬이 순서를 되돌리려면 블록마다 `rowIndex·sortOrder`
-  가 서로 달라야 한다. 좌표가 0 이거나 중복이면 안정 정렬이라 배열 순서가 유지돼 정상처럼 보인다.
-  환경별 `GET /steps/{stepId}/blocks` 응답 좌표를 비교해 확정할 것
-
-### 부수 결정
-
-- 구조 공유를 끄는 방식(`structuralSharing: false`)은 쓰지 않았다 — 재조회 때마다 참조가 새로 나
-  보드가 매번 서버 순서로 되돌아가고, 블록 생성 감지 effect 도 헛돈다
-
----
-
 ## [2026-08-18] 사용성 정리 — 로딩 · 달력 · 알림 · 폼 오류 · 호버 🚧
 
 브랜치: `fix/ui-usability` · 상태: 🚧 진행 중 (동작 확인 대기)
@@ -101,18 +151,18 @@
 
 ### 변경 파일
 
-| 파일                                                                | 변경                                                  |
-| ------------------------------------------------------------------- | ----------------------------------------------------- |
-| `src/lib/dateInput.ts`                                              | **생성** — 달력 공통 속성(`min`·`max`·클릭 시 열기)   |
-| `src/lib/focusField.ts`                                             | **생성** — 검증 실패한 첫 칸으로 화면 이동            |
-| `src/app/globals.css`                                               | 수정 — `.input-error` 링, 셀렉트 · 날짜 칸 호버       |
-| `src/components/{DataTable,MemberAvatar,Sidebar}.tsx`               | 수정 — 빈 상태 주석, `withBorder`, 프로필 테두리 제거 |
-| `src/components/finance/CashFlowSkeletons.tsx`                      | 수정 — 로딩 문구 → 스피너                             |
-| `src/features/approval/ApprovalList.tsx`                            | 수정 — 탭이 바뀌면 직전 목록을 이어 쓰지 않는다       |
-| `src/features/department/{options.ts,DepartmentList.tsx}`           | 수정 — `개발팀 (기술본부)` 라벨 · 인원 툴팁           |
-| `src/features/employee/*`                                           | 수정 — 등록 확인 모달 · 상위 부서 차단 · 오류 이동    |
-| `src/features/notification/{NotificationRow,NotificationBell}.tsx`  | 수정 — 줄바꿈 · 좁은 화면 가운데 · 호버               |
-| 날짜 입력 화면 · 빈 상태 아이콘 6곳 등                              | 수정 — 공통 규칙 적용                                 |
+| 파일                                                               | 변경                                                  |
+| ------------------------------------------------------------------ | ----------------------------------------------------- |
+| `src/lib/dateInput.ts`                                             | **생성** — 달력 공통 속성(`min`·`max`·클릭 시 열기)   |
+| `src/lib/focusField.ts`                                            | **생성** — 검증 실패한 첫 칸으로 화면 이동            |
+| `src/app/globals.css`                                              | 수정 — `.input-error` 링, 셀렉트 · 날짜 칸 호버       |
+| `src/components/{DataTable,MemberAvatar,Sidebar}.tsx`              | 수정 — 빈 상태 주석, `withBorder`, 프로필 테두리 제거 |
+| `src/components/finance/CashFlowSkeletons.tsx`                     | 수정 — 로딩 문구 → 스피너                             |
+| `src/features/approval/ApprovalList.tsx`                           | 수정 — 탭이 바뀌면 직전 목록을 이어 쓰지 않는다       |
+| `src/features/department/{options.ts,DepartmentList.tsx}`          | 수정 — `개발팀 (기술본부)` 라벨 · 인원 툴팁           |
+| `src/features/employee/*`                                          | 수정 — 등록 확인 모달 · 상위 부서 차단 · 오류 이동    |
+| `src/features/notification/{NotificationRow,NotificationBell}.tsx` | 수정 — 줄바꿈 · 좁은 화면 가운데 · 호버               |
+| 날짜 입력 화면 · 빈 상태 아이콘 6곳 등                             | 수정 — 공통 규칙 적용                                 |
 
 ### 주요 작업 내용
 

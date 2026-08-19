@@ -39,6 +39,10 @@ export interface LayoutSaver {
   schedule: (next: StepBlock[]) => void;
   /** 대기 중인 배치를 지금 보낸다 (블록 생성처럼 목록이 곧 바뀔 때 먼저 흘려보낸다) */
   flushNow: () => void;
+  // 사용자가 저장 을 누른 순간 — 지문이 같아 보여도 **반드시** 보낸다.
+  // 기준(confirmed)이 아직 저장하지 않은 배치로 오염되면 "달라진 게 없다" 며
+  // 요청을 건너뛰고, 오류도 없이 화면만 옮겨진 채로 남는다 (새로고침하면 원복).
+  saveNow: (next: StepBlock[]) => void;
   /** 서버 목록을 새로 받았을 때 기준점을 갈아끼운다 (대기 중이던 이동은 버린다) */
   reset: (next: StepBlock[]) => void;
 }
@@ -46,6 +50,7 @@ export interface LayoutSaver {
 // 블록 배치 저장을 맡는다.
 // - 조용해지면 보낸다 — 이동할 때마다가 아니라 QUIET_MS 동안 더 안 움직일 때
 // - 같으면 안 보낸다 — 마지막으로 저장된 배치와 지문이 같으면 요청 자체를 건너뛴다
+// - 단, 저장 을 누르면 무조건 보낸다 (saveNow) — 이 건너뛰기가 조용한 유실의 통로다
 // - 한 번에 하나만 보낸다 — 앞 요청이 끝나야 다음이 나간다. 둘을 동시에 띄우면
 // 서버 처리 순서가 뒤바뀌어 옛 배치가 최종 상태로 남을 수 있다
 // - 떠나도 보낸다 — 언마운트 시 대기 중인 배치를 흘려보내지 않고 마지막으로 한 번 보낸다
@@ -75,6 +80,8 @@ export function useLayoutSaver({
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** 지금 서버에 나가 있는 요청이 있는지 — 있으면 다음 요청은 끝난 뒤에 보낸다 */
   const isSending = useRef(false);
+  /** 지문이 같아도 반드시 보내야 하는 요청인지 (사용자가 저장 을 누른 경우) */
+  const mustSend = useRef(false);
   // 목록 세대. reset() 마다 올라간다.
   // 진행 중이던 응답이 더 새로운 목록을 덮어쓰지 않게 막는 장치다 —
   // 블록을 만들어 재조회가 끝난 뒤 옛 저장 응답이 도착하면 새 블록이 사라진다.
@@ -86,11 +93,12 @@ export function useLayoutSaver({
     handlers.current = { onSaved, onFailed, stepId };
   });
 
-  function send(next: StepBlock[]) {
+  function send(next: StepBlock[], force = false) {
     const rows = computeRows(next);
     const mark = fingerprint(toLayouts(rows));
-    // 옮겼다가 되돌린 경우 — 결과가 저장된 배치와 같으면 보낼 이유가 없다
-    if (mark === confirmedMark.current) return;
+    // 옮겼다가 되돌린 경우 — 결과가 저장된 배치와 같으면 보낼 이유가 없다.
+    // 사용자가 저장 을 누른 경우(force)는 예외다 — 기준이 옳다는 보장이 없다.
+    if (!force && mark === confirmedMark.current) return;
 
     /*
      * version 이 하나라도 없으면 보내지 않는다 — 항목별 락이라 전부 실패한다.
@@ -147,7 +155,10 @@ export function useLayoutSaver({
       });
   }
 
-  function flush() {
+  function flush(force = false) {
+    // 앞 요청이 나가 있으면 이어 보낼 때까지 "반드시 보낸다" 는 표시를 들고 있는다
+    if (force) mustSend.current = true;
+
     if (timer.current) clearTimeout(timer.current);
     timer.current = null;
 
@@ -156,7 +167,11 @@ export function useLayoutSaver({
 
     const next = pending.current;
     pending.current = null;
-    if (next) send(next);
+    if (!next) return;
+
+    const forced = mustSend.current;
+    mustSend.current = false;
+    send(next, forced);
   }
 
   const flushRef = useRef(flush);
@@ -185,10 +200,15 @@ export function useLayoutSaver({
     flushNow() {
       flushRef.current();
     },
+    saveNow(next) {
+      pending.current = next;
+      flushRef.current(true);
+    },
     reset(next) {
       if (timer.current) clearTimeout(timer.current);
       timer.current = null;
       pending.current = null;
+      mustSend.current = false;
       // 진행 중이던 응답이 이 기준을 덮지 않게 세대를 올린다
       generation.current += 1;
       confirmed.current = next;
