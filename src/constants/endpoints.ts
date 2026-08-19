@@ -573,10 +573,8 @@ export const ENDPOINTS = {
     /** 재무 관리 허브의 3개 항목 수치 (입출금 · 세금계산서 · 정산 현황) */
     summary: `${V1}/finance/summary`,
     /**
-     * 정산 현황 — **프로젝트 단위 집계**다.
-     *
-     * ⚠️ 경로가 `/finance` 가 아니라 `/projects` 아래에 있다 (집계 대상이 프로젝트라서).
-     *    다루는 화면은 재무 관리이므로 이 묶음에 둔다.
+     * 정산 현황 — 프로젝트 단위 집계라 경로가 `/finance` 가 아니라 `/projects` 아래다.
+     * 다루는 화면은 재무 관리이므로 이 묶음에 둔다.
      */
     settlements: {
       /** 전사 프로젝트 정산 현황 (페이징 · 정렬) */
@@ -595,12 +593,12 @@ export const ENDPOINTS = {
       /** 연결 대상 제외/포함 — 프로젝트와 무관한 건을 연결 후보에서 뺀다 */
       exclude: `${V1}/finance/cash-flows/exclude`,
       /**
-       * 수정 — csv · api 출처이거나 이미 블록에 연결된 건은 **메모만** 바뀐다.
-       * 나머지 필드는 화면에서 막는다.
+       * 단건 조회(GET — 목록 아이템과 같은 모양) · 수정(PATCH).
+       * 수정은 csv · api 출처이거나 연결된 건이면 메모만 바뀐다 (나머지는 화면에서 막는다).
        */
       detail: (cashFlowId: number | string) =>
         `${V1}/finance/cash-flows/${cashFlowId}`,
-      /** 매칭 추천 — 프로젝트가 아니라 **정산 블록** 후보가 온다 */
+      /** 매칭 추천 — 프로젝트가 아니라 정산 블록 후보가 온다 */
       matchCandidates: (cashFlowId: number | string) =>
         `${V1}/finance/cash-flows/${cashFlowId}/match-candidates`,
       match: (cashFlowId: number | string) =>
@@ -614,25 +612,24 @@ export const ENDPOINTS = {
     },
     /**
      * 세금계산서. 홈택스에서 내려받은 파일을 올려 일괄 수집한다.
-     *
-     * ⚠️ 입출금과 **모양은 닮았지만 다른 리소스**다 — 중복 판정 기준이 승인번호이고,
-     *    매출(`INCOME`) · 매입(`OUTCOME`) 구분을 사람이 고른다.
+     * 입출금과 닮았지만 다른 리소스다 — 중복 판정이 승인번호이고 매출 · 매입을 사람이 고른다.
      */
     taxInvoices: {
       /**
        * 목록 조회(GET) · 다건 삭제(DELETE — body 에 id 배열).
-       *
-       * ⚠️ 입출금 목록과 달리 **페이징이 있다** (`page` · `size`).
-       * ⚠️ 직접 등록(POST)은 없다 — CSV 로만 들어온다.
+       * 직접 등록(POST)은 없다 — CSV 로만 들어온다.
        */
       root: `${V1}/finance/tax-invoices`,
       /** 필터 옵션 — 프로젝트 목록만 내려온다 */
       filters: `${V1}/finance/tax-invoices/filters`,
       /** 연결 대상 제외/포함 — 프로젝트와 무관한 건을 연결 후보에서 뺀다 */
       exclude: `${V1}/finance/tax-invoices/exclude`,
-      /** ⚠️ 수정은 **메모만** 된다 (직접 등록이 없어 나머지는 파일이 원본이다) */
+      /**
+       * 단건 조회(GET — 목록 아이템과 같은 모양) · 수정(PATCH).
+       * 수정은 메모만 된다 — 직접 등록이 없어 나머지는 파일이 원본이다.
+       */
       detail: (taxId: number | string) => `${V1}/finance/tax-invoices/${taxId}`,
-      /** 매칭 추천 — 프로젝트가 아니라 **정산 블록** 후보가 온다 */
+      /** 매칭 추천 — 프로젝트가 아니라 정산 블록 후보가 온다 */
       matchCandidates: (taxId: number | string) =>
         `${V1}/finance/tax-invoices/${taxId}/match-candidates`,
       match: (taxId: number | string) =>

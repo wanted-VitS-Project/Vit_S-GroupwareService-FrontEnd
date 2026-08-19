@@ -3422,7 +3422,7 @@ AI 블록은 채팅형이 아니다. **검토 유형·세부 카테고리를 고
 
 | status | code       | 화면 처리                                        |
 | ------ | ---------- | ------------------------------------------------ |
-| 400    | `SETL-005` | `type` 누락 — 프론트가 항상 붙이므로 나오면 버그 |
+| 400    | `SETL-005` | `type` 누락 · 허용값 아님 — 프론트가 항상 붙이므로 나오면 버그 |
 | 403    | `SETL-001` | 편집 권한 없음                                   |
 | 404    | `SETL-002` | 존재하지 않는 블록                               |
 | 409    | `SETL-006` | **출금 → 입금 타입 변경 불가** (탭을 되돌린다)   |
@@ -5964,6 +5964,7 @@ data: {
 | -------- | --------------------------------------------------- | ------------------------------- |
 | `GET`    | `/finance/summary`                                  | 허브 3개 항목 수치              |
 | `GET`    | `/finance/cash-flows`                               | 목록 (페이징 있음)              |
+| `GET`    | `/finance/cash-flows/{cashFlowId}`                  | **단건 조회** (2026-08-18 추가) |
 | `GET`    | `/finance/cash-flows/filters`                       | 프로젝트 필터 옵션              |
 | `POST`   | `/finance/cash-flows`                               | 직접 등록                       |
 | `PATCH`  | `/finance/cash-flows/{cashFlowId}`                  | 수정                            |
@@ -5992,7 +5993,8 @@ data: {
 | ------------------------------------------------------ | ---------------------------------------- | ------------------------------------------------ |
 | `cashFlowId`                                           | `number`                                 |                                                  |
 | `tradedAt`                                             | `string`                                 | `2026-07-15T10:30:00`                            |
-| `bankTxnId`                                            | `string`                                 | 거래고유번호 — **은행명 + 거래일시**로 자동 생성 |
+| `bankTxnId`                                            | `string`                                 | 거래고유번호 — **은행명 앞 4자 + 거래일시**로 자동 생성 |
+| `bankName`                                             | `string`                                 | 은행명 (2026-08-19 추가)                         |
 | `type`                                                 | `INCOME`·`OUTCOME`                       | 구분                                             |
 | `amount`                                               | `number`                                 | 항상 양수                                        |
 | `depositorName` · `bankMemo`                           | `string`                                 | 입금자명 · 적요                                  |
@@ -6002,14 +6004,24 @@ data: {
 | `isExcluded`                                           | `boolean`                                | 연결 대상 제외                                   |
 | `linkStatus`                                           | `UNLINKED`·`LINKED`·`LINK_BLOCK_DELETED` | 2026-08-10 추가                                  |
 
-**요청 Query** — `startDate` · `endDate` · `unlinked` · `projectId` · `keyword` · `page`(0-base) · `size`(기본 20 · 최대 100) · `sort`
+**요청 Query** — `startDate` · `endDate` · `unlinked` · `projectId` · `keyword` · `type` · `sourceType` · `page`(0-base) · `size`(기본 20 · 최대 100) · `sort`
+
+| 파라미터     | 값                     | 비고                          |
+| ------------ | ---------------------- | ----------------------------- |
+| `type`       | `INCOME` · `OUTCOME`   | 구분 (2026-08-19 추가)        |
+| `sourceType` | `MANUAL` · `CSV` · `API` | 출처 (2026-08-19 추가)      |
+
+조건은 전부 **AND** 로 묶인다.
 
 > ✅ **페이징이 있다** (2026-08-18 확인). 응답이 `{ page, size, totalElements, totalPages, cashFlows[] }` 다 —
 > 예전 기록(`배열 하나가 통째로 온다`)은 틀렸다. 총 건수는 목록 길이가 아니라 `totalElements` 를 쓴다.
-> ❗ **구분 · 출처 필터는 서버에 없다.** 화면에서 거르므로 **지금 페이지 안에서만** 걸러진다 — 화면이 그 사실을 적는다.
-> ❗ **단건 조회 API 가 없다.** 상세 화면은 목록 페이지를 넘기며 찾는다(`findCashFlow`) — 세금계산서도 같다.
-> 건수가 늘면 요청도 늘어나므로 단건 경로를 백엔드에 요청해 둔 상태다.
-> ❗ **`bankName` 이 목록에 없다** (단건 조회 API 도 없다). 수정 폼은 `bankTxnId` 앞부분으로 되읽는다 — 필드가 추가되면 `display.ts` 의 `bankNameFromTxnId` 를 지운다.
+> ✅ **구분 · 출처 필터가 서버에 생겼다** (2026-08-19 백엔드 반영). `type` · `sourceType` 을 그대로 보낸다 —
+> 전체를 받아 화면에서 거르던 방식(`getAllCashFlows`)은 지웠고, `page` · `size` · `totalElements` 가 그대로 맞는다.
+> ✅ **단건 조회가 생겼다** (2026-08-18). `GET /finance/cash-flows/{cashFlowId}` · `GET /finance/tax-invoices/{taxId}` —
+> 응답은 목록 아이템(`CashFlowItem` · `TaxInvoiceItem`)과 **같은 모양**이고, 없는 ID 는 404 다.
+> 상세 화면이 목록을 넘기며 찾던 방식(`findCashFlow` · `findTaxInvoice`)은 지웠다.
+> ✅ **`bankName` 이 목록 · 단건 응답에 실린다** (2026-08-19 백엔드 `#433`). `bankTxnId` 앞부분을 잘라 되읽던
+> `display.ts` 의 `bankNameFromTxnId` 는 지웠다 — 접두어가 **앞 4자**라 `카카오뱅크` 가 `카카오뱅` 으로 잘렸다.
 
 ### 정산 현황 (2026-08-17 연동)
 
@@ -6108,23 +6120,20 @@ body 는 등록과 같은 모양이고 전부 선택이다.
 | 400     | `FINANCE_CSV_MAPPING_REQUIRED`  | 필수 컬럼 매핑 누락                                 |
 | **404** | `FINANCE_INVALID_CSV_FILE`      | ❗ **형식 오류가 404 다** — '없는 리소스' 가 아니다 |
 
-> ❗ **`request` 파트의 JSON 스키마가 스웨거에 없다.** 미리보기 응답의 키에 `bankName` ·
-> `dateTimeMode` · `amountMode` 를 더한 모양으로 보내고 있다 (`types.ts` 의 `CsvUploadRequest`).
-> ❗ **엑셀 시간 전용 셀이 `1899-12-31 HH:mm:ss` 로 파싱된다** — 엑셀이 시각만 있는 셀을
-> "0일차 + 시각" 으로 저장하기 때문이다. 시간 컬럼은 **시각만** 취해야 한다 (백엔드 대기).
-> ❗ **단건 조회 API 가 없다** — 상세 화면은 목록을 받아 그 안에서 찾는다.
+> ✅ **`request` 파트는 스웨거에 `type: string` 으로만 보이지만 스펙은 확정돼 있다** (2026-08-19 백엔드
+> DTO 대조). 백엔드가 문자열로 받아 직접 파싱해서 그렇고, `CashFlowCsvUploadRequest` 와
+> `types.ts` 의 `CsvUploadRequest` 가 14개 필드 1:1 로 일치한다.
+> ✅ **엑셀 시간 전용 셀 파싱은 2026-08-13 백엔드에서 고쳤다** — 시간 컬럼은 시각만 취하고,
+> 접두부가 날짜로 안 읽히면 `FINANCE_CSV_MAPPING_REQUIRED` 로 거부한다.
 
-### ⚠️ 백엔드 대기
+### 백엔드 대기 (2026-08-19 소스 대조 기준)
 
-| 내용                                                                                                                  |
-| --------------------------------------------------------------------------------------------------------------------- |
-| `PATCH /blocks/settlements/{id}/items` — `?type=` 을 실어 보내도 컨트롤러에서 null 이라 **500 NPE** (파라미터 바인딩) |
-| 목록 응답에 `bankName` 추가 (또는 단건 조회 API)                                                                      |
-| 정산 블록 `detail` 에 **연결 여부 플래그** — 지금은 정산 상태로 추정한다                                              |
-| 엑셀 시간 전용 셀 파싱 (`1899-12-31 …`) — CSV 업로드가 막혀 있다                                                      |
-| `request` 파트 JSON 스키마 공개 (입출금 · 세금계산서 둘 다)                                                           |
-| `GET /finance/cash-flows/{cashFlowId}` 단건 조회                                                                      |
-| `GET /finance/tax-invoices/{taxId}` 단건 조회 — 지금은 **목록을 넘겨 가며 찾는다**                                    |
+| 내용                                              |
+| ------------------------------------------------- |
+| 목록 · 단건 조회 응답에 `bankName` 추가 — 유일한 대기 건 |
+
+이전 표에 있던 나머지 5건은 반영됐거나 문제가 아니었다. 자세한 대조는
+`.ai/local/REQUEST-backend.md` 의 `해결된 항목` 표를 본다.
 
 ### 세금계산서 — `/finance/tax-invoices` (2026-08-14 스웨거 실측 · 연동 완료)
 
@@ -6133,6 +6142,7 @@ body 는 등록과 같은 모양이고 전부 선택이다.
 | 메서드   | 경로                                             | 설명                                             |
 | -------- | ------------------------------------------------ | ------------------------------------------------ |
 | `GET`    | `/finance/tax-invoices`                          | 목록 — ⚠️ **페이징 있음** (`page`·`size`·`sort`) |
+| `GET`    | `/finance/tax-invoices/{taxId}`                  | **단건 조회** (2026-08-18 추가)                  |
 | `DELETE` | `/finance/tax-invoices`                          | 다건 삭제 (body 에 `taxIds`)                     |
 | `GET`    | `/finance/tax-invoices/filters`                  | 프로젝트 옵션                                    |
 | `PATCH`  | `/finance/tax-invoices/exclude`                  | 연결 대상 제외/포함 (`taxIds` · `isExcluded`)    |

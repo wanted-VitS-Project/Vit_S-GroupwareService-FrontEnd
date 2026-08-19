@@ -13,7 +13,7 @@ import { messageOf } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import { useModal } from '@/lib/useModal';
 
-import { deleteCashFlows, findCashFlow, unmatchCashFlow } from './api';
+import { deleteCashFlows, getCashFlow, unmatchCashFlow } from './api';
 import CashFlowFormModal from './CashFlowFormModal';
 import CashFlowMatchModal from './CashFlowMatchModal';
 import {
@@ -31,7 +31,7 @@ import {
 } from './types';
 
 /**
- * 입출금 내역 상세. 단건 조회 API 가 없어 목록에서 찾는다.
+ * 입출금 내역 상세. 단건 조회 API 로 한 건만 받아온다 (2026-08-18 연동).
  * 표에 두기 어려운 값을 보여주고 수정 · 연결 · 삭제도 여기서 한다.
  */
 export default function CashFlowDetail({ cashFlowId }: { cashFlowId: number }) {
@@ -61,16 +61,10 @@ export default function CashFlowDetail({ cashFlowId }: { cashFlowId: number }) {
     const controller = new AbortController();
     const { signal } = controller;
 
-    findCashFlow(cashFlowId, signal)
-      .then((found) => {
-        setResult(
-          found
-            ? { key: requestKey, row: found }
-            : { key: requestKey, hasFailed: true },
-        );
-      })
+    getCashFlow(cashFlowId, signal)
+      .then((found) => setResult({ key: requestKey, row: found }))
       .catch(() => {
-        // 취소는 실패가 아니다
+        // 취소는 실패가 아니다. 없는 ID(404)도 같은 실패 화면으로 받는다
         if (!signal.aborted) setResult({ key: requestKey, hasFailed: true });
       });
 

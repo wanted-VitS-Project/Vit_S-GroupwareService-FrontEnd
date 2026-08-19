@@ -15,7 +15,7 @@ import { useModal } from '@/lib/useModal';
 
 import {
   deleteTaxInvoices,
-  findTaxInvoice,
+  getTaxInvoice,
   unmatchTaxInvoice,
   updateTaxInvoiceExclusion,
   updateTaxInvoiceMemo,
@@ -31,23 +31,13 @@ import {
 } from './types';
 
 /**
- * 세금계산서 상세. (#17)
- *
- * 화면 구성은 **입출금 상세와 같다** — 머리에 금액 · 배지 · 동작 버튼을 두고,
- * 아래를 `세금계산서 정보` · `정산 블록 연결` 두 카드로 나눈다. 두 화면을 오가며
- * 쓰는 자리라 배치가 다르면 매번 눈이 다시 찾는다.
- *
- * ⚠️ **단건 조회 API 가 없다** — 목록에서 찾는다 (`findTaxInvoice`).
- *    입출금과 달리 목록에 페이징이 있어 페이지를 넘겨 가며 찾는다.
- * ⚠️ 세금계산서는 **메모만** 고칠 수 있다 — 나머지는 파일이 원본이라 수정 폼이 없다.
+ * 세금계산서 상세. (#17) 화면 구성은 입출금 상세와 같다 — 오가며 쓰는 자리라 배치를 맞춘다.
+ * 메모만 고칠 수 있다 — 나머지는 파일이 원본이라 수정 폼이 없다.
  */
 export default function TaxInvoiceDetail({ taxId }: { taxId: number }) {
   const router = useRouter();
 
-  /**
-   * 어떤 요청의 결과인지 `key` 로 들고 있는다 — 입출금 상세와 같은 방식이다.
-   * 다시 읽는 동안 화면을 비우지 않고 직전 값을 그대로 둔다.
-   */
+  /** 어떤 요청의 결과인지 `key` 로 들고 있는다. 다시 읽는 동안 직전 값을 그대로 둔다 */
   const [result, setResult] = useState<{
     key: string;
     row?: TaxInvoiceItem;
@@ -69,16 +59,10 @@ export default function TaxInvoiceDetail({ taxId }: { taxId: number }) {
     const controller = new AbortController();
     const { signal } = controller;
 
-    findTaxInvoice(taxId, signal)
-      .then((found) => {
-        setResult(
-          found
-            ? { key: requestKey, row: found }
-            : { key: requestKey, hasFailed: true },
-        );
-      })
+    getTaxInvoice(taxId, signal)
+      .then((found) => setResult({ key: requestKey, row: found }))
       .catch(() => {
-        // 취소는 실패가 아니다
+        // 취소는 실패가 아니다. 없는 ID(404)도 같은 실패 화면으로 받는다
         if (!signal.aborted) setResult({ key: requestKey, hasFailed: true });
       });
 
@@ -179,9 +163,8 @@ export default function TaxInvoiceDetail({ taxId }: { taxId: number }) {
   }
 
   /**
-   * ⚠️ **직전 값이 있으면 스켈레톤으로 덮지 않는다.** 메모 저장 · 연결 해제 · 제외를
-   *    누를 때마다 다시 읽는데, 그때마다 화면이 통째로 사라졌다 나타나면 자리를 잃는다.
-   *    처음 열 때(값이 아직 없을 때)만 스켈레톤을 그린다.
+   * 직전 값이 있으면 스켈레톤으로 덮지 않는다 — 저장할 때마다 화면이 사라지면 자리를 잃는다.
+   * 처음 열 때(값이 아직 없을 때)만 스켈레톤을 그린다.
    */
   if (row === null) {
     return (
@@ -356,11 +339,7 @@ export default function TaxInvoiceDetail({ taxId }: { taxId: number }) {
 }
 
 /**
- * 메모.
- *
- * ⚠️ 세금계산서에서 **고칠 수 있는 것은 이것뿐이다** — 나머지는 파일이 원본이라
- *    화면에서 바꾸면 원본과 어긋난다 (직접 등록 API 자체가 없다).
- *    그래서 입출금처럼 `수정` 모달을 두지 않고 카드 안에서 바로 고친다.
+ * 메모. 세금계산서에서 고칠 수 있는 것은 이것뿐이라 `수정` 모달 없이 카드 안에서 바로 고친다.
  */
 function MemoCard({
   taxId,

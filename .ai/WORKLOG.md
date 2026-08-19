@@ -6,9 +6,78 @@
 
 ---
 
-## [2026-08-19] 사원 API 옵션 3건 연동 · 약관 2종 분리 동의 🚧
+## [2026-08-19] 재무 단건 조회 연동 · 입출금 구분 · 출처 서버 필터 ✅
 
-이슈: #TBD · 브랜치: `feat/employee-api-options` · 상태: 🚧 진행 중 (동작 확인 대기)
+브랜치: `feat/finance-single-fetch` · 상태: 🚧 진행 중 (동작 확인 대기)
+
+백엔드가 입출금 · 세금계산서 **단건 조회**를 열어 상세 화면의 목록 순회를 걷어냈다.
+같이 요청했던 **구분 · 출처 서버 필터**(`type` · `sourceType`)도 반영돼,
+전체를 받아 화면에서 거르던 임시 갈래를 통째로 지웠다.
+
+### 변경 파일
+
+| 파일                                        | 변경                                                                                   |
+| ------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `src/features/finance/api.ts`               | 수정 — `findCashFlow` · `findTaxInvoice` · `getAllCashFlows` 삭제, `getCashFlow` · `getTaxInvoice` 추가, `toSearch` 에 `type` · `sourceType` |
+| `src/features/finance/types.ts`             | 수정 — `CashFlowListQuery` 에 `type` · `sourceType` 추가                              |
+| `src/features/finance/CashFlowList.tsx`     | 수정 — 화면 필터 · 화면 페이징 제거, 총 건수 · 쪽수 · 선택 키를 서버 기준으로 되돌림  |
+| `src/features/finance/CashFlowDetail.tsx`   | 수정 — 단건 조회 호출, `found === null` 분기 제거                                      |
+| `src/features/finance/TaxInvoiceDetail.tsx` | 수정 — 동일                                                                            |
+| `src/constants/endpoints.ts`                | 수정 — `detail` 주석에 GET 용도 추가                                                   |
+| `.ai/API.md` · `.ai/local/STATE.md`         | 수정 — 단건 조회 · 서버 필터 반영                                                      |
+
+### 주요 작업 내용
+
+- **단건 조회 연동** — 상세 한 번에 최대 100회 나가던 목록 순회를 1회 호출로 바꿨다. 없는 ID 는 404 로 떨어져 기존 실패 화면이 그대로 받는다
+- **구분 · 출처 서버 필터** — URL 의 `type` · `source` 를 서버 파라미터 `type` · `sourceType` 으로 실어 보낸다. 나머지 조건과 AND 로 묶인다
+- **화면 필터 갈래 제거** — `getAllCashFlows`(조건별 전체 수집) · 화면 슬라이싱 · `viewKey` · "화면에서 거릅니다" 안내 문구를 지웠다. `page` · `size` · `totalElements` · `totalPages` 를 서버 값 그대로 쓴다
+
+### 트러블슈팅
+
+- **필터를 켜면 요청이 폭증했다** — 총 건수 · 쪽수를 맞추려고 `size=100` 으로 전부 긁어 1만 건이면 100회가 나갔다. 서버 필터가 생기며 1회로 돌아왔다
+- **stash pop 충돌이 남아 있었다** — `WORKLOG.md` 는 양쪽 기록을 모두 살리고, `CashFlowList.tsx` 는 충돌 구간이 전부 이번에 지워질 주석이라 새 내용으로 덮었다
+
+### 백엔드 요청 목록 실물 대조 (2026-08-19)
+
+`.ai/local/REQUEST-backend.md` 의 재무 요청 5건을 백엔드 소스와 직접 맞춰 봤다. 3건이 이미
+해결돼 있었고 1건은 애초에 문제가 아니었다 — 그 문서가 스웨거만 보고 쓰여 낡아 있었다.
+
+| 항목                       | 실제 상태                                        |
+| -------------------------- | ------------------------------------------------ |
+| 구분 · 출처 필터            | 반영 (`ba63268a`) — 이번 연동 대상               |
+| CSV `request` 스키마        | 문제 아님 — DTO 와 우리 타입이 14필드 1:1        |
+| 엑셀 시간 전용 셀 파싱      | 2026-08-13 수정됨 (`c0b83fba`, 우리 제보로 고침) |
+| 정산 항목 `PATCH ?type` 500 | 수정됨 — 지금은 400 `SETL-005`                   |
+| 정산 블록 연결 플래그       | 요청 철회 — 정산 상태 추정으로 충분              |
+| 목록 응답 `bankName`        | 요청 → 같은 날 반영 (`#433`) · 아래 참고         |
+
+### 이어진 작업 — `bankName` 연동 (백엔드 `#433`)
+
+| 파일                                         | 변경                                            |
+| -------------------------------------------- | ----------------------------------------------- |
+| `src/features/finance/types.ts`              | 수정 — `CashFlowItem.bankName` 추가             |
+| `src/features/finance/CashFlowFormModal.tsx` | 수정 — `row.bankName` 을 초기값으로 그대로 쓴다 |
+| `src/features/finance/display.ts`            | 수정 — `bankNameFromTxnId` 삭제                 |
+
+- **수정 모달의 은행명이 잘려 들어오던 문제가 사라졌다** — `bankTxnId` 접두어가 앞 4자라
+  `카카오뱅크` 가 `카카오뱅` 으로 들어왔고, 그대로 저장하면 `bank_name` 이 덮여
+  `uk_cash_flow_dedup(company_id, bank_name, traded_at, amount)` 키까지 어긋났다
+
+### 부수 결정
+
+- **요청 문안은 백엔드 소스를 보고 쓴다** — 스웨거로는 판정할 수 없는 자리가 둘 있다.
+  `@RequestParam(required = false)` + `@Parameter(required = true)` 조합, 그리고 `@RequestPart`
+  를 문자열로 받아 직접 파싱하는 자리(스웨거엔 `type: string` 으로만 보인다)
+- **주석은 1줄 기본 · 2줄 상한 · 이모지 없음** — 이 브랜치가 건드린 6개 파일에 적용했다.
+  배경 설명은 코드 옆이 아니라 `.ai/` 문서가 맡는다
+- **URL 키는 `source` 로 둔다** — 서버 이름(`sourceType`)과 다르지만 이미 나간 링크가 있고, 매핑은 조회 함수 한 줄이다
+- **쪽 번호를 다시 요청 키에 넣는다** — 서버가 쪽을 나누므로 쪽을 넘기면 재조회가 맞다. 선택(체크박스) 초기화도 이 키 하나로 충분해져 `viewKey` 가 필요 없어졌다
+
+---
+
+## [2026-08-19] 사원 API 옵션 3건 연동 · 약관 2종 분리 동의 ✅
+
+이슈: #220 · 브랜치: `feat/employee-api-options` · 상태: ✅ develop 머지 완료
 
 백엔드 `#431` · `#432` 로 인사 도메인에 옵션 3건이 들어와 연동했다. 모두 기본값 `false` 라
 연동 전에도 화면은 그대로였고, 새 기능과 부서 인원 수 불일치만 이번에 반영된다.

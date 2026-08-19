@@ -13,16 +13,6 @@ export function formatAmount(value: number | null | undefined) {
     : '-';
 }
 
-/**
- * 거래고유번호에서 은행명을 되읽는다. 목록 응답에 은행명이 없어서다.
- * 형식 변화에 강하도록 첫 하이픈 앞을 그대로 쓰고, 없으면 빈 값을 준다.
- */
-export function bankNameFromTxnId(bankTxnId: string) {
-  const [name, ...rest] = bankTxnId.split('-');
-
-  return rest.length > 0 ? name : '';
-}
-
 /** 입금은 파랑, 출금은 빨강. 금액 글자색도 같은 기준을 쓴다 */
 export const CASH_FLOW_TYPE_BADGE: Record<CashFlowType, string> = {
   INCOME: 'badge badge-blue',

@@ -9,6 +9,7 @@ import {
   TextField,
 } from '@/features/bidding/FormFields';
 import { messageOf } from '@/lib/api';
+import { focusInvalidField } from '@/lib/focusField';
 
 import { uploadCashFlowCsv } from './api';
 import {
@@ -55,10 +56,13 @@ export default function CashFlowCsvMapping({
   onUploaded: (result: CsvUploadResult) => void;
   onBack: () => void;
 }) {
-  const [bankName, setBankName] = useState(preview.bankOptions[0] ?? '');
+  /** 자동으로 잡지 않는다 — 파일에서 추론한 은행이 틀려도 사람이 눈치채지 못한다 */
+  const [bankName, setBankName] = useState('');
   const [isBankCustom, setIsBankCustom] = useState(
     preview.bankOptions.length === 0,
   );
+  /** 제출을 눌러 본 뒤에만 빈 칸을 빨갛게 칠한다 (열자마자 붉은 화면이 되지 않게) */
+  const [hasTriedSubmit, setHasTriedSubmit] = useState(false);
   const [dateTimeMode, setDateTimeMode] = useState<CsvDateTimeMode>(
     preview.recommendedDateTimeMode,
   );
@@ -73,6 +77,12 @@ export default function CashFlowCsvMapping({
 
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  /** 제출을 눌러 본 뒤 비어 있을 때만 나온다 */
+  const bankError =
+    hasTriedSubmit && bankName.trim() === ''
+      ? '은행명을 입력해주세요.'
+      : undefined;
 
   function setColumn(field: MappingField, value: string | null) {
     setMapping((prev) => ({ ...prev, [field]: value }));
@@ -114,9 +124,12 @@ export default function CashFlowCsvMapping({
     event.preventDefault();
     if (isSubmitting) return;
 
+    setHasTriedSubmit(true);
+
     const message = validate();
     if (message) {
       setError(message);
+      if (bankName.trim() === '') focusInvalidField('csvBankName');
       return;
     }
 
@@ -192,7 +205,8 @@ export default function CashFlowCsvMapping({
                   label="은행명"
                   required
                   value={bankName}
-                  placeholder="신한은행"
+                  placeholder="은행명을 입력하세요"
+                  error={bankError}
                   onChange={setBankName}
                 />
                 {preview.bankOptions.length > 0 && (
@@ -200,7 +214,7 @@ export default function CashFlowCsvMapping({
                     type="button"
                     onClick={() => {
                       setIsBankCustom(false);
-                      setBankName(preview.bankOptions[0] ?? '');
+                      setBankName('');
                     }}
                     className="mt-1 cursor-pointer text-micro text-text-primary-blue hover:underline"
                   >
@@ -214,6 +228,8 @@ export default function CashFlowCsvMapping({
                 label="은행명"
                 required
                 value={bankName}
+                emptyLabel="은행을 선택하세요"
+                error={bankError}
                 options={[
                   ...preview.bankOptions.map((bank) => ({
                     value: bank,
